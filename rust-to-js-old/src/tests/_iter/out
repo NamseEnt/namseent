@@ -1,0 +1,996 @@
+DefId(0:8 ~ _ter[2072]::{impl#0}::print):
+params: [
+    Param {
+        ty: &'{erased} StructA
+        ty_span: None
+        self_kind: Some(RefImm)
+        hir_id: Some(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).1))
+        param: Some( 
+            Pat: {
+                ty: &'{erased} StructA
+                span: src/main.rs:6:14: 6:19 (#0)
+                kind: PatKind {
+                    Binding {
+                        name: "self"
+                        mode: BindingMode(No, Not)
+                        var: LocalVarId(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).2))
+                        ty: &'{erased} StructA
+                        is_primary: true
+                        is_shorthand: false
+                        subpattern: None
+                    }
+                }
+            }
+        )
+    }
+]
+body:
+    Expr {
+        ty: ()
+        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(21)), backwards_incompatible: None }
+        span: src/main.rs:6:21: 8:6 (#0)
+        kind: 
+            Scope {
+                region_scope: Node(21)
+                lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).21))
+                value:
+                    Expr {
+                        ty: ()
+                        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(21)), backwards_incompatible: None }
+                        span: src/main.rs:6:21: 8:6 (#0)
+                        kind: 
+                            Block {
+                                targeted_by_break: false
+                                span: src/main.rs:6:21: 8:6 (#0)
+                                region_scope: Node(3)
+                                safety_mode: Safe
+                                stmts: [
+                                    Stmt {
+                                        kind: Expr {
+                                            scope: Node(20)
+                                            expr:
+                                                Expr {
+                                                    ty: ()
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(20)), backwards_incompatible: None }
+                                                    span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#4)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(4)
+                                                            lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).4))
+                                                            value:
+                                                                Expr {
+                                                                    ty: ()
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(20)), backwards_incompatible: None }
+                                                                    span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#4)
+                                                                    kind: 
+                                                                        Block {
+                                                                            targeted_by_break: false
+                                                                            span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#4)
+                                                                            region_scope: Node(5)
+                                                                            safety_mode: Safe
+                                                                            stmts: [
+                                                                                Stmt {
+                                                                                    kind: Expr {
+                                                                                        scope: Node(19)
+                                                                                        expr:
+                                                                                            Expr {
+                                                                                                ty: ()
+                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#4)
+                                                                                                kind: 
+                                                                                                    Scope {
+                                                                                                        region_scope: Node(6)
+                                                                                                        lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).6))
+                                                                                                        value:
+                                                                                                            Expr {
+                                                                                                                ty: ()
+                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#4)
+                                                                                                                kind: 
+                                                                                                                    Call {
+                                                                                                                        ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                        from_hir_call: true
+                                                                                                                        fn_span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#4)
+                                                                                                                        fun:
+                                                                                                                            Expr {
+                                                                                                                                ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:27 (#4)
+                                                                                                                                kind: 
+                                                                                                                                    Scope {
+                                                                                                                                        region_scope: Node(7)
+                                                                                                                                        lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).7))
+                                                                                                                                        value:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:27 (#4)
+                                                                                                                                                kind: 
+                                                                                                                                                    ZstLiteral(user_ty: None)
+                                                                                                                                            }
+                                                                                                                                    }
+                                                                                                                            }
+                                                                                                                        args: [
+                                                                                                                            Expr {
+                                                                                                                                ty: std::fmt::Arguments<'{erased}>
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#5)
+                                                                                                                                kind: 
+                                                                                                                                    Scope {
+                                                                                                                                        region_scope: Node(11)
+                                                                                                                                        lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).11))
+                                                                                                                                        value:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: std::fmt::Arguments<'{erased}>
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#5)
+                                                                                                                                                kind: 
+                                                                                                                                                    Call {
+                                                                                                                                                        ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                        from_hir_call: true
+                                                                                                                                                        fn_span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#5)
+                                                                                                                                                        fun:
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#9)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    Scope {
+                                                                                                                                                                        region_scope: Node(18)
+                                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).18))
+                                                                                                                                                                        value:
+                                                                                                                                                                            Expr {
+                                                                                                                                                                                ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#9)
+                                                                                                                                                                                kind: 
+                                                                                                                                                                                    ZstLiteral(user_ty: Some(Canonical { value: UserType { kind: TypeOf(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), UserArgs { args: ['^c_0, ^c_BoundConst { var: 1 }], user_self_ty: Some(UserSelfTy { impl_def_id: DefId(2:12089 ~ core[d331]::fmt::rt::{impl#1}), self_ty: std::fmt::Arguments<'^c_2> }) }), bounds: [] }, max_universe: U0, variables: [Region(U0), Const(U0), Region(U0)] }))
+                                                                                                                                                                            }
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                        args: [
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    Scope {
+                                                                                                                                                                        region_scope: Node(14)
+                                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).14))
+                                                                                                                                                                        value:
+                                                                                                                                                                            Expr {
+                                                                                                                                                                                ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                kind: 
+                                                                                                                                                                                    Borrow (
+                                                                                                                                                                                        borrow_kind: Shared
+                                                                                                                                                                                        arg:
+                                                                                                                                                                                            Expr {
+                                                                                                                                                                                                ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                kind: 
+                                                                                                                                                                                                    Deref {
+                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                            ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                            span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                Borrow (
+                                                                                                                                                                                                                    borrow_kind: Shared
+                                                                                                                                                                                                                    arg:
+                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                            ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                            span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                Scope {
+                                                                                                                                                                                                                                    region_scope: Node(13)
+                                                                                                                                                                                                                                    lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).13))
+                                                                                                                                                                                                                                    value:
+                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                            ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                            span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                Array {
+                                                                                                                                                                                                                                                    fields: [
+                                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                                            ty: &'{erased} str
+                                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                                            span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                                Scope {
+                                                                                                                                                                                                                                                                    region_scope: Node(12)
+                                                                                                                                                                                                                                                                    lint_level: Explicit(HirId(DefId(0:8 ~ _ter[2072]::{impl#0}::print).12))
+                                                                                                                                                                                                                                                                    value:
+                                                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                                                            ty: &'{erased} str
+                                                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                                                            span: src/main.rs:7:18: 7:27 (#0)
+                                                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                                                Literal( lit: Spanned { node: Str("StructA\n", Cooked), span: src/main.rs:7:18: 7:27 (#0) }, neg: false)
+
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                )
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                            }
+                                                                                                                                                                                    )
+                                                                                                                                                                            }
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                        ]
+                                                                                                                                                    }
+                                                                                                                                            }
+                                                                                                                                    }
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                            }
+                                                                                                    }
+                                                                                            }
+                                                                                    }
+                                                                                }
+                                                                            ]
+                                                                            expr: []
+                                                                        }
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                    }
+                                ]
+                                expr: []
+                            }
+                    }
+            }
+    }
+
+
+DefId(0:12 ~ _ter[2072]::{impl#1}::print):
+params: [
+    Param {
+        ty: &'{erased} StructA
+        ty_span: None
+        self_kind: Some(RefImm)
+        hir_id: Some(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).1))
+        param: Some( 
+            Pat: {
+                ty: &'{erased} StructA
+                span: src/main.rs:15:14: 15:19 (#0)
+                kind: PatKind {
+                    Binding {
+                        name: "self"
+                        mode: BindingMode(No, Not)
+                        var: LocalVarId(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).2))
+                        ty: &'{erased} StructA
+                        is_primary: true
+                        is_shorthand: false
+                        subpattern: None
+                    }
+                }
+            }
+        )
+    }
+]
+body:
+    Expr {
+        ty: ()
+        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(21)), backwards_incompatible: None }
+        span: src/main.rs:15:21: 17:6 (#0)
+        kind: 
+            Scope {
+                region_scope: Node(21)
+                lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).21))
+                value:
+                    Expr {
+                        ty: ()
+                        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(21)), backwards_incompatible: None }
+                        span: src/main.rs:15:21: 17:6 (#0)
+                        kind: 
+                            Block {
+                                targeted_by_break: false
+                                span: src/main.rs:15:21: 17:6 (#0)
+                                region_scope: Node(3)
+                                safety_mode: Safe
+                                stmts: [
+                                    Stmt {
+                                        kind: Expr {
+                                            scope: Node(20)
+                                            expr:
+                                                Expr {
+                                                    ty: ()
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(20)), backwards_incompatible: None }
+                                                    span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#6)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(4)
+                                                            lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).4))
+                                                            value:
+                                                                Expr {
+                                                                    ty: ()
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(20)), backwards_incompatible: None }
+                                                                    span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#6)
+                                                                    kind: 
+                                                                        Block {
+                                                                            targeted_by_break: false
+                                                                            span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:142:23: 144:6 (#6)
+                                                                            region_scope: Node(5)
+                                                                            safety_mode: Safe
+                                                                            stmts: [
+                                                                                Stmt {
+                                                                                    kind: Expr {
+                                                                                        scope: Node(19)
+                                                                                        expr:
+                                                                                            Expr {
+                                                                                                ty: ()
+                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#6)
+                                                                                                kind: 
+                                                                                                    Scope {
+                                                                                                        region_scope: Node(6)
+                                                                                                        lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).6))
+                                                                                                        value:
+                                                                                                            Expr {
+                                                                                                                ty: ()
+                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#6)
+                                                                                                                kind: 
+                                                                                                                    Call {
+                                                                                                                        ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                        from_hir_call: true
+                                                                                                                        fn_span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:62 (#6)
+                                                                                                                        fun:
+                                                                                                                            Expr {
+                                                                                                                                ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:27 (#6)
+                                                                                                                                kind: 
+                                                                                                                                    Scope {
+                                                                                                                                        region_scope: Node(7)
+                                                                                                                                        lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).7))
+                                                                                                                                        value:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: FnDef(DefId(1:3792 ~ std[afe2]::io::stdio::_print), [])
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:9: 143:27 (#6)
+                                                                                                                                                kind: 
+                                                                                                                                                    ZstLiteral(user_ty: None)
+                                                                                                                                            }
+                                                                                                                                    }
+                                                                                                                            }
+                                                                                                                        args: [
+                                                                                                                            Expr {
+                                                                                                                                ty: std::fmt::Arguments<'{erased}>
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#7)
+                                                                                                                                kind: 
+                                                                                                                                    Scope {
+                                                                                                                                        region_scope: Node(11)
+                                                                                                                                        lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).11))
+                                                                                                                                        value:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: std::fmt::Arguments<'{erased}>
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#7)
+                                                                                                                                                kind: 
+                                                                                                                                                    Call {
+                                                                                                                                                        ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                        from_hir_call: true
+                                                                                                                                                        fn_span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#7)
+                                                                                                                                                        fun:
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#11)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    Scope {
+                                                                                                                                                                        region_scope: Node(18)
+                                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).18))
+                                                                                                                                                                        value:
+                                                                                                                                                                            Expr {
+                                                                                                                                                                                ty: FnDef(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), ['{erased}, 1_usize])
+                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                span: /Users/namse/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/macros.rs:143:28: 143:61 (#11)
+                                                                                                                                                                                kind: 
+                                                                                                                                                                                    ZstLiteral(user_ty: Some(Canonical { value: UserType { kind: TypeOf(DefId(2:12091 ~ core[d331]::fmt::rt::{impl#1}::new_const), UserArgs { args: ['^c_0, ^c_BoundConst { var: 1 }], user_self_ty: Some(UserSelfTy { impl_def_id: DefId(2:12089 ~ core[d331]::fmt::rt::{impl#1}), self_ty: std::fmt::Arguments<'^c_2> }) }), bounds: [] }, max_universe: U0, variables: [Region(U0), Const(U0), Region(U0)] }))
+                                                                                                                                                                            }
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                        args: [
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    Scope {
+                                                                                                                                                                        region_scope: Node(14)
+                                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).14))
+                                                                                                                                                                        value:
+                                                                                                                                                                            Expr {
+                                                                                                                                                                                ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                kind: 
+                                                                                                                                                                                    Borrow (
+                                                                                                                                                                                        borrow_kind: Shared
+                                                                                                                                                                                        arg:
+                                                                                                                                                                                            Expr {
+                                                                                                                                                                                                ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                kind: 
+                                                                                                                                                                                                    Deref {
+                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                            ty: &'{erased} [&'{erased} str; 1_usize]
+                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                            span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                Borrow (
+                                                                                                                                                                                                                    borrow_kind: Shared
+                                                                                                                                                                                                                    arg:
+                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                            ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                            span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                Scope {
+                                                                                                                                                                                                                                    region_scope: Node(13)
+                                                                                                                                                                                                                                    lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).13))
+                                                                                                                                                                                                                                    value:
+                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                            ty: [&'{erased} str; 1_usize]
+                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                            span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                Array {
+                                                                                                                                                                                                                                                    fields: [
+                                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                                            ty: &'{erased} str
+                                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                                            span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                                Scope {
+                                                                                                                                                                                                                                                                    region_scope: Node(12)
+                                                                                                                                                                                                                                                                    lint_level: Explicit(HirId(DefId(0:12 ~ _ter[2072]::{impl#1}::print).12))
+                                                                                                                                                                                                                                                                    value:
+                                                                                                                                                                                                                                                                        Expr {
+                                                                                                                                                                                                                                                                            ty: &'{erased} str
+                                                                                                                                                                                                                                                                            temp_lifetime: TempLifetime { temp_lifetime: Some(Node(19)), backwards_incompatible: None }
+                                                                                                                                                                                                                                                                            span: src/main.rs:16:18: 16:27 (#0)
+                                                                                                                                                                                                                                                                            kind: 
+                                                                                                                                                                                                                                                                                Literal( lit: Spanned { node: Str("StructA\n", Cooked), span: src/main.rs:16:18: 16:27 (#0) }, neg: false)
+
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                )
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                            }
+                                                                                                                                                                                    )
+                                                                                                                                                                            }
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                        ]
+                                                                                                                                                    }
+                                                                                                                                            }
+                                                                                                                                    }
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    }
+                                                                                                            }
+                                                                                                    }
+                                                                                            }
+                                                                                    }
+                                                                                }
+                                                                            ]
+                                                                            expr: []
+                                                                        }
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                    }
+                                ]
+                                expr: []
+                            }
+                    }
+            }
+    }
+
+
+DefId(0:13 ~ _ter[2072]::main):
+params: [
+]
+body:
+    Expr {
+        ty: ()
+        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(36)), backwards_incompatible: None }
+        span: src/main.rs:20:11: 26:2 (#0)
+        kind: 
+            Scope {
+                region_scope: Node(36)
+                lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).36))
+                value:
+                    Expr {
+                        ty: ()
+                        temp_lifetime: TempLifetime { temp_lifetime: Some(Node(36)), backwards_incompatible: None }
+                        span: src/main.rs:20:11: 26:2 (#0)
+                        kind: 
+                            Block {
+                                targeted_by_break: false
+                                span: src/main.rs:20:11: 26:2 (#0)
+                                region_scope: Node(1)
+                                safety_mode: Safe
+                                stmts: [
+                                    Stmt {
+                                        kind: Let {
+                                            remainder_scope: Remainder { block: 1, first_statement_index: 0}
+                                            init_scope: Node(2)
+                                            pattern: 
+                                                Pat: {
+                                                    ty: i32
+                                                    span: src/main.rs:21:9: 21:10 (#0)
+                                                    kind: PatKind {
+                                                        Binding {
+                                                            name: "b"
+                                                            mode: BindingMode(No, Not)
+                                                            var: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).5))
+                                                            ty: i32
+                                                            is_primary: true
+                                                            is_shorthand: false
+                                                            subpattern: None
+                                                        }
+                                                    }
+                                                }
+                                            ,
+                                            initializer: Some(
+                                                Expr {
+                                                    ty: i32
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(2)), backwards_incompatible: None }
+                                                    span: src/main.rs:21:13: 21:14 (#0)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(3)
+                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).3))
+                                                            value:
+                                                                Expr {
+                                                                    ty: i32
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(2)), backwards_incompatible: None }
+                                                                    span: src/main.rs:21:13: 21:14 (#0)
+                                                                    kind: 
+                                                                        Literal( lit: Spanned { node: Int(Pu128(4), Unsuffixed), span: src/main.rs:21:13: 21:14 (#0) }, neg: false)
+
+                                                                }
+                                                        }
+                                                }
+                                            )
+                                            else_block: None
+                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).4))
+                                            span: src/main.rs:21:5: 21:14 (#0)
+                                        }
+                                    }
+                                    Stmt {
+                                        kind: Let {
+                                            remainder_scope: Remainder { block: 1, first_statement_index: 1}
+                                            init_scope: Node(6)
+                                            pattern: 
+                                                Pat: {
+                                                    ty: &'{erased} [i32; 3_usize]
+                                                    span: src/main.rs:22:9: 22:10 (#0)
+                                                    kind: PatKind {
+                                                        Binding {
+                                                            name: "a"
+                                                            mode: BindingMode(No, Not)
+                                                            var: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).14))
+                                                            ty: &'{erased} [i32; 3_usize]
+                                                            is_primary: true
+                                                            is_shorthand: false
+                                                            subpattern: None
+                                                        }
+                                                    }
+                                                }
+                                            ,
+                                            initializer: Some(
+                                                Expr {
+                                                    ty: &'{erased} [i32; 3_usize]
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                    span: src/main.rs:22:13: 22:23 (#0)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(7)
+                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).7))
+                                                            value:
+                                                                Expr {
+                                                                    ty: &'{erased} [i32; 3_usize]
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                    span: src/main.rs:22:13: 22:23 (#0)
+                                                                    kind: 
+                                                                        Borrow (
+                                                                            borrow_kind: Shared
+                                                                            arg:
+                                                                                Expr {
+                                                                                    ty: [i32; 3_usize]
+                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Remainder { block: 1, first_statement_index: 1}), backwards_incompatible: None }
+                                                                                    span: src/main.rs:22:14: 22:23 (#0)
+                                                                                    kind: 
+                                                                                        Scope {
+                                                                                            region_scope: Node(8)
+                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).8))
+                                                                                            value:
+                                                                                                Expr {
+                                                                                                    ty: [i32; 3_usize]
+                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Remainder { block: 1, first_statement_index: 1}), backwards_incompatible: None }
+                                                                                                    span: src/main.rs:22:14: 22:23 (#0)
+                                                                                                    kind: 
+                                                                                                        Array {
+                                                                                                            fields: [
+                                                                                                                Expr {
+                                                                                                                    ty: i32
+                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                    span: src/main.rs:22:15: 22:16 (#0)
+                                                                                                                    kind: 
+                                                                                                                        Scope {
+                                                                                                                            region_scope: Node(9)
+                                                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).9))
+                                                                                                                            value:
+                                                                                                                                Expr {
+                                                                                                                                    ty: i32
+                                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                                    span: src/main.rs:22:15: 22:16 (#0)
+                                                                                                                                    kind: 
+                                                                                                                                        VarRef {
+                                                                                                                                            id: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).5))
+                                                                                                                                        }
+                                                                                                                                }
+                                                                                                                        }
+                                                                                                                }
+                                                                                                                Expr {
+                                                                                                                    ty: i32
+                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                    span: src/main.rs:22:18: 22:19 (#0)
+                                                                                                                    kind: 
+                                                                                                                        Scope {
+                                                                                                                            region_scope: Node(11)
+                                                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).11))
+                                                                                                                            value:
+                                                                                                                                Expr {
+                                                                                                                                    ty: i32
+                                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                                    span: src/main.rs:22:18: 22:19 (#0)
+                                                                                                                                    kind: 
+                                                                                                                                        Literal( lit: Spanned { node: Int(Pu128(2), Unsuffixed), span: src/main.rs:22:18: 22:19 (#0) }, neg: false)
+
+                                                                                                                                }
+                                                                                                                        }
+                                                                                                                }
+                                                                                                                Expr {
+                                                                                                                    ty: i32
+                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                    span: src/main.rs:22:21: 22:22 (#0)
+                                                                                                                    kind: 
+                                                                                                                        Scope {
+                                                                                                                            region_scope: Node(12)
+                                                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).12))
+                                                                                                                            value:
+                                                                                                                                Expr {
+                                                                                                                                    ty: i32
+                                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(6)), backwards_incompatible: None }
+                                                                                                                                    span: src/main.rs:22:21: 22:22 (#0)
+                                                                                                                                    kind: 
+                                                                                                                                        Literal( lit: Spanned { node: Int(Pu128(3), Unsuffixed), span: src/main.rs:22:21: 22:22 (#0) }, neg: false)
+
+                                                                                                                                }
+                                                                                                                        }
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                        )
+                                                                }
+                                                        }
+                                                }
+                                            )
+                                            else_block: None
+                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).13))
+                                            span: src/main.rs:22:5: 22:23 (#0)
+                                        }
+                                    }
+                                    Stmt {
+                                        kind: Let {
+                                            remainder_scope: Remainder { block: 1, first_statement_index: 2}
+                                            init_scope: Node(15)
+                                            pattern: 
+                                                Pat: {
+                                                    ty: StructA
+                                                    span: src/main.rs:23:9: 23:10 (#0)
+                                                    kind: PatKind {
+                                                        Binding {
+                                                            name: "a"
+                                                            mode: BindingMode(No, Not)
+                                                            var: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).19))
+                                                            ty: StructA
+                                                            is_primary: true
+                                                            is_shorthand: false
+                                                            subpattern: None
+                                                        }
+                                                    }
+                                                }
+                                            ,
+                                            initializer: Some(
+                                                Expr {
+                                                    ty: StructA
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(15)), backwards_incompatible: None }
+                                                    span: src/main.rs:23:13: 23:20 (#0)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(16)
+                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).16))
+                                                            value:
+                                                                Expr {
+                                                                    ty: StructA
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(15)), backwards_incompatible: None }
+                                                                    span: src/main.rs:23:13: 23:20 (#0)
+                                                                    kind: 
+                                                                        Adt {
+                                                                            adt_def:
+                                                                                AdtDef {
+                                                                                    did: DefId(0:5 ~ _ter[2072]::StructA)
+                                                                                    variants: [VariantDef { def_id: DefId(0:5 ~ _ter[2072]::StructA), ctor: Some((Const, DefId(0:6 ~ _ter[2072]::StructA::{constructor#0}))), name: "StructA", discr: Relative(0), fields: [], tainted: None, flags:  }]
+                                                                                    flags: IS_STRUCT | HAS_CTOR
+                                                                                    repr: ReprOptions { int: None, align: None, pack: None, flags: , field_shuffle_seed: 9635000490971609769 }
+                                                                                variant_index: 0
+                                                                                args: []
+                                                                                user_ty: None
+                                                                                base: None
+                                                                        }
+                                                                }
+                                                        }
+                                                }
+                                            )
+                                            else_block: None
+                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).18))
+                                            span: src/main.rs:23:5: 23:20 (#0)
+                                        }
+                                    }
+                                    Stmt {
+                                        kind: Expr {
+                                            scope: Node(27)
+                                            expr:
+                                                Expr {
+                                                    ty: ()
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                    span: src/main.rs:24:5: 24:21 (#0)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(20)
+                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).20))
+                                                            value:
+                                                                Expr {
+                                                                    ty: ()
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                    span: src/main.rs:24:5: 24:21 (#0)
+                                                                    kind: 
+                                                                        Call {
+                                                                            ty: FnDef(DefId(0:4 ~ _ter[2072]::First::print), [StructA])
+                                                                            from_hir_call: true
+                                                                            fn_span: src/main.rs:24:5: 24:21 (#0)
+                                                                            fun:
+                                                                                Expr {
+                                                                                    ty: FnDef(DefId(0:4 ~ _ter[2072]::First::print), [StructA])
+                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                    span: src/main.rs:24:5: 24:17 (#0)
+                                                                                    kind: 
+                                                                                        Scope {
+                                                                                            region_scope: Node(21)
+                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).21))
+                                                                                            value:
+                                                                                                Expr {
+                                                                                                    ty: FnDef(DefId(0:4 ~ _ter[2072]::First::print), [StructA])
+                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                    span: src/main.rs:24:5: 24:17 (#0)
+                                                                                                    kind: 
+                                                                                                        ZstLiteral(user_ty: None)
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                            args: [
+                                                                                Expr {
+                                                                                    ty: &'{erased} StructA
+                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                    span: src/main.rs:24:18: 24:20 (#0)
+                                                                                    kind: 
+                                                                                        Scope {
+                                                                                            region_scope: Node(24)
+                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).24))
+                                                                                            value:
+                                                                                                Expr {
+                                                                                                    ty: &'{erased} StructA
+                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                    span: src/main.rs:24:18: 24:20 (#0)
+                                                                                                    kind: 
+                                                                                                        Borrow (
+                                                                                                            borrow_kind: Shared
+                                                                                                            arg:
+                                                                                                                Expr {
+                                                                                                                    ty: StructA
+                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                                    span: src/main.rs:24:18: 24:20 (#0)
+                                                                                                                    kind: 
+                                                                                                                        Deref {
+                                                                                                                            Expr {
+                                                                                                                                ty: &'{erased} StructA
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                                                span: src/main.rs:24:18: 24:20 (#0)
+                                                                                                                                kind: 
+                                                                                                                                    Borrow (
+                                                                                                                                        borrow_kind: Shared
+                                                                                                                                        arg:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: StructA
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                                                                span: src/main.rs:24:19: 24:20 (#0)
+                                                                                                                                                kind: 
+                                                                                                                                                    Scope {
+                                                                                                                                                        region_scope: Node(25)
+                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).25))
+                                                                                                                                                        value:
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: StructA
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(27)), backwards_incompatible: None }
+                                                                                                                                                                span: src/main.rs:24:19: 24:20 (#0)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    VarRef {
+                                                                                                                                                                        id: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).19))
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                    }
+                                                                                                                                            }
+                                                                                                                                    )
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                }
+                                                                                                        )
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                    }
+                                    Stmt {
+                                        kind: Expr {
+                                            scope: Node(35)
+                                            expr:
+                                                Expr {
+                                                    ty: ()
+                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                    span: src/main.rs:25:5: 25:22 (#0)
+                                                    kind: 
+                                                        Scope {
+                                                            region_scope: Node(28)
+                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).28))
+                                                            value:
+                                                                Expr {
+                                                                    ty: ()
+                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                    span: src/main.rs:25:5: 25:22 (#0)
+                                                                    kind: 
+                                                                        Call {
+                                                                            ty: FnDef(DefId(0:10 ~ _ter[2072]::FirstB::print), [StructA])
+                                                                            from_hir_call: true
+                                                                            fn_span: src/main.rs:25:5: 25:22 (#0)
+                                                                            fun:
+                                                                                Expr {
+                                                                                    ty: FnDef(DefId(0:10 ~ _ter[2072]::FirstB::print), [StructA])
+                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                    span: src/main.rs:25:5: 25:18 (#0)
+                                                                                    kind: 
+                                                                                        Scope {
+                                                                                            region_scope: Node(29)
+                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).29))
+                                                                                            value:
+                                                                                                Expr {
+                                                                                                    ty: FnDef(DefId(0:10 ~ _ter[2072]::FirstB::print), [StructA])
+                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                    span: src/main.rs:25:5: 25:18 (#0)
+                                                                                                    kind: 
+                                                                                                        ZstLiteral(user_ty: None)
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                            args: [
+                                                                                Expr {
+                                                                                    ty: &'{erased} StructA
+                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                    span: src/main.rs:25:19: 25:21 (#0)
+                                                                                    kind: 
+                                                                                        Scope {
+                                                                                            region_scope: Node(32)
+                                                                                            lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).32))
+                                                                                            value:
+                                                                                                Expr {
+                                                                                                    ty: &'{erased} StructA
+                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                    span: src/main.rs:25:19: 25:21 (#0)
+                                                                                                    kind: 
+                                                                                                        Borrow (
+                                                                                                            borrow_kind: Shared
+                                                                                                            arg:
+                                                                                                                Expr {
+                                                                                                                    ty: StructA
+                                                                                                                    temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                                    span: src/main.rs:25:19: 25:21 (#0)
+                                                                                                                    kind: 
+                                                                                                                        Deref {
+                                                                                                                            Expr {
+                                                                                                                                ty: &'{erased} StructA
+                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                                                span: src/main.rs:25:19: 25:21 (#0)
+                                                                                                                                kind: 
+                                                                                                                                    Borrow (
+                                                                                                                                        borrow_kind: Shared
+                                                                                                                                        arg:
+                                                                                                                                            Expr {
+                                                                                                                                                ty: StructA
+                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                                                                span: src/main.rs:25:20: 25:21 (#0)
+                                                                                                                                                kind: 
+                                                                                                                                                    Scope {
+                                                                                                                                                        region_scope: Node(33)
+                                                                                                                                                        lint_level: Explicit(HirId(DefId(0:13 ~ _ter[2072]::main).33))
+                                                                                                                                                        value:
+                                                                                                                                                            Expr {
+                                                                                                                                                                ty: StructA
+                                                                                                                                                                temp_lifetime: TempLifetime { temp_lifetime: Some(Node(35)), backwards_incompatible: None }
+                                                                                                                                                                span: src/main.rs:25:20: 25:21 (#0)
+                                                                                                                                                                kind: 
+                                                                                                                                                                    VarRef {
+                                                                                                                                                                        id: LocalVarId(HirId(DefId(0:13 ~ _ter[2072]::main).19))
+                                                                                                                                                                    }
+                                                                                                                                                            }
+                                                                                                                                                    }
+                                                                                                                                            }
+                                                                                                                                    )
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                }
+                                                                                                        )
+                                                                                                }
+                                                                                        }
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                    }
+                                ]
+                                expr: []
+                            }
+                    }
+            }
+    }
+
+
