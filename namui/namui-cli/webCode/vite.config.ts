@@ -19,6 +19,7 @@ const serverFsAllow = [
 export default defineConfig({
     clearScreen: false,
     server: {
+        host: true,
         headers: {
             "Cross-Origin-Resource-Policy": "same-origin",
             "Cross-Origin-Embedder-Policy": "require-corp",
