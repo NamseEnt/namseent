@@ -1,9 +1,17 @@
-use super::*;
+mod shake;
+
+use crate::{
+    MapCoordF32,
+    game_state::{MAP_SIZE, TILE_PX_SIZE},
+};
+use namui::*;
 
 #[derive(State)]
 pub struct Camera {
-    pub left_top: MapCoordF32,
+    pub(self) left_top: MapCoordF32,
     pub zoom_level: f32,
+    pub shake_intensity: f32,
+    pub visual_left_top: MapCoordF32,
 }
 impl Default for Camera {
     fn default() -> Self {
@@ -16,8 +24,11 @@ impl Camera {
         Self {
             left_top: MapCoordF32::new(0.0, 0.0),
             zoom_level: 1.0,
+            shake_intensity: 0.0,
+            visual_left_top: MapCoordF32::new(0.0, 0.0),
         }
     }
+
     pub fn zoom(&mut self, delta: f32, origin_screen_xy: Xy<Px>) {
         let screen_wh = screen::size().into_type::<Px>();
         let prev_zoom_level = self.zoom_level;
@@ -55,6 +66,9 @@ impl Camera {
             -half_screen_tiles.y,
             MAP_SIZE.height as f32 - half_screen_tiles.y,
         );
+
+        // base 위치가 변했으니 visual도 즉시 갱신
+        self.visual_left_top = self.left_top;
     }
 }
 
