@@ -74,7 +74,7 @@ class Watcher {
                     return;
                 }
                 if (
-                    event.eventType === "change" &&
+                    ["change", "rename"].includes(event.eventType) &&
                     event.filename === path.basename(this.watchingfilePath)
                 ) {
                     clearTimeout(id);
