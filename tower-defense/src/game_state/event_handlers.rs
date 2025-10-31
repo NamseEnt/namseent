@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::camera::ShakeIntensity;
 use crate::{
     game_state::{
         contract::sign_contract, effect::run_effect, item, play_history::HistoryEventType,
@@ -40,6 +41,14 @@ impl GameState {
 
     pub fn take_damage(&mut self, damage: f32) {
         let mut actual_damage = damage;
+
+        // Camera shake based on damage
+        let intensity = match actual_damage {
+            d if d < 10.0 => ShakeIntensity::Light,
+            d if d < 25.0 => ShakeIntensity::Medium,
+            _ => ShakeIntensity::Heavy,
+        };
+        self.camera.shake(intensity);
 
         // Shield absorption
         if self.shield > 0.0 {

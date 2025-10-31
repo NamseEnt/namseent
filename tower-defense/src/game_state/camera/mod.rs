@@ -1,4 +1,5 @@
 mod shake;
+pub use shake::ShakeIntensity;
 
 use crate::{
     MapCoordF32,

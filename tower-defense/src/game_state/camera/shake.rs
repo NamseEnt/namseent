@@ -10,7 +10,7 @@ pub enum ShakeIntensity {
 impl ShakeIntensity {
     pub fn value(&self) -> f32 {
         match self {
-            ShakeIntensity::Light => 5.0,
+            ShakeIntensity::Light => 10.0,
             ShakeIntensity::Medium => 15.0,
             ShakeIntensity::Heavy => 30.0,
         }
