@@ -12,7 +12,7 @@ pub struct Camera {
     pub(self) left_top: MapCoordF32,
     pub zoom_level: f32,
     pub shake_intensity: f32,
-    pub visual_left_top: MapCoordF32,
+    shake_offset: Xy<f32>,
 }
 impl Default for Camera {
     fn default() -> Self {
@@ -26,8 +26,12 @@ impl Camera {
             left_top: MapCoordF32::new(0.0, 0.0),
             zoom_level: 1.0,
             shake_intensity: 0.0,
-            visual_left_top: MapCoordF32::new(0.0, 0.0),
+            shake_offset: Xy::new(0.0, 0.0),
         }
+    }
+
+    pub fn visual_left_top(&self) -> MapCoordF32 {
+        self.left_top + self.shake_offset
     }
 
     pub fn zoom(&mut self, delta: f32, origin_screen_xy: Xy<Px>) {
@@ -67,9 +71,6 @@ impl Camera {
             -half_screen_tiles.y,
             MAP_SIZE.height as f32 - half_screen_tiles.y,
         );
-
-        // base 위치가 변했으니 visual도 즉시 갱신
-        self.visual_left_top = self.left_top;
     }
 }
 

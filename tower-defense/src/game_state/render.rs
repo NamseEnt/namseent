@@ -8,7 +8,7 @@ impl Component for RenderGameState<'_> {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(tick::Ticker);
 
-        let visual_left_top = self.game_state.camera.visual_left_top;
+        let visual_left_top = self.game_state.camera.visual_left_top();
         let final_offset = TILE_PX_SIZE.to_xy() * visual_left_top * -1.0;
 
         ctx.scale(Xy::single(self.game_state.camera.zoom_level))
@@ -37,7 +37,7 @@ impl GameState {
         MapCoord: AsRef<Xy<MapAxis>>,
         MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
     {
-        let visual_left_top = self.camera.visual_left_top;
+        let visual_left_top = self.camera.visual_left_top();
         let screen_rect = Rect::from_xy_wh(visual_left_top, {
             let screen_size = namui::screen::size();
             Wh::new(
@@ -125,7 +125,7 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
-    let visual_left_top = game_state.camera.visual_left_top;
+    let visual_left_top = game_state.camera.visual_left_top();
     let screen_rect = Rect::from_xy_wh(visual_left_top, {
         let screen_size = namui::screen::size();
         Wh::new(
@@ -204,7 +204,7 @@ fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
-    let visual_left_top = game_state.camera.visual_left_top;
+    let visual_left_top = game_state.camera.visual_left_top();
     let screen_rect = {
         let screen_size = namui::screen::size();
         Rect::from_xy_wh(visual_left_top, {

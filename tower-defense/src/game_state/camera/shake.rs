@@ -29,14 +29,15 @@ impl Camera {
 
         if self.shake_intensity < 0.001 {
             self.shake_intensity = 0.0;
+            self.shake_offset = Xy::new(0.0, 0.0);
+            return;
         }
 
-        let shake_offset = get_camera_shake_offset(elapsed, self.shake_intensity);
-        let shake_in_tiles = Xy::new(
-            shake_offset.x / TILE_PX_SIZE.width,
-            shake_offset.y / TILE_PX_SIZE.height,
+        let shake_offset_px = get_camera_shake_offset(elapsed, self.shake_intensity);
+        self.shake_offset = Xy::new(
+            shake_offset_px.x / TILE_PX_SIZE.width,
+            shake_offset_px.y / TILE_PX_SIZE.height,
         );
-        self.visual_left_top = self.left_top + shake_in_tiles;
     }
 }
 
