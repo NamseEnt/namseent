@@ -955,15 +955,33 @@ fn test_processor_state_without_max_width() {
     assert!(processor.max_width.is_none(), "max_width should be None");
     assert_eq!(processor.cursor_x, 0.px(), "Initial cursor_x should be 0");
     assert_eq!(processor.cursor_y, 0.px(), "Initial cursor_y should be 0");
-    assert_eq!(processor.line_height, 0.px(), "Initial line_height should be 0");
+    assert_eq!(
+        processor.line_height,
+        0.px(),
+        "Initial line_height should be 0"
+    );
     assert!(processor.is_first_in_line, "Should start as first in line");
-    assert_eq!(processor.current_line_items.len(), 0, "Should start with empty line items");
+    assert_eq!(
+        processor.current_line_items.len(),
+        0,
+        "Should start with empty line items"
+    );
 
     // Test with different vertical alignments
-    for vertical_align in [VerticalAlign::Top, VerticalAlign::Center, VerticalAlign::Bottom] {
+    for vertical_align in [
+        VerticalAlign::Top,
+        VerticalAlign::Center,
+        VerticalAlign::Bottom,
+    ] {
         let processor = Processor::new(None, &regex_handlers, vertical_align);
-        assert!(processor.max_width.is_none(), "max_width should be None regardless of vertical_align");
-        assert_eq!(processor.default_vertical_align, vertical_align, "vertical_align should be set correctly");
+        assert!(
+            processor.max_width.is_none(),
+            "max_width should be None regardless of vertical_align"
+        );
+        assert_eq!(
+            processor.default_vertical_align, vertical_align,
+            "vertical_align should be set correctly"
+        );
     }
 }
 
@@ -975,9 +993,9 @@ fn test_can_put_bounding_box_without_max_width() {
 
     // Test with various cursor positions and bounding box sizes
     let test_cases = [
-        (0.px(), 100.px()),    // Start of line, small box
-        (0.px(), 10000.px()),  // Start of line, huge box
-        (500.px(), 500.px()),  // Middle position, medium box
+        (0.px(), 100.px()),     // Start of line, small box
+        (0.px(), 10000.px()),   // Start of line, huge box
+        (500.px(), 500.px()),   // Middle position, medium box
         (1000.px(), 5000.px()), // Far position, huge box
         (9999.px(), 9999.px()), // Extreme positions
     ];
@@ -999,4 +1017,3 @@ fn test_can_put_bounding_box_without_max_width() {
         );
     }
 }
-
