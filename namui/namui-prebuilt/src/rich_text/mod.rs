@@ -120,8 +120,6 @@ impl Component for RichText<'_> {
             })
         });
 
-        let max_width = self.max_width.unwrap_or(f32::INFINITY.px());
-
         // Check for invalid text alignment without max_width and warn user
         let effective_text_align = if self.max_width.is_none()
             && (self.default_text_align == TextAlign::Center
@@ -136,8 +134,11 @@ impl Component for RichText<'_> {
             self.default_text_align
         };
 
-        let mut processor =
-            Processor::new(max_width, self.regex_handlers, self.default_vertical_align);
+        let mut processor = Processor::new(
+            self.max_width,
+            self.regex_handlers,
+            self.default_vertical_align,
+        );
         processor.current_text_align = effective_text_align;
 
         for token in tokens.iter() {
@@ -196,7 +197,7 @@ impl Component for RichText<'_> {
 }
 
 pub(crate) struct Processor<'a> {
-    max_width: Px,
+    max_width: Option<Px>,
     cursor_x: Px,
     cursor_y: Px,
     line_height: Px,
@@ -221,7 +222,7 @@ struct TextProcessParams {
 
 impl<'a> Processor<'a> {
     fn new(
-        max_width: Px,
+        max_width: Option<Px>,
         regex_handlers: &'a [RegexHandler],
         default_vertical_align: VerticalAlign,
     ) -> Self {
@@ -246,7 +247,10 @@ impl<'a> Processor<'a> {
         let item_width = bounding_box.right();
 
         // Check if we need to break the line before adding this item
-        if !self.is_first_in_line && self.cursor_x + item_width > self.max_width {
+        if !self.is_first_in_line
+            && let Some(max_width) = self.max_width
+            && self.cursor_x + item_width > max_width
+        {
             self.flush_current_line(ctx);
             self.break_line();
         }
@@ -269,12 +273,21 @@ impl<'a> Processor<'a> {
         }
 
         let total_width: Px = self.current_line_items.iter().map(|item| item.width).sum();
-        let available_width = self.max_width;
 
         let start_x = match self.current_text_align {
             TextAlign::Left => 0.px(),
-            TextAlign::Center => (available_width - total_width) / 2.0,
-            TextAlign::Right => available_width - total_width,
+            TextAlign::Center => {
+                (self
+                    .max_width
+                    .expect("Put max_width to use TextAlign::Center")
+                    - total_width)
+                    / 2.0
+            }
+            TextAlign::Right => {
+                self.max_width
+                    .expect("Put max_width to use TextAlign::Right")
+                    - total_width
+            }
         };
 
         // Calculate the maximum height of items in this line for vertical alignment
@@ -354,6 +367,26 @@ impl<'a> Processor<'a> {
         self.process_text_simple(ctx, text, font, style, text_align);
     }
 
+    fn can_put_bounding_box(&self, bounding_box: Rect<Px>) -> bool {
+        match self.max_width {
+            Some(max_width) => self.cursor_x + bounding_box.right() <= max_width,
+            None => true,
+        }
+    }
+
+    fn get_rendering_tree(&self, text: &str, font: Font, style: TextStyle) -> RenderingTree {
+        namui::text(TextParam {
+            text: text.to_string(),
+            x: 0.px(),
+            y: 0.px(),
+            align: TextAlign::Left, // Always use Left for individual text pieces
+            baseline: TextBaseline::Top, // Use Top baseline for consistent behavior
+            font,
+            style,
+            max_width: self.max_width.map(|max_width| max_width - self.cursor_x),
+        })
+    }
+
     fn process_text_simple(
         &mut self,
         ctx: &RenderCtx,
@@ -366,40 +399,23 @@ impl<'a> Processor<'a> {
             return;
         }
 
-        // Calculate remaining width for text wrapping (not alignment)
-        let remaining_width = self.max_width - self.cursor_x;
-
-        let get_rendering_tree = |text: &str| {
-            namui::text(TextParam {
-                text: text.to_string(),
-                x: 0.px(),
-                y: 0.px(),
-                align: TextAlign::Left, // Always use Left for individual text pieces
-                baseline: TextBaseline::Top, // Use Top baseline for consistent behavior
-                font: font.clone(),
-                style: style.clone(),
-                max_width: Some(remaining_width),
-            })
+        let rendering_tree = self.get_rendering_tree(text, font.clone(), style.clone());
+        let Some(bounding_box) = rendering_tree.bounding_box() else {
+            return;
         };
 
-        {
-            let rendering_tree = get_rendering_tree(text);
-            let Some(bounding_box) = rendering_tree.bounding_box() else {
-                return;
-            };
-
-            if self.cursor_x + bounding_box.right() <= self.max_width {
-                return self.add(ctx, rendering_tree);
-            }
-        }
+        if self.can_put_bounding_box(bounding_box) {
+            return self.add(ctx, rendering_tree);
+        };
 
         // Find the best break point considering word boundaries
-        if let Some(break_point) = self.find_best_break_point(text, &get_rendering_tree) {
+        if let Some(break_point) = self.find_best_break_point(text, font.clone(), style.clone()) {
             let (left_text, right_text) = self.split_text_at_break_point(text, break_point);
 
             if !left_text.is_empty() {
                 // Force add left_text to current line without line break check
-                let left_rendering_tree = get_rendering_tree(&left_text);
+                let left_rendering_tree =
+                    self.get_rendering_tree(&left_text, font.clone(), style.clone());
                 if let Some(bounding_box) = left_rendering_tree.bounding_box() {
                     self.current_line_items.push(LineItem {
                         rendering_tree: left_rendering_tree,
@@ -416,7 +432,7 @@ impl<'a> Processor<'a> {
                 // Force a line break before processing the right part
                 self.flush_current_line(ctx);
                 self.break_line();
-                self.process_text(ctx, &right_text, font, style, text_align);
+                self.process_text(ctx, &right_text, font.clone(), style.clone(), text_align);
             }
         } else {
             // Fallback to character-based splitting if no good word boundary found
@@ -425,16 +441,12 @@ impl<'a> Processor<'a> {
                 style: style.clone(),
                 text_align,
             };
-            self.fallback_character_split(ctx, text, params, &get_rendering_tree);
+            self.fallback_character_split(ctx, text, params);
         }
     }
 
     /// Find the best break point considering word boundaries
-    fn find_best_break_point(
-        &self,
-        text: &str,
-        get_rendering_tree: &dyn Fn(&str) -> RenderingTree,
-    ) -> Option<usize> {
+    fn find_best_break_point(&self, text: &str, font: Font, style: TextStyle) -> Option<usize> {
         // Find all potential word boundaries (spaces and punctuation)
         let mut word_boundaries = vec![0];
 
@@ -465,10 +477,10 @@ impl<'a> Processor<'a> {
             }
 
             let test_text: String = text.chars().take(boundary).collect();
-            let rendering_tree = get_rendering_tree(&test_text);
+            let rendering_tree = self.get_rendering_tree(&test_text, font.clone(), style.clone());
 
             if let Some(bounding_box) = rendering_tree.bounding_box()
-                && self.cursor_x + bounding_box.right() <= self.max_width
+                && self.can_put_bounding_box(bounding_box)
             {
                 best_boundary = Some(boundary);
                 break;
@@ -491,13 +503,8 @@ impl<'a> Processor<'a> {
     }
 
     /// Fallback to character-based splitting when word boundary approach fails
-    fn fallback_character_split(
-        &mut self,
-        ctx: &RenderCtx,
-        text: &str,
-        params: TextProcessParams,
-        get_rendering_tree: &dyn Fn(&str) -> RenderingTree,
-    ) {
+    fn fallback_character_split(&mut self, ctx: &RenderCtx, text: &str, params: TextProcessParams) {
+        let max_width = self.max_width.unwrap();
         let mut low = 0;
         let mut high = text.chars().count();
 
@@ -508,13 +515,12 @@ impl<'a> Processor<'a> {
             let right_text = text.chars().skip(middle_point).collect::<String>();
 
             if middle_point == low || middle_point == high {
-                let left_rendering_tree = get_rendering_tree(&left_text);
+                let left_rendering_tree =
+                    self.get_rendering_tree(&left_text, params.font.clone(), params.style.clone());
                 if let Some(bounding_box) = left_rendering_tree.bounding_box() {
                     // Only add left_text if it fits OR if it's the first item in line
                     // This prevents character separation within words
-                    if self.is_first_in_line
-                        || self.cursor_x + bounding_box.right() <= self.max_width
-                    {
+                    if self.is_first_in_line || self.can_put_bounding_box(bounding_box) {
                         self.current_line_items.push(LineItem {
                             rendering_tree: left_rendering_tree,
                             width: bounding_box.right(),
@@ -563,7 +569,8 @@ impl<'a> Processor<'a> {
                 return;
             }
 
-            let left_rendering_tree = get_rendering_tree(&left_text);
+            let left_rendering_tree =
+                self.get_rendering_tree(&left_text, params.font.clone(), params.style.clone());
             let Some(left_bounding_box) = left_rendering_tree.bounding_box() else {
                 if !right_text.is_empty() {
                     // Force a line break before processing the right part
@@ -580,7 +587,7 @@ impl<'a> Processor<'a> {
             };
 
             match (self.cursor_x + left_bounding_box.right())
-                .partial_cmp(&self.max_width)
+                .partial_cmp(&max_width)
                 .unwrap()
             {
                 Ordering::Equal => {
