@@ -29,7 +29,7 @@ impl Component for TowerCursorPreview<'_> {
         let game_state = use_game_state(ctx);
 
         let rounded_center_xy = ctx.track_eq(&map_coord.map(|f| f.round() as usize));
-        let placed_tower_coords = &game_state.towers.coords();
+        let placed_tower_coords = ctx.track_eq(&game_state.towers.coords());
         let route_coords = &game_state.route.iter_coords();
 
         let can_place_tower = ctx.memo(|| {
@@ -45,7 +45,7 @@ impl Component for TowerCursorPreview<'_> {
                 *rounded_center_xy - Xy::single(1),
                 Wh::single(2),
                 &TRAVEL_POINTS,
-                placed_tower_coords,
+                &placed_tower_coords,
                 route_coords,
                 MAP_SIZE,
             )
