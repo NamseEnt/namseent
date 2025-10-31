@@ -7,15 +7,13 @@ pub use parse::*;
 use regex::Regex;
 use std::{cmp::Ordering, collections::HashMap};
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum VerticalAlign {
     #[default]
     Top,
     Center,
     Bottom,
 }
-
 
 pub enum Tag {
     Image { param: ImageParam },
