@@ -1,4 +1,6 @@
+#[derive(Default)]
 pub enum EffectCleanUp {
+    #[default]
     None,
     Once(Box<dyn FnOnce()>),
 }
@@ -16,12 +18,6 @@ impl EffectCleanUp {
 
     pub(crate) fn take(&mut self) -> Self {
         std::mem::take(self)
-    }
-}
-
-impl Default for EffectCleanUp {
-    fn default() -> Self {
-        Self::None
     }
 }
 
