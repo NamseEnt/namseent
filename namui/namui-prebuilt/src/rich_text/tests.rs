@@ -88,7 +88,7 @@ fn test_word_boundary_line_breaking() {
 
     // Create a mock processor to test the word boundary logic
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(100.px(), &regex_handlers, VerticalAlign::Top);
+    let processor = Processor::new(Some(100.px()), &regex_handlers, VerticalAlign::Top);
 
     // Test finding word boundaries
     let boundaries = [
@@ -193,7 +193,7 @@ fn test_split_word_rendering_order() {
     let long_word = "verylongwordthatmustbesplit";
     let narrow_width = 80.px(); // Force splitting
 
-    let processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
+    let processor = Processor::new(Some(narrow_width), &regex_handlers, VerticalAlign::Top);
 
     // Test the split_text_at_break_point function to ensure correct order
     for split_point in 5..=20 {
@@ -257,7 +257,7 @@ fn test_left_text_stays_on_current_line() {
     let regex_handlers: [RegexHandler; 0] = [];
     let narrow_width = 50.px();
 
-    let mut processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor = Processor::new(Some(narrow_width), &regex_handlers, VerticalAlign::Top);
 
     // Simulate that we already have some content on the current line
     processor.cursor_x = 20.px();
@@ -339,7 +339,7 @@ fn test_forced_line_break_after_split() {
     let test_text = "ThisIsAVeryLongWordThatShouldBeSplit";
 
     // Create processor and verify behavior
-    let mut processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor = Processor::new(Some(narrow_width), &regex_handlers, VerticalAlign::Top);
 
     // Simulate adding some content first to make cursor_x > 0
     processor.cursor_x = 20.px(); // Simulate some existing content on the line
@@ -413,7 +413,7 @@ fn test_line_break_character_positioning() {
     ];
 
     for (text, width) in test_cases {
-        let test_processor = Processor::new(width, &regex_handlers, VerticalAlign::Top);
+        let test_processor = Processor::new(Some(width), &regex_handlers, VerticalAlign::Top);
 
         // Test that character splitting doesn't create invalid positions
         for split_point in 1..text.chars().count() {
@@ -461,7 +461,7 @@ fn test_line_break_character_positioning() {
 fn test_word_boundary_character_positioning() {
     // Test for bugs where characters get misplaced at word boundaries
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(100.px(), &regex_handlers, VerticalAlign::Top);
+    let processor = Processor::new(Some(100.px()), &regex_handlers, VerticalAlign::Top);
 
     let test_cases = [
         "word1 word2 word3",     // Simple English words
@@ -534,7 +534,7 @@ fn test_word_boundary_character_positioning() {
 fn test_character_positioning_edge_cases() {
     // Test edge cases that commonly cause character positioning bugs
     let regex_handlers: [RegexHandler; 0] = [];
-    let processor = Processor::new(50.px(), &regex_handlers, VerticalAlign::Top);
+    let processor = Processor::new(Some(50.px()), &regex_handlers, VerticalAlign::Top);
 
     let edge_cases = [
         "",                 // Empty string
@@ -584,7 +584,7 @@ fn test_line_break_rendering_positions() {
     let long_text = "This is a very long sentence that should wrap across multiple lines when rendered with a narrow width constraint to test character positioning";
     let narrow_width = 100.px();
 
-    let processor = Processor::new(narrow_width, &regex_handlers, VerticalAlign::Top);
+    let processor = Processor::new(Some(narrow_width), &regex_handlers, VerticalAlign::Top);
 
     // Test various break points to ensure character positioning integrity
     let char_count = long_text.chars().count();
@@ -637,7 +637,7 @@ fn test_conditional_text_placement_logic() {
     let regex_handlers: [RegexHandler; 0] = [];
     let max_width = 100.px(); // Small width to force conditions
 
-    let mut processor = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor = Processor::new(Some(max_width), &regex_handlers, VerticalAlign::Top);
 
     // Simulate being NOT first in line with some cursor position
     processor.cursor_x = 60.px(); // More than half the width
@@ -674,7 +674,7 @@ fn test_conditional_text_placement_logic() {
     );
 
     // Test the first-in-line exception
-    let mut processor_first = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor_first = Processor::new(Some(max_width), &regex_handlers, VerticalAlign::Top);
     processor_first.is_first_in_line = true;
     processor_first.cursor_x = 60.px(); // Keep same position but now it's "first" 
 
@@ -702,7 +702,7 @@ fn test_character_overflow_prevention() {
     let regex_handlers: [RegexHandler; 0] = [];
     let max_width = 300.px(); // Match the debug output scenario
 
-    let mut processor = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor = Processor::new(Some(max_width), &regex_handlers, VerticalAlign::Top);
 
     // Simulate the exact scenario from debug output:
     // cursor_x: 252, max_width: 300, left_text: 'Happin' (width=50, total=302)
@@ -741,7 +741,7 @@ fn test_character_overflow_prevention() {
     );
 
     // Test the exception: first in line should still allow overflow
-    let mut processor_first = Processor::new(max_width, &regex_handlers, VerticalAlign::Top);
+    let mut processor_first = Processor::new(Some(max_width), &regex_handlers, VerticalAlign::Top);
     processor_first.cursor_x = 252.px();
     processor_first.is_first_in_line = true;
 
@@ -904,3 +904,99 @@ fn test_vertical_alignment_creation() {
     // If we reach here without panicking, the vertical alignment feature works correctly
     println!("Vertical alignment feature works correctly!");
 }
+
+#[test]
+fn test_all_items_stay_on_single_line_without_max_width() {
+    // max_width가 None이면 아무리 많은 아이템을 추가해도 한 줄에 유지되어야 함
+    let regex_handlers: [RegexHandler; 0] = [];
+    let mut processor = Processor::new(None, &regex_handlers, VerticalAlign::Top);
+
+    // 초기 상태 확인
+    assert_eq!(processor.cursor_y, 0.px());
+    assert_eq!(processor.cursor_x, 0.px());
+    assert_eq!(processor.current_line_items.len(), 0);
+
+    // 일반적으로는 여러 줄에 걸쳐야 할 만큼 많은 아이템 추가
+    for _ in 0..50 {
+        processor.current_line_items.push(LineItem {
+            rendering_tree: namui::RenderingTree::Empty,
+            width: 200.px(),
+            height: 20.px(),
+        });
+        processor.cursor_x += 200.px();
+    }
+
+    // 핵심: cursor_y는 여전히 0이어야 함 (줄바꿈 없음)
+    assert_eq!(processor.cursor_y, 0.px(), "No line break should occur");
+
+    // 모든 아이템이 한 줄에 있어야 함
+    assert_eq!(processor.current_line_items.len(), 50);
+
+    // cursor_x는 계속 증가했어야 함
+    assert_eq!(processor.cursor_x, 10000.px()); // 50 * 200
+
+    // can_put_bounding_box는 여전히 true
+    let huge_rect = namui::Rect::Xywh {
+        x: 0.px(),
+        y: 0.px(),
+        width: 99999.px(),
+        height: 20.px(),
+    };
+    assert!(processor.can_put_bounding_box(huge_rect));
+}
+
+#[test]
+fn test_processor_state_without_max_width() {
+    // Test processor state management when max_width is None
+    let regex_handlers: [RegexHandler; 0] = [];
+    let processor = Processor::new(None, &regex_handlers, VerticalAlign::Top);
+
+    // Verify initial configuration
+    assert!(processor.max_width.is_none(), "max_width should be None");
+    assert_eq!(processor.cursor_x, 0.px(), "Initial cursor_x should be 0");
+    assert_eq!(processor.cursor_y, 0.px(), "Initial cursor_y should be 0");
+    assert_eq!(processor.line_height, 0.px(), "Initial line_height should be 0");
+    assert!(processor.is_first_in_line, "Should start as first in line");
+    assert_eq!(processor.current_line_items.len(), 0, "Should start with empty line items");
+
+    // Test with different vertical alignments
+    for vertical_align in [VerticalAlign::Top, VerticalAlign::Center, VerticalAlign::Bottom] {
+        let processor = Processor::new(None, &regex_handlers, vertical_align);
+        assert!(processor.max_width.is_none(), "max_width should be None regardless of vertical_align");
+        assert_eq!(processor.default_vertical_align, vertical_align, "vertical_align should be set correctly");
+    }
+}
+
+#[test]
+fn test_can_put_bounding_box_without_max_width() {
+    // Comprehensive test for can_put_bounding_box when max_width is None
+    let regex_handlers: [RegexHandler; 0] = [];
+    let mut processor = Processor::new(None, &regex_handlers, VerticalAlign::Top);
+
+    // Test with various cursor positions and bounding box sizes
+    let test_cases = [
+        (0.px(), 100.px()),    // Start of line, small box
+        (0.px(), 10000.px()),  // Start of line, huge box
+        (500.px(), 500.px()),  // Middle position, medium box
+        (1000.px(), 5000.px()), // Far position, huge box
+        (9999.px(), 9999.px()), // Extreme positions
+    ];
+
+    for (cursor_x, box_width) in test_cases {
+        processor.cursor_x = cursor_x;
+        let rect = namui::Rect::Xywh {
+            x: 0.px(),
+            y: 0.px(),
+            width: box_width,
+            height: 20.px(),
+        };
+
+        assert!(
+            processor.can_put_bounding_box(rect),
+            "can_put_bounding_box should always return true when max_width is None (cursor_x={}, box_width={})",
+            cursor_x.as_f32(),
+            box_width.as_f32()
+        );
+    }
+}
+

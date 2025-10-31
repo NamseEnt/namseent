@@ -8,17 +8,14 @@ use regex::Regex;
 use std::{cmp::Ordering, collections::HashMap};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Default)]
 pub enum VerticalAlign {
+    #[default]
     Top,
     Center,
     Bottom,
 }
 
-impl Default for VerticalAlign {
-    fn default() -> Self {
-        Self::Top
-    }
-}
 
 pub enum Tag {
     Image { param: ImageParam },
