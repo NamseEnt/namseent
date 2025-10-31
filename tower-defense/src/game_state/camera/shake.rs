@@ -1,8 +1,25 @@
 use super::*;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ShakeIntensity {
+    Light,
+    Medium,
+    Heavy,
+}
+
+impl ShakeIntensity {
+    pub fn value(&self) -> f32 {
+        match self {
+            ShakeIntensity::Light => 5.0,
+            ShakeIntensity::Medium => 15.0,
+            ShakeIntensity::Heavy => 30.0,
+        }
+    }
+}
+
 impl Camera {
-    pub fn shake(&mut self, intensity: f32) {
-        self.shake_intensity += intensity;
+    pub fn shake(&mut self, intensity: ShakeIntensity) {
+        self.shake_intensity += intensity.value();
     }
 
     pub fn update_shake(&mut self, dt: Duration, elapsed: Duration) {
