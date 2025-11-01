@@ -63,6 +63,7 @@ impl SelectingTowerFlow {
 
     fn update(&mut self) {
         self.hand.update();
+        self.shop.update();
     }
 }
 

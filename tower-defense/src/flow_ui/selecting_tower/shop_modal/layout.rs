@@ -1,18 +1,16 @@
 use super::constants::{PADDING, SHOP_REFRESH_BUTTON_WH, SHOP_WH};
-use super::items::ShopItem;
-use crate::game_state::{mutate_game_state, use_game_state};
-use crate::icon::{Icon, IconKind, IconSize};
-use crate::shop::Shop;
-use crate::shop::refresh_shop;
-use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{TextAlign, headline};
+use super::refresh_button::RefreshButton;
+use super::slot_layout_calculator::SlotLayoutCalculator;
+use super::slot_renderer::ShopSlotView;
+use super::slot_rendering_data::SlotRenderingData;
+use crate::shop::{Shop, ShopSlotId};
 use namui::*;
-use namui_prebuilt::table::{self, ratio, ratio_no_clip};
+use std::collections::HashMap;
 
 pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
-    pub purchase_item: &'a dyn Fn(usize),
-    pub can_purchase_items: &'a [bool],
+    pub purchase_item: &'a dyn Fn(ShopSlotId),
+    pub can_purchase_item: &'a dyn Fn(ShopSlotId) -> bool,
 }
 
 impl Component for ShopLayout<'_> {
@@ -20,96 +18,117 @@ impl Component for ShopLayout<'_> {
         let Self {
             shop,
             purchase_item,
-            can_purchase_items,
+            can_purchase_item,
         } = self;
 
-        let game_state = use_game_state(ctx);
-        let disabled = game_state.left_shop_refresh_chance == 0 || {
-            let health_cost = game_state.stage_modifiers.get_shop_reroll_health_cost();
-            (game_state.hp - health_cost as f32) < 1.0
-        };
+        // 호버 상태 관리
+        let (hovered_slot_id, set_hovered_slot_id) = ctx.state::<Option<ShopSlotId>>(|| None);
 
-        let refresh_shop = || {
-            mutate_game_state(|game_state| {
-                let health_cost = game_state.stage_modifiers.get_shop_reroll_health_cost();
-                if (game_state.hp - health_cost as f32) < 1.0 {
-                    return;
-                }
-                game_state.left_shop_refresh_chance -= 1;
-                game_state.take_damage(health_cost as f32);
-                refresh_shop(game_state);
-            });
-        };
+        // exit 애니메이션 중인 슬롯들의 마지막 위치를 저장
+        let (exiting_slot_positions, set_exiting_slot_positions) =
+            ctx.state::<HashMap<ShopSlotId, Xy<Px>>>(Default::default);
 
         ctx.compose(|ctx| {
-            table::padding_no_clip(
-                PADDING,
-                table::vertical([
-                    table::ratio_no_clip(
-                        1,
-                        table::horizontal(shop.slots.iter().enumerate().map(
-                            |(shop_slot_index, shop_slot)| {
-                                ratio_no_clip(1, move |wh, ctx| {
-                                    ctx.add(ShopItem {
-                                        wh,
-                                        shop_slot,
-                                        shop_slot_index,
-                                        purchase_item,
-                                        can_purchase_item: can_purchase_items[shop_slot_index],
-                                    });
-                                })
-                            },
-                        )),
-                    ),
-                    table::fixed(
-                        SHOP_REFRESH_BUTTON_WH.height,
-                        table::horizontal([
-                            ratio(1, |_, _| {}),
-                            table::fixed(SHOP_REFRESH_BUTTON_WH.width, |wh, ctx| {
-                                ctx.add(
-                                    Button::new(
-                                        wh,
-                                        &|| {
-                                            refresh_shop();
-                                        },
-                                        &|wh, color, ctx| {
-                                            let health_cost = game_state
-                                                .stage_modifiers
-                                                .get_shop_reroll_health_cost();
-                                            let mut text = format!(
-                                                "{}-{}",
-                                                Icon::new(IconKind::Refresh)
-                                                    .size(IconSize::Large)
-                                                    .wh(Wh::single(wh.height))
-                                                    .as_tag(),
-                                                game_state.left_shop_refresh_chance
-                                            );
-                                            if health_cost > 0 {
-                                                text.push_str(&format!(
-                                                    " {}",
-                                                    Icon::new(IconKind::Health)
-                                                        .size(IconSize::Small)
-                                                        .wh(Wh::single(wh.height * 0.5))
-                                                        .as_tag()
-                                                ));
-                                            }
-                                            ctx.add(
-                                                headline(text)
-                                                    .color(color)
-                                                    .align(TextAlign::Center { wh })
-                                                    .build_rich(),
-                                            );
-                                        },
-                                    )
-                                    .variant(ButtonVariant::Fab)
-                                    .disabled(disabled),
-                                );
-                            }),
-                            ratio(1, |_, _| {}),
-                        ]),
-                    ),
-                ]),
-            )(SHOP_WH, ctx);
+            // 레이아웃 영역 계산
+            let content_wh = Wh {
+                width: SHOP_WH.width - PADDING * 2.0,
+                height: SHOP_WH.height - PADDING * 2.0,
+            };
+            let items_area_wh = Wh {
+                width: content_wh.width,
+                height: content_wh.height - SHOP_REFRESH_BUTTON_WH.height,
+            };
+
+            // 슬롯 레이아웃 계산 (exit 애니메이션 중인 슬롯 제외)
+            let calculator = SlotLayoutCalculator::new(items_area_wh);
+            let (slot_positions, slot_wh) = calculator.calculate_positions(shop);
+
+            // 슬롯 렌더링 데이터 준비
+            let rendering_data = SlotRenderingData::from_shop(shop, slot_positions);
+
+            // exiting_slot_positions 업데이트
+            let slot_positions_clone = rendering_data.slot_positions.clone();
+            set_exiting_slot_positions.mutate(move |positions| {
+                for (slot_id, xy) in &slot_positions_clone {
+                    positions.insert(*slot_id, *xy);
+                }
+            });
+
+            // 호버된 슬롯이 있으면 먼저 렌더링 (위로 올라오도록)
+            if let Some(hovered_id) = *hovered_slot_id
+                && let Some(slot_data) = rendering_data
+                    .active_slots
+                    .iter()
+                    .find(|s| s.id == hovered_id)
+                && let Some(target_xy) = rendering_data.get_position(hovered_id)
+            {
+                ctx.translate((PADDING, PADDING)).add_with_key(
+                    hovered_id,
+                    ShopSlotView {
+                        wh: slot_wh,
+                        slot_data,
+                        purchase_item,
+                        can_purchase_item: can_purchase_item(hovered_id),
+                        target_xy,
+                        hovered_slot_id: *hovered_slot_id,
+                        set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                    },
+                );
+            }
+
+            // 활성 슬롯 렌더링 (호버된 것 제외)
+            for slot_data in &rendering_data.active_slots {
+                let slot_id = slot_data.id;
+                if *hovered_slot_id == Some(slot_id) {
+                    continue;
+                }
+
+                let target_xy = rendering_data.get_position(slot_id).unwrap();
+
+                ctx.translate((PADDING, PADDING)).add_with_key(
+                    slot_id,
+                    ShopSlotView {
+                        wh: slot_wh,
+                        slot_data,
+                        purchase_item,
+                        can_purchase_item: can_purchase_item(slot_id),
+                        target_xy,
+                        hovered_slot_id: *hovered_slot_id,
+                        set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                    },
+                );
+            }
+
+            // exit 애니메이션 중인 슬롯 렌더링
+            for slot_data in &rendering_data.exiting_slots {
+                let slot_id = slot_data.id;
+                let target_xy = exiting_slot_positions
+                    .get(&slot_id)
+                    .copied()
+                    .unwrap_or(Xy::zero());
+
+                ctx.translate((PADDING, PADDING)).add_with_key(
+                    slot_id,
+                    ShopSlotView {
+                        wh: slot_wh,
+                        slot_data,
+                        purchase_item,
+                        can_purchase_item: can_purchase_item(slot_id),
+                        target_xy,
+                        hovered_slot_id: *hovered_slot_id,
+                        set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                    },
+                );
+            }
+
+            // 리롤 버튼 렌더링
+            let btn_xy = Xy::new(
+                (content_wh.width - SHOP_REFRESH_BUTTON_WH.width) * 0.5,
+                items_area_wh.height,
+            );
+            ctx.translate((PADDING, PADDING))
+                .translate(btn_xy)
+                .add(RefreshButton::new(SHOP_REFRESH_BUTTON_WH));
         });
     }
 }

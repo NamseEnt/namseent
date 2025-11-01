@@ -14,3 +14,4 @@ pub const SHOP_REFRESH_BUTTON_WH: Wh<Px> = Wh {
     height: px(48.0),
 };
 pub const SOLD_OUT_HEIGHT: Px = px(36.0);
+pub const SHOP_SLOT_WIDTH: Px = px(240.0);

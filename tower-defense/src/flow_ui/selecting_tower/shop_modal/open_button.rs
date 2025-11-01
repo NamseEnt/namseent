@@ -14,23 +14,21 @@ impl Component for ShopOpenButton<'_> {
             opened,
             toggle_open,
         } = self;
-        ctx.compose(|ctx| {
-            ctx.translate((0.px(), -SHOP_BUTTON_WH.height)).add(
-                Button::new(
-                    SHOP_BUTTON_WH,
-                    &|| {
-                        toggle_open();
-                    },
-                    &|wh, _text_color, ctx| {
-                        ctx.add(Icon::new(IconKind::Shop).size(IconSize::Large).wh(wh));
-                    },
-                )
-                .variant(ButtonVariant::Fab)
-                .color(match opened {
-                    true => ButtonColor::Primary,
-                    false => ButtonColor::Secondary,
-                }),
-            );
-        });
+        ctx.add(
+            Button::new(
+                SHOP_BUTTON_WH,
+                &|| {
+                    toggle_open();
+                },
+                &|wh, _text_color, ctx| {
+                    ctx.add(Icon::new(IconKind::Shop).size(IconSize::Large).wh(wh));
+                },
+            )
+            .variant(ButtonVariant::Fab)
+            .color(match opened {
+                true => ButtonColor::Primary,
+                false => ButtonColor::Secondary,
+            }),
+        );
     }
 }

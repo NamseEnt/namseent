@@ -4,7 +4,7 @@ use std::ops::{Add, Mul, Sub};
 // 상수들을 컴파일 타임에 계산
 const SPRING_STRENGTH: f32 = 350.0;
 const DAMPING: f32 = 25.0;
-const SNAP_THRESHOLD: f32 = 0.5;
+const SNAP_THRESHOLD: f32 = 0.01;
 const VELOCITY_THRESHOLD: f32 = 0.5;
 const MAX_DELTA_TIME: f32 = 1.0 / 30.0; // 최대 30fps에 해당하는 델타 타임으로 제한
 const MIN_DELTA_TIME: f32 = 0.001; // 최소 델타 타임
