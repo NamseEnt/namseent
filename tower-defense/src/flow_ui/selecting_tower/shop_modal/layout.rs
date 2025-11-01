@@ -79,13 +79,41 @@ impl Component for ShopLayout<'_> {
                 let start_x = (items_area_wh.width - total_width) / 2.0;
                 let slot_wh = Wh::new(slot_w, items_area_wh.height);
 
-                for (index, slot_data) in shop.slots.iter().enumerate() {
+                if let Some(hovered_id) = *hovered_slot_id
+                    && let Some((index, slot_data)) = shop
+                        .slots
+                        .iter()
+                        .enumerate()
+                        .find(|(_, slot)| slot.id == hovered_id)
+                {
                     let x = start_x + (slot_w + gap) * index as f32;
                     let y = px(0.0);
                     let target_xy = Xy::new(x, y);
 
+                    ctx.translate((PADDING, PADDING)).add_with_key(
+                        hovered_id,
+                        ShopSlotView {
+                            wh: slot_wh,
+                            slot_data,
+                            purchase_item,
+                            can_purchase_item: can_purchase_item(hovered_id),
+                            target_xy,
+                            hovered_slot_id: *hovered_slot_id,
+                            set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                        },
+                    );
+                }
+
+                for (index, slot_data) in shop.slots.iter().enumerate() {
                     let slot_id = slot_data.id;
-                    // 각 슬롯을 키와 함께 추가하여 애니메이션 상태 유지
+                    if *hovered_slot_id == Some(slot_id) {
+                        continue; // 호버된 슬롯은 건너뜀
+                    }
+
+                    let x = start_x + (slot_w + gap) * index as f32;
+                    let y = px(0.0);
+                    let target_xy = Xy::new(x, y);
+
                     ctx.translate((PADDING, PADDING)).add_with_key(
                         slot_id,
                         ShopSlotView {
@@ -192,9 +220,6 @@ impl Component for ShopSlotView<'_> {
             .translate(half_xy)
             .scale(animated_scale)
             .translate(-half_xy);
-
-        // 호버 중이면 최상단에 렌더링
-        let ctx = if hovering { ctx.on_top() } else { ctx };
 
         // 실제 콘텐츠 렌더링
         ctx.compose(|ctx| {
