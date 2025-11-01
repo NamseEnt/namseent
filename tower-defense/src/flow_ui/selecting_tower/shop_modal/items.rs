@@ -6,7 +6,7 @@ use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::TopBarText;
 use crate::palette;
-use crate::shop::ShopSlot;
+use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
 use crate::theme::typography::{FontSize, TextAlign, headline, paragraph};
 use namui::*;
@@ -14,9 +14,8 @@ use namui_prebuilt::{simple_rect, table};
 
 pub struct ShopItem<'a> {
     pub wh: Wh<Px>,
-    pub shop_slot: &'a ShopSlot,
-    pub shop_slot_index: usize,
-    pub purchase_item: &'a dyn Fn(usize),
+    pub slot_data: &'a ShopSlotData,
+    pub purchase_item: &'a dyn Fn(ShopSlotId),
     pub can_purchase_item: bool,
 }
 
@@ -24,59 +23,47 @@ impl Component for ShopItem<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            shop_slot,
-            shop_slot_index,
+            slot_data,
             purchase_item,
             can_purchase_item,
         } = self;
 
-        let purchase_item = || purchase_item(shop_slot_index);
+        let slot_id = slot_data.id;
+        let purchase_item_fn = || purchase_item(slot_id);
 
         ctx.compose(|ctx| {
             table::padding_no_clip(PADDING, |wh, ctx| {
-                match shop_slot {
+                match &slot_data.slot {
                     ShopSlot::Locked => {
                         ctx.add(ShopItemLocked { wh });
                     }
-                    ShopSlot::Item {
-                        item,
-                        cost,
-                        purchased,
-                    } => {
+                    ShopSlot::Item { item, cost } => {
                         ctx.add(ShopItemContent {
                             wh,
                             item,
-                            purchase_item: &purchase_item,
+                            purchase_item: &purchase_item_fn,
                             cost: *cost,
-                            purchased: *purchased,
+                            purchased: slot_data.purchased,
                             disabled: !can_purchase_item,
                         });
                     }
-                    ShopSlot::Upgrade {
-                        upgrade,
-                        cost,
-                        purchased,
-                    } => {
+                    ShopSlot::Upgrade { upgrade, cost } => {
                         ctx.add(ShopUpgradeContent {
                             wh,
                             upgrade,
-                            purchase_upgrade: &purchase_item,
+                            purchase_upgrade: &purchase_item_fn,
                             cost: *cost,
-                            purchased: *purchased,
+                            purchased: slot_data.purchased,
                             disabled: !can_purchase_item,
                         });
                     }
-                    ShopSlot::Contract {
-                        contract,
-                        cost,
-                        purchased,
-                    } => {
+                    ShopSlot::Contract { contract, cost } => {
                         ctx.add(ShopContractContent {
                             wh,
                             contract,
-                            purchase_contract: &purchase_item,
+                            purchase_contract: &purchase_item_fn,
                             cost: *cost,
-                            purchased: *purchased,
+                            purchased: slot_data.purchased,
                             disabled: !can_purchase_item,
                         });
                     }

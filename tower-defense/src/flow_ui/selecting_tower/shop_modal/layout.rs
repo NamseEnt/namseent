@@ -5,7 +5,7 @@ use crate::game_state::{mutate_game_state, use_game_state};
 use crate::hand::xy_with_spring;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::shop::refresh_shop;
-use crate::shop::{Shop, ShopSlot};
+use crate::shop::{Shop, ShopSlotId};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::{TextAlign, headline};
 use namui::*;
@@ -13,8 +13,8 @@ use namui_prebuilt::simple_rect;
 
 pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
-    pub purchase_item: &'a dyn Fn(usize),
-    pub can_purchase_items: &'a [bool],
+    pub purchase_item: &'a dyn Fn(ShopSlotId),
+    pub can_purchase_item: &'a dyn Fn(ShopSlotId) -> bool,
 }
 
 impl Component for ShopLayout<'_> {
@@ -22,7 +22,7 @@ impl Component for ShopLayout<'_> {
         let Self {
             shop,
             purchase_item,
-            can_purchase_items,
+            can_purchase_item,
         } = self;
 
         let game_state = use_game_state(ctx);
@@ -43,7 +43,7 @@ impl Component for ShopLayout<'_> {
             });
         };
 
-        let (hovered_slot_index, set_hovered_slot_index) = ctx.state::<Option<usize>>(|| None);
+        let (hovered_slot_id, set_hovered_slot_id) = ctx.state::<Option<ShopSlotId>>(|| None);
 
         // 절대 좌표 기반 레이아웃으로 전환
         ctx.compose(|ctx| {
@@ -79,23 +79,23 @@ impl Component for ShopLayout<'_> {
                 let start_x = (items_area_wh.width - total_width) / 2.0;
                 let slot_wh = Wh::new(slot_w, items_area_wh.height);
 
-                for (shop_slot_index, shop_slot) in shop.slots.iter().enumerate() {
-                    let x = start_x + (slot_w + gap) * shop_slot_index as f32;
+                for (index, slot_data) in shop.slots.iter().enumerate() {
+                    let x = start_x + (slot_w + gap) * index as f32;
                     let y = px(0.0);
                     let target_xy = Xy::new(x, y);
 
+                    let slot_id = slot_data.id;
                     // 각 슬롯을 키와 함께 추가하여 애니메이션 상태 유지
                     ctx.translate((PADDING, PADDING)).add_with_key(
-                        AddKey::U128(shop_slot_index as u128),
+                        slot_id,
                         ShopSlotView {
                             wh: slot_wh,
-                            shop_slot,
-                            shop_slot_index,
+                            slot_data,
                             purchase_item,
-                            can_purchase_item: can_purchase_items[shop_slot_index],
+                            can_purchase_item: can_purchase_item(slot_id),
                             target_xy,
-                            hovered_slot_index: *hovered_slot_index,
-                            set_hovered_slot_index: &|index| set_hovered_slot_index.set(index),
+                            hovered_slot_id: *hovered_slot_id,
+                            set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
                         },
                     );
                 }
@@ -149,30 +149,30 @@ impl Component for ShopLayout<'_> {
 // 슬롯 단위 애니메이션 및 실제 아이템 렌더링을 담당하는 뷰
 struct ShopSlotView<'a> {
     wh: Wh<Px>,
-    shop_slot: &'a ShopSlot,
-    shop_slot_index: usize,
-    purchase_item: &'a dyn Fn(usize),
+    slot_data: &'a crate::shop::ShopSlotData,
+    purchase_item: &'a dyn Fn(ShopSlotId),
     can_purchase_item: bool,
     target_xy: Xy<Px>,
-    hovered_slot_index: Option<usize>,
-    set_hovered_slot_index: &'a dyn Fn(Option<usize>),
+    hovered_slot_id: Option<ShopSlotId>,
+    set_hovered_slot_id: &'a dyn Fn(Option<ShopSlotId>),
 }
 
 impl Component for ShopSlotView<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            shop_slot,
-            shop_slot_index,
+            slot_data,
             purchase_item,
             can_purchase_item,
             target_xy,
-            hovered_slot_index,
-            set_hovered_slot_index,
+            hovered_slot_id,
+            set_hovered_slot_id,
         } = self;
 
+        let slot_id = slot_data.id;
+
         // 이 슬롯이 현재 호버된 슬롯인지 확인
-        let hovering = hovered_slot_index == Some(shop_slot_index);
+        let hovering = hovered_slot_id == Some(slot_id);
 
         // 아래에서 위로 스르륵 올라오는 기본 진입 애니메이션
         let initial_xy = Xy::new(target_xy.x, target_xy.y + px(64.0));
@@ -200,8 +200,7 @@ impl Component for ShopSlotView<'_> {
         ctx.compose(|ctx| {
             ctx.add(ShopItem {
                 wh,
-                shop_slot,
-                shop_slot_index,
+                slot_data,
                 purchase_item,
                 can_purchase_item,
             });
@@ -214,10 +213,10 @@ impl Component for ShopSlotView<'_> {
                             return;
                         };
                         if event.is_local_xy_in() {
-                            set_hovered_slot_index(Some(shop_slot_index));
+                            set_hovered_slot_id(Some(slot_id));
                         } else if hovering {
                             // 현재 호버된 슬롯에서 마우스가 벗어났을 때만 None으로 설정
-                            set_hovered_slot_index(None);
+                            set_hovered_slot_id(None);
                         }
                     },
                 ),

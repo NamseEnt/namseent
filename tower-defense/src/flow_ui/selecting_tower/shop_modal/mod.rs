@@ -4,7 +4,7 @@ mod layout;
 mod open_button;
 
 use crate::game_state::{mutate_game_state, use_game_state};
-use crate::shop::Shop;
+use crate::shop::{Shop, ShopSlotId};
 use constants::SHOP_WH;
 use layout::ShopLayout;
 use namui::*;
@@ -25,19 +25,14 @@ impl Component for ShopModal<'_> {
             set_opened.mutate(|opened| *opened = !*opened);
         };
 
-        let purchase_item = |slot_index: usize| {
+        let purchase_item = |slot_id: ShopSlotId| {
             mutate_game_state(move |game_state| {
-                game_state.purchase_shop_item(slot_index);
+                game_state.purchase_shop_item(slot_id);
             });
         };
 
         let game_state = use_game_state(ctx);
-        let can_purchase_items: Vec<bool> = shop
-            .slots
-            .iter()
-            .enumerate()
-            .map(|(index, _)| game_state.can_purchase_shop_item(index))
-            .collect();
+        let can_purchase_item = |slot_id: ShopSlotId| game_state.can_purchase_shop_item(slot_id);
 
         let offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
 
@@ -55,7 +50,7 @@ impl Component for ShopModal<'_> {
             ctx.translate(offset).add(ShopLayout {
                 shop,
                 purchase_item: &purchase_item,
-                can_purchase_items: &can_purchase_items,
+                can_purchase_item: &can_purchase_item,
             });
         });
     }
