@@ -2,6 +2,10 @@ mod constants;
 mod items;
 mod layout;
 mod open_button;
+mod refresh_button;
+mod slot_layout_calculator;
+mod slot_renderer;
+mod slot_rendering_data;
 
 use crate::game_state::{mutate_game_state, use_game_state};
 use crate::hand::xy_with_spring;
