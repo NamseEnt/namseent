@@ -37,16 +37,17 @@ impl Component for ShopModal<'_> {
 
         let center_offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
 
-        // 버튼 위치 계산
-        let button_xy = center_offset + Xy::new(px(0.0), -SHOP_BUTTON_WH.height);
+        // 버튼을 상점 아이템 바로 위(상점 패널 상단 중앙)에 배치
+        let button_xy = center_offset
+            + Xy::new(
+                (SHOP_WH.width - SHOP_BUTTON_WH.width) * 0.5,
+                SHOP_BUTTON_WH.height * -2.0,
+            );
 
-        ctx.compose(|ctx| {
-            ctx.translate(center_offset).add(ShopOpenButton {
-                opened: *opened,
-                toggle_open: &toggle_open,
-            });
+        ctx.translate(button_xy).add(ShopOpenButton {
+            opened: *opened,
+            toggle_open: &toggle_open,
         });
-
         let target_scale = if *opened {
             Xy::single(1.0)
         } else {
