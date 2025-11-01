@@ -32,6 +32,17 @@ impl Shop {
     pub fn get_slot_by_id_mut(&mut self, id: ShopSlotId) -> Option<&mut ShopSlotData> {
         self.slots.iter_mut().find(|slot| slot.id == id)
     }
+
+    pub fn remove_completed_exit_animations(&mut self) {
+        let now = Instant::now();
+        // 완료된 exit 애니메이션이 있는 슬롯 제거
+        self.slots
+            .retain(|slot| !slot.is_exit_animation_complete(now));
+    }
+
+    pub fn update(&mut self) {
+        self.remove_completed_exit_animations();
+    }
 }
 
 pub fn refresh_shop(game_state: &mut GameState) {

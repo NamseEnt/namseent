@@ -109,6 +109,7 @@ impl GameState {
                 let cost_value = *cost;
 
                 slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 self.items.push(item_clone.clone());
                 self.record_event(HistoryEventType::ItemPurchased {
                     item: item_clone,
@@ -134,6 +135,7 @@ impl GameState {
                 let cost_value = *cost;
 
                 slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 self.upgrade_state.upgrade(upgrade_value);
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
@@ -151,6 +153,7 @@ impl GameState {
                 let cost_value = *cost;
 
                 slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 sign_contract(self, contract_value.clone());
                 self.record_event(HistoryEventType::ContractPurchased {
                     contract: contract_value,

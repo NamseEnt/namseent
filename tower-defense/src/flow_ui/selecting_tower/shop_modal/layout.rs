@@ -15,6 +15,7 @@ pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
     pub purchase_item: &'a dyn Fn(ShopSlotId),
     pub can_purchase_item: &'a dyn Fn(ShopSlotId) -> bool,
+    pub button_xy: Xy<Px>,
 }
 
 impl Component for ShopLayout<'_> {
@@ -23,6 +24,7 @@ impl Component for ShopLayout<'_> {
             shop,
             purchase_item,
             can_purchase_item,
+            button_xy,
         } = self;
 
         let game_state = use_game_state(ctx);
@@ -100,6 +102,7 @@ impl Component for ShopLayout<'_> {
                             target_xy,
                             hovered_slot_id: *hovered_slot_id,
                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                            button_xy,
                         },
                     );
                 }
@@ -124,6 +127,7 @@ impl Component for ShopLayout<'_> {
                             target_xy,
                             hovered_slot_id: *hovered_slot_id,
                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                            button_xy,
                         },
                     );
                 }
@@ -183,6 +187,7 @@ struct ShopSlotView<'a> {
     target_xy: Xy<Px>,
     hovered_slot_id: Option<ShopSlotId>,
     set_hovered_slot_id: &'a dyn Fn(Option<ShopSlotId>),
+    button_xy: Xy<Px>,
 }
 
 impl Component for ShopSlotView<'_> {
@@ -195,23 +200,32 @@ impl Component for ShopSlotView<'_> {
             target_xy,
             hovered_slot_id,
             set_hovered_slot_id,
+            button_xy: _,
         } = self;
 
         let slot_id = slot_data.id;
 
-        // 이 슬롯이 현재 호버된 슬롯인지 확인
-        let hovering = hovered_slot_id == Some(slot_id);
+        // Exit 애니메이션이 있는 경우 처리 (제자리에서 scale만 0으로)
+        let (target_xy, target_scale) = if slot_data.exit_animation.is_some() {
+            // 위치는 그대로, scale만 0으로
+            (target_xy, Xy::single(0.0))
+        } else {
+            // 이 슬롯이 현재 호버된 슬롯인지 확인
+            let hovering = hovered_slot_id == Some(slot_id);
+
+            // 호버 시 1.2배 스케일
+            let scale = if hovering {
+                Xy::single(1.2)
+            } else {
+                Xy::single(1.0)
+            };
+            (target_xy, scale)
+        };
 
         // 아래에서 위로 스르륵 올라오는 기본 진입 애니메이션
         let initial_xy = Xy::new(target_xy.x, target_xy.y + px(64.0));
         let animated_xy = xy_with_spring(ctx, target_xy, initial_xy);
 
-        // 호버 시 1.2배 스케일 (스프링으로 보간)
-        let target_scale = if hovering {
-            Xy::single(1.2)
-        } else {
-            Xy::single(1.0)
-        };
         let animated_scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
 
         let half_xy = wh.to_xy() * 0.5;
@@ -220,6 +234,10 @@ impl Component for ShopSlotView<'_> {
             .translate(half_xy)
             .scale(animated_scale)
             .translate(-half_xy);
+
+        // Exit 애니메이션 중인지 확인
+        let is_exiting = slot_data.exit_animation.is_some();
+        let hovering = hovered_slot_id == Some(slot_id);
 
         // 실제 콘텐츠 렌더링
         ctx.compose(|ctx| {
@@ -230,22 +248,24 @@ impl Component for ShopSlotView<'_> {
                 can_purchase_item,
             });
 
-            // 투명 hit-area로 hover 감지 (MouseMove만 처리, 클릭 이벤트 전파 방해 없음)
-            ctx.add(
-                simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
-                    move |event| {
-                        let Event::MouseMove { event } = event else {
-                            return;
-                        };
-                        if event.is_local_xy_in() {
-                            set_hovered_slot_id(Some(slot_id));
-                        } else if hovering {
-                            // 현재 호버된 슬롯에서 마우스가 벗어났을 때만 None으로 설정
-                            set_hovered_slot_id(None);
-                        }
-                    },
-                ),
-            );
+            // Exit 애니메이션 중이 아닐 때만 hover 감지
+            if !is_exiting {
+                ctx.add(
+                    simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                        move |event| {
+                            let Event::MouseMove { event } = event else {
+                                return;
+                            };
+                            if event.is_local_xy_in() {
+                                set_hovered_slot_id(Some(slot_id));
+                            } else if hovering {
+                                // 현재 호버된 슬롯에서 마우스가 벗어났을 때만 None으로 설정
+                                set_hovered_slot_id(None);
+                            }
+                        },
+                    ),
+                );
+            }
         });
     }
 }
