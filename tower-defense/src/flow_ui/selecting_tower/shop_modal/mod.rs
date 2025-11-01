@@ -4,8 +4,9 @@ mod layout;
 mod open_button;
 
 use crate::game_state::{mutate_game_state, use_game_state};
+use crate::hand::xy_with_spring;
 use crate::shop::{Shop, ShopSlotId};
-use constants::SHOP_WH;
+use constants::{SHOP_BUTTON_WH, SHOP_WH};
 use layout::ShopLayout;
 use namui::*;
 use open_button::ShopOpenButton;
@@ -34,24 +35,47 @@ impl Component for ShopModal<'_> {
         let game_state = use_game_state(ctx);
         let can_purchase_item = |slot_id: ShopSlotId| game_state.can_purchase_shop_item(slot_id);
 
-        let offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
+        let center_offset = ((screen_wh - SHOP_WH) * 0.5).to_xy();
+
+        // 버튼 위치 계산
+        let button_xy = center_offset + Xy::new(px(0.0), -SHOP_BUTTON_WH.height);
 
         ctx.compose(|ctx| {
-            ctx.translate(offset).add(ShopOpenButton {
+            ctx.translate(center_offset).add(ShopOpenButton {
                 opened: *opened,
                 toggle_open: &toggle_open,
             });
         });
 
-        ctx.compose(|ctx| {
-            if !*opened {
-                return;
-            }
-            ctx.translate(offset).add(ShopLayout {
+        let target_scale = if *opened {
+            Xy::single(1.0)
+        } else {
+            Xy::single(0.0)
+        };
+
+        let target_xy = if *opened {
+            center_offset
+        } else {
+            // 닫혔을 때는 버튼의 중앙 위치로
+            button_xy + (SHOP_BUTTON_WH.to_xy() * 0.5) - (SHOP_WH.to_xy() * 0.5)
+        };
+
+        let animated_scale = {
+            let animated_scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
+            Xy::new(animated_scale.x.max(0.0001), animated_scale.y.max(0.0001))
+        };
+        let animated_xy = xy_with_spring(ctx, target_xy, button_xy);
+
+        let pivot = SHOP_WH.to_xy() * 0.5;
+
+        ctx.translate(animated_xy)
+            .translate(pivot)
+            .scale(animated_scale)
+            .translate(-pivot)
+            .add(ShopLayout {
                 shop,
                 purchase_item: &purchase_item,
                 can_purchase_item: &can_purchase_item,
             });
-        });
     }
 }
