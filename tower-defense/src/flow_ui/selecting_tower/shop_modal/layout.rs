@@ -1,5 +1,6 @@
 use super::constants::{PADDING, SHOP_REFRESH_BUTTON_WH, SHOP_WH};
 use super::items::ShopItem;
+use crate::flow_ui::selecting_tower::shop_modal::constants::SHOP_SLOT_WIDTH;
 use crate::game_state::{mutate_game_state, use_game_state};
 use crate::hand::xy_with_spring;
 use crate::icon::{Icon, IconKind, IconSize};
@@ -53,16 +54,30 @@ impl Component for ShopLayout<'_> {
                 height: content_wh.height - SHOP_REFRESH_BUTTON_WH.height,
             };
 
-            // 슬롯 레이아웃 계산 (가로 균등 배치 + PADDING 간격)
+            // 슬롯 레이아웃 계산 (Hand 스타일: 중앙 정렬, 초과 시 음수 갭로 겹치기)
             let slot_count = shop.slots.len();
             if slot_count > 0 {
-                let gap = PADDING;
-                let slot_w =
-                    (items_area_wh.width - gap * (slot_count as f32 - 1.0)) / slot_count as f32;
+                let n = slot_count as f32;
+                // 고정 슬롯 폭(최대 items 영역 너비로 클램프)
+                let slot_w = SHOP_SLOT_WIDTH.min(items_area_wh.width);
+                let default_gap = PADDING;
+                let total_with_default = slot_w * n + default_gap * (n - 1.0);
+                let gap = if slot_count > 1 {
+                    if total_with_default > items_area_wh.width {
+                        // 초과 시 음수 갭
+                        (items_area_wh.width - slot_w * n) / (n - 1.0)
+                    } else {
+                        default_gap
+                    }
+                } else {
+                    px(0.0)
+                };
+                let total_width = slot_w * n + gap * (n - 1.0);
+                let start_x = (items_area_wh.width - total_width) / 2.0;
                 let slot_wh = Wh::new(slot_w, items_area_wh.height);
 
                 for (shop_slot_index, shop_slot) in shop.slots.iter().enumerate() {
-                    let x = slot_w * shop_slot_index as f32 + gap * shop_slot_index as f32;
+                    let x = start_x + (slot_w + gap) * shop_slot_index as f32;
                     let y = px(0.0);
                     let target_xy = Xy::new(x, y);
 
