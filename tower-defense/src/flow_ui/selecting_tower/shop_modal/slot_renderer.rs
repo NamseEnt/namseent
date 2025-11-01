@@ -50,7 +50,10 @@ impl Component for ShopSlotView<'_> {
         let initial_xy = Xy::new(target_xy.x, target_xy.y + px(64.0));
         let animated_xy = xy_with_spring(ctx, target_xy, initial_xy);
 
-        let animated_scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
+        let animated_scale = {
+            let scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
+            Xy::new(scale.x.max(0.0001), scale.y.max(0.0001))
+        };
 
         let half_xy = wh.to_xy() * 0.5;
         let ctx = ctx
