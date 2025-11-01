@@ -15,7 +15,6 @@ pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
     pub purchase_item: &'a dyn Fn(ShopSlotId),
     pub can_purchase_item: &'a dyn Fn(ShopSlotId) -> bool,
-    pub button_xy: Xy<Px>,
 }
 
 impl Component for ShopLayout<'_> {
@@ -24,7 +23,6 @@ impl Component for ShopLayout<'_> {
             shop,
             purchase_item,
             can_purchase_item,
-            button_xy,
         } = self;
 
         let game_state = use_game_state(ctx);
@@ -47,6 +45,10 @@ impl Component for ShopLayout<'_> {
 
         let (hovered_slot_id, set_hovered_slot_id) = ctx.state::<Option<ShopSlotId>>(|| None);
 
+        // exit 애니메이션 중인 슬롯들의 마지막 위치를 저장
+        let (exiting_slot_positions, set_exiting_slot_positions) = ctx
+            .state::<std::collections::HashMap<crate::shop::ShopSlotId, Xy<Px>>>(Default::default);
+
         // 절대 좌표 기반 레이아웃으로 전환
         ctx.compose(|ctx| {
             // 외곽 패딩 영역으로 기준 좌표 이동
@@ -60,7 +62,18 @@ impl Component for ShopLayout<'_> {
             };
 
             // 슬롯 레이아웃 계산 (Hand 스타일: 중앙 정렬, 초과 시 음수 갭로 겹치기)
-            let slot_count = shop.slots.len();
+            // exit 애니메이션이 없는 활성 슬롯만 자리 계산에 포함
+            let active_slots: Vec<_> = shop
+                .slots
+                .iter()
+                .enumerate()
+                .filter(|(_, slot)| slot.exit_animation.is_none())
+                .collect();
+            let slot_count = active_slots.len();
+
+            // 각 슬롯 ID에 대한 target_xy를 미리 계산하여 저장
+            let mut slot_positions = std::collections::HashMap::new();
+
             if slot_count > 0 {
                 let n = slot_count as f32;
                 // 고정 슬롯 폭(최대 items 영역 너비로 클램프)
@@ -81,17 +94,19 @@ impl Component for ShopLayout<'_> {
                 let start_x = (items_area_wh.width - total_width) / 2.0;
                 let slot_wh = Wh::new(slot_w, items_area_wh.height);
 
-                if let Some(hovered_id) = *hovered_slot_id
-                    && let Some((index, slot_data)) = shop
-                        .slots
-                        .iter()
-                        .enumerate()
-                        .find(|(_, slot)| slot.id == hovered_id)
-                {
-                    let x = start_x + (slot_w + gap) * index as f32;
+                // 활성 슬롯들의 위치 계산
+                for (active_index, (_, slot_data)) in active_slots.iter().enumerate() {
+                    let x = start_x + (slot_w + gap) * active_index as f32;
                     let y = px(0.0);
-                    let target_xy = Xy::new(x, y);
+                    slot_positions.insert(slot_data.id, Xy::new(x, y));
+                }
 
+                // 호버된 슬롯 렌더링
+                if let Some(hovered_id) = *hovered_slot_id
+                    && let Some(target_xy) = slot_positions.get(&hovered_id).copied()
+                    && let Some((_, slot_data)) =
+                        active_slots.iter().find(|(_, slot)| slot.id == hovered_id)
+                {
                     ctx.translate((PADDING, PADDING)).add_with_key(
                         hovered_id,
                         ShopSlotView {
@@ -102,20 +117,18 @@ impl Component for ShopLayout<'_> {
                             target_xy,
                             hovered_slot_id: *hovered_slot_id,
                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
-                            button_xy,
                         },
                     );
                 }
 
-                for (index, slot_data) in shop.slots.iter().enumerate() {
+                // 활성 슬롯들을 순회하며 렌더링 (호버된 것 제외)
+                for (_, slot_data) in active_slots.iter() {
                     let slot_id = slot_data.id;
                     if *hovered_slot_id == Some(slot_id) {
                         continue; // 호버된 슬롯은 건너뜀
                     }
 
-                    let x = start_x + (slot_w + gap) * index as f32;
-                    let y = px(0.0);
-                    let target_xy = Xy::new(x, y);
+                    let target_xy = slot_positions.get(&slot_id).copied().unwrap();
 
                     ctx.translate((PADDING, PADDING)).add_with_key(
                         slot_id,
@@ -127,7 +140,41 @@ impl Component for ShopLayout<'_> {
                             target_xy,
                             hovered_slot_id: *hovered_slot_id,
                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
-                            button_xy,
+                        },
+                    );
+                }
+
+                // 현재 활성 슬롯의 위치를 exiting_slot_positions에 업데이트
+                let slot_positions_clone = slot_positions.clone();
+                set_exiting_slot_positions.mutate(move |positions| {
+                    for (slot_id, xy) in &slot_positions_clone {
+                        positions.insert(*slot_id, *xy);
+                    }
+                });
+
+                // exit 애니메이션 중인 슬롯들도 렌더링
+                for slot_data in shop.slots.iter() {
+                    if slot_data.exit_animation.is_none() {
+                        continue; // 이미 위에서 렌더링됨
+                    }
+
+                    let slot_id = slot_data.id;
+                    // exit 중인 슬롯의 이전 위치를 사용
+                    let target_xy = exiting_slot_positions
+                        .get(&slot_id)
+                        .copied()
+                        .unwrap_or(Xy::zero());
+
+                    ctx.translate((PADDING, PADDING)).add_with_key(
+                        slot_id,
+                        ShopSlotView {
+                            wh: slot_wh,
+                            slot_data,
+                            purchase_item,
+                            can_purchase_item: can_purchase_item(slot_id),
+                            target_xy,
+                            hovered_slot_id: *hovered_slot_id,
+                            set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
                         },
                     );
                 }
@@ -187,7 +234,6 @@ struct ShopSlotView<'a> {
     target_xy: Xy<Px>,
     hovered_slot_id: Option<ShopSlotId>,
     set_hovered_slot_id: &'a dyn Fn(Option<ShopSlotId>),
-    button_xy: Xy<Px>,
 }
 
 impl Component for ShopSlotView<'_> {
@@ -200,7 +246,6 @@ impl Component for ShopSlotView<'_> {
             target_xy,
             hovered_slot_id,
             set_hovered_slot_id,
-            button_xy: _,
         } = self;
 
         let slot_id = slot_data.id;

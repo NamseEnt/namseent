@@ -77,7 +77,6 @@ impl Component for ShopModal<'_> {
                 shop,
                 purchase_item: &purchase_item,
                 can_purchase_item: &can_purchase_item,
-                button_xy,
             });
     }
 }
