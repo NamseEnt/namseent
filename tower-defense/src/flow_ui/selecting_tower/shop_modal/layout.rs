@@ -9,6 +9,7 @@ use crate::shop::{Shop, ShopSlot};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::{TextAlign, headline};
 use namui::*;
+use namui_prebuilt::simple_rect;
 
 pub struct ShopLayout<'a> {
     pub shop: &'a Shop,
@@ -41,6 +42,8 @@ impl Component for ShopLayout<'_> {
                 refresh_shop(game_state);
             });
         };
+
+        let (hovered_slot_index, set_hovered_slot_index) = ctx.state::<Option<usize>>(|| None);
 
         // 절대 좌표 기반 레이아웃으로 전환
         ctx.compose(|ctx| {
@@ -91,6 +94,8 @@ impl Component for ShopLayout<'_> {
                             purchase_item,
                             can_purchase_item: can_purchase_items[shop_slot_index],
                             target_xy,
+                            hovered_slot_index: *hovered_slot_index,
+                            set_hovered_slot_index: &|index| set_hovered_slot_index.set(index),
                         },
                     );
                 }
@@ -149,6 +154,8 @@ struct ShopSlotView<'a> {
     purchase_item: &'a dyn Fn(usize),
     can_purchase_item: bool,
     target_xy: Xy<Px>,
+    hovered_slot_index: Option<usize>,
+    set_hovered_slot_index: &'a dyn Fn(Option<usize>),
 }
 
 impl Component for ShopSlotView<'_> {
@@ -160,18 +167,61 @@ impl Component for ShopSlotView<'_> {
             purchase_item,
             can_purchase_item,
             target_xy,
+            hovered_slot_index,
+            set_hovered_slot_index,
         } = self;
+
+        // 이 슬롯이 현재 호버된 슬롯인지 확인
+        let hovering = hovered_slot_index == Some(shop_slot_index);
 
         // 아래에서 위로 스르륵 올라오는 기본 진입 애니메이션
         let initial_xy = Xy::new(target_xy.x, target_xy.y + px(64.0));
         let animated_xy = xy_with_spring(ctx, target_xy, initial_xy);
 
-        ctx.translate(animated_xy).add(ShopItem {
-            wh,
-            shop_slot,
-            shop_slot_index,
-            purchase_item,
-            can_purchase_item,
+        // 호버 시 1.2배 스케일 (스프링으로 보간)
+        let target_scale = if hovering {
+            Xy::single(1.2)
+        } else {
+            Xy::single(1.0)
+        };
+        let animated_scale = xy_with_spring(ctx, target_scale, Xy::single(0.0));
+
+        let half_xy = wh.to_xy() * 0.5;
+        let ctx = ctx
+            .translate(animated_xy)
+            .translate(half_xy)
+            .scale(animated_scale)
+            .translate(-half_xy);
+
+        // 호버 중이면 최상단에 렌더링
+        let ctx = if hovering { ctx.on_top() } else { ctx };
+
+        // 실제 콘텐츠 렌더링
+        ctx.compose(|ctx| {
+            ctx.add(ShopItem {
+                wh,
+                shop_slot,
+                shop_slot_index,
+                purchase_item,
+                can_purchase_item,
+            });
+
+            // 투명 hit-area로 hover 감지 (MouseMove만 처리, 클릭 이벤트 전파 방해 없음)
+            ctx.add(
+                simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                    move |event| {
+                        let Event::MouseMove { event } = event else {
+                            return;
+                        };
+                        if event.is_local_xy_in() {
+                            set_hovered_slot_index(Some(shop_slot_index));
+                        } else if hovering {
+                            // 현재 호버된 슬롯에서 마우스가 벗어났을 때만 None으로 설정
+                            set_hovered_slot_index(None);
+                        }
+                    },
+                ),
+            );
         });
     }
 }
