@@ -8,8 +8,11 @@ impl Component for RenderGameState<'_> {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(tick::Ticker);
 
+        let visual_left_top = self.game_state.camera.visual_left_top();
+        let final_offset = TILE_PX_SIZE.to_xy() * visual_left_top * -1.0;
+
         ctx.scale(Xy::single(self.game_state.camera.zoom_level))
-            .translate(TILE_PX_SIZE.to_xy() * self.game_state.camera.left_top * -1.0)
+            .translate(final_offset)
             .compose(|ctx| {
                 ctx.add((render_tower_info_popup, self.game_state));
                 ctx.add((render_cursor_preview, self.game_state));
@@ -34,14 +37,13 @@ impl GameState {
         MapCoord: AsRef<Xy<MapAxis>>,
         MapAxis: Ratio + std::fmt::Debug + Clone + Copy,
     {
-        let camera = &self.camera;
-
-        let screen_rect = Rect::from_xy_wh(camera.left_top, {
+        let visual_left_top = self.camera.visual_left_top();
+        let screen_rect = Rect::from_xy_wh(visual_left_top, {
             let screen_size = namui::screen::size();
             Wh::new(
                 screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
                 screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            ) / camera.zoom_level
+            ) / self.camera.zoom_level
         });
 
         for (xy, stuff) in stuffs {
@@ -123,14 +125,13 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
-    let camera = &game_state.camera;
-
-    let screen_rect = Rect::from_xy_wh(camera.left_top, {
+    let visual_left_top = game_state.camera.visual_left_top();
+    let screen_rect = Rect::from_xy_wh(visual_left_top, {
         let screen_size = namui::screen::size();
         Wh::new(
             screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
             screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-        ) / camera.zoom_level
+        ) / game_state.camera.zoom_level
     });
 
     for background in game_state.backgrounds.iter() {
@@ -203,14 +204,14 @@ fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
-    let camera = &game_state.camera;
+    let visual_left_top = game_state.camera.visual_left_top();
     let screen_rect = {
         let screen_size = namui::screen::size();
-        Rect::from_xy_wh(camera.left_top, {
+        Rect::from_xy_wh(visual_left_top, {
             Wh::new(
                 screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
                 screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-            ) / camera.zoom_level
+            ) / game_state.camera.zoom_level
         })
     };
 

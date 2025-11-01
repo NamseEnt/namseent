@@ -159,6 +159,11 @@ impl GameState {
 
         self.ui_state.cleanup_unused_states(&existing_tower_ids);
     }
+
+    pub fn update_camera_shake(&mut self, dt: Duration) {
+        self.camera
+            .update_shake(dt, self.game_now - Instant::new(Duration::ZERO));
+    }
 }
 
 #[derive(Clone, Copy, State)]
