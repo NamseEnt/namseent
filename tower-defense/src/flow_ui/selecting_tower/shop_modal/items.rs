@@ -159,12 +159,11 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
             table::fixed_no_clip(
                 wh.width,
                 table::padding_no_clip(PADDING, |wh, ctx| {
-                    ctx.translate(((wh.width - IconSize::Large.px()) * 0.5, -PADDING))
-                        .add(
-                            Icon::new(IconKind::Rarity { rarity })
-                                .size(IconSize::Large)
-                                .wh(Wh::new(IconSize::Large.px(), PADDING)),
-                        );
+                    ctx.translate(Xy::single(PADDING)).add(
+                        Icon::new(IconKind::Rarity { rarity })
+                            .size(IconSize::Large)
+                            .wh(Wh::single(IconSize::Large.px())),
+                    );
                     ctx.compose(|ctx| {
                         table::padding(PADDING, |wh, ctx| {
                             if let Some(kind) = item_kind {
