@@ -33,6 +33,28 @@ impl Shop {
         self.slots.iter_mut().find(|slot| slot.id == id)
     }
 
+    pub fn delete_slots(&mut self, ids: &[ShopSlotId]) {
+        let now = Instant::now();
+        // 삭제할 슬롯들에 exit 애니메이션 시작
+        for slot in self.slots.iter_mut() {
+            if ids.contains(&slot.id) {
+                slot.start_exit_animation(now);
+            }
+        }
+    }
+
+    pub fn get_unpurchased_slot_ids(&self) -> Vec<ShopSlotId> {
+        self.slots
+            .iter()
+            .filter(|slot| !slot.purchased && slot.exit_animation.is_none())
+            .map(|slot| slot.id)
+            .collect()
+    }
+
+    pub fn push(&mut self, slot: ShopSlot) {
+        self.slots.push(ShopSlotData::new(slot));
+    }
+
     pub fn remove_completed_exit_animations(&mut self) {
         let now = Instant::now();
         // 완료된 exit 애니메이션이 있는 슬롯 제거
@@ -46,8 +68,16 @@ impl Shop {
 }
 
 pub fn refresh_shop(game_state: &mut GameState) {
-    let new_slots_count = game_state.max_shop_slot();
-    let new_slots: Vec<ShopSlot> = (0..new_slots_count)
+    let (unpurchased_slot_ids, refresh_count) =
+        if let GameFlow::SelectingTower(flow) = &game_state.flow {
+            let ids = flow.shop.get_unpurchased_slot_ids();
+            let count = ids.len();
+            (ids, count)
+        } else {
+            return;
+        };
+
+    let new_slots: Vec<ShopSlot> = (0..refresh_count)
         .map(|_| generate_shop_slot(game_state))
         .collect();
 
@@ -55,30 +85,10 @@ pub fn refresh_shop(game_state: &mut GameState) {
         unreachable!()
     };
 
-    // 기존 슬롯 중 구매되지 않은 것만 새로 고침
-    let mut new_slot_iter = new_slots.into_iter();
-    for slot_data in flow.shop.slots.iter_mut() {
-        if !slot_data.purchased
-            && let Some(new_slot) = new_slot_iter.next()
-        {
-            slot_data.slot = new_slot;
-        }
-    }
+    flow.shop.delete_slots(&unpurchased_slot_ids);
 
-    // 슬롯 수가 늘어난 경우 새 슬롯 추가
-    while flow.shop.slots.len() < new_slots_count {
-        if let Some(new_slot) = new_slot_iter.next() {
-            flow.shop.slots.push(ShopSlotData::new(new_slot));
-        }
-    }
-
-    // 슬롯 수가 줄어든 경우 초과 슬롯 제거 (구매되지 않은 것부터)
-    while flow.shop.slots.len() > new_slots_count {
-        if let Some(index) = flow.shop.slots.iter().position(|s| !s.purchased) {
-            flow.shop.slots.remove(index);
-        } else {
-            break;
-        }
+    for new_slot in new_slots {
+        flow.shop.push(new_slot);
     }
 }
 
