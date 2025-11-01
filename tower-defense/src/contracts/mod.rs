@@ -13,7 +13,7 @@ use crate::{
 };
 use contract_item::ContractItemContent;
 use namui::*;
-use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, table};
+use namui_prebuilt::table;
 
 const PANEL_WIDTH: Px = px(260.);
 const PADDING: Px = px(4.);
@@ -30,31 +30,23 @@ impl Component for ContractsPanel {
         let evaluating_contract_id = get_evaluating_contract_id(&game_state);
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
-            ctx.clip(Path::new().add_rect(wh.to_rect()), ClipOp::Intersect)
-                .add(AutoScrollViewWithCtx {
-                    wh,
-                    scroll_bar_width: PADDING,
-                    content: |ctx| {
-                        let content_width = wh.width;
-                        let mut current_y = 0.px();
-                        for contract in game_state.contracts.iter() {
-                            let item = ctx.ghost_compose("ContractItemContent", |ctx| {
-                                ctx.add(ContractItemContent {
-                                    contract,
-                                    text_manager,
-                                    content_width,
-                                    evaluating_contract_id,
-                                });
-                            });
-                            let Some(container_wh) = item.bounding_box().map(|rect| rect.wh())
-                            else {
-                                return;
-                            };
-                            ctx.translate((0.px(), current_y)).add(item);
-                            current_y += container_wh.height;
-                        }
-                    },
+            let content_width = wh.width;
+            let mut current_y = 0.px();
+            for contract in game_state.contracts.iter() {
+                let item = ctx.ghost_compose("ContractItemContent", |ctx| {
+                    ctx.add(ContractItemContent {
+                        contract,
+                        text_manager,
+                        content_width,
+                        evaluating_contract_id,
+                    });
                 });
+                let Some(container_wh) = item.bounding_box().map(|rect| rect.wh()) else {
+                    return;
+                };
+                ctx.translate((0.px(), current_y)).add(item);
+                current_y += container_wh.height;
+            }
         };
 
         render_ctx.compose(|ctx| {
