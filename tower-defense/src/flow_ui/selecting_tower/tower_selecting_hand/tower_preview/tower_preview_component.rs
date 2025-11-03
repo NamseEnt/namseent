@@ -1,3 +1,4 @@
+use super::format_compact_number;
 use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
@@ -21,19 +22,6 @@ const PADDING: Px = px(4.0);
 const HEADLINE_FONT_SIZE_SMALL: Px = px(16.0);
 const PARAGRAPH_FONT_SIZE_LARGE: Px = px(16.0);
 const PREVIEW_ICON_SIZE: Px = px(40.0);
-
-/// Format a rating number with k/m/b suffixes
-fn format_rating(rating: f32) -> String {
-    if rating >= 1_000_000_000.0 {
-        format!("{:.1}b", rating / 1_000_000_000.0)
-    } else if rating >= 1_000_000.0 {
-        format!("{:.1}m", rating / 1_000_000.0)
-    } else if rating >= 1_000.0 {
-        format!("{:.1}k", rating / 1_000.0)
-    } else {
-        format!("{:.1}", rating)
-    }
-}
 
 #[derive(State)]
 struct MouseHoveringSkill {
@@ -128,7 +116,7 @@ impl Component for TowerPreviewContent<'_> {
                                 .wh(Wh::new(16.px(), wh.height)),
                         );
                         ctx.add(
-                            paragraph(format_rating(rating))
+                            paragraph(format_compact_number(rating))
                                 .size(FontSize::Medium)
                                 .align(TextAlign::RightTop { width: wh.width })
                                 .build_rich(),
