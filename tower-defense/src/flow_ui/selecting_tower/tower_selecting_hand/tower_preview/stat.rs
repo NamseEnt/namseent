@@ -1,3 +1,4 @@
+use super::format_compact_number;
 use crate::l10n::rich_text_helpers::{additive_value, multiplier_value};
 use crate::{
     icon::{Icon, IconKind, IconSize},
@@ -88,7 +89,7 @@ impl Component for StatPreview<'_> {
 
 fn format_stat_final(base: f32, plus: f32, multiplier: f32) -> String {
     let final_value = calculate_final_stat(base, plus, multiplier);
-    format!("{final_value:.1}")
+    format_compact_number(final_value)
 }
 
 fn format_stat_detail(base: f32, plus: f32, multiplier: f32) -> String {

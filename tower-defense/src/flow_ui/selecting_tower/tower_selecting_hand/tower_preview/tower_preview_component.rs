@@ -1,3 +1,4 @@
+use super::format_compact_number;
 use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
@@ -9,10 +10,10 @@ use crate::{
         tower::{TowerSkillTemplate, TowerTemplate},
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
-    icon::{Icon, IconKind},
+    icon::{Icon, IconKind, IconSize},
     l10n::upgrade::UpgradeKindText,
     palette,
-    theme::typography::{FontSize, TextAlign, headline},
+    theme::typography::{FontSize, TextAlign, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -96,6 +97,28 @@ impl Component for TowerPreviewContent<'_> {
                                 .size(FontSize::Small)
                                 .align(TextAlign::LeftCenter { height: wh.height })
                                 .max_width(wh.width)
+                                .build_rich(),
+                        );
+                    }),
+                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
+                        let rating = tower_template.calculate_rating(
+                            upgrade_state.damage_plus,
+                            upgrade_state.damage_multiplier,
+                            upgrade_state.speed_plus,
+                            upgrade_state.speed_multiplier,
+                            upgrade_state.range_plus,
+                        );
+
+                        // Follow StatPreview layout: left icon, right-aligned value
+                        ctx.add(
+                            Icon::new(IconKind::Rating)
+                                .size(IconSize::Small)
+                                .wh(Wh::new(16.px(), wh.height)),
+                        );
+                        ctx.add(
+                            paragraph(format_compact_number(rating))
+                                .size(FontSize::Medium)
+                                .align(TextAlign::RightTop { width: wh.width })
                                 .build_rich(),
                         );
                     }),

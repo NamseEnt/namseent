@@ -36,6 +36,7 @@ pub enum IconKind {
     Add,
     Multiply,
     Rarity { rarity: Rarity },
+    Rating,
 }
 impl IconKind {
     pub fn image(self) -> Image {
@@ -79,6 +80,7 @@ impl IconKind {
                 Rarity::Epic => crate::asset::image::icon::RARITY_EPIC,
                 Rarity::Legendary => crate::asset::image::icon::RARITY_LEGENDARY,
             },
+            IconKind::Rating => crate::asset::image::icon::RATING,
         }
     }
 
@@ -123,6 +125,7 @@ impl IconKind {
                 Rarity::Epic => "rarity_epic",
                 Rarity::Legendary => "rarity_legendary",
             },
+            IconKind::Rating => "rating",
         }
     }
 
@@ -173,6 +176,7 @@ impl IconKind {
             "rarity_legendary" => Some(IconKind::Rarity {
                 rarity: Rarity::Legendary,
             }),
+            "rating" => Some(IconKind::Rating),
             _ => None,
         }
     }

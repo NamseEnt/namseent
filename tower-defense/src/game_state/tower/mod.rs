@@ -177,6 +177,26 @@ impl TowerTemplate {
     pub fn barricade() -> Self {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
+
+    /// Calculate tower power rating based on damage, attack speed, and range
+    /// Formula: DPS × RANGE
+    /// where DPS = damage × attack_speed
+    pub fn calculate_rating(
+        &self,
+        damage_plus: f32,
+        damage_multiplier: f32,
+        speed_plus: f32,
+        speed_multiplier: f32,
+        range_plus: f32,
+    ) -> f32 {
+        let damage = (self.default_damage + self.rank.bonus_damage() as f32 + damage_plus)
+            * damage_multiplier;
+        let base_attack_speed = 1.0 / self.shoot_interval.as_secs_f32();
+        let attack_speed = (base_attack_speed + speed_plus) * speed_multiplier;
+        let range = self.default_attack_range_radius + range_plus;
+        let dps = damage * attack_speed;
+        dps * range
+    }
 }
 impl PartialOrd for TowerTemplate {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
