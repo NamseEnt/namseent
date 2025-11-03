@@ -61,7 +61,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ./namui/namui-cli
+            ./namui/namui-cli/target
+            ./namui/namui-cli/wasi-sdk
           key: ${{ env.CARGO_VERSION }}-${{ matrix.namui-target }}-namui-cli
 
       - name: Build namui-cli

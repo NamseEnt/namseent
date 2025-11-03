@@ -1,8 +1,6 @@
 mod get_highest_tower;
 mod tower_preview;
 
-pub use tower_preview::{TowerPreview, TowerPreviewContent};
-
 use crate::card::Card;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::mutate_game_state;
@@ -14,6 +12,7 @@ use crate::theme::typography::{TextAlign, headline};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
+pub use tower_preview::{TowerPreview, TowerPreviewContent};
 
 const PADDING: Px = px(4.);
 
@@ -31,21 +30,18 @@ impl<'a> Component for TowerSelectingHand<'a> {
         let some_selected = ctx.memo(|| !selected_hand_slot_ids.is_empty());
         let using_cards = ctx.memo(|| {
             let slot_ids = {
-                let selected_slot_ids = hand.selected_slot_ids();
-                if !selected_slot_ids.is_empty() {
-                    selected_slot_ids
+                if !selected_hand_slot_ids.is_empty() {
+                    selected_hand_slot_ids.clone_inner()
                 } else {
                     hand.active_slot_ids()
                 }
             };
             hand.get_items(&slot_ids).cloned().collect::<Vec<Card>>()
         });
-        let tower_template = ctx.memo(|| {
-            get_highest_tower_template(
-                &using_cards,
-                &game_state.upgrade_state,
-                game_state.rerolled_count,
-            )
+        let tower_template = ctx.memo({
+            let upgrade_state = &game_state.upgrade_state;
+            let rerolled_count = game_state.rerolled_count;
+            move || get_highest_tower_template(&using_cards, upgrade_state, rerolled_count)
         });
 
         let reroll_selected = || {
