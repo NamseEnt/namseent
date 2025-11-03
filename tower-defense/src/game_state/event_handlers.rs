@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::camera::ShakeIntensity;
 use crate::{
     game_state::{
         contract::sign_contract, effect::run_effect, item, play_history::HistoryEventType,
@@ -41,6 +42,14 @@ impl GameState {
     pub fn take_damage(&mut self, damage: f32) {
         let mut actual_damage = damage;
 
+        // Camera shake based on damage
+        let intensity = match actual_damage {
+            d if d < 10.0 => ShakeIntensity::Light,
+            d if d < 25.0 => ShakeIntensity::Medium,
+            _ => ShakeIntensity::Heavy,
+        };
+        self.camera.shake(intensity);
+
         // Shield absorption
         if self.shield > 0.0 {
             let absorbed = damage.min(self.shield);
@@ -64,25 +73,22 @@ impl GameState {
         }
     }
 
-    pub fn purchase_shop_item(&mut self, slot_index: usize) {
+    pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
         let GameFlow::SelectingTower(flow) = &mut self.flow else {
             unreachable!()
         };
 
-        let Some(slot) = flow.shop.slots.get_mut(slot_index) else {
+        let Some(slot_data) = flow.shop.get_slot_by_id_mut(slot_id) else {
             return;
         };
 
-        match slot {
+        if slot_data.purchased {
+            return;
+        }
+
+        match &slot_data.slot {
             ShopSlot::Locked => {}
-            ShopSlot::Item {
-                item,
-                cost,
-                purchased,
-            } => {
-                if *purchased {
-                    return;
-                }
+            ShopSlot::Item { item, cost } => {
                 if self.gold < *cost {
                     return;
                 }
@@ -102,7 +108,8 @@ impl GameState {
                 let item_clone = item.clone();
                 let cost_value = *cost;
 
-                *purchased = true;
+                slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 self.items.push(item_clone.clone());
                 self.record_event(HistoryEventType::ItemPurchased {
                     item: item_clone,
@@ -110,14 +117,7 @@ impl GameState {
                 });
                 self.spend_gold(cost_value);
             }
-            ShopSlot::Upgrade {
-                upgrade,
-                cost,
-                purchased,
-            } => {
-                if *purchased {
-                    return;
-                }
+            ShopSlot::Upgrade { upgrade, cost } => {
                 if self.gold < *cost {
                     return;
                 }
@@ -134,7 +134,8 @@ impl GameState {
                 let upgrade_value = *upgrade;
                 let cost_value = *cost;
 
-                *purchased = true;
+                slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 self.upgrade_state.upgrade(upgrade_value);
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
@@ -142,14 +143,7 @@ impl GameState {
                 });
                 self.spend_gold(cost_value);
             }
-            ShopSlot::Contract {
-                contract,
-                cost,
-                purchased,
-            } => {
-                if *purchased {
-                    return;
-                }
+            ShopSlot::Contract { contract, cost } => {
                 if self.gold < *cost {
                     return;
                 }
@@ -158,7 +152,8 @@ impl GameState {
                 let contract_value = contract.clone();
                 let cost_value = *cost;
 
-                *purchased = true;
+                slot_data.purchased = true;
+                slot_data.start_exit_animation(Instant::now());
                 sign_contract(self, contract_value.clone());
                 self.record_event(HistoryEventType::ContractPurchased {
                     contract: contract_value,
@@ -182,39 +177,35 @@ impl GameState {
         });
     }
 
-    pub fn can_purchase_shop_item(&self, slot_index: usize) -> bool {
+    pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
         let GameFlow::SelectingTower(flow) = &self.flow else {
             return false;
         };
 
-        let Some(slot) = flow.shop.slots.get(slot_index) else {
+        let Some(slot_data) = flow.shop.get_slot_by_id(slot_id) else {
             return false;
         };
 
-        match slot {
+        if slot_data.purchased {
+            return false;
+        }
+
+        match &slot_data.slot {
             ShopSlot::Locked => false,
-            ShopSlot::Item {
-                cost, purchased, ..
-            } => {
-                !*purchased
-                    && self.gold >= *cost
+            ShopSlot::Item { cost, .. } => {
+                self.gold >= *cost
                     && self.items.len() < MAX_INVENTORY_SLOT
                     && !self
                         .stage_modifiers
                         .is_item_and_upgrade_purchases_disabled()
             }
-            ShopSlot::Upgrade {
-                cost, purchased, ..
-            } => {
-                !*purchased
-                    && self.gold >= *cost
+            ShopSlot::Upgrade { cost, .. } => {
+                self.gold >= *cost
                     && !self
                         .stage_modifiers
                         .is_item_and_upgrade_purchases_disabled()
             }
-            ShopSlot::Contract {
-                cost, purchased, ..
-            } => !*purchased && self.gold >= *cost,
+            ShopSlot::Contract { cost, .. } => self.gold >= *cost,
         }
     }
 }

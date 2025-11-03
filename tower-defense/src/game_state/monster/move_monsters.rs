@@ -29,5 +29,7 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     // Apply contract incoming damage increase
     damage *= game_state.stage_modifiers.get_incoming_damage_multiplier();
 
-    game_state.take_damage(damage);
+    if damage > 0.0 {
+        game_state.take_damage(damage);
+    }
 }
