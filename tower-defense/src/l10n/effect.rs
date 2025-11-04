@@ -647,3 +647,38 @@ impl EffectText {
         }
     }
 }
+
+/// Effect 실행 에러 메시지 다국어 지원
+#[derive(Clone, State)]
+pub struct EffectExecutionErrorText(pub crate::game_state::effect::EffectExecutionError);
+
+impl LocalizedText for EffectExecutionErrorText {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
+impl EffectExecutionErrorText {
+    fn to_korean(&self) -> String {
+        use crate::game_state::effect::EffectExecutionError;
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "아이템을 사용할 수 없습니다".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("잘못된 단계입니다 (필요: {})", required)
+            }
+        }
+    }
+
+    fn to_english(&self) -> String {
+        use crate::game_state::effect::EffectExecutionError;
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "Cannot use items".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("Invalid game flow (required: {})", required)
+            }
+        }
+    }
+}

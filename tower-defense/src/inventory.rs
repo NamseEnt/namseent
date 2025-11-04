@@ -63,6 +63,10 @@ impl Component for Inventory {
                                                 table::fixed(
                                                     HEADLINE_FONT_SIZE_LARGE.into_px() * 3.0,
                                                     |wh, ctx| {
+                                                        let can_use_result =
+                                                            item.can_use(&game_state);
+                                                        let is_disabled = can_use_result.is_err();
+
                                                         ctx.add(
                                                             Button::new(
                                                                 wh,
@@ -95,11 +99,7 @@ impl Component for Inventory {
                                                                     );
                                                                 },
                                                             )
-                                                            .disabled(
-                                                                game_state
-                                                                    .stage_modifiers
-                                                                    .is_item_use_disabled(),
-                                                            ),
+                                                            .disabled(is_disabled),
                                                         );
                                                     },
                                                 ),

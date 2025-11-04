@@ -411,6 +411,38 @@ impl Effect {
     pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
         text_manager.effect_description(self)
     }
+
+    pub fn can_execute(&self, game_state: &GameState) -> Result<(), EffectExecutionError> {
+        if game_state.stage_modifiers.is_item_use_disabled() {
+            return Err(EffectExecutionError::ItemUseDisabled);
+        }
+
+        if self == &Effect::ExtraReroll && !matches!(game_state.flow, GameFlow::SelectingTower(_)) {
+            return Err(EffectExecutionError::InvalidFlow {
+                required: "SelectingTower".to_string(),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Effect 실행 불가능한 이유를 사용자가 읽을 수 있는 메시지로 변환
+    pub fn execution_error_message(
+        &self,
+        error: &EffectExecutionError,
+        text_manager: &crate::l10n::TextManager,
+    ) -> String {
+        text_manager.effect_execution_error(error)
+    }
+}
+
+/// Effect 실행 불가능 사유
+#[derive(Clone, Debug, PartialEq, State)]
+pub enum EffectExecutionError {
+    /// 아이템 사용이 비활성화됨
+    ItemUseDisabled,
+    /// 잘못된 게임 흐름 단계
+    InvalidFlow { required: String },
 }
 
 // ============================= Test Helpers =============================
@@ -469,6 +501,7 @@ pub mod tests_support {
 #[cfg(test)]
 mod tests {
     mod card_selection_reroll_and_slots;
+    mod effect_can_execute;
     mod random_effects_deterministic;
     mod run_effect_integration;
     mod shop_reroll;
