@@ -208,11 +208,25 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
                     rarity: rarity::Rarity::Epic,
                     value: 0.5.into(),
                 },
-                // For debugging purpose, should be removed in production.
                 Item {
-                    effect: Effect::Heal { amount: 20.0 },
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.0.into(), // 디버깅용 - 최소값
+                    effect: Effect::AddTowerCardToPlacementHand {
+                        tower_kind: TowerKind::Barricade,
+                        suit: Suit::Spades,
+                        rank: Rank::Ace,
+                        count: 5,
+                    },
+                    rarity: rarity::Rarity::Common,
+                    value: 1.0.into(),
+                },
+                Item {
+                    effect: Effect::AddTowerCardToPlacementHand {
+                        tower_kind: TowerKind::High,
+                        suit: Suit::Spades,
+                        rank: Rank::Ace,
+                        count: 1,
+                    },
+                    rarity: rarity::Rarity::Common,
+                    value: 1.0.into(),
                 },
             ],
             gold: 100,
