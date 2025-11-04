@@ -293,16 +293,19 @@ impl EffectText {
                     count,
                 } => {
                     let tower_name = tower_kind.to_text().to_korean();
-                    if *count == 1 {
-                        format!(
-                            "타워 설치 핸드에 {} {} {} 타워 카드를 추가합니다",
-                            suit, rank, tower_name
-                        )
-                    } else {
-                        format!(
-                            "타워 설치 핸드에 {} {} {} 타워 카드를 {}장 추가합니다",
-                            suit, rank, tower_name, count
-                        )
+                    match *tower_kind {
+                        crate::game_state::tower::TowerKind::Barricade => {
+                            format!(
+                                "타워 설치 핸드에 {} 카드를 {}장 추가합니다",
+                                tower_name, count
+                            )
+                        }
+                        _ => {
+                            format!(
+                                "타워 설치 핸드에 {} {} {} 타워 카드를 {}장 추가합니다",
+                                suit, rank, tower_name, count
+                            )
+                        }
                     }
                 }
                 Effect::GainShield {
@@ -604,16 +607,16 @@ impl EffectText {
                     count,
                 } => {
                     let tower_name = tower_kind.to_text().to_english();
-                    if *count == 1 {
-                        format!(
-                            "Add {} {} {} tower card to placement hand",
-                            suit, rank, tower_name
-                        )
-                    } else {
-                        format!(
-                            "Add {} {} {} {} tower cards to placement hand",
-                            count, suit, rank, tower_name
-                        )
+                    match *tower_kind {
+                        crate::game_state::tower::TowerKind::Barricade => {
+                            format!("Add {} {} cards to placement hand", count, tower_name)
+                        }
+                        _ => {
+                            format!(
+                                "Add {} {} {} {} tower cards to placement hand",
+                                count, suit, rank, tower_name
+                            )
+                        }
                     }
                 }
                 Effect::GainShield {
