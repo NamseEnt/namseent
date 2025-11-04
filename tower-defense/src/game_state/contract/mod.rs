@@ -344,15 +344,26 @@ mod property_tests {
     #[test]
     fn stage_grants_persist_across_reset_and_clear_explicitly() {
         let mut cs = StageModifiers::new();
-        // give grants
-        cs.set_barricade_cards_per_stage(5);
+        // give grants (using the new queue system)
+        cs.enqueue_extra_tower_card(
+            crate::game_state::tower::TowerKind::Barricade,
+            crate::card::Suit::Spades,
+            crate::card::Rank::Ace,
+        );
+        cs.enqueue_extra_tower_card(
+            crate::game_state::tower::TowerKind::High,
+            crate::card::Suit::Hearts,
+            crate::card::Rank::King,
+        );
         // reset stage transient state
         cs.reset_stage_state();
-        // grants should persist
-        assert_eq!(cs.get_barricade_cards_per_stage(), 5);
+        // grants should persist (queue should still have 2 items)
+        let queued = cs.drain_extra_tower_cards();
+        assert_eq!(queued.len(), 2);
         // now clear grants
         cs.clear_stage_grants();
-        assert_eq!(cs.get_barricade_cards_per_stage(), 0);
+        let queued_after_clear = cs.drain_extra_tower_cards();
+        assert_eq!(queued_after_clear.len(), 0);
     }
 
     #[test]
@@ -495,7 +506,7 @@ mod property_tests {
                 let b = gens[0](&mut rng, rarity, 3); // barricade effect deterministic for given rarity
                 let s = gens[1](&mut rng, rarity, 3); // shield range effect deterministic for given rarity
                 use crate::game_state::effect::Effect::*;
-                if let AddBarricadeCardsToTowerPlacementHand { count } = b {
+                if let AddTowerCardToPlacementHand { count, .. } = b {
                     agg.min_barr = agg.min_barr.min(count);
                     agg.max_barr = agg.max_barr.max(count);
                 }

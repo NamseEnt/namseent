@@ -1,6 +1,8 @@
 use crate::card::{Rank, Suit};
+use crate::game_state::flow::GameFlow;
 use crate::game_state::{
     GameState,
+    tower::{TowerKind, TowerTemplate},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
 use crate::rarity::Rarity;
@@ -102,7 +104,10 @@ pub enum Effect {
     SuitTowerDisable {
         suit: Suit,
     },
-    AddBarricadeCardsToTowerPlacementHand {
+    AddTowerCardToPlacementHand {
+        tower_kind: TowerKind,
+        suit: Suit,
+        rank: Rank,
         count: usize,
     },
     GainShield {
@@ -358,11 +363,21 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::SuitTowerDisable { suit } => {
             game_state.stage_modifiers.disable_suit(*suit);
         }
-        Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-            // This effect is handled in the stage start logic
-            game_state
-                .stage_modifiers
-                .set_barricade_cards_per_stage(*count);
+        Effect::AddTowerCardToPlacementHand {
+            tower_kind,
+            suit,
+            rank,
+            count,
+        } => {
+            for _ in 0..*count {
+                if let GameFlow::PlacingTower { hand } = &mut game_state.flow {
+                    hand.push(TowerTemplate::new(*tower_kind, *suit, *rank));
+                } else {
+                    game_state
+                        .stage_modifiers
+                        .enqueue_extra_tower_card(*tower_kind, *suit, *rank);
+                }
+            }
         }
         Effect::GainShield {
             min_amount,

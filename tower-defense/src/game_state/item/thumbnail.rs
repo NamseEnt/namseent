@@ -153,11 +153,21 @@ impl Effect {
                     IconAttribute::new(IconKind::Reject).position(IconAttributePosition::Center),
                 ])
                 .to_rendering_tree(),
-            Effect::AddBarricadeCardsToTowerPlacementHand { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Card)
-                    .build()
-            }
+            Effect::AddTowerCardToPlacementHand {
+                tower_kind,
+                suit,
+                rank,
+                ..
+            } => match tower_kind {
+                crate::TowerKind::Barricade => ThumbnailComposer::new(width_height)
+                    .with_tower_image(*tower_kind)
+                    .build(),
+                _ => ThumbnailComposer::new(width_height)
+                    .with_tower_image(*tower_kind)
+                    .add_rank_overlay(*rank)
+                    .add_suit_overlay(*suit)
+                    .build(),
+            },
             Effect::GainShield { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shield)
                 .build(),

@@ -79,9 +79,7 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("{} 수트 타워 비활성화", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("타워 설치 핸드에 바리케이드 카드 {}장 추가", count)
-                }
+                Effect::AddTowerCardToPlacementHand { .. } => "추가 타워".to_string(),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -288,8 +286,24 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("계약 기간 동안 {} 수트 타워를 사용할 수 없습니다", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("타워 설치 핸드에 바리케이드 카드를 {}장 추가합니다", count)
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind,
+                    suit,
+                    rank,
+                    count,
+                } => {
+                    let tower_name = tower_kind.to_text().to_korean();
+                    if *count == 1 {
+                        format!(
+                            "타워 설치 핸드에 {} {} {} 타워 카드를 추가합니다",
+                            suit, rank, tower_name
+                        )
+                    } else {
+                        format!(
+                            "타워 설치 핸드에 {} {} {} 타워 카드를 {}장 추가합니다",
+                            suit, rank, tower_name, count
+                        )
+                    }
                 }
                 Effect::GainShield {
                     min_amount,
@@ -379,9 +393,7 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("Disable {} Suit Towers", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("Add {} Barricade Cards to Tower Placement Hand", count)
-                }
+                Effect::AddTowerCardToPlacementHand { .. } => "Add Tower Card".to_string(),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -585,8 +597,24 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("Cannot use {} suit towers during contract", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("Add {} barricade cards to tower placement hand", count)
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind,
+                    suit,
+                    rank,
+                    count,
+                } => {
+                    let tower_name = tower_kind.to_text().to_english();
+                    if *count == 1 {
+                        format!(
+                            "Add {} {} {} tower card to placement hand",
+                            suit, rank, tower_name
+                        )
+                    } else {
+                        format!(
+                            "Add {} {} {} {} tower cards to placement hand",
+                            count, suit, rank, tower_name
+                        )
+                    }
                 }
                 Effect::GainShield {
                     min_amount,
