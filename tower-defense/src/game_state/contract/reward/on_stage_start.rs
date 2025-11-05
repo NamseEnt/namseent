@@ -7,7 +7,10 @@ use crate::{game_state::effect::Effect, rarity::Rarity};
 
 pub(crate) fn list() -> &'static [RewardGeneratorFn] {
     const FNS: &[RewardGeneratorFn] = &[
-        |_, rarity, _| Effect::AddBarricadeCardsToTowerPlacementHand {
+        |_, rarity, _| Effect::AddTowerCardToPlacementHand {
+            tower_kind: crate::game_state::tower::TowerKind::Barricade,
+            suit: crate::card::Suit::Spades,
+            rank: crate::card::Rank::Ace,
             count: rarity_based_amount(rarity, 1.0, 2.0, 3.0, 4.0) as usize,
         },
         |_, rarity, _| Effect::GainShield {

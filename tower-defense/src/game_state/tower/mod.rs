@@ -167,7 +167,7 @@ impl TowerTemplate {
             default_attack_range_radius: kind.default_attack_range_radius(),
             projectile_kind: ProjectileKind::Ball,
             projectile_speed: Per::new(48.0, 1.sec()),
-            default_damage: kind.default_damage() as f32,
+            default_damage: kind.default_damage(),
             suit,
             rank,
             skill_templates: kind.skill_templates(),
@@ -256,19 +256,19 @@ impl TowerKind {
             Self::RoyalFlush => 20.0,
         }
     }
-    pub fn default_damage(&self) -> usize {
+    pub fn default_damage(&self) -> f32 {
         match self {
-            Self::Barricade => 0,
-            Self::High => 5,
-            Self::OnePair => 25,
-            Self::TwoPair => 50,
-            Self::ThreeOfAKind => 125,
-            Self::Straight => 250,
-            Self::Flush => 375,
-            Self::FullHouse => 1000,
-            Self::FourOfAKind => 1250,
-            Self::StraightFlush => 7500,
-            Self::RoyalFlush => 15000,
+            Self::Barricade => 0.0,
+            Self::High => 5.0,
+            Self::OnePair => 25.0,
+            Self::TwoPair => 50.0,
+            Self::ThreeOfAKind => 125.0,
+            Self::Straight => 250.0,
+            Self::Flush => 375.0,
+            Self::FullHouse => 1000.0,
+            Self::FourOfAKind => 1250.0,
+            Self::StraightFlush => 7500.0,
+            Self::RoyalFlush => 15000.0,
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {

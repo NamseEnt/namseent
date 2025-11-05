@@ -79,9 +79,7 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("{} 수트 타워 비활성화", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("타워 설치 핸드에 바리케이드 카드 {}장 추가", count)
-                }
+                Effect::AddTowerCardToPlacementHand { .. } => "추가 타워".to_string(),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -288,8 +286,27 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("계약 기간 동안 {} 수트 타워를 사용할 수 없습니다", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("타워 설치 핸드에 바리케이드 카드를 {}장 추가합니다", count)
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind,
+                    suit,
+                    rank,
+                    count,
+                } => {
+                    let tower_name = tower_kind.to_text().to_korean();
+                    match *tower_kind {
+                        crate::game_state::tower::TowerKind::Barricade => {
+                            format!(
+                                "타워 설치 핸드에 {} 카드를 {}장 추가합니다",
+                                tower_name, count
+                            )
+                        }
+                        _ => {
+                            format!(
+                                "타워 설치 핸드에 {} {} {} 타워 카드를 {}장 추가합니다",
+                                suit, rank, tower_name, count
+                            )
+                        }
+                    }
                 }
                 Effect::GainShield {
                     min_amount,
@@ -379,9 +396,7 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("Disable {} Suit Towers", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("Add {} Barricade Cards to Tower Placement Hand", count)
-                }
+                Effect::AddTowerCardToPlacementHand { .. } => "Add Tower Card".to_string(),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -585,8 +600,24 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => {
                     format!("Cannot use {} suit towers during contract", suit)
                 }
-                Effect::AddBarricadeCardsToTowerPlacementHand { count } => {
-                    format!("Add {} barricade cards to tower placement hand", count)
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind,
+                    suit,
+                    rank,
+                    count,
+                } => {
+                    let tower_name = tower_kind.to_text().to_english();
+                    match *tower_kind {
+                        crate::game_state::tower::TowerKind::Barricade => {
+                            format!("Add {} {} cards to placement hand", count, tower_name)
+                        }
+                        _ => {
+                            format!(
+                                "Add {} {} {} {} tower cards to placement hand",
+                                count, suit, rank, tower_name
+                            )
+                        }
+                    }
                 }
                 Effect::GainShield {
                     min_amount,
@@ -613,6 +644,41 @@ impl EffectText {
                     format!("Lose health ({:.0}~{:.0})", min_amount, max_amount)
                 }
             },
+        }
+    }
+}
+
+/// Effect 실행 에러 메시지 다국어 지원
+#[derive(Clone, State)]
+pub struct EffectExecutionErrorText(pub crate::game_state::effect::EffectExecutionError);
+
+impl LocalizedText for EffectExecutionErrorText {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
+impl EffectExecutionErrorText {
+    fn to_korean(&self) -> String {
+        use crate::game_state::effect::EffectExecutionError;
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "아이템을 사용할 수 없습니다".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("잘못된 단계입니다 (필요: {})", required)
+            }
+        }
+    }
+
+    fn to_english(&self) -> String {
+        use crate::game_state::effect::EffectExecutionError;
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "Cannot use items".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("Invalid game flow (required: {})", required)
+            }
         }
     }
 }

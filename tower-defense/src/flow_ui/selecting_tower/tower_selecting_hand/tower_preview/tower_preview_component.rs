@@ -130,7 +130,7 @@ impl Component for TowerPreviewContent<'_> {
 
                         ctx.add(StatPreview {
                             stat_icon_kind: IconKind::AttackDamage,
-                            default_stat: damage as f32,
+                            default_stat: damage,
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,
                             wh,

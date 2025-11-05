@@ -87,6 +87,13 @@ impl TextManager {
     pub fn effect_description(&self, effect: &crate::game_state::effect::Effect) -> String {
         effect::EffectText::Description(effect.clone()).localized_text(&self.locale)
     }
+
+    pub fn effect_execution_error(
+        &self,
+        error: &crate::game_state::effect::EffectExecutionError,
+    ) -> String {
+        effect::EffectExecutionErrorText(error.clone()).localized_text(&self.locale)
+    }
 }
 
 /// 계약 텍스트 처리

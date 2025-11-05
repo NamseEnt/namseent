@@ -22,6 +22,7 @@
 //! - Introduce a generic stacking abstraction if new modifier categories grow
 
 use crate::card::{Rank, Suit};
+use crate::game_state::tower::TowerKind;
 use crate::*;
 
 #[derive(Clone, Debug, Default, State)]
@@ -61,7 +62,7 @@ pub struct Restrictions {
 
 #[derive(Clone, Debug, Default, State)]
 pub struct StageGrants {
-    pub barricade_cards_per_stage: usize,
+    pub extra_tower_cards: Vec<(TowerKind, Suit, Rank)>,
 }
 
 #[derive(Clone, Debug, Default, State)]
@@ -165,8 +166,8 @@ impl StageModifiers {
     pub fn get_disabled_suits(&self) -> &Vec<Suit> {
         &self.restrictions.disabled_suits
     }
-    pub fn get_barricade_cards_per_stage(&self) -> usize {
-        self.stage_grants.barricade_cards_per_stage
+    pub fn drain_extra_tower_cards(&mut self) -> Vec<(TowerKind, Suit, Rank)> {
+        std::mem::take(&mut self.stage_grants.extra_tower_cards)
     }
 
     // Net deltas (for testing)
@@ -257,7 +258,7 @@ impl StageModifiers {
         }
     }
 
-    pub fn set_barricade_cards_per_stage(&mut self, c: usize) {
-        self.stage_grants.barricade_cards_per_stage = c;
+    pub fn enqueue_extra_tower_card(&mut self, kind: TowerKind, suit: Suit, rank: Rank) {
+        self.stage_grants.extra_tower_cards.push((kind, suit, rank));
     }
 }

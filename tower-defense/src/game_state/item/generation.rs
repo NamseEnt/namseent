@@ -85,6 +85,21 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rarity: Rarity, rng: &mut R) -> I
                 duration,
             }
         }
+        ItemCandidate::GrantBarricades => {
+            let range = match rarity {
+                Rarity::Common => 2.0..5.0,
+                Rarity::Rare => 5.0..10.0,
+                Rarity::Epic => 10.0..16.0,
+                Rarity::Legendary => 16.0..21.0,
+            };
+            let count = calculate_amount_from_value(value, range.start, range.end) as usize;
+            Effect::AddTowerCardToPlacementHand {
+                tower_kind: crate::game_state::tower::TowerKind::Barricade,
+                suit: crate::card::Suit::Spades,
+                rank: crate::card::Rank::Ace,
+                count,
+            }
+        }
     };
 
     Item {
@@ -102,10 +117,10 @@ pub fn generate_item(rarity: Rarity) -> Item {
 
 fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
     let candidate_weight = match rarity {
-        Rarity::Common => [100.0, 10.0, 5.0, 5.0, 5.0],
-        Rarity::Rare => [100.0, 30.0, 10.0, 10.0, 10.0],
-        Rarity::Epic => [100.0, 30.0, 20.0, 30.0, 30.0],
-        Rarity::Legendary => [100.0, 30.0, 30.0, 50.0, 30.0],
+        Rarity::Common => [100.0, 10.0, 5.0, 5.0, 5.0, 50.0],
+        Rarity::Rare => [100.0, 30.0, 10.0, 10.0, 10.0, 45.0],
+        Rarity::Epic => [100.0, 30.0, 20.0, 30.0, 30.0, 40.0],
+        Rarity::Legendary => [100.0, 30.0, 30.0, 50.0, 30.0, 35.0],
     };
     let candidate_table = vec![
         (ItemCandidate::Heal, candidate_weight[0]),
@@ -113,6 +128,7 @@ fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
         (ItemCandidate::ExtraReroll, candidate_weight[2]),
         (ItemCandidate::Shield, candidate_weight[3]),
         (ItemCandidate::DamageReduction, candidate_weight[4]),
+        (ItemCandidate::GrantBarricades, candidate_weight[5]),
     ];
     candidate_table
 }
@@ -123,4 +139,5 @@ enum ItemCandidate {
     ExtraReroll,
     Shield,
     DamageReduction,
+    GrantBarricades,
 }
