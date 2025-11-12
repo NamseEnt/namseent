@@ -135,14 +135,6 @@ impl UpgradeKind {
                 .with_icon_base(IconKind::Shop)
                 .add_expansion_indicator("+")
                 .build(),
-            UpgradeKind::QuestSlotExpansion => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Quest)
-                .add_expansion_indicator("+")
-                .build(),
-            UpgradeKind::QuestBoardExpansion => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Quest)
-                .add_expansion_indicator("Board")
-                .build(),
 
             // 리롤 관련 업그레이드들
             UpgradeKind::RerollCountPlus => ThumbnailComposer::new(width_height)
@@ -199,12 +191,6 @@ impl UpgradeKind {
                 .to_rendering_tree(),
             UpgradeKind::ShopRefreshPlus => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shop)
-                .add_reroll_indicator()
-                .build(),
-
-            // 퀘스트 보드 리프레시
-            UpgradeKind::QuestBoardRefreshPlus => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Quest)
                 .add_reroll_indicator()
                 .build(),
 
