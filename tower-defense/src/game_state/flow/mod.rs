@@ -78,6 +78,7 @@ impl GameState {
 
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
+        self.just_cleared_boss_stage = false;
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {

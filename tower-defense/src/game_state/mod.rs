@@ -101,6 +101,7 @@ pub struct GameState {
     pub contracts: Vec<contract::Contract>,
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
+    pub just_cleared_boss_stage: bool,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -248,6 +249,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: UIState::new(),
+            just_cleared_boss_stage: false,
         };
 
         game_state.goto_next_stage();
