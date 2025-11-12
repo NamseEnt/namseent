@@ -54,24 +54,6 @@ fn add_basic_upgrades(
         });
     }
 
-    if state.quest_slot_expand != 0 {
-        infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::QuestSlotExpansion,
-            description: text.upgrade_board(UpgradeBoardText::QuestSlotExpand {
-                amount: state.quest_slot_expand,
-            }),
-        });
-    }
-
-    if state.quest_board_slot_expand != 0 {
-        infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::QuestBoardExpansion,
-            description: text.upgrade_board(UpgradeBoardText::QuestBoardSlotExpand {
-                amount: state.quest_board_slot_expand,
-            }),
-        });
-    }
-
     if state.reroll_chance_plus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::RerollCountPlus,
@@ -95,15 +77,6 @@ fn add_basic_upgrades(
             upgrade_kind: UpgradeKind::ShopRefreshPlus,
             description: text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus {
                 amount: state.shop_refresh_chance_plus,
-            }),
-        });
-    }
-
-    if state.quest_board_refresh_chance_plus != 0 {
-        infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::QuestBoardRefreshPlus,
-            description: text.upgrade_board(UpgradeBoardText::QuestBoardRefreshChancePlus {
-                amount: state.quest_board_refresh_chance_plus,
             }),
         });
     }

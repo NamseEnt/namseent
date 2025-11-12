@@ -36,8 +36,6 @@ impl UpgradeKindText<'_> {
                     format!("{tower_name} Attack Range Increase")
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => "Shop Slot Expansion".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestSlotExpansion => "Quest Slot Expansion".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardExpansion => "Quest Board Expansion".to_string(),
                 crate::game_state::upgrade::UpgradeKind::RerollCountPlus => "Reroll Count Increase".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamagePlus { .. } => "Low Card Tower Attack Damage Increase".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => "Low Card Tower Attack Damage Multiplier".to_string(),
@@ -46,7 +44,6 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerAttackRangePlus { .. } => "Low Card Tower Attack Range Increase".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => "Shop Item Price Discount".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => "Shop Refresh Count Increase".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardRefreshPlus => "Quest Board Refresh Count Increase".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => "No Reroll Tower Attack Damage Increase".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => "No Reroll Tower Attack Damage Multiplier".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => "No Reroll Tower Attack Speed Increase".to_string(),
@@ -144,8 +141,6 @@ impl UpgradeKindText<'_> {
                     format!("{} increases by {} for {tower_name} towers.", attack_range_stat("Attack Range"), additive_value(format!("{range_plus:.1}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => "Adds 1 slot available for purchase in the shop.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestSlotExpansion => "Adds 1 quest inventory slot.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardExpansion => "Adds 1 quest displayed on the quest board.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::RerollCountPlus => "Increases the number of rerolls available each round by 1.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamagePlus { damage_plus } => {
                     format!("{} increases by {} for towers made with 3 or fewer cards.", attack_damage_stat("Attack Damage"), additive_value(format!("{damage_plus:.1}")))
@@ -164,7 +159,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => "Shop item prices are discounted.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => "Shop refresh count increases by 1.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardRefreshPlus => "Quest board refresh count increases by 1.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus } => {
                     format!("{} increases by {} for towers made without rerolling.", attack_damage_stat("Attack Damage"), additive_value(format!("{damage_plus:.1}")))
                 },

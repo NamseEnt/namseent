@@ -6,12 +6,9 @@ pub enum UpgradeBoardText {
     Title,
     GoldEarnPlus { amount: usize },
     ShopSlotExpand { amount: usize },
-    QuestSlotExpand { amount: usize },
-    QuestBoardSlotExpand { amount: usize },
     RerollChancePlus { amount: usize },
     ShopItemPriceMinus { amount: usize },
     ShopRefreshChancePlus { amount: usize },
-    QuestBoardRefreshChancePlus { amount: usize },
     ShortenStraightFlushTo4Cards,
     SkipRankForStraight,
     TreatSuitsAsSame,
@@ -49,12 +46,6 @@ impl UpgradeBoardText {
             UpgradeBoardText::ShopSlotExpand { amount } => {
                 format!("{}상점 슬롯이 {amount}개 증가합니다", shop_icon())
             }
-            UpgradeBoardText::QuestSlotExpand { amount } => {
-                format!("{}퀘스트 슬롯이 {amount}개 증가합니다", quest_icon())
-            }
-            UpgradeBoardText::QuestBoardSlotExpand { amount } => {
-                format!("{}퀘스트 게시판 슬롯이 {amount}개 증가합니다", quest_icon())
-            }
             UpgradeBoardText::RerollChancePlus { amount } => {
                 format!("{}리롤 기회가 {amount}개 증가합니다", refresh_icon())
             }
@@ -64,10 +55,6 @@ impl UpgradeBoardText {
             UpgradeBoardText::ShopRefreshChancePlus { amount } => {
                 format!("{}상점 새로고침 기회가 {amount}개 증가합니다", shop_icon())
             }
-            UpgradeBoardText::QuestBoardRefreshChancePlus { amount } => format!(
-                "{}퀘스트 게시판 새로고침 기회가 {amount}개 증가합니다",
-                quest_icon()
-            ),
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 "스트레이트와 플러시를 4장으로 줄입니다".to_string()
             }
@@ -137,12 +124,6 @@ impl UpgradeBoardText {
             UpgradeBoardText::ShopSlotExpand { amount } => {
                 format!("{}Increases shop slots by {amount}", shop_icon())
             }
-            UpgradeBoardText::QuestSlotExpand { amount } => {
-                format!("{}Increases quest slots by {amount}", quest_icon())
-            }
-            UpgradeBoardText::QuestBoardSlotExpand { amount } => {
-                format!("{}Increases quest board slots by {amount}", quest_icon())
-            }
             UpgradeBoardText::RerollChancePlus { amount } => {
                 format!("{}Increases reroll chances by {amount}", refresh_icon())
             }
@@ -152,10 +133,6 @@ impl UpgradeBoardText {
             UpgradeBoardText::ShopRefreshChancePlus { amount } => {
                 format!("{}Increases shop refresh chances by {amount}", shop_icon())
             }
-            UpgradeBoardText::QuestBoardRefreshChancePlus { amount } => format!(
-                "{}Increases quest board refresh chances by {amount}",
-                quest_icon()
-            ),
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 "Shortens straight and flush to 4 cards".to_string()
             }

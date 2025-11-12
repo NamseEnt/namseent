@@ -14,10 +14,7 @@ use std::collections::BTreeMap;
 
 pub const MAX_GOLD_EARN_PLUS: usize = 16;
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
-pub const MAX_QUEST_SLOT_EXPAND: usize = 2;
-pub const MAX_QUEST_BOARD_SLOT_EXPAND: usize = 2;
 pub const MAX_SHOP_REFRESH_CHANCE_PLUS: usize = 2;
-pub const MAX_QUEST_BOARD_REFRESH_CHANCE_PLUS: usize = 2;
 pub const MAX_REROLL_CHANCE_PLUS: usize = 2;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 
@@ -25,10 +22,7 @@ pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 pub struct UpgradeState {
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
-    pub quest_slot_expand: usize,
-    pub quest_board_slot_expand: usize,
     pub shop_refresh_chance_plus: usize,
-    pub quest_board_refresh_chance_plus: usize,
     pub reroll_chance_plus: usize,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
@@ -196,19 +190,6 @@ impl UpgradeState {
                 1 => self.shop_slot_expand = 2,
                 _ => unreachable!("Invalid shop slot upgrade: {}", self.shop_slot_expand),
             },
-            UpgradeKind::QuestSlotExpansion => match self.quest_slot_expand {
-                0 => self.quest_slot_expand = 1,
-                1 => self.quest_slot_expand = 2,
-                _ => unreachable!("Invalid quest slot upgrade: {}", self.quest_slot_expand),
-            },
-            UpgradeKind::QuestBoardExpansion => match self.quest_board_slot_expand {
-                0 => self.quest_board_slot_expand = 1,
-                1 => self.quest_board_slot_expand = 2,
-                _ => unreachable!(
-                    "Invalid quest board slot upgrade: {}",
-                    self.quest_board_slot_expand
-                ),
-            },
             UpgradeKind::RerollCountPlus => match self.reroll_chance_plus {
                 0 => self.reroll_chance_plus = 1,
                 1 => self.reroll_chance_plus = 2,
@@ -266,15 +247,6 @@ impl UpgradeState {
                 _ => unreachable!(
                     "Invalid shop refresh upgrade: {}",
                     self.shop_refresh_chance_plus
-                ),
-            },
-            UpgradeKind::QuestBoardRefreshPlus => match self.quest_board_refresh_chance_plus {
-                0 => self.quest_board_refresh_chance_plus = 1,
-                1 => self.quest_board_refresh_chance_plus = 2,
-                2 => self.quest_board_refresh_chance_plus = 3,
-                _ => unreachable!(
-                    "Invalid quest board refresh upgrade: {}",
-                    self.quest_board_refresh_chance_plus
                 ),
             },
             UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus } => {
@@ -549,8 +521,6 @@ pub enum UpgradeKind {
         range_plus: f32,
     },
     ShopSlotExpansion,
-    QuestSlotExpansion,
-    QuestBoardExpansion,
     RerollCountPlus,
     LowCardTowerDamagePlus {
         damage_plus: f32,
@@ -569,7 +539,6 @@ pub enum UpgradeKind {
     },
     ShopItemPriceMinus,
     ShopRefreshPlus,
-    QuestBoardRefreshPlus,
     NoRerollTowerAttackDamagePlus {
         damage_plus: f32,
     },

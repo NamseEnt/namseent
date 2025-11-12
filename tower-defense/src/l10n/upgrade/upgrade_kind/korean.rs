@@ -36,8 +36,6 @@ impl UpgradeKindText<'_> {
                     format!("{tower_name} 사거리 증가")
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => "상점 슬롯 확장".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestSlotExpansion => "퀘스트 슬롯 확장".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardExpansion => "퀘스트 보드 확장".to_string(),
                 crate::game_state::upgrade::UpgradeKind::RerollCountPlus => "리롤 횟수 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamagePlus { .. } => "로우카드 타워 공격력 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => "로우카드 타워 공격력 배수 증가".to_string(),
@@ -46,7 +44,6 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerAttackRangePlus { .. } => "로우카드 타워 사거리 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => "상점 아이템 가격 할인".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => "상점 새로고침 횟수 증가".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardRefreshPlus => "퀘스트 보드 새로고침 횟수 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => "무리롤 타워 공격력 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => "무리롤 타워 공격력 배수 증가".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => "무리롤 타워 공격 속도 증가".to_string(),
@@ -144,8 +141,6 @@ impl UpgradeKindText<'_> {
                     format!("{tower_name} 타워의 {}가 {} 증가합니다.", attack_range_stat("사거리"), additive_value(format!("{range_plus:.1}")))
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => "상점에서 구매할 수 있는 슬롯이 1개 추가됩니다.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestSlotExpansion => "퀘스트 인벤토리 슬롯이 1개 추가됩니다.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardExpansion => "퀘스트 보드에 표시되는 퀘스트가 1개 추가됩니다.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::RerollCountPlus => "매 라운드마다 사용할 수 있는 리롤 횟수가 1회 증가합니다.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamagePlus { damage_plus } => {
                     format!("3장 이하로 만든 타워의 {}이 {} 증가합니다.", attack_damage_stat("공격력"), additive_value(format!("{damage_plus:.1}")))
@@ -164,7 +159,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => "상점 아이템의 가격이 할인됩니다.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => "상점 새로고침 횟수가 1회 증가합니다.".to_string(),
-                crate::game_state::upgrade::UpgradeKind::QuestBoardRefreshPlus => "퀘스트 보드 새로고침 횟수가 1회 증가합니다.".to_string(),
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus } => {
                     format!("리롤하지 않고 만든 타워의 {}이 {} 증가합니다.", attack_damage_stat("공격력"), additive_value(format!("{damage_plus:.1}")))
                 },

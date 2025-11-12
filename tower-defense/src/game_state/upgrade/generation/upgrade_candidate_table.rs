@@ -170,19 +170,6 @@ pub fn generate_upgrade_candidate_table(
             (10, 50, 50, 100),
         ),
         (
-            |_rarity| UpgradeKind::QuestSlotExpansion,
-            Some((upgrade_state.quest_slot_expand, MAX_QUEST_SLOT_EXPAND)),
-            (10, 50, 50, 100),
-        ),
-        (
-            |_rarity| UpgradeKind::QuestBoardExpansion,
-            Some((
-                upgrade_state.quest_board_slot_expand,
-                MAX_QUEST_BOARD_SLOT_EXPAND,
-            )),
-            (10, 50, 50, 100),
-        ),
-        (
             |_rarity| UpgradeKind::RerollCountPlus,
             Some((upgrade_state.reroll_chance_plus, MAX_REROLL_CHANCE_PLUS)),
             (5, 10, 50, 100),
@@ -238,14 +225,6 @@ pub fn generate_upgrade_candidate_table(
             Some((
                 upgrade_state.shop_refresh_chance_plus,
                 MAX_SHOP_REFRESH_CHANCE_PLUS,
-            )),
-            (10, 50, 50, 10),
-        ),
-        (
-            |_rarity| UpgradeKind::QuestBoardRefreshPlus,
-            Some((
-                upgrade_state.quest_board_refresh_chance_plus,
-                MAX_QUEST_BOARD_REFRESH_CHANCE_PLUS,
             )),
             (10, 50, 50, 10),
         ),
