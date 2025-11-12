@@ -92,9 +92,6 @@ impl GameState {
                 if self.gold < *cost {
                     return;
                 }
-                if self.items.len() >= MAX_INVENTORY_SLOT {
-                    return;
-                }
 
                 // 아이템/업그레이드 구매 불가 효과 체크
                 if self
@@ -194,7 +191,6 @@ impl GameState {
             ShopSlot::Locked => false,
             ShopSlot::Item { cost, .. } => {
                 self.gold >= *cost
-                    && self.items.len() < MAX_INVENTORY_SLOT
                     && !self
                         .stage_modifiers
                         .is_item_and_upgrade_purchases_disabled()
