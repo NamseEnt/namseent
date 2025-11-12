@@ -1,6 +1,5 @@
 mod placing_tower;
 mod selecting_tower;
-mod selecting_upgrade;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
 use namui::*;
@@ -24,7 +23,6 @@ impl Component for FlowUi {
                 ctx.add(placing_tower::PlacingTowerUi);
             }
             GameFlow::Defense => {}
-            GameFlow::SelectingUpgrade { upgrades: _ } => {}
             GameFlow::Result => {}
         };
     }

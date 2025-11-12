@@ -16,7 +16,6 @@ mod theme;
 mod thumbnail;
 mod top_bar;
 mod upgrade_board;
-mod upgrade_select;
 
 use crate::{
     camera_controller::CameraController,
@@ -26,13 +25,12 @@ use crate::{
 };
 use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
-use game_state::{TILE_PX_SIZE, flow::GameFlow, mutate_game_state};
+use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::simple_rect;
 use theme::palette;
 use top_bar::TopBar;
-use upgrade_select::UpgradeSelectModal;
 
 register_assets!();
 
@@ -78,16 +76,6 @@ impl Component for Game {
         // Game speed indicator in bottom-right corner
         ctx.translate((screen_wh.width - 116.px(), screen_wh.height - 88.px()))
             .add(GameSpeedIndicator);
-
-        ctx.compose(|ctx| {
-            let GameFlow::SelectingUpgrade { upgrades } = &game_state.flow else {
-                return;
-            };
-            ctx.add(UpgradeSelectModal {
-                screen_wh,
-                upgrades,
-            });
-        });
 
         ctx.add(flow_ui::FlowUi);
 
