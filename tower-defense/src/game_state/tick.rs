@@ -248,7 +248,7 @@ fn check_defense_end(game_state: &mut GameState) {
 
     game_state.stage += 1;
     if game_state.stage > 50 {
-        // Game clear
+        game_state.goto_result();
         return;
     }
 
