@@ -1,11 +1,6 @@
 pub mod contract;
 
-use super::{
-    GameState,
-    monster_spawn::start_spawn,
-    tower::TowerTemplate,
-    upgrade::{Upgrade, generate_upgrades_for_boss_reward},
-};
+use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
@@ -21,7 +16,6 @@ pub enum GameFlow {
     SelectingTower(SelectingTowerFlow),
     PlacingTower { hand: Hand<TowerTemplate> },
     Defense,
-    SelectingUpgrade { upgrades: Vec<Upgrade> },
     Result,
 }
 impl GameFlow {
@@ -84,6 +78,7 @@ impl GameState {
 
     pub fn goto_selecting_tower(&mut self) {
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
+        self.just_cleared_boss_stage = false;
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
@@ -106,11 +101,6 @@ impl GameState {
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense;
         start_spawn(self);
-    }
-
-    pub fn goto_selecting_upgrade(&mut self) {
-        let upgrades = generate_upgrades_for_boss_reward(self, 3);
-        self.flow = GameFlow::SelectingUpgrade { upgrades };
     }
 
     pub fn goto_result(&mut self) {

@@ -249,13 +249,12 @@ fn check_defense_end(game_state: &mut GameState) {
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
     if game_state.stage > 50 {
-        // Game clear
+        game_state.goto_result();
         return;
     }
 
-    if is_boss_stage {
-        game_state.goto_selecting_upgrade();
-    } else {
-        game_state.goto_next_stage();
-    }
+    // 보스 스테이지를 클리어했다면 플래그 설정
+    game_state.just_cleared_boss_stage = is_boss_stage;
+
+    game_state.goto_next_stage();
 }

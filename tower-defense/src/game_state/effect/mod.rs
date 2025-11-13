@@ -493,6 +493,7 @@ pub mod tests_support {
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
+            just_cleared_boss_stage: false,
         }
     }
 }
