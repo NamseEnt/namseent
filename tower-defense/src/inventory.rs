@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{MAX_INVENTORY_SLOT, item::use_item, mutate_game_state, use_game_state},
+    game_state::{item::use_item, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
@@ -172,15 +172,6 @@ impl Component for Inventory {
                                     width: 32.px(),
                                     height: wh.height,
                                 }));
-                                let text =
-                                    format!("{}/{}", game_state.items.len(), MAX_INVENTORY_SLOT);
-                                ctx.add(
-                                    headline(text)
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::Center { wh })
-                                        .max_width(wh.width)
-                                        .build(),
-                                );
 
                                 ctx.add(rect(RectParam {
                                     rect: wh.to_rect(),
