@@ -358,16 +358,22 @@ impl Component for ShopContractContent<'_> {
             disabled,
         } = self;
         let available = !purchased && !disabled;
-        let name = match contract.rarity {
-            crate::rarity::Rarity::Common => "Common Contract",
-            crate::rarity::Rarity::Rare => "Rare Contract",
-            crate::rarity::Rarity::Epic => "Epic Contract",
-            crate::rarity::Rarity::Legendary => "Legendary Contract",
-        }
-        .to_string();
-        let duration_text = crate::l10n::contract::duration_korean(&contract.status);
-        let risk_text = crate::l10n::contract::ContractText::Risk(&contract.risk).to_korean();
-        let reward_text = crate::l10n::contract::ContractText::Reward(&contract.reward).to_korean();
+        let game_state = use_game_state(ctx);
+        let name = game_state
+            .text()
+            .contract_name(crate::l10n::contract::ContractNameText::Rarity(
+                contract.rarity,
+            ))
+            .to_string();
+        let duration_text = game_state.text().contract_duration(&contract.status);
+        let risk_text = game_state
+            .text()
+            .contract(crate::l10n::contract::ContractText::Risk(&contract.risk));
+        let reward_text = game_state
+            .text()
+            .contract(crate::l10n::contract::ContractText::Reward(
+                &contract.reward,
+            ));
         let description = if duration_text.is_empty() {
             format!("{}\n{}", risk_text, reward_text)
         } else {

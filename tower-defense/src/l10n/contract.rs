@@ -1,5 +1,6 @@
 use super::effect::EffectText;
 use crate::game_state::contract::ContractEffect;
+use crate::rarity::Rarity;
 
 pub enum ContractText<'a> {
     Risk(&'a ContractEffect),
@@ -38,6 +39,31 @@ impl<'a> ContractText<'a> {
                 phase_en(ce),
                 effect_suffix_en(ce)
             ),
+        }
+    }
+}
+
+// 계약 이름 (희귀도 기반) l10n
+pub enum ContractNameText {
+    Rarity(Rarity),
+}
+
+impl ContractNameText {
+    pub fn to_korean(&self) -> &'static str {
+        match self {
+            ContractNameText::Rarity(Rarity::Common) => "일반 계약",
+            ContractNameText::Rarity(Rarity::Rare) => "희귀 계약",
+            ContractNameText::Rarity(Rarity::Epic) => "에픽 계약",
+            ContractNameText::Rarity(Rarity::Legendary) => "전설 계약",
+        }
+    }
+
+    pub fn to_english(&self) -> &'static str {
+        match self {
+            ContractNameText::Rarity(Rarity::Common) => "Common Contract",
+            ContractNameText::Rarity(Rarity::Rare) => "Rare Contract",
+            ContractNameText::Rarity(Rarity::Epic) => "Epic Contract",
+            ContractNameText::Rarity(Rarity::Legendary) => "Legendary Contract",
         }
     }
 }
