@@ -42,6 +42,24 @@ impl<'a> ContractText<'a> {
     }
 }
 
+pub fn duration_korean(status: &crate::game_state::contract::ContractStatus) -> String {
+    use crate::game_state::contract::ContractStatus;
+    match status {
+        ContractStatus::Pending { duration_stages } => {
+            format!("{duration_stages}스테이지동안 지속됩니다")
+        }
+        _ => String::new(),
+    }
+}
+
+pub fn duration_english(status: &crate::game_state::contract::ContractStatus) -> String {
+    use crate::game_state::contract::ContractStatus;
+    match status {
+        ContractStatus::Pending { duration_stages } => format!("for {duration_stages} stages"),
+        _ => String::new(),
+    }
+}
+
 fn phase_ko(ce: &ContractEffect) -> String {
     match ce {
         ContractEffect::OnSign { .. } => "계약 시".into(),

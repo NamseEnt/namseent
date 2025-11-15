@@ -365,11 +365,14 @@ impl Component for ShopContractContent<'_> {
             crate::rarity::Rarity::Legendary => "Legendary Contract",
         }
         .to_string();
-        let description = format!(
-            "{}\n{}",
-            crate::l10n::contract::ContractText::Risk(&contract.risk).to_korean(),
-            crate::l10n::contract::ContractText::Reward(&contract.reward).to_korean()
-        );
+        let duration_text = crate::l10n::contract::duration_korean(&contract.status);
+        let risk_text = crate::l10n::contract::ContractText::Risk(&contract.risk).to_korean();
+        let reward_text = crate::l10n::contract::ContractText::Reward(&contract.reward).to_korean();
+        let description = if duration_text.is_empty() {
+            format!("{}\n{}", risk_text, reward_text)
+        } else {
+            format!("{}\n{}\n{}", duration_text, risk_text, reward_text)
+        };
 
         render_shop_item_layout(
             ShopItemLayoutParams {
