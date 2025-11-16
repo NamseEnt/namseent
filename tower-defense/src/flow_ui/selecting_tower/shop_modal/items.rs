@@ -9,6 +9,7 @@ use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
 use crate::theme::typography::{FontSize, TextAlign, headline, paragraph};
+use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -171,7 +172,11 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                             } else if let Some(upgrade) = upgrade_kind {
                                 ctx.add(upgrade.thumbnail(wh));
                             } else if contract_kind.is_some() {
-                                ctx.add(Icon::new(IconKind::Quest).size(IconSize::Large).wh(wh));
+                                ctx.add(
+                                    ThumbnailComposer::new(wh)
+                                        .with_icon_base(IconKind::Quest)
+                                        .build(),
+                                );
                             } else {
                                 // 기본 아이콘
                                 ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
