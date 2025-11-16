@@ -50,15 +50,7 @@ impl Component for ContractItemContent<'_> {
                                 .wh(wh),
                             );
                         }),
-                        table::ratio(1, move |wh, ctx| {
-                            ctx.add(
-                                headline("thumbnail".to_string())
-                                    .size(FontSize::Small)
-                                    .align(TextAlign::LeftCenter { height: wh.height })
-                                    .max_width(wh.width)
-                                    .build(),
-                            );
-                        }),
+                        table::ratio(1, move |_, _| {}),
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
                             ctx.add(
                                 headline(contract.status.to_string())

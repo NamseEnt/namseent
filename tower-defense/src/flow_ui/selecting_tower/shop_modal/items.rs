@@ -9,6 +9,7 @@ use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
 use crate::theme::typography::{FontSize, TextAlign, headline, paragraph};
+use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -171,7 +172,11 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                             } else if let Some(upgrade) = upgrade_kind {
                                 ctx.add(upgrade.thumbnail(wh));
                             } else if contract_kind.is_some() {
-                                ctx.add(Icon::new(IconKind::Quest).size(IconSize::Large).wh(wh));
+                                ctx.add(
+                                    ThumbnailComposer::new(wh)
+                                        .with_icon_base(IconKind::Quest)
+                                        .build(),
+                                );
                             } else {
                                 // 기본 아이콘
                                 ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
@@ -358,18 +363,27 @@ impl Component for ShopContractContent<'_> {
             disabled,
         } = self;
         let available = !purchased && !disabled;
-        let name = match contract.rarity {
-            crate::rarity::Rarity::Common => "Common Contract",
-            crate::rarity::Rarity::Rare => "Rare Contract",
-            crate::rarity::Rarity::Epic => "Epic Contract",
-            crate::rarity::Rarity::Legendary => "Legendary Contract",
-        }
-        .to_string();
-        let description = format!(
-            "{}\n{}",
-            crate::l10n::contract::ContractText::Risk(&contract.risk).to_korean(),
-            crate::l10n::contract::ContractText::Reward(&contract.reward).to_korean()
-        );
+        let game_state = use_game_state(ctx);
+        let name = game_state
+            .text()
+            .contract_name(crate::l10n::contract::ContractNameText::Rarity(
+                contract.rarity,
+            ))
+            .to_string();
+        let duration_text = game_state.text().contract_duration(&contract.status);
+        let risk_text = game_state
+            .text()
+            .contract(crate::l10n::contract::ContractText::Risk(&contract.risk));
+        let reward_text = game_state
+            .text()
+            .contract(crate::l10n::contract::ContractText::Reward(
+                &contract.reward,
+            ));
+        let description = if duration_text.is_empty() {
+            format!("{}\n{}", risk_text, reward_text)
+        } else {
+            format!("{}\n{}\n{}", duration_text, risk_text, reward_text)
+        };
 
         render_shop_item_layout(
             ShopItemLayoutParams {

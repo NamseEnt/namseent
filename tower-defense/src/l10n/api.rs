@@ -104,6 +104,23 @@ impl TextManager {
             Language::English => text.to_english(),
         }
     }
+
+    pub fn contract_name(&self, text: contract::ContractNameText) -> &'static str {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
+
+    pub fn contract_duration(
+        &self,
+        status: &crate::game_state::contract::ContractStatus,
+    ) -> String {
+        match self.locale.language {
+            Language::Korean => contract::duration_korean(status),
+            Language::English => contract::duration_english(status),
+        }
+    }
 }
 
 /// 타워 텍스트 처리

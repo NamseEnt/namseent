@@ -1,5 +1,6 @@
 use super::effect::EffectText;
 use crate::game_state::contract::ContractEffect;
+use crate::rarity::Rarity;
 
 pub enum ContractText<'a> {
     Risk(&'a ContractEffect),
@@ -39,6 +40,49 @@ impl<'a> ContractText<'a> {
                 effect_suffix_en(ce)
             ),
         }
+    }
+}
+
+// 계약 이름 (희귀도 기반) l10n
+pub enum ContractNameText {
+    Rarity(Rarity),
+}
+
+impl ContractNameText {
+    pub fn to_korean(&self) -> &'static str {
+        match self {
+            ContractNameText::Rarity(Rarity::Common) => "일반 계약",
+            ContractNameText::Rarity(Rarity::Rare) => "희귀 계약",
+            ContractNameText::Rarity(Rarity::Epic) => "에픽 계약",
+            ContractNameText::Rarity(Rarity::Legendary) => "전설 계약",
+        }
+    }
+
+    pub fn to_english(&self) -> &'static str {
+        match self {
+            ContractNameText::Rarity(Rarity::Common) => "Common Contract",
+            ContractNameText::Rarity(Rarity::Rare) => "Rare Contract",
+            ContractNameText::Rarity(Rarity::Epic) => "Epic Contract",
+            ContractNameText::Rarity(Rarity::Legendary) => "Legendary Contract",
+        }
+    }
+}
+
+pub fn duration_korean(status: &crate::game_state::contract::ContractStatus) -> String {
+    use crate::game_state::contract::ContractStatus;
+    match status {
+        ContractStatus::Pending { duration_stages } => {
+            format!("{duration_stages}스테이지동안 지속됩니다")
+        }
+        _ => String::new(),
+    }
+}
+
+pub fn duration_english(status: &crate::game_state::contract::ContractStatus) -> String {
+    use crate::game_state::contract::ContractStatus;
+    match status {
+        ContractStatus::Pending { duration_stages } => format!("for {duration_stages} stages"),
+        _ => String::new(),
     }
 }
 

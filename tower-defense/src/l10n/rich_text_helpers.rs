@@ -196,3 +196,8 @@ pub fn contract_risk<T: std::fmt::Display>(text: T) -> String {
 pub fn contract_reward<T: std::fmt::Display>(text: T) -> String {
     format!("|blue|{text}|/blue|")
 }
+
+// === 계약 기간 텍스트 색상 ===
+pub fn contract_duration<T: std::fmt::Display>(text: T) -> String {
+    format!("|yellow|{text}|/yellow|")
+}

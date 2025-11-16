@@ -124,11 +124,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         8..=9 => {
             // Contract (2/10)
             let contract = generate_contract(rarity);
-            let cost = item_cost(
-                rarity,
-                0.5.into(), // 임시로 0.5 사용, contract에 value가 없으므로
-                game_state.upgrade_state.shop_item_price_minus,
-            );
+            let cost = 0;
             ShopSlot::Contract { contract, cost }
         }
         _ => unreachable!(),
