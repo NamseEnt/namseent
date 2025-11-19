@@ -26,17 +26,6 @@ pub fn generate_upgrade_candidate_table(
             (10, 50, 50, 100),
         ),
         (
-            |rarity| UpgradeKind::RankAttackDamagePlus {
-                rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
-                damage_plus: rarity_gen(
-                    rarity,
-                    (10.0..100.0, 50.0..750.0, 500.0..1500.0, 1250.0..2500.0),
-                ),
-            },
-            None,
-            (38, 75, 75, 75),
-        ),
-        (
             |rarity| UpgradeKind::RankAttackDamageMultiply {
                 rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5)),
@@ -69,17 +58,6 @@ pub fn generate_upgrade_candidate_table(
             (8, 15, 15, 15),
         ),
         (
-            |rarity| UpgradeKind::SuitAttackDamagePlus {
-                suit: *SUITS.choose(&mut thread_rng()).unwrap(),
-                damage_plus: rarity_gen(
-                    rarity,
-                    (10.0..50.0, 50.0..250.0, 250.0..1000.0, 1000.0..2500.0),
-                ),
-            },
-            None,
-            (13, 25, 25, 25),
-        ),
-        (
             |rarity| UpgradeKind::SuitAttackDamageMultiply {
                 suit: *SUITS.choose(&mut thread_rng()).unwrap(),
                 damage_multiplier: rarity_gen(rarity, (1.1..1.25, 1.15..1.5, 1.25..1.75, 1.5..3.5)),
@@ -110,19 +88,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (3, 5, 5, 5),
-        ),
-        (
-            |rarity| UpgradeKind::HandAttackDamagePlus {
-                tower_kind: get_tower_kind_with_weight(&[
-                    11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0,
-                ]),
-                damage_plus: rarity_gen(
-                    rarity,
-                    (10.0..100.0, 100.0..500.0, 500.0..2000.0, 2000.0..5000.0),
-                ),
-            },
-            None,
-            (50, 100, 100, 50),
         ),
         (
             |rarity| UpgradeKind::HandAttackDamageMultiply {
@@ -175,16 +140,6 @@ pub fn generate_upgrade_candidate_table(
             (5, 10, 50, 100),
         ),
         (
-            |rarity| UpgradeKind::LowCardTowerDamagePlus {
-                damage_plus: rarity_gen(
-                    rarity,
-                    (10.0..100.0, 100.0..500.0, 500.0..2000.0, 2000.0..5000.0),
-                ),
-            },
-            None,
-            (50, 100, 100, 50),
-        ),
-        (
             |rarity| UpgradeKind::LowCardTowerDamageMultiply {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
@@ -229,16 +184,6 @@ pub fn generate_upgrade_candidate_table(
             (10, 50, 50, 10),
         ),
         (
-            |rarity| UpgradeKind::NoRerollTowerAttackDamagePlus {
-                damage_plus: rarity_gen(
-                    rarity,
-                    (10.0..100.0, 100.0..500.0, 500.0..2000.0, 2000.0..5000.0),
-                ),
-            },
-            None,
-            (40, 50, 100, 100),
-        ),
-        (
             |rarity| UpgradeKind::NoRerollTowerAttackDamageMultiply {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
@@ -265,17 +210,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (15, 25, 30, 30),
-        ),
-        (
-            |rarity| UpgradeKind::EvenOddTowerAttackDamagePlus {
-                even: thread_rng().gen_bool(0.5),
-                damage_plus: rarity_gen(
-                    rarity,
-                    (5.0..25.0, 25.0..150.0, 100.0..500.0, 250.0..1500.0),
-                ),
-            },
-            None,
-            (30, 40, 50, 100),
         ),
         (
             |rarity| UpgradeKind::EvenOddTowerAttackDamageMultiply {
@@ -308,17 +242,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (5, 10, 15, 25),
-        ),
-        (
-            |rarity| UpgradeKind::FaceNumberCardTowerAttackDamagePlus {
-                face: thread_rng().gen_bool(0.5),
-                damage_plus: rarity_gen(
-                    rarity,
-                    (5.0..25.0, 25.0..150.0, 100.0..500.0, 250.0..1500.0),
-                ),
-            },
-            None,
-            (30, 40, 50, 100),
         ),
         (
             |rarity| UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
@@ -366,16 +289,6 @@ pub fn generate_upgrade_candidate_table(
             |_rarity| UpgradeKind::TreatSuitsAsSame,
             Some((upgrade_state.treat_suits_as_same as usize, 1)),
             (5, 10, 20, 25),
-        ),
-        (
-            |rarity| UpgradeKind::RerollTowerAttackDamagePlus {
-                damage_plus: rarity_gen(
-                    rarity,
-                    (5.0..15.0, 10.0..100.0, 75.0..250.0, 200.0..1000.0)
-                ),
-            },
-            None,
-            (30, 40, 50, 100),
         ),
         (
             |rarity| UpgradeKind::RerollTowerAttackDamageMultiply {

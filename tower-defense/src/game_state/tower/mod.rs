@@ -89,10 +89,6 @@ impl Tower {
             }
         });
 
-        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
-            damage += tower_upgrade_state.damage_plus;
-        });
-
         if damage < 0.0 {
             return 0.0;
         }
@@ -183,14 +179,12 @@ impl TowerTemplate {
     /// where DPS = damage × attack_speed
     pub fn calculate_rating(
         &self,
-        damage_plus: f32,
         damage_multiplier: f32,
         speed_plus: f32,
         speed_multiplier: f32,
         range_plus: f32,
     ) -> f32 {
-        let damage = (self.default_damage + self.rank.bonus_damage() as f32 + damage_plus)
-            * damage_multiplier;
+        let damage = (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier;
         let base_attack_speed = 1.0 / self.shoot_interval.as_secs_f32();
         let attack_speed = (base_attack_speed + speed_plus) * speed_multiplier;
         let range = self.default_attack_range_radius + range_plus;

@@ -9,16 +9,6 @@ pub fn inject_status_effects(
     rerolled_count: usize,
 ) {
     let mut inject_tower_upgrades = |upgrade: &TowerUpgradeState| {
-        if upgrade.damage_plus > 0.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::DamageAdd {
-                    add: upgrade.damage_plus,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
-
         if upgrade.damage_multiplier > 1.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::DamageMul {

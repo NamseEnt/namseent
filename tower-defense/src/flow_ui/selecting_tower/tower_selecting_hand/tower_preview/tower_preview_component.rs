@@ -102,7 +102,6 @@ impl Component for TowerPreviewContent<'_> {
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let rating = tower_template.calculate_rating(
-                            upgrade_state.damage_plus,
                             upgrade_state.damage_multiplier,
                             upgrade_state.speed_plus,
                             upgrade_state.speed_multiplier,
@@ -124,8 +123,7 @@ impl Component for TowerPreviewContent<'_> {
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
-                        let damage_plus =
-                            upgrade_state.damage_plus + tower_template.rank.bonus_damage() as f32;
+                        let damage_plus = tower_template.rank.bonus_damage() as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {
@@ -236,35 +234,11 @@ fn calculate_upgrade_state_and_texts(
     };
 
     let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
-        state.damage_plus += upgrade_state.damage_plus;
         state.damage_multiplier *= upgrade_state.damage_multiplier;
         state.speed_plus += upgrade_state.speed_plus;
         state.speed_multiplier *= upgrade_state.speed_multiplier;
         state.range_plus += upgrade_state.range_plus;
 
-        if upgrade_state.damage_plus > 0.0 {
-            let upgrade_kind = match target {
-                UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
-                    tower_target,
-                    UpgradeStatType::Damage,
-                    true,
-                    upgrade_state.damage_plus,
-                ),
-                UpgradeTargetType::TowerSelect(tower_select_target) => {
-                    create_tower_select_upgrade_kind(
-                        tower_select_target,
-                        UpgradeStatType::Damage,
-                        true,
-                        upgrade_state.damage_plus,
-                    )
-                }
-            };
-            texts.damage.push(
-                game_state
-                    .text()
-                    .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),
-            );
-        }
         if upgrade_state.damage_multiplier > 1.0 {
             let upgrade_kind = match target {
                 UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(

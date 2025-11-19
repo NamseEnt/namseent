@@ -16,13 +16,7 @@ impl UpgradeKind {
                 .add_plus_overlay()
                 .build(),
 
-            // 랭크 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::RankAttackDamagePlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
-                width_height,
-                *rank,
-                StatType::Damage,
-                OperationType::Plus,
-            ),
+            // 랜크 기반 업그레이드들 - 공격력 관련
             UpgradeKind::RankAttackDamageMultiply { rank, .. } => {
                 create_rank_stat_upgrade_thumbnail(
                     width_height,
@@ -53,12 +47,6 @@ impl UpgradeKind {
             ),
 
             // 슈트 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::SuitAttackDamagePlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
-                width_height,
-                *suit,
-                StatType::Damage,
-                OperationType::Plus,
-            ),
             UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
                 create_suit_stat_upgrade_thumbnail(
                     width_height,
@@ -89,14 +77,6 @@ impl UpgradeKind {
             ),
 
             // 핸드 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::HandAttackDamagePlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(
-                    width_height,
-                    *tower_kind,
-                    StatType::Damage,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
                 create_hand_stat_upgrade_thumbnail(
                     width_height,
@@ -143,12 +123,6 @@ impl UpgradeKind {
                 .build(),
 
             // 낮은 카드 관련 업그레이드들
-            UpgradeKind::LowCardTowerDamagePlus { .. } => create_condition_stat_upgrade_thumbnail(
-                width_height,
-                ConditionType::LowCard,
-                StatType::Damage,
-                OperationType::Plus,
-            ),
             UpgradeKind::LowCardTowerDamageMultiply { .. } => {
                 create_condition_stat_upgrade_thumbnail(
                     width_height,
@@ -195,14 +169,6 @@ impl UpgradeKind {
                 .build(),
 
             // 리롤 없음 관련 업그레이드들
-            UpgradeKind::NoRerollTowerAttackDamagePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::NoReroll,
-                    StatType::Damage,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
                 create_condition_stat_upgrade_thumbnail(
                     width_height,
@@ -237,14 +203,6 @@ impl UpgradeKind {
             }
 
             // 짝수/홀수 관련 업그레이드들
-            UpgradeKind::EvenOddTowerAttackDamagePlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(
-                    width_height,
-                    *even,
-                    StatType::Damage,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
                 create_even_odd_stat_upgrade_thumbnail(
                     width_height,
@@ -279,14 +237,6 @@ impl UpgradeKind {
             }
 
             // 페이스/숫자 카드 관련 업그레이드들
-            UpgradeKind::FaceNumberCardTowerAttackDamagePlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(
-                    width_height,
-                    *face,
-                    StatType::Damage,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
                 create_face_number_stat_upgrade_thumbnail(
                     width_height,
@@ -335,14 +285,6 @@ impl UpgradeKind {
                 .build(),
 
             // 리롤 관련 타워 업그레이드들
-            UpgradeKind::RerollTowerAttackDamagePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::Reroll,
-                    StatType::Damage,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::RerollTowerAttackDamageMultiply { .. } => {
                 create_condition_stat_upgrade_thumbnail(
                     width_height,

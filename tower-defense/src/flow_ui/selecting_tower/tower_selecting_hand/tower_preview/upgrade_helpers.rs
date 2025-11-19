@@ -25,12 +25,6 @@ pub fn create_upgrade_kind_for_target(
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
         // Rank 기반 업그레이드
-        (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Damage, true) => {
-            UpgradeKind::RankAttackDamagePlus {
-                rank: *rank,
-                damage_plus: value,
-            }
-        }
         (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Damage, false) => {
             UpgradeKind::RankAttackDamageMultiply {
                 rank: *rank,
@@ -57,12 +51,6 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // Suit 기반 업그레이드
-        (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, true) => {
-            UpgradeKind::SuitAttackDamagePlus {
-                suit: *suit,
-                damage_plus: value,
-            }
-        }
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => {
             UpgradeKind::SuitAttackDamageMultiply {
                 suit: *suit,
@@ -89,12 +77,6 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // TowerKind 기반 업그레이드
-        (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Damage, true) => {
-            UpgradeKind::HandAttackDamagePlus {
-                tower_kind: *tower_kind,
-                damage_plus: value,
-            }
-        }
         (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Damage, false) => {
             UpgradeKind::HandAttackDamageMultiply {
                 tower_kind: *tower_kind,
@@ -121,12 +103,6 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // EvenOdd 기반 업그레이드
-        (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Damage, true) => {
-            UpgradeKind::EvenOddTowerAttackDamagePlus {
-                even: *even,
-                damage_plus: value,
-            }
-        }
         (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Damage, false) => {
             UpgradeKind::EvenOddTowerAttackDamageMultiply {
                 even: *even,
@@ -153,12 +129,6 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // FaceNumber 기반 업그레이드
-        (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Damage, true) => {
-            UpgradeKind::FaceNumberCardTowerAttackDamagePlus {
-                face: *face,
-                damage_plus: value,
-            }
-        }
         (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Damage, false) => {
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                 face: *face,
@@ -197,9 +167,6 @@ pub fn create_tower_select_upgrade_kind(
     value: f32,
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, true) => {
-            UpgradeKind::LowCardTowerDamagePlus { damage_plus: value }
-        }
         (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
             UpgradeKind::LowCardTowerDamageMultiply {
                 damage_multiplier: value,
@@ -217,9 +184,6 @@ pub fn create_tower_select_upgrade_kind(
             UpgradeKind::LowCardTowerAttackRangePlus { range_plus: value }
         }
 
-        (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, true) => {
-            UpgradeKind::NoRerollTowerAttackDamagePlus { damage_plus: value }
-        }
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::NoRerollTowerAttackDamageMultiply {
                 damage_multiplier: value,
@@ -237,9 +201,6 @@ pub fn create_tower_select_upgrade_kind(
             UpgradeKind::NoRerollTowerAttackRangePlus { range_plus: value }
         }
 
-        (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, true) => {
-            UpgradeKind::RerollTowerAttackDamagePlus { damage_plus: value }
-        }
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::RerollTowerAttackDamageMultiply {
                 damage_multiplier: value,
