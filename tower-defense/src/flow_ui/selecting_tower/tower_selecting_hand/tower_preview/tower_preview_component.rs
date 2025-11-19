@@ -103,7 +103,6 @@ impl Component for TowerPreviewContent<'_> {
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let rating = tower_template.calculate_rating(
                             upgrade_state.damage_multiplier,
-                            upgrade_state.speed_plus,
                             upgrade_state.speed_multiplier,
                             upgrade_state.range_plus,
                         );
@@ -150,13 +149,12 @@ impl Component for TowerPreviewContent<'_> {
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let attack_speed = 1.0 / tower_template.kind.shoot_interval().as_secs_f32();
-                        let speed_plus = upgrade_state.speed_plus;
                         let speed_multiplier = upgrade_state.speed_multiplier;
 
                         ctx.add(StatPreview {
                             stat_icon_kind: IconKind::AttackSpeed,
                             default_stat: attack_speed,
-                            plus_stat: speed_plus,
+                            plus_stat: 0.0,
                             multiplier: speed_multiplier,
                             wh,
                             upgrade_texts: &texts.speed,
@@ -235,7 +233,6 @@ fn calculate_upgrade_state_and_texts(
 
     let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
         state.damage_multiplier *= upgrade_state.damage_multiplier;
-        state.speed_plus += upgrade_state.speed_plus;
         state.speed_multiplier *= upgrade_state.speed_multiplier;
         state.range_plus += upgrade_state.range_plus;
 
@@ -257,29 +254,6 @@ fn calculate_upgrade_state_and_texts(
                 }
             };
             texts.damage.push(
-                game_state
-                    .text()
-                    .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),
-            );
-        }
-        if upgrade_state.speed_plus > 0.0 {
-            let upgrade_kind = match target {
-                UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
-                    tower_target,
-                    UpgradeStatType::Speed,
-                    true,
-                    upgrade_state.speed_plus,
-                ),
-                UpgradeTargetType::TowerSelect(tower_select_target) => {
-                    create_tower_select_upgrade_kind(
-                        tower_select_target,
-                        UpgradeStatType::Speed,
-                        true,
-                        upgrade_state.speed_plus,
-                    )
-                }
-            };
-            texts.speed.push(
                 game_state
                     .text()
                     .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),

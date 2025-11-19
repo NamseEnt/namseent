@@ -180,13 +180,12 @@ impl TowerTemplate {
     pub fn calculate_rating(
         &self,
         damage_multiplier: f32,
-        speed_plus: f32,
         speed_multiplier: f32,
         range_plus: f32,
     ) -> f32 {
         let damage = (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier;
         let base_attack_speed = 1.0 / self.shoot_interval.as_secs_f32();
-        let attack_speed = (base_attack_speed + speed_plus) * speed_multiplier;
+        let attack_speed = base_attack_speed * speed_multiplier;
         let range = self.default_attack_range_radius + range_plus;
         let dps = damage * attack_speed;
         dps * range
@@ -343,7 +342,7 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             }
         });
         tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple += tower_upgrade_state.speed_plus;
+            time_multiple *= tower_upgrade_state.speed_multiplier;
         });
         if time_multiple == 0.0 {
             return;

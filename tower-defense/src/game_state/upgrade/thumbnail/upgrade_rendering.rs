@@ -25,12 +25,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::RankAttackSpeedPlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
-                width_height,
-                *rank,
-                StatType::Speed,
-                OperationType::Plus,
-            ),
             UpgradeKind::RankAttackSpeedMultiply { rank, .. } => {
                 create_rank_stat_upgrade_thumbnail(
                     width_height,
@@ -55,12 +49,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::SuitAttackSpeedPlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
-                width_height,
-                *suit,
-                StatType::Speed,
-                OperationType::Plus,
-            ),
             UpgradeKind::SuitAttackSpeedMultiply { suit, .. } => {
                 create_suit_stat_upgrade_thumbnail(
                     width_height,
@@ -83,14 +71,6 @@ impl UpgradeKind {
                     *tower_kind,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::HandAttackSpeedPlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(
-                    width_height,
-                    *tower_kind,
-                    StatType::Speed,
-                    OperationType::Plus,
                 )
             }
             UpgradeKind::HandAttackSpeedMultiply { tower_kind, .. } => {
@@ -131,14 +111,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::LowCardTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::LowCard,
-                    StatType::Speed,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::LowCardTowerAttackSpeedMultiply { .. } => {
                 create_condition_stat_upgrade_thumbnail(
                     width_height,
@@ -177,14 +149,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::NoRerollTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::NoReroll,
-                    StatType::Speed,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::NoRerollTowerAttackSpeedMultiply { .. } => {
                 create_condition_stat_upgrade_thumbnail(
                     width_height,
@@ -211,14 +175,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::EvenOddTowerAttackSpeedPlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(
-                    width_height,
-                    *even,
-                    StatType::Speed,
-                    OperationType::Plus,
-                )
-            }
             UpgradeKind::EvenOddTowerAttackSpeedMultiply { even, .. } => {
                 create_even_odd_stat_upgrade_thumbnail(
                     width_height,
@@ -243,14 +199,6 @@ impl UpgradeKind {
                     *face,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::FaceNumberCardTowerAttackSpeedPlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(
-                    width_height,
-                    *face,
-                    StatType::Speed,
-                    OperationType::Plus,
                 )
             }
             UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply { face, .. } => {
@@ -291,14 +239,6 @@ impl UpgradeKind {
                     ConditionType::Reroll,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::RerollTowerAttackSpeedPlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::Reroll,
-                    StatType::Speed,
-                    OperationType::Plus,
                 )
             }
             UpgradeKind::RerollTowerAttackSpeedMultiply { .. } => {
