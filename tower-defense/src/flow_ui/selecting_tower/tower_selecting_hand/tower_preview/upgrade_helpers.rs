@@ -31,12 +31,6 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Speed, false) => {
-            UpgradeKind::RankAttackSpeedMultiply {
-                rank: *rank,
-                speed_multiplier: value,
-            }
-        }
         (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Range, true) => {
             UpgradeKind::RankAttackRangePlus {
                 rank: *rank,
@@ -49,12 +43,6 @@ pub fn create_upgrade_kind_for_target(
             UpgradeKind::SuitAttackDamageMultiply {
                 suit: *suit,
                 damage_multiplier: value,
-            }
-        }
-        (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Speed, false) => {
-            UpgradeKind::SuitAttackSpeedMultiply {
-                suit: *suit,
-                speed_multiplier: value,
             }
         }
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Range, true) => {
@@ -71,12 +59,6 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Speed, false) => {
-            UpgradeKind::HandAttackSpeedMultiply {
-                tower_kind: *tower_kind,
-                speed_multiplier: value,
-            }
-        }
         (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Range, true) => {
             UpgradeKind::HandAttackRangePlus {
                 tower_kind: *tower_kind,
@@ -91,12 +73,6 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Speed, false) => {
-            UpgradeKind::EvenOddTowerAttackSpeedMultiply {
-                even: *even,
-                speed_multiplier: value,
-            }
-        }
         (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Range, true) => {
             UpgradeKind::EvenOddTowerAttackRangePlus {
                 even: *even,
@@ -109,12 +85,6 @@ pub fn create_upgrade_kind_for_target(
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                 face: *face,
                 damage_multiplier: value,
-            }
-        }
-        (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Speed, false) => {
-            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
-                face: *face,
-                speed_multiplier: value,
             }
         }
         (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Range, true) => {
@@ -142,11 +112,6 @@ pub fn create_tower_select_upgrade_kind(
                 damage_multiplier: value,
             }
         }
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Speed, false) => {
-            UpgradeKind::LowCardTowerAttackSpeedMultiply {
-                speed_multiplier: value,
-            }
-        }
         (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Range, true) => {
             UpgradeKind::LowCardTowerAttackRangePlus { range_plus: value }
         }
@@ -156,11 +121,6 @@ pub fn create_tower_select_upgrade_kind(
                 damage_multiplier: value,
             }
         }
-        (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Speed, false) => {
-            UpgradeKind::NoRerollTowerAttackSpeedMultiply {
-                speed_multiplier: value,
-            }
-        }
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Range, true) => {
             UpgradeKind::NoRerollTowerAttackRangePlus { range_plus: value }
         }
@@ -168,11 +128,6 @@ pub fn create_tower_select_upgrade_kind(
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::RerollTowerAttackDamageMultiply {
                 damage_multiplier: value,
-            }
-        }
-        (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Speed, false) => {
-            UpgradeKind::RerollTowerAttackSpeedMultiply {
-                speed_multiplier: value,
             }
         }
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Range, true) => {

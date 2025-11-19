@@ -174,21 +174,12 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    /// Calculate tower power rating based on damage, attack speed, and range
-    /// Formula: DPS × RANGE
-    /// where DPS = damage × attack_speed
-    pub fn calculate_rating(
-        &self,
-        damage_multiplier: f32,
-        speed_multiplier: f32,
-        range_plus: f32,
-    ) -> f32 {
+    /// Calculate tower power rating based on damage and range
+    /// Formula: damage × range
+    pub fn calculate_rating(&self, damage_multiplier: f32, range_plus: f32) -> f32 {
         let damage = (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier;
-        let base_attack_speed = 1.0 / self.shoot_interval.as_secs_f32();
-        let attack_speed = base_attack_speed * speed_multiplier;
         let range = self.default_attack_range_radius + range_plus;
-        let dps = damage * attack_speed;
-        dps * range
+        damage * range
     }
 }
 impl PartialOrd for TowerTemplate {
@@ -332,17 +323,12 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
-        let tower_upgrades = game_state.upgrade_state.tower_upgrades(tower);
-
         let mut time_multiple = 1.0;
 
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
                 time_multiple += add;
             }
-        });
-        tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple *= tower_upgrade_state.speed_multiplier;
         });
         if time_multiple == 0.0 {
             return;
@@ -352,9 +338,6 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
                 time_multiple *= mul;
             }
-        });
-        tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple *= tower_upgrade_state.speed_multiplier;
         });
 
         // Apply contract attack speed multiplier

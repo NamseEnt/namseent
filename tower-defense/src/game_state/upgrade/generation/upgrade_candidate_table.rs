@@ -34,14 +34,6 @@ pub fn generate_upgrade_candidate_table(
             (19, 38, 38, 38),
         ),
         (
-            |rarity| UpgradeKind::RankAttackSpeedMultiply {
-                rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
-                speed_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.5, 1.5..1.75, 1.75..2.0)),
-            },
-            None,
-            (15, 30, 30, 30),
-        ),
-        (
             |rarity| UpgradeKind::RankAttackRangePlus {
                 rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
                 range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..4.0, 3.0..5.0, 3.0..6.0)),
@@ -56,14 +48,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (6, 13, 13, 13),
-        ),
-        (
-            |rarity| UpgradeKind::SuitAttackSpeedMultiply {
-                suit: *SUITS.choose(&mut thread_rng()).unwrap(),
-                speed_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.5, 1.5..1.75, 1.75..2.0)),
-            },
-            None,
-            (5, 10, 10, 10),
         ),
         (
             |rarity| UpgradeKind::SuitAttackRangePlus {
@@ -82,16 +66,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::HandAttackSpeedMultiply {
-                tower_kind: get_tower_kind_with_weight(&[
-                    11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0,
-                ]),
-                speed_multiplier: rarity_gen(rarity, (1.2..1.4, 1.2..1.6, 1.4..2.0, 1.5..2.0)),
-            },
-            None,
-            (20, 40, 40, 20),
         ),
         (
             |rarity| UpgradeKind::HandAttackRangePlus {
@@ -119,13 +93,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::LowCardTowerAttackSpeedMultiply {
-                speed_multiplier: rarity_gen(rarity, (1.2..1.4, 1.2..1.6, 1.4..2.0, 1.5..2.0)),
-            },
-            None,
-            (20, 40, 40, 20),
         ),
         (
             |rarity| UpgradeKind::LowCardTowerAttackRangePlus {
@@ -158,13 +125,6 @@ pub fn generate_upgrade_candidate_table(
             (20, 25, 50, 50),
         ),
         (
-            |rarity| UpgradeKind::NoRerollTowerAttackSpeedMultiply {
-                speed_multiplier: rarity_gen(rarity, (1.2..1.4, 1.2..1.6, 1.4..2.0, 1.5..2.0)),
-            },
-            None,
-            (15, 20, 40, 40),
-        ),
-        (
             |rarity| UpgradeKind::NoRerollTowerAttackRangePlus {
                 range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..5.0, 4.0..8.0, 6.0..10.0)),
             },
@@ -178,14 +138,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::EvenOddTowerAttackSpeedMultiply {
-                even: thread_rng().gen_bool(0.5),
-                speed_multiplier: rarity_gen(rarity, (1.1..1.15, 1.15..1.2, 1.2..1.25, 1.25..1.3)),
-            },
-            None,
-            (10, 15, 20, 40),
         ),
         (
             |rarity| UpgradeKind::EvenOddTowerAttackRangePlus {
@@ -202,14 +154,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
-                face: thread_rng().gen_bool(0.5),
-                speed_multiplier: rarity_gen(rarity, (1.1..1.15, 1.15..1.2, 1.2..1.25, 1.25..1.3)),
-            },
-            None,
-            (10, 15, 20, 40),
         ),
         (
             |rarity| UpgradeKind::FaceNumberCardTowerAttackRangePlus {
@@ -243,13 +187,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::RerollTowerAttackSpeedMultiply {
-                speed_multiplier: rarity_gen(rarity, (1.1..1.15, 1.15..1.2, 1.2..1.25, 1.25..1.3)),
-            },
-            None,
-            (10, 15, 20, 40),
         ),
         (
             |rarity| UpgradeKind::RerollTowerAttackRangePlus {

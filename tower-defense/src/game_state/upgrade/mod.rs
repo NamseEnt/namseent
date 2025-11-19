@@ -61,17 +61,6 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::RankAttackSpeedMultiply {
-                rank,
-                speed_multiplier,
-            } => {
-                self.apply_tower_upgrade(
-                    TowerUpgradeTarget::Rank { rank },
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
-                    },
-                );
-            }
             UpgradeKind::RankAttackRangePlus { rank, range_plus } => {
                 self.apply_tower_upgrade(
                     TowerUpgradeTarget::Rank { rank },
@@ -89,17 +78,6 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::SuitAttackSpeedMultiply {
-                suit,
-                speed_multiplier,
-            } => {
-                self.apply_tower_upgrade(
-                    TowerUpgradeTarget::Suit { suit },
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
-                    },
-                );
-            }
             UpgradeKind::SuitAttackRangePlus { suit, range_plus } => {
                 self.apply_tower_upgrade(
                     TowerUpgradeTarget::Suit { suit },
@@ -114,17 +92,6 @@ impl UpgradeState {
                     TowerUpgradeTarget::TowerKind { tower_kind },
                     TowerUpgrade::DamageMultiplier {
                         multiplier: damage_multiplier,
-                    },
-                );
-            }
-            UpgradeKind::HandAttackSpeedMultiply {
-                tower_kind,
-                speed_multiplier,
-            } => {
-                self.apply_tower_upgrade(
-                    TowerUpgradeTarget::TowerKind { tower_kind },
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
                     },
                 );
             }
@@ -152,14 +119,6 @@ impl UpgradeState {
                     TowerSelectUpgradeTarget::LowCard,
                     TowerUpgrade::DamageMultiplier {
                         multiplier: damage_multiplier,
-                    },
-                );
-            }
-            UpgradeKind::LowCardTowerAttackSpeedMultiply { speed_multiplier } => {
-                self.apply_tower_select_upgrade(
-                    TowerSelectUpgradeTarget::LowCard,
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
                     },
                 );
             }
@@ -195,14 +154,6 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::NoRerollTowerAttackSpeedMultiply { speed_multiplier } => {
-                self.apply_tower_select_upgrade(
-                    TowerSelectUpgradeTarget::NoReroll,
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
-                    },
-                );
-            }
             UpgradeKind::NoRerollTowerAttackRangePlus { range_plus } => {
                 self.apply_tower_select_upgrade(
                     TowerSelectUpgradeTarget::NoReroll,
@@ -220,17 +171,6 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::EvenOddTowerAttackSpeedMultiply {
-                even,
-                speed_multiplier,
-            } => {
-                self.apply_tower_upgrade(
-                    TowerUpgradeTarget::EvenOdd { even },
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
-                    },
-                );
-            }
             UpgradeKind::EvenOddTowerAttackRangePlus { even, range_plus } => {
                 self.apply_tower_upgrade(
                     TowerUpgradeTarget::EvenOdd { even },
@@ -245,17 +185,6 @@ impl UpgradeState {
                     TowerUpgradeTarget::FaceNumber { face },
                     TowerUpgrade::DamageMultiplier {
                         multiplier: damage_multiplier,
-                    },
-                );
-            }
-            UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
-                face,
-                speed_multiplier,
-            } => {
-                self.apply_tower_upgrade(
-                    TowerUpgradeTarget::FaceNumber { face },
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
                     },
                 );
             }
@@ -279,14 +208,6 @@ impl UpgradeState {
                     TowerSelectUpgradeTarget::Reroll,
                     TowerUpgrade::DamageMultiplier {
                         multiplier: damage_multiplier,
-                    },
-                );
-            }
-            UpgradeKind::RerollTowerAttackSpeedMultiply { speed_multiplier } => {
-                self.apply_tower_select_upgrade(
-                    TowerSelectUpgradeTarget::Reroll,
-                    TowerUpgrade::SpeedMultiplier {
-                        multiplier: speed_multiplier,
                     },
                 );
             }
@@ -346,10 +267,6 @@ pub enum UpgradeKind {
         rank: Rank,
         damage_multiplier: f32,
     },
-    RankAttackSpeedMultiply {
-        rank: Rank,
-        speed_multiplier: f32,
-    },
     RankAttackRangePlus {
         rank: Rank,
         range_plus: f32,
@@ -358,10 +275,6 @@ pub enum UpgradeKind {
         suit: Suit,
         damage_multiplier: f32,
     },
-    SuitAttackSpeedMultiply {
-        suit: Suit,
-        speed_multiplier: f32,
-    },
     SuitAttackRangePlus {
         suit: Suit,
         range_plus: f32,
@@ -369,10 +282,6 @@ pub enum UpgradeKind {
     HandAttackDamageMultiply {
         tower_kind: TowerKind,
         damage_multiplier: f32,
-    },
-    HandAttackSpeedMultiply {
-        tower_kind: TowerKind,
-        speed_multiplier: f32,
     },
     HandAttackRangePlus {
         tower_kind: TowerKind,
@@ -383,9 +292,6 @@ pub enum UpgradeKind {
     LowCardTowerDamageMultiply {
         damage_multiplier: f32,
     },
-    LowCardTowerAttackSpeedMultiply {
-        speed_multiplier: f32,
-    },
     LowCardTowerAttackRangePlus {
         range_plus: f32,
     },
@@ -394,19 +300,12 @@ pub enum UpgradeKind {
     NoRerollTowerAttackDamageMultiply {
         damage_multiplier: f32,
     },
-    NoRerollTowerAttackSpeedMultiply {
-        speed_multiplier: f32,
-    },
     NoRerollTowerAttackRangePlus {
         range_plus: f32,
     },
     EvenOddTowerAttackDamageMultiply {
         even: bool,
         damage_multiplier: f32,
-    },
-    EvenOddTowerAttackSpeedMultiply {
-        even: bool,
-        speed_multiplier: f32,
     },
     EvenOddTowerAttackRangePlus {
         even: bool,
@@ -415,10 +314,6 @@ pub enum UpgradeKind {
     FaceNumberCardTowerAttackDamageMultiply {
         face: bool,
         damage_multiplier: f32,
-    },
-    FaceNumberCardTowerAttackSpeedMultiply {
-        face: bool,
-        speed_multiplier: f32,
     },
     FaceNumberCardTowerAttackRangePlus {
         face: bool,
@@ -429,9 +324,6 @@ pub enum UpgradeKind {
     TreatSuitsAsSame,
     RerollTowerAttackDamageMultiply {
         damage_multiplier: f32,
-    },
-    RerollTowerAttackSpeedMultiply {
-        speed_multiplier: f32,
     },
     RerollTowerAttackRangePlus {
         range_plus: f32,
@@ -449,20 +341,17 @@ pub enum TowerUpgradeTarget {
 #[derive(Debug, Clone, Copy, State)]
 pub enum TowerUpgrade {
     DamageMultiplier { multiplier: f32 },
-    SpeedMultiplier { multiplier: f32 },
     RangePlus { range: f32 },
 }
 #[derive(Debug, Clone, Copy, State)]
 pub struct TowerUpgradeState {
     pub damage_multiplier: f32,
-    pub speed_multiplier: f32,
     pub range_plus: f32,
 }
 impl TowerUpgradeState {
     fn apply_upgrade(&mut self, upgrade: TowerUpgrade) {
         match upgrade {
             TowerUpgrade::DamageMultiplier { multiplier } => self.damage_multiplier *= multiplier,
-            TowerUpgrade::SpeedMultiplier { multiplier } => self.speed_multiplier *= multiplier,
             TowerUpgrade::RangePlus { range } => self.range_plus += range,
         }
     }
@@ -471,7 +360,6 @@ impl Default for TowerUpgradeState {
     fn default() -> Self {
         TowerUpgradeState {
             damage_multiplier: 1.0,
-            speed_multiplier: 1.0,
             range_plus: 0.0,
         }
     }
