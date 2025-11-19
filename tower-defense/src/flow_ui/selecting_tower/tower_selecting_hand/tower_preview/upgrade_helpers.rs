@@ -31,24 +31,12 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Range, true) => {
-            UpgradeKind::RankAttackRangePlus {
-                rank: *rank,
-                range_plus: value,
-            }
-        }
 
         // Suit 기반 업그레이드
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => {
             UpgradeKind::SuitAttackDamageMultiply {
                 suit: *suit,
                 damage_multiplier: value,
-            }
-        }
-        (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Range, true) => {
-            UpgradeKind::SuitAttackRangePlus {
-                suit: *suit,
-                range_plus: value,
             }
         }
 
@@ -59,12 +47,6 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Range, true) => {
-            UpgradeKind::HandAttackRangePlus {
-                tower_kind: *tower_kind,
-                range_plus: value,
-            }
-        }
 
         // EvenOdd 기반 업그레이드
         (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Damage, false) => {
@@ -73,24 +55,12 @@ pub fn create_upgrade_kind_for_target(
                 damage_multiplier: value,
             }
         }
-        (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Range, true) => {
-            UpgradeKind::EvenOddTowerAttackRangePlus {
-                even: *even,
-                range_plus: value,
-            }
-        }
 
         // FaceNumber 기반 업그레이드
         (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Damage, false) => {
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                 face: *face,
                 damage_multiplier: value,
-            }
-        }
-        (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Range, true) => {
-            UpgradeKind::FaceNumberCardTowerAttackRangePlus {
-                face: *face,
-                range_plus: value,
             }
         }
 
@@ -112,26 +82,17 @@ pub fn create_tower_select_upgrade_kind(
                 damage_multiplier: value,
             }
         }
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Range, true) => {
-            UpgradeKind::LowCardTowerAttackRangePlus { range_plus: value }
-        }
 
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::NoRerollTowerAttackDamageMultiply {
                 damage_multiplier: value,
             }
         }
-        (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Range, true) => {
-            UpgradeKind::NoRerollTowerAttackRangePlus { range_plus: value }
-        }
 
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::RerollTowerAttackDamageMultiply {
                 damage_multiplier: value,
             }
-        }
-        (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Range, true) => {
-            UpgradeKind::RerollTowerAttackRangePlus { range_plus: value }
         }
 
         // 기타 경우는 기본값 반환

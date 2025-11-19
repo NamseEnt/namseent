@@ -111,13 +111,13 @@ impl Tower {
 
     pub(crate) fn attack_range_radius(
         &self,
-        tower_upgrade_states: &[TowerUpgradeState],
+        _tower_upgrade_states: &[TowerUpgradeState],
         contract_range_multiplier: f32,
     ) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        let base_range = self.status_effects.iter().fold(
+        self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
                 if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
@@ -126,12 +126,7 @@ impl Tower {
                     attack_range_radius
                 }
             },
-        ) + tower_upgrade_states
-            .iter()
-            .fold(0.0, |r, tower_upgrade_state| {
-                r + tower_upgrade_state.range_plus
-            });
-        base_range * contract_range_multiplier
+        ) * contract_range_multiplier
     }
 }
 impl Deref for Tower {
@@ -174,12 +169,9 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    /// Calculate tower power rating based on damage and range
-    /// Formula: damage × range
-    pub fn calculate_rating(&self, damage_multiplier: f32, range_plus: f32) -> f32 {
-        let damage = (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier;
-        let range = self.default_attack_range_radius + range_plus;
-        damage * range
+    /// Calculate tower power rating based on damage
+    pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
+        (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier
     }
 }
 impl PartialOrd for TowerTemplate {

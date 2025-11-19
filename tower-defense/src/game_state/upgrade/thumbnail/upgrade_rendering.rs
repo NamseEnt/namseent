@@ -25,12 +25,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::RankAttackRangePlus { rank, .. } => create_rank_stat_upgrade_thumbnail(
-                width_height,
-                *rank,
-                StatType::Range,
-                OperationType::Plus,
-            ),
 
             // 슈트 기반 업그레이드들 - 공격력 관련
             UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
@@ -41,12 +35,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::SuitAttackRangePlus { suit, .. } => create_suit_stat_upgrade_thumbnail(
-                width_height,
-                *suit,
-                StatType::Range,
-                OperationType::Plus,
-            ),
 
             // 핸드 기반 업그레이드들 - 공격력 관련
             UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
@@ -55,14 +43,6 @@ impl UpgradeKind {
                     *tower_kind,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::HandAttackRangePlus { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(
-                    width_height,
-                    *tower_kind,
-                    StatType::Range,
-                    OperationType::Plus,
                 )
             }
 
@@ -87,14 +67,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::LowCardTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::LowCard,
-                    StatType::Range,
-                    OperationType::Plus,
-                )
-            }
 
             // 상점 관련 업그레이드들
             UpgradeKind::ShopItemPriceMinus => Icon::new(IconKind::Shop)
@@ -117,14 +89,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::NoRerollTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::NoReroll,
-                    StatType::Range,
-                    OperationType::Plus,
-                )
-            }
 
             // 짝수/홀수 관련 업그레이드들
             UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
@@ -135,14 +99,6 @@ impl UpgradeKind {
                     OperationType::Multiply,
                 )
             }
-            UpgradeKind::EvenOddTowerAttackRangePlus { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(
-                    width_height,
-                    *even,
-                    StatType::Range,
-                    OperationType::Plus,
-                )
-            }
 
             // 페이스/숫자 카드 관련 업그레이드들
             UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
@@ -151,14 +107,6 @@ impl UpgradeKind {
                     *face,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::FaceNumberCardTowerAttackRangePlus { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(
-                    width_height,
-                    *face,
-                    StatType::Range,
-                    OperationType::Plus,
                 )
             }
 
@@ -183,14 +131,6 @@ impl UpgradeKind {
                     ConditionType::Reroll,
                     StatType::Damage,
                     OperationType::Multiply,
-                )
-            }
-            UpgradeKind::RerollTowerAttackRangePlus { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::Reroll,
-                    StatType::Range,
-                    OperationType::Plus,
                 )
             }
         }

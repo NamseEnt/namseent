@@ -101,10 +101,8 @@ impl Component for TowerPreviewContent<'_> {
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
-                        let rating = tower_template.calculate_rating(
-                            upgrade_state.damage_multiplier,
-                            upgrade_state.range_plus,
-                        );
+                        let rating =
+                            tower_template.calculate_rating(upgrade_state.damage_multiplier);
 
                         // Follow StatPreview layout: left icon, right-aligned value
                         ctx.add(
@@ -131,19 +129,6 @@ impl Component for TowerPreviewContent<'_> {
                             multiplier: damage_multiplier,
                             wh,
                             upgrade_texts: &texts.damage,
-                        });
-                    }),
-                    table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
-                        let range = tower_template.default_attack_range_radius;
-                        let range_plus = upgrade_state.range_plus;
-
-                        ctx.add(StatPreview {
-                            stat_icon_kind: IconKind::AttackRange,
-                            default_stat: range,
-                            plus_stat: range_plus,
-                            multiplier: 1.0, // No multiplier for range
-                            wh,
-                            upgrade_texts: &texts.range,
                         });
                     }),
                     table::fixed_no_clip(
@@ -203,7 +188,6 @@ impl Component for TowerPreview<'_> {
 struct UpgradeTexts {
     damage: Vec<String>,
     speed: Vec<String>,
-    range: Vec<String>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -214,12 +198,10 @@ fn calculate_upgrade_state_and_texts(
     let mut texts = UpgradeTexts {
         damage: vec![],
         speed: vec![],
-        range: vec![],
     };
 
     let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
         state.damage_multiplier *= upgrade_state.damage_multiplier;
-        state.range_plus += upgrade_state.range_plus;
 
         if upgrade_state.damage_multiplier > 1.0 {
             let upgrade_kind = match target {
@@ -239,29 +221,6 @@ fn calculate_upgrade_state_and_texts(
                 }
             };
             texts.damage.push(
-                game_state
-                    .text()
-                    .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),
-            );
-        }
-        if upgrade_state.range_plus > 0.0 {
-            let upgrade_kind = match target {
-                UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
-                    tower_target,
-                    UpgradeStatType::Range,
-                    true,
-                    upgrade_state.range_plus,
-                ),
-                UpgradeTargetType::TowerSelect(tower_select_target) => {
-                    create_tower_select_upgrade_kind(
-                        tower_select_target,
-                        UpgradeStatType::Range,
-                        true,
-                        upgrade_state.range_plus,
-                    )
-                }
-            };
-            texts.range.push(
                 game_state
                     .text()
                     .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),

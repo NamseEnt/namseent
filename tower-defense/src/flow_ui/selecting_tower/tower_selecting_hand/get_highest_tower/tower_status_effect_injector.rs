@@ -18,16 +18,6 @@ pub fn inject_status_effects(
             };
             tower.default_status_effects.push(upgrade_effect);
         }
-
-        if upgrade.range_plus > 0.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::AttackRangeAdd {
-                    add: upgrade.range_plus,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
     };
 
     if tower.kind.is_low_card_tower()

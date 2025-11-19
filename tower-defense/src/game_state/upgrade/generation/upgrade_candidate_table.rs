@@ -34,28 +34,12 @@ pub fn generate_upgrade_candidate_table(
             (19, 38, 38, 38),
         ),
         (
-            |rarity| UpgradeKind::RankAttackRangePlus {
-                rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
-                range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..4.0, 3.0..5.0, 3.0..6.0)),
-            },
-            None,
-            (8, 15, 15, 15),
-        ),
-        (
             |rarity| UpgradeKind::SuitAttackDamageMultiply {
                 suit: *SUITS.choose(&mut thread_rng()).unwrap(),
                 damage_multiplier: rarity_gen(rarity, (1.1..1.25, 1.15..1.5, 1.25..1.75, 1.5..3.5)),
             },
             None,
             (6, 13, 13, 13),
-        ),
-        (
-            |rarity| UpgradeKind::SuitAttackRangePlus {
-                suit: *SUITS.choose(&mut thread_rng()).unwrap(),
-                range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..4.0, 3.0..5.0, 3.0..6.0)),
-            },
-            None,
-            (3, 5, 5, 5),
         ),
         (
             |rarity| UpgradeKind::HandAttackDamageMultiply {
@@ -66,16 +50,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::HandAttackRangePlus {
-                tower_kind: get_tower_kind_with_weight(&[
-                    11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0,
-                ]),
-                range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..5.0, 4.0..8.0, 6.0..10.0)),
-            },
-            None,
-            (10, 20, 20, 10),
         ),
         (
             |_rarity| UpgradeKind::ShopSlotExpansion,
@@ -93,13 +67,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::LowCardTowerAttackRangePlus {
-                range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..5.0, 4.0..8.0, 6.0..10.0)),
-            },
-            None,
-            (10, 20, 20, 10),
         ),
         (
             |_rarity| UpgradeKind::ShopItemPriceMinus,
@@ -125,13 +92,6 @@ pub fn generate_upgrade_candidate_table(
             (20, 25, 50, 50),
         ),
         (
-            |rarity| UpgradeKind::NoRerollTowerAttackRangePlus {
-                range_plus: rarity_gen(rarity, (1.5..2.5, 2.0..5.0, 4.0..8.0, 6.0..10.0)),
-            },
-            None,
-            (15, 25, 30, 30),
-        ),
-        (
             |rarity| UpgradeKind::EvenOddTowerAttackDamageMultiply {
                 even: thread_rng().gen_bool(0.5),
                 damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
@@ -140,28 +100,12 @@ pub fn generate_upgrade_candidate_table(
             (15, 20, 25, 50),
         ),
         (
-            |rarity| UpgradeKind::EvenOddTowerAttackRangePlus {
-                even: thread_rng().gen_bool(0.5),
-                range_plus: rarity_gen(rarity, (0.5..1.5, 1.0..2.0, 1.5..2.5, 1.5..3.0)),
-            },
-            None,
-            (5, 10, 15, 25),
-        ),
-        (
             |rarity| UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                 face: thread_rng().gen_bool(0.5),
                 damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
             },
             None,
             (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::FaceNumberCardTowerAttackRangePlus {
-                face: thread_rng().gen_bool(0.5),
-                range_plus: rarity_gen(rarity, (0.5..1.5, 1.0..2.0, 1.5..2.5, 1.5..3.0)),
-            },
-            None,
-            (5, 10, 15, 20),
         ),
         (
             |_rarity| UpgradeKind::ShortenStraightFlushTo4Cards,
@@ -187,13 +131,6 @@ pub fn generate_upgrade_candidate_table(
             },
             None,
             (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::RerollTowerAttackRangePlus {
-                range_plus: rarity_gen(rarity, (0.5..1.5, 1.0..2.0, 1.5..2.5, 1.5..3.0)),
-            },
-            None,
-            (5, 10, 15, 20),
         )
     ]
 }
