@@ -219,17 +219,17 @@ impl TowerKind {
     }
     pub fn default_attack_range_radius(&self) -> f32 {
         match self {
-            Self::Barricade => 5.0,
-            Self::High => 8.0,
-            Self::OnePair => 8.0,
-            Self::TwoPair => 10.0,
-            Self::ThreeOfAKind => 10.0,
-            Self::Straight => 12.0,
-            Self::Flush => 13.0,
-            Self::FullHouse => 15.0,
-            Self::FourOfAKind => 15.0,
-            Self::StraightFlush => 18.0,
-            Self::RoyalFlush => 20.0,
+            Self::Barricade => 4.0,
+            Self::High => 6.0,
+            Self::OnePair => 6.0,
+            Self::TwoPair => 8.0,
+            Self::ThreeOfAKind => 8.0,
+            Self::Straight => 9.0,
+            Self::Flush => 10.0,
+            Self::FullHouse => 11.0,
+            Self::FourOfAKind => 11.0,
+            Self::StraightFlush => 14.0,
+            Self::RoyalFlush => 15.0,
         }
     }
     pub fn default_damage(&self) -> f32 {
