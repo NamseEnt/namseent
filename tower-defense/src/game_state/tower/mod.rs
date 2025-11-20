@@ -89,10 +89,6 @@ impl Tower {
             }
         });
 
-        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
-            damage += tower_upgrade_state.damage_plus;
-        });
-
         if damage < 0.0 {
             return 0.0;
         }
@@ -115,13 +111,13 @@ impl Tower {
 
     pub(crate) fn attack_range_radius(
         &self,
-        tower_upgrade_states: &[TowerUpgradeState],
+        _tower_upgrade_states: &[TowerUpgradeState],
         contract_range_multiplier: f32,
     ) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        let base_range = self.status_effects.iter().fold(
+        self.status_effects.iter().fold(
             self.default_attack_range_radius,
             |attack_range_radius, status_effect| {
                 if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
@@ -130,12 +126,7 @@ impl Tower {
                     attack_range_radius
                 }
             },
-        ) + tower_upgrade_states
-            .iter()
-            .fold(0.0, |r, tower_upgrade_state| {
-                r + tower_upgrade_state.range_plus
-            });
-        base_range * contract_range_multiplier
+        ) * contract_range_multiplier
     }
 }
 impl Deref for Tower {
@@ -178,24 +169,9 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    /// Calculate tower power rating based on damage, attack speed, and range
-    /// Formula: DPS × RANGE
-    /// where DPS = damage × attack_speed
-    pub fn calculate_rating(
-        &self,
-        damage_plus: f32,
-        damage_multiplier: f32,
-        speed_plus: f32,
-        speed_multiplier: f32,
-        range_plus: f32,
-    ) -> f32 {
-        let damage = (self.default_damage + self.rank.bonus_damage() as f32 + damage_plus)
-            * damage_multiplier;
-        let base_attack_speed = 1.0 / self.shoot_interval.as_secs_f32();
-        let attack_speed = (base_attack_speed + speed_plus) * speed_multiplier;
-        let range = self.default_attack_range_radius + range_plus;
-        let dps = damage * attack_speed;
-        dps * range
+    /// Calculate tower power rating based on damage
+    pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
+        (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier
     }
 }
 impl PartialOrd for TowerTemplate {
@@ -233,8 +209,8 @@ impl TowerKind {
             Self::OnePair => 1.sec(),
             Self::TwoPair => 1.sec(),
             Self::ThreeOfAKind => 1.sec(),
-            Self::Straight => 1.sec(),
-            Self::Flush => 0.5.sec(),
+            Self::Straight => 0.5.sec(),
+            Self::Flush => 1.sec(),
             Self::FullHouse => 1.sec(),
             Self::FourOfAKind => 1.sec(),
             Self::StraightFlush => 0.5.sec(),
@@ -243,32 +219,32 @@ impl TowerKind {
     }
     pub fn default_attack_range_radius(&self) -> f32 {
         match self {
-            Self::Barricade => 5.0,
-            Self::High => 8.0,
-            Self::OnePair => 8.0,
-            Self::TwoPair => 10.0,
-            Self::ThreeOfAKind => 10.0,
-            Self::Straight => 12.0,
-            Self::Flush => 13.0,
-            Self::FullHouse => 15.0,
-            Self::FourOfAKind => 15.0,
-            Self::StraightFlush => 18.0,
-            Self::RoyalFlush => 20.0,
+            Self::Barricade => 4.0,
+            Self::High => 4.0,
+            Self::OnePair => 5.0,
+            Self::TwoPair => 6.0,
+            Self::ThreeOfAKind => 7.0,
+            Self::Straight => 9.0,
+            Self::Flush => 9.0,
+            Self::FullHouse => 11.0,
+            Self::FourOfAKind => 11.0,
+            Self::StraightFlush => 14.0,
+            Self::RoyalFlush => 15.0,
         }
     }
     pub fn default_damage(&self) -> f32 {
         match self {
             Self::Barricade => 0.0,
             Self::High => 5.0,
-            Self::OnePair => 25.0,
-            Self::TwoPair => 50.0,
-            Self::ThreeOfAKind => 125.0,
-            Self::Straight => 250.0,
-            Self::Flush => 375.0,
-            Self::FullHouse => 1000.0,
-            Self::FourOfAKind => 1250.0,
+            Self::OnePair => 6.0,
+            Self::TwoPair => 10.0,
+            Self::ThreeOfAKind => 15.0,
+            Self::Straight => 50.0,
+            Self::Flush => 100.0,
+            Self::FullHouse => 100.0,
+            Self::FourOfAKind => 500.0,
             Self::StraightFlush => 7500.0,
-            Self::RoyalFlush => 15000.0,
+            Self::RoyalFlush => 12500.0,
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
@@ -339,17 +315,12 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             return;
         }
 
-        let tower_upgrades = game_state.upgrade_state.tower_upgrades(tower);
-
         let mut time_multiple = 1.0;
 
         tower.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
                 time_multiple += add;
             }
-        });
-        tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple += tower_upgrade_state.speed_plus;
         });
         if time_multiple == 0.0 {
             return;
@@ -359,9 +330,6 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
                 time_multiple *= mul;
             }
-        });
-        tower_upgrades.iter().for_each(|tower_upgrade_state| {
-            time_multiple *= tower_upgrade_state.speed_multiplier;
         });
 
         // Apply contract attack speed multiplier

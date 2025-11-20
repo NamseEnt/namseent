@@ -9,50 +9,10 @@ pub fn inject_status_effects(
     rerolled_count: usize,
 ) {
     let mut inject_tower_upgrades = |upgrade: &TowerUpgradeState| {
-        if upgrade.damage_plus > 0.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::DamageAdd {
-                    add: upgrade.damage_plus,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
-
         if upgrade.damage_multiplier > 1.0 {
             let upgrade_effect = TowerStatusEffect {
                 kind: TowerStatusEffectKind::DamageMul {
                     mul: upgrade.damage_multiplier,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
-
-        if upgrade.speed_plus > 0.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::AttackSpeedAdd {
-                    add: upgrade.speed_plus,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
-
-        if upgrade.speed_multiplier > 1.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::AttackSpeedMul {
-                    mul: upgrade.speed_multiplier,
-                },
-                end_at: TowerStatusEffectEnd::NeverEnd,
-            };
-            tower.default_status_effects.push(upgrade_effect);
-        }
-
-        if upgrade.range_plus > 0.0 {
-            let upgrade_effect = TowerStatusEffect {
-                kind: TowerStatusEffectKind::AttackRangeAdd {
-                    add: upgrade.range_plus,
                 },
                 end_at: TowerStatusEffectEnd::NeverEnd,
             };

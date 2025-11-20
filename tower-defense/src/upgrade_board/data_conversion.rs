@@ -123,28 +123,6 @@ fn add_tower_select_upgrades(
             }
         };
 
-        // 데미지 업그레이드
-        if tower_upgrade_state.damage_plus != 0.0 {
-            let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::LowCardTowerDamagePlus {
-                    damage_plus: tower_upgrade_state.damage_plus,
-                },
-                TowerSelectUpgradeTarget::NoReroll => UpgradeKind::NoRerollTowerAttackDamagePlus {
-                    damage_plus: tower_upgrade_state.damage_plus,
-                },
-                TowerSelectUpgradeTarget::Reroll => UpgradeKind::RerollTowerAttackDamagePlus {
-                    damage_plus: tower_upgrade_state.damage_plus,
-                },
-            };
-            let suffix = text.upgrade_board(UpgradeBoardText::DamagePlus {
-                amount: tower_upgrade_state.damage_plus,
-            });
-            infos.push(UpgradeInfo {
-                upgrade_kind,
-                description: format!("{target_prefix} {suffix}"),
-            });
-        }
-
         // 데미지 배수 업그레이드
         if tower_upgrade_state.damage_multiplier != 1.0 {
             let upgrade_kind = match target {
@@ -162,74 +140,6 @@ fn add_tower_select_upgrades(
             };
             let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
                 amount: tower_upgrade_state.damage_multiplier,
-            });
-            infos.push(UpgradeInfo {
-                upgrade_kind,
-                description: format!("{target_prefix} {suffix}"),
-            });
-        }
-
-        // 속도 업그레이드
-        if tower_upgrade_state.speed_plus != 0.0 {
-            let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::LowCardTowerAttackSpeedPlus {
-                    speed_plus: tower_upgrade_state.speed_plus,
-                },
-                TowerSelectUpgradeTarget::NoReroll => UpgradeKind::NoRerollTowerAttackSpeedPlus {
-                    speed_plus: tower_upgrade_state.speed_plus,
-                },
-                TowerSelectUpgradeTarget::Reroll => UpgradeKind::RerollTowerAttackSpeedPlus {
-                    speed_plus: tower_upgrade_state.speed_plus,
-                },
-            };
-            let suffix = text.upgrade_board(UpgradeBoardText::SpeedPlus {
-                amount: tower_upgrade_state.speed_plus,
-            });
-            infos.push(UpgradeInfo {
-                upgrade_kind,
-                description: format!("{target_prefix} {suffix}"),
-            });
-        }
-
-        // 속도 배수 업그레이드
-        if tower_upgrade_state.speed_multiplier != 1.0 {
-            let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::LowCardTowerAttackSpeedMultiply {
-                    speed_multiplier: tower_upgrade_state.speed_multiplier,
-                },
-                TowerSelectUpgradeTarget::NoReroll => {
-                    UpgradeKind::NoRerollTowerAttackSpeedMultiply {
-                        speed_multiplier: tower_upgrade_state.speed_multiplier,
-                    }
-                }
-                TowerSelectUpgradeTarget::Reroll => UpgradeKind::RerollTowerAttackSpeedMultiply {
-                    speed_multiplier: tower_upgrade_state.speed_multiplier,
-                },
-            };
-            let suffix = text.upgrade_board(UpgradeBoardText::SpeedMultiplier {
-                amount: tower_upgrade_state.speed_multiplier,
-            });
-            infos.push(UpgradeInfo {
-                upgrade_kind,
-                description: format!("{target_prefix} {suffix}"),
-            });
-        }
-
-        // 사거리 업그레이드
-        if tower_upgrade_state.range_plus != 0.0 {
-            let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::LowCardTowerAttackRangePlus {
-                    range_plus: tower_upgrade_state.range_plus,
-                },
-                TowerSelectUpgradeTarget::NoReroll => UpgradeKind::NoRerollTowerAttackRangePlus {
-                    range_plus: tower_upgrade_state.range_plus,
-                },
-                TowerSelectUpgradeTarget::Reroll => UpgradeKind::RerollTowerAttackRangePlus {
-                    range_plus: tower_upgrade_state.range_plus,
-                },
-            };
-            let suffix = text.upgrade_board(UpgradeBoardText::RangePlus {
-                amount: tower_upgrade_state.range_plus,
             });
             infos.push(UpgradeInfo {
                 upgrade_kind,
@@ -277,8 +187,6 @@ fn add_tower_upgrades(
 
         // 각 타워 업그레이드 상태를 개별 UpgradeKind로 변환
         add_tower_damage_upgrades(target, tower_upgrade_state, &target_prefix, text, infos);
-        add_tower_speed_upgrades(target, tower_upgrade_state, &target_prefix, text, infos);
-        add_tower_range_upgrades(target, tower_upgrade_state, &target_prefix, text, infos);
     }
 }
 
@@ -289,40 +197,6 @@ fn add_tower_damage_upgrades(
     text: &crate::l10n::TextManager,
     infos: &mut Vec<UpgradeInfo>,
 ) {
-    if tower_upgrade_state.damage_plus != 0.0 {
-        let upgrade_kind = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackDamagePlus {
-                rank: *rank,
-                damage_plus: tower_upgrade_state.damage_plus,
-            },
-            TowerUpgradeTarget::Suit { suit } => UpgradeKind::SuitAttackDamagePlus {
-                suit: *suit,
-                damage_plus: tower_upgrade_state.damage_plus,
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackDamagePlus {
-                tower_kind: *tower_kind,
-                damage_plus: tower_upgrade_state.damage_plus,
-            },
-            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackDamagePlus {
-                even: *even,
-                damage_plus: tower_upgrade_state.damage_plus,
-            },
-            TowerUpgradeTarget::FaceNumber { face } => {
-                UpgradeKind::FaceNumberCardTowerAttackDamagePlus {
-                    face: *face,
-                    damage_plus: tower_upgrade_state.damage_plus,
-                }
-            }
-        };
-        let suffix = text.upgrade_board(UpgradeBoardText::DamagePlus {
-            amount: tower_upgrade_state.damage_plus,
-        });
-        infos.push(UpgradeInfo {
-            upgrade_kind,
-            description: format!("{target_prefix} {suffix}"),
-        });
-    }
-
     if tower_upgrade_state.damage_multiplier != 1.0 {
         let upgrade_kind = match target {
             TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackDamageMultiply {
@@ -350,124 +224,6 @@ fn add_tower_damage_upgrades(
         };
         let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
             amount: tower_upgrade_state.damage_multiplier,
-        });
-        infos.push(UpgradeInfo {
-            upgrade_kind,
-            description: format!("{target_prefix} {suffix}"),
-        });
-    }
-}
-
-fn add_tower_speed_upgrades(
-    target: &TowerUpgradeTarget,
-    tower_upgrade_state: &TowerUpgradeState,
-    target_prefix: &str,
-    text: &crate::l10n::TextManager,
-    infos: &mut Vec<UpgradeInfo>,
-) {
-    if tower_upgrade_state.speed_plus != 0.0 {
-        let upgrade_kind = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackSpeedPlus {
-                rank: *rank,
-                speed_plus: tower_upgrade_state.speed_plus,
-            },
-            TowerUpgradeTarget::Suit { suit } => UpgradeKind::SuitAttackSpeedPlus {
-                suit: *suit,
-                speed_plus: tower_upgrade_state.speed_plus,
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackSpeedPlus {
-                tower_kind: *tower_kind,
-                speed_plus: tower_upgrade_state.speed_plus,
-            },
-            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackSpeedPlus {
-                even: *even,
-                speed_plus: tower_upgrade_state.speed_plus,
-            },
-            TowerUpgradeTarget::FaceNumber { face } => {
-                UpgradeKind::FaceNumberCardTowerAttackSpeedPlus {
-                    face: *face,
-                    speed_plus: tower_upgrade_state.speed_plus,
-                }
-            }
-        };
-        let suffix = text.upgrade_board(UpgradeBoardText::SpeedPlus {
-            amount: tower_upgrade_state.speed_plus,
-        });
-        infos.push(UpgradeInfo {
-            upgrade_kind,
-            description: format!("{target_prefix} {suffix}"),
-        });
-    }
-
-    if tower_upgrade_state.speed_multiplier != 1.0 {
-        let upgrade_kind = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackSpeedMultiply {
-                rank: *rank,
-                speed_multiplier: tower_upgrade_state.speed_multiplier,
-            },
-            TowerUpgradeTarget::Suit { suit } => UpgradeKind::SuitAttackSpeedMultiply {
-                suit: *suit,
-                speed_multiplier: tower_upgrade_state.speed_multiplier,
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackSpeedMultiply {
-                tower_kind: *tower_kind,
-                speed_multiplier: tower_upgrade_state.speed_multiplier,
-            },
-            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackSpeedMultiply {
-                even: *even,
-                speed_multiplier: tower_upgrade_state.speed_multiplier,
-            },
-            TowerUpgradeTarget::FaceNumber { face } => {
-                UpgradeKind::FaceNumberCardTowerAttackSpeedMultiply {
-                    face: *face,
-                    speed_multiplier: tower_upgrade_state.speed_multiplier,
-                }
-            }
-        };
-        let suffix = text.upgrade_board(UpgradeBoardText::SpeedMultiplier {
-            amount: tower_upgrade_state.speed_multiplier,
-        });
-        infos.push(UpgradeInfo {
-            upgrade_kind,
-            description: format!("{target_prefix} {suffix}"),
-        });
-    }
-}
-
-fn add_tower_range_upgrades(
-    target: &TowerUpgradeTarget,
-    tower_upgrade_state: &TowerUpgradeState,
-    target_prefix: &str,
-    text: &crate::l10n::TextManager,
-    infos: &mut Vec<UpgradeInfo>,
-) {
-    if tower_upgrade_state.range_plus != 0.0 {
-        let upgrade_kind = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackRangePlus {
-                rank: *rank,
-                range_plus: tower_upgrade_state.range_plus,
-            },
-            TowerUpgradeTarget::Suit { suit } => UpgradeKind::SuitAttackRangePlus {
-                suit: *suit,
-                range_plus: tower_upgrade_state.range_plus,
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackRangePlus {
-                tower_kind: *tower_kind,
-                range_plus: tower_upgrade_state.range_plus,
-            },
-            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackRangePlus {
-                even: *even,
-                range_plus: tower_upgrade_state.range_plus,
-            },
-            TowerUpgradeTarget::FaceNumber { face } => {
-                UpgradeKind::FaceNumberCardTowerAttackRangePlus {
-                    face: *face,
-                    range_plus: tower_upgrade_state.range_plus,
-                }
-            }
-        };
-        let suffix = text.upgrade_board(UpgradeBoardText::RangePlus {
-            amount: tower_upgrade_state.range_plus,
         });
         infos.push(UpgradeInfo {
             upgrade_kind,

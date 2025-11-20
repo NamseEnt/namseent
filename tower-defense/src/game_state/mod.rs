@@ -54,15 +54,15 @@ use user_status_effect::UserStatusEffect;
 
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
-pub const MAP_SIZE: Wh<BlockUnit> = Wh::new(48, 48);
+pub const MAP_SIZE: Wh<BlockUnit> = Wh::new(36, 36);
 pub const TRAVEL_POINTS: [MapCoord; 7] = [
-    MapCoord::new(6, 0),
-    MapCoord::new(6, 23),
-    MapCoord::new(41, 23),
-    MapCoord::new(41, 6),
-    MapCoord::new(24, 6),
-    MapCoord::new(24, 41),
-    MapCoord::new(47, 41),
+    MapCoord::new(5, 0),
+    MapCoord::new(5, 17),
+    MapCoord::new(31, 17),
+    MapCoord::new(31, 5),
+    MapCoord::new(18, 5),
+    MapCoord::new(18, 31),
+    MapCoord::new(35, 31),
 ];
 pub const MAX_HP: f32 = 100.0;
 
