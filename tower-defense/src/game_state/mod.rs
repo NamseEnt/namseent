@@ -3,6 +3,7 @@ mod camera;
 pub mod can_place_tower;
 pub mod contract;
 pub mod cursor_preview;
+mod debug_tools_modal;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
