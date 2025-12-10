@@ -1,9 +1,10 @@
-use crate::game_state::set_modal;
+use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
-    typography::{self, headline},
+    typography::{self, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -33,7 +34,9 @@ impl Component for DebugToolsModal {
                                 ctx.add(
                                     headline("Debug Tools")
                                         .size(typography::FontSize::Medium)
-                                        .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                        .align(typography::TextAlign::LeftCenter {
+                                            height: wh.height,
+                                        })
                                         .build(),
                                 );
                             }),
@@ -58,8 +61,59 @@ impl Component for DebugToolsModal {
                     table::ratio(
                         1,
                         table::padding(PADDING, |wh, ctx| {
-                            // Empty content for now
-                            ctx.add(simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT));
+                            table::vertical([
+                                table::fixed(40.px(), |wh, ctx| {
+                                    ctx.add(
+                                        Button::new(
+                                            wh,
+                                            &|| {
+                                                mutate_game_state(|gs| {
+                                                    gs.items.push(Item {
+                                                        effect: Effect::ExtraShopReroll,
+                                                        rarity: Rarity::Common,
+                                                        value: 0.0.into(),
+                                                    });
+                                                });
+                                            },
+                                            &|wh, text_color, ctx| {
+                                                ctx.add(
+                                                    paragraph("Add Shop Reroll Item")
+                                                        .color(text_color)
+                                                        .align(typography::TextAlign::Center { wh })
+                                                        .build(),
+                                                );
+                                            },
+                                        )
+                                        .variant(ButtonVariant::Outlined),
+                                    );
+                                }),
+                                table::fixed(10.px(), |_, _| {}),
+                                table::fixed(40.px(), |wh, ctx| {
+                                    ctx.add(
+                                        Button::new(
+                                            wh,
+                                            &|| {
+                                                mutate_game_state(|gs| {
+                                                    gs.items.push(Item {
+                                                        effect: Effect::ExtraReroll,
+                                                        rarity: Rarity::Common,
+                                                        value: 0.0.into(),
+                                                    });
+                                                });
+                                            },
+                                            &|wh, text_color, ctx| {
+                                                ctx.add(
+                                                    paragraph("Add Hand Reroll Item")
+                                                        .color(text_color)
+                                                        .align(typography::TextAlign::Center { wh })
+                                                        .build(),
+                                                );
+                                            },
+                                        )
+                                        .variant(ButtonVariant::Outlined),
+                                    );
+                                }),
+                            ])(wh, ctx);
                         }),
                     ),
                 ])(modal_wh, ctx);

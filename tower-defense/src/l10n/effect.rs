@@ -27,6 +27,7 @@ impl EffectText {
                 Effect::Heal { .. } => "치유".to_string(),
                 Effect::Lottery { .. } => "복권".to_string(),
                 Effect::ExtraReroll => "추가 리롤".to_string(),
+                Effect::ExtraShopReroll => "상점 추가 리롤".to_string(),
                 Effect::Shield { .. } => "방어막".to_string(),
                 Effect::EarnGold { .. } => "골드 획득".to_string(),
                 Effect::DamageReduction { .. } => "피해 감소".to_string(),
@@ -129,6 +130,9 @@ impl EffectText {
                 }
                 Effect::ExtraReroll => {
                     format!("{}을 획득합니다", special_item_text("추가 리롤"))
+                }
+                Effect::ExtraShopReroll => {
+                    format!("{}을 획득합니다", special_item_text("상점 추가 리롤"))
                 }
                 Effect::EarnGold { amount } => {
                     format!("{} 골드를 획득합니다", gold_icon(format!("{amount}")))
@@ -342,6 +346,7 @@ impl EffectText {
                 Effect::Heal { .. } => "Heal".to_string(),
                 Effect::Lottery { .. } => "Lottery".to_string(),
                 Effect::ExtraReroll => "Extra Reroll".to_string(),
+                Effect::ExtraShopReroll => "Extra Shop Reroll".to_string(),
                 Effect::Shield { .. } => "Shield".to_string(),
                 Effect::EarnGold { .. } => "Gold Gain".to_string(),
                 Effect::DamageReduction { .. } => "Damage Reduction".to_string(),
@@ -446,6 +451,9 @@ impl EffectText {
                 }
                 Effect::ExtraReroll => {
                     format!("Gain an {}", special_item_text("extra reroll"))
+                }
+                Effect::ExtraShopReroll => {
+                    format!("Gain an {}", special_item_text("extra shop reroll"))
                 }
                 Effect::EarnGold { amount } => {
                     format!("Gain {} gold", gold_icon(format!("{amount}")))
