@@ -35,10 +35,18 @@ pub fn start(project_path: &Path) -> Result<()> {
 
     static VITE: std::sync::Once = std::sync::Once::new();
     VITE.call_once(|| {
+        let webcode_dir = get_cli_root_path().join("webCode");
+
+        Command::new("npm")
+            .args(["ci"])
+            .current_dir(&webcode_dir)
+            .status()
+            .unwrap();
+
         vite = Some(
             Command::new("npm")
                 .args(["run", "dev"])
-                .current_dir(get_cli_root_path().join("webCode"))
+                .current_dir(webcode_dir)
                 .envs([("NAMUI_APP_PATH", project_path.to_str().unwrap())])
                 .spawn()
                 .unwrap(),
