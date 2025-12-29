@@ -1,7 +1,6 @@
 use crate::{
-    game_state::debug_tools_modal::DebugToolsModal,
-    game_state::start_confirm_modal::StartConfirmModal, settings::SettingsModal,
-    upgrade_board::UpgradeBoardModal,
+    game_state::debug_tools::DebugToolsModal, game_state::start_confirm_modal::StartConfirmModal,
+    settings::SettingsModal, upgrade_board::UpgradeBoardModal,
 };
 use namui::*;
 
