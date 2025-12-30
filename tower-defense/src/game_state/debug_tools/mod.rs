@@ -1,3 +1,5 @@
+mod add_tower_card;
+
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::rarity::Rarity;
@@ -6,11 +8,13 @@ use crate::theme::{
     palette,
     typography::{self, headline, paragraph},
 };
+use add_tower_card::AddTowerCardTool;
 use namui::*;
-use namui_prebuilt::{simple_rect, table};
+use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(16.);
+const GAP: Px = px(8.);
 
 pub struct DebugToolsModal;
 
@@ -60,60 +64,76 @@ impl Component for DebugToolsModal {
                     ),
                     table::ratio(
                         1,
-                        table::padding(PADDING, |wh, ctx| {
-                            table::vertical([
-                                table::fixed(40.px(), |wh, ctx| {
-                                    ctx.add(
-                                        Button::new(
-                                            wh,
-                                            &|| {
-                                                mutate_game_state(|gs| {
-                                                    gs.items.push(Item {
-                                                        effect: Effect::ExtraShopReroll,
-                                                        rarity: Rarity::Common,
-                                                        value: 0.0.into(),
-                                                    });
-                                                });
-                                            },
-                                            &|wh, text_color, ctx| {
+                        table::padding(PADDING, |_wh, ctx| {
+                            ctx.add(AutoScrollViewWithCtx {
+                                wh: _wh,
+                                scroll_bar_width: PADDING,
+                                content: |scroll_ctx| {
+                                    scroll_ctx.compose(|ctx| {
+                                        table::vertical([
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(
-                                                    paragraph("Add Shop Reroll Item")
-                                                        .color(text_color)
-                                                        .align(typography::TextAlign::Center { wh })
-                                                        .build(),
+                                                    Button::new(
+                                                        Wh::new(_wh.width - PADDING * 2.0, 40.px()),
+                                                        &|| {
+                                                            mutate_game_state(|gs| {
+                                                                gs.items.push(Item {
+                                                                    effect: Effect::ExtraShopReroll,
+                                                                    rarity: Rarity::Common,
+                                                                    value: 0.0.into(),
+                                                                });
+                                                            });
+                                                        },
+                                                        &|wh, text_color, ctx| {
+                                                            ctx.add(
+                                                                paragraph("Add Shop Reroll Item")
+                                                                    .color(text_color)
+                                                                    .align(typography::TextAlign::Center {
+                                                                        wh,
+                                                                    })
+                                                                    .build(),
+                                                            );
+                                                        },
+                                                    )
+                                                    .variant(ButtonVariant::Outlined),
                                                 );
-                                            },
-                                        )
-                                        .variant(ButtonVariant::Outlined),
-                                    );
-                                }),
-                                table::fixed(10.px(), |_, _| {}),
-                                table::fixed(40.px(), |wh, ctx| {
-                                    ctx.add(
-                                        Button::new(
-                                            wh,
-                                            &|| {
-                                                mutate_game_state(|gs| {
-                                                    gs.items.push(Item {
-                                                        effect: Effect::ExtraReroll,
-                                                        rarity: Rarity::Common,
-                                                        value: 0.0.into(),
-                                                    });
-                                                });
-                                            },
-                                            &|wh, text_color, ctx| {
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(
-                                                    paragraph("Add Hand Reroll Item")
-                                                        .color(text_color)
-                                                        .align(typography::TextAlign::Center { wh })
-                                                        .build(),
+                                                    Button::new(
+                                                        Wh::new(_wh.width - PADDING * 2.0, 40.px()),
+                                                        &|| {
+                                                            mutate_game_state(|gs| {
+                                                                gs.items.push(Item {
+                                                                    effect: Effect::ExtraReroll,
+                                                                    rarity: Rarity::Common,
+                                                                    value: 0.0.into(),
+                                                                });
+                                                            });
+                                                        },
+                                                        &|wh, text_color, ctx| {
+                                                            ctx.add(
+                                                                paragraph("Add Hand Reroll Item")
+                                                                    .color(text_color)
+                                                                    .align(typography::TextAlign::Center {
+                                                                        wh,
+                                                                    })
+                                                                    .build(),
+                                                            );
+                                                        },
+                                                    )
+                                                    .variant(ButtonVariant::Outlined),
                                                 );
-                                            },
-                                        )
-                                        .variant(ButtonVariant::Outlined),
-                                    );
-                                }),
-                            ])(wh, ctx);
+                                            }),
+                                        ])(_wh, ctx);
+                                    });
+                                },
+                            });
                         }),
                     ),
                 ])(modal_wh, ctx);
