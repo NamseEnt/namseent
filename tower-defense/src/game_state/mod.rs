@@ -3,6 +3,7 @@ mod camera;
 pub mod can_place_tower;
 pub mod contract;
 pub mod cursor_preview;
+#[cfg(feature = "debug-tools")]
 mod debug_tools;
 pub mod effect;
 mod event_handlers;

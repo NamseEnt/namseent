@@ -121,6 +121,7 @@ impl Component for Game {
                                 game_state.fast_forward_multiplier.next();
                         });
                     }
+                    #[cfg(feature = "debug-tools")]
                     Code::F8 => {
                         mutate_game_state(|game_state| {
                             if matches!(game_state.opened_modal, Some(Modal::DebugTools)) {

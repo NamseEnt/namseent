@@ -3,6 +3,10 @@ name = "tower-defense"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+debug-tools = []
+
 [package.metadata.namui]
 targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
 
