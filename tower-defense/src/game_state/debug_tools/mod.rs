@@ -1,4 +1,5 @@
 mod add_tower_card;
+mod add_upgrade;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
@@ -9,6 +10,7 @@ use crate::theme::{
     typography::{self, headline, paragraph},
 };
 use add_tower_card::AddTowerCardTool;
+use add_upgrade::AddUpgradeTool;
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 
@@ -73,6 +75,10 @@ impl Component for DebugToolsModal {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
