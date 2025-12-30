@@ -8,6 +8,14 @@ use crate::{
     *,
 };
 
+#[cfg(feature = "debug-tools")]
+fn save_stage_snapshot(game_state: &GameState) {
+    crate::game_state::debug_tools::state_snapshot::save_snapshot_from_state(game_state);
+}
+
+#[cfg(not(feature = "debug-tools"))]
+fn save_stage_snapshot(_game_state: &GameState) {}
+
 #[derive(Clone, Debug, State)]
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
@@ -74,6 +82,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        save_stage_snapshot(self);
     }
 
     pub fn goto_selecting_tower(&mut self) {

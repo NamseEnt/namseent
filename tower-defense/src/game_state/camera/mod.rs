@@ -7,7 +7,7 @@ use crate::{
 };
 use namui::*;
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct Camera {
     pub(self) left_top: MapCoordF32,
     pub zoom_level: f32,

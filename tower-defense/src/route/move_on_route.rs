@@ -2,7 +2,7 @@ use super::*;
 use crate::*;
 use std::sync::Arc;
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct MoveOnRoute {
     route: Arc<Route>,
     route_index: usize,

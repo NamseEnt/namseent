@@ -3,6 +3,8 @@ mod camera;
 pub mod can_place_tower;
 pub mod contract;
 pub mod cursor_preview;
+#[cfg(feature = "debug-tools")]
+mod debug_tools;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
@@ -275,6 +277,47 @@ pub fn force_start() {
     mutate_game_state(|game_state| {
         game_state.goto_defense();
     });
+}
+
+impl GameState {
+    /// Create a deep-ish clone of the current state for debug snapshotting.
+    /// Particle systems are cleared and opened modal is dropped to avoid UI leakage.
+    pub fn clone_for_debug(&self) -> GameState {
+        GameState {
+            monsters: self.monsters.clone(),
+            towers: self.towers.clone(),
+            camera: self.camera.clone(),
+            route: Arc::clone(&self.route),
+            backgrounds: self.backgrounds.clone(),
+            upgrade_state: self.upgrade_state.clone(),
+            flow: self.flow.clone(),
+            stage: self.stage,
+            left_reroll_chance: self.left_reroll_chance,
+            monster_spawn_state: self.monster_spawn_state.clone(),
+            projectiles: self.projectiles.clone(),
+            items: self.items.clone(),
+            gold: self.gold,
+            cursor_preview: self.cursor_preview.clone(),
+            hp: self.hp,
+            shield: self.shield,
+            user_status_effects: self.user_status_effects.clone(),
+            left_shop_refresh_chance: self.left_shop_refresh_chance,
+            left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
+            item_used: self.item_used,
+            level: self.level,
+            game_now: self.game_now,
+            fast_forward_multiplier: self.fast_forward_multiplier,
+            rerolled_count: self.rerolled_count,
+            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+            locale: self.locale,
+            play_history: self.play_history.clone(),
+            opened_modal: None,
+            contracts: self.contracts.clone(),
+            stage_modifiers: self.stage_modifiers.clone(),
+            ui_state: self.ui_state.clone(),
+            just_cleared_boss_stage: self.just_cleared_boss_stage,
+        }
+    }
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {

@@ -17,6 +17,7 @@ pub enum Effect {
         amount: f32,
     },
     ExtraReroll,
+    ExtraShopReroll,
     EarnGold {
         amount: usize,
     },
@@ -162,6 +163,9 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         }
         Effect::ExtraReroll => {
             game_state.left_reroll_chance += 1;
+        }
+        Effect::ExtraShopReroll => {
+            game_state.left_shop_refresh_chance += 1;
         }
         Effect::EarnGold { amount } => {
             game_state.gold = game_state.gold.saturating_add(*amount);

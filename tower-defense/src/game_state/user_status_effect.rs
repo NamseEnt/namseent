@@ -2,13 +2,13 @@ use namui::*;
 
 use super::GameState;
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct UserStatusEffect {
     pub kind: UserStatusEffectKind,
     pub end_at: Instant,
 }
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub enum UserStatusEffectKind {
     DamageReduction { damage_multiply: f32 },
 }
