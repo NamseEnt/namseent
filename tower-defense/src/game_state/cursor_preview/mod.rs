@@ -3,7 +3,7 @@ pub mod tower;
 use crate::MapCoordF32;
 use namui::*;
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct CursorPreview {
     pub kind: PreviewKind,
     pub map_coord: MapCoordF32,

@@ -67,7 +67,7 @@ impl TowerInfoSpringState {
 }
 
 /// UI 관련 상태를 관리하는 별도 구조체
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct UIState {
     pub tower_popup_states: HashMap<usize, TowerInfoSpringState>,
     pub selected_tower_id: Option<usize>,

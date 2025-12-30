@@ -74,6 +74,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        crate::game_state::debug_tools::state_snapshot::save_snapshot_from_state(self);
     }
 
     pub fn goto_selecting_tower(&mut self) {

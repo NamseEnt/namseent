@@ -11,7 +11,7 @@ pub struct MonsterSkillTemplate {
     pub duration: Duration,
 }
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct MonsterSkill {
     pub last_used_at: Instant,
     pub template: MonsterSkillTemplate,
