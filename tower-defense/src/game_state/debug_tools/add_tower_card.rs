@@ -37,13 +37,25 @@ impl Component for AddTowerCardTool {
         let (selected_kind, set_selected_kind) = ctx.state(|| TowerKind::High);
         let (selected_suit, set_selected_suit) = ctx.state(|| Suit::Spades);
         let (selected_rank, set_selected_rank) = ctx.state(|| Rank::Ace);
+        let (is_suit_random, set_is_suit_random) = ctx.state(|| false);
+        let (is_rank_random, set_is_rank_random) = ctx.state(|| false);
         // 0 = none, 1 = Kind, 2 = Suit, 3 = Rank
         let (dropdown, set_dropdown) = ctx.state(|| 0u8);
 
         let add_card = || {
             let kind = *selected_kind;
-            let suit = *selected_suit;
-            let rank = *selected_rank;
+            let suit = if *is_suit_random {
+                use rand::seq::SliceRandom;
+                *SUITS.choose(&mut rand::thread_rng()).unwrap()
+            } else {
+                *selected_suit
+            };
+            let rank = if *is_rank_random {
+                use rand::seq::SliceRandom;
+                *REVERSED_RANKS.choose(&mut rand::thread_rng()).unwrap()
+            } else {
+                *selected_rank
+            };
             mutate_game_state(move |gs| {
                 if let GameFlow::PlacingTower { hand } = &mut gs.flow {
                     hand.push(TowerTemplate::new(kind, suit, rank));
@@ -105,7 +117,11 @@ impl Component for AddTowerCardTool {
                         }),
                         table::fixed(GAP, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            let text = format!("{:?}", *selected_suit);
+                            let text = if *is_suit_random {
+                                "Random".to_string()
+                            } else {
+                                format!("{:?}", *selected_suit)
+                            };
                             ctx.add(
                                 Button::new(
                                     wh,
@@ -147,7 +163,11 @@ impl Component for AddTowerCardTool {
                         }),
                         table::fixed(GAP, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            let text = format!("{:?}", *selected_rank);
+                            let text = if *is_rank_random {
+                                "Random".to_string()
+                            } else {
+                                format!("{:?}", *selected_rank)
+                            };
                             ctx.add(
                                 Button::new(
                                     wh,
@@ -235,40 +255,78 @@ impl Component for AddTowerCardTool {
                     }),
                     2 => table::fit(table::FitAlign::LeftTop, |ctx| {
                         let selector_width = (self.width - GAP * 2.) / 3.;
-                        table::vertical(
-                            SUITS
-                                .iter()
-                                .map(|suit| {
-                                    let suit = *suit;
+                        let mut items: Vec<Option<Suit>> = vec![];
 
+                        // Random button
+                        items.push(None);
+
+                        // Suit options
+                        for suit in SUITS.iter() {
+                            items.push(Some(*suit));
+                        }
+
+                        table::vertical(
+                            items
+                                .into_iter()
+                                .map(|suit_opt| {
                                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                        let text = format!("{:?}", suit);
-                                        ctx.add(
-                                            Button::new(
-                                                Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
-                                                &move || {
-                                                    set_selected_suit.set(suit);
-                                                    set_dropdown.set(0);
-                                                },
-                                                &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text.clone())
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
-                                                },
-                                            )
-                                            .variant(
-                                                if *selected_suit == suit {
+                                        if let Some(suit) = suit_opt {
+                                            let text = format!("{:?}", suit);
+                                            ctx.add(
+                                                Button::new(
+                                                    Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
+                                                    &move || {
+                                                        set_selected_suit.set(suit);
+                                                        set_is_suit_random.set(false);
+                                                        set_dropdown.set(0);
+                                                    },
+                                                    &|wh, text_color, ctx| {
+                                                        ctx.add(
+                                                            paragraph(text.clone())
+                                                                .color(text_color)
+                                                                .align(TextAlign::LeftCenter {
+                                                                    height: wh.height,
+                                                                })
+                                                                .build(),
+                                                        );
+                                                    },
+                                                )
+                                                .variant(
+                                                    if !*is_suit_random && *selected_suit == suit {
+                                                        ButtonVariant::Contained
+                                                    } else {
+                                                        ButtonVariant::Outlined
+                                                    },
+                                                ),
+                                            );
+                                        } else {
+                                            // Random button
+                                            let text = "Random".to_string();
+                                            ctx.add(
+                                                Button::new(
+                                                    Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
+                                                    &|| {
+                                                        set_is_suit_random.set(true);
+                                                        set_dropdown.set(0);
+                                                    },
+                                                    &|wh, text_color, ctx| {
+                                                        ctx.add(
+                                                            paragraph(text.clone())
+                                                                .color(text_color)
+                                                                .align(TextAlign::LeftCenter {
+                                                                    height: wh.height,
+                                                                })
+                                                                .build(),
+                                                        );
+                                                    },
+                                                )
+                                                .variant(if *is_suit_random {
                                                     ButtonVariant::Contained
                                                 } else {
                                                     ButtonVariant::Outlined
-                                                },
-                                            ),
-                                        );
+                                                }),
+                                            );
+                                        }
                                     })
                                 })
                                 .collect::<Vec<_>>(),
@@ -276,40 +334,78 @@ impl Component for AddTowerCardTool {
                     }),
                     3 => table::fit(table::FitAlign::LeftTop, |ctx| {
                         let selector_width = (self.width - GAP * 2.) / 3.;
-                        table::vertical(
-                            REVERSED_RANKS
-                                .iter()
-                                .map(|rank| {
-                                    let rank = *rank;
+                        let mut items: Vec<Option<Rank>> = vec![];
 
+                        // Random button
+                        items.push(None);
+
+                        // Rank options
+                        for rank in REVERSED_RANKS.iter() {
+                            items.push(Some(*rank));
+                        }
+
+                        table::vertical(
+                            items
+                                .into_iter()
+                                .map(|rank_opt| {
                                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                        let text = format!("{:?}", rank);
-                                        ctx.add(
-                                            Button::new(
-                                                Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
-                                                &move || {
-                                                    set_selected_rank.set(rank);
-                                                    set_dropdown.set(0);
-                                                },
-                                                &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text.clone())
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
-                                                },
-                                            )
-                                            .variant(
-                                                if *selected_rank == rank {
+                                        if let Some(rank) = rank_opt {
+                                            let text = format!("{:?}", rank);
+                                            ctx.add(
+                                                Button::new(
+                                                    Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
+                                                    &move || {
+                                                        set_selected_rank.set(rank);
+                                                        set_is_rank_random.set(false);
+                                                        set_dropdown.set(0);
+                                                    },
+                                                    &|wh, text_color, ctx| {
+                                                        ctx.add(
+                                                            paragraph(text.clone())
+                                                                .color(text_color)
+                                                                .align(TextAlign::LeftCenter {
+                                                                    height: wh.height,
+                                                                })
+                                                                .build(),
+                                                        );
+                                                    },
+                                                )
+                                                .variant(
+                                                    if !*is_rank_random && *selected_rank == rank {
+                                                        ButtonVariant::Contained
+                                                    } else {
+                                                        ButtonVariant::Outlined
+                                                    },
+                                                ),
+                                            );
+                                        } else {
+                                            // Random button
+                                            let text = "Random".to_string();
+                                            ctx.add(
+                                                Button::new(
+                                                    Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
+                                                    &|| {
+                                                        set_is_rank_random.set(true);
+                                                        set_dropdown.set(0);
+                                                    },
+                                                    &|wh, text_color, ctx| {
+                                                        ctx.add(
+                                                            paragraph(text.clone())
+                                                                .color(text_color)
+                                                                .align(TextAlign::LeftCenter {
+                                                                    height: wh.height,
+                                                                })
+                                                                .build(),
+                                                        );
+                                                    },
+                                                )
+                                                .variant(if *is_rank_random {
                                                     ButtonVariant::Contained
                                                 } else {
                                                     ButtonVariant::Outlined
-                                                },
-                                            ),
-                                        );
+                                                }),
+                                            );
+                                        }
                                     })
                                 })
                                 .collect::<Vec<_>>(),
