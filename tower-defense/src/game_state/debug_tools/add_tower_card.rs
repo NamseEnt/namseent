@@ -1,8 +1,9 @@
 use crate::card::{REVERSED_RANKS, Rank, SUITS, Suit};
 use crate::game_state::tower::{TowerKind, TowerTemplate};
-use crate::game_state::{flow::GameFlow, mutate_game_state};
+use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
+use crate::theme::palette;
 use crate::theme::typography::{TextAlign, headline, paragraph};
 use namui::*;
 use namui_prebuilt::table;
@@ -28,17 +29,81 @@ const TOWER_KIND_ORDER: [TowerKind; 11] = [
     TowerKind::RoyalFlush,
 ];
 
+const EXPECTED_TOWERS_BY_STAGE: [TowerKind; 50] = [
+    TowerKind::High,
+    TowerKind::OnePair,
+    TowerKind::OnePair,
+    TowerKind::TwoPair,
+    TowerKind::ThreeOfAKind,
+    TowerKind::OnePair,
+    TowerKind::OnePair,
+    TowerKind::ThreeOfAKind,
+    TowerKind::FullHouse,
+    TowerKind::Straight,
+    TowerKind::OnePair,
+    TowerKind::TwoPair,
+    TowerKind::TwoPair,
+    TowerKind::ThreeOfAKind,
+    TowerKind::FourOfAKind,
+    TowerKind::TwoPair,
+    TowerKind::Flush,
+    TowerKind::ThreeOfAKind,
+    TowerKind::TwoPair,
+    TowerKind::FullHouse,
+    TowerKind::StraightFlush,
+    TowerKind::OnePair,
+    TowerKind::TwoPair,
+    TowerKind::FourOfAKind,
+    TowerKind::TwoPair,
+    TowerKind::FullHouse,
+    TowerKind::OnePair,
+    TowerKind::Flush,
+    TowerKind::ThreeOfAKind,
+    TowerKind::FullHouse,
+    TowerKind::High,
+    TowerKind::FullHouse,
+    TowerKind::FullHouse,
+    TowerKind::FourOfAKind,
+    TowerKind::OnePair,
+    TowerKind::FullHouse,
+    TowerKind::Straight,
+    TowerKind::StraightFlush,
+    TowerKind::Straight,
+    TowerKind::TwoPair,
+    TowerKind::FullHouse,
+    TowerKind::Straight,
+    TowerKind::TwoPair,
+    TowerKind::FullHouse,
+    TowerKind::StraightFlush,
+    TowerKind::OnePair,
+    TowerKind::FullHouse,
+    TowerKind::High,
+    TowerKind::OnePair,
+    TowerKind::FullHouse,
+];
+
+fn get_expected_tower_for_stage(stage: usize) -> TowerKind {
+    if stage == 0 || stage > 50 {
+        TowerKind::High
+    } else {
+        EXPECTED_TOWERS_BY_STAGE[stage - 1]
+    }
+}
+
 pub struct AddTowerCardTool {
     pub width: Px,
 }
 
 impl Component for AddTowerCardTool {
     fn render(self, ctx: &RenderCtx) {
-        let (selected_kind, set_selected_kind) = ctx.state(|| TowerKind::High);
+        let game_state = use_game_state(ctx);
+        let expected_tower = get_expected_tower_for_stage(game_state.stage);
+
+        let (selected_kind, set_selected_kind) = ctx.state(|| expected_tower);
         let (selected_suit, set_selected_suit) = ctx.state(|| Suit::Spades);
         let (selected_rank, set_selected_rank) = ctx.state(|| Rank::Ace);
-        let (is_suit_random, set_is_suit_random) = ctx.state(|| false);
-        let (is_rank_random, set_is_rank_random) = ctx.state(|| false);
+        let (is_suit_random, set_is_suit_random) = ctx.state(|| true);
+        let (is_rank_random, set_is_rank_random) = ctx.state(|| true);
         // 0 = none, 1 = Kind, 2 = Suit, 3 = Rank
         let (dropdown, set_dropdown) = ctx.state(|| 0u8);
 
@@ -70,6 +135,18 @@ impl Component for AddTowerCardTool {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(headline("Add tower card").build());
+                }),
+                table::fixed(GAP, |_, _| {}),
+                table::fit(table::FitAlign::LeftTop, |ctx| {
+                    let info_text = format!(
+                        "Stage {}: Expected Tower - {:?}",
+                        game_state.stage, expected_tower
+                    );
+                    ctx.add(
+                        paragraph(&info_text)
+                            .color(palette::ON_SURFACE_VARIANT)
+                            .build(),
+                    );
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
