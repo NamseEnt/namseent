@@ -13,9 +13,11 @@ use crate::theme::{
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
 use state_snapshot_tool::StateSnapshotTool;
+mod spiral_place;
 mod state_snapshot_tool;
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
+use spiral_place::PlaceSelectedTowerInSpiralButton;
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(16.);
@@ -142,6 +144,12 @@ impl Component for DebugToolsModal {
                                                     )
                                                     .variant(ButtonVariant::Outlined),
                                                 );
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(PlaceSelectedTowerInSpiralButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                         ])(_wh, ctx);
                                     });
