@@ -1,6 +1,7 @@
 mod add_tower_card;
 mod add_upgrade;
 pub mod state_snapshot;
+mod route_length_info;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
@@ -13,6 +14,7 @@ use crate::theme::{
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
 use state_snapshot_tool::StateSnapshotTool;
+use route_length_info::RouteLengthInfoTool;
 mod spiral_place;
 mod state_snapshot_tool;
 use namui::*;
@@ -88,6 +90,10 @@ impl Component for DebugToolsModal {
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(StateSnapshotTool { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(RouteLengthInfoTool { width: _wh.width - PADDING * 2.0 });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {

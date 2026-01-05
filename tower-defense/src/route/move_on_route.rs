@@ -34,6 +34,10 @@ impl MoveOnRoute {
         self.velocity
     }
 
+    pub fn route_index(&self) -> usize {
+        self.route_index
+    }
+
     pub(crate) fn move_by(&mut self, dt: Duration) {
         let mut movable_distance = self.velocity * dt;
 
