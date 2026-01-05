@@ -48,6 +48,7 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
 
     let next_monster_template = MonsterTemplate::new(next_monster_kind);
     let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
+    #[allow(unused_mut)]
     let mut monster = Monster::new(
         &next_monster_template,
         game_state.route.clone(),
