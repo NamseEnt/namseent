@@ -82,7 +82,7 @@ const EXPECTED_TOWERS_BY_STAGE: [TowerKind; 50] = [
     TowerKind::FullHouse,
 ];
 
-fn get_expected_tower_for_stage(stage: usize) -> TowerKind {
+pub fn get_expected_tower_for_stage(stage: usize) -> TowerKind {
     if stage == 0 || stage > 50 {
         TowerKind::High
     } else {

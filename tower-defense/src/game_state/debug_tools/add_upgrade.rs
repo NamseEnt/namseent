@@ -25,7 +25,7 @@ const RARITIES: [Rarity; 4] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum UpgradeCategory {
+pub enum UpgradeCategory {
     Random,
     GoldEarnPlus,
     RankDamage,
@@ -118,7 +118,7 @@ const EXPECTED_UPGRADES_BY_STAGE: [(Rarity, UpgradeCategory); 50] = [
     (Rarity::Epic, UpgradeCategory::LowCardDamage),
 ];
 
-fn get_expected_upgrade_for_stage(stage: usize) -> (Rarity, UpgradeCategory) {
+pub fn get_expected_upgrade_for_stage(stage: usize) -> (Rarity, UpgradeCategory) {
     if stage == 0 || stage > 50 {
         (Rarity::Common, UpgradeCategory::GoldEarnPlus)
     } else {
@@ -149,7 +149,7 @@ impl UpgradeCategory {
         }
     }
 
-    fn generate_upgrade_kind(&self, rarity: Rarity) -> UpgradeKind {
+    pub fn generate_upgrade_kind(&self, rarity: Rarity) -> UpgradeKind {
         let mut rng = thread_rng();
         match self {
             UpgradeCategory::Random => panic!("Should not generate Random category"),

@@ -1,7 +1,7 @@
 use crate::MapCoord;
 use crate::game_state::{
-    MAP_SIZE, TRAVEL_POINTS, can_place_tower::can_place_tower, flow::GameFlow, mutate_game_state,
-    tower::Tower,
+    GameState, MAP_SIZE, TRAVEL_POINTS, can_place_tower::can_place_tower, flow::GameFlow,
+    mutate_game_state, tower::Tower,
 };
 use crate::route::calculate_routes;
 use crate::theme::button::{Button, ButtonVariant};
@@ -99,6 +99,83 @@ pub struct PlaceSelectedTowerInSpiralButton {
     pub width: Px,
 }
 
+pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
+    let (slot_id, template) = {
+        let GameFlow::PlacingTower { hand } = &mut gs.flow else {
+            return;
+        };
+
+        let Some(&slot_id) = hand.selected_slot_ids().first() else {
+            return;
+        };
+        let Some(template) = hand.get_item(slot_id).cloned() else {
+            return;
+        };
+        (slot_id, template)
+    };
+
+    let now = gs.now();
+    let mut placed_coords = gs.towers.coords();
+    let mut route_coords: Vec<MapCoord> = gs.route.iter_coords().to_vec();
+    let mut placed_at: Option<MapCoord> = None;
+
+    for step in placement_plan() {
+        match step {
+            PlanStep::Remove(coord) => {
+                if let Some(tower_id) = gs.towers.find_by_xy(coord).map(|tower| tower.id()) {
+                    gs.towers.remove_tower(tower_id);
+                    gs.route = calculate_routes(&gs.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
+                        .expect("route should exist after removing a tower");
+                    placed_coords = gs.towers.coords();
+                    route_coords = gs.route.iter_coords().to_vec();
+                    println!("[Spiral Place] Removed tower at ({}, {})", coord.x, coord.y);
+                }
+            }
+            PlanStep::Place(left_top) => {
+                if left_top.x + 1 >= MAP_SIZE.width || left_top.y + 1 >= MAP_SIZE.height {
+                    continue;
+                }
+
+                if can_place_tower(
+                    left_top,
+                    Wh::new(2, 2),
+                    &TRAVEL_POINTS,
+                    &placed_coords,
+                    &route_coords,
+                    MAP_SIZE,
+                ) {
+                    let tower = Tower::new(&template, left_top, now);
+                    gs.place_tower(tower);
+                    placed_at = Some(left_top);
+                    println!(
+                        "[Spiral Place] Placed tower at ({}, {})",
+                        left_top.x, left_top.y
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    if placed_at.is_some() {
+        if let GameFlow::PlacingTower { hand } = &mut gs.flow {
+            hand.delete_slots(&[slot_id]);
+
+            if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
+                && hand.get_item(first_slot_id).is_some()
+            {
+                hand.select_slot(first_slot_id);
+            }
+
+            if hand.is_empty() {
+                gs.goto_defense();
+            }
+        }
+    } else {
+        println!("[Spiral Place] No placement available for this plan iteration.");
+    }
+}
+
 impl Component for PlaceSelectedTowerInSpiralButton {
     fn render(self, ctx: &RenderCtx) {
         let Self { width } = self;
@@ -107,95 +184,7 @@ impl Component for PlaceSelectedTowerInSpiralButton {
             Button::new(
                 Wh::new(width, BUTTON_HEIGHT),
                 &|| {
-                    mutate_game_state(|gs| {
-                        let (slot_id, template) = {
-                            let GameFlow::PlacingTower { hand } = &mut gs.flow else {
-                                return;
-                            };
-
-                            let Some(&slot_id) = hand.selected_slot_ids().first() else {
-                                return;
-                            };
-                            let Some(template) = hand.get_item(slot_id).cloned() else {
-                                return;
-                            };
-                            (slot_id, template)
-                        };
-
-                        let now = gs.now();
-                        let mut placed_coords = gs.towers.coords();
-                        let mut route_coords: Vec<MapCoord> = gs.route.iter_coords().to_vec();
-                        let mut placed_at: Option<MapCoord> = None;
-
-                        for step in placement_plan() {
-                            match step {
-                                PlanStep::Remove(coord) => {
-                                    if let Some(tower_id) =
-                                        gs.towers.find_by_xy(coord).map(|tower| tower.id())
-                                    {
-                                        gs.towers.remove_tower(tower_id);
-                                        gs.route = calculate_routes(
-                                            &gs.towers.coords(),
-                                            &TRAVEL_POINTS,
-                                            MAP_SIZE,
-                                        )
-                                        .expect("route should exist after removing a tower");
-                                        placed_coords = gs.towers.coords();
-                                        route_coords = gs.route.iter_coords().to_vec();
-                                        println!(
-                                            "[Spiral Place] Removed tower at ({}, {})",
-                                            coord.x, coord.y
-                                        );
-                                    }
-                                }
-                                PlanStep::Place(left_top) => {
-                                    if left_top.x + 1 >= MAP_SIZE.width
-                                        || left_top.y + 1 >= MAP_SIZE.height
-                                    {
-                                        continue;
-                                    }
-
-                                    if can_place_tower(
-                                        left_top,
-                                        Wh::new(2, 2),
-                                        &TRAVEL_POINTS,
-                                        &placed_coords,
-                                        &route_coords,
-                                        MAP_SIZE,
-                                    ) {
-                                        let tower = Tower::new(&template, left_top, now);
-                                        gs.place_tower(tower);
-                                        placed_at = Some(left_top);
-                                        println!(
-                                            "[Spiral Place] Placed tower at ({}, {})",
-                                            left_top.x, left_top.y
-                                        );
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if placed_at.is_some() {
-                            if let GameFlow::PlacingTower { hand } = &mut gs.flow {
-                                hand.delete_slots(&[slot_id]);
-
-                                if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
-                                    && hand.get_item(first_slot_id).is_some()
-                                {
-                                    hand.select_slot(first_slot_id);
-                                }
-
-                                if hand.is_empty() {
-                                    gs.goto_defense();
-                                }
-                            }
-                        } else {
-                            println!(
-                                "[Spiral Place] No placement available for this plan iteration."
-                            );
-                        }
-                    });
+                    mutate_game_state(place_selected_tower_in_spiral);
                 },
                 &|wh, text_color, ctx| {
                     ctx.add(
