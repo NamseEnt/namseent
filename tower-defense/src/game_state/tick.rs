@@ -246,6 +246,14 @@ fn check_defense_end(game_state: &mut GameState) {
         return;
     }
 
+    #[cfg(feature = "debug-tools")]
+    {
+        if debug_tools::monster_hp_balance::get_balance_state().is_some() {
+            debug_tools::monster_hp_balance::check_and_adjust_hp_balance(game_state);
+            return;
+        }
+    }
+
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
     if game_state.stage > 50 {

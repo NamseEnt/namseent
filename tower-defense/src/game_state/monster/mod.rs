@@ -34,6 +34,8 @@ pub struct Monster {
     pub projectile_target_indicator: ProjectileTargetIndicator,
     pub hp: f32,
     pub max_hp: f32,
+    #[cfg(feature = "debug-tools")]
+    pub base_max_hp: f32,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
     pub damage: f32,
@@ -56,6 +58,8 @@ impl Monster {
             projectile_target_indicator: ProjectileTargetIndicator::new(),
             hp: adjusted_max_hp,
             max_hp: adjusted_max_hp,
+            #[cfg(feature = "debug-tools")]
+            base_max_hp: adjusted_max_hp,
             skills: template
                 .skills
                 .iter()

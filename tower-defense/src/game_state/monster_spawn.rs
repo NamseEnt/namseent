@@ -48,17 +48,26 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
 
     let next_monster_template = MonsterTemplate::new(next_monster_kind);
     let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
-    game_state.monsters.push(Monster::new(
+    let mut monster = Monster::new(
         &next_monster_template,
         game_state.route.clone(),
         now,
         health_multiplier,
-    ));
+    );
+
+    #[cfg(feature = "debug-tools")]
+    {
+        let hp_offset = crate::game_state::debug_tools::monster_hp_balance::get_hp_offset();
+        monster.max_hp += hp_offset;
+        monster.hp = monster.max_hp;
+    }
+
+    game_state.monsters.push(monster);
 
     *next_spawn_time = now + *spawn_interval;
 }
 
-fn monster_queue_table(stage: usize) -> (VecDeque<MonsterKind>, Duration) {
+pub fn monster_queue_table(stage: usize) -> (VecDeque<MonsterKind>, Duration) {
     let spawn_interval =
         Duration::from_millis((10000.0 / (26.0 * (stage as f32 / 50.0) + 4.0)) as i64);
 

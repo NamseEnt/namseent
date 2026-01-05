@@ -3,6 +3,7 @@ mod add_upgrade;
 mod route_length_info;
 pub mod state_snapshot;
 mod auto_setup;
+pub mod monster_hp_balance;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
@@ -19,6 +20,7 @@ use route_length_info::RouteLengthInfoTool;
 use state_snapshot_tool::StateSnapshotTool;
 mod spiral_place;
 mod state_snapshot_tool;
+use monster_hp_balance::MonsterHpBalanceButton;
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 use spiral_place::PlaceSelectedTowerInSpiralButton;
@@ -83,13 +85,17 @@ impl Component for DebugToolsModal {
                                     scroll_ctx.compose(|ctx| {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(MonsterHpBalanceButton { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),                                            
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AutoSetupButton { width: _wh.width - PADDING * 2.0 });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
                                             }),
-                                            table::fixed(GAP, |_, _| {}),
+                                            table::fixed(GAP, |_, _| {}),                                           
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
                                             }),
