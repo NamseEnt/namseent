@@ -1,7 +1,7 @@
 mod add_tower_card;
 mod add_upgrade;
-pub mod state_snapshot;
 mod route_length_info;
+pub mod state_snapshot;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
@@ -13,8 +13,8 @@ use crate::theme::{
 };
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
-use state_snapshot_tool::StateSnapshotTool;
 use route_length_info::RouteLengthInfoTool;
+use state_snapshot_tool::StateSnapshotTool;
 mod spiral_place;
 mod state_snapshot_tool;
 use namui::*;
@@ -31,7 +31,7 @@ impl Component for DebugToolsModal {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
 
-        let modal_wh = Wh::new(600.px(), 400.px());
+        let modal_wh = Wh::new(720.px(), 720.px());
         let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
