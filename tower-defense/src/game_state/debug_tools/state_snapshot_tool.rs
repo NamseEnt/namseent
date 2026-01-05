@@ -61,6 +61,7 @@ impl Component for StateSnapshotTool {
                     table::vertical(
                         snapshots
                             .into_iter()
+                            .rev()
                             .map(|(idx, stage)| {
                                 table::fit(table::FitAlign::LeftTop, move |ctx| {
                                     table::horizontal([
