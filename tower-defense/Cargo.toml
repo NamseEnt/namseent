@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["debug-tools"]
+default = []
 debug-tools = []
 
 [package.metadata.namui]
