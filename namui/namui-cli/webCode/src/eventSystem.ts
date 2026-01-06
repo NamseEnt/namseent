@@ -152,6 +152,11 @@ export function startEventSystem({
     }
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    function onContextMenu(event: PointerEvent) {
+        event.preventDefault();
+    }
+    document.addEventListener("contextmenu", onContextMenu);
+
     function terminate() {
         if (animationFrameId !== null) {
             cancelAnimationFrame(animationFrameId);
@@ -166,6 +171,7 @@ export function startEventSystem({
         document.removeEventListener("wheel", onWheel);
         window.removeEventListener("blur", onBlur);
         document.removeEventListener("visibilitychange", onVisibilityChange);
+        document.removeEventListener("contextmenu", onContextMenu);
     }
 
     return { terminate };
