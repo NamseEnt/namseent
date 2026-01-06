@@ -87,7 +87,7 @@ impl Component for DebugToolsModal {
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(MonsterHpBalanceButton { width: _wh.width - PADDING * 2.0 });
                                             }),
-                                            table::fixed(GAP, |_, _| {}),                                            
+                                            table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AutoSetupButton { width: _wh.width - PADDING * 2.0 });
                                             }),
@@ -95,7 +95,7 @@ impl Component for DebugToolsModal {
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
                                             }),
-                                            table::fixed(GAP, |_, _| {}),                                           
+                                            table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
                                             }),
@@ -104,18 +104,18 @@ impl Component for DebugToolsModal {
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(RouteLengthInfoTool { width: _wh.width - PADDING * 2.0 });
                                             }),
-                                         
+
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(PlaceSelectedTowerInSpiralButton {
                                                     width: _wh.width - PADDING * 2.0,
                                                 });
                                             }),
-                                                                                        table::fixed(GAP, |_, _| {}),
+                                            table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(StateSnapshotTool { width: _wh.width - PADDING * 2.0 });
                                             }),
-                                               table::fixed(GAP, |_, _| {}),
+                                            table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(
                                                     Button::new(
