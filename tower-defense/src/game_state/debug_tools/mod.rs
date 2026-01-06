@@ -1,9 +1,9 @@
 mod add_tower_card;
 mod add_upgrade;
-mod route_length_info;
-pub mod state_snapshot;
 mod auto_setup;
 pub mod monster_hp_balance;
+mod route_length_info;
+pub mod state_snapshot;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
