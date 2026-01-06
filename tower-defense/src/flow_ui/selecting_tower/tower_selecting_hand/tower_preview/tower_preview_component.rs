@@ -80,16 +80,22 @@ impl Component for TowerPreviewContent<'_> {
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
                         let mut tower_name = String::new();
 
-                        tower_name.push_str(
-                            &Icon::new(IconKind::Suit {
-                                suit: tower_template.suit,
-                            })
-                            .size(crate::icon::IconSize::Small)
-                            .wh(Wh::single(crate::icon::IconSize::Small.px()))
-                            .as_tag(),
-                        );
-                        tower_name.push_str(&tower_template.rank.to_string());
-                        tower_name.push(' ');
+                        if !matches!(
+                            tower_template.kind,
+                            crate::game_state::tower::TowerKind::Barricade
+                        ) {
+                            tower_name.push_str(
+                                &Icon::new(IconKind::Suit {
+                                    suit: tower_template.suit,
+                                })
+                                .size(crate::icon::IconSize::Small)
+                                .wh(Wh::single(crate::icon::IconSize::Small.px()))
+                                .as_tag(),
+                            );
+                            tower_name.push_str(&tower_template.rank.to_string());
+                            tower_name.push(' ');
+                        }
+
                         tower_name.push_str(game_state.text().tower(tower_template.kind.to_text()));
 
                         ctx.add(
