@@ -48,7 +48,7 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
             ));
             return calculate_routes(&towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
         };
-        game_state_route.clone_inner()
+        game_state_route.as_ref().clone()
     });
 
     // Removed F8 key handler that changed route texture.

@@ -1,5 +1,8 @@
 mod add_tower_card;
 mod add_upgrade;
+mod auto_setup;
+pub mod monster_hp_balance;
+mod route_length_info;
 pub mod state_snapshot;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
@@ -12,10 +15,15 @@ use crate::theme::{
 };
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
+use auto_setup::AutoSetupButton;
+use route_length_info::RouteLengthInfoTool;
 use state_snapshot_tool::StateSnapshotTool;
+mod spiral_place;
 mod state_snapshot_tool;
+use monster_hp_balance::MonsterHpBalanceButton;
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
+use spiral_place::PlaceSelectedTowerInSpiralButton;
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(16.);
@@ -27,7 +35,7 @@ impl Component for DebugToolsModal {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
 
-        let modal_wh = Wh::new(600.px(), 400.px());
+        let modal_wh = Wh::new(720.px(), 720.px());
         let modal_xy = ((screen_wh - modal_wh) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
@@ -77,11 +85,31 @@ impl Component for DebugToolsModal {
                                     scroll_ctx.compose(|ctx| {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(MonsterHpBalanceButton { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(AutoSetupButton { width: _wh.width - PADDING * 2.0 });
+                                            }),
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
+                                            }),
+
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(RouteLengthInfoTool { width: _wh.width - PADDING * 2.0 });
+                                            }),
+
+                                            table::fixed(GAP, |_, _| {}),
+                                            table::fit(table::FitAlign::LeftTop, |ctx| {
+                                                ctx.add(PlaceSelectedTowerInSpiralButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {

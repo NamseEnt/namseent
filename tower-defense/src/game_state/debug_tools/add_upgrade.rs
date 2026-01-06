@@ -1,10 +1,11 @@
 use crate::card::{REVERSED_RANKS, SUITS};
-use crate::game_state::mutate_game_state;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
+use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
+use crate::theme::palette;
 use crate::theme::typography::{TextAlign, headline, paragraph};
 use namui::*;
 use namui_prebuilt::table;
@@ -24,7 +25,7 @@ const RARITIES: [Rarity; 4] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum UpgradeCategory {
+pub enum UpgradeCategory {
     Random,
     GoldEarnPlus,
     RankDamage,
@@ -64,6 +65,67 @@ const UPGRADE_CATEGORIES: [UpgradeCategory; 17] = [
     UpgradeCategory::RerollDamage,
 ];
 
+const EXPECTED_UPGRADES_BY_STAGE: [(Rarity, UpgradeCategory); 50] = [
+    (Rarity::Common, UpgradeCategory::NoRerollDamage),
+    (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
+    (Rarity::Common, UpgradeCategory::HandDamage),
+    (Rarity::Common, UpgradeCategory::RerollDamage),
+    (Rarity::Common, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
+    (Rarity::Common, UpgradeCategory::LowCardDamage),
+    (Rarity::Common, UpgradeCategory::SuitDamage),
+    (Rarity::Common, UpgradeCategory::TreatSuitsAsSame),
+    (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
+    (Rarity::Common, UpgradeCategory::HandDamage),
+    (Rarity::Epic, UpgradeCategory::SkipRankForStraight),
+    (Rarity::Common, UpgradeCategory::SuitDamage),
+    (Rarity::Common, UpgradeCategory::NoRerollDamage),
+    (Rarity::Rare, UpgradeCategory::RerollCountPlus),
+    (Rarity::Rare, UpgradeCategory::ShopRefreshPlus),
+    (Rarity::Epic, UpgradeCategory::TreatSuitsAsSame),
+    (Rarity::Rare, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::LowCardDamage),
+    (Rarity::Epic, UpgradeCategory::FaceNumberDamage),
+    (Rarity::Epic, UpgradeCategory::RerollCountPlus),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Legendary, UpgradeCategory::ShopSlotExpansion),
+    (Rarity::Legendary, UpgradeCategory::ShopSlotExpansion),
+    (Rarity::Epic, UpgradeCategory::ShopRefreshPlus),
+    (Rarity::Epic, UpgradeCategory::FaceNumberDamage),
+    (Rarity::Legendary, UpgradeCategory::RerollDamage),
+    (Rarity::Rare, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Legendary, UpgradeCategory::FaceNumberDamage),
+    (Rarity::Legendary, UpgradeCategory::NoRerollDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Legendary, UpgradeCategory::TreatSuitsAsSame),
+    (Rarity::Epic, UpgradeCategory::SkipRankForStraight),
+    (Rarity::Epic, UpgradeCategory::HandDamage),
+    (Rarity::Rare, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Legendary, UpgradeCategory::LowCardDamage),
+    (Rarity::Epic, UpgradeCategory::TreatSuitsAsSame),
+    (Rarity::Rare, UpgradeCategory::HandDamage),
+    (Rarity::Rare, UpgradeCategory::RankDamage),
+    (Rarity::Common, UpgradeCategory::RankDamage),
+    (Rarity::Legendary, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Legendary, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::HandDamage),
+    (Rarity::Rare, UpgradeCategory::RerollDamage),
+    (Rarity::Legendary, UpgradeCategory::SuitDamage),
+    (Rarity::Epic, UpgradeCategory::LowCardDamage),
+];
+
+pub fn get_expected_upgrade_for_stage(stage: usize) -> (Rarity, UpgradeCategory) {
+    if stage == 0 || stage > 50 {
+        (Rarity::Common, UpgradeCategory::GoldEarnPlus)
+    } else {
+        EXPECTED_UPGRADES_BY_STAGE[stage - 1]
+    }
+}
+
 impl UpgradeCategory {
     fn display_name(&self) -> &'static str {
         match self {
@@ -87,7 +149,7 @@ impl UpgradeCategory {
         }
     }
 
-    fn generate_upgrade_kind(&self, rarity: Rarity) -> UpgradeKind {
+    pub fn generate_upgrade_kind(&self, rarity: Rarity) -> UpgradeKind {
         let mut rng = thread_rng();
         match self {
             UpgradeCategory::Random => panic!("Should not generate Random category"),
@@ -177,9 +239,17 @@ pub struct AddUpgradeTool {
 
 impl Component for AddUpgradeTool {
     fn render(self, ctx: &RenderCtx) {
+        let game_state = use_game_state(ctx);
+        let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(game_state.stage);
+        let expected_category_idx = UPGRADE_CATEGORIES
+            .iter()
+            .position(|&c| c == expected_category)
+            .unwrap_or(0);
+
         // Using index instead of enum for State compatibility
-        let (selected_category_idx, set_selected_category_idx) = ctx.state(|| 0usize);
-        let (selected_rarity, set_selected_rarity) = ctx.state(|| Rarity::Common);
+        let (selected_category_idx, set_selected_category_idx) =
+            ctx.state(|| expected_category_idx);
+        let (selected_rarity, set_selected_rarity) = ctx.state(|| expected_rarity);
         // 0 = none, 1 = Category, 2 = Rarity
         let (dropdown, set_dropdown) = ctx.state(|| 0u8);
 
@@ -208,6 +278,20 @@ impl Component for AddUpgradeTool {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(headline("Add upgrade").build());
+                }),
+                table::fixed(GAP, |_, _| {}),
+                table::fit(table::FitAlign::LeftTop, |ctx| {
+                    let info_text = format!(
+                        "Stage {}: Expected - {:?} {}",
+                        game_state.stage,
+                        expected_rarity,
+                        expected_category.display_name()
+                    );
+                    ctx.add(
+                        paragraph(&info_text)
+                            .color(palette::ON_SURFACE_VARIANT)
+                            .build(),
+                    );
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {

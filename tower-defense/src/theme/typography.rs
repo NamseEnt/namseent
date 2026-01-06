@@ -411,6 +411,7 @@ impl ParagraphBuilder {
             font_size: self.font_size,
             text_align: self.text_align,
             max_width: self.max_width,
+            text_color: self.text_color,
         }
     }
 
@@ -649,6 +650,7 @@ pub struct ParagraphComponent {
     font_size: FontSize,
     text_align: TextAlign,
     max_width: Option<Px>,
+    text_color: Option<Color>,
 }
 impl ParagraphComponent {
     pub fn into_rendering_tree(self) -> RenderingTree {
@@ -657,6 +659,7 @@ impl ParagraphComponent {
             font_size,
             text_align,
             max_width,
+            text_color,
         } = self;
 
         let (x, y) = match text_align {
@@ -689,6 +692,10 @@ impl ParagraphComponent {
             (TextAlign::RightTop { width }, None) => Some(*width),
             _ => max_width,
         };
+        let text_style = TextStyle {
+            color: text_color.unwrap_or(DEFAULT_TEXT_STYLE.color),
+            ..DEFAULT_TEXT_STYLE
+        };
         namui::text(TextParam {
             text,
             x,
@@ -699,7 +706,7 @@ impl ParagraphComponent {
                 name: PARAGRAPH_FONT_NAME.to_string(),
                 size,
             },
-            style: DEFAULT_TEXT_STYLE,
+            style: text_style,
             max_width: effective_max_width,
         })
     }

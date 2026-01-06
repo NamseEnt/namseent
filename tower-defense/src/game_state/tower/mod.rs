@@ -214,7 +214,7 @@ impl TowerKind {
             Self::FullHouse => 1.sec(),
             Self::FourOfAKind => 1.sec(),
             Self::StraightFlush => 0.5.sec(),
-            Self::RoyalFlush => 0.33.sec(),
+            Self::RoyalFlush => (1.0 / 3.0).sec(),
         }
     }
     pub fn default_attack_range_radius(&self) -> f32 {
@@ -238,13 +238,13 @@ impl TowerKind {
             Self::High => 5.0,
             Self::OnePair => 6.0,
             Self::TwoPair => 10.0,
-            Self::ThreeOfAKind => 15.0,
-            Self::Straight => 50.0,
-            Self::Flush => 100.0,
-            Self::FullHouse => 100.0,
-            Self::FourOfAKind => 500.0,
-            Self::StraightFlush => 7500.0,
-            Self::RoyalFlush => 12500.0,
+            Self::ThreeOfAKind => 12.0,
+            Self::Straight => 14.0,
+            Self::Flush => 32.0,
+            Self::FullHouse => 50.0,
+            Self::FourOfAKind => 100.0,
+            Self::StraightFlush => 250.0,
+            Self::RoyalFlush => 400.0,
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
