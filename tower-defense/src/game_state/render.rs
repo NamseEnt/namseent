@@ -100,28 +100,7 @@ fn render_grid(ctx: &RenderCtx, game_state: &GameState) {
         .set_stroke_width(2.px())
         .set_stroke_cap(StrokeCap::Round);
 
-    ctx.add(namui::path(path, paint)).attach_event(|event| {
-        if let Event::MouseDown { event } = event {
-            if event.button != Some(MouseButton::Left) {
-                return;
-            }
-            if !event.is_local_xy_in() {
-                return;
-            }
-
-            let local_xy = event.local_xy();
-            let tile_x = (local_xy.x / TILE_PX_SIZE.width).floor() as usize;
-            let tile_y = (local_xy.y / TILE_PX_SIZE.height).floor() as usize;
-
-            mutate_game_state(move |game_state| {
-                let tower_at_position = game_state.towers.find_by_xy(MapCoord::new(tile_x, tile_y));
-
-                if tower_at_position.is_none() {
-                    game_state.set_selected_tower(None);
-                }
-            });
-        }
-    });
+    ctx.add(namui::path(path, paint));
 }
 
 fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
@@ -242,7 +221,6 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
             }))
             .attach_event({
                 let tower_id = tower.id();
-                let tower_kind = tower.kind;
                 move |event| {
                     let Event::MouseDown { event } = event else {
                         return;
@@ -251,9 +229,6 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
                         return;
                     }
                     if !event.is_local_xy_in() {
-                        return;
-                    }
-                    if tower_kind == crate::game_state::tower::TowerKind::Barricade {
                         return;
                     }
                     event.stop_propagation();
