@@ -20,7 +20,6 @@ pub mod play_history;
 pub mod projectile;
 mod render;
 pub mod stage_modifiers;
-mod start_confirm_modal;
 mod tick;
 pub mod tower;
 mod tower_info_popup;

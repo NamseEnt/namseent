@@ -10,12 +10,10 @@ mod inventory;
 pub mod l10n;
 mod rarity; // private; re-export Rarity only
 mod route;
-mod settings;
 mod shop;
 mod theme;
 mod thumbnail;
 mod top_bar;
-mod upgrade_board;
 
 use crate::{
     camera_controller::CameraController,
