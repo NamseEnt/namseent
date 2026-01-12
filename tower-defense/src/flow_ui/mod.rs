@@ -1,4 +1,5 @@
 mod placing_tower;
+mod result;
 mod selecting_tower;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
@@ -23,7 +24,9 @@ impl Component for FlowUi {
                 ctx.add(placing_tower::PlacingTowerUi);
             }
             GameFlow::Defense => {}
-            GameFlow::Result => {}
+            GameFlow::Result => {
+                ctx.add(result::ResultModal);
+            }
         };
     }
 }
