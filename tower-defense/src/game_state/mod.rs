@@ -193,7 +193,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: generate_backgrounds(),
             upgrade_state: Default::default(),
-            flow: GameFlow::Defense,
+            flow: GameFlow::Initializing,
             stage: 1,
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::Idle,
@@ -316,6 +316,60 @@ impl GameState {
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
         }
+    }
+
+    /// 현재 스테이지의 클리어율을 계산합니다.
+    /// 각 스테이지는 2% (100/50), 스테이지 내에서는 (총 체력 - 남은 체력) / 총 체력 비율로 계산
+    /// 체력 회복을 고려하여 실제 남은 몬스터 체력을 기준으로 계산합니다.
+    pub fn calculate_clear_rate(&self) -> f32 {
+        let total_stages = 50.0;
+        let stage_weight = 100.0 / total_stages; // 2%
+
+        // 이전 스테이지 완료율
+        let previous_stages_progress = (self.stage.saturating_sub(1) as f32) * stage_weight;
+
+        // 스테이지 진행 데이터는 DefenseFlow에 저장되어 있음
+        let (start_total_hp, processed_hp_so_far) = match &self.flow {
+            crate::game_state::flow::GameFlow::Defense(defense_flow) => (
+                defense_flow.stage_progress.start_total_hp,
+                defense_flow.stage_progress.processed_hp,
+            ),
+            _ => (
+                Self::calculate_stage_total_hp(self.stage, &self.stage_modifiers),
+                0.0,
+            ),
+        };
+
+        // 현재 남아있는 몬스터들의 이미 소모된 체력(= max_hp - 현재 hp)을 합산
+        let remaining_processed_hp: f32 = self
+            .monsters
+            .iter()
+            .map(|monster| (monster.max_hp - monster.hp.max(0.0)).max(0.0))
+            .sum();
+
+        let total_processed_hp = processed_hp_so_far + remaining_processed_hp;
+
+        let current_stage_progress = if start_total_hp > 0.0 {
+            (total_processed_hp / start_total_hp).min(1.0) * stage_weight
+        } else {
+            0.0
+        };
+
+        (previous_stages_progress + current_stage_progress).min(100.0)
+    }
+
+    /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
+    pub fn calculate_stage_total_hp(stage: usize, stage_modifiers: &StageModifiers) -> f32 {
+        let (monster_queue, _) = monster_spawn::monster_queue_table(stage);
+        let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
+
+        monster_queue
+            .iter()
+            .map(|&kind| {
+                let template = MonsterTemplate::new(kind);
+                template.max_hp * health_multiplier
+            })
+            .sum()
     }
 }
 

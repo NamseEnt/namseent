@@ -1,5 +1,8 @@
 use super::super::{Effect, EffectExecutionError};
-use crate::game_state::{effect::tests_support::make_test_state, flow::GameFlow};
+use crate::game_state::{
+    effect::tests_support::make_test_state,
+    flow::{DefenseFlow, GameFlow},
+};
 use crate::{
     card::{Rank, Suit},
     rarity::Rarity,
@@ -19,7 +22,7 @@ fn test_extra_reroll_in_selecting_tower_flow() {
 #[test]
 fn test_extra_reroll_in_wrong_flow() {
     let mut state = make_test_state();
-    state.flow = GameFlow::Defense;
+    state.flow = GameFlow::Defense(DefenseFlow::new(&state));
 
     let effect = Effect::ExtraReroll;
     let result = effect.can_execute(&state);

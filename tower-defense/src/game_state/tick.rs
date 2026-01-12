@@ -95,6 +95,9 @@ fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) {
         }
 
         if monster.dead() {
+            if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
+                defense_flow.stage_progress.processed_hp += monster.max_hp;
+            }
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
             let earn =
                 (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
@@ -236,7 +239,7 @@ fn shoot_projectiles(game_state: &mut GameState) {
 }
 
 fn check_defense_end(game_state: &mut GameState) {
-    let GameFlow::Defense = game_state.flow else {
+    let GameFlow::Defense(_) = game_state.flow else {
         return;
     };
     let MonsterSpawnState::Idle = game_state.monster_spawn_state else {
@@ -257,6 +260,7 @@ fn check_defense_end(game_state: &mut GameState) {
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
     if game_state.stage > 50 {
+        game_state.stage -= 1;
         game_state.goto_result();
         return;
     }
