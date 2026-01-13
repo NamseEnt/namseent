@@ -1,6 +1,8 @@
 mod clear_progress;
+mod event_list;
 
 use crate::flow_ui::result::clear_progress::ClearProgress;
+use crate::flow_ui::result::event_list::EventList;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::set_modal;
 use crate::game_state::use_game_state;
@@ -57,8 +59,12 @@ impl Component for ResultModal {
                             ctx.add(ClearProgress { wh, clear_rate });
                         }),
                         table::fixed(PADDING, |_wh, _ctx| {}),
-                        table::ratio(1, |_wh, _ctx| {
-                            // 내용 영역 - placeholder
+                        table::ratio(1, |wh, ctx| {
+                            // 이벤트 리스트
+                            ctx.add(EventList {
+                                wh,
+                                events: &game_state.play_history.events,
+                            });
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(48.px(), |wh, ctx| {

@@ -174,7 +174,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                             } else if contract_kind.is_some() {
                                 ctx.add(
                                     ThumbnailComposer::new(wh)
-                                        .with_icon_base(IconKind::Quest)
+                                        .with_icon_base(IconKind::Contract)
                                         .build(),
                                 );
                             } else {
