@@ -1,3 +1,4 @@
+mod animation;
 mod camera_controller;
 mod card;
 mod contracts;

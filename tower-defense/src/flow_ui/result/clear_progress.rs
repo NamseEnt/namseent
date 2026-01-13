@@ -1,6 +1,9 @@
-use crate::theme::{
-    palette,
-    typography::{self, TextAlign, headline},
+use crate::{
+    animation::with_spring,
+    theme::{
+        palette,
+        typography::{self, TextAlign, headline},
+    },
 };
 use namui::*;
 
@@ -11,6 +14,10 @@ pub struct ClearProgress {
 impl Component for ClearProgress {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, clear_rate } = self;
+
+        let fill_width = wh.width * (clear_rate / 100.0);
+        let fill_width_with_spring =
+            with_spring(ctx, fill_width, 0.px(), |px| px.as_f32(), || 0.px());
 
         // 프로그레스바
         let progress_bar_height = wh.height;
@@ -29,13 +36,12 @@ impl Component for ClearProgress {
         );
 
         // 진행률 바
-        let fill_width = wh.width * (clear_rate / 100.0);
-        if fill_width > px(0.0) {
+        if fill_width_with_spring > px(0.0) {
             ctx.add(rect(RectParam {
                 rect: Rect::Xywh {
                     x: px(0.0),
                     y: (wh.height - progress_bar_height) * 0.5,
-                    width: fill_width,
+                    width: fill_width_with_spring,
                     height: progress_bar_height,
                 },
                 style: RectStyle {
