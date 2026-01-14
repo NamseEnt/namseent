@@ -4,8 +4,8 @@ mod event_list;
 use crate::flow_ui::result::clear_progress::ClearProgress;
 use crate::flow_ui::result::event_list::EventList;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::set_modal;
 use crate::game_state::use_game_state;
+use crate::game_state::{restart_game, set_modal};
 use crate::theme::button::{Button, ButtonColor, ButtonVariant};
 use crate::theme::typography::TextAlign;
 use crate::theme::{
@@ -72,12 +72,12 @@ impl Component for ResultModal {
                                 Button::new(
                                     wh,
                                     &|| {
+                                        restart_game();
                                         set_modal(None);
-                                        // TODO: 다음 스테이지로 이동하거나 메인 메뉴로 돌아가기
                                     },
                                     &|_wh, text_color, ctx| {
                                         ctx.add(
-                                            headline("확인")
+                                            headline("다시하기")
                                                 .align(TextAlign::Center { wh })
                                                 .size(typography::FontSize::Medium)
                                                 .color(text_color)

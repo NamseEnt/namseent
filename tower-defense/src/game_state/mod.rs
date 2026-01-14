@@ -184,79 +184,80 @@ impl Component for &FloorTile {
 
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
-pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
-    ctx.init_atom(&GAME_STATE_ATOM, || {
-        let mut game_state = GameState {
-            monsters: Default::default(),
-            towers: Default::default(),
-            camera: Camera::new(),
-            route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
-            backgrounds: generate_backgrounds(),
-            upgrade_state: Default::default(),
-            flow: GameFlow::Initializing,
-            stage: 1,
-            left_reroll_chance: 1,
-            monster_spawn_state: MonsterSpawnState::Idle,
-            projectiles: Default::default(),
-            items: vec![
-                Item {
-                    effect: Effect::ExtraReroll,
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.5.into(),
+fn create_initial_game_state() -> GameState {
+    let mut game_state = GameState {
+        monsters: Default::default(),
+        towers: Default::default(),
+        camera: Camera::new(),
+        route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
+        backgrounds: generate_backgrounds(),
+        upgrade_state: Default::default(),
+        flow: GameFlow::Initializing,
+        stage: 1,
+        left_reroll_chance: 1,
+        monster_spawn_state: MonsterSpawnState::Idle,
+        projectiles: Default::default(),
+        items: vec![
+            Item {
+                effect: Effect::ExtraReroll,
+                rarity: rarity::Rarity::Epic,
+                value: 0.5.into(),
+            },
+            Item {
+                effect: Effect::ExtraReroll,
+                rarity: rarity::Rarity::Epic,
+                value: 0.5.into(),
+            },
+            Item {
+                effect: Effect::AddTowerCardToPlacementHand {
+                    tower_kind: TowerKind::Barricade,
+                    suit: Suit::Spades,
+                    rank: Rank::Ace,
+                    count: 5,
                 },
-                Item {
-                    effect: Effect::ExtraReroll,
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.5.into(),
+                rarity: rarity::Rarity::Common,
+                value: 1.0.into(),
+            },
+            Item {
+                effect: Effect::AddTowerCardToPlacementHand {
+                    tower_kind: TowerKind::High,
+                    suit: Suit::Spades,
+                    rank: Rank::Ace,
+                    count: 1,
                 },
-                Item {
-                    effect: Effect::AddTowerCardToPlacementHand {
-                        tower_kind: TowerKind::Barricade,
-                        suit: Suit::Spades,
-                        rank: Rank::Ace,
-                        count: 5,
-                    },
-                    rarity: rarity::Rarity::Common,
-                    value: 1.0.into(),
-                },
-                Item {
-                    effect: Effect::AddTowerCardToPlacementHand {
-                        tower_kind: TowerKind::High,
-                        suit: Suit::Spades,
-                        rank: Rank::Ace,
-                        count: 1,
-                    },
-                    rarity: rarity::Rarity::Common,
-                    value: 1.0.into(),
-                },
-            ],
-            gold: 100,
-            cursor_preview: Default::default(),
-            hp: 100.0,
-            shield: 0.0,
-            user_status_effects: Default::default(),
-            left_shop_refresh_chance: 0,
-            left_quest_board_refresh_chance: 0,
-            item_used: false,
-            level: NonZeroUsize::new(1).unwrap(),
-            game_now: Instant::now(),
-            fast_forward_multiplier: Default::default(),
-            rerolled_count: 0,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
-            locale: crate::l10n::Locale::KOREAN,
-            play_history: PlayHistory::new(),
-            opened_modal: None,
-            contracts: vec![],
-            stage_modifiers: StageModifiers::new(),
-            ui_state: UIState::new(),
-            just_cleared_boss_stage: false,
-        };
+                rarity: rarity::Rarity::Common,
+                value: 1.0.into(),
+            },
+        ],
+        gold: 100,
+        cursor_preview: Default::default(),
+        hp: 100.0,
+        shield: 0.0,
+        user_status_effects: Default::default(),
+        left_shop_refresh_chance: 0,
+        left_quest_board_refresh_chance: 0,
+        item_used: false,
+        level: NonZeroUsize::new(1).unwrap(),
+        game_now: Instant::now(),
+        fast_forward_multiplier: Default::default(),
+        rerolled_count: 0,
+        field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+        locale: crate::l10n::Locale::KOREAN,
+        play_history: PlayHistory::new(),
+        opened_modal: None,
+        contracts: vec![],
+        stage_modifiers: StageModifiers::new(),
+        ui_state: UIState::new(),
+        just_cleared_boss_stage: false,
+    };
 
-        game_state.record_game_start();
-        game_state.goto_next_stage();
-        game_state
-    })
-    .0
+    game_state.record_game_start();
+    game_state.goto_next_stage();
+    game_state
+}
+
+pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
+    ctx.init_atom(&GAME_STATE_ATOM, create_initial_game_state).0
 }
 
 pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
@@ -276,6 +277,12 @@ pub fn set_modal(modal: Option<Modal>) {
 pub fn force_start() {
     mutate_game_state(|game_state| {
         game_state.goto_defense();
+    });
+}
+
+pub fn restart_game() {
+    GAME_STATE_ATOM.mutate(|game_state| {
+        *game_state = create_initial_game_state();
     });
 }
 
