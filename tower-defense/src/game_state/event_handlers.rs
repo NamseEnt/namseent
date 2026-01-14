@@ -9,6 +9,18 @@ use crate::{
 };
 
 impl GameState {
+    pub fn record_game_start(&mut self) {
+        self.record_event(HistoryEventType::GameStart);
+    }
+
+    pub fn record_stage_start(&mut self) {
+        self.record_event(HistoryEventType::StageStart { stage: self.stage });
+    }
+
+    pub fn record_game_over(&mut self) {
+        self.record_event(HistoryEventType::GameOver);
+    }
+
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
     }

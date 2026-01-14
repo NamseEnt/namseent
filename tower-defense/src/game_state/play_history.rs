@@ -23,6 +23,12 @@ pub struct HistoryEvent {
 
 #[derive(Debug, Clone, State)]
 pub enum HistoryEventType {
+    GameStart,
+
+    StageStart {
+        stage: usize,
+    },
+
     TowerPlaced {
         tower_kind: TowerKind,
         rank: Rank,
@@ -56,6 +62,8 @@ pub enum HistoryEventType {
         contract: Contract,
         cost: usize,
     },
+
+    GameOver,
 }
 
 impl PlayHistory {

@@ -22,6 +22,10 @@ impl LocalizedText for EventText<'_> {
 impl HistoryEventType {
     pub fn description_korean(&self, locale: &Locale) -> String {
         match self {
+            HistoryEventType::GameStart => "게임 시작".to_string(),
+            HistoryEventType::StageStart { stage } => {
+                format!("스테이지 {} 시작", stage)
+            }
             HistoryEventType::TowerPlaced {
                 tower_kind,
                 rank,
@@ -52,11 +56,16 @@ impl HistoryEventType {
             HistoryEventType::ContractPurchased { contract, cost } => {
                 format!("계약 구매: {:?} ({}G)", contract, cost)
             }
+            HistoryEventType::GameOver => "게임 오버".to_string(),
         }
     }
 
     pub fn description_english(&self, locale: &Locale) -> String {
         match self {
+            HistoryEventType::GameStart => "Game Started".to_string(),
+            HistoryEventType::StageStart { stage } => {
+                format!("Stage {} Started", stage)
+            }
             HistoryEventType::TowerPlaced {
                 tower_kind,
                 rank,
@@ -87,6 +96,7 @@ impl HistoryEventType {
             HistoryEventType::ContractPurchased { contract, cost } => {
                 format!("Contract Purchased: {:?} ({}G)", contract, cost)
             }
+            HistoryEventType::GameOver => "Game Over".to_string(),
         }
     }
 }

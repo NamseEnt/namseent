@@ -252,6 +252,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             just_cleared_boss_stage: false,
         };
 
+        game_state.record_game_start();
         game_state.goto_next_stage();
         game_state
     })

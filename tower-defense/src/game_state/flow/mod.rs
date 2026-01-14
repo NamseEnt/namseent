@@ -106,6 +106,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.record_stage_start();
         save_stage_snapshot(self);
     }
 
@@ -142,7 +143,7 @@ impl GameState {
         // 남은 모든 적 제거 (패배 후에도 적들이 건물에 들어오는 것을 방지)
         self.monsters.clear();
         self.projectiles.clear();
-
+        self.record_game_over();
         self.flow = GameFlow::Result { clear_rate };
     }
 }

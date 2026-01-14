@@ -91,8 +91,14 @@ impl Component for TimeLineComponent<'_> {
         let center_x = TIMELINE_WIDTH * 0.5;
 
         // TODO: 이벤트 타입에 따라 선 위치 변경
-        let line_start_xy = Xy::new(center_x, 0.px());
-        let line_end_xy = Xy::new(center_x, wh.height);
+        let line_start_xy = match event.event_type {
+            HistoryEventType::GameOver => Xy::new(center_x, wh.height * 0.5),
+            _ => Xy::new(center_x, 0.px()),
+        };
+        let line_end_xy = match event.event_type {
+            HistoryEventType::GameStart => Xy::new(center_x, wh.height * 0.5),
+            _ => Xy::new(center_x, wh.height),
+        };
 
         let icon_center_xy = Xy::new(center_x, wh.height * 0.5);
         ctx.translate(icon_center_xy).add(TimeLineIconComponent {
@@ -119,12 +125,20 @@ impl Component for TimeLineIconComponent<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, event } = self;
 
-        let circle_wh = wh * 0.6;
+        let circle_wh = match event.event_type {
+            HistoryEventType::GameStart
+            | HistoryEventType::GameOver
+            | HistoryEventType::StageStart { .. } => wh * 0.6,
+            _ => wh * 0.5,
+        };
         let icon_wh = circle_wh * 0.8;
         let icon_kind = event.event_type.icon_kind();
-        let draw_circle = match event.event_type {
-            _ => true,
-        };
+        let draw_circle = matches!(
+            event.event_type,
+            HistoryEventType::GameStart
+                | HistoryEventType::GameOver
+                | HistoryEventType::StageStart { .. }
+        );
 
         ctx.compose(|ctx| {
             if let Some(icon_kind) = icon_kind {
@@ -140,7 +154,16 @@ impl Component for TimeLineIconComponent<'_> {
         });
 
         ctx.compose(|_ctx| {
-            // TODO: additional drawings
+            let HistoryEventType::StageStart { stage } = event.event_type else {
+                return;
+            };
+            ctx.translate(wh.to_xy() * -0.5).add(
+                HeadlineBuilder::new(stage.to_string())
+                    .size(crate::theme::typography::FontSize::Medium)
+                    .align(crate::theme::typography::TextAlign::Center { wh })
+                    .color(palette::ON_PRIMARY)
+                    .build(),
+            );
         });
 
         ctx.compose(|ctx| {
@@ -158,6 +181,7 @@ impl Component for TimeLineIconComponent<'_> {
 impl HistoryEventType {
     pub fn icon_kind(&self) -> Option<IconKind> {
         match self {
+            HistoryEventType::GameStart | HistoryEventType::StageStart { .. } => None,
             HistoryEventType::TowerPlaced { .. } => Some(IconKind::Card),
             HistoryEventType::DamageTaken { .. } => Some(IconKind::Health),
             HistoryEventType::ItemPurchased { .. } => Some(IconKind::Item),
@@ -165,6 +189,7 @@ impl HistoryEventType {
             HistoryEventType::UpgradeSelected { .. } => Some(IconKind::Up),
             HistoryEventType::UpgradePurchased { .. } => Some(IconKind::Shop),
             HistoryEventType::ContractPurchased { .. } => Some(IconKind::Contract),
+            HistoryEventType::GameOver => Some(IconKind::Reject),
         }
     }
 }
