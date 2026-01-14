@@ -1,5 +1,6 @@
 use super::{Language, Locale, LocalizedText};
 use crate::game_state::play_history::HistoryEventType;
+use crate::l10n::contract::ContractText;
 use crate::l10n::effect::EffectText;
 use crate::l10n::upgrade::UpgradeKindText;
 
@@ -54,7 +55,9 @@ impl HistoryEventType {
                 format!("업그레이드 구매: {} ({}G)", upgrade_name, cost)
             }
             HistoryEventType::ContractPurchased { contract, cost } => {
-                format!("계약 구매: {:?} ({}G)", contract, cost)
+                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
+                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
+                format!("계약 구매: {} / {} ({}G)", risk_text, reward_text, cost)
             }
             HistoryEventType::GameOver => "게임 오버".to_string(),
         }
@@ -94,7 +97,12 @@ impl HistoryEventType {
                 format!("Upgrade Purchased: {} ({}G)", upgrade_name, cost)
             }
             HistoryEventType::ContractPurchased { contract, cost } => {
-                format!("Contract Purchased: {:?} ({}G)", contract, cost)
+                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
+                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
+                format!(
+                    "Contract Purchased: {} / {} ({}G)",
+                    risk_text, reward_text, cost
+                )
             }
             HistoryEventType::GameOver => "Game Over".to_string(),
         }
