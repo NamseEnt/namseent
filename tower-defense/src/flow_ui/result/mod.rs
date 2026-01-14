@@ -122,6 +122,16 @@ impl Component for ResultModal {
             Color::TRANSPARENT,
             0.px(),
             Color::BLACK.with_alpha(200),
-        ));
+        ))
+        .attach_event(|event| {
+            match event {
+                Event::MouseDown { event }
+                | Event::MouseUp { event }
+                | Event::MouseMove { event } => {
+                    event.stop_propagation();
+                }
+                _ => {}
+            };
+        });
     }
 }
