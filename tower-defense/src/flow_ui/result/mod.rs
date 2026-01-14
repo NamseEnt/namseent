@@ -18,10 +18,6 @@ use namui_prebuilt::{simple_rect, table};
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(16.);
-const RESULT_MODAL_WH: Wh<Px> = Wh {
-    width: px(640.0),
-    height: px(480.0),
-};
 const PROGRESS_BAR_HEIGHT: Px = px(24.);
 
 pub struct ResultModal;
@@ -37,7 +33,15 @@ impl Component for ResultModal {
 
         let screen_wh = screen::size().into_type::<Px>();
 
-        let modal_xy = ((screen_wh - RESULT_MODAL_WH) * 0.5).to_xy();
+        // 규칙에 따라 modal 크기 계산
+        // 세로: 스크린 세로의 60%, 최소 640, 최대 720
+        let height = (screen_wh.height * 0.6).clamp(px(640.0), px(720.0));
+        // 가로: 스크린 가로의 80%, 최소 480, 최대 720
+        let width = (screen_wh.width * 0.8).clamp(px(480.0), px(720.0));
+
+        let result_modal_wh = Wh { width, height };
+
+        let modal_xy = ((screen_wh - result_modal_wh) * 0.5).to_xy();
 
         ctx.compose(|ctx| {
             let ctx = ctx.translate(modal_xy);
@@ -50,8 +54,8 @@ impl Component for ResultModal {
                             ctx.add(
                                 headline(game_state.text().result_modal(ResultModalText::Title))
                                     .align(TextAlign::Center { wh })
-                                    .size(typography::FontSize::Medium)
-                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                    .size(typography::FontSize::Large)
+                                    .align(typography::TextAlign::Center { wh })
                                     .build(),
                             );
                         }),
@@ -96,11 +100,11 @@ impl Component for ResultModal {
                             );
                         }),
                     ]),
-                )(RESULT_MODAL_WH, ctx);
+                )(result_modal_wh, ctx);
             });
 
             ctx.add(rect(RectParam {
-                rect: RESULT_MODAL_WH.to_rect(),
+                rect: result_modal_wh.to_rect(),
                 style: RectStyle {
                     stroke: Some(RectStroke {
                         color: palette::OUTLINE,
@@ -121,7 +125,7 @@ impl Component for ResultModal {
             screen_wh,
             Color::TRANSPARENT,
             0.px(),
-            Color::BLACK.with_alpha(200),
+            Color::BLACK.with_alpha(225),
         ))
         .attach_event(|event| {
             match event {
