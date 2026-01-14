@@ -85,6 +85,7 @@ impl Component for ResultModal {
                                         );
                                     },
                                 )
+                                .long_press_time(2.sec())
                                 .color(ButtonColor::Primary)
                                 .variant(ButtonVariant::Contained),
                             );
