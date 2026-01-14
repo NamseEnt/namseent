@@ -59,6 +59,13 @@ impl TextManager {
             Language::English => text.to_english(),
         }
     }
+
+    pub fn result_modal(&self, text: ui::ResultModalText) -> &'static str {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
 }
 
 /// 퀘스트 텍스트 처리

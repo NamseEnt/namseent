@@ -6,6 +6,7 @@ use crate::flow_ui::result::event_list::EventList;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::use_game_state;
 use crate::game_state::{restart_game, set_modal};
+use crate::l10n::ui::ResultModalText;
 use crate::theme::button::{Button, ButtonColor, ButtonVariant};
 use crate::theme::typography::TextAlign;
 use crate::theme::{
@@ -47,7 +48,7 @@ impl Component for ResultModal {
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
                             ctx.add(
-                                headline("게임 결과")
+                                headline(game_state.text().result_modal(ResultModalText::Title))
                                     .align(TextAlign::Center { wh })
                                     .size(typography::FontSize::Medium)
                                     .align(typography::TextAlign::LeftCenter { height: wh.height })
@@ -77,11 +78,15 @@ impl Component for ResultModal {
                                     },
                                     &|_wh, text_color, ctx| {
                                         ctx.add(
-                                            headline("다시하기")
-                                                .align(TextAlign::Center { wh })
-                                                .size(typography::FontSize::Medium)
-                                                .color(text_color)
-                                                .build(),
+                                            headline(
+                                                game_state
+                                                    .text()
+                                                    .result_modal(ResultModalText::RestartButton),
+                                            )
+                                            .align(TextAlign::Center { wh })
+                                            .size(typography::FontSize::Medium)
+                                            .color(text_color)
+                                            .build(),
                                         );
                                     },
                                 )

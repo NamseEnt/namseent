@@ -22,6 +22,12 @@ pub enum StartConfirmModalText {
     Yes,
 }
 
+#[derive(Debug, Clone, Copy, State)]
+pub enum ResultModalText {
+    Title,
+    RestartButton,
+}
+
 impl LocalizedStaticText for TopBarText {
     fn localized_text(&self, locale: &Locale) -> &'static str {
         match locale.language {
@@ -81,6 +87,22 @@ impl StartConfirmModalText {
             }
             StartConfirmModalText::No => "No",
             StartConfirmModalText::Yes => "Yes",
+        }
+    }
+}
+
+impl ResultModalText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            ResultModalText::Title => "게임 결과",
+            ResultModalText::RestartButton => "다시하기",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            ResultModalText::Title => "Game Result",
+            ResultModalText::RestartButton => "Restart",
         }
     }
 }
