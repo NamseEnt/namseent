@@ -232,7 +232,7 @@ pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
             ],
             gold: 100,
             cursor_preview: Default::default(),
-            hp: 1.0,
+            hp: 100.0,
             shield: 0.0,
             user_status_effects: Default::default(),
             left_shop_refresh_chance: 0,

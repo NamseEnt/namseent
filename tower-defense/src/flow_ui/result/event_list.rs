@@ -1,5 +1,7 @@
 use crate::game_state::play_history::{HistoryEvent, HistoryEventType};
+use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind};
+use crate::l10n;
 use crate::theme::palette;
 use crate::theme::typography::HeadlineBuilder;
 use namui::*;
@@ -21,6 +23,7 @@ impl Component for EventList<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, events } = self;
 
+        let game_state = use_game_state(ctx);
         let (scroll_y, set_scroll_y) = ctx.state(|| 0.px());
         let item_wh = Wh {
             width: wh.width,
@@ -45,8 +48,19 @@ impl Component for EventList<'_> {
                                 ctx.compose(|ctx| {
                                     table::padding(PADDING, |wh, ctx| {
                                         ctx.add(
-                                            HeadlineBuilder::new(event.event_type.description())
-                                                .build(),
+                                            HeadlineBuilder::new(game_state.text().event(
+                                                l10n::event::EventText::Description(
+                                                    &event.event_type,
+                                                    &game_state.text().locale(),
+                                                ),
+                                            ))
+                                            .size(crate::theme::typography::FontSize::Small)
+                                            .align(
+                                                crate::theme::typography::TextAlign::LeftCenter {
+                                                    height: wh.height,
+                                                },
+                                            )
+                                            .build(),
                                         );
                                     })(wh, ctx);
                                 });
@@ -125,7 +139,7 @@ impl Component for TimeLineIconComponent<'_> {
             }
         });
 
-        ctx.compose(|ctx| {
+        ctx.compose(|_ctx| {
             // TODO: additional drawings
         });
 
@@ -152,9 +166,5 @@ impl HistoryEventType {
             HistoryEventType::UpgradePurchased { .. } => Some(IconKind::Shop),
             HistoryEventType::ContractPurchased { .. } => Some(IconKind::Contract),
         }
-    }
-
-    pub fn description(&self) -> String {
-        "asd".to_string() // TODO: 구현 필요
     }
 }
