@@ -3,6 +3,7 @@ mod render_card;
 mod render_tower;
 pub mod shared;
 
+pub use crate::animation::xy_with_spring;
 use hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;
@@ -10,7 +11,6 @@ use render_card::RenderCard;
 use render_tower::RenderTower;
 use shared::*;
 use std::{any::Any, cmp::Ordering, fmt::Debug};
-pub use crate::animation::xy_with_spring;
 
 pub const HAND_SLOT_WH: Wh<Px> = Wh::new(px(112.), px(152.));
 pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
