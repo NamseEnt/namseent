@@ -10,7 +10,6 @@ mod icon;
 mod inventory;
 pub mod l10n;
 mod rarity; // private; re-export Rarity only
-mod rich_text;
 mod route;
 mod shop;
 mod theme;
