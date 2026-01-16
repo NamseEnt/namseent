@@ -20,7 +20,6 @@ pub mod play_history;
 pub mod projectile;
 mod render;
 pub mod stage_modifiers;
-mod start_confirm_modal;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
@@ -185,78 +184,80 @@ impl Component for &FloorTile {
 
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
-pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
-    ctx.init_atom(&GAME_STATE_ATOM, || {
-        let mut game_state = GameState {
-            monsters: Default::default(),
-            towers: Default::default(),
-            camera: Camera::new(),
-            route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
-            backgrounds: generate_backgrounds(),
-            upgrade_state: Default::default(),
-            flow: GameFlow::Defense,
-            stage: 1,
-            left_reroll_chance: 1,
-            monster_spawn_state: MonsterSpawnState::Idle,
-            projectiles: Default::default(),
-            items: vec![
-                Item {
-                    effect: Effect::ExtraReroll,
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.5.into(),
+fn create_initial_game_state() -> GameState {
+    let mut game_state = GameState {
+        monsters: Default::default(),
+        towers: Default::default(),
+        camera: Camera::new(),
+        route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
+        backgrounds: generate_backgrounds(),
+        upgrade_state: Default::default(),
+        flow: GameFlow::Initializing,
+        stage: 1,
+        left_reroll_chance: 1,
+        monster_spawn_state: MonsterSpawnState::Idle,
+        projectiles: Default::default(),
+        items: vec![
+            Item {
+                effect: Effect::ExtraReroll,
+                rarity: rarity::Rarity::Epic,
+                value: 0.5.into(),
+            },
+            Item {
+                effect: Effect::ExtraReroll,
+                rarity: rarity::Rarity::Epic,
+                value: 0.5.into(),
+            },
+            Item {
+                effect: Effect::AddTowerCardToPlacementHand {
+                    tower_kind: TowerKind::Barricade,
+                    suit: Suit::Spades,
+                    rank: Rank::Ace,
+                    count: 5,
                 },
-                Item {
-                    effect: Effect::ExtraReroll,
-                    rarity: rarity::Rarity::Epic,
-                    value: 0.5.into(),
+                rarity: rarity::Rarity::Common,
+                value: 1.0.into(),
+            },
+            Item {
+                effect: Effect::AddTowerCardToPlacementHand {
+                    tower_kind: TowerKind::High,
+                    suit: Suit::Spades,
+                    rank: Rank::Ace,
+                    count: 1,
                 },
-                Item {
-                    effect: Effect::AddTowerCardToPlacementHand {
-                        tower_kind: TowerKind::Barricade,
-                        suit: Suit::Spades,
-                        rank: Rank::Ace,
-                        count: 5,
-                    },
-                    rarity: rarity::Rarity::Common,
-                    value: 1.0.into(),
-                },
-                Item {
-                    effect: Effect::AddTowerCardToPlacementHand {
-                        tower_kind: TowerKind::High,
-                        suit: Suit::Spades,
-                        rank: Rank::Ace,
-                        count: 1,
-                    },
-                    rarity: rarity::Rarity::Common,
-                    value: 1.0.into(),
-                },
-            ],
-            gold: 100,
-            cursor_preview: Default::default(),
-            hp: 100.0,
-            shield: 0.0,
-            user_status_effects: Default::default(),
-            left_shop_refresh_chance: 0,
-            left_quest_board_refresh_chance: 0,
-            item_used: false,
-            level: NonZeroUsize::new(1).unwrap(),
-            game_now: Instant::now(),
-            fast_forward_multiplier: Default::default(),
-            rerolled_count: 0,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
-            locale: crate::l10n::Locale::KOREAN,
-            play_history: PlayHistory::new(),
-            opened_modal: None,
-            contracts: vec![],
-            stage_modifiers: StageModifiers::new(),
-            ui_state: UIState::new(),
-            just_cleared_boss_stage: false,
-        };
+                rarity: rarity::Rarity::Common,
+                value: 1.0.into(),
+            },
+        ],
+        gold: 100,
+        cursor_preview: Default::default(),
+        hp: 100.0,
+        shield: 0.0,
+        user_status_effects: Default::default(),
+        left_shop_refresh_chance: 0,
+        left_quest_board_refresh_chance: 0,
+        item_used: false,
+        level: NonZeroUsize::new(1).unwrap(),
+        game_now: Instant::now(),
+        fast_forward_multiplier: Default::default(),
+        rerolled_count: 0,
+        field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
+        locale: crate::l10n::Locale::KOREAN,
+        play_history: PlayHistory::new(),
+        opened_modal: None,
+        contracts: vec![],
+        stage_modifiers: StageModifiers::new(),
+        ui_state: UIState::new(),
+        just_cleared_boss_stage: false,
+    };
 
-        game_state.goto_next_stage();
-        game_state
-    })
-    .0
+    game_state.record_game_start();
+    game_state.goto_next_stage();
+    game_state
+}
+
+pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
+    ctx.init_atom(&GAME_STATE_ATOM, create_initial_game_state).0
 }
 
 pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
@@ -276,6 +277,12 @@ pub fn set_modal(modal: Option<Modal>) {
 pub fn force_start() {
     mutate_game_state(|game_state| {
         game_state.goto_defense();
+    });
+}
+
+pub fn restart_game() {
+    GAME_STATE_ATOM.mutate(|game_state| {
+        *game_state = create_initial_game_state();
     });
 }
 
@@ -317,6 +324,60 @@ impl GameState {
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
         }
+    }
+
+    /// 현재 스테이지의 클리어율을 계산합니다.
+    /// 각 스테이지는 2% (100/50), 스테이지 내에서는 (총 체력 - 남은 체력) / 총 체력 비율로 계산
+    /// 체력 회복을 고려하여 실제 남은 몬스터 체력을 기준으로 계산합니다.
+    pub fn calculate_clear_rate(&self) -> f32 {
+        let total_stages = 50.0;
+        let stage_weight = 100.0 / total_stages; // 2%
+
+        // 이전 스테이지 완료율
+        let previous_stages_progress = (self.stage.saturating_sub(1) as f32) * stage_weight;
+
+        // 스테이지 진행 데이터는 DefenseFlow에 저장되어 있음
+        let (start_total_hp, processed_hp_so_far) = match &self.flow {
+            crate::game_state::flow::GameFlow::Defense(defense_flow) => (
+                defense_flow.stage_progress.start_total_hp,
+                defense_flow.stage_progress.processed_hp,
+            ),
+            _ => (
+                Self::calculate_stage_total_hp(self.stage, &self.stage_modifiers),
+                0.0,
+            ),
+        };
+
+        // 현재 남아있는 몬스터들의 이미 소모된 체력(= max_hp - 현재 hp)을 합산
+        let remaining_processed_hp: f32 = self
+            .monsters
+            .iter()
+            .map(|monster| (monster.max_hp - monster.hp.max(0.0)).max(0.0))
+            .sum();
+
+        let total_processed_hp = processed_hp_so_far + remaining_processed_hp;
+
+        let current_stage_progress = if start_total_hp > 0.0 {
+            (total_processed_hp / start_total_hp).min(1.0) * stage_weight
+        } else {
+            0.0
+        };
+
+        (previous_stages_progress + current_stage_progress).min(100.0)
+    }
+
+    /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
+    pub fn calculate_stage_total_hp(stage: usize, stage_modifiers: &StageModifiers) -> f32 {
+        let (monster_queue, _) = monster_spawn::monster_queue_table(stage);
+        let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
+
+        monster_queue
+            .iter()
+            .map(|&kind| {
+                let template = MonsterTemplate::new(kind);
+                template.max_hp * health_multiplier
+            })
+            .sum()
     }
 }
 

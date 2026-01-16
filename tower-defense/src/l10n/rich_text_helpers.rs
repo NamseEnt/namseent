@@ -166,7 +166,7 @@ pub fn shop_icon() -> String {
 }
 
 pub fn quest_icon() -> String {
-    Icon::new(IconKind::Quest).as_tag()
+    Icon::new(IconKind::Contract).as_tag()
 }
 
 pub fn refresh_icon() -> String {

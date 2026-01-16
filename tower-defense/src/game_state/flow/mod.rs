@@ -23,8 +23,8 @@ pub enum GameFlow {
     Contract(ContractFlow),
     SelectingTower(SelectingTowerFlow),
     PlacingTower { hand: Hand<TowerTemplate> },
-    Defense,
-    Result,
+    Defense(DefenseFlow),
+    Result { clear_rate: f32 },
 }
 impl GameFlow {
     pub(crate) fn update(&mut self) {
@@ -69,6 +69,30 @@ impl SelectingTowerFlow {
     }
 }
 
+#[derive(Clone, Debug, State)]
+pub struct StageProgress {
+    pub start_total_hp: f32,
+    pub processed_hp: f32,
+}
+
+#[derive(Clone, Debug, State)]
+pub struct DefenseFlow {
+    pub stage_progress: StageProgress,
+}
+
+impl DefenseFlow {
+    pub fn new(game_state: &GameState) -> Self {
+        let start_total_hp =
+            GameState::calculate_stage_total_hp(game_state.stage, &game_state.stage_modifiers);
+        Self {
+            stage_progress: StageProgress {
+                start_total_hp,
+                processed_hp: 0.0,
+            },
+        }
+    }
+}
+
 impl GameState {
     pub fn goto_next_stage(&mut self) {
         contract::ContractFlow::step_all_contracts(&mut self.contracts);
@@ -82,6 +106,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.record_stage_start();
         save_stage_snapshot(self);
     }
 
@@ -108,11 +133,17 @@ impl GameState {
     }
 
     pub fn goto_defense(&mut self) {
-        self.flow = GameFlow::Defense;
+        self.flow = GameFlow::Defense(DefenseFlow::new(self));
         start_spawn(self);
     }
 
     pub fn goto_result(&mut self) {
-        self.flow = GameFlow::Result;
+        let clear_rate = self.calculate_clear_rate();
+
+        // 남은 모든 적 제거 (패배 후에도 적들이 건물에 들어오는 것을 방지)
+        self.monsters.clear();
+        self.projectiles.clear();
+        self.record_game_over();
+        self.flow = GameFlow::Result { clear_rate };
     }
 }

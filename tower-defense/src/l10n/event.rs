@@ -1,0 +1,110 @@
+use super::{Language, Locale, LocalizedText};
+use crate::game_state::play_history::HistoryEventType;
+use crate::l10n::contract::ContractText;
+use crate::l10n::effect::EffectText;
+use crate::l10n::upgrade::UpgradeKindText;
+
+#[derive(Debug, Clone)]
+pub enum EventText<'a> {
+    Description(&'a HistoryEventType, &'a Locale),
+}
+
+impl LocalizedText for EventText<'_> {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match self {
+            EventText::Description(event_type, _) => match locale.language {
+                Language::Korean => event_type.description_korean(locale),
+                Language::English => event_type.description_english(locale),
+            },
+        }
+    }
+}
+
+impl HistoryEventType {
+    pub fn description_korean(&self, locale: &Locale) -> String {
+        match self {
+            HistoryEventType::GameStart => "게임 시작".to_string(),
+            HistoryEventType::StageStart { stage } => {
+                format!("스테이지 {} 시작", stage)
+            }
+            HistoryEventType::TowerPlaced {
+                tower_kind,
+                rank,
+                suit,
+                ..
+            } => {
+                format!("타워 배치: {:?} {} {}", tower_kind, rank, suit)
+            }
+            HistoryEventType::DamageTaken { amount } => {
+                format!("데미지 피격: {:.0}", amount)
+            }
+            HistoryEventType::ItemPurchased { item, cost } => {
+                let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
+                format!("아이템 구매: {} ({}G)", item_name, cost)
+            }
+            HistoryEventType::ItemUsed { item_effect } => {
+                let effect_name = EffectText::Name(item_effect.clone()).localized_text(locale);
+                format!("아이템 사용: {}", effect_name)
+            }
+            HistoryEventType::UpgradeSelected { upgrade } => {
+                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
+                format!("업그레이드 선택: {}", upgrade_name)
+            }
+            HistoryEventType::UpgradePurchased { upgrade, cost } => {
+                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
+                format!("업그레이드 구매: {} ({}G)", upgrade_name, cost)
+            }
+            HistoryEventType::ContractPurchased { contract, cost } => {
+                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
+                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
+                format!("계약 구매: {} / {} ({}G)", risk_text, reward_text, cost)
+            }
+            HistoryEventType::GameOver => "게임 오버".to_string(),
+        }
+    }
+
+    pub fn description_english(&self, locale: &Locale) -> String {
+        match self {
+            HistoryEventType::GameStart => "Game Started".to_string(),
+            HistoryEventType::StageStart { stage } => {
+                format!("Stage {} Started", stage)
+            }
+            HistoryEventType::TowerPlaced {
+                tower_kind,
+                rank,
+                suit,
+                ..
+            } => {
+                format!("Tower Placed: {:?} {} {}", tower_kind, rank, suit)
+            }
+            HistoryEventType::DamageTaken { amount } => {
+                format!("Damage Taken: {:.0}", amount)
+            }
+            HistoryEventType::ItemPurchased { item, cost } => {
+                let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
+                format!("Item Purchased: {} ({}G)", item_name, cost)
+            }
+            HistoryEventType::ItemUsed { item_effect } => {
+                let effect_name = EffectText::Name(item_effect.clone()).localized_text(locale);
+                format!("Item Used: {}", effect_name)
+            }
+            HistoryEventType::UpgradeSelected { upgrade } => {
+                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
+                format!("Upgrade Selected: {}", upgrade_name)
+            }
+            HistoryEventType::UpgradePurchased { upgrade, cost } => {
+                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
+                format!("Upgrade Purchased: {} ({}G)", upgrade_name, cost)
+            }
+            HistoryEventType::ContractPurchased { contract, cost } => {
+                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
+                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
+                format!(
+                    "Contract Purchased: {} / {} ({}G)",
+                    risk_text, reward_text, cost
+                )
+            }
+            HistoryEventType::GameOver => "Game Over".to_string(),
+        }
+    }
+}

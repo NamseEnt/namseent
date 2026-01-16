@@ -1,10 +1,20 @@
 use super::effect::EffectText;
+use super::{Language, Locale, LocalizedText};
 use crate::game_state::contract::ContractEffect;
 use crate::rarity::Rarity;
 
 pub enum ContractText<'a> {
     Risk(&'a ContractEffect),
     Reward(&'a ContractEffect),
+}
+
+impl LocalizedText for ContractText<'_> {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
 }
 
 impl<'a> ContractText<'a> {

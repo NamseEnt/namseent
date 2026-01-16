@@ -1,5 +1,5 @@
-use crate::game_state::GameState;
 use crate::game_state::user_status_effect::UserStatusEffectKind;
+use crate::game_state::{GameState, flow::GameFlow};
 use namui::Duration;
 
 pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
@@ -11,6 +11,12 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     let mut damage = 0.0;
     game_state.monsters.retain(|monster| {
         if monster.move_on_route.is_finished() {
+            // 몬스터가 건물에 도달하기 전에 받은 데미지를 처리량에 반영
+            if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
+                defense_flow.stage_progress.processed_hp +=
+                    (monster.max_hp - monster.hp.max(0.0)).max(0.0);
+            }
+
             damage += monster.get_damage_to_user();
             return false;
         }

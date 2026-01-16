@@ -57,10 +57,12 @@ impl Component for ContractsPanel {
                         PADDING,
                         table::vertical([
                             table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                                ctx.add(Icon::new(IconKind::Quest).size(IconSize::Medium).wh(Wh {
-                                    width: 32.px(),
-                                    height: wh.height,
-                                }));
+                                ctx.add(Icon::new(IconKind::Contract).size(IconSize::Medium).wh(
+                                    Wh {
+                                        width: 32.px(),
+                                        height: wh.height,
+                                    },
+                                ));
 
                                 ctx.add(rect(RectParam {
                                     rect: wh.to_rect(),

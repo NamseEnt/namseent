@@ -1,7 +1,11 @@
+mod settings;
+mod start_confirm_modal;
+mod upgrade_board;
+
 #[cfg(feature = "debug-tools")]
 use crate::game_state::debug_tools::DebugToolsModal;
-use crate::{
-    game_state::start_confirm_modal::StartConfirmModal, settings::SettingsModal,
+use crate::game_state::modal::{
+    settings::SettingsModal, start_confirm_modal::StartConfirmModal,
     upgrade_board::UpgradeBoardModal,
 };
 use namui::*;

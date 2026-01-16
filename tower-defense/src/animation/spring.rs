@@ -14,25 +14,24 @@ const SNAP_THRESHOLD_SQ: f32 = SNAP_THRESHOLD * SNAP_THRESHOLD;
 const VELOCITY_THRESHOLD_SQ: f32 = VELOCITY_THRESHOLD * VELOCITY_THRESHOLD;
 const NEG_DAMPING: f32 = -DAMPING;
 
-pub fn xy_with_spring<T>(ctx: &RenderCtx, target_xy: Xy<T>, initial_xy: Xy<T>) -> Xy<T>
+/// 일반적인 spring 애니메이션을 수행하는 함수
+/// T가 스프링 물리 연산을 지원하는 모든 타입에 대해 작동함
+pub fn with_spring<T>(
+    ctx: &RenderCtx,
+    target: T,
+    initial: T,
+    magnitude_sq: impl Fn(&T) -> f32,
+    zero: impl Fn() -> T + Send + 'static,
+) -> T
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<f32, Output = T>
-        + PartialEq
-        + std::fmt::Debug
-        + Send
-        + Sync
-        + 'static
-        + State,
-    T: From<f32> + Into<f32>,
+    T: Copy + PartialEq + std::fmt::Debug + Send + Sync + 'static + State,
+    T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>,
 {
     let now = Instant::now();
     let (context, set_context) = ctx.state(|| SpringAnimationContext {
         last_tick_at: now,
-        velocity: Xy::new(0.0.into(), 0.0.into()),
-        position: initial_xy,
+        velocity: zero(),
+        position: initial,
     });
 
     // 델타 타임 계산 및 제한
@@ -47,30 +46,22 @@ where
     delta_time = delta_time.min(MAX_DELTA_TIME);
 
     // 변위 계산
-    let displacement = target_xy - context.position;
+    let displacement = target - context.position;
 
-    // 변위와 속도를 f32로 미리 변환하여 중복 변환 방지
-    let displacement_x_f32: f32 = displacement.x.into();
-    let displacement_y_f32: f32 = displacement.y.into();
-    let velocity_x_f32: f32 = context.velocity.x.into();
-    let velocity_y_f32: f32 = context.velocity.y.into();
-
-    // 변위가 매우 작으면 목표 위치로 스냅
-    let displacement_magnitude_sq =
-        displacement_x_f32 * displacement_x_f32 + displacement_y_f32 * displacement_y_f32;
+    // 변위가 매우 작으면 목표로 스냅
+    let displacement_magnitude_sq = magnitude_sq(&displacement);
 
     if displacement_magnitude_sq < SNAP_THRESHOLD_SQ {
-        let velocity_magnitude_sq =
-            velocity_x_f32 * velocity_x_f32 + velocity_y_f32 * velocity_y_f32;
+        let velocity_magnitude_sq = magnitude_sq(&context.velocity);
 
         if velocity_magnitude_sq < VELOCITY_THRESHOLD_SQ {
             // 목표에 도달했으므로 상태 업데이트하고 반환
             set_context.mutate(move |ctx| {
                 ctx.last_tick_at = now;
-                ctx.velocity = Xy::new(0.0.into(), 0.0.into());
-                ctx.position = target_xy;
+                ctx.velocity = zero();
+                ctx.position = target;
             });
-            return target_xy;
+            return target;
         }
     }
 
@@ -96,6 +87,6 @@ where
 #[derive(State)]
 struct SpringAnimationContext<T: std::fmt::Debug + State> {
     last_tick_at: Instant,
-    velocity: Xy<T>,
-    position: Xy<T>,
+    velocity: T,
+    position: T,
 }
