@@ -38,6 +38,12 @@ impl MoveOnRoute {
         self.route_index
     }
 
+    pub fn reset(&mut self) {
+        self.route_index = 0;
+        self.route_progress = 0.0;
+        self.map_coord = self.route.map_coords[0].map(|x| x as f32);
+    }
+
     pub(crate) fn move_by(&mut self, dt: Duration) {
         let mut movable_distance = self.velocity * dt;
 
