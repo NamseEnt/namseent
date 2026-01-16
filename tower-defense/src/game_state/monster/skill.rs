@@ -51,7 +51,7 @@ pub struct MonsterStatusEffect {
 #[derive(Clone, Copy, State)]
 pub enum Target {
     MySelf,
-    MeAndNearby { radius: f32 },
+    AllMonsters,
 }
 
 #[derive(Clone, Copy, PartialEq, State)]
@@ -100,21 +100,11 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
                         .unwrap(),
                 ]
             }
-            Target::MeAndNearby { radius } => {
-                let caster_xy = game_state
-                    .monsters
-                    .iter()
-                    .find(|m| m.id == monster_id)
-                    .unwrap()
-                    .xy();
-                game_state
-                    .monsters
-                    .iter_mut()
-                    .filter(|monster| {
-                        monster.id != monster_id && caster_xy.distance(monster.xy()) <= radius
-                    })
-                    .collect()
-            }
+            Target::AllMonsters => game_state
+                .monsters
+                .iter_mut()
+                .filter(|monster| monster.id != monster_id)
+                .collect(),
         };
 
         target_monsters.into_iter().for_each(|monster| {
@@ -182,97 +172,97 @@ impl From<PrebuiltSkill> for MonsterSkillTemplate {
         match val {
             PrebuiltSkill::AreaHeal01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::HealByMaxHp { ratio: 0.25 },
-                target: Target::MeAndNearby { radius: 3.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(5),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::AreaHeal02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(4),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::AreaHeal03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(3),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::AreaHeal04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 7.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(2),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::AreaImmuneSlow01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(5),
                 duration: Duration::from_secs(1),
             },
             PrebuiltSkill::AreaImmuneSlow02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(5),
                 duration: Duration::from_secs(2),
             },
             PrebuiltSkill::AreaImmuneSlow03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 7.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(10),
                 duration: Duration::from_secs(4),
             },
             PrebuiltSkill::AreaImmuneSlow04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 9.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(10),
                 duration: Duration::from_secs(5),
             },
             PrebuiltSkill::AreaInvincible01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(4),
                 duration: Duration::from_millis(500),
             },
             PrebuiltSkill::AreaInvincible02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(4),
                 duration: Duration::from_secs(1),
             },
             PrebuiltSkill::AreaInvincible03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(4),
                 duration: Duration::from_secs(1) + Duration::from_millis(500),
             },
             PrebuiltSkill::AreaInvincible04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(4),
                 duration: Duration::from_secs(2),
             },
             PrebuiltSkill::AreaSpeedmul01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MeAndNearby { radius: 3.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(5),
                 duration: Duration::from_secs(1),
             },
             PrebuiltSkill::AreaSpeedmul02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(10),
                 duration: Duration::from_secs(3),
             },
             PrebuiltSkill::AreaSpeedmul03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
-                target: Target::MeAndNearby { radius: 5.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(10),
                 duration: Duration::from_secs(2),
             },
             PrebuiltSkill::AreaSpeedmul04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::SpeedMul { mul: 1.75 },
-                target: Target::MeAndNearby { radius: 7.0 },
+                target: Target::AllMonsters,
                 cooldown: Duration::from_secs(15),
                 duration: Duration::from_secs(4),
             },
