@@ -51,7 +51,7 @@ pub struct MonsterStatusEffect {
 #[derive(Clone, Copy, State)]
 pub enum Target {
     MySelf,
-    MeAndNearby { radius: f32 },
+    AllMonsters,
 }
 
 #[derive(Clone, Copy, PartialEq, State)]
@@ -100,24 +100,11 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
                         .unwrap(),
                 ]
             }
-            Target::MeAndNearby { radius } => {
-                let caster_xy = game_state
-                    .monsters
-                    .iter()
-                    .find(|m| m.id == monster_id)
-                    .unwrap()
-                    .xy();
-                game_state
-                    .monsters
-                    .iter_mut()
-                    .filter(|monster| {
-                        monster.id != monster_id && caster_xy.distance(monster.xy()) <= radius
-                    })
-                    .collect()
-            }
+            Target::AllMonsters => game_state.monsters.iter_mut().collect(),
         };
 
         target_monsters.into_iter().for_each(|monster| {
+            println!("Activating skill for monster {}", monster.max_hp);
             let mut push_status_effect = |kind| {
                 monster.status_effects.push(MonsterStatusEffect {
                     kind,
@@ -144,22 +131,6 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
 
 #[derive(State)]
 pub enum PrebuiltSkill {
-    AreaHeal01,
-    AreaHeal02,
-    AreaHeal03,
-    AreaHeal04,
-    AreaImmuneSlow01,
-    AreaImmuneSlow02,
-    AreaImmuneSlow03,
-    AreaImmuneSlow04,
-    AreaInvincible01,
-    AreaInvincible02,
-    AreaInvincible03,
-    AreaInvincible04,
-    AreaSpeedmul01,
-    AreaSpeedmul02,
-    AreaSpeedmul03,
-    AreaSpeedmul04,
     Heal01,
     Heal02,
     Heal03,
@@ -176,201 +147,217 @@ pub enum PrebuiltSkill {
     Speedmul02,
     Speedmul03,
     Speedmul04,
+    SelfHeal01,
+    SelfHeal02,
+    SelfHeal03,
+    SelfHeal04,
+    SelfImmuneSlow01,
+    SelfImmuneSlow02,
+    SelfImmuneSlow03,
+    SelfImmuneSlow04,
+    SelfInvincible01,
+    SelfInvincible02,
+    SelfInvincible03,
+    SelfInvincible04,
+    SelfSpeedmul01,
+    SelfSpeedmul02,
+    SelfSpeedmul03,
+    SelfSpeedmul04,
 }
 impl From<PrebuiltSkill> for MonsterSkillTemplate {
     fn from(val: PrebuiltSkill) -> Self {
         match val {
-            PrebuiltSkill::AreaHeal01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.25 },
-                target: Target::MeAndNearby { radius: 3.0 },
-                cooldown: Duration::from_secs(5),
-                duration: Duration::ZERO,
-            },
-            PrebuiltSkill::AreaHeal02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(4),
-                duration: Duration::ZERO,
-            },
-            PrebuiltSkill::AreaHeal03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(3),
-                duration: Duration::ZERO,
-            },
-            PrebuiltSkill::AreaHeal04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MeAndNearby { radius: 7.0 },
-                cooldown: Duration::from_secs(2),
-                duration: Duration::ZERO,
-            },
-            PrebuiltSkill::AreaImmuneSlow01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(1),
-            },
-            PrebuiltSkill::AreaImmuneSlow02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(2),
-            },
-            PrebuiltSkill::AreaImmuneSlow03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 7.0 },
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(4),
-            },
-            PrebuiltSkill::AreaImmuneSlow04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MeAndNearby { radius: 9.0 },
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(5),
-            },
-            PrebuiltSkill::AreaInvincible01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_millis(500),
-            },
-            PrebuiltSkill::AreaInvincible02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(1),
-            },
-            PrebuiltSkill::AreaInvincible03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 3.0 },
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(1) + Duration::from_millis(500),
-            },
-            PrebuiltSkill::AreaInvincible04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::Invincible,
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(2),
-            },
-            PrebuiltSkill::AreaSpeedmul01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MeAndNearby { radius: 3.0 },
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(1),
-            },
-            PrebuiltSkill::AreaSpeedmul02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(3),
-            },
-            PrebuiltSkill::AreaSpeedmul03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
-                target: Target::MeAndNearby { radius: 5.0 },
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(2),
-            },
-            PrebuiltSkill::AreaSpeedmul04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.75 },
-                target: Target::MeAndNearby { radius: 7.0 },
-                cooldown: Duration::from_secs(15),
-                duration: Duration::from_secs(4),
-            },
             PrebuiltSkill::Heal01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.25 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(5),
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.075 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::Heal02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(4),
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.1 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::Heal03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(3),
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.15 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(4000),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::Heal04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.125 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(2),
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.15 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
                 duration: Duration::ZERO,
             },
             PrebuiltSkill::ImmuneSlow01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(1),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::from_millis(1000),
             },
             PrebuiltSkill::ImmuneSlow02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(2),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(2500),
+                duration: Duration::from_millis(1000),
             },
             PrebuiltSkill::ImmuneSlow03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(4),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::from_millis(1000),
             },
             PrebuiltSkill::ImmuneSlow04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::ImmuneToSlow,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(5),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::from_millis(1000),
             },
             PrebuiltSkill::Invincible01 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(4),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
                 duration: Duration::from_millis(500),
             },
             PrebuiltSkill::Invincible02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(1),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(4000),
+                duration: Duration::from_millis(750),
             },
             PrebuiltSkill::Invincible03 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(1) + Duration::from_millis(500),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3500),
+                duration: Duration::from_millis(750),
             },
             PrebuiltSkill::Invincible04 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::Invincible,
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(4),
-                duration: Duration::from_secs(2),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::from_millis(750),
             },
             PrebuiltSkill::Speedmul01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(5),
-                duration: Duration::from_secs(1),
+                kind: MonsterSkillKind::SpeedMul { mul: 2.0 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(5000),
+                duration: Duration::from_millis(3000),
             },
             PrebuiltSkill::Speedmul02 => MonsterSkillTemplate {
                 kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(3),
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(5000),
+                duration: Duration::from_millis(3000),
             },
             PrebuiltSkill::Speedmul03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
-                target: Target::MySelf,
-                cooldown: Duration::from_secs(10),
-                duration: Duration::from_secs(2),
+                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::from_millis(1000),
             },
             PrebuiltSkill::Speedmul04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.75 },
+                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                target: Target::AllMonsters,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfHeal01 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.05 },
                 target: Target::MySelf,
-                cooldown: Duration::from_secs(15),
-                duration: Duration::from_secs(4),
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::ZERO,
+            },
+            PrebuiltSkill::SelfHeal02 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.05 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2500),
+                duration: Duration::ZERO,
+            },
+            PrebuiltSkill::SelfHeal03 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.075 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::ZERO,
+            },
+            PrebuiltSkill::SelfHeal04 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.1 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::ZERO,
+            },
+            PrebuiltSkill::SelfImmuneSlow01 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::ImmuneToSlow,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfImmuneSlow02 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::ImmuneToSlow,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2500),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfImmuneSlow03 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::ImmuneToSlow,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfImmuneSlow04 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::ImmuneToSlow,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfInvincible01 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::Invincible,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfInvincible02 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::Invincible,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2500),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfInvincible03 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::Invincible,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfInvincible04 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::Invincible,
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfSpeedmul01 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::SpeedMul { mul: 1.1 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(3000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfSpeedmul02 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2500),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfSpeedmul03 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(2000),
+                duration: Duration::from_millis(1000),
+            },
+            PrebuiltSkill::SelfSpeedmul04 => MonsterSkillTemplate {
+                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                target: Target::MySelf,
+                cooldown: Duration::from_millis(1000),
+                duration: Duration::from_millis(1000),
             },
         }
     }

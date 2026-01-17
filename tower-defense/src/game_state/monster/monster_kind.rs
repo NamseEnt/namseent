@@ -164,6 +164,62 @@ impl MonsterKind {
         }
     }
 
+    pub fn is_normal_monster(&self) -> bool {
+        matches!(
+            self,
+            MonsterKind::Mob01
+                | MonsterKind::Mob02
+                | MonsterKind::Mob03
+                | MonsterKind::Mob04
+                | MonsterKind::Mob05
+                | MonsterKind::Mob06
+                | MonsterKind::Mob07
+                | MonsterKind::Mob08
+                | MonsterKind::Mob09
+                | MonsterKind::Mob10
+                | MonsterKind::Mob11
+                | MonsterKind::Mob12
+                | MonsterKind::Mob13
+                | MonsterKind::Mob14
+                | MonsterKind::Mob15
+                | MonsterKind::Mob16
+                | MonsterKind::Mob17
+                | MonsterKind::Mob18
+                | MonsterKind::Mob19
+                | MonsterKind::Mob20
+                | MonsterKind::Mob21
+                | MonsterKind::Mob22
+                | MonsterKind::Mob23
+                | MonsterKind::Mob24
+                | MonsterKind::Mob25
+                | MonsterKind::Mob26
+                | MonsterKind::Mob27
+                | MonsterKind::Mob28
+                | MonsterKind::Mob29
+                | MonsterKind::Mob30
+                | MonsterKind::Mob31
+                | MonsterKind::Mob32
+                | MonsterKind::Mob33
+                | MonsterKind::Mob34
+                | MonsterKind::Mob35
+                | MonsterKind::Mob36
+                | MonsterKind::Mob37
+                | MonsterKind::Mob38
+                | MonsterKind::Mob39
+                | MonsterKind::Mob40
+                | MonsterKind::Mob41
+                | MonsterKind::Mob42
+                | MonsterKind::Mob43
+                | MonsterKind::Mob44
+                | MonsterKind::Mob45
+                | MonsterKind::Mob46
+                | MonsterKind::Mob47
+                | MonsterKind::Mob48
+                | MonsterKind::Mob49
+                | MonsterKind::Mob50
+        )
+    }
+
     pub fn emoji(&self) -> &str {
         match self {
             MonsterKind::Mob01 => "🌱",
