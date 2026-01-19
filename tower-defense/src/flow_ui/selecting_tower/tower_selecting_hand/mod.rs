@@ -103,12 +103,15 @@ impl<'a> Component for TowerSelectingHand<'a> {
                     HAND_WH.height,
                     table::horizontal([
                         table::ratio_no_clip(1, |_, _| {}),
-                        table::fixed_no_clip(HAND_WH.height, |wh, ctx| {
-                            ctx.add(TowerPreview {
-                                wh,
-                                tower_template: &tower_template,
-                            });
-                        }),
+                        table::fixed_no_clip(
+                            HAND_WH.height,
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.add(TowerPreview {
+                                    wh,
+                                    tower_template: &tower_template,
+                                });
+                            }),
+                        ),
                         table::fixed_no_clip(HAND_WH.width, |_wh, ctx| {
                             ctx.add(HandComponent {
                                 hand,

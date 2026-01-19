@@ -1,13 +1,14 @@
 use crate::{
-    game_state::{Modal, force_start, mutate_game_state, set_modal, use_game_state},
-    hand::{HAND_WH, HandComponent, HandSlotId},
-    theme::{
+    game_state::{Modal, force_start, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
         button::{Button, ButtonColor, ButtonVariant},
+        palette,
         typography::{TextAlign, headline},
-    },
+    }
 };
 use namui::*;
 use namui_prebuilt::table;
+
+const PADDING: Px = px(4.);
 
 pub struct TowerPlacingHand;
 
@@ -65,37 +66,74 @@ impl Component for TowerPlacingHand {
                                 on_click: &select_tower,
                             });
                         }),
-                        table::fixed_no_clip(120.px(), |wh, ctx| {
-                            ctx.compose(|ctx| {
-                                table::vertical([
-                                    table::ratio(1, |_, _| {}),
-                                    table::fixed(48.px(), |wh, ctx| {
-                                        let padding = px(8.0);
-                                        table::padding(padding, |wh, ctx| {
-                                            ctx.add(
-                                                Button::new(
-                                                    wh,
-                                                    &|| {
-                                                        handle_start_button_click();
-                                                    },
-                                                    &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            headline("START")
-                                                                .color(text_color)
-                                                                .align(TextAlign::Center { wh })
-                                                                .build(),
-                                                        );
-                                                    },
-                                                )
-                                                .variant(ButtonVariant::Contained)
-                                                .color(ButtonColor::Primary),
-                                            );
-                                        })(wh, ctx);
-                                    }),
-                                    table::ratio(1, |_, _| {}),
-                                ])(wh, ctx);
-                            });
-                        }),
+                        table::fixed_no_clip(
+                            HAND_WH.height,
+                            table::padding(PADDING, |wh, ctx| {
+                                ctx.compose(|ctx| {
+                                    table::padding(
+                                        PADDING,
+                                        table::vertical([
+                                            table::fixed(48.px(), |wh, ctx| {
+                                                ctx.add(
+                                                    Button::new(
+                                                        wh,
+                                                        &|| {
+                                                            // open
+                                                        },
+                                                        &|wh, _text_color, ctx| {
+                                                            ctx.add(Icon::new(crate::icon::IconKind::Gold).wh(wh).size(crate::icon::IconSize::Large).attributes(vec![
+                                                                IconAttribute::new(crate::icon::IconKind::Add).position(crate::icon::IconAttributePosition::TopLeft)
+                                                            ]));
+                                                        },
+                                                    )
+                                                    .variant(ButtonVariant::Contained)
+                                                    .color(ButtonColor::Primary),
+                                                );
+                                            }),
+                                            table::ratio(1, |_, _| {}),
+                                            table::fixed(48.px(), |wh, ctx| {
+                                                ctx.add(
+                                                    Button::new(
+                                                        wh,
+                                                        &|| {
+                                                            handle_start_button_click();
+                                                        },
+                                                        &|wh, text_color, ctx| {
+                                                            ctx.add(
+                                                                headline("START")
+                                                                    .color(text_color)
+                                                                    .align(TextAlign::Center { wh })
+                                                                    .build(),
+                                                            );
+                                                        },
+                                                    )
+                                                    .variant(ButtonVariant::Contained)
+                                                    .color(ButtonColor::Primary),
+                                                );
+                                            }),
+                                            
+                                        ]),
+                                    )(wh, ctx);
+                                });
+
+                                ctx.add(rect(RectParam {
+                                    rect: wh.to_rect(),
+                                    style: RectStyle {
+                                        stroke: Some(RectStroke {
+                                            color: palette::OUTLINE,
+                                            width: 1.px(),
+                                            border_position: BorderPosition::Inside,
+                                        }),
+                                        fill: Some(RectFill {
+                                            color: palette::SURFACE,
+                                        }),
+                                        round: Some(RectRound {
+                                            radius: palette::ROUND,
+                                        }),
+                                    },
+                                }));
+                            }),
+                        ),
                         table::ratio_no_clip(1, |_, _| {}),
                     ]),
                 ),
