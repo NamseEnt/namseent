@@ -78,7 +78,7 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            // open
+                                                            set_modal(Some(Modal::Challenge));
                                                         },
                                                         &|wh, _text_color, ctx| {
                                                             ctx.add(Icon::new(crate::icon::IconKind::Gold).wh(wh).size(crate::icon::IconSize::Large).attributes(vec![
