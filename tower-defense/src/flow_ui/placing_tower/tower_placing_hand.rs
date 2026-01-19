@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{Modal, force_start, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
+    game_state::{Modal, start_defense, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
         typography::{TextAlign, headline},
@@ -45,14 +45,6 @@ impl Component for TowerPlacingHand {
             });
         };
 
-        let handle_start_button_click = || {
-            if hand.is_empty() {
-                force_start();
-            } else {
-                set_modal(Some(Modal::StartConfirm));
-            }
-        };
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::ratio_no_clip(1, |_, _| {}),
@@ -96,7 +88,7 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            handle_start_button_click();
+                                                            start_defense();
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
@@ -107,6 +99,7 @@ impl Component for TowerPlacingHand {
                                                             );
                                                         },
                                                     )
+                                                    .long_press_time(1.sec())
                                                     .variant(ButtonVariant::Contained)
                                                     .color(ButtonColor::Primary),
                                                 );

@@ -274,7 +274,7 @@ pub fn set_modal(modal: Option<Modal>) {
     });
 }
 
-pub fn force_start() {
+pub fn start_defense() {
     mutate_game_state(|game_state| {
         game_state.goto_defense();
     });
