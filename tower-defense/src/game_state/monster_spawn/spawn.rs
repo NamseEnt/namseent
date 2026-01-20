@@ -15,10 +15,14 @@ pub fn start_spawn(game_state: &mut GameState) {
         .challenge_choices
         .iter()
         .zip(game_state.monster_spawn_state.challenge_selected.iter())
-        .filter_map(|(kind, &selected)| selected.then_some(*kind))
+        .filter_map(|(config, &selected)| selected.then_some(config.clone()))
         .collect();
 
-    append_named_to_queue(&mut monster_queue, &selected_monsters);
+    append_named_to_queue(
+        &mut monster_queue,
+        &mut game_state.monster_spawn_state.named_queue,
+        &selected_monsters,
+    );
 
     game_state.monster_spawn_state.monster_queue = monster_queue;
     game_state.monster_spawn_state.spawn_interval = spawn_interval;
@@ -37,7 +41,18 @@ pub fn tick(game_state: &mut GameState, now: namui::Instant) {
         return;
     };
 
-    let next_monster_template = MonsterTemplate::new(next_monster_kind);
+    let mut next_monster_template = MonsterTemplate::new(next_monster_kind);
+
+    // named_queue에서 해당 몬스터의 설정이 있으면 적용
+    if let Some(named_config) = game_state.monster_spawn_state.named_queue.pop_front()
+        && named_config.kind == next_monster_kind
+    {
+        next_monster_template.max_hp = named_config.max_hp;
+        next_monster_template.velocity = named_config.velocity;
+        next_monster_template.reward = named_config.reward;
+        next_monster_template.skills = named_config.skills.clone();
+    }
+
     let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
     #[allow(unused_mut)]
     let mut monster = Monster::new(

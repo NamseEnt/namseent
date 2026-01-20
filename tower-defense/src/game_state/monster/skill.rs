@@ -129,7 +129,7 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
     }
 }
 
-#[derive(State)]
+#[derive(State, Clone, Copy)]
 pub enum PrebuiltSkill {
     Heal01,
     Heal02,

@@ -23,7 +23,7 @@ impl Component for ChallengeModal {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = use_game_state(ctx);
 
-        let choices = game_state.monster_spawn_state.challenge_choices;
+        let choices = &game_state.monster_spawn_state.challenge_choices;
         let selected = game_state.monster_spawn_state.challenge_selected;
 
         let close_modal = move || {
@@ -76,7 +76,7 @@ impl Component for ChallengeModal {
                                         LIST_ITEM_HEIGHT,
                                         table::padding(PADDING, move |wh, ctx| {
                                             let is_selected = selected[index];
-                                            let monster = choices[index];
+                                            let monster = choices[index].kind;
                                             let label = format!(
                                                 "{} {}",
                                                 monster.emoji(),
