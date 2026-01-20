@@ -394,9 +394,5 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
         {
             hand.select_slot(first_slot_id);
         }
-
-        if hand.is_empty() {
-            game_state.goto_defense();
-        }
     });
 }
