@@ -1,9 +1,12 @@
 use crate::{
-    game_state::{Modal, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
+    game_state::{Modal, mutate_game_state, set_modal, use_game_state},
+    hand::{HAND_WH, HandComponent, HandSlotId},
+    icon::{Icon, IconAttribute},
+    theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
         typography::{TextAlign, headline},
-    }
+    },
 };
 use namui::*;
 use namui_prebuilt::table;

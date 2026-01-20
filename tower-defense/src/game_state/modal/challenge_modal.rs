@@ -1,5 +1,6 @@
 use crate::game_state::{mutate_game_state, set_modal, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::theme::typography::TextAlign;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
@@ -7,12 +8,13 @@ use crate::theme::{
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
+use std::iter::once;
 
 const TITLE_HEIGHT: Px = px(36.);
-const PADDING: Px = px(16.);
-const LIST_ITEM_HEIGHT: Px = px(56.);
+const PADDING: Px = px(8.);
+const LIST_ITEM_HEIGHT: Px = px(64.);
 const MODAL_WIDTH: Px = px(360.);
-const MODAL_HEIGHT: Px = px(320.);
+const MODAL_HEIGHT: Px = px(256.);
 
 pub struct ChallengeModal;
 
@@ -53,17 +55,13 @@ impl Component for ChallengeModal {
                             }),
                             table::fixed(48.px(), |wh, ctx| {
                                 ctx.add(
-                                    Button::new(
-                                        wh,
-                                        &close_modal,
-                                        &|wh, _text_color, ctx| {
-                                            ctx.add(
-                                                Icon::new(IconKind::Reject)
-                                                    .size(IconSize::Large)
-                                                    .wh(wh),
-                                            );
-                                        },
-                                    )
+                                    Button::new(wh, &close_modal, &|wh, _text_color, ctx| {
+                                        ctx.add(
+                                            Icon::new(IconKind::Reject)
+                                                .size(IconSize::Large)
+                                                .wh(wh),
+                                        );
+                                    })
                                     .variant(ButtonVariant::Text),
                                 );
                             }),
@@ -71,14 +69,19 @@ impl Component for ChallengeModal {
                     ),
                     table::ratio(
                         1,
-                        table::padding(PADDING, |wh, ctx| {
-                            ctx.compose(|ctx| {
-                                ctx.compose(|ctx| {
-                                    table::vertical([
-                                        table::fixed(LIST_ITEM_HEIGHT, |wh, ctx| {
-                                            let is_selected = selected[0];
-                                            let monster = choices[0];
-                                            let label = format!("{} {}", monster.emoji(), monster.display_name());
+                        table::vertical(
+                            once(table::ratio(1, |_, _| {}))
+                                .chain((0..3).map(|index| {
+                                    table::fixed(
+                                        LIST_ITEM_HEIGHT,
+                                        table::padding(PADDING, move |wh, ctx| {
+                                            let is_selected = selected[index];
+                                            let monster = choices[index];
+                                            let label = format!(
+                                                "{} {}",
+                                                monster.emoji(),
+                                                monster.display_name()
+                                            );
                                             let variant = if is_selected {
                                                 ButtonVariant::Contained
                                             } else {
@@ -90,32 +93,59 @@ impl Component for ChallengeModal {
                                                     wh,
                                                     &move || {
                                                         mutate_game_state(move |game_state| {
-                                                            game_state.monster_spawn_state.toggle_challenge_selection(0);
+                                                            game_state
+                                                                .monster_spawn_state
+                                                                .toggle_challenge_selection(index);
                                                         });
                                                     },
-                                                    &move |wh, text_color, ctx| {
+                                                    &|wh, text_color, ctx| {
                                                         ctx.compose(|ctx| {
                                                             table::horizontal([
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    ctx.add(Icon::new(IconKind::EnemyNamed).size(IconSize::Large).wh(wh));
-                                                                }),
+                                                                table::fixed(
+                                                                    wh.height,
+                                                                    |wh, ctx| {
+                                                                        ctx.add(
+                                                                        Icon::new(
+                                                                            IconKind::EnemyNamed,
+                                                                        )
+                                                                        .size(IconSize::Large)
+                                                                        .wh(wh),
+                                                                    );
+                                                                    },
+                                                                ),
                                                                 table::fixed(PADDING, |_, _| {}),
                                                                 table::ratio(1, |wh, ctx| {
                                                                     ctx.add(
                                                                         paragraph(label.clone())
                                                                             .color(text_color)
-                                                                            .align(typography::TextAlign::LeftCenter { height: wh.height })
+                                                                            .align(TextAlign::LeftCenter { height: wh.height })
                                                                             .build(),
                                                                     );
                                                                 }),
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    let check_icon = match is_selected {
-                                                                        true => IconKind::Accept,
-                                                                        false => IconKind::Reject,
-                                                                    };
-                                                                    ctx.add(Icon::new(check_icon).size(IconSize::Large).wh(wh));
-                                                                }),
-                                                            ])(wh, ctx);
+                                                                table::fixed(
+                                                                    wh.height,
+                                                                    |wh, ctx| {
+                                                                        let check_icon =
+                                                                            match is_selected {
+                                                                                true => {
+                                                                                    IconKind::Accept
+                                                                                }
+                                                                                false => {
+                                                                                    IconKind::Reject
+                                                                                }
+                                                                            };
+                                                                        ctx.add(
+                                                                            Icon::new(check_icon)
+                                                                                .size(
+                                                                                    IconSize::Large,
+                                                                                )
+                                                                                .wh(wh),
+                                                                        );
+                                                                    },
+                                                                ),
+                                                            ])(
+                                                                wh, ctx
+                                                            );
                                                         });
                                                     },
                                                 )
@@ -123,125 +153,10 @@ impl Component for ChallengeModal {
                                                 .color(ButtonColor::Primary),
                                             );
                                         }),
-                                        table::fixed(LIST_ITEM_HEIGHT, |wh, ctx| {
-                                            let is_selected = selected[1];
-                                            let monster = choices[1];
-                                            let label = format!("{} {}", monster.emoji(), monster.display_name());
-                                            let variant = if is_selected {
-                                                ButtonVariant::Contained
-                                            } else {
-                                                ButtonVariant::Outlined
-                                            };
-
-                                            ctx.add(
-                                                Button::new(
-                                                    wh,
-                                                    &move || {
-                                                        mutate_game_state(move |game_state| {
-                                                            game_state.monster_spawn_state.toggle_challenge_selection(1);
-                                                        });
-                                                    },
-                                                    &move |wh, text_color, ctx| {
-                                                        ctx.compose(|ctx| {
-                                                            table::horizontal([
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    ctx.add(Icon::new(IconKind::EnemyNamed).size(IconSize::Large).wh(wh));
-                                                                }),
-                                                                table::fixed(PADDING, |_, _| {}),
-                                                                table::ratio(1, |wh, ctx| {
-                                                                    ctx.add(
-                                                                        paragraph(label.clone())
-                                                                            .color(text_color)
-                                                                            .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                                                            .build(),
-                                                                    );
-                                                                }),
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    let check_icon = match is_selected {
-                                                                        true => IconKind::Accept,
-                                                                        false => IconKind::Reject,
-                                                                    };
-                                                                    ctx.add(Icon::new(check_icon).size(IconSize::Large).wh(wh));
-                                                                }),
-                                                            ])(wh, ctx);
-                                                        });
-                                                    },
-                                                )
-                                                .variant(variant)
-                                                .color(ButtonColor::Primary),
-                                            );
-                                        }),
-                                        table::fixed(LIST_ITEM_HEIGHT, |wh, ctx| {
-                                            let is_selected = selected[2];
-                                            let monster = choices[2];
-                                            let label = format!("{} {}", monster.emoji(), monster.display_name());
-                                            let variant = if is_selected {
-                                                ButtonVariant::Contained
-                                            } else {
-                                                ButtonVariant::Outlined
-                                            };
-
-                                            ctx.add(
-                                                Button::new(
-                                                    wh,
-                                                    &move || {
-                                                        mutate_game_state(move |game_state| {
-                                                            game_state.monster_spawn_state.toggle_challenge_selection(2);
-                                                        });
-                                                    },
-                                                    &move |wh, text_color, ctx| {
-                                                        ctx.compose(|ctx| {
-                                                            table::horizontal([
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    ctx.add(Icon::new(IconKind::EnemyNamed).size(IconSize::Large).wh(wh));
-                                                                }),
-                                                                table::fixed(PADDING, |_, _| {}),
-                                                                table::ratio(1, |wh, ctx| {
-                                                                    ctx.add(
-                                                                        paragraph(label.clone())
-                                                                            .color(text_color)
-                                                                            .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                                                            .build(),
-                                                                    );
-                                                                }),
-                                                                table::fixed(wh.height, |wh, ctx| {
-                                                                    let check_icon = match is_selected {
-                                                                        true => IconKind::Accept,
-                                                                        false => IconKind::Reject,
-                                                                    };
-                                                                    ctx.add(Icon::new(check_icon).size(IconSize::Large).wh(wh));
-                                                                }),
-                                                            ])(wh, ctx);
-                                                        });
-                                                    },
-                                                )
-                                                .variant(variant)
-                                                .color(ButtonColor::Primary),
-                                            );
-                                        }),
-                                        table::ratio(1, |_, _| {}),
-                                    ])(wh, ctx);
-                                });
-                            });
-
-                            // List background added after content to render behind
-                            ctx.add(rect(RectParam {
-                                rect: wh.to_rect(),
-                                style: RectStyle {
-                                    stroke: Some(RectStroke {
-                                        color: palette::OUTLINE,
-                                        width: 1.px(),
-                                        border_position: BorderPosition::Inside,
-                                    }),
-                                    fill: Some(RectFill {
-                                        color: palette::SURFACE_CONTAINER,
-                                    }),
-                                    round: Some(RectRound {
-                                        radius: palette::ROUND,
-                                    }),
-                                },
-                            }));
-                        }),
+                                    )
+                                }))
+                                .chain(once(table::ratio(1, |_, _| {}))),
+                        ),
                     ),
                 ])(modal_wh, ctx);
             });
