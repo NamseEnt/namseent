@@ -1,11 +1,15 @@
-use crate::game_state::MonsterKind;
-use crate::game_state::monster_spawn::NamedMonsterConfig;
+use crate::game_state::{Monster, MonsterTemplate};
+use crate::route::Route;
+use namui::Instant;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 pub fn append_named_to_queue(
-    monster_queue: &mut VecDeque<MonsterKind>,
-    named_queue: &mut VecDeque<NamedMonsterConfig>,
-    extras: &[NamedMonsterConfig],
+    monster_queue: &mut VecDeque<Monster>,
+    extras: &[MonsterTemplate],
+    route: Arc<Route>,
+    now: Instant,
+    health_multiplier: f32,
 ) {
     if extras.is_empty() {
         return;
@@ -13,12 +17,12 @@ pub fn append_named_to_queue(
 
     let mut seen = monster_queue
         .iter()
-        .copied()
+        .map(|monster| monster.kind)
         .collect::<std::collections::HashSet<_>>();
-    for config in extras {
-        if seen.insert(config.kind) {
-            monster_queue.push_back(config.kind);
-            named_queue.push_back(config.clone());
+    for template in extras {
+        if seen.insert(template.kind) {
+            let monster = Monster::new(template, route.clone(), now, health_multiplier);
+            monster_queue.push_back(monster);
         }
     }
 }

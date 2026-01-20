@@ -1,14 +1,12 @@
-use crate::game_state::monster_spawn::NamedMonsterConfig;
 use crate::game_state::*;
 use std::collections::VecDeque;
 
 #[derive(State, Clone)]
 pub struct MonsterSpawnState {
-    pub monster_queue: VecDeque<MonsterKind>,
-    pub named_queue: VecDeque<NamedMonsterConfig>,
+    pub monster_queue: VecDeque<Monster>,
     pub next_spawn_time: Option<Instant>,
     pub spawn_interval: namui::Duration,
-    pub challenge_choices: [NamedMonsterConfig; 3],
+    pub challenge_choices: [MonsterTemplate; 3],
     pub challenge_selected: [bool; 3],
 }
 
@@ -16,13 +14,12 @@ impl MonsterSpawnState {
     pub fn idle() -> Self {
         Self {
             monster_queue: VecDeque::new(),
-            named_queue: VecDeque::new(),
             next_spawn_time: None,
             spawn_interval: namui::Duration::from_millis(0),
             challenge_choices: [
-                NamedMonsterConfig::from_kind(MonsterKind::Named01),
-                NamedMonsterConfig::from_kind(MonsterKind::Named02),
-                NamedMonsterConfig::from_kind(MonsterKind::Named03),
+                MonsterTemplate::new(MonsterKind::Named01),
+                MonsterTemplate::new(MonsterKind::Named02),
+                MonsterTemplate::new(MonsterKind::Named03),
             ],
             challenge_selected: [false; 3],
         }

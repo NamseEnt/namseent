@@ -82,8 +82,12 @@ pub struct DefenseFlow {
 
 impl DefenseFlow {
     pub fn new(game_state: &GameState) -> Self {
-        let start_total_hp =
-            GameState::calculate_stage_total_hp(game_state.stage, &game_state.stage_modifiers);
+        let start_total_hp = GameState::calculate_stage_total_hp(
+            game_state.stage,
+            &game_state.stage_modifiers,
+            &game_state.route,
+            game_state.now(),
+        );
         Self {
             stage_progress: StageProgress {
                 start_total_hp,

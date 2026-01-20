@@ -1,33 +1,7 @@
-use crate::game_state::monster::{
-    MonsterKind, MonsterSkillTemplate, MonsterTemplate, PrebuiltSkill,
-};
-use crate::route::Velocity;
+use crate::game_state::monster::{MonsterKind, MonsterTemplate, PrebuiltSkill};
 use crate::*;
-use namui::State;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 use std::array::from_fn;
-
-#[derive(State, Clone)]
-pub struct NamedMonsterConfig {
-    pub kind: MonsterKind,
-    pub max_hp: f32,
-    pub velocity: Velocity,
-    pub reward: usize,
-    pub skills: Vec<MonsterSkillTemplate>,
-}
-
-impl NamedMonsterConfig {
-    pub fn from_kind(kind: MonsterKind) -> Self {
-        let template = MonsterTemplate::new(kind);
-        Self {
-            kind,
-            max_hp: template.max_hp,
-            velocity: template.velocity,
-            reward: template.reward,
-            skills: template.skills,
-        }
-    }
-}
 
 const NAMED_MONSTER_ORDER: [MonsterKind; 16] = [
     MonsterKind::Named01,
@@ -147,7 +121,7 @@ fn base_monster_kind_for_stage(stage: usize) -> MonsterKind {
     }
 }
 
-pub fn pick_challenge_named_choices(stage: usize) -> [NamedMonsterConfig; 3] {
+pub fn pick_challenge_named_choices(stage: usize) -> [MonsterTemplate; 3] {
     let pool = named_candidate_pool_for_stage(stage);
     let mut rng = thread_rng();
 
@@ -160,15 +134,15 @@ pub fn pick_challenge_named_choices(stage: usize) -> [NamedMonsterConfig; 3] {
     let hp_multipliers = [1.25, 1.5, 2.0];
     let reward_multipliers = [2usize, 5, 10];
 
-    let mut result = from_fn(|_| NamedMonsterConfig::from_kind(pool[0]));
+    let mut result = from_fn(|_| MonsterTemplate::new(pool[0]));
     for i in 0..3 {
         let kind = picks.get(i).copied().unwrap_or(pool[0]);
-        let mut config = NamedMonsterConfig::from_kind(kind);
-        config.max_hp = base_hp * hp_multipliers[i];
-        config.reward = base_reward * reward_multipliers[i];
+        let mut template = MonsterTemplate::new(kind);
+        template.max_hp = base_hp * hp_multipliers[i];
+        template.reward = base_reward * reward_multipliers[i];
         let skill = skill_for_choice(stage, i, &mut rng);
-        config.skills = vec![skill.into()];
-        result[i] = config;
+        template.skills = vec![skill.into()];
+        result[i] = template;
     }
     result
 }

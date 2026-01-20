@@ -5,7 +5,7 @@ use crate::game_state::route::Velocity;
 use crate::*;
 use namui::{Duration, State};
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct MonsterTemplate {
     pub kind: MonsterKind,
     pub max_hp: f32,
