@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{Modal, start_defense, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
+    game_state::{Modal, mutate_game_state, set_modal, use_game_state}, hand::{HAND_WH, HandComponent, HandSlotId}, icon::{Icon, IconAttribute}, theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
         typography::{TextAlign, headline},
@@ -88,7 +88,9 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            start_defense();
+                                                            mutate_game_state(|game_state| { 
+                                                                game_state.goto_defense();
+                                                            });
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(

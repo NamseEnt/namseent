@@ -79,7 +79,7 @@ pub struct GameState {
     /// one-based
     pub stage: usize,
     pub left_reroll_chance: usize,
-    monster_spawn_state: MonsterSpawnState,
+    pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
     pub gold: usize,
@@ -195,7 +195,7 @@ fn create_initial_game_state() -> GameState {
         flow: GameFlow::Initializing,
         stage: 1,
         left_reroll_chance: 1,
-        monster_spawn_state: MonsterSpawnState::Idle,
+        monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         items: vec![
             Item {
@@ -271,12 +271,6 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
 pub fn set_modal(modal: Option<Modal>) {
     mutate_game_state(|game_state| {
         game_state.opened_modal = modal;
-    });
-}
-
-pub fn start_defense() {
-    mutate_game_state(|game_state| {
-        game_state.goto_defense();
     });
 }
 

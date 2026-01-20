@@ -1,6 +1,6 @@
 pub mod contract;
 
-use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
+use super::{GameState, monster_spawn, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
@@ -106,6 +106,9 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.monster_spawn_state.challenge_selected = [false; 3];
+        self.monster_spawn_state.challenge_choices =
+            monster_spawn::pick_challenge_named_choices(self.stage);
         self.record_stage_start();
         save_stage_snapshot(self);
     }

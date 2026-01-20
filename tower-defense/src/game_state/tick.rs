@@ -242,9 +242,9 @@ fn check_defense_end(game_state: &mut GameState) {
     let GameFlow::Defense(_) = game_state.flow else {
         return;
     };
-    let MonsterSpawnState::Idle = game_state.monster_spawn_state else {
+    if !game_state.monster_spawn_state.is_idle() {
         return;
-    };
+    }
     if !game_state.monsters.is_empty() {
         return;
     }
