@@ -1,50 +1,7 @@
-use super::*;
-use rand::{seq::SliceRandom, thread_rng};
-use std::collections::{HashSet, VecDeque};
-use std::{iter, vec};
+use super::append_named_to_queue;
+use crate::game_state::*;
+use std::collections::VecDeque;
 
-#[derive(State, Clone)]
-pub struct MonsterSpawnState {
-    pub monster_queue: VecDeque<MonsterKind>,
-    pub next_spawn_time: Option<Instant>,
-    pub spawn_interval: Duration,
-    pub challenge_choices: [MonsterKind; 3],
-    pub challenge_selected: [bool; 3],
-}
-
-impl MonsterSpawnState {
-    pub fn idle() -> Self {
-        Self {
-            monster_queue: VecDeque::new(),
-            next_spawn_time: None,
-            // arbitrary default; real value set when spawning starts
-            spawn_interval: Duration::from_millis(0),
-            challenge_choices: [MonsterKind::Named01; 3],
-            challenge_selected: [false; 3],
-        }
-    }
-
-    pub fn is_spawning(&self) -> bool {
-        self.next_spawn_time.is_some()
-    }
-
-    pub fn is_idle(&self) -> bool {
-        self.next_spawn_time.is_none() && self.monster_queue.is_empty()
-    }
-
-    pub fn reset_challenge_selection(&mut self) {
-        self.challenge_selected = [false; 3];
-    }
-
-    pub fn toggle_challenge_selection(&mut self, index: usize) {
-        if index < 3 {
-            self.challenge_selected[index] = !self.challenge_selected[index];
-        }
-    }
-}
-
-/// This won't immediately spawn a monster or update game_state,
-/// but it just requests to start spawning a monster.
 pub fn start_spawn(game_state: &mut GameState) {
     if game_state.monster_spawn_state.is_spawning() {
         return;
@@ -68,7 +25,7 @@ pub fn start_spawn(game_state: &mut GameState) {
     game_state.monster_spawn_state.next_spawn_time = Some(game_state.now());
 }
 
-pub fn tick(game_state: &mut GameState, now: Instant) {
+pub fn tick(game_state: &mut GameState, now: namui::Instant) {
     if let Some(next_time) = game_state.monster_spawn_state.next_spawn_time
         && now < next_time
     {
@@ -103,9 +60,9 @@ pub fn tick(game_state: &mut GameState, now: Instant) {
         Some(now + game_state.monster_spawn_state.spawn_interval);
 }
 
-pub fn monster_queue_table(stage: usize) -> (VecDeque<MonsterKind>, Duration) {
+pub fn monster_queue_table(stage: usize) -> (VecDeque<MonsterKind>, namui::Duration) {
     let spawn_interval =
-        Duration::from_millis((10000.0 / (26.0 * (stage as f32 / 50.0) + 4.0)) as i64);
+        namui::Duration::from_millis((10000.0 / (26.0 * (stage as f32 / 50.0) + 4.0)) as i64);
 
     let monster_queue = match stage {
         1 => vec![(MonsterKind::Mob01, 5)],
@@ -161,68 +118,8 @@ pub fn monster_queue_table(stage: usize) -> (VecDeque<MonsterKind>, Duration) {
         _ => unimplemented!(),
     }
     .iter()
-    .flat_map(|(kind, count)| iter::repeat_n(*kind, *count))
+    .flat_map(|(kind, count)| std::iter::repeat_n(*kind, *count))
     .collect::<VecDeque<_>>();
 
     (monster_queue, spawn_interval)
-}
-
-const NAMED_MONSTER_ORDER: [MonsterKind; 16] = [
-    MonsterKind::Named01,
-    MonsterKind::Named02,
-    MonsterKind::Named03,
-    MonsterKind::Named04,
-    MonsterKind::Named05,
-    MonsterKind::Named06,
-    MonsterKind::Named07,
-    MonsterKind::Named08,
-    MonsterKind::Named09,
-    MonsterKind::Named10,
-    MonsterKind::Named11,
-    MonsterKind::Named12,
-    MonsterKind::Named13,
-    MonsterKind::Named14,
-    MonsterKind::Named15,
-    MonsterKind::Named16,
-];
-
-fn append_named_to_queue(queue: &mut VecDeque<MonsterKind>, extras: &[MonsterKind]) {
-    if extras.is_empty() {
-        return;
-    }
-
-    let mut seen: HashSet<MonsterKind> = queue.iter().copied().collect();
-    for kind in extras {
-        if seen.insert(*kind) {
-            queue.push_back(*kind);
-        }
-    }
-}
-
-pub fn named_candidate_pool_for_stage(stage: usize) -> Vec<MonsterKind> {
-    let window = stage.saturating_sub(1) / 5; // 0-based window per 5 levels
-    let start = 1 + window;
-    let end = (5 + window).min(NAMED_MONSTER_ORDER.len());
-
-    NAMED_MONSTER_ORDER
-        .iter()
-        .copied()
-        .skip(start.saturating_sub(1))
-        .take(end.saturating_sub(start.saturating_sub(1)))
-        .collect()
-}
-
-pub fn pick_challenge_named_choices(stage: usize) -> [MonsterKind; 3] {
-    let pool = named_candidate_pool_for_stage(stage);
-    let mut rng = thread_rng();
-
-    // Pick up to 3 unique monsters randomly
-    let picks: Vec<_> = pool.choose_multiple(&mut rng, 3).copied().collect();
-
-    // Fallback: if pool is smaller than 3, reuse the first element to fill
-    let mut result = [pool[0]; 3];
-    for (i, kind) in picks.into_iter().enumerate() {
-        result[i] = kind;
-    }
-    result
 }
