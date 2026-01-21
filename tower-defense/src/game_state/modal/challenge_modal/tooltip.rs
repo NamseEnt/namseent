@@ -87,6 +87,28 @@ impl<'a> Component for ChallengeMonsterTooltip<'a> {
                     ctx = ctx.translate((-20.px(), skill_height + TEXT_PADDING));
                 }
             }
+
+            // 리워드 - 골드 아이콘과 함께 표시
+            let reward_text = ctx.ghost_add(
+                "reward",
+                typography::paragraph(format!("{}", template.reward))
+                    .size(typography::FontSize::Medium)
+                    .align(typography::TextAlign::LeftTop)
+                    .max_width(CONTENT_WIDTH)
+                    .build_rich(),
+            );
+            let reward_height = reward_text
+                .bounding_box()
+                .map(|rect| rect.height())
+                .unwrap_or_default();
+
+            // 골드 아이콘
+            ctx.add(
+                Icon::new(IconKind::Gold)
+                    .size(IconSize::Small)
+                    .wh(Wh::new(16.px(), reward_height)),
+            );
+            ctx.translate((20.px(), 0.px())).add(reward_text);
         });
 
         let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
