@@ -196,4 +196,11 @@ impl MonsterTemplate {
             MonsterKind::Boss11 => 48414.0,
         }
     }
+
+    pub fn skill_descriptions(&self, locale: &crate::l10n::Locale) -> Vec<String> {
+        self.skills
+            .iter()
+            .map(|skill| skill.kind.description(locale))
+            .collect()
+    }
 }

@@ -13,7 +13,7 @@ pub mod flow;
 pub mod item;
 mod level_rarity_weight;
 mod modal;
-mod monster;
+pub mod monster;
 mod monster_spawn;
 mod placed_towers;
 pub mod play_history;

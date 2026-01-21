@@ -3,7 +3,7 @@ mod monster_kind;
 mod monster_template;
 mod move_monsters;
 mod render;
-mod skill;
+pub mod skill;
 
 use crate::{
     MapCoordF32,
