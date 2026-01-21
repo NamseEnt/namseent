@@ -34,3 +34,28 @@ pub const DISABLED_CONTAINER: Color = Color::from_u8(60, 60, 60, 255);
 pub const ON_DISABLED_CONTAINER: Color = Color::from_u8(120, 120, 120, 255);
 
 pub const ROUND: Px = px(8.);
+
+/// 모달 박스 배경 스타일 (SURFACE 색상)
+pub fn modal_box_style() -> RectStyle {
+    RectStyle {
+        stroke: None,
+        fill: Some(RectFill { color: SURFACE }),
+        round: Some(RectRound { radius: ROUND }),
+    }
+}
+
+/// 제목 배경 스타일 (SURFACE_CONTAINER 색상)
+pub fn title_background_style() -> RectStyle {
+    RectStyle {
+        stroke: None,
+        fill: Some(RectFill {
+            color: SURFACE_CONTAINER,
+        }),
+        round: Some(RectRound { radius: ROUND }),
+    }
+}
+
+/// 일반 컨테이너 박스 스타일 (SURFACE_CONTAINER 색상)
+pub fn container_box_style() -> RectStyle {
+    title_background_style()
+}

@@ -183,29 +183,13 @@ impl Component for DebugToolsModal {
             // 타이틀 배경
             ctx.add(rect(RectParam {
                 rect: Wh::new(modal_wh.width, TITLE_HEIGHT).to_rect(),
-                style: RectStyle {
-                    stroke: None,
-                    fill: Some(RectFill {
-                        color: palette::SURFACE_CONTAINER,
-                    }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
+                style: palette::title_background_style(),
             }));
 
             // 모달 배경
             ctx.add(rect(RectParam {
                 rect: modal_wh.to_rect(),
-                style: RectStyle {
-                    stroke: None,
-                    fill: Some(RectFill {
-                        color: palette::SURFACE,
-                    }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
+                style: palette::modal_box_style(),
             }));
         })
         .attach_event(|event| {
