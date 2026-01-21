@@ -91,7 +91,7 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            mutate_game_state(|game_state| { 
+                                                            mutate_game_state(|game_state| {
                                                                 game_state.goto_defense();
                                                             });
                                                         },
@@ -109,7 +109,6 @@ impl Component for TowerPlacingHand {
                                                     .color(ButtonColor::Primary),
                                                 );
                                             }),
-                                            
                                         ]),
                                     )(wh, ctx);
                                 });
