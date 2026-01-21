@@ -53,22 +53,6 @@ pub fn monster_wh(kind: MonsterKind) -> Wh<Px> {
         | MonsterKind::Boss09
         | MonsterKind::Boss10
         | MonsterKind::Boss11 => TILE_PX_SIZE * 0.8,
-        MonsterKind::Named01
-        | MonsterKind::Named02
-        | MonsterKind::Named03
-        | MonsterKind::Named04
-        | MonsterKind::Named05
-        | MonsterKind::Named06
-        | MonsterKind::Named07
-        | MonsterKind::Named08
-        | MonsterKind::Named09
-        | MonsterKind::Named10
-        | MonsterKind::Named11
-        | MonsterKind::Named12
-        | MonsterKind::Named13
-        | MonsterKind::Named14
-        | MonsterKind::Named15
-        | MonsterKind::Named16 => TILE_PX_SIZE * 0.7,
         _ => TILE_PX_SIZE * 0.5,
     }
 }

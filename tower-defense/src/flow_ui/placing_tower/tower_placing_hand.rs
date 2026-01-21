@@ -1,7 +1,6 @@
 use crate::{
-    game_state::{Modal, mutate_game_state, set_modal, use_game_state},
+    game_state::{mutate_game_state, use_game_state},
     hand::{HAND_WH, HandComponent, HandSlotId},
-    icon::{Icon, IconAttribute},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
@@ -68,23 +67,6 @@ impl Component for TowerPlacingHand {
                                     table::padding(
                                         PADDING,
                                         table::vertical([
-                                            table::fixed(48.px(), |wh, ctx| {
-                                                ctx.add(
-                                                    Button::new(
-                                                        wh,
-                                                        &|| {
-                                                            set_modal(Some(Modal::Challenge));
-                                                        },
-                                                        &|wh, _text_color, ctx| {
-                                                            ctx.add(Icon::new(crate::icon::IconKind::Gold).wh(wh).size(crate::icon::IconSize::Large).attributes(vec![
-                                                                IconAttribute::new(crate::icon::IconKind::Add).position(crate::icon::IconAttributePosition::TopLeft)
-                                                            ]));
-                                                        },
-                                                    )
-                                                    .variant(ButtonVariant::Contained)
-                                                    .color(ButtonColor::Primary),
-                                                );
-                                            }),
                                             table::ratio(1, |_, _| {}),
                                             table::fixed(48.px(), |wh, ctx| {
                                                 ctx.add(

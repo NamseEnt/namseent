@@ -1,5 +1,4 @@
 use super::MonsterSkillTemplate;
-use super::PrebuiltSkill;
 use crate::game_state::monster::MonsterKind;
 use crate::game_state::route::Velocity;
 use crate::*;
@@ -26,7 +25,7 @@ impl MonsterTemplate {
         mul
     }
     pub fn new(kind: MonsterKind) -> Self {
-        let (velocity, damage, reward, skills) = match kind {
+        let (velocity, damage, reward, _skills): (f32, f32, usize, Vec<()>) = match kind {
             MonsterKind::Mob01 => (1.0, 1.0, 3, vec![]),
             MonsterKind::Mob02 => (1.0, 1.0, 3, vec![]),
             MonsterKind::Mob03 => (1.0, 1.0, 3, vec![]),
@@ -77,22 +76,6 @@ impl MonsterTemplate {
             MonsterKind::Mob48 => (1.0, 1.0, 5, vec![]),
             MonsterKind::Mob49 => (1.0, 1.0, 5, vec![]),
             MonsterKind::Mob50 => (1.0, 1.0, 5, vec![]),
-            MonsterKind::Named01 => (0.5, 3.0, 30, vec![PrebuiltSkill::ImmuneSlow02]),
-            MonsterKind::Named02 => (0.75, 3.0, 30, vec![PrebuiltSkill::Invincible03]),
-            MonsterKind::Named03 => (1.0, 3.0, 30, vec![PrebuiltSkill::Speedmul03]),
-            MonsterKind::Named04 => (1.25, 3.0, 30, vec![PrebuiltSkill::ImmuneSlow03]),
-            MonsterKind::Named05 => (0.5, 5.0, 30, vec![PrebuiltSkill::Heal01]),
-            MonsterKind::Named06 => (0.75, 5.0, 30, vec![PrebuiltSkill::ImmuneSlow04]),
-            MonsterKind::Named07 => (1.0, 5.0, 30, vec![PrebuiltSkill::Heal02]),
-            MonsterKind::Named08 => (1.25, 5.0, 30, vec![PrebuiltSkill::Speedmul04]),
-            MonsterKind::Named09 => (0.5, 7.0, 30, vec![PrebuiltSkill::Invincible04]),
-            MonsterKind::Named10 => (0.75, 7.0, 30, vec![PrebuiltSkill::Heal03]),
-            MonsterKind::Named11 => (1.0, 7.0, 30, vec![PrebuiltSkill::Heal04]),
-            MonsterKind::Named12 => (1.25, 7.0, 30, vec![PrebuiltSkill::Speedmul01]),
-            MonsterKind::Named13 => (0.5, 10.0, 30, vec![PrebuiltSkill::ImmuneSlow01]),
-            MonsterKind::Named14 => (0.75, 10.0, 30, vec![PrebuiltSkill::Invincible01]),
-            MonsterKind::Named15 => (1.0, 10.0, 30, vec![PrebuiltSkill::Invincible02]),
-            MonsterKind::Named16 => (1.25, 10.0, 30, vec![PrebuiltSkill::ImmuneSlow02]),
             MonsterKind::Boss01 => (1.0, 15.0, 50, vec![]),
             MonsterKind::Boss02 => (1.0, 20.0, 75, vec![]),
             MonsterKind::Boss03 => (1.0, 20.0, 100, vec![]),
@@ -108,7 +91,7 @@ impl MonsterTemplate {
         Self {
             kind,
             max_hp: Self::get_base_max_hp(kind),
-            skills: skills.into_iter().map(|prebuilt| prebuilt.into()).collect(),
+            skills: vec![],
             velocity: Self::velocity(velocity),
             damage: Self::damage(damage),
             reward: Self::reward(reward),
@@ -167,22 +150,6 @@ impl MonsterTemplate {
             MonsterKind::Mob48 => 22963.0,
             MonsterKind::Mob49 => 23462.0,
             MonsterKind::Mob50 => 24207.0,
-            MonsterKind::Named01 => 100.0,
-            MonsterKind::Named02 => 500.0,
-            MonsterKind::Named03 => 1500.0,
-            MonsterKind::Named04 => 3500.0,
-            MonsterKind::Named05 => 15000.0,
-            MonsterKind::Named06 => 30000.0,
-            MonsterKind::Named07 => 45000.0,
-            MonsterKind::Named08 => 65000.0,
-            MonsterKind::Named09 => 200000.0,
-            MonsterKind::Named10 => 250000.0,
-            MonsterKind::Named11 => 300000.0,
-            MonsterKind::Named12 => 300000.0,
-            MonsterKind::Named13 => 650000.0,
-            MonsterKind::Named14 => 550000.0,
-            MonsterKind::Named15 => 550000.0,
-            MonsterKind::Named16 => 750000.0,
             MonsterKind::Boss01 => 1280.0,
             MonsterKind::Boss02 => 5360.0,
             MonsterKind::Boss03 => 8388.0,

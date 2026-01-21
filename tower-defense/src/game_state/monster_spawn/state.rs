@@ -6,8 +6,6 @@ pub struct MonsterSpawnState {
     pub monster_queue: VecDeque<Monster>,
     pub next_spawn_time: Option<Instant>,
     pub spawn_interval: namui::Duration,
-    pub challenge_choices: [MonsterTemplate; 3],
-    pub challenge_selected: [bool; 3],
 }
 
 impl MonsterSpawnState {
@@ -16,12 +14,6 @@ impl MonsterSpawnState {
             monster_queue: VecDeque::new(),
             next_spawn_time: None,
             spawn_interval: namui::Duration::from_millis(0),
-            challenge_choices: [
-                MonsterTemplate::new(MonsterKind::Named01),
-                MonsterTemplate::new(MonsterKind::Named02),
-                MonsterTemplate::new(MonsterKind::Named03),
-            ],
-            challenge_selected: [false; 3],
         }
     }
 
@@ -31,15 +23,5 @@ impl MonsterSpawnState {
 
     pub fn is_idle(&self) -> bool {
         self.next_spawn_time.is_none() && self.monster_queue.is_empty()
-    }
-
-    pub fn reset_challenge_selection(&mut self) {
-        self.challenge_selected = [false; 3];
-    }
-
-    pub fn toggle_challenge_selection(&mut self, index: usize) {
-        if index < 3 {
-            self.challenge_selected[index] = !self.challenge_selected[index];
-        }
     }
 }

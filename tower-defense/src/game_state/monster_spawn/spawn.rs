@@ -1,4 +1,3 @@
-use super::append_named_to_queue;
 use crate::game_state::*;
 use crate::route::Route;
 use std::collections::VecDeque;
@@ -11,25 +10,8 @@ pub fn start_spawn(game_state: &mut GameState) {
 
     let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
     let now = game_state.now();
-    let (mut monster_queue, spawn_interval) = monster_queue_table(
+    let (monster_queue, spawn_interval) = monster_queue_table(
         game_state.stage,
-        game_state.route.clone(),
-        now,
-        health_multiplier,
-    );
-
-    // 선택된 named 몬스터들을 큐에 추가
-    let selected_monsters: Vec<MonsterTemplate> = game_state
-        .monster_spawn_state
-        .challenge_choices
-        .iter()
-        .zip(game_state.monster_spawn_state.challenge_selected.iter())
-        .filter_map(|(template, &selected)| selected.then_some(template.clone()))
-        .collect();
-
-    append_named_to_queue(
-        &mut monster_queue,
-        &selected_monsters[..],
         game_state.route.clone(),
         now,
         health_multiplier,
