@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(Clone, Copy, State)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, State)]
 pub enum MonsterKind {
     Mob01,
     Mob02,
@@ -299,6 +299,28 @@ impl MonsterKind {
             MonsterKind::Boss09 => "🦍",
             MonsterKind::Boss10 => "🦖",
             MonsterKind::Boss11 => "🦚",
+        }
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            MonsterKind::Named01 => "네임드 1",
+            MonsterKind::Named02 => "네임드 2",
+            MonsterKind::Named03 => "네임드 3",
+            MonsterKind::Named04 => "네임드 4",
+            MonsterKind::Named05 => "네임드 5",
+            MonsterKind::Named06 => "네임드 6",
+            MonsterKind::Named07 => "네임드 7",
+            MonsterKind::Named08 => "네임드 8",
+            MonsterKind::Named09 => "네임드 9",
+            MonsterKind::Named10 => "네임드 10",
+            MonsterKind::Named11 => "네임드 11",
+            MonsterKind::Named12 => "네임드 12",
+            MonsterKind::Named13 => "네임드 13",
+            MonsterKind::Named14 => "네임드 14",
+            MonsterKind::Named15 => "네임드 15",
+            MonsterKind::Named16 => "네임드 16",
+            _ => "",
         }
     }
 }

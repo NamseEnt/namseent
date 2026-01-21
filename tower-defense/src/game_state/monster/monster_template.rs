@@ -5,7 +5,7 @@ use crate::game_state::route::Velocity;
 use crate::*;
 use namui::{Duration, State};
 
-#[derive(State)]
+#[derive(State, Clone)]
 pub struct MonsterTemplate {
     pub kind: MonsterKind,
     pub max_hp: f32,
@@ -195,5 +195,12 @@ impl MonsterTemplate {
             MonsterKind::Boss10 => 46924.0,
             MonsterKind::Boss11 => 48414.0,
         }
+    }
+
+    pub fn skill_descriptions(&self, locale: &crate::l10n::Locale) -> Vec<String> {
+        self.skills
+            .iter()
+            .map(|skill| skill.kind.description(locale))
+            .collect()
     }
 }

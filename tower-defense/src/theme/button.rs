@@ -292,7 +292,6 @@ impl Component for Button<'_> {
                                 // 버튼 안에서 뗐고, 눌린 상태였으며, 충분한 시간이 지났으면 트리거
                                 if is_inside && was_pressed && total_progress >= long_press_duration
                                 {
-                                    on_click();
                                     state.reset();
                                 } else {
                                     // 그 외의 경우 감소 시작
@@ -319,6 +318,18 @@ impl Component for Button<'_> {
                     }
                 }
             });
+
+        if let Some(long_press_duration) = long_press_time
+            && let ButtonState::Pressed = *button_state
+        {
+            let mut state = *long_press_state;
+            let total_progress = state.current_progress();
+
+            if total_progress >= long_press_duration {
+                on_click();
+                state.reset();
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use super::*;
 use crate::game_state::GameState;
+use crate::l10n::LocalizedText;
 use namui::Instant;
 use std::ops::Deref;
 
@@ -40,6 +41,12 @@ pub enum MonsterSkillKind {
     SpeedMul { mul: f32 },
     ImmuneToSlow,
     HealByMaxHp { ratio: f32 },
+}
+
+impl MonsterSkillKind {
+    pub fn description(&self, locale: &crate::l10n::Locale) -> String {
+        crate::l10n::monster_skill::MonsterSkillText::Description(*self).localized_text(locale)
+    }
 }
 
 #[derive(Clone, State)]
@@ -129,7 +136,7 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
     }
 }
 
-#[derive(State)]
+#[derive(State, Clone, Copy)]
 pub enum PrebuiltSkill {
     Heal01,
     Heal02,

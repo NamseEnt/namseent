@@ -53,13 +53,6 @@ impl TextManager {
         }
     }
 
-    pub fn start_confirm_modal(&self, text: ui::StartConfirmModalText) -> &'static str {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
-    }
-
     pub fn result_modal(&self, text: ui::ResultModalText) -> &'static str {
         match self.locale.language {
             Language::Korean => text.to_korean(),

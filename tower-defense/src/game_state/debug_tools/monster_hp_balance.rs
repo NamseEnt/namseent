@@ -74,10 +74,16 @@ fn set_balance_state(state: Option<BalanceState>) {
 }
 
 fn get_first_monster_kind_from_spawn_table(
-    stage: usize,
+    gs: &crate::game_state::GameState,
 ) -> Option<crate::game_state::monster::MonsterKind> {
-    let (monster_queue, _) = super::super::monster_spawn::monster_queue_table(stage);
-    monster_queue.front().copied()
+    let health_multiplier = gs.stage_modifiers.get_enemy_health_multiplier();
+    let (monster_queue, _) = super::super::monster_spawn::monster_queue_table(
+        gs.stage,
+        gs.route.clone(),
+        gs.now(),
+        health_multiplier,
+    );
+    monster_queue.front().map(|monster| monster.kind)
 }
 
 /// Runs: snapshot -> place expected tower -> expected upgrade -> spiral place -> defense
@@ -119,7 +125,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     // Initialize balance state if needed
     if get_balance_state().is_none() {
         // Get first monster kind from spawn table
-        let first_monster_kind = get_first_monster_kind_from_spawn_table(gs.stage);
+        let first_monster_kind = get_first_monster_kind_from_spawn_table(gs);
         if let Some(kind) = first_monster_kind {
             let base_max_hp = crate::game_state::monster::MonsterTemplate::get_base_max_hp(kind);
             let increment = base_max_hp * 0.1; // 10% of base max_hp

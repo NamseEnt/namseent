@@ -475,7 +475,7 @@ pub mod tests_support {
             flow: GameFlow::Initializing,
             stage: 1,
             left_reroll_chance: 1,
-            monster_spawn_state: MonsterSpawnState::Idle,
+            monster_spawn_state: MonsterSpawnState::idle(),
             projectiles: Default::default(),
             items: vec![],
             gold: 0,

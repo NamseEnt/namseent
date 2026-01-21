@@ -13,7 +13,7 @@ pub mod flow;
 pub mod item;
 mod level_rarity_weight;
 mod modal;
-mod monster;
+pub mod monster;
 mod monster_spawn;
 mod placed_towers;
 pub mod play_history;
@@ -79,7 +79,7 @@ pub struct GameState {
     /// one-based
     pub stage: usize,
     pub left_reroll_chance: usize,
-    monster_spawn_state: MonsterSpawnState,
+    pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub items: Vec<item::Item>,
     pub gold: usize,
@@ -195,7 +195,7 @@ fn create_initial_game_state() -> GameState {
         flow: GameFlow::Initializing,
         stage: 1,
         left_reroll_chance: 1,
-        monster_spawn_state: MonsterSpawnState::Idle,
+        monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         items: vec![
             Item {
@@ -271,12 +271,6 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
 pub fn set_modal(modal: Option<Modal>) {
     mutate_game_state(|game_state| {
         game_state.opened_modal = modal;
-    });
-}
-
-pub fn force_start() {
-    mutate_game_state(|game_state| {
-        game_state.goto_defense();
     });
 }
 
@@ -368,15 +362,11 @@ impl GameState {
 
     /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
     pub fn calculate_stage_total_hp(stage: usize, stage_modifiers: &StageModifiers) -> f32 {
-        let (monster_queue, _) = monster_spawn::monster_queue_table(stage);
         let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
-
-        monster_queue
+        let (template_queue, _) = monster_spawn::monster_template_queue_table(stage);
+        template_queue
             .iter()
-            .map(|&kind| {
-                let template = MonsterTemplate::new(kind);
-                template.max_hp * health_multiplier
-            })
+            .map(|t| t.max_hp * health_multiplier)
             .sum()
     }
 }
@@ -399,10 +389,6 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
             && hand.get_item(first_slot_id).is_some()
         {
             hand.select_slot(first_slot_id);
-        }
-
-        if hand.is_empty() {
-            game_state.goto_defense();
         }
     });
 }
