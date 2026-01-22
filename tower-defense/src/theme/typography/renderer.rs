@@ -12,6 +12,13 @@ pub struct RenderedRichText {
     pub height: Px,
 }
 
+impl RenderedRichText {
+    /// Convert into the underlying rendering tree
+    pub fn into_rendering_tree(self) -> RenderingTree {
+        self.rendering_tree
+    }
+}
+
 impl Component for RenderedRichText {
     fn render(self, ctx: &RenderCtx) {
         ctx.add(self.rendering_tree);
@@ -61,25 +68,17 @@ impl RichTextRenderer {
                         ShapedText::shape(text.to_string(), style.to_font(), style.to_text_style());
                     boxes.push(InlineBox::Text(shaped));
                 }
-                Token::DynamicText(text) => {
-                    let style = style_stack.current();
-                    let shaped =
-                        ShapedText::shape(text.clone(), style.to_font(), style.to_text_style());
-                    boxes.push(InlineBox::Text(shaped));
+                Token::ApplyStyle(delta) => {
+                    style_stack.apply_delta(*delta);
                 }
-                Token::PushStyle(delta) => {
-                    style_stack.push(*delta);
+                Token::Save => {
+                    style_stack.save();
                 }
-                Token::PopStyle => {
-                    style_stack.pop();
+                Token::Restore => {
+                    style_stack.restore();
                 }
-                Token::Icon(_name) => {
+                Token::Icon(_icon) => {
                     // TODO: Implement icon rendering
-                    let _current_size = style_stack.current().font_size;
-                    // Icon placeholder
-                }
-                Token::DynamicIcon(_name) => {
-                    // TODO: Implement dynamic icon rendering
                     let _current_size = style_stack.current().font_size;
                     // Icon placeholder
                 }

@@ -122,15 +122,38 @@ impl StyleStack {
         }
     }
 
-    /// Push a new style context with applied delta
+    /// Push a new style context with applied delta (Deprecated: use save/apply_delta/restore pattern)
+    #[deprecated(note = "Use save/apply_delta/restore pattern instead")]
     pub fn push(&mut self, delta: StyleDelta) {
         let current = self.current().clone();
         let new_style = current.apply_delta(delta);
         self.stack.push(new_style);
     }
 
-    /// Pop the current style context
+    /// Pop the current style context (Deprecated: use save/restore pattern)
+    #[deprecated(note = "Use save/restore pattern instead")]
     pub fn pop(&mut self) {
+        if self.stack.len() > 1 {
+            self.stack.pop();
+        }
+    }
+
+    /// Apply style delta to current style context (accumulates changes)
+    pub fn apply_delta(&mut self, delta: StyleDelta) {
+        if let Some(last) = self.stack.last_mut() {
+            *last = last.apply_delta(delta);
+        }
+    }
+
+    /// Save current style state (like canvas.save())
+    pub fn save(&mut self) {
+        if let Some(current) = self.stack.last() {
+            self.stack.push(current.clone());
+        }
+    }
+
+    /// Restore previously saved style state (like canvas.restore())
+    pub fn restore(&mut self) {
         if self.stack.len() > 1 {
             self.stack.pop();
         }
@@ -139,6 +162,11 @@ impl StyleStack {
     /// Get current style context
     pub fn current(&self) -> &StyleContext {
         self.stack.last().unwrap()
+    }
+
+    /// Get mutable reference to current style context
+    pub fn current_mut(&mut self) -> &mut StyleContext {
+        self.stack.last_mut().unwrap()
     }
 
     /// Get stack depth for debugging
