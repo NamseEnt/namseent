@@ -311,10 +311,12 @@ impl EffectText {
                     let tower_name = tower_kind.to_text().to_korean();
                     match tower_kind {
                         crate::game_state::tower::TowerKind::Barricade => {
-                            builder.text(format!(
-                                "타워 설치 핸드에 {} 카드를 {}장 추가합니다",
+                            builder
+                            .static_text("타워 설치 핸드에 ")
+                            .text(format!(
+                                "{} 카드를 {}",
                                 tower_name, count
-                            ))
+                            )).static_text("장 추가합니다")
                         }
                         _ => {
                             builder.text(format!(

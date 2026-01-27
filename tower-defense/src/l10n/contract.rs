@@ -53,8 +53,8 @@ impl<'a> ContractText<'a> {
             ContractText::Risk(ce) => {
                 let phase_text = phase_ko(ce);
                 let builder = builder
-                    .static_text("리스크: ")
                     .color(palette::RED)
+                    .static_text("리스크: ")
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_ko(builder, ce)
@@ -62,8 +62,8 @@ impl<'a> ContractText<'a> {
             ContractText::Reward(ce) => {
                 let phase_text = phase_ko(ce);
                 let builder = builder
-                    .static_text("리턴: ")
                     .color(palette::BLUE)
+                    .static_text("리턴: ")
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_ko(builder, ce)

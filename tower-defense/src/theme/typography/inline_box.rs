@@ -45,6 +45,45 @@ impl ShapedText {
             descent,
         }
     }
+
+    /// Split text to fit within max_width
+    /// Returns the first part that fits and the remaining part
+    /// Returns (fits, remaining) where fits is text that fits in max_width
+    /// and remaining is the rest
+    pub fn split_to_fit(&self, max_width: Px) -> Option<(Self, Self)> {
+        if self.width <= max_width {
+            return None; // Fits already
+        }
+
+        // Binary search for the longest text that fits
+        let text_len = self.text.chars().count();
+        let mut left = 0;
+        let mut right = text_len;
+
+        while left < right {
+            let mid = (left + right).div_ceil(2);
+            let substring: String = self.text.chars().take(mid).collect();
+            let shaped = Self::shape(substring, self.font.clone(), self.style.clone());
+
+            if shaped.width <= max_width {
+                left = mid;
+            } else {
+                right = mid - 1;
+            }
+        }
+
+        if left == 0 {
+            return None; // Can't fit a single character
+        }
+
+        let fits_str: String = self.text.chars().take(left).collect();
+        let remaining_str: String = self.text.chars().skip(left).collect();
+
+        let fits = Self::shape(fits_str, self.font.clone(), self.style.clone());
+        let remaining = Self::shape(remaining_str, self.font.clone(), self.style.clone());
+
+        Some((fits, remaining))
+    }
 }
 
 /// Inline box element (can be laid out)
@@ -104,6 +143,24 @@ impl InlineBox {
 
     pub fn is_hard_break(&self) -> bool {
         matches!(self, InlineBox::HardBreak)
+    }
+
+    /// Try to split the inline box to fit within max_width
+    /// Returns (fits, remaining) if split is possible
+    pub fn split_to_fit(&self, max_width: Px) -> Option<(Self, Self)> {
+        match self {
+            InlineBox::Text(shaped) => {
+                shaped
+                    .split_to_fit(max_width)
+                    .map(|(fits_shaped, remaining_shaped)| {
+                        (
+                            InlineBox::Text(fits_shaped),
+                            InlineBox::Text(remaining_shaped),
+                        )
+                    })
+            }
+            _ => None, // Only text boxes can be split
+        }
     }
 }
 

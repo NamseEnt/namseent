@@ -84,8 +84,11 @@ impl LayoutEngine {
         let mut lines = Vec::new();
         let mut current_line = Vec::new();
         let mut current_width = 0.px();
+        let mut box_queue: Vec<InlineBox> = boxes;
 
-        for inline_box in boxes {
+        while let Some(inline_box) = box_queue.first().cloned() {
+            box_queue.remove(0);
+
             if inline_box.is_hard_break() {
                 if !current_line.is_empty() {
                     lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
@@ -97,33 +100,44 @@ impl LayoutEngine {
             let box_width = inline_box.width();
 
             if current_width + box_width <= max_width {
+                // Box fits in current line
                 current_width += box_width;
                 current_line.push(inline_box);
+            } else if current_width == 0.px() {
+                // Current line is empty - try to split the box
+                if let Some((fits, remaining)) = inline_box.split_to_fit(max_width) {
+                    current_line.push(fits);
+                    lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
+                    current_width = 0.px();
+                    box_queue.insert(0, remaining);
+                } else {
+                    // Can't split single box - force it
+                    current_line.push(inline_box);
+                    lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
+                    current_width = 0.px();
+                }
             } else {
+                // Current line is not empty and box doesn't fit
                 // Try to find a break opportunity
                 if let Some(break_idx) = self.find_last_break_opportunity(&current_line) {
+                    // Found break opportunity
                     let remaining: Vec<_> = current_line.drain(break_idx..).collect();
 
                     if !current_line.is_empty() {
                         lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
                     }
 
-                    // Re-add remaining boxes
+                    // Re-add removed boxes and current box to queue
+                    box_queue.insert(0, inline_box);
                     for remaining_box in remaining.into_iter().rev() {
-                        current_line.insert(0, remaining_box);
+                        box_queue.insert(0, remaining_box);
                     }
-                    current_line.push(inline_box);
-                    current_width = current_line.iter().map(|b| b.width()).sum();
-                } else if current_line.is_empty() {
-                    // Single box wider than max_width - force it
-                    current_line.push(inline_box);
-                    lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
                     current_width = 0.px();
                 } else {
-                    // Move box to next line
+                    // No break opportunity - move current line to output
                     lines.push(self.layout_single_line(std::mem::take(&mut current_line)));
-                    current_line.push(inline_box);
-                    current_width = box_width;
+                    box_queue.insert(0, inline_box);
+                    current_width = 0.px();
                 }
             }
         }

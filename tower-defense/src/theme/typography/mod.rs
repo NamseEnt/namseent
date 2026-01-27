@@ -38,5 +38,3 @@ pub enum FontSize {
     Small,
     Custom { size: Px },
 }
-
-struct RichTextBuilder {}
