@@ -113,7 +113,7 @@ impl Component for TowerPreviewContent<'_> {
                         );
                         ctx.add(
                             typography::paragraph()
-                                .text(&format_compact_number(rating))
+                                .text(format_compact_number(rating))
                                 .size(FontSize::Medium)
                                 .right_top(wh.width),
                         );

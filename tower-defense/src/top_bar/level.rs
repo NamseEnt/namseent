@@ -70,7 +70,7 @@ impl Component for LevelIndicator {
                                             .icon::<()>(IconKind::Level)
                                             .space()
                                             .icon::<()>(IconKind::Gold)
-                                            .text(&format!("{level_up_cost}"))
+                                            .text(format!("{level_up_cost}"))
                                             .color(text_color)
                                             .center(wh),
                                     );

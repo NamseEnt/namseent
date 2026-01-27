@@ -68,7 +68,7 @@ impl Component for StateSnapshotTool {
                                         table::ratio(1, |wh, ctx| {
                                             ctx.add(
                                                 typography::paragraph()
-                                                    .text(&format!(
+                                                    .text(format!(
                                                         "Snapshot #{idx} (Stage {stage})"
                                                     ))
                                                     .left_center(wh.height),

@@ -64,7 +64,7 @@ impl Component for StatPreview<'_> {
         );
         ctx.add(
             typography::paragraph()
-                .text(&format_stat_final(default_stat, plus_stat, multiplier))
+                .text(format_stat_final(default_stat, plus_stat, multiplier))
                 .size(FontSize::Medium)
                 .right_top(wh.width),
         );

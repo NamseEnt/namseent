@@ -242,7 +242,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                             typography::headline()
                                                 .icon::<()>(IconKind::Gold)
                                                 .space()
-                                                .text(&format!("{cost}"))
+                                                .text(format!("{cost}"))
                                                 .color(color)
                                                 .center(wh),
                                         );

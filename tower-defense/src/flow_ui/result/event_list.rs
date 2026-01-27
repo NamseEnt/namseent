@@ -314,7 +314,7 @@ impl Component for TimelineIconComponent<'_> {
         if let HistoryEventType::StageStart { stage } = event_type {
             ctx.translate(wh.to_xy() * -0.5).add(
                 typography::headline()
-                    .text(&stage.to_string())
+                    .text(stage.to_string())
                     .size(typography::FontSize::Medium)
                     .color(palette::ON_PRIMARY)
                     .center(wh),

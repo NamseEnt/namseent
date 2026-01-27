@@ -54,7 +54,7 @@ impl Component for ContractItemContent<'_> {
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
                             ctx.add(
                                 headline()
-                                    .text(&contract.status.to_string())
+                                    .text(contract.status.to_string())
                                     .size(FontSize::Small)
                                     .center(wh),
                             );
