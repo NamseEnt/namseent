@@ -5,7 +5,7 @@ use crate::{
     palette,
     theme::{
         button::Button,
-        typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+        typography::{self, FontSize, HEADLINE_FONT_SIZE_LARGE},
     },
 };
 use namui::*;
@@ -84,18 +84,15 @@ impl Component for Inventory {
                                                                 },
                                                                 &|wh, color, ctx| {
                                                                     ctx.add(
-                                                                        headline(
-                                                                            game_state
-                                                                                .text()
-                                                                                .ui(TopBarText::Use)
-                                                                                .to_string(),
-                                                                        )
-                                                                        .size(FontSize::Small)
-                                                                        .align(TextAlign::Center {
-                                                                            wh,
-                                                                        })
-                                                                        .color(color)
-                                                                        .build(),
+                                                                        typography::headline()
+                                                                            .text(
+                                                                                game_state
+                                                                                    .text()
+                                                                                    .ui(TopBarText::Use),
+                                                                            )
+                                                                            .size(FontSize::Small)
+                                                                            .color(color)
+                                                                            .center(wh),
                                                                     );
                                                                 },
                                                             )
@@ -108,21 +105,21 @@ impl Component for Inventory {
                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(
-                                                headline(name)
+                                                typography::headline()
+                                                    .text(&name)
                                                     .size(FontSize::Small)
-                                                    .align(TextAlign::LeftTop)
                                                     .max_width(content_width)
-                                                    .build(),
+                                                    .left_top(),
                                             );
                                         }),
                                         table::fixed(PADDING, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(
-                                                paragraph(desc.clone())
+                                                typography::paragraph()
+                                                    .text(&desc)
                                                     .size(FontSize::Medium)
-                                                    .align(TextAlign::LeftTop)
                                                     .max_width(content_width)
-                                                    .build_rich(),
+                                                    .left_top(),
                                             );
                                         }),
                                     ])(

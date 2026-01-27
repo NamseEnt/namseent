@@ -3,7 +3,7 @@ use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind};
 use crate::l10n;
 use crate::theme::palette;
-use crate::theme::typography::{self, HeadlineBuilder, TextAlign};
+use crate::theme::typography::{self};
 use namui::*;
 use namui_prebuilt::list_view::ListViewWithCtx;
 use namui_prebuilt::{simple_rect, table};
@@ -133,10 +133,10 @@ impl EventItem<'_> {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 ctx.add(
-                    HeadlineBuilder::new(event_text)
+                    typography::headline()
+                        .text(event_text)
                         .size(typography::FontSize::Small)
-                        .align(TextAlign::LeftCenter { height: wh.height })
-                        .build_rich(),
+                        .left_center(wh.height),
                 );
             })(wh, ctx);
         });
@@ -186,11 +186,11 @@ impl Component for EventTooltip {
 
         let text = ctx.ghost_add(
             "tooltip-text",
-            typography::paragraph(content)
+            typography::paragraph()
+                .text(&content)
                 .size(typography::FontSize::Small)
-                .align(TextAlign::LeftTop)
                 .max_width(text_max_width)
-                .build_rich(),
+                .left_top(),
         );
 
         let Some(text_wh) = text.bounding_box().map(|rect| rect.wh()) else {
@@ -313,11 +313,11 @@ impl Component for TimelineIconComponent<'_> {
         // Render stage label if applicable
         if let HistoryEventType::StageStart { stage } = event_type {
             ctx.translate(wh.to_xy() * -0.5).add(
-                HeadlineBuilder::new(stage.to_string())
+                typography::headline()
+                    .text(&stage.to_string())
                     .size(typography::FontSize::Medium)
-                    .align(TextAlign::Center { wh })
                     .color(palette::ON_PRIMARY)
-                    .build(),
+                    .center(wh),
             );
         }
 

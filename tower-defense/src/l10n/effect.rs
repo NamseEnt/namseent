@@ -1,5 +1,5 @@
-use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
-use crate::{game_state::effect::Effect, *};
+use super::{Language, Locale, LocalizedRichText, LocalizedText, rich_text_helpers::*};
+use crate::{game_state::effect::Effect, theme::typography::TypographyBuilder, *};
 
 #[allow(unreachable_patterns)]
 #[derive(Clone, State)]
@@ -15,6 +15,19 @@ impl LocalizedText for EffectText {
             Language::Korean => self.to_korean(),
             Language::English => self.to_english(),
         }
+    }
+}
+
+#[allow(unreachable_patterns)]
+impl LocalizedRichText for EffectText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        // 임시로 String 기반 구현을 사용
+        let text = self.localized_text(locale);
+        builder.text(text)
     }
 }
 

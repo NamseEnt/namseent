@@ -62,10 +62,16 @@ impl RichTextRenderer {
 
         for token in tokens {
             match token {
-                Token::Text(text) => {
+                Token::StaticText(text) => {
                     let style = style_stack.current();
                     let shaped =
                         ShapedText::shape(text.to_string(), style.to_font(), style.to_text_style());
+                    boxes.push(InlineBox::Text(shaped));
+                }
+                Token::Text(text) => {
+                    let style = style_stack.current();
+                    let shaped =
+                        ShapedText::shape(text.clone(), style.to_font(), style.to_text_style());
                     boxes.push(InlineBox::Text(shaped));
                 }
                 Token::ApplyStyle(delta) => {

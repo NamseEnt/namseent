@@ -8,7 +8,7 @@ use crate::l10n::ui::TopBarText;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
-use crate::theme::typography::{FontSize, TextAlign, headline, paragraph};
+use crate::theme::typography::{self, FontSize};
 use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -209,21 +209,21 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                         table::fixed(PADDING, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, move |ctx| {
                             ctx.add(
-                                headline(name)
+                                typography::headline()
+                                    .text(&name)
                                     .size(FontSize::Small)
-                                    .align(TextAlign::LeftTop)
                                     .max_width(wh.width)
-                                    .build_rich(),
+                                    .left_top(),
                             );
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(1, move |wh, ctx| {
                             ctx.add(
-                                paragraph(description.clone())
+                                typography::paragraph()
+                                    .text(&description)
                                     .size(FontSize::Medium)
-                                    .align(TextAlign::LeftTop)
                                     .max_width(wh.width)
-                                    .build_rich(),
+                                    .left_top(),
                             );
                         }),
                         table::fixed(PADDING, |_, _| {}),
@@ -239,15 +239,12 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                     },
                                     &|wh, color, ctx| {
                                         ctx.add(
-                                            headline(format!(
-                                                "{} {cost}",
-                                                Icon::new(IconKind::Gold)
-                                                    .size(IconSize::Large)
-                                                    .wh(Wh::single(wh.height))
-                                                    .as_tag(),
-                                            ))
-                                            .color(color)
-                                            .build_rich(),
+                                            typography::headline()
+                                                .icon::<()>(IconKind::Gold)
+                                                .space()
+                                                .text(&format!("{cost}"))
+                                                .color(color)
+                                                .center(wh),
                                         );
                                     },
                                 )
@@ -417,10 +414,10 @@ impl Component for ShopItemSoldOut {
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(
-                        headline(game_state.text().ui(TopBarText::SoldOut).to_string())
+                        typography::headline()
+                            .text(game_state.text().ui(TopBarText::SoldOut))
                             .size(FontSize::Medium)
-                            .align(TextAlign::Center { wh })
-                            .build(),
+                            .center(wh),
                     );
                     ctx.add(simple_rect(
                         wh,

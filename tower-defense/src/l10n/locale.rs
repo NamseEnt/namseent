@@ -34,3 +34,13 @@ pub trait LocalizedText {
 pub trait LocalizedStaticText {
     fn localized_text(&self, locale: &Locale) -> &'static str;
 }
+
+/// Trait for localized text that can be integrated into TypographyBuilder chains
+pub trait LocalizedRichText {
+    /// Apply localized rich text formatting to a builder
+    fn apply_to_builder<'a>(
+        self,
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> crate::theme::typography::TypographyBuilder<'a>;
+}

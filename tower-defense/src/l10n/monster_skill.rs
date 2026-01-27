@@ -1,22 +1,36 @@
-use super::Locale;
+use super::{Locale, LocalizedRichText, LocalizedText};
 use crate::game_state::monster::skill::MonsterSkillKind;
+use crate::theme::typography::TypographyBuilder;
 
 #[derive(Clone)]
 pub enum MonsterSkillText {
     Description(MonsterSkillKind),
 }
 
-impl crate::l10n::LocalizedText for MonsterSkillText {
+impl LocalizedText for MonsterSkillText {
     fn localized_text(&self, locale: &Locale) -> String {
         match locale.language {
-            crate::l10n::Language::Korean => self.to_korean(),
-            crate::l10n::Language::English => self.to_english(),
+            crate::l10n::Language::Korean => self.to_korean_string(),
+            crate::l10n::Language::English => self.to_english_string(),
+        }
+    }
+}
+
+impl LocalizedRichText for MonsterSkillText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        match locale.language {
+            crate::l10n::Language::Korean => self.apply_korean(builder),
+            crate::l10n::Language::English => self.apply_english(builder),
         }
     }
 }
 
 impl MonsterSkillText {
-    pub fn to_korean(&self) -> String {
+    fn to_korean_string(&self) -> String {
         match self {
             MonsterSkillText::Description(skill) => match skill {
                 MonsterSkillKind::Invincible => "무적 상태가 됩니다".to_string(),
@@ -29,7 +43,7 @@ impl MonsterSkillText {
         }
     }
 
-    pub fn to_english(&self) -> String {
+    fn to_english_string(&self) -> String {
         match self {
             MonsterSkillText::Description(skill) => match skill {
                 MonsterSkillKind::Invincible => "Becomes invincible".to_string(),
@@ -38,6 +52,39 @@ impl MonsterSkillText {
                 MonsterSkillKind::HealByMaxHp { ratio } => {
                     format!("Heals {}x of max HP", ratio)
                 }
+            },
+        }
+    }
+
+    fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+        match self {
+            MonsterSkillText::Description(skill) => match skill {
+                MonsterSkillKind::Invincible => builder.static_text("무적 상태가 됩니다"),
+                MonsterSkillKind::SpeedMul { mul } => builder
+                    .static_text("이동 속도가 ")
+                    .text(format!("{}", mul))
+                    .static_text("배가 됩니다"),
+                MonsterSkillKind::ImmuneToSlow => builder.static_text("둔화 효과에 면역이 됩니다"),
+                MonsterSkillKind::HealByMaxHp { ratio } => builder
+                    .static_text("최대 체력의 ")
+                    .text(format!("{}", ratio))
+                    .static_text("배를 회복합니다"),
+            },
+        }
+    }
+
+    fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+        match self {
+            MonsterSkillText::Description(skill) => match skill {
+                MonsterSkillKind::Invincible => builder.static_text("Becomes invincible"),
+                MonsterSkillKind::SpeedMul { mul } => builder
+                    .static_text("Movement speed becomes ")
+                    .text(format!("{}x", mul)),
+                MonsterSkillKind::ImmuneToSlow => builder.static_text("Immune to slow effects"),
+                MonsterSkillKind::HealByMaxHp { ratio } => builder
+                    .static_text("Heals ")
+                    .text(format!("{}x", ratio))
+                    .static_text(" of max HP"),
             },
         }
     }

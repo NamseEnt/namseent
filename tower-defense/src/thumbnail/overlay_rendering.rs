@@ -5,7 +5,7 @@ use super::constants::{
 use crate::{
     card::{Rank, Suit},
     icon::{Icon, IconAttribute, IconAttributePosition, IconKind, IconSize},
-    theme::typography::{FontSize, TextAlign, headline},
+    theme::typography::{self, FontSize},
 };
 use namui::*;
 
@@ -45,18 +45,25 @@ pub fn render_text_overlay(
     let overlay_size = container_size * size_ratio;
     let overlay_position = position.calculate_position(container_size, overlay_size);
 
+    let rendered_text = typography::headline()
+        .static_text(text)
+        .size(FontSize::Custom {
+            size: overlay_size.height * text_size_ratio,
+        })
+        .color(Color::WHITE)
+        .stroke(overlay_size.height * text_size_ratio * 0.05, Color::BLACK)
+        .build();
+
+    let text_offset = Xy {
+        x: (overlay_size.width - rendered_text.width) / 2.0,
+        y: (overlay_size.height - rendered_text.height) / 2.0,
+    };
+
+    // RenderedRichText::into_rendering_tree() to get the RenderingTree
     namui::translate(
-        overlay_position.x,
-        overlay_position.y,
-        headline(text)
-            .align(TextAlign::Center { wh: overlay_size })
-            .size(FontSize::Custom {
-                size: overlay_size.height * text_size_ratio,
-            })
-            .color(Color::WHITE)
-            .stroke(overlay_size.height * text_size_ratio * 0.05, Color::BLACK)
-            .build()
-            .into_rendering_tree(),
+        overlay_position.x + text_offset.x,
+        overlay_position.y + text_offset.y,
+        rendered_text.into_rendering_tree(),
     )
 }
 

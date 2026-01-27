@@ -3,8 +3,7 @@ use crate::{
     hand::{HAND_WH, HandComponent, HandSlotId},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
-        palette,
-        typography::{TextAlign, headline},
+        palette, typography,
     },
 };
 use namui::*;
@@ -79,10 +78,10 @@ impl Component for TowerPlacingHand {
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
-                                                                headline("START")
+                                                                typography::headline()
+                                                                    .text("START")
                                                                     .color(text_color)
-                                                                    .align(TextAlign::Center { wh })
-                                                                    .build(),
+                                                                    .center(wh),
                                                             );
                                                         },
                                                     )

@@ -5,8 +5,10 @@ use crate::theme::typography::TypographyIcon;
 /// Rich text token - supports both static and dynamic content
 #[derive(Debug, Clone)]
 pub enum Token<'a> {
-    /// Static text content (const-compatible)
-    Text(&'a str),
+    /// Static text content (const-compatible, borrowed)
+    StaticText(&'a str),
+    /// Dynamic text content (owned)
+    Text(String),
     /// Apply style delta to current style (accumulates changes)
     ApplyStyle(super::style::StyleDelta),
     /// Save current style state (like canvas.save())

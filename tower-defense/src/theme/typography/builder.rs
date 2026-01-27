@@ -12,6 +12,24 @@ enum TypographyVariant {
     Paragraph,
 }
 
+/// Positioned rich text output
+pub struct PositionedRichText {
+    pub rich_text: RenderedRichText,
+    pub offset: Xy<Px>,
+}
+
+impl PositionedRichText {
+    pub fn new(rich_text: RenderedRichText, offset: Xy<Px>) -> Self {
+        Self { rich_text, offset }
+    }
+}
+
+impl Component for PositionedRichText {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.translate(self.offset).add(self.rich_text);
+    }
+}
+
 /// Fluent typography builder
 pub struct TypographyBuilder<'a> {
     variant: TypographyVariant,
@@ -93,14 +111,36 @@ impl<'a> TypographyBuilder<'a> {
             color: None,
             bold: None,
             underline: Some(true),
+            border: None,
         }));
         self
     }
 
-    /// Add static text
-    pub fn text(mut self, text: &'a str) -> Self {
-        self.tokens.push(Token::Text(text));
+    /// Add stroke (text border)
+    pub fn stroke(mut self, width: Px, color: Color) -> Self {
+        self.tokens
+            .push(Token::ApplyStyle(StyleDelta::stroke(width, color)));
         self
+    }
+
+    /// Add static text (borrowed reference - lifetime must match builder's 'a)
+    pub fn static_text(mut self, text: &'a str) -> Self {
+        self.tokens.push(Token::StaticText(text));
+        self
+    }
+
+    /// Add dynamic text (owned String - no lifetime constraints)
+    pub fn text<S: Into<String>>(mut self, text: S) -> Self {
+        self.tokens.push(Token::Text(text.into()));
+        self
+    }
+
+    /// Add localized rich text (supports l10n types with builder integration)
+    pub fn l10n<L>(self, localized: L, locale: &crate::l10n::Locale) -> Self
+    where
+        L: crate::l10n::LocalizedRichText,
+    {
+        localized.apply_to_builder(self, locale)
     }
 
     /// Add static icon (TODO: implement icon rendering)
@@ -182,6 +222,33 @@ impl<'a> TypographyBuilder<'a> {
 
         let renderer = RichTextRenderer::new(default_style, self.layout_config);
         renderer.render(&self.tokens)
+    }
+
+    /// Render and position at top-left
+    pub fn left_top(self) -> PositionedRichText {
+        PositionedRichText::new(self.build(), Xy::zero())
+    }
+
+    /// Render and position at left with vertical centering
+    pub fn left_center(self, height: Px) -> PositionedRichText {
+        let rendered = self.build();
+        let offset_y = (height - rendered.height) / 2.0;
+        PositionedRichText::new(rendered, Xy::new(Px::zero(), offset_y))
+    }
+
+    /// Render and center in the given size
+    pub fn center(self, wh: Wh<Px>) -> PositionedRichText {
+        let rendered = self.build();
+        let offset_x = (wh.width - rendered.width) / 2.0;
+        let offset_y = (wh.height - rendered.height) / 2.0;
+        PositionedRichText::new(rendered, Xy::new(offset_x, offset_y))
+    }
+
+    /// Render and position at right-top
+    pub fn right_top(self, width: Px) -> PositionedRichText {
+        let rendered = self.build();
+        let offset_x = width - rendered.width;
+        PositionedRichText::new(rendered, Xy::new(offset_x, Px::zero()))
     }
 }
 

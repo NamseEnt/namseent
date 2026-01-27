@@ -6,7 +6,7 @@ use crate::icon::{Icon, IconKind, IconSize};
 use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::palette;
-use crate::theme::typography::{TextAlign, headline, paragraph};
+use crate::theme::typography::{self};
 use namui::*;
 use namui_prebuilt::table;
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -277,7 +277,7 @@ impl Component for AddUpgradeTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(headline("Add upgrade").build());
+                    ctx.add(typography::headline().text("Add upgrade").left_top());
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -288,9 +288,10 @@ impl Component for AddUpgradeTool {
                         expected_category.display_name()
                     );
                     ctx.add(
-                        paragraph(&info_text)
+                        typography::paragraph()
+                            .text(&info_text)
                             .color(palette::ON_SURFACE_VARIANT)
-                            .build(),
+                            .left_top(),
                     );
                 }),
                 table::fixed(GAP, |_, _| {}),
@@ -313,12 +314,10 @@ impl Component for AddUpgradeTool {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
                                                     ctx.add(
-                                                        paragraph(text)
+                                                        typography::paragraph()
+                                                            .text(text)
                                                             .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
+                                                            .left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -355,12 +354,10 @@ impl Component for AddUpgradeTool {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
                                                     ctx.add(
-                                                        paragraph(text.clone())
+                                                        typography::paragraph()
+                                                            .text(&text)
                                                             .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
+                                                            .left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -404,12 +401,10 @@ impl Component for AddUpgradeTool {
                                                 },
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(
-                                                        paragraph(text)
+                                                        typography::paragraph()
+                                                            .text(text)
                                                             .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
+                                                            .left_center(wh.height),
                                                     );
                                                 },
                                             )
@@ -445,12 +440,10 @@ impl Component for AddUpgradeTool {
                                                 },
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(
-                                                        paragraph(text.clone())
+                                                        typography::paragraph()
+                                                            .text(&text)
                                                             .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
+                                                            .left_center(wh.height),
                                                     );
                                                 },
                                             )
@@ -477,10 +470,10 @@ impl Component for AddUpgradeTool {
                             &add_upgrade,
                             &|wh, text_color, ctx| {
                                 ctx.add(
-                                    paragraph("업그레이드 획득")
+                                    typography::paragraph()
+                                        .text("업그레이드 획득")
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
+                                        .center(wh),
                                 );
                             },
                         )

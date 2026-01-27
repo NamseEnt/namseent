@@ -13,7 +13,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::upgrade::UpgradeKindText,
     palette,
-    theme::typography::{FontSize, TextAlign, headline, paragraph},
+    theme::typography::{self, FontSize},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -78,32 +78,27 @@ impl Component for TowerPreviewContent<'_> {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
-                        let mut tower_name = String::new();
+                        let rank_text = tower_template.rank.to_string();
+                        let mut builder = typography::headline();
 
                         if !matches!(
                             tower_template.kind,
                             crate::game_state::tower::TowerKind::Barricade
                         ) {
-                            tower_name.push_str(
-                                &Icon::new(IconKind::Suit {
+                            builder = builder
+                                .icon::<()>(IconKind::Suit {
                                     suit: tower_template.suit,
                                 })
-                                .size(crate::icon::IconSize::Small)
-                                .wh(Wh::single(crate::icon::IconSize::Small.px()))
-                                .as_tag(),
-                            );
-                            tower_name.push_str(&tower_template.rank.to_string());
-                            tower_name.push(' ');
+                                .text(&rank_text)
+                                .space();
                         }
 
-                        tower_name.push_str(game_state.text().tower(tower_template.kind.to_text()));
-
                         ctx.add(
-                            headline(tower_name)
+                            builder
+                                .text(game_state.text().tower(tower_template.kind.to_text()))
                                 .size(FontSize::Small)
-                                .align(TextAlign::LeftCenter { height: wh.height })
                                 .max_width(wh.width)
-                                .build_rich(),
+                                .left_center(wh.height),
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
@@ -117,10 +112,10 @@ impl Component for TowerPreviewContent<'_> {
                                 .wh(Wh::new(16.px(), wh.height)),
                         );
                         ctx.add(
-                            paragraph(format_compact_number(rating))
+                            typography::paragraph()
+                                .text(&format_compact_number(rating))
                                 .size(FontSize::Medium)
-                                .align(TextAlign::RightTop { width: wh.width })
-                                .build_rich(),
+                                .right_top(wh.width),
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {

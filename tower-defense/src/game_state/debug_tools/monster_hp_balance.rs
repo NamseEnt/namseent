@@ -12,7 +12,7 @@ use crate::game_state::{
 };
 use crate::theme::{
     button::{Button, ButtonVariant},
-    typography::{self, paragraph},
+    typography::{self},
 };
 use namui::*;
 use rand::{Rng, thread_rng};
@@ -109,10 +109,10 @@ impl Component for MonsterHpBalanceButton {
                 },
                 &|wh, text_color, ctx| {
                     ctx.add(
-                        paragraph(&display_text)
+                        typography::paragraph()
+                            .text(&display_text)
                             .color(text_color)
-                            .align(typography::TextAlign::Center { wh })
-                            .build(),
+                            .center(wh),
                     );
                 },
             )

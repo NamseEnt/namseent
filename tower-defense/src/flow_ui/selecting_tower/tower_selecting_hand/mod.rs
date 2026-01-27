@@ -8,7 +8,7 @@ use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
 use crate::theme::button::Button;
-use crate::theme::typography::{TextAlign, headline};
+use crate::theme::typography;
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
@@ -167,30 +167,22 @@ impl Component for InteractionArea<'_> {
                                     let health_cost = game_state
                                         .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
-                                    let mut text = format!(
-                                        "{} {}/{}",
-                                        Icon::new(IconKind::Refresh)
-                                            .size(IconSize::Large)
-                                            .wh(Wh::single(wh.height))
-                                            .as_tag(),
+                                    let reroll_text = format!(
+                                        "{}/{}",
                                         game_state.rerolled_count,
                                         game_state.rerolled_count + game_state.left_reroll_chance,
                                     );
+
+                                    let mut builder = typography::headline()
+                                        .icon::<()>(IconKind::Refresh)
+                                        .space()
+                                        .text(&reroll_text);
+
                                     if health_cost > 0 {
-                                        text.push_str(&format!(
-                                            " {}",
-                                            Icon::new(IconKind::Health)
-                                                .size(IconSize::Small)
-                                                .wh(Wh::single(wh.height * 0.5))
-                                                .as_tag()
-                                        ));
+                                        builder = builder.space().icon::<()>(IconKind::Health);
                                     }
-                                    ctx.add(
-                                        headline(text)
-                                            .color(color)
-                                            .align(TextAlign::Center { wh })
-                                            .build_rich(),
-                                    );
+
+                                    ctx.add(builder.color(color).center(wh));
                                 },
                             )
                             .disabled(

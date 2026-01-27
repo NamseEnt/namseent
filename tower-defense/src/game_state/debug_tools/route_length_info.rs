@@ -18,12 +18,15 @@ impl Component for RouteLengthInfoTool {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(
-                        typography::paragraph(format!("Route Length: {}", route_length)).build(),
+                        typography::paragraph()
+                            .text(&format!("Route Length: {}", route_length))
+                            .build(),
                     );
                 }),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(
-                        typography::paragraph(format!("Active Monsters: {}", active_monsters))
+                        typography::paragraph()
+                            .text(&format!("Active Monsters: {}", active_monsters))
                             .build(),
                     );
                 }),

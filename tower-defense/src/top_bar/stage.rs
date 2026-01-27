@@ -3,7 +3,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::ui::TopBarText,
     palette,
-    theme::typography::headline,
+    theme::typography::{self},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -22,14 +22,15 @@ impl Component for StageIndicator {
         ctx.compose(|ctx| {
             table::horizontal(
                 once(table::fixed(px(128.), |wh, ctx| {
+                    let text = format!(
+                        "{} {stage}",
+                        game_state.text().ui(TopBarText::Stage)
+                    );
                     ctx.add(
-                        headline(format!(
-                            "{} {stage}",
-                            game_state.text().ui(TopBarText::Stage)
-                        ))
-                        .size(crate::theme::typography::FontSize::Medium)
-                        .align(crate::theme::typography::TextAlign::Center { wh })
-                        .build(),
+                        typography::headline()
+                            .text(&text)
+                            .size(typography::FontSize::Medium)
+                            .center(wh),
                     );
                 }))
                 .chain((0..5).map(|offset| {

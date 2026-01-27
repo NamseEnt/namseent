@@ -4,7 +4,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::{TextManager, contract::ContractText},
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, headline, paragraph},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -53,10 +53,10 @@ impl Component for ContractItemContent<'_> {
                         table::ratio(1, move |_, _| {}),
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
                             ctx.add(
-                                headline(contract.status.to_string())
+                                headline()
+                                    .text(&contract.status.to_string())
                                     .size(FontSize::Small)
-                                    .align(TextAlign::Center { wh })
-                                    .build(),
+                                    .center(wh),
                             );
                         }),
                     ]),
@@ -65,22 +65,22 @@ impl Component for ContractItemContent<'_> {
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                     let text = text_manager.contract(ContractText::Risk(&contract.risk));
                     compose_ctx.add(
-                        paragraph(text)
+                        paragraph()
+                            .text(&text)
                             .size(FontSize::Medium)
-                            .align(TextAlign::LeftTop)
                             .max_width(content_width)
-                            .build_rich(),
+                            .left_top(),
                     );
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                     let text = text_manager.contract(ContractText::Reward(&contract.reward));
                     compose_ctx.add(
-                        paragraph(text)
+                        paragraph()
+                            .text(&text)
                             .size(FontSize::Medium)
-                            .align(TextAlign::LeftTop)
                             .max_width(content_width)
-                            .build_rich(),
+                            .left_top(),
                     );
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);

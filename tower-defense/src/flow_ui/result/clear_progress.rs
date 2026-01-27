@@ -1,9 +1,6 @@
 use crate::{
     animation::with_spring,
-    theme::{
-        palette,
-        typography::{self, TextAlign, headline},
-    },
+    theme::{palette, typography},
 };
 use namui::*;
 
@@ -27,12 +24,12 @@ impl Component for ClearProgress {
 
         // 클리어율 텍스트
         ctx.add(
-            headline(format!("{:.2}%", clear_rate))
-                .align(TextAlign::Center { wh })
+            typography::headline()
+                .text(&format!("{:.2}%", clear_rate))
                 .size(typography::FontSize::Medium)
                 .color(palette::ON_SURFACE)
                 .stroke(1.px(), palette::ON_PRIMARY)
-                .build(),
+                .center(wh),
         );
 
         // 진행률 바

@@ -3,7 +3,7 @@ use crate::{
     game_state::use_game_state,
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{FontSize, TextAlign, headline, paragraph},
+    theme::typography::{self, FontSize},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -66,17 +66,16 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
+                        let title = game_state
+                            .text()
+                            .upgrade_board(UpgradeBoardText::Title)
+                            .to_string();
                         ctx.add(
-                            headline(
-                                game_state
-                                    .text()
-                                    .upgrade_board(UpgradeBoardText::Title)
-                                    .to_string(),
-                            )
-                            .size(FontSize::Large)
-                            .align(TextAlign::Center { wh })
-                            .max_width(wh.width)
-                            .build(),
+                            typography::headline()
+                                .text(&title)
+                                .size(FontSize::Large)
+                                .max_width(wh.width)
+                                .center(wh),
                         );
                     }),
                     table::ratio(1, |wh, ctx| {
@@ -148,11 +147,11 @@ impl Component for UpgradeItem {
                             1,
                             table::padding(PADDING, |wh, ctx| {
                                 ctx.add(
-                                    paragraph(&upgrade_info.description)
+                                    typography::paragraph()
+                                        .text(&upgrade_info.description)
                                         .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
                                         .max_width(wh.width)
-                                        .build_rich(),
+                                        .left_top(),
                                 );
                             }),
                         ),

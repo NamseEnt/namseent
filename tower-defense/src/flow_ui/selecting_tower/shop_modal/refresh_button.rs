@@ -1,8 +1,8 @@
 use crate::game_state::{mutate_game_state, use_game_state};
-use crate::icon::{Icon, IconKind, IconSize};
+use crate::icon::IconKind;
 use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{TextAlign, headline};
+use crate::theme::typography;
 use namui::*;
 
 pub struct RefreshButton {
@@ -41,32 +41,18 @@ impl Component for RefreshButton {
             Button::new(wh, &on_refresh, &|wh, color, ctx| {
                 let game_state = use_game_state(ctx);
                 let health_cost = game_state.stage_modifiers.get_shop_reroll_health_cost();
+                let chance_text = game_state.left_shop_refresh_chance.to_string();
 
-                let mut text = format!(
-                    "{}-{}",
-                    Icon::new(IconKind::Refresh)
-                        .size(IconSize::Large)
-                        .wh(Wh::single(wh.height))
-                        .as_tag(),
-                    game_state.left_shop_refresh_chance
-                );
+                let mut builder = typography::headline()
+                    .icon::<()>(IconKind::Refresh)
+                    .text("-")
+                    .text(&chance_text);
 
                 if health_cost > 0 {
-                    text.push_str(&format!(
-                        " {}",
-                        Icon::new(IconKind::Health)
-                            .size(IconSize::Small)
-                            .wh(Wh::single(wh.height * 0.5))
-                            .as_tag()
-                    ));
+                    builder = builder.space().icon::<()>(IconKind::Health);
                 }
 
-                ctx.add(
-                    headline(text)
-                        .color(color)
-                        .align(TextAlign::Center { wh })
-                        .build_rich(),
-                );
+                ctx.add(builder.color(color).center(wh));
             })
             .variant(ButtonVariant::Fab)
             .disabled(disabled),

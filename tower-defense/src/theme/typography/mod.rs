@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(clippy::extra_unused_type_parameters)]
+
 mod builder;
 mod inline_box;
 mod layout;

@@ -4,7 +4,7 @@ use crate::l10n::ui::TopBarText;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
-    typography::{self, headline},
+    typography::{self},
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -32,13 +32,12 @@ impl Component for SettingsModal {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
+                                let text = game_state.text().ui(TopBarText::Settings).to_string();
                                 ctx.add(
-                                    headline(
-                                        game_state.text().ui(TopBarText::Settings).to_string(),
-                                    )
-                                    .size(typography::FontSize::Medium)
-                                    .align(typography::TextAlign::LeftCenter { height: wh.height })
-                                    .build(),
+                                    typography::headline()
+                                        .text(&text)
+                                        .size(typography::FontSize::Medium)
+                                        .left_center(wh.height),
                                 );
                             }),
                             table::fixed(64.px(), |wh, ctx| {

@@ -7,6 +7,7 @@ pub struct StyleDelta {
     pub color: Option<Color>,
     pub bold: Option<bool>,
     pub underline: Option<bool>,
+    pub border: Option<TextStyleBorder>,
 }
 
 impl StyleDelta {
@@ -17,6 +18,7 @@ impl StyleDelta {
             color: None,
             bold: None,
             underline: None,
+            border: None,
         }
     }
 
@@ -27,6 +29,7 @@ impl StyleDelta {
             color: Some(color),
             bold: None,
             underline: None,
+            border: None,
         }
     }
 
@@ -37,6 +40,7 @@ impl StyleDelta {
             color: None,
             bold: Some(true),
             underline: None,
+            border: None,
         }
     }
 
@@ -47,6 +51,18 @@ impl StyleDelta {
             color: None,
             bold: None,
             underline: None,
+            border: None,
+        }
+    }
+
+    /// Create style delta with stroke (border)
+    pub const fn stroke(width: Px, color: Color) -> Self {
+        Self {
+            font_size: None,
+            color: None,
+            bold: None,
+            underline: None,
+            border: Some(TextStyleBorder { color, width }),
         }
     }
 }
@@ -89,6 +105,9 @@ impl StyleContext {
         }
         if let Some(underline) = delta.underline {
             ctx.underline = underline;
+        }
+        if let Some(border) = delta.border {
+            ctx.text_style.border = Some(border);
         }
         ctx
     }

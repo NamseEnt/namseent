@@ -1,6 +1,7 @@
 mod upgrade_kind;
 
-use super::{Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use crate::theme::typography::TypographyBuilder;
 
 pub enum UpgradeKindText<'a> {
     Name(&'a crate::game_state::upgrade::UpgradeKind),
@@ -13,5 +14,30 @@ impl LocalizedText for UpgradeKindText<'_> {
             Language::Korean => self.to_korean(),
             Language::English => self.to_english(),
         }
+    }
+}
+
+impl LocalizedRichText for UpgradeKindText<'_> {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
+        }
+    }
+}
+
+impl UpgradeKindText<'_> {
+    fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+        let text = self.to_korean();
+        builder.text(text)
+    }
+
+    fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+        let text = self.to_english();
+        builder.text(text)
     }
 }

@@ -3,7 +3,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
     rarity::Rarity,
-    theme::typography::paragraph,
+    theme::typography::{self},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -67,27 +67,29 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[0][0]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[0][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(">>>")
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[0][1]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[0][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                     ]),
@@ -107,27 +109,29 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[1][0]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[1][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(">>>")
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[1][1]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[1][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                     ]),
@@ -147,27 +151,29 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[2][0]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[2][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(">>>")
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[2][1]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[2][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                     ]),
@@ -187,27 +193,29 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[3][0]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[3][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(">>>")
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
+                            let text = format!("{}%", weights[3][1]);
                             ctx.add(
-                                paragraph(format!("{}%", weights[3][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
+                                typography::paragraph()
+                                    .text(&text)
+                                    .size(typography::FontSize::Medium)
+                                    .center(wh),
                             );
                         }),
                     ]),

@@ -1,10 +1,9 @@
-use crate::icon::IconAttribute;
 use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     palette,
-    theme::typography::headline,
+    theme::typography::{self},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -40,11 +39,12 @@ impl Component for LevelIndicator {
                     ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
                 }),
                 table::fixed(32.px(), |wh, ctx| {
+                    let level_text = format!("{level}");
                     ctx.add(
-                        headline(format!("{level}",))
-                            .size(crate::theme::typography::FontSize::Medium)
-                            .align(crate::theme::typography::TextAlign::Center { wh })
-                            .build(),
+                        typography::headline()
+                            .text(&level_text)
+                            .size(typography::FontSize::Medium)
+                            .center(wh),
                     );
                 }),
                 table::ratio(1, |_, _| {}),
@@ -66,22 +66,13 @@ impl Component for LevelIndicator {
                                         false => palette::ON_SURFACE,
                                     };
                                     ctx.add(
-                                        headline(format!(
-                                            "{} {}{level_up_cost}",
-                                            Icon::new(IconKind::Level)
-                                                .attributes(vec![IconAttribute {
-                                                    icon_kind: IconKind::Up,
-                                                    position: crate::icon::IconAttributePosition::BottomRight
-                                                }])
-                                                .wh(Wh::single(wh.height))
-                                                .as_tag(),
-                                            Icon::new(IconKind::Gold)
-                                                .wh(Wh::single(wh.height))
-                                                .as_tag(),
-                                        ))
-                                        .align(crate::theme::typography::TextAlign::Center { wh })
-                                        .color(text_color)
-                                        .build_rich(),
+                                        typography::headline()
+                                            .icon::<()>(IconKind::Level)
+                                            .space()
+                                            .icon::<()>(IconKind::Gold)
+                                            .text(&format!("{level_up_cost}"))
+                                            .color(text_color)
+                                            .center(wh),
                                     );
                                 },
                             )

@@ -3,7 +3,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::{
         palette,
-        typography::{FontSize, TextAlign, headline},
+        typography::{self, FontSize},
     },
 };
 use namui::*;
@@ -27,12 +27,13 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
 
     let ctx = ctx.translate(Xy::new(padding, padding));
     // 숫자 렌더링
+    let rank_text = rank.to_string();
     ctx.add(
-        headline(rank.to_string())
+        typography::headline()
+            .text(&rank_text)
             .size(rank_font_size)
             .color(text_color)
-            .align(TextAlign::Center { wh: icon_wh })
-            .build(),
+            .center(icon_wh),
     );
 
     // 문양 아이콘 렌더링 (숫자 아래)

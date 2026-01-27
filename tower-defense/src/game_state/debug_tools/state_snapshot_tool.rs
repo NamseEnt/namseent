@@ -1,6 +1,6 @@
 use crate::game_state::debug_tools::state_snapshot;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{TextAlign, headline, paragraph};
+use crate::theme::typography::{self};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -18,7 +18,7 @@ impl Component for StateSnapshotTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(headline("State snapshots").build());
+                    ctx.add(typography::headline().text("State snapshots").left_top());
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -28,10 +28,10 @@ impl Component for StateSnapshotTool {
                             &|| state_snapshot::save_current_snapshot(),
                             &|wh, text_color, ctx| {
                                 ctx.add(
-                                    paragraph("Save snapshot now")
+                                    typography::paragraph()
+                                        .text("Save snapshot now")
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
+                                        .center(wh),
                                 );
                             },
                         )
@@ -46,10 +46,10 @@ impl Component for StateSnapshotTool {
                             &|| state_snapshot::clear_snapshots(),
                             &|wh, text_color, ctx| {
                                 ctx.add(
-                                    paragraph("Clear all snapshots")
+                                    typography::paragraph()
+                                        .text("Clear all snapshots")
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
+                                        .center(wh),
                                 );
                             },
                         )
@@ -67,11 +67,11 @@ impl Component for StateSnapshotTool {
                                     table::horizontal([
                                         table::ratio(1, |wh, ctx| {
                                             ctx.add(
-                                                paragraph(format!(
-                                                    "Snapshot #{idx} (Stage {stage})"
-                                                ))
-                                                .align(TextAlign::LeftCenter { height: wh.height })
-                                                .build(),
+                                                typography::paragraph()
+                                                    .text(&format!(
+                                                        "Snapshot #{idx} (Stage {stage})"
+                                                    ))
+                                                    .left_center(wh.height),
                                             );
                                         }),
                                         table::fixed(GAP, |_, _| {}),
@@ -82,10 +82,10 @@ impl Component for StateSnapshotTool {
                                                     &move || state_snapshot::restore_snapshot(idx),
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(
-                                                            paragraph("Restore")
+                                                            typography::paragraph()
+                                                                .text("Restore")
                                                                 .color(text_color)
-                                                                .align(TextAlign::Center { wh })
-                                                                .build(),
+                                                                .center(wh),
                                                         );
                                                     },
                                                 )

@@ -11,7 +11,7 @@ use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
-    typography::{self, headline, paragraph},
+    typography::{self},
 };
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
@@ -49,12 +49,10 @@ impl Component for DebugToolsModal {
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(
-                                    headline("Debug Tools")
+                                    typography::headline()
+                                        .text("Debug Tools")
                                         .size(typography::FontSize::Medium)
-                                        .align(typography::TextAlign::LeftCenter {
-                                            height: wh.height,
-                                        })
-                                        .build(),
+                                        .left_center(wh.height),
                                 );
                             }),
                             table::fixed(48.px(), |wh, ctx| {
@@ -131,12 +129,10 @@ impl Component for DebugToolsModal {
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
-                                                                paragraph("Add Shop Reroll Item")
+                                                                typography::paragraph()
+                                                                    .text("Add Shop Reroll Item")
                                                                     .color(text_color)
-                                                                    .align(typography::TextAlign::Center {
-                                                                        wh,
-                                                                    })
-                                                                    .build(),
+                                                                    .center(wh),
                                                             );
                                                         },
                                                     )
@@ -159,12 +155,10 @@ impl Component for DebugToolsModal {
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
-                                                                paragraph("Add Hand Reroll Item")
+                                                                typography::paragraph()
+                                                                    .text("Add Hand Reroll Item")
                                                                     .color(text_color)
-                                                                    .align(typography::TextAlign::Center {
-                                                                        wh,
-                                                                    })
-                                                                    .build(),
+                                                                    .center(wh),
                                                             );
                                                         },
                                                     )

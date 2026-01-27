@@ -1,6 +1,6 @@
 use crate::{
     game_state::{fast_forward::FastForwardMultiplier, mutate_game_state, use_game_state},
-    theme::typography::{TextAlign, paragraph},
+    theme::typography,
     theme::{button::Button, palette},
 };
 use namui::*;
@@ -50,9 +50,9 @@ impl Component for GameSpeedIndicator {
                 // Current speed display
                 table::fixed(32.px(), |wh, ctx| {
                     ctx.add(
-                        paragraph(format!("Speed: {current_speed_text}"))
-                            .align(TextAlign::Center { wh })
-                            .build(),
+                        typography::paragraph()
+                            .text(&format!("Speed: {current_speed_text}"))
+                            .center(wh),
                     );
                 }),
                 // Buttons row
@@ -63,10 +63,10 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &slower_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        paragraph("<<")
+                                        typography::paragraph()
+                                            .text("<<")
                                             .color(color)
-                                            .align(TextAlign::Center { wh })
-                                            .build(),
+                                            .center(wh),
                                     );
                                 })
                                 .disabled(
@@ -78,10 +78,10 @@ impl Component for GameSpeedIndicator {
                         table::fixed(36.px(), |wh, ctx| {
                             ctx.add(Button::new(wh, &default_action, &|wh, color, ctx| {
                                 ctx.add(
-                                    paragraph("1x")
+                                    typography::paragraph()
+                                        .text("1x")
                                         .color(color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
+                                        .center(wh),
                                 );
                             }));
                         }),
@@ -90,10 +90,10 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &faster_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        paragraph(">>")
+                                        typography::paragraph()
+                                            .text(">>")
                                             .color(color)
-                                            .align(TextAlign::Center { wh })
-                                            .build(),
+                                            .center(wh),
                                     );
                                 })
                                 .disabled(
