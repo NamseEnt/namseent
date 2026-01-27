@@ -35,8 +35,8 @@ impl Component for SettingsModal {
                                 let text = game_state.text().ui(TopBarText::Settings).to_string();
                                 ctx.add(
                                     typography::headline()
-                                        .text(&text)
                                         .size(typography::FontSize::Medium)
+                                        .text(&text)
                                         .left_center(wh.height),
                                 );
                             }),

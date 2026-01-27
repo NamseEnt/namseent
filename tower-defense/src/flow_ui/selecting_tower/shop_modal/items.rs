@@ -210,9 +210,9 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                         table::fit(table::FitAlign::LeftTop, move |ctx| {
                             ctx.add(
                                 typography::headline()
-                                    .text(&name)
                                     .size(FontSize::Small)
                                     .max_width(wh.width)
+                                    .text(&name)
                                     .left_top(),
                             );
                         }),
@@ -220,9 +220,9 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                         table::ratio(1, move |wh, ctx| {
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&description)
                                     .size(FontSize::Medium)
                                     .max_width(wh.width)
+                                    .text(&description)
                                     .left_top(),
                             );
                         }),
@@ -242,8 +242,8 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                             typography::headline()
                                                 .icon::<()>(IconKind::Gold)
                                                 .space()
-                                                .text(format!("{cost}"))
                                                 .color(color)
+                                                .text(format!("{cost}"))
                                                 .center(wh),
                                         );
                                     },
@@ -415,8 +415,8 @@ impl Component for ShopItemSoldOut {
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
                     ctx.add(
                         typography::headline()
-                            .text(game_state.text().ui(TopBarText::SoldOut))
                             .size(FontSize::Medium)
+                            .text(game_state.text().ui(TopBarText::SoldOut))
                             .center(wh),
                     );
                     ctx.add(simple_rect(

@@ -70,16 +70,16 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[0][0]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
                                 typography::paragraph()
-                                    .text(">>>")
                                     .size(typography::FontSize::Medium)
+                                    .text(">>>")
                                     .center(wh),
                             );
                         }),
@@ -87,8 +87,8 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[0][1]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
@@ -112,16 +112,16 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[1][0]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
                                 typography::paragraph()
-                                    .text(">>>")
                                     .size(typography::FontSize::Medium)
+                                    .text(">>>")
                                     .center(wh),
                             );
                         }),
@@ -129,8 +129,8 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[1][1]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
@@ -154,16 +154,16 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[2][0]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
                                 typography::paragraph()
-                                    .text(">>>")
                                     .size(typography::FontSize::Medium)
+                                    .text(">>>")
                                     .center(wh),
                             );
                         }),
@@ -171,8 +171,8 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[2][1]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
@@ -196,16 +196,16 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[3][0]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
                             ctx.add(
                                 typography::paragraph()
-                                    .text(">>>")
                                     .size(typography::FontSize::Medium)
+                                    .text(">>>")
                                     .center(wh),
                             );
                         }),
@@ -213,8 +213,8 @@ impl Component for LevelUpDetails {
                             let text = format!("{}%", weights[3][1]);
                             ctx.add(
                                 typography::paragraph()
-                                    .text(&text)
                                     .size(typography::FontSize::Medium)
+                                    .text(&text)
                                     .center(wh),
                             );
                         }),

@@ -63,7 +63,7 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &slower_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        typography::paragraph().text("<<").color(color).center(wh),
+                                        typography::paragraph().color(color).text("<<").center(wh),
                                     );
                                 })
                                 .disabled(
@@ -74,7 +74,7 @@ impl Component for GameSpeedIndicator {
                         // Default button
                         table::fixed(36.px(), |wh, ctx| {
                             ctx.add(Button::new(wh, &default_action, &|wh, color, ctx| {
-                                ctx.add(typography::paragraph().text("1x").color(color).center(wh));
+                                ctx.add(typography::paragraph().color(color).text("1x").center(wh));
                             }));
                         }),
                         // Faster button
@@ -82,7 +82,7 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &faster_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        typography::paragraph().text(">>").color(color).center(wh),
+                                        typography::paragraph().color(color).text(">>").center(wh),
                                     );
                                 })
                                 .disabled(

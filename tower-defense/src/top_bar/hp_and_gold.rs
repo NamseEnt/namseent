@@ -26,8 +26,8 @@ impl Component for HPAndGoldIndicator {
                             let hp_text = format!("{:.0}", hp * 100.0);
                             ctx.add(
                                 typography::headline()
-                                    .text(&hp_text)
                                     .size(FontSize::Medium)
+                                    .text(&hp_text)
                                     .center(wh),
                             );
                         }),
@@ -60,8 +60,8 @@ impl Component for HPAndGoldIndicator {
                             let gold_text = format!("{gold}");
                             ctx.add(
                                 typography::headline()
-                                    .text(&gold_text)
                                     .size(FontSize::Medium)
+                                    .text(&gold_text)
                                     .right_top(wh.width),
                             );
                         }),

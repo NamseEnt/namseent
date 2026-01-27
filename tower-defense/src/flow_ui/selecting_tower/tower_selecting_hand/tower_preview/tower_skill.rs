@@ -128,6 +128,8 @@ impl Component for TowerEffectDescription<'_> {
                     table::fit(table::FitAlign::LeftTop, |ctx| {
                         ctx.add(
                             typography::headline()
+                                .size(FontSize::Small)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
                                 .l10n(
                                     match skill.kind {
                                         TowerSkillKind::NearbyTowerDamageMul { .. } => {
@@ -157,8 +159,6 @@ impl Component for TowerEffectDescription<'_> {
                                     },
                                     locale,
                                 )
-                                .size(FontSize::Small)
-                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
                                 .left_top(),
                         );
                     }),
@@ -166,6 +166,8 @@ impl Component for TowerEffectDescription<'_> {
                     table::fit(table::FitAlign::LeftTop, |ctx| {
                         ctx.add(
                             typography::paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
                                 .l10n(
                                     match skill.kind {
                                         TowerSkillKind::NearbyTowerDamageMul {
@@ -222,8 +224,6 @@ impl Component for TowerEffectDescription<'_> {
                                     },
                                     locale,
                                 )
-                                .size(FontSize::Medium)
-                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
                                 .left_top(),
                         );
                     }),

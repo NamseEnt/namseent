@@ -29,8 +29,8 @@ impl Component for StateSnapshotTool {
                             &|wh, text_color, ctx| {
                                 ctx.add(
                                     typography::paragraph()
-                                        .text("Save snapshot now")
                                         .color(text_color)
+                                        .text("Save snapshot now")
                                         .center(wh),
                                 );
                             },
@@ -47,8 +47,8 @@ impl Component for StateSnapshotTool {
                             &|wh, text_color, ctx| {
                                 ctx.add(
                                     typography::paragraph()
-                                        .text("Clear all snapshots")
                                         .color(text_color)
+                                        .text("Clear all snapshots")
                                         .center(wh),
                                 );
                             },
@@ -83,8 +83,8 @@ impl Component for StateSnapshotTool {
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(
                                                             typography::paragraph()
-                                                                .text("Restore")
                                                                 .color(text_color)
+                                                                .text("Restore")
                                                                 .center(wh),
                                                         );
                                                     },

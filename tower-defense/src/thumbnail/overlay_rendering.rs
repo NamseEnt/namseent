@@ -46,12 +46,12 @@ pub fn render_text_overlay(
     let overlay_position = position.calculate_position(container_size, overlay_size);
 
     let rendered_text = typography::headline()
-        .static_text(text)
         .size(FontSize::Custom {
             size: overlay_size.height * text_size_ratio,
         })
         .color(Color::WHITE)
         .stroke(overlay_size.height * text_size_ratio * 0.05, Color::BLACK)
+        .static_text(text)
         .build();
 
     let text_offset = Xy {

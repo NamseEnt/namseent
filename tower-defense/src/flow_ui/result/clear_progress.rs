@@ -25,10 +25,10 @@ impl Component for ClearProgress {
         // 클리어율 텍스트
         ctx.add(
             typography::headline()
-                .text(format!("{:.2}%", clear_rate))
                 .size(typography::FontSize::Medium)
                 .color(palette::ON_SURFACE)
                 .stroke(1.px(), palette::ON_PRIMARY)
+                .text(format!("{:.2}%", clear_rate))
                 .center(wh),
         );
 

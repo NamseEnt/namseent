@@ -85,13 +85,15 @@ impl Component for Inventory {
                                                                 &|wh, color, ctx| {
                                                                     ctx.add(
                                                                         typography::headline()
+                                                                            .size(FontSize::Small)
+                                                                            .color(color)
                                                                             .text(
                                                                                 game_state
                                                                                     .text()
-                                                                                    .ui(TopBarText::Use),
+                                                                                    .ui(
+                                                                                    TopBarText::Use,
+                                                                                ),
                                                                             )
-                                                                            .size(FontSize::Small)
-                                                                            .color(color)
                                                                             .center(wh),
                                                                     );
                                                                 },
@@ -106,8 +108,8 @@ impl Component for Inventory {
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(
                                                 typography::headline()
-                                                    .text(&name)
                                                     .size(FontSize::Small)
+                                                    .text(&name)
                                                     .max_width(content_width)
                                                     .left_top(),
                                             );
@@ -116,9 +118,9 @@ impl Component for Inventory {
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(
                                                 typography::paragraph()
-                                                    .text(&desc)
                                                     .size(FontSize::Medium)
                                                     .max_width(content_width)
+                                                    .text(&desc)
                                                     .left_top(),
                                             );
                                         }),

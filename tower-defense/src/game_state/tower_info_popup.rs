@@ -46,10 +46,10 @@ impl Component for TowerInfoPopup<'_> {
                                         &|wh, text_color, ctx| {
                                             ctx.add(
                                                 typography::paragraph()
-                                                    .text("철거")
                                                     .size(FontSize::Medium)
                                                     .color(text_color)
                                                     .max_width(wh.width)
+                                                    .text("철거")
                                                     .center(wh),
                                             );
                                         },

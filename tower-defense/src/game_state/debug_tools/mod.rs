@@ -50,8 +50,8 @@ impl Component for DebugToolsModal {
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(
                                     typography::headline()
-                                        .text("Debug Tools")
                                         .size(typography::FontSize::Medium)
+                                        .text("Debug Tools")
                                         .left_center(wh.height),
                                 );
                             }),
@@ -130,8 +130,8 @@ impl Component for DebugToolsModal {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
                                                                 typography::paragraph()
-                                                                    .text("Add Shop Reroll Item")
                                                                     .color(text_color)
+                                                                    .text("Add Shop Reroll Item")
                                                                     .center(wh),
                                                             );
                                                         },
@@ -156,8 +156,8 @@ impl Component for DebugToolsModal {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
                                                                 typography::paragraph()
-                                                                    .text("Add Hand Reroll Item")
                                                                     .color(text_color)
+                                                                    .text("Add Hand Reroll Item")
                                                                     .center(wh),
                                                             );
                                                         },

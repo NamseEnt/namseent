@@ -79,8 +79,8 @@ impl Component for TowerPlacingHand {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(
                                                                 typography::headline()
-                                                                    .text("START")
                                                                     .color(text_color)
+                                                                    .text("START")
                                                                     .center(wh),
                                                             );
                                                         },

@@ -72,9 +72,9 @@ impl Component for UpgradeBoard {
                             .to_string();
                         ctx.add(
                             typography::headline()
-                                .text(&title)
                                 .size(FontSize::Large)
                                 .max_width(wh.width)
+                                .text(&title)
                                 .center(wh),
                         );
                     }),
@@ -148,9 +148,9 @@ impl Component for UpgradeItem {
                             table::padding(PADDING, |wh, ctx| {
                                 ctx.add(
                                     typography::paragraph()
-                                        .text(&upgrade_info.description)
                                         .size(FontSize::Medium)
                                         .max_width(wh.width)
+                                        .text(&upgrade_info.description)
                                         .left_top(),
                                 );
                             }),

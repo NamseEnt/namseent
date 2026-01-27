@@ -189,8 +189,8 @@ impl Component for PlaceSelectedTowerInSpiralButton {
                 &|wh, text_color, ctx| {
                     ctx.add(
                         typography::paragraph()
-                            .text("Place selected tower in spiral")
                             .color(text_color)
+                            .text("Place selected tower in spiral")
                             .center(wh),
                     );
                 },

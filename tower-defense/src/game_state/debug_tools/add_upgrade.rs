@@ -289,8 +289,8 @@ impl Component for AddUpgradeTool {
                     );
                     ctx.add(
                         typography::paragraph()
-                            .text(&info_text)
                             .color(palette::ON_SURFACE_VARIANT)
+                            .text(&info_text)
                             .left_top(),
                     );
                 }),
@@ -315,8 +315,8 @@ impl Component for AddUpgradeTool {
                                                 table::ratio(1, |wh, ctx| {
                                                     ctx.add(
                                                         typography::paragraph()
-                                                            .text(text)
                                                             .color(text_color)
+                                                            .text(text)
                                                             .left_center(wh.height),
                                                     );
                                                 }),
@@ -355,8 +355,8 @@ impl Component for AddUpgradeTool {
                                                 table::ratio(1, |wh, ctx| {
                                                     ctx.add(
                                                         typography::paragraph()
-                                                            .text(&text)
                                                             .color(text_color)
+                                                            .text(&text)
                                                             .left_center(wh.height),
                                                     );
                                                 }),
@@ -402,8 +402,8 @@ impl Component for AddUpgradeTool {
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(
                                                         typography::paragraph()
-                                                            .text(text)
                                                             .color(text_color)
+                                                            .text(text)
                                                             .left_center(wh.height),
                                                     );
                                                 },
@@ -441,8 +441,8 @@ impl Component for AddUpgradeTool {
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(
                                                         typography::paragraph()
-                                                            .text(&text)
                                                             .color(text_color)
+                                                            .text(&text)
                                                             .left_center(wh.height),
                                                     );
                                                 },
@@ -471,8 +471,8 @@ impl Component for AddUpgradeTool {
                             &|wh, text_color, ctx| {
                                 ctx.add(
                                     typography::paragraph()
-                                        .text("업그레이드 획득")
                                         .color(text_color)
+                                        .text("업그레이드 획득")
                                         .center(wh),
                                 );
                             },

@@ -42,8 +42,8 @@ impl Component for LevelIndicator {
                     let level_text = format!("{level}");
                     ctx.add(
                         typography::headline()
-                            .text(&level_text)
                             .size(typography::FontSize::Medium)
+                            .text(&level_text)
                             .center(wh),
                     );
                 }),
@@ -70,8 +70,8 @@ impl Component for LevelIndicator {
                                             .icon::<()>(IconKind::Level)
                                             .space()
                                             .icon::<()>(IconKind::Gold)
-                                            .text(format!("{level_up_cost}"))
                                             .color(text_color)
+                                            .text(format!("{level_up_cost}"))
                                             .center(wh),
                                     );
                                 },

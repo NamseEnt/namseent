@@ -56,10 +56,10 @@ impl Component for AutoSetupButton {
                 &|wh, text_color, ctx| {
                     ctx.add(
                         typography::paragraph()
+                            .color(text_color)
                             .text(
                                 "Auto setup: snapshot → place expected tower → expected upgrade → spiral place → defense",
                             )
-                            .color(text_color)
                             .center(wh),
                     );
                 },

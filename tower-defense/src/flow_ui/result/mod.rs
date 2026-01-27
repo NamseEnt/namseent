@@ -52,8 +52,8 @@ impl Component for ResultModal {
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
                             ctx.add(
                                 typography::headline()
-                                    .text(game_state.text().result_modal(ResultModalText::Title))
                                     .size(typography::FontSize::Large)
+                                    .text(game_state.text().result_modal(ResultModalText::Title))
                                     .center(wh),
                             );
                         }),
@@ -81,13 +81,13 @@ impl Component for ResultModal {
                                     &|wh, text_color, ctx| {
                                         ctx.add(
                                             typography::headline()
+                                                .size(typography::FontSize::Medium)
+                                                .color(text_color)
                                                 .text(
                                                     game_state.text().result_modal(
                                                         ResultModalText::RestartButton,
                                                     ),
                                                 )
-                                                .size(typography::FontSize::Medium)
-                                                .color(text_color)
                                                 .center(wh),
                                         );
                                     },

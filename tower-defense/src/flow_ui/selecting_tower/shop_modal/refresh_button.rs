@@ -44,6 +44,7 @@ impl Component for RefreshButton {
                 let chance_text = game_state.left_shop_refresh_chance.to_string();
 
                 let mut builder = typography::headline()
+                    .color(color)
                     .icon::<()>(IconKind::Refresh)
                     .text("-")
                     .text(&chance_text);
@@ -52,7 +53,7 @@ impl Component for RefreshButton {
                     builder = builder.space().icon::<()>(IconKind::Health);
                 }
 
-                ctx.add(builder.color(color).center(wh));
+                ctx.add(builder.center(wh));
             })
             .variant(ButtonVariant::Fab)
             .disabled(disabled),

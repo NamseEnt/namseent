@@ -134,8 +134,8 @@ impl EventItem<'_> {
             table::padding(PADDING, |wh, ctx| {
                 ctx.add(
                     typography::headline()
-                        .text(event_text)
                         .size(typography::FontSize::Small)
+                        .text(event_text)
                         .left_center(wh.height),
                 );
             })(wh, ctx);
@@ -187,9 +187,9 @@ impl Component for EventTooltip {
         let text = ctx.ghost_add(
             "tooltip-text",
             typography::paragraph()
-                .text(&content)
                 .size(typography::FontSize::Small)
                 .max_width(text_max_width)
+                .text(&content)
                 .left_top(),
         );
 
@@ -314,9 +314,9 @@ impl Component for TimelineIconComponent<'_> {
         if let HistoryEventType::StageStart { stage } = event_type {
             ctx.translate(wh.to_xy() * -0.5).add(
                 typography::headline()
-                    .text(stage.to_string())
                     .size(typography::FontSize::Medium)
                     .color(palette::ON_PRIMARY)
+                    .text(stage.to_string())
                     .center(wh),
             );
         }

@@ -28,8 +28,8 @@ impl Component for StageIndicator {
                     );
                     ctx.add(
                         typography::headline()
-                            .text(&text)
                             .size(typography::FontSize::Medium)
+                            .text(&text)
                             .center(wh),
                     );
                 }))

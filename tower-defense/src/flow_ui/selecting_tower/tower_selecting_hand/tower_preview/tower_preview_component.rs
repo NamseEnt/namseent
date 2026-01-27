@@ -79,7 +79,9 @@ impl Component for TowerPreviewContent<'_> {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
                         let rank_text = tower_template.rank.to_string();
-                        let mut builder = typography::headline();
+                        let mut builder = typography::headline()
+                            .size(FontSize::Small)
+                            .max_width(wh.width);
 
                         if !matches!(
                             tower_template.kind,
@@ -96,8 +98,6 @@ impl Component for TowerPreviewContent<'_> {
                         ctx.add(
                             builder
                                 .text(game_state.text().tower(tower_template.kind.to_text()))
-                                .size(FontSize::Small)
-                                .max_width(wh.width)
                                 .left_center(wh.height),
                         );
                     }),
@@ -113,8 +113,8 @@ impl Component for TowerPreviewContent<'_> {
                         );
                         ctx.add(
                             typography::paragraph()
-                                .text(format_compact_number(rating))
                                 .size(FontSize::Medium)
+                                .text(format_compact_number(rating))
                                 .right_top(wh.width),
                         );
                     }),

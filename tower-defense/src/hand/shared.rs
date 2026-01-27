@@ -30,9 +30,9 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
     let rank_text = rank.to_string();
     ctx.add(
         typography::headline()
-            .text(&rank_text)
             .size(rank_font_size)
             .color(text_color)
+            .text(&rank_text)
             .center(icon_wh),
     );
 

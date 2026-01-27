@@ -54,8 +54,8 @@ impl Component for ContractItemContent<'_> {
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
                             ctx.add(
                                 headline()
-                                    .text(contract.status.to_string())
                                     .size(FontSize::Small)
+                                    .text(contract.status.to_string())
                                     .center(wh),
                             );
                         }),
@@ -66,9 +66,9 @@ impl Component for ContractItemContent<'_> {
                     let text = text_manager.contract(ContractText::Risk(&contract.risk));
                     compose_ctx.add(
                         paragraph()
-                            .text(&text)
                             .size(FontSize::Medium)
                             .max_width(content_width)
+                            .text(&text)
                             .left_top(),
                     );
                 }),
@@ -77,9 +77,9 @@ impl Component for ContractItemContent<'_> {
                     let text = text_manager.contract(ContractText::Reward(&contract.reward));
                     compose_ctx.add(
                         paragraph()
-                            .text(&text)
                             .size(FontSize::Medium)
                             .max_width(content_width)
+                            .text(&text)
                             .left_top(),
                     );
                 }),
