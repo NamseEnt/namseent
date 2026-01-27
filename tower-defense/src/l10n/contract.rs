@@ -1,5 +1,5 @@
 use super::effect::EffectText;
-use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use super::{Language, Locale, LocalizedRichText};
 use crate::game_state::contract::ContractEffect;
 use crate::rarity::Rarity;
 use crate::theme::palette;
@@ -8,32 +8,6 @@ use crate::theme::typography::TypographyBuilder;
 pub enum ContractText<'a> {
     Risk(&'a ContractEffect),
     Reward(&'a ContractEffect),
-}
-
-impl LocalizedText for ContractText<'_> {
-    fn localized_text(&self, locale: &Locale) -> String {
-        // LocalizedRichText를 사용하도록 유도
-        match locale.language {
-            Language::Korean => match self {
-                ContractText::Risk(ce) => format!(
-                    "리스크:  {} · {}",
-                    phase_ko(ce),
-                    effect_suffix_string_ko(ce)
-                ),
-                ContractText::Reward(ce) => {
-                    format!("리턴: {} · {}", phase_ko(ce), effect_suffix_string_ko(ce))
-                }
-            },
-            Language::English => match self {
-                ContractText::Risk(ce) => {
-                    format!("Risk: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-                }
-                ContractText::Reward(ce) => {
-                    format!("Return: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-                }
-            },
-        }
-    }
 }
 
 impl LocalizedRichText for ContractText<'_> {
@@ -50,6 +24,30 @@ impl LocalizedRichText for ContractText<'_> {
 }
 
 impl<'a> ContractText<'a> {
+    pub(super) fn text_korean(self) -> String {
+        match self {
+            ContractText::Risk(ce) => format!(
+                "리스크:  {} · {}",
+                phase_ko(ce),
+                effect_suffix_string_ko(ce)
+            ),
+            ContractText::Reward(ce) => {
+                format!("리턴: {} · {}", phase_ko(ce), effect_suffix_string_ko(ce))
+            }
+        }
+    }
+
+    pub(super) fn text_english(self) -> String {
+        match self {
+            ContractText::Risk(ce) => {
+                format!("Risk: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
+            }
+            ContractText::Reward(ce) => {
+                format!("Return: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
+            }
+        }
+    }
+
     fn apply_korean<'b>(self, builder: TypographyBuilder<'b>) -> TypographyBuilder<'b> {
         match self {
             ContractText::Risk(ce) => {
@@ -100,15 +98,6 @@ impl<'a> ContractText<'a> {
 // 계약 이름 (희귀도 기반) l10n
 pub enum ContractNameText {
     Rarity(Rarity),
-}
-
-impl LocalizedText for ContractNameText {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match locale.language {
-            Language::Korean => self.to_korean().to_string(),
-            Language::English => self.to_english().to_string(),
-        }
-    }
 }
 
 impl LocalizedRichText for ContractNameText {
@@ -243,7 +232,7 @@ fn effect_suffix_string_ko(ce: &ContractEffect) -> String {
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    EffectText::Description(eff.clone()).localized_text(&Locale::KOREAN)
+    EffectText::Description(eff.clone()).text_korean()
 }
 
 fn effect_suffix_string_en(ce: &ContractEffect) -> String {
@@ -253,7 +242,7 @@ fn effect_suffix_string_en(ce: &ContractEffect) -> String {
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    EffectText::Description(eff.clone()).localized_text(&Locale::ENGLISH)
+    EffectText::Description(eff.clone()).text_english()
 }
 
 fn apply_effect_suffix_ko<'a>(

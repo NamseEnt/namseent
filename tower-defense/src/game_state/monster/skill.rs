@@ -1,6 +1,5 @@
 use super::*;
 use crate::game_state::GameState;
-use crate::l10n::LocalizedText;
 use namui::Instant;
 use std::ops::Deref;
 
@@ -45,7 +44,10 @@ pub enum MonsterSkillKind {
 
 impl MonsterSkillKind {
     pub fn description(&self, locale: &crate::l10n::Locale) -> String {
-        crate::l10n::monster_skill::MonsterSkillText::Description(*self).localized_text(locale)
+        match locale.language {
+            crate::l10n::Language::Korean => crate::l10n::monster_skill::MonsterSkillText::Description(*self).text_korean(),
+            crate::l10n::Language::English => crate::l10n::monster_skill::MonsterSkillText::Description(*self).text_english(),
+        }
     }
 }
 

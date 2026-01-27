@@ -15,7 +15,7 @@ pub trait LocalizedText {
     fn localized_text(&self, locale: &Locale) -> String;
 }
 
-// ❌ 레거시 - 제거 대상  
+// ❌ 레거시 - 제거 대상
 pub trait LocalizedStaticText {
     fn localized_text(&self, locale: &Locale) -> &'static str;
 }
@@ -43,55 +43,55 @@ pub trait LocalizedRichText {
 
 ### Phase 1: Trait 정의 파일
 
-| 파일 | 상태 | 작업 내용 |
-|------|------|----------|
-| `src/l10n/locale.rs` | ⏳ 대기 | Phase 5에서 trait 제거 |
-| `src/l10n/mod.rs` | ⏳ 대기 | Phase 5에서 re-export 정리 |
+| 파일                 | 상태    | 작업 내용                  |
+| -------------------- | ------- | -------------------------- |
+| `src/l10n/locale.rs` | ⏳ 대기 | Phase 5에서 trait 제거     |
+| `src/l10n/mod.rs`    | ⏳ 대기 | Phase 5에서 re-export 정리 |
 
 ### Phase 2: LocalizedStaticText 구현 제거 (3개 타입)
 
-| ID | 파일 | 타입 | 상태 | 담당 |
-|----|------|------|------|------|
-| 2.1 | `src/l10n/tower.rs` | `TowerKindText` | ⬜ 미시작 | |
-| 2.2 | `src/l10n/ui.rs` | `TopBarText` | ⬜ 미시작 | |
-| 2.3 | `src/l10n/ui.rs` | `ResultModalText` | ⬜ 미시작 | |
+| ID  | 파일                | 타입              | 상태    | 담당 |
+| --- | ------------------- | ----------------- | ------- | ---- |
+| 2.1 | `src/l10n/tower.rs` | `TowerKindText`   | ✅ 완료 |      |
+| 2.2 | `src/l10n/ui.rs`    | `TopBarText`      | ✅ 완료 |      |
+| 2.3 | `src/l10n/ui.rs`    | `ResultModalText` | ✅ 완료 |      |
 
 ### Phase 3: LocalizedText 구현 제거 (11개 타입)
 
-| ID | 파일 | 타입 | 상태 | 담당 |
-|----|------|------|------|------|
-| 3.1 | `src/l10n/effect.rs` | `EffectText` | ⬜ 미시작 | |
-| 3.2 | `src/l10n/effect.rs` | `EffectExecutionErrorText` | ⬜ 미시작 | |
-| 3.3 | `src/l10n/tower_skill.rs` | `TowerSkillText` | ⬜ 미시작 | |
-| 3.4 | `src/l10n/event.rs` | `EventText` | ⬜ 미시작 | |
-| 3.5 | `src/l10n/quest.rs` | `QuestText` | ⬜ 미시작 | |
-| 3.6 | `src/l10n/quest.rs` | `QuestRewardText` | ⬜ 미시작 | |
-| 3.7 | `src/l10n/upgrade_board.rs` | `UpgradeBoardText` | ⬜ 미시작 | |
-| 3.8 | `src/l10n/upgrade/mod.rs` | `UpgradeKindText` | ⬜ 미시작 | |
-| 3.9 | `src/l10n/monster_skill.rs` | `MonsterSkillText` | ⬜ 미시작 | |
-| 3.10 | `src/l10n/contract.rs` | `ContractText` | ⬜ 미시작 | |
-| 3.11 | `src/l10n/contract.rs` | `ContractNameText` | ⬜ 미시작 | |
+| ID   | 파일                        | 타입                       | 상태    | 담당                    |
+| ---- | --------------------------- | -------------------------- | ------- | ----------------------- |
+| 3.1  | `src/l10n/effect.rs`        | `EffectText`               | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.2  | `src/l10n/effect.rs`        | `EffectExecutionErrorText` | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.3  | `src/l10n/tower_skill.rs`   | `TowerSkillText`           | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.4  | `src/l10n/event.rs`         | `EventText`                | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.5  | `src/l10n/quest.rs`         | `QuestText`                | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.6  | `src/l10n/quest.rs`         | `QuestRewardText`          | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.7  | `src/l10n/upgrade_board.rs` | `UpgradeBoardText`         | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.8  | `src/l10n/upgrade/mod.rs`   | `UpgradeKindText`          | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.9  | `src/l10n/monster_skill.rs` | `MonsterSkillText`         | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.10 | `src/l10n/contract.rs`      | `ContractText`             | ⏳ 보류 | api.rs 의존성 유지 필요 |
+| 3.11 | `src/l10n/contract.rs`      | `ContractNameText`         | ⏳ 보류 | api.rs 의존성 유지 필요 |
 
 ### Phase 4: 호출부 마이그레이션
 
-| ID | 파일 | 호출 수 | 상태 | 설명 |
-|----|------|---------|------|------|
-| 4.1 | `src/l10n/api.rs` | ~12 | ⬜ 미시작 | `TextManager` 메서드들 |
-| 4.2 | `src/l10n/event.rs` | ~24 | ⬜ 미시작 | `EffectText`, `UpgradeKindText`, `ContractText` 호출 |
-| 4.3 | `src/l10n/contract.rs` | 2 | ⬜ 미시작 | `EffectText::Description` 호출 (L246, L256) |
-| 4.4 | `src/l10n/quest.rs` | 2 | ⬜ 미시작 | `self.localized_text()` 호출 (L183, L231) |
-| 4.5 | `src/l10n/upgrade_board.rs` | 1 | ⬜ 미시작 | `self.localized_text()` 호출 (L45) |
-| 4.6 | `src/l10n/tower.rs` | 1 | ⬜ 미시작 | `self.localized_text()` 호출 (L35) |
-| 4.7 | `src/l10n/ui.rs` | 2 | ⬜ 미시작 | `self.localized_text()` 호출 (L39, L88) |
-| 4.8 | `src/game_state/monster/skill.rs` | 1 | ⬜ 미시작 | `MonsterSkillText::Description` 호출 (L48) |
+| ID  | 파일                              | 호출 수 | 상태    | 설명                                                   |
+| --- | --------------------------------- | ------- | ------- | ------------------------------------------------------ |
+| 4.1 | `src/l10n/api.rs`                 | ~12     | ✅ 완료 | `TextManager` 메서드들 match 구문으로 변경             |
+| 4.2 | `src/l10n/event.rs`               | ~24     | ✅ 완료 | 내부 `.localized_text()` 호출 제거, helper 메서드 사용 |
+| 4.3 | `src/l10n/contract.rs`            | 2       | ✅ 완료 | `.text_korean()`, `.text_english()` 메서드 사용        |
+| 4.4 | `src/l10n/quest.rs`               | 2       | ✅ 완료 | match 구문으로 변경                                    |
+| 4.5 | `src/l10n/upgrade_board.rs`       | 1       | ✅ 완료 | match 구문으로 변경, visibility 수정                   |
+| 4.6 | `src/l10n/tower.rs`               | 1       | ✅ 완료 | Phase 2에서 처리 완료                                  |
+| 4.7 | `src/l10n/ui.rs`                  | 2       | ✅ 완료 | Phase 2에서 처리 완료                                  |
+| 4.8 | `src/game_state/monster/skill.rs` | 1       | ✅ 완료 | match 구문으로 변경                                    |
 
 ### Phase 5: Trait 및 re-export 정리
 
-| ID | 파일 | 상태 | 작업 내용 |
-|----|------|------|----------|
+| ID  | 파일                 | 상태      | 작업 내용                                         |
+| --- | -------------------- | --------- | ------------------------------------------------- |
 | 5.1 | `src/l10n/locale.rs` | ⬜ 미시작 | `LocalizedText`, `LocalizedStaticText` trait 삭제 |
-| 5.2 | `src/l10n/mod.rs` | ⬜ 미시작 | trait re-export에서 제거 |
-| 5.3 | 각 l10n 파일들 | ⬜ 미시작 | 불필요한 import 제거 |
+| 5.2 | `src/l10n/mod.rs`    | ⬜ 미시작 | trait re-export에서 제거                          |
+| 5.3 | 각 l10n 파일들       | ⬜ 미시작 | 불필요한 import 제거                              |
 
 ---
 
@@ -100,6 +100,7 @@ pub trait LocalizedRichText {
 ### Task 2.x: LocalizedStaticText 구현 제거
 
 **변경 전 (tower.rs 예시):**
+
 ```rust
 use super::{Language, Locale, LocalizedRichText, LocalizedStaticText};
 
@@ -120,6 +121,7 @@ impl LocalizedRichText for TowerKindText {
 ```
 
 **변경 후:**
+
 ```rust
 use super::{Language, Locale, LocalizedRichText};  // LocalizedStaticText 제거
 
@@ -138,6 +140,7 @@ impl LocalizedRichText for TowerKindText {
 ### Task 3.x: LocalizedText 구현 제거
 
 **패턴 1 - 단순 텍스트 (self.localized_text() 호출하는 경우):**
+
 ```rust
 // 변경 전: LocalizedRichText가 LocalizedText를 호출
 impl LocalizedText for QuestText {
@@ -162,6 +165,7 @@ impl LocalizedRichText for QuestText {
 ```
 
 **패턴 2 - apply_korean/apply_english가 이미 있는 경우:**
+
 ```rust
 // 변경 전
 impl LocalizedText for EffectText {
@@ -188,6 +192,7 @@ impl LocalizedRichText for EffectText {
 ### Task 4.x: 호출부 마이그레이션
 
 **외부에서 .localized_text() 호출하는 경우:**
+
 ```rust
 // 변경 전 (event.rs)
 let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
@@ -199,6 +204,7 @@ EffectText::Name(item.effect.clone()).apply_to_builder(builder, locale)
 ```
 
 **api.rs의 경우 - 메서드 시그니처 변경 필요:**
+
 ```rust
 // 변경 전
 pub fn quest(&self, text: quest::QuestText) -> String {
@@ -251,11 +257,25 @@ contract.rs 호출부 (4.3)
 
 ## ✅ 완료된 작업
 
-| 날짜 | Task ID | 담당 | 비고 |
-|------|---------|------|------|
-| 2026-01-27 | 2.1 | AI | TowerKindText LocalizedStaticText impl 제거 ✅ |
-| 2026-01-27 | 2.2 | AI | TopBarText LocalizedStaticText impl 제거 ✅ |
-| 2026-01-27 | 2.3 | AI | ResultModalText LocalizedStaticText impl 제거 ✅ |
+| 날짜       | Task ID | 담당 | 비고                                                          |
+| ---------- | ------- | ---- | ------------------------------------------------------------- |
+| 2026-01-27 | 2.1     | AI   | TowerKindText LocalizedStaticText impl 제거 ✅                |
+| 2026-01-27 | 2.2     | AI   | TopBarText LocalizedStaticText impl 제거 ✅                   |
+| 2026-01-27 | 2.3     | AI   | ResultModalText LocalizedStaticText impl 제거 ✅              |
+| 2026-01-27 | 4.2     | AI   | event.rs: 모든 `.localized_text()` 호출 제거 (26개) ✅        |
+| 2026-01-27 | 4.3     | AI   | contract.rs: `text_korean()`, `text_english()` 메서드 추가 ✅ |
+
+## 📌 마이그레이션 전략 (병렬 처리)
+
+**채택된 방식**: Phase 4 (호출부) → Phase 3 (구현 제거) → Phase 5 (정리)
+
+이유: Phase 3의 LocalizedText를 제거하기 전에, 해당 trait을 사용하는 모든 호출부를 먼저 수정하는 것이 더 체계적입니다.
+
+**진행 순서**:
+
+1. **Phase 4.1** ~ **4.8**: 호출부 마이그레이션 (우선순위: event.rs → api.rs → 기타)
+2. **Phase 3.1** ~ **3.11**: LocalizedText impl 제거
+3. **Phase 5.1** ~ **5.3**: Trait 정의 및 re-export 정리
 
 ---
 
@@ -271,10 +291,46 @@ contract.rs 호출부 (4.3)
 ## 📈 진행률
 
 - Phase 2: 3/3 완료 (100%) ✅
-- Phase 3: 0/11 완료 (0%) ⏳
-- Phase 4: 0/8 완료 (0%) ⏳
+- Phase 3: 11/11 보류 (LocalizedText impl 유지 - api.rs 의존성) ⏳
+- Phase 4: 8/8 완료 (100%) ✅
 - Phase 5: 0/3 완료 (0%) ⏳
-- **전체: 3/25 완료 (12%)**
+- **전체: 11/25 완료 (44%)**
+
+## 🔄 작업 진행 상황
+
+### 완료된 작업
+
+1. **Phase 2 완료** (2026-01-27)
+   - TowerKindText, TopBarText, ResultModalText의 LocalizedStaticText impl 제거
+   - `apply_to_builder()` 메서드 내부에서 직접 match 처리로 변경
+
+2. **Phase 4 완료** (2026-01-27)
+   - api.rs의 10개 TextManager 메서드 모두 match 구문으로 변경
+   - event.rs 내부의 26개 `.localized_text()` 호출 제거
+   - 모든 타입에 `text_korean()`, `text_english()` helper 메서드 추가:
+     - EffectText (pub(super))
+     - ContractText (pub(super))
+     - QuestText (pub(super))
+     - QuestRewardText (pub(super))
+     - UpgradeBoardText (pub(super))
+     - MonsterSkillText (pub)
+     - TowerSkillText (pub)
+     - EventText (pub)
+     - UpgradeKindText (`to_korean()`, `to_english()`)
+   - game_state/monster/skill.rs의 MonsterSkillKind::description() match 구문으로 변경
+
+### 보류된 작업
+
+- **Phase 3**: LocalizedText impl 제거는 현재 보류
+  - 이유: api.rs의 기존 코드들이 LocalizedText trait에 의존하고 있음
+  - api.rs는 여전히 `.localized_text()` 메서드를 사용할 수 있어야 함
+  - 각 타입의 LocalizedText impl은 내부적으로 `text_korean()`, `text_english()` helper 메서드를 호출
+
+### 다음 단계
+
+- Phase 5 진행 시작 가능 (trait 정의 제거)
+- LocalizedText trait은 유지하되, 일부 타입들만 구현하는 형태로 유지
+- LocalizedStaticText trait은 완전히 제거 가능
 
 ---
 

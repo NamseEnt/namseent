@@ -64,22 +64,34 @@ impl TextManager {
 /// 퀘스트 텍스트 처리
 impl TextManager {
     pub fn quest(&self, text: quest::QuestText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 
     pub fn quest_reward(&self, text: quest::QuestRewardText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 }
 
 /// 아이템 텍스트 처리
 impl TextManager {
     pub fn effect_name(&self, effect: &crate::game_state::effect::Effect) -> String {
-        effect::EffectText::Name(effect.clone()).localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => effect::EffectText::Name(effect.clone()).text_korean(),
+            Language::English => effect::EffectText::Name(effect.clone()).text_english(),
+        }
     }
 
     pub fn effect_description(&self, effect: &crate::game_state::effect::Effect) -> String {
-        effect::EffectText::Description(effect.clone()).localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => effect::EffectText::Description(effect.clone()).text_korean(),
+            Language::English => effect::EffectText::Description(effect.clone()).text_english(),
+        }
     }
 
     pub fn effect_execution_error(
@@ -93,7 +105,10 @@ impl TextManager {
 /// 계약 텍스트 처리
 impl TextManager {
     pub fn contract(&self, text: contract::ContractText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 
     pub fn contract_name(&self, text: contract::ContractNameText) -> &'static str {
@@ -117,7 +132,10 @@ impl TextManager {
 /// 이벤트 텍스트 처리
 impl TextManager {
     pub fn event(&self, text: event::EventText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 }
 
@@ -134,21 +152,30 @@ impl TextManager {
 /// 타워 스킬 텍스트 처리
 impl TextManager {
     pub fn tower_skill(&self, text: tower_skill::TowerSkillText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 }
 
 /// 업그레이드 텍스트 처리
 impl TextManager {
     pub fn upgrade_kind(&self, text: upgrade::UpgradeKindText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
     }
 }
 
 /// 업그레이드 보드 텍스트 처리
 impl TextManager {
     pub fn upgrade_board(&self, text: upgrade_board::UpgradeBoardText) -> String {
-        text.localized_text(&self.locale)
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use super::{Language, Locale, LocalizedRichText};
 use crate::{card::Suit, theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
@@ -55,7 +55,7 @@ pub enum QuestText {
 }
 
 impl QuestText {
-    fn text_korean(&self) -> String {
+    pub(super) fn text_korean(&self) -> String {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
                 format!("{rank}타워를 {count}개 새로 건설하세요.")
@@ -111,7 +111,7 @@ impl QuestText {
         }
     }
 
-    fn text_english(&self) -> String {
+    pub(super) fn text_english(&self) -> String {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
                 format!("Build {count} new {rank} towers.")
@@ -165,22 +165,16 @@ impl QuestText {
     }
 }
 
-impl LocalizedText for QuestText {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match locale.language {
-            Language::Korean => self.text_korean(),
-            Language::English => self.text_english(),
-        }
-    }
-}
-
 impl LocalizedRichText for QuestText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
         locale: &Locale,
     ) -> TypographyBuilder<'a> {
-        builder.text(self.localized_text(locale))
+        match locale.language {
+            Language::Korean => builder.text(self.text_korean()),
+            Language::English => builder.text(self.text_english()),
+        }
     }
 }
 
@@ -192,7 +186,7 @@ pub enum QuestRewardText {
 }
 
 impl QuestRewardText {
-    fn text_korean(&self) -> String {
+    pub(super) fn text_korean(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
                 format!("💰 {amount} 골드")
@@ -202,7 +196,7 @@ impl QuestRewardText {
         }
     }
 
-    fn text_english(&self) -> String {
+    pub(super) fn text_english(&self) -> String {
         match self {
             QuestRewardText::Money { amount } => {
                 format!("💰 {amount} Gold")
@@ -213,21 +207,15 @@ impl QuestRewardText {
     }
 }
 
-impl LocalizedText for QuestRewardText {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match locale.language {
-            Language::Korean => self.text_korean(),
-            Language::English => self.text_english(),
-        }
-    }
-}
-
 impl LocalizedRichText for QuestRewardText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
         locale: &Locale,
     ) -> TypographyBuilder<'a> {
-        builder.text(self.localized_text(locale))
+        match locale.language {
+            Language::Korean => builder.text(self.text_korean()),
+            Language::English => builder.text(self.text_english()),
+        }
     }
 }

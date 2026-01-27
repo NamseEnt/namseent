@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use super::{Language, Locale, LocalizedRichText};
 use crate::{theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
@@ -27,14 +27,7 @@ pub enum UpgradeBoardText {
     RangePlus { amount: f32 },
 }
 
-impl LocalizedText for UpgradeBoardText {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match locale.language {
-            Language::Korean => self.text_korean(),
-            Language::English => self.text_english(),
-        }
-    }
-}
+
 
 impl LocalizedRichText for UpgradeBoardText {
     fn apply_to_builder<'a>(
@@ -42,12 +35,15 @@ impl LocalizedRichText for UpgradeBoardText {
         builder: TypographyBuilder<'a>,
         locale: &Locale,
     ) -> TypographyBuilder<'a> {
-        builder.text(self.localized_text(locale))
+        match locale.language {
+            Language::Korean => builder.text(self.text_korean()),
+            Language::English => builder.text(self.text_english()),
+        }
     }
 }
 
 impl UpgradeBoardText {
-    fn text_korean(&self) -> String {
+    pub(super) fn text_korean(&self) -> String {
         match self {
             UpgradeBoardText::Title => "강화 정보".to_string(),
             UpgradeBoardText::GoldEarnPlus { amount } => {
@@ -104,7 +100,7 @@ impl UpgradeBoardText {
         }
     }
 
-    fn text_english(&self) -> String {
+    pub(super) fn text_english(&self) -> String {
         match self {
             UpgradeBoardText::Title => "Upgrade Information".to_string(),
             UpgradeBoardText::GoldEarnPlus { amount } => {

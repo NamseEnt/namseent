@@ -9,16 +9,6 @@ pub enum EffectText {
 }
 
 #[allow(unreachable_patterns)]
-impl LocalizedText for EffectText {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match locale.language {
-            Language::Korean => self.text_korean(),
-            Language::English => self.text_english(),
-        }
-    }
-}
-
-#[allow(unreachable_patterns)]
 impl LocalizedRichText for EffectText {
     fn apply_to_builder<'a>(
         self,
