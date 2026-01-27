@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::{theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
@@ -29,7 +29,7 @@ pub enum UpgradeBoardText {
 
 
 
-impl LocalizedRichText for UpgradeBoardText {
+impl LocalizedText for UpgradeBoardText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

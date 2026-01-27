@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -21,7 +21,7 @@ pub enum ResultModalText {
     RestartButton,
 }
 
-impl LocalizedRichText for TopBarText {
+impl LocalizedText for TopBarText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
@@ -64,7 +64,7 @@ impl TopBarText {
     }
 }
 
-impl LocalizedRichText for ResultModalText {
+impl LocalizedText for ResultModalText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

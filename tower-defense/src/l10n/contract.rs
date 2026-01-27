@@ -1,5 +1,5 @@
 use super::effect::EffectText;
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::game_state::contract::ContractEffect;
 use crate::rarity::Rarity;
 use crate::theme::palette;
@@ -10,7 +10,7 @@ pub enum ContractText<'a> {
     Reward(&'a ContractEffect),
 }
 
-impl LocalizedRichText for ContractText<'_> {
+impl LocalizedText for ContractText<'_> {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
@@ -100,7 +100,7 @@ pub enum ContractNameText {
     Rarity(Rarity),
 }
 
-impl LocalizedRichText for ContractNameText {
+impl LocalizedText for ContractNameText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
@@ -145,7 +145,7 @@ pub enum ContractDurationText<'a> {
     Status(&'a crate::game_state::contract::ContractStatus),
 }
 
-impl LocalizedRichText for ContractDurationText<'_> {
+impl LocalizedText for ContractDurationText<'_> {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

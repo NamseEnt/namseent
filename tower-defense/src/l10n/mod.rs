@@ -16,7 +16,7 @@ pub mod upgrade;
 pub mod upgrade_board;
 
 // 핵심 타입들 재export
-pub use locale::{Language, Locale, LocalizedRichText, LocalizedStaticText, LocalizedText};
+pub use locale::{Language, Locale, LocalizedText};
 
 // 현대적 API (권장)
 pub use api::{ENGLISH_TEXT, KOREAN_TEXT, TextManager};

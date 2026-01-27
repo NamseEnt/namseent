@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use super::{Language, Locale, LocalizedText};
 use crate::game_state::play_history::HistoryEventType;
 use crate::l10n::contract::ContractText;
 use crate::l10n::effect::EffectText;
@@ -25,17 +25,6 @@ impl EventText<'_> {
 }
 
 impl LocalizedText for EventText<'_> {
-    fn localized_text(&self, locale: &Locale) -> String {
-        match self {
-            EventText::Description(event_type, _) => match locale.language {
-                Language::Korean => event_type.description_text_korean(),
-                Language::English => event_type.description_text_english(),
-            },
-        }
-    }
-}
-
-impl LocalizedRichText for EventText<'_> {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use super::{Language, Locale, LocalizedText};
 use crate::{game_state::effect::Effect, theme::typography::TypographyBuilder, *};
 
 #[allow(unreachable_patterns)]
@@ -9,7 +9,7 @@ pub enum EffectText {
 }
 
 #[allow(unreachable_patterns)]
-impl LocalizedRichText for EffectText {
+impl LocalizedText for EffectText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
@@ -1295,22 +1295,24 @@ impl EffectText {
 #[derive(Clone, State)]
 pub struct EffectExecutionErrorText(pub crate::game_state::effect::EffectExecutionError);
 
-impl LocalizedText for EffectExecutionErrorText {
-    fn localized_text(&self, locale: &Locale) -> String {
+impl EffectExecutionErrorText {
+    pub fn text_korean(&self) -> String {
         use crate::game_state::effect::EffectExecutionError;
-        match locale.language {
-            Language::Korean => match &self.0 {
-                EffectExecutionError::ItemUseDisabled => "아이템을 사용할 수 없습니다".to_string(),
-                EffectExecutionError::InvalidFlow { required } => {
-                    format!("잘못된 단계입니다 (필요: {})", required)
-                }
-            },
-            Language::English => match &self.0 {
-                EffectExecutionError::ItemUseDisabled => "Cannot use items".to_string(),
-                EffectExecutionError::InvalidFlow { required } => {
-                    format!("Invalid game flow (required: {})", required)
-                }
-            },
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "아이템을 사용할 수 없습니다".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("잘못된 단계입니다 (필요: {})", required)
+            }
+        }
+    }
+
+    pub fn text_english(&self) -> String {
+        use crate::game_state::effect::EffectExecutionError;
+        match &self.0 {
+            EffectExecutionError::ItemUseDisabled => "Cannot use items".to_string(),
+            EffectExecutionError::InvalidFlow { required } => {
+                format!("Invalid game flow (required: {})", required)
+            }
         }
     }
 }

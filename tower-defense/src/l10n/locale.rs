@@ -27,16 +27,8 @@ impl Default for Locale {
     }
 }
 
-pub trait LocalizedText {
-    fn localized_text(&self, locale: &Locale) -> String;
-}
-
-pub trait LocalizedStaticText {
-    fn localized_text(&self, locale: &Locale) -> &'static str;
-}
-
 /// Trait for localized text that can be integrated into TypographyBuilder chains
-pub trait LocalizedRichText {
+pub trait LocalizedText {
     /// Apply localized rich text formatting to a builder
     fn apply_to_builder<'a>(
         self,

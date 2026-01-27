@@ -138,7 +138,7 @@ impl<'a> TypographyBuilder<'a> {
     /// Add localized rich text (supports l10n types with builder integration)
     pub fn l10n<L>(self, localized: L, locale: &crate::l10n::Locale) -> Self
     where
-        L: crate::l10n::LocalizedRichText,
+        L: crate::l10n::LocalizedText,
     {
         localized.apply_to_builder(self, locale)
     }

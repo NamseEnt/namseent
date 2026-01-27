@@ -1,4 +1,4 @@
-use super::{Locale, LocalizedRichText};
+use super::{Locale, LocalizedText};
 use crate::game_state::monster::skill::MonsterSkillKind;
 use crate::theme::typography::TypographyBuilder;
 
@@ -9,7 +9,7 @@ pub enum MonsterSkillText {
 
 
 
-impl LocalizedRichText for MonsterSkillText {
+impl LocalizedText for MonsterSkillText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

@@ -1,6 +1,6 @@
 mod upgrade_kind;
 
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::theme::typography::TypographyBuilder;
 
 pub enum UpgradeKindText<'a> {
@@ -10,7 +10,7 @@ pub enum UpgradeKindText<'a> {
 
 
 
-impl LocalizedRichText for UpgradeKindText<'_> {
+impl LocalizedText for UpgradeKindText<'_> {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

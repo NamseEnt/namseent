@@ -1,8 +1,8 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
 use super::{
-    Language, Locale, LocalizedText, contract, effect, event, quest, tower, tower_skill, ui,
-    upgrade, upgrade_board,
+    Language, Locale, contract, effect, event, quest, tower, tower_skill, ui, upgrade,
+    upgrade_board,
 };
 use crate::*;
 
@@ -98,7 +98,11 @@ impl TextManager {
         &self,
         error: &crate::game_state::effect::EffectExecutionError,
     ) -> String {
-        effect::EffectExecutionErrorText(error.clone()).localized_text(&self.locale)
+        let text = effect::EffectExecutionErrorText(error.clone());
+        match self.locale.language {
+            Language::Korean => text.text_korean(),
+            Language::English => text.text_english(),
+        }
     }
 }
 

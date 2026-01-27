@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -17,7 +17,7 @@ pub enum TowerKindText {
     RoyalFlush,
 }
 
-impl LocalizedRichText for TowerKindText {
+impl LocalizedText for TowerKindText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,

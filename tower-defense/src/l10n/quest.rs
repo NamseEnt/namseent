@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText};
+use super::{Language, Locale, LocalizedText};
 use crate::{card::Suit, theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
@@ -165,7 +165,7 @@ impl QuestText {
     }
 }
 
-impl LocalizedRichText for QuestText {
+impl LocalizedText for QuestText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
@@ -207,7 +207,7 @@ impl QuestRewardText {
     }
 }
 
-impl LocalizedRichText for QuestRewardText {
+impl LocalizedText for QuestRewardText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
