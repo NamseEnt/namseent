@@ -264,8 +264,8 @@ pub fn paragraph() -> TypographyBuilder<'static> {
 
 #[derive(Debug, Clone)]
 pub struct TypographyIcon {
-    icon_kind: IconKind,
-    attributes: Vec<IconAttribute>,
+    pub icon_kind: IconKind,
+    pub attributes: Vec<IconAttribute>,
 }
 impl TypographyIcon {
     fn new(icon_kind: IconKind) -> Self {

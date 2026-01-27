@@ -2,6 +2,7 @@ use super::inline_box::{InlineBox, LineBox, ShapedText};
 use super::layout::{LayoutConfig, LayoutEngine};
 use super::style::StyleStack;
 use super::token::Token;
+use crate::icon::{Icon, IconSize};
 use namui::*;
 
 /// Rendered rich text result
@@ -83,10 +84,22 @@ impl RichTextRenderer {
                 Token::Restore => {
                     style_stack.restore();
                 }
-                Token::Icon(_icon) => {
-                    // TODO: Implement icon rendering
-                    let _current_size = style_stack.current().font_size;
-                    // Icon placeholder
+                Token::Icon(icon) => {
+                    let font_size: Px = style_stack.current().font_size.into_px();
+                    let icon_wh = Wh::single(font_size);
+
+                    let icon_component = Icon::new(icon.icon_kind)
+                        .size(IconSize::Custom { size: font_size })
+                        .wh(icon_wh)
+                        .attributes(icon.attributes.clone())
+                        .to_rendering_tree();
+
+                    boxes.push(InlineBox::Atomic {
+                        content: icon_component,
+                        width: font_size,
+                        height: font_size,
+                        baseline: font_size * 0.8,
+                    });
                 }
                 Token::Space => {
                     let style = style_stack.current();
