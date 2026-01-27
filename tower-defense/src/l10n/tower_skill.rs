@@ -1,6 +1,6 @@
 use super::{Language, Locale, LocalizedRichText, LocalizedText, rich_text_helpers::*};
-use crate::*;
 use crate::theme::typography::TypographyBuilder;
+use crate::*;
 
 #[derive(Debug, Clone, State)]
 pub enum TowerSkillText {
@@ -25,8 +25,98 @@ pub enum TowerSkillText {
 impl LocalizedText for TowerSkillText {
     fn localized_text(&self, locale: &Locale) -> String {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => match self {
+                TowerSkillText::NearbyTowerDamageMulTitle => "주변 타워 공격력 증가".to_string(),
+                TowerSkillText::NearbyTowerDamageAddTitle => "주변 타워 공격력 추가".to_string(),
+                TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
+                    "주변 타워 공격 속도 추가".to_string()
+                }
+                TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
+                    "주변 타워 공격 속도 증가".to_string()
+                }
+                TowerSkillText::NearbyTowerAttackRangeAddTitle => {
+                    "주변 타워 공격 범위 추가".to_string()
+                }
+                TowerSkillText::NearbyMonsterSpeedMulTitle => "주변 몬스터 속도 감소".to_string(),
+                TowerSkillText::MoneyIncomeAddTitle => "돈 수입 증가".to_string(),
+                TowerSkillText::TopCardBonusTitle => "탑 카드 보너스".to_string(),
+                TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => format!(
+                    "주변 타워의 ⚔ 공격력를 +{:.0}% 증가시킵니다 (반경 {range_radius} 타일)",
+                    mul * 100.0
+                ),
+                TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
+                    "주변 타워의 ⚔ 공격력를 +{add:.0}만큼 증가시킵니다 (반경 {range_radius} 타일)"
+                ),
+                TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
+                    "주변 타워의 ⚡ 공격 속도를 +{:.0}% 증가시킵니다 (반경 {range_radius} 타일)",
+                    add * 100.0
+                ),
+                TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
+                    "주변 타워의 ⚡ 공격 속도를 x{mul:.1}배 증가시킵니다 (반경 {range_radius} 타일)"
+                ),
+                TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
+                    "주변 타워의 🎯 공격 범위를 +{add:.0} 타일 증가시킵니다 (반경 {range_radius} 타일)"
+                ),
+                TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
+                    "주변 몬스터의 속도를 -{:.0}% 감소시킵니다 (반경 {range_radius} 타일)",
+                    mul * 100.0
+                ),
+                TowerSkillText::MoneyIncomeAddDesc { add } => {
+                    format!("적 처치시 💰 {add} 골드를 추가로 획득합니다")
+                }
+                TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
+                    format!("탑 카드 보너스: {rank} (⚔ +{bonus_damage})")
+                }
+            },
+            Language::English => match self {
+                TowerSkillText::NearbyTowerDamageMulTitle => {
+                    "Nearby Tower Damage Multiplier".to_string()
+                }
+                TowerSkillText::NearbyTowerDamageAddTitle => {
+                    "Nearby Tower Damage Addition".to_string()
+                }
+                TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
+                    "Nearby Tower Attack Speed Addition".to_string()
+                }
+                TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
+                    "Nearby Tower Attack Speed Multiplier".to_string()
+                }
+                TowerSkillText::NearbyTowerAttackRangeAddTitle => {
+                    "Nearby Tower Attack Range Addition".to_string()
+                }
+                TowerSkillText::NearbyMonsterSpeedMulTitle => {
+                    "Nearby Monster Speed Multiplier".to_string()
+                }
+                TowerSkillText::MoneyIncomeAddTitle => "Additional Money Income".to_string(),
+                TowerSkillText::TopCardBonusTitle => "Top Card Bonus".to_string(),
+                TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => format!(
+                    "Increases nearby towers' ⚔ damage by +{:.0}% (within {range_radius} tiles)",
+                    mul * 100.0
+                ),
+                TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
+                    "Increases nearby towers' ⚔ damage by +{add:.0} (within {range_radius} tiles)"
+                ),
+                TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
+                    "Increases nearby towers' ⚡ attack speed by +{:.0}% (within {range_radius} tiles)",
+                    add * 100.0
+                ),
+                TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
+                    "Increases nearby towers' ⚡ attack speed by x{mul:.1} (within {range_radius} tiles)"
+                ),
+                TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
+                    "Increases nearby towers' 🎯 attack range by +{add:.0} tiles (within {range_radius} tiles)"
+                ),
+                TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
+                    "Decreases nearby monsters' speed by -{:.0}% (within {range_radius} tiles)",
+                    mul * 100.0
+                ),
+                TowerSkillText::MoneyIncomeAddDesc { add } => {
+                    format!("Gain an additional 💰 {add} when defeating enemies")
+                }
+                TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
+                    format!("Top Card Bonus: {rank} (⚔ +{bonus_damage})")
+                }
+            },
         }
     }
 }
@@ -47,12 +137,24 @@ impl LocalizedRichText for TowerSkillText {
 impl TowerSkillText {
     fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
         match self {
-            TowerSkillText::NearbyTowerDamageMulTitle => builder.static_text("주변 타워 공격력 증가"),
-            TowerSkillText::NearbyTowerDamageAddTitle => builder.static_text("주변 타워 공격력 추가"),
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => builder.static_text("주변 타워 공격 속도 추가"),
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => builder.static_text("주변 타워 공격 속도 증가"),
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => builder.static_text("주변 타워 공격 범위 추가"),
-            TowerSkillText::NearbyMonsterSpeedMulTitle => builder.static_text("주변 몬스터 속도 감소"),
+            TowerSkillText::NearbyTowerDamageMulTitle => {
+                builder.static_text("주변 타워 공격력 증가")
+            }
+            TowerSkillText::NearbyTowerDamageAddTitle => {
+                builder.static_text("주변 타워 공격력 추가")
+            }
+            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
+                builder.static_text("주변 타워 공격 속도 추가")
+            }
+            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
+                builder.static_text("주변 타워 공격 속도 증가")
+            }
+            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
+                builder.static_text("주변 타워 공격 범위 추가")
+            }
+            TowerSkillText::NearbyMonsterSpeedMulTitle => {
+                builder.static_text("주변 몬스터 속도 감소")
+            }
             TowerSkillText::MoneyIncomeAddTitle => builder.static_text("돈 수입 증가"),
             TowerSkillText::TopCardBonusTitle => builder.static_text("탑 카드 보너스"),
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => builder
@@ -116,12 +218,24 @@ impl TowerSkillText {
 
     fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
         match self {
-            TowerSkillText::NearbyTowerDamageMulTitle => builder.static_text("Nearby Tower Damage Multiplier"),
-            TowerSkillText::NearbyTowerDamageAddTitle => builder.static_text("Nearby Tower Damage Addition"),
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => builder.static_text("Nearby Tower Attack Speed Addition"),
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => builder.static_text("Nearby Tower Attack Speed Multiplier"),
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => builder.static_text("Nearby Tower Attack Range Addition"),
-            TowerSkillText::NearbyMonsterSpeedMulTitle => builder.static_text("Nearby Monster Speed Multiplier"),
+            TowerSkillText::NearbyTowerDamageMulTitle => {
+                builder.static_text("Nearby Tower Damage Multiplier")
+            }
+            TowerSkillText::NearbyTowerDamageAddTitle => {
+                builder.static_text("Nearby Tower Damage Addition")
+            }
+            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
+                builder.static_text("Nearby Tower Attack Speed Addition")
+            }
+            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
+                builder.static_text("Nearby Tower Attack Speed Multiplier")
+            }
+            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
+                builder.static_text("Nearby Tower Attack Range Addition")
+            }
+            TowerSkillText::NearbyMonsterSpeedMulTitle => {
+                builder.static_text("Nearby Monster Speed Multiplier")
+            }
             TowerSkillText::MoneyIncomeAddTitle => builder.static_text("Additional Money Income"),
             TowerSkillText::TopCardBonusTitle => builder.static_text("Top Card Bonus"),
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => builder
@@ -184,142 +298,4 @@ impl TowerSkillText {
     }
 }
 
-impl TowerSkillText {
-    pub(super) fn to_korean(&self) -> String {
-        match self {
-            TowerSkillText::NearbyTowerDamageMulTitle => "주변 타워 공격력 증가".to_string(),
-            TowerSkillText::NearbyTowerDamageAddTitle => "주변 타워 공격력 추가".to_string(),
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
-                "주변 타워 공격 속도 추가".to_string()
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
-                "주변 타워 공격 속도 증가".to_string()
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
-                "주변 타워 공격 범위 추가".to_string()
-            }
-            TowerSkillText::NearbyMonsterSpeedMulTitle => "주변 몬스터 속도 감소".to_string(),
-            TowerSkillText::MoneyIncomeAddTitle => "돈 수입 증가".to_string(),
-            TowerSkillText::TopCardBonusTitle => "탑 카드 보너스".to_string(),
-            TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => format!(
-                "주변 타워의 {}를 {} 증가시킵니다 (반경 {})",
-                attack_damage_icon_small("공격력"),
-                percentage_increase(format!("{:.0}", mul * 100.0)),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
-                "주변 타워의 {}를 {}만큼 증가시킵니다 (반경 {})",
-                attack_damage_icon_small("공격력"),
-                value_increase(format!("{add:.0}")),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
-                "주변 타워의 {}를 {} 증가시킵니다 (반경 {})",
-                attack_speed_icon_small("공격 속도"),
-                percentage_increase(format!("{:.0}", add * 100.0)),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
-                "주변 타워의 {}를 {}배 증가시킵니다 (반경 {})",
-                attack_speed_icon_small("공격 속도"),
-                multiplier_value(format!("{mul:.1}")),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
-                "주변 타워의 {}를 {} 타일 증가시킵니다 (반경 {})",
-                attack_range_icon_small("공격 범위"),
-                value_increase(format!("{add:.0}")),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
-                "주변 몬스터의 속도를 {} 감소시킵니다 (반경 {})",
-                percentage_decrease(format!("{:.0}", mul * 100.0)),
-                range(format!("{range_radius} 타일"))
-            ),
-            TowerSkillText::MoneyIncomeAddDesc { add } => {
-                format!(
-                    "적 처치시 {} 골드를 추가로 획득합니다",
-                    gold_icon_small(add)
-                )
-            }
-            TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
-                format!(
-                    "탑 카드 보너스: {} ({})",
-                    card_rank(rank),
-                    attack_damage_icon_small(format!("+{bonus_damage}"))
-                )
-            }
-        }
-    }
-
-    pub(super) fn to_english(&self) -> String {
-        match self {
-            TowerSkillText::NearbyTowerDamageMulTitle => {
-                "Nearby Tower Damage Multiplier".to_string()
-            }
-            TowerSkillText::NearbyTowerDamageAddTitle => "Nearby Tower Damage Addition".to_string(),
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
-                "Nearby Tower Attack Speed Addition".to_string()
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
-                "Nearby Tower Attack Speed Multiplier".to_string()
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
-                "Nearby Tower Attack Range Addition".to_string()
-            }
-            TowerSkillText::NearbyMonsterSpeedMulTitle => {
-                "Nearby Monster Speed Multiplier".to_string()
-            }
-            TowerSkillText::MoneyIncomeAddTitle => "Additional Money Income".to_string(),
-            TowerSkillText::TopCardBonusTitle => "Top Card Bonus".to_string(),
-            TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => format!(
-                "Increases nearby towers' {} by {} (within {} tiles)",
-                attack_damage_icon_small("damage"),
-                percentage_increase(format!("{:.0}", mul * 100.0)),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => format!(
-                "Increases nearby towers' {} by {} (within {} tiles)",
-                attack_damage_icon_small("damage"),
-                value_increase(format!("{add:.0}")),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => format!(
-                "Increases nearby towers' {} by {} (within {} tiles)",
-                attack_speed_icon_small("attack speed"),
-                percentage_increase(format!("{:.0}", add * 100.0)),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => format!(
-                "Increases nearby towers' {} by {} (within {} tiles)",
-                attack_speed_icon_small("attack speed"),
-                multiplier_value(format!("{mul:.1}")),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => format!(
-                "Increases nearby towers' {} by {} tiles (within {} tiles)",
-                attack_range_icon_small("attack range"),
-                value_increase(format!("{add:.0}")),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => format!(
-                "Decreases nearby monsters' speed by {} (within {} tiles)",
-                percentage_decrease(format!("{:.0}", mul * 100.0)),
-                range(format!("{range_radius}"))
-            ),
-            TowerSkillText::MoneyIncomeAddDesc { add } => {
-                format!(
-                    "Gain an additional {} when defeating enemies",
-                    gold_icon_small(add)
-                )
-            }
-            TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
-                format!(
-                    "Top Card Bonus: {} ({})",
-                    card_rank(rank),
-                    attack_damage_icon_small(format!("+{bonus_damage}"))
-                )
-            }
-        }
-    }
-}
+impl TowerSkillText {}

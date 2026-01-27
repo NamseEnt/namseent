@@ -12,9 +12,26 @@ pub enum ContractText<'a> {
 
 impl LocalizedText for ContractText<'_> {
     fn localized_text(&self, locale: &Locale) -> String {
+        // LocalizedRichText를 사용하도록 유도
         match locale.language {
-            Language::Korean => self.to_korean_string(),
-            Language::English => self.to_english_string(),
+            Language::Korean => match self {
+                ContractText::Risk(ce) => format!(
+                    "리스크:  {} · {}",
+                    phase_ko(ce),
+                    effect_suffix_string_ko(ce)
+                ),
+                ContractText::Reward(ce) => {
+                    format!("리턴: {} · {}", phase_ko(ce), effect_suffix_string_ko(ce))
+                }
+            },
+            Language::English => match self {
+                ContractText::Risk(ce) => {
+                    format!("Risk: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
+                }
+                ContractText::Reward(ce) => {
+                    format!("Return: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
+                }
+            },
         }
     }
 }
@@ -33,30 +50,6 @@ impl LocalizedRichText for ContractText<'_> {
 }
 
 impl<'a> ContractText<'a> {
-    fn to_korean_string(&self) -> String {
-        match self {
-            ContractText::Risk(ce) => format!(
-                "리스크:  {} · {}",
-                phase_ko(ce),
-                effect_suffix_string_ko(ce)
-            ),
-            ContractText::Reward(ce) => {
-                format!("리턴: {} · {}", phase_ko(ce), effect_suffix_string_ko(ce))
-            }
-        }
-    }
-
-    fn to_english_string(&self) -> String {
-        match self {
-            ContractText::Risk(ce) => {
-                format!("Risk: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-            }
-            ContractText::Reward(ce) => {
-                format!("Return: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-            }
-        }
-    }
-
     fn apply_korean<'b>(self, builder: TypographyBuilder<'b>) -> TypographyBuilder<'b> {
         match self {
             ContractText::Risk(ce) => {

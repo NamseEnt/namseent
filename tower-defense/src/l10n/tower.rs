@@ -1,4 +1,5 @@
-use super::{Language, Locale, LocalizedStaticText};
+use super::{Language, Locale, LocalizedRichText, LocalizedStaticText};
+use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
 #[derive(Debug, Clone, Copy, State)]
@@ -22,6 +23,16 @@ impl LocalizedStaticText for TowerKindText {
             Language::Korean => self.to_korean(),
             Language::English => self.to_english(),
         }
+    }
+}
+
+impl LocalizedRichText for TowerKindText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        builder.static_text(self.localized_text(locale))
     }
 }
 

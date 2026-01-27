@@ -10,8 +10,28 @@ pub enum MonsterSkillText {
 impl LocalizedText for MonsterSkillText {
     fn localized_text(&self, locale: &Locale) -> String {
         match locale.language {
-            crate::l10n::Language::Korean => self.to_korean_string(),
-            crate::l10n::Language::English => self.to_english_string(),
+            crate::l10n::Language::Korean => match self {
+                MonsterSkillText::Description(skill) => match skill {
+                    MonsterSkillKind::Invincible => "무적 상태가 됩니다".to_string(),
+                    MonsterSkillKind::SpeedMul { mul } => format!("이동 속도가 {}배가 됩니다", mul),
+                    MonsterSkillKind::ImmuneToSlow => "둔화 효과에 면역이 됩니다".to_string(),
+                    MonsterSkillKind::HealByMaxHp { ratio } => {
+                        format!("최대 체력의 {}배를 회복합니다", ratio)
+                    }
+                },
+            },
+            crate::l10n::Language::English => match self {
+                MonsterSkillText::Description(skill) => match skill {
+                    MonsterSkillKind::Invincible => "Becomes invincible".to_string(),
+                    MonsterSkillKind::SpeedMul { mul } => {
+                        format!("Movement speed becomes {}x", mul)
+                    }
+                    MonsterSkillKind::ImmuneToSlow => "Immune to slow effects".to_string(),
+                    MonsterSkillKind::HealByMaxHp { ratio } => {
+                        format!("Heals {}x of max HP", ratio)
+                    }
+                },
+            },
         }
     }
 }
@@ -30,32 +50,6 @@ impl LocalizedRichText for MonsterSkillText {
 }
 
 impl MonsterSkillText {
-    fn to_korean_string(&self) -> String {
-        match self {
-            MonsterSkillText::Description(skill) => match skill {
-                MonsterSkillKind::Invincible => "무적 상태가 됩니다".to_string(),
-                MonsterSkillKind::SpeedMul { mul } => format!("이동 속도가 {}배가 됩니다", mul),
-                MonsterSkillKind::ImmuneToSlow => "둔화 효과에 면역이 됩니다".to_string(),
-                MonsterSkillKind::HealByMaxHp { ratio } => {
-                    format!("최대 체력의 {}배를 회복합니다", ratio)
-                }
-            },
-        }
-    }
-
-    fn to_english_string(&self) -> String {
-        match self {
-            MonsterSkillText::Description(skill) => match skill {
-                MonsterSkillKind::Invincible => "Becomes invincible".to_string(),
-                MonsterSkillKind::SpeedMul { mul } => format!("Movement speed becomes {}x", mul),
-                MonsterSkillKind::ImmuneToSlow => "Immune to slow effects".to_string(),
-                MonsterSkillKind::HealByMaxHp { ratio } => {
-                    format!("Heals {}x of max HP", ratio)
-                }
-            },
-        }
-    }
-
     fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
         match self {
             MonsterSkillText::Description(skill) => match skill {

@@ -1,4 +1,5 @@
-use super::{Language, Locale, LocalizedStaticText};
+use super::{Language, Locale, LocalizedRichText, LocalizedStaticText};
+use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
 #[derive(Debug, Clone, Copy, State)]
@@ -29,6 +30,16 @@ impl LocalizedStaticText for TopBarText {
     }
 }
 
+impl LocalizedRichText for TopBarText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        builder.static_text(self.localized_text(locale))
+    }
+}
+
 impl TopBarText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
@@ -56,6 +67,25 @@ impl TopBarText {
             TopBarText::SoldOut => "Sold Out",
             TopBarText::UseTower => "Use Tower",
         }
+    }
+}
+
+impl LocalizedStaticText for ResultModalText {
+    fn localized_text(&self, locale: &Locale) -> &'static str {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
+impl LocalizedRichText for ResultModalText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        builder.static_text(self.localized_text(locale))
     }
 }
 

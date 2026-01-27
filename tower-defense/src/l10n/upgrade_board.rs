@@ -1,5 +1,5 @@
-use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
-use crate::*;
+use super::{Language, Locale, LocalizedRichText, LocalizedText};
+use crate::{theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
 pub enum UpgradeBoardText {
@@ -30,30 +30,40 @@ pub enum UpgradeBoardText {
 impl LocalizedText for UpgradeBoardText {
     fn localized_text(&self, locale: &Locale) -> String {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => self.text_korean(),
+            Language::English => self.text_english(),
         }
     }
 }
 
+impl LocalizedRichText for UpgradeBoardText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a> {
+        builder.text(self.localized_text(locale))
+    }
+}
+
 impl UpgradeBoardText {
-    pub(super) fn to_korean(&self) -> String {
+    fn text_korean(&self) -> String {
         match self {
             UpgradeBoardText::Title => "강화 정보".to_string(),
             UpgradeBoardText::GoldEarnPlus { amount } => {
-                format!("몬스터 처치 시 {}를 추가로 얻습니다", gold_icon(amount))
+                format!("몬스터 처치 시 💰 {amount}를 추가로 얻습니다")
             }
             UpgradeBoardText::ShopSlotExpand { amount } => {
-                format!("{}상점 슬롯이 {amount}개 증가합니다", shop_icon())
+                format!("[Shop] 상점 슬롯이 {amount}개 증가합니다")
             }
             UpgradeBoardText::RerollChancePlus { amount } => {
-                format!("{}리롤 기회가 {amount}개 증가합니다", refresh_icon())
+                format!("[Refresh] 리롤 기회가 {amount}개 증가합니다")
             }
             UpgradeBoardText::ShopItemPriceMinus { amount } => {
-                format!("{}상점 아이템 가격이 {amount} 감소합니다", shop_icon())
+                format!("[Shop] 상점 아이템 가격이 {amount} 감소합니다")
             }
             UpgradeBoardText::ShopRefreshChancePlus { amount } => {
-                format!("{}상점 새로고침 기회가 {amount}개 증가합니다", shop_icon())
+                format!("[Shop] 상점 새로고침 기회가 {amount}개 증가합니다")
             }
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 "스트레이트와 플러시를 4장으로 줄입니다".to_string()
@@ -77,61 +87,40 @@ impl UpgradeBoardText {
             UpgradeBoardText::TowerUpgradeEvenOdd { name } => format!("{name} 타워의"),
             UpgradeBoardText::TowerUpgradeFaceNumber { name } => format!("{name} 타워의"),
             UpgradeBoardText::DamagePlus { amount } => {
-                format!(
-                    "{}이 {} 증가합니다",
-                    attack_damage_stat("공격력"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("공격력이 +{amount:.1} 증가합니다")
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
-                format!(
-                    "{}이 {} 증가합니다",
-                    attack_damage_stat("공격력"),
-                    multiplier_value(format!("{amount:.1}"))
-                )
+                format!("공격력이 x{amount:.1} 증가합니다")
             }
             UpgradeBoardText::SpeedPlus { amount } => {
-                format!(
-                    "{}가 {} 증가합니다",
-                    attack_speed_stat("공격 속도"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("공격 속도가 +{amount:.1} 증가합니다")
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                format!(
-                    "{}가 {} 증가합니다",
-                    attack_speed_stat("공격 속도"),
-                    multiplier_value(format!("{amount:.1}"))
-                )
+                format!("공격 속도가 x{amount:.1} 증가합니다")
             }
             UpgradeBoardText::RangePlus { amount } => {
-                format!(
-                    "{}가 {} 증가합니다",
-                    attack_range_stat("사정거리"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("사정거리가 +{amount:.1} 증가합니다")
             }
         }
     }
 
-    pub(super) fn to_english(&self) -> String {
+    fn text_english(&self) -> String {
         match self {
             UpgradeBoardText::Title => "Upgrade Information".to_string(),
-            UpgradeBoardText::GoldEarnPlus { amount } => format!(
-                "Earn an additional {} when defeating monsters",
-                gold_icon(amount)
-            ),
+            UpgradeBoardText::GoldEarnPlus { amount } => {
+                format!("Earn an additional 💰 {amount} when defeating monsters")
+            }
             UpgradeBoardText::ShopSlotExpand { amount } => {
-                format!("{}Increases shop slots by {amount}", shop_icon())
+                format!("[Shop] Increases shop slots by {amount}")
             }
             UpgradeBoardText::RerollChancePlus { amount } => {
-                format!("{}Increases reroll chances by {amount}", refresh_icon())
+                format!("[Refresh] Increases reroll chances by {amount}")
             }
             UpgradeBoardText::ShopItemPriceMinus { amount } => {
-                format!("{}Decreases shop item prices by {amount}", shop_icon())
+                format!("[Shop] Decreases shop item prices by {amount}")
             }
             UpgradeBoardText::ShopRefreshChancePlus { amount } => {
-                format!("{}Increases shop refresh chances by {amount}", shop_icon())
+                format!("[Shop] Increases shop refresh chances by {amount}")
             }
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 "Shortens straight and flush to 4 cards".to_string()
@@ -155,37 +144,19 @@ impl UpgradeBoardText {
             UpgradeBoardText::TowerUpgradeEvenOdd { name } => format!("For {name} towers,"),
             UpgradeBoardText::TowerUpgradeFaceNumber { name } => format!("For {name} towers,"),
             UpgradeBoardText::DamagePlus { amount } => {
-                format!(
-                    "{} increases by {}",
-                    attack_damage_stat("Attack Damage"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("Attack Damage increases by +{amount:.1}")
             }
-            UpgradeBoardText::DamageMultiplier { amount } => format!(
-                "{} increases by {}",
-                attack_damage_stat("Attack Damage"),
-                multiplier_value(format!("{amount:.1}"))
-            ),
+            UpgradeBoardText::DamageMultiplier { amount } => {
+                format!("Attack Damage increases by x{amount:.1}")
+            }
             UpgradeBoardText::SpeedPlus { amount } => {
-                format!(
-                    "{} increases by {}",
-                    attack_speed_stat("Attack Speed"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("Attack Speed increases by +{amount:.1}")
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                format!(
-                    "{} increases by {}",
-                    attack_speed_stat("Attack Speed"),
-                    multiplier_value(format!("{amount:.1}"))
-                )
+                format!("Attack Speed increases by x{amount:.1}")
             }
             UpgradeBoardText::RangePlus { amount } => {
-                format!(
-                    "{} increases by {}",
-                    attack_range_stat("Attack Range"),
-                    additive_value(format!("{amount:.1}"))
-                )
+                format!("Attack Range increases by +{amount:.1}")
             }
         }
     }
