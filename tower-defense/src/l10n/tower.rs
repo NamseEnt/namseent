@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedRichText, LocalizedStaticText};
+use super::{Language, Locale, LocalizedRichText};
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -17,22 +17,16 @@ pub enum TowerKindText {
     RoyalFlush,
 }
 
-impl LocalizedStaticText for TowerKindText {
-    fn localized_text(&self, locale: &Locale) -> &'static str {
-        match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
-        }
-    }
-}
-
 impl LocalizedRichText for TowerKindText {
     fn apply_to_builder<'a>(
         self,
         builder: TypographyBuilder<'a>,
         locale: &Locale,
     ) -> TypographyBuilder<'a> {
-        builder.static_text(self.localized_text(locale))
+        match locale.language {
+            Language::Korean => builder.static_text(self.to_korean()),
+            Language::English => builder.static_text(self.to_english()),
+        }
     }
 }
 

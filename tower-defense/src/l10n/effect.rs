@@ -682,7 +682,7 @@ impl EffectText {
     }
 
     #[allow(unreachable_patterns)]
-    fn text_korean(&self) -> String {
+    pub(super) fn text_korean(&self) -> String {
         match self {
             EffectText::Name(effect) => match effect {
                 Effect::Heal { .. } => "치유".to_string(),
@@ -993,7 +993,7 @@ impl EffectText {
         }
     }
 
-    fn text_english(&self) -> String {
+    pub(super) fn text_english(&self) -> String {
         match self {
             EffectText::Name(effect) => match effect {
                 Effect::Heal { .. } => "Heal".to_string(),

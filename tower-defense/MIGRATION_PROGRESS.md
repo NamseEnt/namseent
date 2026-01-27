@@ -1,272 +1,281 @@
-# l10n LocalizedRichText 마이그레이션 진행도
+# LocalizedText/LocalizedStaticText → LocalizedRichText 마이그레이션
 
-> **목표**: 기존 `to_korean()`/`to_english()` String 기반 API를 `LocalizedRichText` trait 기반의 builder API로 완전 마이그레이션
-
-## 📊 마이그레이션 완료 (2025-01-27)
-
-**전체 진행률**: 100% ✅
-
-- **필수 작업**: 100% 완료
-- **String 함수 정리**: 100% 완료 (모든 레거시 String 함수 제거)
-- **컴파일 상태**: ✅ 성공
-- **테스트 상태**: ✅ 모든 테스트 통과 (91 passed)
-
-**주요 성과**:
-
-- ✅ 10개 파일 LocalizedRichText 완전 구현
-- ✅ 모든 파일에서 레거시 String 함수 의존성 제거
-- ✅ rich_text_helpers.rs에서 레거시 String 함수 완전 제거 (RichTextHelpers trait만 유지)
-- ✅ effect.rs, tower_skill.rs, quest.rs, upgrade_board.rs 인라인 포맷팅으로 전환
-- ✅ upgrade/korean.rs, upgrade/english.rs 인라인 포맷팅으로 전환
+> **목표**: 레거시 `LocalizedText`, `LocalizedStaticText` trait을 제거하고 `LocalizedRichText`로 통합
+> **시작일**: 2026-01-27
 
 ---
 
-## 마이그레이션 상태 요약
+## 📋 마이그레이션 개요
 
-| 파일                            | LocalizedRichText impl   | apply_korean/apply_english | String 함수 의존성 | 완료율 |
-| ------------------------------- | ------------------------ | -------------------------- | ------------------ | ------ |
-| locale.rs                       | ✅ trait 정의됨          | N/A                        | N/A                | 100%   |
-| mod.rs                          | N/A (재export만)         | N/A                        | N/A                | 100%   |
-| api.rs                          | N/A (TextManager)        | N/A                        | N/A                | 100%   |
-| rich_text_helpers.rs            | ✅ RichTextHelpers trait | N/A                        | ✅ 없음            | 100%   |
-| contract.rs                     | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| effect.rs                       | ✅ 완전 구현             | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| event.rs                        | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| item.rs                         | N/A (effect.rs로 병합됨) | N/A                        | N/A                | 100%   |
-| monster_skill.rs                | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| quest.rs                        | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| tower.rs                        | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| tower_skill.rs                  | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| ui.rs                           | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| upgrade_board.rs                | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| upgrade/mod.rs                  | ✅ 구현됨                | ✅ 완전 구현               | ✅ 없음            | 100%   |
-| upgrade/upgrade_kind/korean.rs  | N/A (impl 확장)          | N/A                        | ✅ 없음            | 100%   |
-| upgrade/upgrade_kind/english.rs | N/A (impl 확장)          | N/A                        | ✅ 없음            | 100%   |
-
-## 상세 분석
-
-### 🟢 완료됨 (100%)
-
-#### `locale.rs`
-
-- **상태**: ✅ 완료
-- **내용**: `LocalizedRichText`, `LocalizedText`, `LocalizedStaticText` trait 정의
-- **작업 필요**: 없음
-
-#### `rich_text_helpers.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **RichTextHelpers trait**: ✅ 25개 builder 메서드 정의됨 (완전)
-- **레거시 String 함수**: ✅ 완전 제거됨
-- **작업 필요**: 없음
-
-#### `contract.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ `apply_to_builder` 구현됨
-- **apply_korean/apply_english**: ✅ builder 체인 사용
-- **레거시 코드**: ✅ 완전히 제거됨
-- **작업 필요**: 없음
-
-#### `monster_skill.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_korean/apply_english**: ✅ builder 체인 사용
-- **레거시 코드**: ✅ 완전히 제거됨
-- **작업 필요**: 없음
-
-#### `tower_skill.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_korean/apply_english**: ✅ builder 체인 사용 (RichTextHelpers trait 활용)
-- **LocalizedText**: ✅ 인라인 포맷팅으로 전환 (String 함수 의존성 제거)
-- **작업 필요**: 없음
-
-#### `event.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_korean/apply_english**: ✅ 완전 구현
-- **레거시 코드**: ✅ 완전히 제거됨
-- **작업 필요**: 없음
-
-#### `tower.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_to_builder**: ✅ 구현됨 (`builder.static_text()` 사용)
-- **작업 필요**: 없음 (정적 텍스트)
-
-#### `ui.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ TopBarText와 ResultModalText 모두 구현
-- **apply_to_builder**: ✅ 구현됨 (`builder.static_text()` 사용)
-- **작업 필요**: 없음 (정적 텍스트)
-
-#### `quest.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ QuestText와 QuestRewardText 모두 구현
-- **apply_to_builder**: ✅ 구현됨 (`builder.text()` 사용)
-- **LocalizedText**: ✅ 인라인 포맷팅으로 전환 (String 함수 의존성 제거)
-- **작업 필요**: 없음
-
-#### `upgrade_board.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_to_builder**: ✅ 구현됨 (`builder.text()` 사용)
-- **LocalizedText**: ✅ 인라인 포맷팅으로 전환 (String 함수 의존성 제거)
-- **작업 필요**: 없음
-
-#### `upgrade/mod.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 구현됨
-- **apply_korean/apply_english**: ✅ 완전 구현
-- **작업 필요**: 없음
-
-#### `upgrade/upgrade_kind/korean.rs` 및 `english.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedText**: ✅ 인라인 포맷팅으로 전환 (String 함수 의존성 제거)
-- **작업 필요**: 없음
-
-#### `effect.rs`
-
-- **상태**: ✅ 완료 (100%)
-- **LocalizedRichText**: ✅ 완전 구현 (apply_korean/apply_english 메서드)
-- **LocalizedText**: ✅ 인라인 포맷팅으로 전환 (text_korean/text_english private 메서드)
-- **레거시 코드**: ✅ pub(super) to_korean/to_english 완전 제거
-- **작업 필요**: 없음
-
----
-
-## 마이그레이션 완료 기록
-
-### 2025-01-27 최종 정리
-
-1. **String 함수 의존성 완전 제거**:
-   - tower_skill.rs LocalizedText impl: 인라인 포맷팅으로 전환
-   - quest.rs QuestText/QuestRewardText: 인라인 포맷팅으로 전환
-   - upgrade_board.rs UpgradeBoardText: 인라인 포맷팅으로 전환
-   - effect.rs text_korean/text_english: 인라인 포맷팅으로 전환
-   - effect.rs apply_korean/apply_english: 인라인 포맷팅으로 전환
-   - upgrade/korean.rs, upgrade/english.rs: 인라인 포맷팅으로 전환
-
-2. **rich_text_helpers.rs 정리**:
-   - 레거시 String 함수 완전 제거 (~100줄)
-   - RichTextHelpers trait만 유지 (builder 패턴용)
-
-3. **사용하지 않는 import 제거**:
-   - quest.rs: `rich_text_helpers::*` 제거
-   - upgrade_board.rs: `rich_text_helpers::*` 제거
-   - effect.rs: `rich_text_helpers::*` 제거
-   - upgrade/korean.rs: `rich_text_helpers::*` 제거
-   - upgrade/english.rs: `rich_text_helpers::*` 제거
-
-### 인라인 포맷팅 패턴
-
-String 함수 호출을 직접 format! 문자열로 대체:
+### 현재 Trait 구조 (locale.rs)
 
 ```rust
-// Before
-format!("💰 {} 골드를 획득합니다", gold_icon(format!("{amount}")))
+// ❌ 레거시 - 제거 대상
+pub trait LocalizedText {
+    fn localized_text(&self, locale: &Locale) -> String;
+}
 
-// After
-format!("💰 {amount} 골드를 획득합니다")
+// ❌ 레거시 - 제거 대상  
+pub trait LocalizedStaticText {
+    fn localized_text(&self, locale: &Locale) -> &'static str;
+}
+
+// ✅ 목표 - 이것만 남김
+pub trait LocalizedRichText {
+    fn apply_to_builder<'a>(
+        self,
+        builder: TypographyBuilder<'a>,
+        locale: &Locale,
+    ) -> TypographyBuilder<'a>;
+}
 ```
 
-아이콘 매핑:
+### 마이그레이션 전략
 
-- `gold_icon(x)` → `"💰 {x}"`
-- `attack_damage_icon(x)` → `"⚔ {x}"`
-- `attack_speed_icon(x)` → `"⚡ {x}"`
-- `attack_range_icon(x)` → `"🎯 {x}"`
-- `heal_icon(x)` → `"❤ {x}"`
-- `multiplier_value(x)` → `"x{x}"`
-- `percentage_increase(x)` → `"+{x}%"`
+1. **LocalizedStaticText 구현체**: `localized_text()` 호출을 직접 인라인으로 대체
+2. **LocalizedText 구현체**: `localized_text()` 호출을 `apply_to_builder()` 방식으로 대체
+3. **호출부 수정**: `.localized_text(locale)` → `LocalizedRichText::apply_to_builder()` 체인으로 변경
+4. **trait 제거**: 모든 호출부 마이그레이션 후 trait 정의 삭제
 
 ---
 
-## 마이그레이션 완료
+## 📊 파일별 상태
 
-모든 l10n 파일이 LocalizedRichText 패턴으로 마이그레이션되었으며, 레거시 String 함수 의존성이 완전히 제거되었습니다.
+### Phase 1: Trait 정의 파일
 
-### 완료된 단계
+| 파일 | 상태 | 작업 내용 |
+|------|------|----------|
+| `src/l10n/locale.rs` | ⏳ 대기 | Phase 5에서 trait 제거 |
+| `src/l10n/mod.rs` | ⏳ 대기 | Phase 5에서 re-export 정리 |
 
-**Phase 1 - 기본 인프라 구축** ✅
+### Phase 2: LocalizedStaticText 구현 제거 (3개 타입)
 
-- LocalizedRichText, LocalizedText, LocalizedStaticText trait 정의 (locale.rs)
-- RichTextHelpers trait 정의 및 ~25개 builder 메서드 구현 (rich_text_helpers.rs)
+| ID | 파일 | 타입 | 상태 | 담당 |
+|----|------|------|------|------|
+| 2.1 | `src/l10n/tower.rs` | `TowerKindText` | ⬜ 미시작 | |
+| 2.2 | `src/l10n/ui.rs` | `TopBarText` | ⬜ 미시작 | |
+| 2.3 | `src/l10n/ui.rs` | `ResultModalText` | ⬜ 미시작 | |
 
-**Phase 2 - 핵심 파일 마이그레이션** ✅
+### Phase 3: LocalizedText 구현 제거 (11개 타입)
 
-- contract.rs, event.rs, monster_skill.rs, tower_skill.rs: 100% 완료 (레거시 메서드 제거)
-- tower.rs, ui.rs: LocalizedRichText 구현 (static_text 사용)
+| ID | 파일 | 타입 | 상태 | 담당 |
+|----|------|------|------|------|
+| 3.1 | `src/l10n/effect.rs` | `EffectText` | ⬜ 미시작 | |
+| 3.2 | `src/l10n/effect.rs` | `EffectExecutionErrorText` | ⬜ 미시작 | |
+| 3.3 | `src/l10n/tower_skill.rs` | `TowerSkillText` | ⬜ 미시작 | |
+| 3.4 | `src/l10n/event.rs` | `EventText` | ⬜ 미시작 | |
+| 3.5 | `src/l10n/quest.rs` | `QuestText` | ⬜ 미시작 | |
+| 3.6 | `src/l10n/quest.rs` | `QuestRewardText` | ⬜ 미시작 | |
+| 3.7 | `src/l10n/upgrade_board.rs` | `UpgradeBoardText` | ⬜ 미시작 | |
+| 3.8 | `src/l10n/upgrade/mod.rs` | `UpgradeKindText` | ⬜ 미시작 | |
+| 3.9 | `src/l10n/monster_skill.rs` | `MonsterSkillText` | ⬜ 미시작 | |
+| 3.10 | `src/l10n/contract.rs` | `ContractText` | ⬜ 미시작 | |
+| 3.11 | `src/l10n/contract.rs` | `ContractNameText` | ⬜ 미시작 | |
 
-**Phase 3 - 텍스트 기반 파일 마이그레이션** ✅
+### Phase 4: 호출부 마이그레이션
 
-- quest.rs, upgrade_board.rs: LocalizedRichText 구현
-- upgrade/mod.rs: apply_korean/apply_english 메서드 구현
+| ID | 파일 | 호출 수 | 상태 | 설명 |
+|----|------|---------|------|------|
+| 4.1 | `src/l10n/api.rs` | ~12 | ⬜ 미시작 | `TextManager` 메서드들 |
+| 4.2 | `src/l10n/event.rs` | ~24 | ⬜ 미시작 | `EffectText`, `UpgradeKindText`, `ContractText` 호출 |
+| 4.3 | `src/l10n/contract.rs` | 2 | ⬜ 미시작 | `EffectText::Description` 호출 (L246, L256) |
+| 4.4 | `src/l10n/quest.rs` | 2 | ⬜ 미시작 | `self.localized_text()` 호출 (L183, L231) |
+| 4.5 | `src/l10n/upgrade_board.rs` | 1 | ⬜ 미시작 | `self.localized_text()` 호출 (L45) |
+| 4.6 | `src/l10n/tower.rs` | 1 | ⬜ 미시작 | `self.localized_text()` 호출 (L35) |
+| 4.7 | `src/l10n/ui.rs` | 2 | ⬜ 미시작 | `self.localized_text()` 호출 (L39, L88) |
+| 4.8 | `src/game_state/monster/skill.rs` | 1 | ⬜ 미시작 | `MonsterSkillText::Description` 호출 (L48) |
 
-**Phase 4 - effect.rs 완전 구현** ✅
+### Phase 5: Trait 및 re-export 정리
 
-- 각 Effect 타입별로 완전한 builder 체인 구현
-- apply_korean/apply_english 메서드로 직접 builder 메서드 호출
-- 모든 Effect 타입에 대해 완전한 구현
-
-**Phase 5 - String 함수 의존성 제거** ✅
-
-- tower_skill.rs, quest.rs, upgrade_board.rs: 인라인 포맷팅으로 전환
-- effect.rs: 인라인 포맷팅으로 전환
-- upgrade/korean.rs, upgrade/english.rs: 인라인 포맷팅으로 전환
-- rich_text_helpers.rs: 레거시 String 함수 완전 제거
-- [x] `quest.rs`: LocalizedRichText 구현 (2025-01-28)
-- [x] `upgrade_board.rs`: LocalizedRichText 구현 (2025-01-28)
-- [ ] `effect.rs`: apply_to_builder 완전 구현 (선택사항)
-- [ ] `upgrade/mod.rs`: 완전 마이그레이션 (이미 90% 완료)
-
-### Phase 2: 레거시 String 메서드 제거 ✅ COMPLETED
-
-- [x] `contract.rs`: to_korean_string/to_english_string 제거 (2025-01-28)
-- [x] `monster_skill.rs`: to_korean_string/to_english_string 제거 (2025-01-28)
-- [x] `tower_skill.rs`: to_korean/to_english 제거 (138줄) (2025-01-28)
-- [x] `event.rs`: description_korean/description_english 제거 (2025-01-28)
-- [ ] `tower.rs`: to_korean/to_english 제거 (선택사항)
-- [ ] `ui.rs`: to_korean/to_english 제거 (선택사항)
-- [ ] `quest.rs`: to_korean/to_english 제거 (선택사항)
-- [ ] `upgrade_board.rs`: to_korean/to_english 제거 (선택사항)
-- [ ] `upgrade/upgrade_kind/*.rs`: to_korean/to_english 제거
-
-### Phase 3: String 헬퍼 정리
-
-- [ ] 모든 String 함수 사용처 제거 확인
-- [ ] `rich_text_helpers.rs`에서 불필요한 String 함수 제거
-
-### Phase 4: 검증
-
-- [x] `cargo check --lib` 성공 (2025-01-28)
-- [x] 모든 LocalizedText 호출을 LocalizedRichText로 교체 가능 확인
+| ID | 파일 | 상태 | 작업 내용 |
+|----|------|------|----------|
+| 5.1 | `src/l10n/locale.rs` | ⬜ 미시작 | `LocalizedText`, `LocalizedStaticText` trait 삭제 |
+| 5.2 | `src/l10n/mod.rs` | ⬜ 미시작 | trait re-export에서 제거 |
+| 5.3 | 각 l10n 파일들 | ⬜ 미시작 | 불필요한 import 제거 |
 
 ---
 
-_마지막 업데이트: 2025-01-27 완료_
-_전체 진행률: 95% (Phase 1 & 2 완료, 모든 주요 마이그레이션 완료)_
+## 📝 상세 작업 가이드
+
+### Task 2.x: LocalizedStaticText 구현 제거
+
+**변경 전 (tower.rs 예시):**
+```rust
+use super::{Language, Locale, LocalizedRichText, LocalizedStaticText};
+
+impl LocalizedStaticText for TowerKindText {
+    fn localized_text(&self, locale: &Locale) -> &'static str {
+        match locale.language {
+            Language::Korean => self.to_korean(),
+            Language::English => self.to_english(),
+        }
+    }
+}
+
+impl LocalizedRichText for TowerKindText {
+    fn apply_to_builder<'a>(self, builder: TypographyBuilder<'a>, locale: &Locale) -> TypographyBuilder<'a> {
+        builder.static_text(self.localized_text(locale))  // ← LocalizedStaticText 사용
+    }
+}
+```
+
+**변경 후:**
+```rust
+use super::{Language, Locale, LocalizedRichText};  // LocalizedStaticText 제거
+
+// LocalizedStaticText 구현 삭제
+
+impl LocalizedRichText for TowerKindText {
+    fn apply_to_builder<'a>(self, builder: TypographyBuilder<'a>, locale: &Locale) -> TypographyBuilder<'a> {
+        match locale.language {
+            Language::Korean => builder.static_text(self.to_korean()),
+            Language::English => builder.static_text(self.to_english()),
+        }
+    }
+}
+```
+
+### Task 3.x: LocalizedText 구현 제거
+
+**패턴 1 - 단순 텍스트 (self.localized_text() 호출하는 경우):**
+```rust
+// 변경 전: LocalizedRichText가 LocalizedText를 호출
+impl LocalizedText for QuestText {
+    fn localized_text(&self, locale: &Locale) -> String { ... }
+}
+
+impl LocalizedRichText for QuestText {
+    fn apply_to_builder<'a>(self, builder: TypographyBuilder<'a>, locale: &Locale) -> TypographyBuilder<'a> {
+        builder.text(self.localized_text(locale))  // ← LocalizedText 사용
+    }
+}
+
+// 변경 후: LocalizedText 제거, 로직을 apply_to_builder로 이동
+impl LocalizedRichText for QuestText {
+    fn apply_to_builder<'a>(self, builder: TypographyBuilder<'a>, locale: &Locale) -> TypographyBuilder<'a> {
+        match locale.language {
+            Language::Korean => builder.text(self.text_korean()),
+            Language::English => builder.text(self.text_english()),
+        }
+    }
+}
+```
+
+**패턴 2 - apply_korean/apply_english가 이미 있는 경우:**
+```rust
+// 변경 전
+impl LocalizedText for EffectText {
+    fn localized_text(&self, locale: &Locale) -> String {
+        match locale.language {
+            Language::Korean => self.text_korean(),
+            Language::English => self.text_english(),
+        }
+    }
+}
+
+impl LocalizedRichText for EffectText {
+    fn apply_to_builder<'a>(self, builder: TypographyBuilder<'a>, locale: &Locale) -> TypographyBuilder<'a> {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),  // 이미 독립적
+            Language::English => self.apply_english(builder),
+        }
+    }
+}
+
+// 변경 후: LocalizedText impl만 삭제, LocalizedRichText는 그대로 유지
+```
+
+### Task 4.x: 호출부 마이그레이션
+
+**외부에서 .localized_text() 호출하는 경우:**
+```rust
+// 변경 전 (event.rs)
+let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
+builder.static_text("아이템 구매: ").text(item_name)
+
+// 변경 후: builder 체인으로 직접 연결
+let builder = builder.static_text("아이템 구매: ");
+EffectText::Name(item.effect.clone()).apply_to_builder(builder, locale)
+```
+
+**api.rs의 경우 - 메서드 시그니처 변경 필요:**
+```rust
+// 변경 전
+pub fn quest(&self, text: quest::QuestText) -> String {
+    text.localized_text(&self.locale)
+}
+
+// 변경 후 옵션 1: 반환 타입 변경
+pub fn quest<'a>(&self, text: quest::QuestText, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+    text.apply_to_builder(builder, &self.locale)
+}
+
+// 변경 후 옵션 2: 메서드 삭제 (직접 apply_to_builder 사용 권장)
+```
 
 ---
 
-## 최종 마이그레이션 완료 (2025-01-27)
+## 🔄 작업 순서 권장사항
 
-✅ **모든 주요 l10n 파일의 LocalizedRichText 구현 완료**
-✅ **레거시 to_korean/to_english 메서드 제거 (contract.rs, event.rs, monster_skill.rs, tower_skill.rs)**
-✅ **컴파일 성공 (0.11s)**
+### 권장 순서
 
-### 남은 선택사항 작업
+1. **Phase 2 (LocalizedStaticText)** - 가장 단순, 의존성 없음
+   - 2.1 (TowerKindText) → 2.2 (TopBarText) → 2.3 (ResultModalText)
 
-- tower.rs, ui.rs, quest.rs, upgrade_board.rs의 미사용 to_korean/to_english 메서드 정리 (선택)
-- effect.rs의 완전한 builder 구현 (선택, 692줄)
-- rich_text_helpers.rs의 String 함수 정리 (선택, ~15개 함수)
+2. **Phase 3 (LocalizedText)** - 의존성 순서 중요!
+   - **먼저**: 3.1 (EffectText), 3.8 (UpgradeKindText), 3.10, 3.11 (ContractText/ContractNameText)
+     - 이 타입들은 event.rs에서 `.localized_text()` 호출됨
+   - **나중**: 나머지 타입들 (순서 무관)
+
+3. **Phase 4 (호출부)** - Phase 2, 3과 병행 가능
+   - 각 타입의 LocalizedText 제거 전에 해당 호출부 먼저 수정
+   - 예: EffectText의 LocalizedText 제거 전에 4.2, 4.3 먼저 처리
+
+4. **Phase 5 (정리)** - 모든 Phase 완료 후
+   - 5.1 → 5.2 → 5.3
+
+### 의존성 다이어그램
+
+```
+event.rs 호출부 (4.2)
+    ├── EffectText.localized_text() ──────────┐
+    ├── UpgradeKindText.localized_text() ────┼── Phase 4.2 완료 후
+    └── ContractText.localized_text() ───────┘   Phase 3.1, 3.8, 3.10 진행 가능
+
+contract.rs 호출부 (4.3)
+    └── EffectText.localized_text() ─────────── Phase 4.3 완료 후
+                                                  Phase 3.1 진행 가능
+```
+
+---
+
+## ✅ 완료된 작업
+
+| 날짜 | Task ID | 담당 | 비고 |
+|------|---------|------|------|
+| 2026-01-27 | 2.1 | AI | TowerKindText LocalizedStaticText impl 제거 ✅ |
+| 2026-01-27 | 2.2 | AI | TopBarText LocalizedStaticText impl 제거 ✅ |
+| 2026-01-27 | 2.3 | AI | ResultModalText LocalizedStaticText impl 제거 ✅ |
+
+---
+
+## 📌 주의사항
+
+1. **테스트 실행**: 각 Task 완료 후 `cargo check` 및 `cargo test` 실행
+2. **의존성 확인**: 다른 타입의 `localized_text()` 호출 시 해당 호출부 먼저 수정
+3. **빌드 오류 기록**: 마이그레이션 중 발생한 오류는 해당 Task 항목에 기록
+4. **점진적 커밋**: 각 Task 완료 시 커밋 권장
+
+---
+
+## 📈 진행률
+
+- Phase 2: 3/3 완료 (100%) ✅
+- Phase 3: 0/11 완료 (0%) ⏳
+- Phase 4: 0/8 완료 (0%) ⏳
+- Phase 5: 0/3 완료 (0%) ⏳
+- **전체: 3/25 완료 (12%)**
+
+---
+
+_마지막 업데이트: 2026-01-27_
