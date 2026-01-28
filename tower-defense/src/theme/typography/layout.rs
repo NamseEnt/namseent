@@ -45,6 +45,7 @@ impl LayoutEngine {
         let mut x = 0.px();
         let mut max_ascent = 0.px();
         let mut max_descent = 0.px();
+        let mut max_font_line_height = 0.px();
         let mut positioned = Vec::new();
 
         for inline_box in boxes {
@@ -55,21 +56,68 @@ impl LayoutEngine {
             max_ascent = max_ascent.max(baseline);
             max_descent = max_descent.max(height - baseline);
 
+            // Calculate font-based line height for text boxes
+            if let InlineBox::Text(shaped) = &inline_box {
+                let font_size: Px = shaped.font.size.into();
+                let font_line_height = font_size * self.config.line_height_percent;
+                max_font_line_height = max_font_line_height.max(font_line_height);
+            }
+
             positioned.push(PositionedInlineBox {
                 inline_box,
                 x,
                 y: 0.px(),
+                text_baseline: TextBaseline::Top,
             });
 
             x += width;
         }
 
-        let line_height = (max_ascent + max_descent) * self.config.line_height_percent;
+        // Line height is the maximum of content height and font line height
+        let content_height = (max_ascent + max_descent) * self.config.line_height_percent;
+        let line_height = content_height.max(max_font_line_height);
 
-        // Apply baseline alignment
+        // Apply vertical alignment
         for positioned_box in &mut positioned {
-            let box_baseline = positioned_box.inline_box.baseline();
-            positioned_box.y = max_ascent - box_baseline;
+            let vertical_align = positioned_box.inline_box.vertical_align();
+
+            match &positioned_box.inline_box {
+                InlineBox::Text(_) => {
+                    // For text boxes, use TextBaseline and adjust y accordingly
+                    match vertical_align {
+                        super::style::VerticalAlign::Top => {
+                            positioned_box.y = 0.px();
+                            positioned_box.text_baseline = TextBaseline::Top;
+                        }
+                        super::style::VerticalAlign::Middle => {
+                            positioned_box.y = line_height / 2.0;
+                            positioned_box.text_baseline = TextBaseline::Middle;
+                        }
+                        super::style::VerticalAlign::Bottom => {
+                            positioned_box.y = line_height;
+                            positioned_box.text_baseline = TextBaseline::Bottom;
+                        }
+                    }
+                }
+                InlineBox::Atomic { height, .. } => {
+                    // For atomic boxes, calculate y position based on box height
+                    match vertical_align {
+                        super::style::VerticalAlign::Top => {
+                            positioned_box.y = 0.px();
+                        }
+                        super::style::VerticalAlign::Middle => {
+                            positioned_box.y = (line_height - *height) / 2.0;
+                        }
+                        super::style::VerticalAlign::Bottom => {
+                            positioned_box.y = line_height - *height;
+                        }
+                    }
+                }
+                _ => {
+                    // For other boxes (breaks, spaces), use top alignment
+                    positioned_box.y = 0.px();
+                }
+            }
         }
 
         LineBox {

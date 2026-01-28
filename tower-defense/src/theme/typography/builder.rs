@@ -112,6 +112,7 @@ impl<'a> TypographyBuilder<'a> {
             bold: None,
             underline: Some(true),
             border: None,
+            vertical_align: None,
         }));
         self
     }
@@ -188,6 +189,13 @@ impl<'a> TypographyBuilder<'a> {
     /// Set text alignment for layout (Left, Center, Right)
     pub fn text_align(mut self, align: TextAlign) -> Self {
         self.layout_config.text_align = align;
+        self
+    }
+
+    /// Set vertical alignment (Top, Middle, Bottom)
+    pub fn vertical_align(mut self, align: super::style::VerticalAlign) -> Self {
+        self.tokens
+            .push(Token::ApplyStyle(StyleDelta::vertical_align(align)));
         self
     }
 

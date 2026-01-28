@@ -10,11 +10,17 @@ pub struct ShapedText {
     pub height: Px,
     pub ascent: Px,
     pub descent: Px,
+    pub vertical_align: super::style::VerticalAlign,
 }
 
 impl ShapedText {
     /// Shape text and measure its dimensions
-    pub fn shape(text: String, font: Font, style: TextStyle) -> Self {
+    pub fn shape(
+        text: String,
+        font: Font,
+        style: TextStyle,
+        vertical_align: super::style::VerticalAlign,
+    ) -> Self {
         let rendering_tree = namui::text(TextParam {
             text: text.clone(),
             x: 0.px(),
@@ -43,6 +49,7 @@ impl ShapedText {
             height,
             ascent,
             descent,
+            vertical_align,
         }
     }
 
@@ -63,7 +70,12 @@ impl ShapedText {
         while left < right {
             let mid = (left + right).div_ceil(2);
             let substring: String = self.text.chars().take(mid).collect();
-            let shaped = Self::shape(substring, self.font.clone(), self.style.clone());
+            let shaped = Self::shape(
+                substring,
+                self.font.clone(),
+                self.style.clone(),
+                self.vertical_align,
+            );
 
             if shaped.width <= max_width {
                 left = mid;
@@ -79,8 +91,18 @@ impl ShapedText {
         let fits_str: String = self.text.chars().take(left).collect();
         let remaining_str: String = self.text.chars().skip(left).collect();
 
-        let fits = Self::shape(fits_str, self.font.clone(), self.style.clone());
-        let remaining = Self::shape(remaining_str, self.font.clone(), self.style.clone());
+        let fits = Self::shape(
+            fits_str,
+            self.font.clone(),
+            self.style.clone(),
+            self.vertical_align,
+        );
+        let remaining = Self::shape(
+            remaining_str,
+            self.font.clone(),
+            self.style.clone(),
+            self.vertical_align,
+        );
 
         Some((fits, remaining))
     }
@@ -97,6 +119,7 @@ pub enum InlineBox {
         width: Px,
         height: Px,
         baseline: Px,
+        vertical_align: super::style::VerticalAlign,
     },
     /// Soft break (wrap opportunity)
     SoftBreak,
@@ -131,6 +154,16 @@ impl InlineBox {
             InlineBox::Atomic { baseline, .. } => *baseline,
             InlineBox::SoftBreak | InlineBox::HardBreak => 0.px(),
             InlineBox::Space { .. } => 0.px(),
+        }
+    }
+
+    pub fn vertical_align(&self) -> super::style::VerticalAlign {
+        match self {
+            InlineBox::Text(shaped) => shaped.vertical_align,
+            InlineBox::Atomic { vertical_align, .. } => *vertical_align,
+            InlineBox::SoftBreak | InlineBox::HardBreak | InlineBox::Space { .. } => {
+                super::style::VerticalAlign::Top
+            }
         }
     }
 
@@ -170,6 +203,7 @@ pub struct PositionedInlineBox {
     pub inline_box: InlineBox,
     pub x: Px,
     pub y: Px,
+    pub text_baseline: TextBaseline,
 }
 
 /// Line box containing positioned inline boxes

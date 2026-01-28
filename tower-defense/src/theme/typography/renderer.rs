@@ -65,14 +65,22 @@ impl RichTextRenderer {
             match token {
                 Token::StaticText(text) => {
                     let style = style_stack.current();
-                    let shaped =
-                        ShapedText::shape(text.to_string(), style.to_font(), style.to_text_style());
+                    let shaped = ShapedText::shape(
+                        text.to_string(),
+                        style.to_font(),
+                        style.to_text_style(),
+                        style.vertical_align,
+                    );
                     boxes.push(InlineBox::Text(shaped));
                 }
                 Token::Text(text) => {
                     let style = style_stack.current();
-                    let shaped =
-                        ShapedText::shape(text.clone(), style.to_font(), style.to_text_style());
+                    let shaped = ShapedText::shape(
+                        text.clone(),
+                        style.to_font(),
+                        style.to_text_style(),
+                        style.vertical_align,
+                    );
                     boxes.push(InlineBox::Text(shaped));
                 }
                 Token::ApplyStyle(delta) => {
@@ -85,7 +93,8 @@ impl RichTextRenderer {
                     style_stack.restore();
                 }
                 Token::Icon(icon) => {
-                    let font_size: Px = style_stack.current().font_size.into_px();
+                    let style = style_stack.current();
+                    let font_size: Px = style.font_size.into_px();
                     let icon_wh = Wh::single(font_size);
 
                     let icon_component = Icon::new(icon.icon_kind)
@@ -99,12 +108,17 @@ impl RichTextRenderer {
                         width: font_size,
                         height: font_size,
                         baseline: font_size * 0.8,
+                        vertical_align: style.vertical_align,
                     });
                 }
                 Token::Space => {
                     let style = style_stack.current();
-                    let space_shaped =
-                        ShapedText::shape(" ".to_string(), style.to_font(), style.to_text_style());
+                    let space_shaped = ShapedText::shape(
+                        " ".to_string(),
+                        style.to_font(),
+                        style.to_text_style(),
+                        style.vertical_align,
+                    );
                     boxes.push(InlineBox::Space {
                         width: space_shaped.width,
                     });
@@ -153,7 +167,7 @@ impl RichTextRenderer {
                             x,
                             y: box_y,
                             align: TextAlign::Left,
-                            baseline: TextBaseline::Top,
+                            baseline: positioned.text_baseline,
                             font: shaped.font.clone(),
                             style: shaped.style.clone(),
                             max_width: None,

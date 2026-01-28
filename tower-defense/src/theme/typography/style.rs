@@ -1,5 +1,14 @@
 use namui::*;
 
+/// Vertical alignment for inline boxes
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum VerticalAlign {
+    #[default]
+    Top,
+    Middle,
+    Bottom,
+}
+
 /// Style changes to apply (partial updates) - const-compatible
 #[derive(Debug, Clone, Copy)]
 pub struct StyleDelta {
@@ -8,6 +17,7 @@ pub struct StyleDelta {
     pub bold: Option<bool>,
     pub underline: Option<bool>,
     pub border: Option<TextStyleBorder>,
+    pub vertical_align: Option<VerticalAlign>,
 }
 
 impl StyleDelta {
@@ -19,6 +29,7 @@ impl StyleDelta {
             bold: None,
             underline: None,
             border: None,
+            vertical_align: None,
         }
     }
 
@@ -30,6 +41,7 @@ impl StyleDelta {
             bold: None,
             underline: None,
             border: None,
+            vertical_align: None,
         }
     }
 
@@ -41,6 +53,7 @@ impl StyleDelta {
             bold: Some(true),
             underline: None,
             border: None,
+            vertical_align: None,
         }
     }
 
@@ -52,6 +65,7 @@ impl StyleDelta {
             bold: None,
             underline: None,
             border: None,
+            vertical_align: None,
         }
     }
 
@@ -63,6 +77,19 @@ impl StyleDelta {
             bold: None,
             underline: None,
             border: Some(TextStyleBorder { color, width }),
+            vertical_align: None,
+        }
+    }
+
+    /// Create style delta with vertical alignment
+    pub const fn vertical_align(align: VerticalAlign) -> Self {
+        Self {
+            font_size: None,
+            color: None,
+            bold: None,
+            underline: None,
+            border: None,
+            vertical_align: Some(align),
         }
     }
 }
@@ -76,6 +103,7 @@ pub struct StyleContext {
     pub bold: bool,
     pub underline: bool,
     pub text_style: TextStyle,
+    pub vertical_align: VerticalAlign,
 }
 
 impl StyleContext {
@@ -88,6 +116,7 @@ impl StyleContext {
             bold: false,
             underline: false,
             text_style,
+            vertical_align: VerticalAlign::Middle,
         }
     }
 
@@ -108,6 +137,9 @@ impl StyleContext {
         }
         if let Some(border) = delta.border {
             ctx.text_style.border = Some(border);
+        }
+        if let Some(vertical_align) = delta.vertical_align {
+            ctx.vertical_align = vertical_align;
         }
         ctx
     }
