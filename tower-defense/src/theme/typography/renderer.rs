@@ -7,6 +7,7 @@ use namui::*;
 
 /// Rendered rich text result
 /// Contains the rendering tree and dimensions for immediate rendering
+#[derive(State, Clone)]
 pub struct RenderedRichText {
     rendering_tree: RenderingTree,
     pub width: Px,

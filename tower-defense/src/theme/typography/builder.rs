@@ -13,6 +13,7 @@ enum TypographyVariant {
 }
 
 /// Positioned rich text output
+#[derive(State, Clone)]
 pub struct PositionedRichText {
     pub rich_text: RenderedRichText,
     pub offset: Xy<Px>,
@@ -38,21 +39,7 @@ pub struct TypographyBuilder<'a> {
 }
 
 impl<'a> TypographyBuilder<'a> {
-    /// Start building headline typography
-    pub fn headline() -> Self {
-        Self {
-            variant: TypographyVariant::Headline,
-            tokens: Vec::new(),
-            layout_config: super::layout::LayoutConfig {
-                max_width: None,
-                text_align: TextAlign::Left,
-                line_height_percent: 1.3,
-            },
-        }
-    }
-
-    /// Start building paragraph typography
-    pub fn paragraph() -> Self {
+    pub fn new() -> Self {
         Self {
             variant: TypographyVariant::Paragraph,
             tokens: Vec::new(),
@@ -62,6 +49,16 @@ impl<'a> TypographyBuilder<'a> {
                 line_height_percent: 1.3,
             },
         }
+    }
+
+    pub fn headline(mut self) -> Self {
+        self.variant = TypographyVariant::Headline;
+        self
+    }
+
+    pub fn paragraph(mut self) -> Self {
+        self.variant = TypographyVariant::Paragraph;
+        self
     }
 
     // Note: new() method removed because it requires 'static lifetime for text
@@ -262,12 +259,12 @@ impl<'a> TypographyBuilder<'a> {
 
 /// Convenience function for headline
 pub fn headline() -> TypographyBuilder<'static> {
-    TypographyBuilder::headline()
+    TypographyBuilder::new().headline()
 }
 
 /// Convenience function for paragraph  
 pub fn paragraph() -> TypographyBuilder<'static> {
-    TypographyBuilder::paragraph()
+    TypographyBuilder::new()
 }
 
 #[derive(Debug, Clone)]

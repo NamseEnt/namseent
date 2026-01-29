@@ -4,12 +4,14 @@
 mod builder;
 mod inline_box;
 mod layout;
+mod memoization;
 mod renderer;
 mod style;
 mod token;
 
 use super::palette;
 pub use builder::*;
+pub use memoization::memoized_text;
 use namui::*;
 
 pub const HEADLINE_FONT_NAME: &str = "NotoSansKR-Bold";
