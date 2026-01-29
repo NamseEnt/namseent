@@ -7,8 +7,7 @@ use crate::game_state::mutate_game_state;
 use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
-use crate::theme::button::Button;
-use crate::theme::typography;
+use crate::theme::{button::Button, typography::{memoized_text}};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
@@ -167,22 +166,33 @@ impl Component for InteractionArea<'_> {
                                     let health_cost = game_state
                                         .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
-                                    let reroll_text = format!(
-                                        "{}/{}",
+                                    let reroll_count = (
                                         game_state.rerolled_count,
-                                        game_state.rerolled_count + game_state.left_reroll_chance,
+                                        game_state.left_reroll_chance,
                                     );
 
-                                    let mut builder = typography::headline()
-                                        .icon::<()>(IconKind::Refresh)
-                                        .space()
-                                        .text(&reroll_text);
+                                    ctx.add(memoized_text(
+                                        (&color, &reroll_count.0, &reroll_count.1, &health_cost),
+                                        |builder| {
+                                            let reroll_text = format!(
+                                                "{}/{}",
+                                                reroll_count.0,
+                                                reroll_count.0 + reroll_count.1,
+                                            );
 
-                                    if health_cost > 0 {
-                                        builder = builder.space().icon::<()>(IconKind::Health);
-                                    }
+                                            let mut builder = builder
+                                                .headline()
+                                                .icon::<()>(IconKind::Refresh)
+                                                .space()
+                                                .text(reroll_text);
 
-                                    ctx.add(builder.color(color).render_center(wh));
+                                            if health_cost > 0 {
+                                                builder = builder.space().icon::<()>(IconKind::Health);
+                                            }
+
+                                            builder.color(color).render_center(wh)
+                                        },
+                                    ));
                                 },
                             )
                             .disabled(

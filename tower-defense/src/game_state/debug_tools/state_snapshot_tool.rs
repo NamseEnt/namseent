@@ -1,6 +1,6 @@
 use crate::game_state::debug_tools::state_snapshot;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{self};
+use crate::theme::typography::{self, memoized_text};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -18,7 +18,15 @@ impl Component for StateSnapshotTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(typography::headline().text("State snapshots").render_left_top());
+                    ctx.add(memoized_text(
+                        (),
+                        |builder| {
+                            builder
+                                .headline()
+                                .text("State snapshots")
+                                .render_left_top()
+                        },
+                    ));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {

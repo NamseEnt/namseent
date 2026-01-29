@@ -1,6 +1,6 @@
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
-use crate::theme::typography::{self, FontSize};
+use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -23,13 +23,12 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Health).size(IconSize::Medium).wh(wh));
                         }),
                         table::fixed(48.px(), |wh, ctx| {
-                            let hp_text = format!("{:.0}", hp * 100.0);
-                            ctx.add(
-                                typography::headline()
+                            ctx.add(memoized_text(&hp, |builder| {
+                                builder
                                     .size(FontSize::Medium)
-                                    .text(&hp_text)
-                                    .render_center(wh),
-                            );
+                                    .text(format!("{:.0}", hp * 100.0))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(
                             1,
@@ -57,13 +56,12 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Gold).size(IconSize::Medium).wh(wh));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            let gold_text = format!("{gold}");
-                            ctx.add(
-                                typography::headline()
+                            ctx.add(memoized_text(&gold, |builder| {
+                                builder
                                     .size(FontSize::Medium)
-                                    .text(&gold_text)
-                                    .render_right_top(wh.width),
-                            );
+                                    .text(format!("{gold}"))
+                                    .render_right_top(wh.width)
+                            }));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                     ]),

@@ -10,7 +10,7 @@ use crate::l10n::ui::ResultModalText;
 use crate::theme::button::{Button, ButtonColor, ButtonVariant};
 use crate::theme::{
     palette,
-    typography::{self},
+    typography::{self, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -50,12 +50,13 @@ impl Component for ResultModal {
                     PADDING,
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                            ctx.add(
-                                typography::headline()
+                            ctx.add(memoized_text((), |builder| {
+                                builder
+                                    .headline()
                                     .size(typography::FontSize::Large)
                                     .text(game_state.text().result_modal(ResultModalText::Title))
-                                    .render_center(wh),
-                            );
+                                    .render_center(wh)
+                            }));
                         }),
                         table::fixed(PADDING, |_wh, _ctx| {}),
                         table::fixed(PROGRESS_BAR_HEIGHT, |wh, ctx| {
@@ -79,8 +80,9 @@ impl Component for ResultModal {
                                         set_modal(None);
                                     },
                                     &|wh, text_color, ctx| {
-                                        ctx.add(
-                                            typography::headline()
+                                        ctx.add(memoized_text(&text_color, |builder| {
+                                            builder
+                                                .headline()
                                                 .size(typography::FontSize::Medium)
                                                 .color(text_color)
                                                 .text(
@@ -88,8 +90,8 @@ impl Component for ResultModal {
                                                         ResultModalText::RestartButton,
                                                     ),
                                                 )
-                                                .render_center(wh),
-                                        );
+                                                .render_center(wh)
+                                        }));
                                     },
                                 )
                                 .long_press_time(2.sec())

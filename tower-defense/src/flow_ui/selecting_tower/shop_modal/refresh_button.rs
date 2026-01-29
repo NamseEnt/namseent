@@ -2,7 +2,7 @@ use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::IconKind;
 use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography;
+use crate::theme::typography::{memoized_text};
 use namui::*;
 
 pub struct RefreshButton {
@@ -41,19 +41,25 @@ impl Component for RefreshButton {
             Button::new(wh, &on_refresh, &|wh, color, ctx| {
                 let game_state = use_game_state(ctx);
                 let health_cost = game_state.stage_modifiers.get_shop_reroll_health_cost();
-                let chance_text = game_state.left_shop_refresh_chance.to_string();
+                let chance = game_state.left_shop_refresh_chance;
 
-                let mut builder = typography::headline()
-                    .color(color)
-                    .icon::<()>(IconKind::Refresh)
-                    .text("-")
-                    .text(&chance_text);
+                ctx.add(memoized_text(
+                    (&color, &chance, &health_cost),
+                    |builder| {
+                        let mut builder = builder
+                            .headline()
+                            .color(color)
+                            .icon::<()>(IconKind::Refresh)
+                            .text("-")
+                            .text(format!("{chance}"));
 
-                if health_cost > 0 {
-                    builder = builder.space().icon::<()>(IconKind::Health);
-                }
+                        if health_cost > 0 {
+                            builder = builder.space().icon::<()>(IconKind::Health);
+                        }
 
-                ctx.add(builder.render_center(wh));
+                        builder.render_center(wh)
+                    },
+                ));
             })
             .variant(ButtonVariant::Fab)
             .disabled(disabled),

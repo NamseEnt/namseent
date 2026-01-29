@@ -3,7 +3,7 @@ use crate::{
     game_state::use_game_state,
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{self, FontSize},
+    theme::typography::{self, FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -66,17 +66,17 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        let title = game_state
-                            .text()
-                            .upgrade_board(UpgradeBoardText::Title)
-                            .to_string();
-                        ctx.add(
-                            typography::headline()
-                                .size(FontSize::Large)
-                                .max_width(wh.width)
-                                .text(&title)
-                                .render_center(wh),
-                        );
+                        ctx.add(memoized_text(
+                            (),
+                            |builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Large)
+                                    .max_width(wh.width)
+                                    .text(game_state.text().upgrade_board(UpgradeBoardText::Title))
+                                    .render_center(wh)
+                            },
+                        ));
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {

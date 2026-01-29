@@ -3,7 +3,7 @@ use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     palette,
-    theme::typography::{self},
+    theme::typography::{self, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -39,13 +39,12 @@ impl Component for LevelIndicator {
                     ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
                 }),
                 table::fixed(32.px(), |wh, ctx| {
-                    let level_text = format!("{level}");
-                    ctx.add(
-                        typography::headline()
+                    ctx.add(memoized_text(&level, |builder| {
+                        builder
                             .size(typography::FontSize::Medium)
-                            .text(&level_text)
-                            .render_center(wh),
-                    );
+                            .text(format!("{level}"))
+                            .render_center(wh)
+                    }));
                 }),
                 table::ratio(1, |_, _| {}),
                 table::fixed(
@@ -61,19 +60,22 @@ impl Component for LevelIndicator {
                                     level_up();
                                 },
                                 &|wh, _text_color, ctx| {
-                                    let text_color = match can_upgrade {
-                                        true => palette::ON_PRIMARY,
-                                        false => palette::ON_SURFACE,
-                                    };
-                                    ctx.add(
-                                        typography::headline()
-                                            .icon::<()>(IconKind::Level)
-                                            .space()
-                                            .icon::<()>(IconKind::Gold)
-                                            .color(text_color)
-                                            .text(format!("{level_up_cost}"))
-                                            .render_center(wh),
-                                    );
+                                    ctx.add(memoized_text(
+                                        (&can_upgrade, &level_up_cost),
+                                        |builder| {
+                                            let text_color = match can_upgrade {
+                                                true => palette::ON_PRIMARY,
+                                                false => palette::ON_SURFACE,
+                                            };
+                                            builder
+                                                .icon::<()>(IconKind::Level)
+                                                .space()
+                                                .icon::<()>(IconKind::Gold)
+                                                .color(text_color)
+                                                .text(format!("{level_up_cost}"))
+                                                .render_center(wh)
+                                        },
+                                    ));
                                 },
                             )
                             .variant(crate::theme::button::ButtonVariant::Contained)

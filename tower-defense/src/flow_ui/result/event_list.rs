@@ -3,7 +3,7 @@ use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind};
 use crate::l10n;
 use crate::theme::palette;
-use crate::theme::typography::{self};
+use crate::theme::typography::{self, memoized_text};
 use namui::*;
 use namui_prebuilt::list_view::ListViewWithCtx;
 use namui_prebuilt::{simple_rect, table};
@@ -132,12 +132,13 @@ impl EventItem<'_> {
     fn render_event_description(ctx: &ComposeCtx, wh: Wh<Px>, event_text: &str) {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
-                ctx.add(
-                    typography::headline()
+                ctx.add(memoized_text(&(event_text.len()), |builder| {
+                    builder
+                        .headline()
                         .size(typography::FontSize::Small)
                         .text(event_text)
-                        .render_left_center(wh.height),
-                );
+                        .render_left_center(wh.height)
+                }));
             })(wh, ctx);
         });
 

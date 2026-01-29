@@ -3,7 +3,7 @@ use crate::{
     hand::{HAND_WH, HandComponent, HandSlotId},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
-        palette, typography,
+        palette, typography::{memoized_text},
     },
 };
 use namui::*;
@@ -77,12 +77,16 @@ impl Component for TowerPlacingHand {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                typography::headline()
-                                                                    .color(text_color)
-                                                                    .text("START")
-                                                                    .render_center(wh),
-                                                            );
+                                                            ctx.add(memoized_text(
+                                                                &text_color,
+                                                                |builder| {
+                                                                    builder
+                                                                        .headline()
+                                                                        .color(text_color)
+                                                                        .text("START")
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .long_press_time(1.sec())

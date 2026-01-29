@@ -8,7 +8,7 @@ use crate::l10n::ui::TopBarText;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
-use crate::theme::typography::{self, FontSize};
+use crate::theme::typography::{memoized_text, FontSize};
 use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -208,23 +208,31 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                     table::vertical([
                         table::fixed(PADDING, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, move |ctx| {
-                            ctx.add(
-                                typography::headline()
-                                    .size(FontSize::Small)
-                                    .max_width(wh.width)
-                                    .text(&name)
-                                    .render_left_top(),
-                            );
+                            ctx.add(memoized_text(
+                                &name,
+                                |builder| {
+                                    builder
+                                        .headline()
+                                        .size(FontSize::Small)
+                                        .max_width(wh.width)
+                                        .text(&name)
+                                        .render_left_top()
+                                },
+                            ));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(1, move |wh, ctx| {
-                            ctx.add(
-                                typography::paragraph()
-                                    .size(FontSize::Medium)
-                                    .max_width(wh.width)
-                                    .text(&description)
-                                    .render_left_top(),
-                            );
+                            ctx.add(memoized_text(
+                                &description,
+                                |builder| {
+                                    builder
+                                        .paragraph()
+                                        .size(FontSize::Medium)
+                                        .max_width(wh.width)
+                                        .text(&description)
+                                        .render_left_top()
+                                },
+                            ));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(48.px(), |wh, ctx| {
@@ -238,14 +246,18 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                         purchase_action();
                                     },
                                     &|wh, color, ctx| {
-                                        ctx.add(
-                                            typography::headline()
-                                                .icon::<()>(IconKind::Gold)
-                                                .space()
-                                                .color(color)
-                                                .text(format!("{cost}"))
-                                                .render_center(wh),
-                                        );
+                                        ctx.add(memoized_text(
+                                            (&color, &cost),
+                                            |builder| {
+                                                builder
+                                                    .headline()
+                                                    .icon::<()>(IconKind::Gold)
+                                                    .space()
+                                                    .color(color)
+                                                    .text(format!("{cost}"))
+                                                    .render_center(wh)
+                                            },
+                                        ));
                                     },
                                 )
                                 .color(if available {
@@ -413,12 +425,16 @@ impl Component for ShopItemSoldOut {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(
-                        typography::headline()
-                            .size(FontSize::Medium)
-                            .text(game_state.text().ui(TopBarText::SoldOut))
-                            .render_center(wh),
-                    );
+                    ctx.add(memoized_text(
+                        (),
+                        |builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Medium)
+                                .text(game_state.text().ui(TopBarText::SoldOut))
+                                .render_center(wh)
+                        },
+                    ));
                     ctx.add(simple_rect(
                         wh,
                         Color::TRANSPARENT,
