@@ -5,7 +5,7 @@ use crate::{
     palette,
     theme::{
         button::Button,
-        typography::{self, FontSize, HEADLINE_FONT_SIZE_LARGE},
+        typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, memoized_text},
     },
 };
 use namui::*;
@@ -83,19 +83,26 @@ impl Component for Inventory {
                                                                     );
                                                                 },
                                                                 &|wh, color, ctx| {
-                                                                    ctx.add(
-                                                                        typography::headline()
-                                                                            .size(FontSize::Small)
-                                                                            .color(color)
-                                                                            .text(
+                                                                    ctx.add(memoized_text(
+                                                                        (&color, &wh),
+                                                                        |builder| {
+                                                                            let use_text =
                                                                                 game_state
                                                                                     .text()
                                                                                     .ui(
                                                                                     TopBarText::Use,
-                                                                                ),
-                                                                            )
-                                                                            .render_center(wh),
-                                                                    );
+                                                                                );
+
+                                                                            builder
+                                                                                .headline()
+                                                                                .size(
+                                                                                    FontSize::Small,
+                                                                                )
+                                                                                .color(color)
+                                                                                .text(use_text)
+                                                                                .render_center(wh)
+                                                                        },
+                                                                    ));
                                                                 },
                                                             )
                                                             .disabled(is_disabled),
@@ -106,23 +113,31 @@ impl Component for Inventory {
                                         ),
                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                            compose_ctx.add(
-                                                typography::headline()
-                                                    .size(FontSize::Small)
-                                                    .text(&name)
-                                                    .max_width(content_width)
-                                                    .render_left_top(),
-                                            );
+                                            compose_ctx.add(memoized_text(
+                                                (&name, &content_width),
+                                                |builder| {
+                                                    builder
+                                                        .headline()
+                                                        .size(FontSize::Small)
+                                                        .text(name.clone())
+                                                        .max_width(content_width)
+                                                        .render_left_top()
+                                                },
+                                            ));
                                         }),
                                         table::fixed(PADDING, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                            compose_ctx.add(
-                                                typography::paragraph()
-                                                    .size(FontSize::Medium)
-                                                    .max_width(content_width)
-                                                    .text(&desc)
-                                                    .render_left_top(),
-                                            );
+                                            compose_ctx.add(memoized_text(
+                                                (&content_width, &desc),
+                                                |builder| {
+                                                    builder
+                                                        .paragraph()
+                                                        .size(FontSize::Medium)
+                                                        .max_width(content_width)
+                                                        .text(desc.clone())
+                                                        .render_left_top()
+                                                },
+                                            ));
                                         }),
                                     ])(
                                         Wh::new(content_width, f32::MAX.px()), ctx

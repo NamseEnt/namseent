@@ -257,16 +257,6 @@ impl<'a> TypographyBuilder<'a> {
     }
 }
 
-/// Convenience function for headline
-pub fn headline() -> TypographyBuilder<'static> {
-    TypographyBuilder::new().headline()
-}
-
-/// Convenience function for paragraph  
-pub fn paragraph() -> TypographyBuilder<'static> {
-    TypographyBuilder::new()
-}
-
 #[derive(Debug, Clone)]
 pub struct TypographyIcon {
     pub icon_kind: IconKind,

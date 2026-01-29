@@ -1,6 +1,6 @@
 use crate::{
     game_state::{fast_forward::FastForwardMultiplier, mutate_game_state, use_game_state},
-    theme::typography,
+    theme::typography::memoized_text,
     theme::{button::Button, palette},
 };
 use namui::*;
@@ -11,14 +11,6 @@ pub struct GameSpeedIndicator;
 impl Component for GameSpeedIndicator {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
-
-        let current_speed_text = match game_state.fast_forward_multiplier {
-            FastForwardMultiplier::X1 => "1x",
-            FastForwardMultiplier::X2 => "2x",
-            FastForwardMultiplier::X4 => "4x",
-            FastForwardMultiplier::X8 => "8x",
-            FastForwardMultiplier::X16 => "16x",
-        };
 
         let slower_action = || {
             mutate_game_state(|game_state| {
@@ -49,11 +41,22 @@ impl Component for GameSpeedIndicator {
             table::vertical([
                 // Current speed display
                 table::fixed(32.px(), |wh, ctx| {
-                    ctx.add(
-                        typography::paragraph()
-                            .text(format!("Speed: {current_speed_text}"))
-                            .render_center(wh),
-                    );
+                    ctx.add(memoized_text(
+                        (&game_state.fast_forward_multiplier, &wh),
+                        |builder| {
+                            let current_speed_text = match game_state.fast_forward_multiplier {
+                                FastForwardMultiplier::X1 => "1x",
+                                FastForwardMultiplier::X2 => "2x",
+                                FastForwardMultiplier::X4 => "4x",
+                                FastForwardMultiplier::X8 => "8x",
+                                FastForwardMultiplier::X16 => "16x",
+                            };
+                            builder
+                                .paragraph()
+                                .text(format!("Speed: {current_speed_text}"))
+                                .render_center(wh)
+                        },
+                    ));
                 }),
                 // Buttons row
                 table::fixed(28.px(), |_wh, ctx| {
@@ -62,12 +65,13 @@ impl Component for GameSpeedIndicator {
                         table::fixed(28.px(), |wh, ctx| {
                             ctx.add(
                                 Button::new(wh, &slower_action, &|wh, color, ctx| {
-                                    ctx.add(
-                                        typography::paragraph()
+                                    ctx.add(memoized_text((&color, &wh), |builder| {
+                                        builder
+                                            .paragraph()
                                             .color(color)
                                             .text("<<")
-                                            .render_center(wh),
-                                    );
+                                            .render_center(wh)
+                                    }));
                                 })
                                 .disabled(
                                     game_state.fast_forward_multiplier == FastForwardMultiplier::X1,
@@ -77,24 +81,26 @@ impl Component for GameSpeedIndicator {
                         // Default button
                         table::fixed(36.px(), |wh, ctx| {
                             ctx.add(Button::new(wh, &default_action, &|wh, color, ctx| {
-                                ctx.add(
-                                    typography::paragraph()
+                                ctx.add(memoized_text((&color, &wh), |builder| {
+                                    builder
+                                        .paragraph()
                                         .color(color)
                                         .text("1x")
-                                        .render_center(wh),
-                                );
+                                        .render_center(wh)
+                                }));
                             }));
                         }),
                         // Faster button
                         table::fixed(28.px(), |wh, ctx| {
                             ctx.add(
                                 Button::new(wh, &faster_action, &|wh, color, ctx| {
-                                    ctx.add(
-                                        typography::paragraph()
+                                    ctx.add(memoized_text((&color, &wh), |builder| {
+                                        builder
+                                            .paragraph()
                                             .color(color)
                                             .text(">>")
-                                            .render_center(wh),
-                                    );
+                                            .render_center(wh)
+                                    }));
                                 })
                                 .disabled(
                                     game_state.fast_forward_multiplier

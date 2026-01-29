@@ -3,7 +3,7 @@ use crate::{
     game_state::use_game_state,
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{self, FontSize, memoized_text},
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -66,17 +66,14 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(memoized_text(
-                            (),
-                            |builder| {
-                                builder
-                                    .headline()
-                                    .size(FontSize::Large)
-                                    .max_width(wh.width)
-                                    .text(game_state.text().upgrade_board(UpgradeBoardText::Title))
-                                    .render_center(wh)
-                            },
-                        ));
+                        ctx.add(memoized_text((), |builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Large)
+                                .max_width(wh.width)
+                                .text(game_state.text().upgrade_board(UpgradeBoardText::Title))
+                                .render_center(wh)
+                        }));
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {
@@ -146,13 +143,16 @@ impl Component for UpgradeItem {
                         table::ratio(
                             1,
                             table::padding(PADDING, |wh, ctx| {
-                                ctx.add(
-                                    typography::paragraph()
-                                        .size(FontSize::Medium)
-                                        .max_width(wh.width)
-                                        .text(&upgrade_info.description)
-                                        .render_left_top(),
-                                );
+                                ctx.add(memoized_text(
+                                    (&upgrade_info.description, &wh.width),
+                                    |builder| {
+                                        builder
+                                            .size(FontSize::Medium)
+                                            .max_width(wh.width)
+                                            .text(&upgrade_info.description)
+                                            .render_left_top()
+                                    },
+                                ));
                             }),
                         ),
                     ])(wh, ctx);

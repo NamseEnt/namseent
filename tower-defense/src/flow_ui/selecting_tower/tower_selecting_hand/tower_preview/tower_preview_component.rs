@@ -13,7 +13,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::upgrade::UpgradeKindText,
     palette,
-    theme::typography::{self, FontSize},
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -78,28 +78,29 @@ impl Component for TowerPreviewContent<'_> {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
-                        let rank_text = tower_template.rank.to_string();
-                        let mut builder = typography::headline()
-                            .size(FontSize::Small)
-                            .max_width(wh.width);
+                        ctx.add(memoized_text(
+                            (&wh, &tower_template.kind, &tower_template.suit),
+                            |builder| {
+                                let rank_text = tower_template.rank.to_string();
+                                let mut builder = builder.size(FontSize::Small).max_width(wh.width);
 
-                        if !matches!(
-                            tower_template.kind,
-                            crate::game_state::tower::TowerKind::Barricade
-                        ) {
-                            builder = builder
-                                .icon::<()>(IconKind::Suit {
-                                    suit: tower_template.suit,
-                                })
-                                .text(&rank_text)
-                                .space();
-                        }
+                                if !matches!(
+                                    tower_template.kind,
+                                    crate::game_state::tower::TowerKind::Barricade
+                                ) {
+                                    builder = builder
+                                        .icon::<()>(IconKind::Suit {
+                                            suit: tower_template.suit,
+                                        })
+                                        .text(&rank_text)
+                                        .space();
+                                }
 
-                        ctx.add(
-                            builder
-                                .text(game_state.text().tower(tower_template.kind.to_text()))
-                                .render_left_center(wh.height),
-                        );
+                                builder
+                                    .text(game_state.text().tower(tower_template.kind.to_text()))
+                                    .render_left_center(wh.height)
+                            },
+                        ));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let rating =
@@ -111,12 +112,13 @@ impl Component for TowerPreviewContent<'_> {
                                 .size(IconSize::Small)
                                 .wh(Wh::new(16.px(), wh.height)),
                         );
-                        ctx.add(
-                            typography::paragraph()
+                        ctx.add(memoized_text((&rating, &wh.width), |builder| {
+                            builder
+                                .paragraph()
                                 .size(FontSize::Medium)
                                 .text(format_compact_number(rating))
-                                .render_right_top(wh.width),
-                        );
+                                .render_right_top(wh.width)
+                        }));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let damage = tower_template.kind.default_damage();

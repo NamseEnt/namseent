@@ -4,7 +4,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::{TextManager, contract::ContractText},
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, headline, paragraph},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -52,36 +52,39 @@ impl Component for ContractItemContent<'_> {
                         }),
                         table::ratio(1, move |_, _| {}),
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
-                            ctx.add(
-                                headline()
+                            ctx.add(memoized_text(&contract.status, |builder| {
+                                builder
+                                    .headline()
                                     .size(FontSize::Small)
                                     .text(contract.status.to_string())
-                                    .render_center(wh),
-                            );
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),
                 table::fixed(PADDING * 2.0, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                     let text = text_manager.contract(ContractText::Risk(&contract.risk));
-                    compose_ctx.add(
-                        paragraph()
+                    compose_ctx.add(memoized_text((&text, &content_width), |builder| {
+                        builder
+                            .paragraph()
                             .size(FontSize::Medium)
                             .max_width(content_width)
                             .text(&text)
-                            .render_left_top(),
-                    );
+                            .render_left_top()
+                    }));
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                     let text = text_manager.contract(ContractText::Reward(&contract.reward));
-                    compose_ctx.add(
-                        paragraph()
+                    compose_ctx.add(memoized_text((&text, &content_width), |builder| {
+                        builder
+                            .paragraph()
                             .size(FontSize::Medium)
                             .max_width(content_width)
                             .text(&text)
-                            .render_left_top(),
-                    );
+                            .render_left_top()
+                    }));
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);
         });

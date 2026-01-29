@@ -4,7 +4,7 @@ use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::palette;
-use crate::theme::typography::{self};
+use crate::theme::typography::memoized_text;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -134,11 +134,9 @@ impl Component for AddTowerCardTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(
-                        typography::headline()
-                            .text("Add tower card")
-                            .render_left_top(),
-                    );
+                    ctx.add(memoized_text((), |builder| {
+                        builder.headline().text("Add tower card").render_left_top()
+                    }));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -146,12 +144,13 @@ impl Component for AddTowerCardTool {
                         "Stage {}: Expected Tower - {:?}",
                         game_state.stage, expected_tower
                     );
-                    ctx.add(
-                        typography::paragraph()
+                    ctx.add(memoized_text(&info_text, |builder| {
+                        builder
+                            .paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
                             .text(&info_text)
-                            .render_left_top(),
-                    );
+                            .render_left_top()
+                    }));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -172,12 +171,13 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(
-                                                        typography::paragraph()
+                                                    ctx.add(memoized_text(&text, |builder| {
+                                                        builder
+                                                            .paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .render_left_center(wh.height),
-                                                    );
+                                                            .render_left_center(wh.height)
+                                                    }));
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
                                                     ctx.add(
@@ -216,12 +216,13 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(
-                                                        typography::paragraph()
+                                                    ctx.add(memoized_text(&text, |builder| {
+                                                        builder
+                                                            .paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .render_left_center(wh.height),
-                                                    );
+                                                            .render_left_center(wh.height)
+                                                    }));
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
                                                     ctx.add(
@@ -260,12 +261,13 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(
-                                                        typography::paragraph()
+                                                    ctx.add(memoized_text(&text, |builder| {
+                                                        builder
+                                                            .paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .render_left_center(wh.height),
-                                                    );
+                                                            .render_left_center(wh.height)
+                                                    }));
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
                                                     ctx.add(
@@ -306,12 +308,13 @@ impl Component for AddTowerCardTool {
                                                     set_dropdown.set(0);
                                                 },
                                                 &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        typography::paragraph()
+                                                    ctx.add(memoized_text(&text, |builder| {
+                                                        builder
+                                                            .paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .render_left_center(wh.height),
-                                                    );
+                                                            .render_left_center(wh.height)
+                                                    }));
                                                 },
                                             )
                                             .variant(
@@ -355,12 +358,13 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            typography::paragraph()
+                                                        ctx.add(memoized_text(&text, |builder| {
+                                                            builder
+                                                                .paragraph()
                                                                 .color(text_color)
                                                                 .text(&text)
-                                                                .render_left_center(wh.height),
-                                                        );
+                                                                .render_left_center(wh.height)
+                                                        }));
                                                     },
                                                 )
                                                 .variant(
@@ -382,12 +386,16 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            typography::paragraph()
-                                                                .color(text_color)
-                                                                .text(&text)
-                                                                .render_left_center(wh.height),
-                                                        );
+                                                        ctx.add(memoized_text(
+                                                            &text_color,
+                                                            |builder| {
+                                                                builder
+                                                                    .paragraph()
+                                                                    .color(text_color)
+                                                                    .text(&text)
+                                                                    .render_left_center(wh.height)
+                                                            },
+                                                        ));
                                                     },
                                                 )
                                                 .variant(if *is_suit_random {
@@ -430,12 +438,16 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            typography::paragraph()
-                                                                .color(text_color)
-                                                                .text(&text)
-                                                                .render_left_center(wh.height),
-                                                        );
+                                                        ctx.add(memoized_text(
+                                                            &text_color,
+                                                            |builder| {
+                                                                builder
+                                                                    .paragraph()
+                                                                    .color(text_color)
+                                                                    .text(&text)
+                                                                    .render_left_center(wh.height)
+                                                            },
+                                                        ));
                                                     },
                                                 )
                                                 .variant(
@@ -457,12 +469,16 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            typography::paragraph()
-                                                                .color(text_color)
-                                                                .text(&text)
-                                                                .render_left_center(wh.height),
-                                                        );
+                                                        ctx.add(memoized_text(
+                                                            &text_color,
+                                                            |builder| {
+                                                                builder
+                                                                    .paragraph()
+                                                                    .color(text_color)
+                                                                    .text(&text)
+                                                                    .render_left_center(wh.height)
+                                                            },
+                                                        ));
                                                     },
                                                 )
                                                 .variant(if *is_rank_random {
@@ -486,12 +502,13 @@ impl Component for AddTowerCardTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &add_card,
                             &|wh, text_color, ctx| {
-                                ctx.add(
-                                    typography::paragraph()
+                                ctx.add(memoized_text((), |builder| {
+                                    builder
+                                        .paragraph()
                                         .color(text_color)
                                         .text("덱에 추가")
-                                        .render_center(wh),
-                                );
+                                        .render_center(wh)
+                                }));
                             },
                         )
                         .variant(ButtonVariant::Contained),
