@@ -32,7 +32,7 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
             .size(FontSize::Small)
             .color(text_color)
             .text(rank.to_string())
-            .render_center(icon_wh.clone())
+            .render_center(icon_wh)
     }));
 
     // 문양 아이콘 렌더링 (숫자 아래)

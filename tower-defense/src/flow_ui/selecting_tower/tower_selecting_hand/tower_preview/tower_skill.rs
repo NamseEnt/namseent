@@ -152,17 +152,14 @@ impl Component for TowerEffectDescription<'_> {
                                 TowerSkillText::TopCardBonusTitle
                             }
                         };
-                        ctx.add(typography::memoized_text(
-                            (&skill_title, &locale),
-                            |builder| {
-                                builder
-                                    .headline()
-                                    .size(FontSize::Small)
-                                    .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                    .l10n(skill_title.clone(), locale)
-                                    .render_left_top()
-                            },
-                        ));
+                        ctx.add(typography::memoized_text((), |builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Small)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                .l10n(skill_title.clone(), locale)
+                                .render_left_top()
+                        }));
                     }),
                     table::fixed(PADDING, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -213,16 +210,14 @@ impl Component for TowerEffectDescription<'_> {
                                 }
                             }
                         };
-                        ctx.add(typography::memoized_text(
-                            (&skill_desc, locale),
-                            |builder| {
-                                builder
-                                    .size(FontSize::Medium)
-                                    .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                    .l10n(skill_desc.clone(), locale)
-                                    .render_left_top()
-                            },
-                        ));
+                        ctx.add(typography::memoized_text((), |builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                .l10n(skill_desc.clone(), locale)
+                                .render_left_top()
+                        }));
                     }),
                 ])(
                     Wh {
