@@ -6,7 +6,7 @@ pub enum Language {
     English,
 }
 
-#[derive(Debug, Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct Locale {
     pub language: Language,
 }

@@ -3,7 +3,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::{
         palette,
-        typography::{self, FontSize},
+        typography::{FontSize, memoized_text},
     },
 };
 use namui::*;
@@ -62,12 +62,14 @@ impl Component for StatPreview<'_> {
                 .size(IconSize::Small)
                 .wh(Wh::new(16.px(), wh.height)),
         );
-        ctx.add(
-            typography::paragraph()
+        let stat_text = format_stat_final(default_stat, plus_stat, multiplier);
+        ctx.add(memoized_text((&wh.width, &stat_text), |builder| {
+            builder
+                .paragraph()
                 .size(FontSize::Medium)
-                .text(format_stat_final(default_stat, plus_stat, multiplier))
-                .render_right_top(wh.width),
-        );
+                .text(stat_text.clone())
+                .render_right_top(wh.width)
+        }));
 
         ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
@@ -130,11 +132,14 @@ impl Component for Tooltip<'_> {
             // 통계 상세 정보 렌더링
             let stat_text = ctx.ghost_add(
                 "stat-detail",
-                typography::paragraph()
-                    .size(FontSize::Medium)
-                    .max_width(text_max_width)
-                    .text(&stat_detail)
-                    .render_left_top(),
+                memoized_text((&text_max_width, &stat_detail), |builder| {
+                    builder
+                        .paragraph()
+                        .size(FontSize::Medium)
+                        .max_width(text_max_width)
+                        .text(stat_detail.clone())
+                        .render_left_top()
+                }),
             );
             let stat_text_height = stat_text
                 .bounding_box()
@@ -152,11 +157,14 @@ impl Component for Tooltip<'_> {
             for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
-                    typography::paragraph()
-                        .size(FontSize::Medium)
-                        .max_width(text_max_width)
-                        .text(upgrade_text)
-                        .render_left_top(),
+                    memoized_text((&text_max_width, &index, upgrade_text), |builder| {
+                        builder
+                            .paragraph()
+                            .size(FontSize::Medium)
+                            .max_width(text_max_width)
+                            .text(upgrade_text.clone())
+                            .render_left_top()
+                    }),
                 );
                 let text_height = rendered_text
                     .bounding_box()

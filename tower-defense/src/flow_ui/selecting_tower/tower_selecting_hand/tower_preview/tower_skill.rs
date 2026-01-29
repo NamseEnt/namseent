@@ -126,106 +126,103 @@ impl Component for TowerEffectDescription<'_> {
                 let locale = &game_state.locale;
                 table::vertical([
                     table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(
-                            typography::headline()
-                                .size(FontSize::Small)
-                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                .l10n(
-                                    match skill.kind {
-                                        TowerSkillKind::NearbyTowerDamageMul { .. } => {
-                                            TowerSkillText::NearbyTowerDamageMulTitle
-                                        }
-                                        TowerSkillKind::NearbyTowerDamageAdd { .. } => {
-                                            TowerSkillText::NearbyTowerDamageAddTitle
-                                        }
-                                        TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
-                                            TowerSkillText::NearbyTowerAttackSpeedAddTitle
-                                        }
-                                        TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
-                                            TowerSkillText::NearbyTowerAttackSpeedMulTitle
-                                        }
-                                        TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
-                                            TowerSkillText::NearbyTowerAttackRangeAddTitle
-                                        }
-                                        TowerSkillKind::NearbyMonsterSpeedMul { .. } => {
-                                            TowerSkillText::NearbyMonsterSpeedMulTitle
-                                        }
-                                        TowerSkillKind::MoneyIncomeAdd { .. } => {
-                                            TowerSkillText::MoneyIncomeAddTitle
-                                        }
-                                        TowerSkillKind::TopCardBonus { .. } => {
-                                            TowerSkillText::TopCardBonusTitle
-                                        }
-                                    },
-                                    locale,
-                                )
-                                .render_left_top(),
-                        );
+                        let skill_title = match skill.kind {
+                            TowerSkillKind::NearbyTowerDamageMul { .. } => {
+                                TowerSkillText::NearbyTowerDamageMulTitle
+                            }
+                            TowerSkillKind::NearbyTowerDamageAdd { .. } => {
+                                TowerSkillText::NearbyTowerDamageAddTitle
+                            }
+                            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
+                                TowerSkillText::NearbyTowerAttackSpeedAddTitle
+                            }
+                            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
+                                TowerSkillText::NearbyTowerAttackSpeedMulTitle
+                            }
+                            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
+                                TowerSkillText::NearbyTowerAttackRangeAddTitle
+                            }
+                            TowerSkillKind::NearbyMonsterSpeedMul { .. } => {
+                                TowerSkillText::NearbyMonsterSpeedMulTitle
+                            }
+                            TowerSkillKind::MoneyIncomeAdd { .. } => {
+                                TowerSkillText::MoneyIncomeAddTitle
+                            }
+                            TowerSkillKind::TopCardBonus { .. } => {
+                                TowerSkillText::TopCardBonusTitle
+                            }
+                        };
+                        ctx.add(typography::memoized_text(
+                            (&skill_title, &locale),
+                            |builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Small)
+                                    .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                    .l10n(skill_title.clone(), locale)
+                                    .render_left_top()
+                            },
+                        ));
                     }),
                     table::fixed(PADDING, |_, _| {}),
                     table::fit(table::FitAlign::LeftTop, |ctx| {
-                        ctx.add(
-                            typography::paragraph()
-                                .size(FontSize::Medium)
-                                .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
-                                .l10n(
-                                    match skill.kind {
-                                        TowerSkillKind::NearbyTowerDamageMul {
-                                            mul,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyTowerDamageMulDesc {
-                                            mul,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::NearbyTowerDamageAdd {
-                                            add,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyTowerDamageAddDesc {
-                                            add,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::NearbyTowerAttackSpeedAdd {
-                                            add,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyTowerAttackSpeedAddDesc {
-                                            add,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::NearbyTowerAttackSpeedMul {
-                                            mul,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyTowerAttackSpeedMulDesc {
-                                            mul,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::NearbyTowerAttackRangeAdd {
-                                            add,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyTowerAttackRangeAddDesc {
-                                            add,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::NearbyMonsterSpeedMul {
-                                            mul,
-                                            range_radius,
-                                        } => TowerSkillText::NearbyMonsterSpeedMulDesc {
-                                            mul,
-                                            range_radius: range_radius as usize,
-                                        },
-                                        TowerSkillKind::MoneyIncomeAdd { add } => {
-                                            TowerSkillText::MoneyIncomeAddDesc { add }
-                                        }
-                                        TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
-                                            TowerSkillText::TopCardBonusDesc {
-                                                rank: format!("{rank:?}"),
-                                                bonus_damage,
-                                            }
-                                        }
-                                    },
-                                    locale,
-                                )
-                                .render_left_top(),
-                        );
+                        let skill_desc = match skill.kind {
+                            TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => {
+                                TowerSkillText::NearbyTowerDamageMulDesc {
+                                    mul,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
+                                TowerSkillText::NearbyTowerDamageAddDesc {
+                                    add,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
+                                TowerSkillText::NearbyTowerAttackSpeedAddDesc {
+                                    add,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
+                                TowerSkillText::NearbyTowerAttackSpeedMulDesc {
+                                    mul,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
+                                TowerSkillText::NearbyTowerAttackRangeAddDesc {
+                                    add,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::NearbyMonsterSpeedMul { mul, range_radius } => {
+                                TowerSkillText::NearbyMonsterSpeedMulDesc {
+                                    mul,
+                                    range_radius: range_radius as usize,
+                                }
+                            }
+                            TowerSkillKind::MoneyIncomeAdd { add } => {
+                                TowerSkillText::MoneyIncomeAddDesc { add }
+                            }
+                            TowerSkillKind::TopCardBonus { rank, bonus_damage } => {
+                                TowerSkillText::TopCardBonusDesc {
+                                    rank: format!("{rank:?}"),
+                                    bonus_damage,
+                                }
+                            }
+                        };
+                        ctx.add(typography::memoized_text(
+                            (&skill_desc, locale),
+                            |builder| {
+                                builder
+                                    .size(FontSize::Medium)
+                                    .max_width(TOWER_EFFECT_DESCRIPTION_MAXWIDTH)
+                                    .l10n(skill_desc.clone(), locale)
+                                    .render_left_top()
+                            },
+                        ));
                     }),
                 ])(
                     Wh {

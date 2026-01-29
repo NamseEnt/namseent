@@ -48,16 +48,13 @@ impl Component for DebugToolsModal {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
-                                ctx.add(memoized_text(
-                                    (),
-                                    |builder| {
-                                        builder
-                                            .headline()
-                                            .size(typography::FontSize::Medium)
-                                            .text("Debug Tools")
-                                            .render_left_center(wh.height)
-                                    },
-                                ));
+                                ctx.add(memoized_text(&wh.height, |builder| {
+                                    builder
+                                        .headline()
+                                        .size(typography::FontSize::Medium)
+                                        .text("Debug Tools")
+                                        .render_left_center(wh.height)
+                                }));
                             }),
                             table::fixed(48.px(), |wh, ctx| {
                                 ctx.add(
@@ -142,12 +139,18 @@ impl Component for DebugToolsModal {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                typography::paragraph()
-                                                                    .color(text_color)
-                                                                    .text("Add Shop Reroll Item")
-                                                                    .render_center(wh),
-                                                            );
+                                                            ctx.add(typography::memoized_text(
+                                                                (&text_color, &wh),
+                                                                |builder| {
+                                                                    builder
+                                                                        .paragraph()
+                                                                        .color(text_color)
+                                                                        .text(
+                                                                            "Add Shop Reroll Item",
+                                                                        )
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .variant(ButtonVariant::Outlined),
@@ -168,12 +171,18 @@ impl Component for DebugToolsModal {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                typography::paragraph()
-                                                                    .color(text_color)
-                                                                    .text("Add Hand Reroll Item")
-                                                                    .render_center(wh),
-                                                            );
+                                                            ctx.add(typography::memoized_text(
+                                                                (&text_color, &wh),
+                                                                |builder| {
+                                                                    builder
+                                                                        .paragraph()
+                                                                        .color(text_color)
+                                                                        .text(
+                                                                            "Add Hand Reroll Item",
+                                                                        )
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .variant(ButtonVariant::Outlined),

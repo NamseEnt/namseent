@@ -45,7 +45,8 @@ pub fn render_text_overlay(
     let overlay_size = container_size * size_ratio;
     let overlay_position = position.calculate_position(container_size, overlay_size);
 
-    let rendered_text = typography::headline()
+    let rendered_text = typography::TypographyBuilder::new()
+        .headline()
         .size(FontSize::Custom {
             size: overlay_size.height * text_size_ratio,
         })

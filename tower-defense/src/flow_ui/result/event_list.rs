@@ -132,11 +132,12 @@ impl EventItem<'_> {
     fn render_event_description(ctx: &ComposeCtx, wh: Wh<Px>, event_text: &str) {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
-                ctx.add(memoized_text(&(event_text.len()), |builder| {
+                let event_text = event_text.to_string();
+                ctx.add(memoized_text((&event_text, &wh.height), |builder| {
                     builder
                         .headline()
                         .size(typography::FontSize::Small)
-                        .text(event_text)
+                        .text(event_text.clone())
                         .render_left_center(wh.height)
                 }));
             })(wh, ctx);
@@ -187,11 +188,14 @@ impl Component for EventTooltip {
 
         let text = ctx.ghost_add(
             "tooltip-text",
-            typography::paragraph()
-                .size(typography::FontSize::Small)
-                .max_width(text_max_width)
-                .text(&content)
-                .render_left_top(),
+            memoized_text((&text_max_width, &content), |builder| {
+                builder
+                    .paragraph()
+                    .size(typography::FontSize::Small)
+                    .max_width(text_max_width)
+                    .text(content.clone())
+                    .render_left_top()
+            }),
         );
 
         let Some(text_wh) = text.bounding_box().map(|rect| rect.wh()) else {
@@ -313,13 +317,16 @@ impl Component for TimelineIconComponent<'_> {
 
         // Render stage label if applicable
         if let HistoryEventType::StageStart { stage } = event_type {
-            ctx.translate(wh.to_xy() * -0.5).add(
-                typography::headline()
-                    .size(typography::FontSize::Medium)
-                    .color(palette::ON_PRIMARY)
-                    .text(stage.to_string())
-                    .render_center(wh),
-            );
+            let stage_str = stage.to_string();
+            ctx.translate(wh.to_xy() * -0.5)
+                .add(memoized_text((&wh, &stage_str), |builder| {
+                    builder
+                        .headline()
+                        .size(typography::FontSize::Medium)
+                        .color(palette::ON_PRIMARY)
+                        .text(stage_str.clone())
+                        .render_center(wh)
+                }));
         }
 
         // Render circle background if needed
