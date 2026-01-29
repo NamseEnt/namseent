@@ -66,7 +66,7 @@ impl Component for StatPreview<'_> {
             typography::paragraph()
                 .size(FontSize::Medium)
                 .text(format_stat_final(default_stat, plus_stat, multiplier))
-                .right_top(wh.width),
+                .render_right_top(wh.width),
         );
 
         ctx.add(
@@ -134,7 +134,7 @@ impl Component for Tooltip<'_> {
                     .size(FontSize::Medium)
                     .max_width(text_max_width)
                     .text(&stat_detail)
-                    .left_top(),
+                    .render_left_top(),
             );
             let stat_text_height = stat_text
                 .bounding_box()
@@ -156,7 +156,7 @@ impl Component for Tooltip<'_> {
                         .size(FontSize::Medium)
                         .max_width(text_max_width)
                         .text(upgrade_text)
-                        .left_top(),
+                        .render_left_top(),
                 );
                 let text_height = rendered_text
                     .bounding_box()

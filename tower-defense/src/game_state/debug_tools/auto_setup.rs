@@ -60,7 +60,7 @@ impl Component for AutoSetupButton {
                             .text(
                                 "Auto setup: snapshot → place expected tower → expected upgrade → spiral place → defense",
                             )
-                            .center(wh),
+                            .render_center(wh),
                     );
                 },
             )

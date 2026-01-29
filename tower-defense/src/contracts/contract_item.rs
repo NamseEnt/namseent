@@ -56,7 +56,7 @@ impl Component for ContractItemContent<'_> {
                                 headline()
                                     .size(FontSize::Small)
                                     .text(contract.status.to_string())
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                     ]),
@@ -69,7 +69,7 @@ impl Component for ContractItemContent<'_> {
                             .size(FontSize::Medium)
                             .max_width(content_width)
                             .text(&text)
-                            .left_top(),
+                            .render_left_top(),
                     );
                 }),
                 table::fixed(PADDING, |_, _| {}),
@@ -80,7 +80,7 @@ impl Component for ContractItemContent<'_> {
                             .size(FontSize::Medium)
                             .max_width(content_width)
                             .text(&text)
-                            .left_top(),
+                            .render_left_top(),
                     );
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);

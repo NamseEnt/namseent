@@ -52,7 +52,7 @@ impl Component for GameSpeedIndicator {
                     ctx.add(
                         typography::paragraph()
                             .text(format!("Speed: {current_speed_text}"))
-                            .center(wh),
+                            .render_center(wh),
                     );
                 }),
                 // Buttons row
@@ -63,7 +63,10 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &slower_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        typography::paragraph().color(color).text("<<").center(wh),
+                                        typography::paragraph()
+                                            .color(color)
+                                            .text("<<")
+                                            .render_center(wh),
                                     );
                                 })
                                 .disabled(
@@ -74,7 +77,12 @@ impl Component for GameSpeedIndicator {
                         // Default button
                         table::fixed(36.px(), |wh, ctx| {
                             ctx.add(Button::new(wh, &default_action, &|wh, color, ctx| {
-                                ctx.add(typography::paragraph().color(color).text("1x").center(wh));
+                                ctx.add(
+                                    typography::paragraph()
+                                        .color(color)
+                                        .text("1x")
+                                        .render_center(wh),
+                                );
                             }));
                         }),
                         // Faster button
@@ -82,7 +90,10 @@ impl Component for GameSpeedIndicator {
                             ctx.add(
                                 Button::new(wh, &faster_action, &|wh, color, ctx| {
                                     ctx.add(
-                                        typography::paragraph().color(color).text(">>").center(wh),
+                                        typography::paragraph()
+                                            .color(color)
+                                            .text(">>")
+                                            .render_center(wh),
                                     );
                                 })
                                 .disabled(

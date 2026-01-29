@@ -37,7 +37,7 @@ impl Component for SettingsModal {
                                     typography::headline()
                                         .size(typography::FontSize::Medium)
                                         .text(&text)
-                                        .left_center(wh.height),
+                                        .render_left_center(wh.height),
                                 );
                             }),
                             table::fixed(64.px(), |wh, ctx| {

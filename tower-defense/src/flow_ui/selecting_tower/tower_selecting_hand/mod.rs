@@ -182,7 +182,7 @@ impl Component for InteractionArea<'_> {
                                         builder = builder.space().icon::<()>(IconKind::Health);
                                     }
 
-                                    ctx.add(builder.color(color).center(wh));
+                                    ctx.add(builder.color(color).render_center(wh));
                                 },
                             )
                             .disabled(

@@ -50,7 +50,7 @@ impl Component for TowerInfoPopup<'_> {
                                                     .color(text_color)
                                                     .max_width(wh.width)
                                                     .text("철거")
-                                                    .center(wh),
+                                                    .render_center(wh),
                                             );
                                         },
                                     )

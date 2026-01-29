@@ -29,7 +29,7 @@ impl Component for ClearProgress {
                 .color(palette::ON_SURFACE)
                 .stroke(1.px(), palette::ON_PRIMARY)
                 .text(format!("{:.2}%", clear_rate))
-                .center(wh),
+                .render_center(wh),
         );
 
         // 진행률 바

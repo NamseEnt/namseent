@@ -112,7 +112,7 @@ impl Component for MonsterHpBalanceButton {
                         typography::paragraph()
                             .color(text_color)
                             .text(&display_text)
-                            .center(wh),
+                            .render_center(wh),
                     );
                 },
             )

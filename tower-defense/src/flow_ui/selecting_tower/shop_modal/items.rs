@@ -213,7 +213,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                     .size(FontSize::Small)
                                     .max_width(wh.width)
                                     .text(&name)
-                                    .left_top(),
+                                    .render_left_top(),
                             );
                         }),
                         table::fixed(PADDING, |_, _| {}),
@@ -223,7 +223,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                     .size(FontSize::Medium)
                                     .max_width(wh.width)
                                     .text(&description)
-                                    .left_top(),
+                                    .render_left_top(),
                             );
                         }),
                         table::fixed(PADDING, |_, _| {}),
@@ -244,7 +244,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                                 .space()
                                                 .color(color)
                                                 .text(format!("{cost}"))
-                                                .center(wh),
+                                                .render_center(wh),
                                         );
                                     },
                                 )
@@ -417,7 +417,7 @@ impl Component for ShopItemSoldOut {
                         typography::headline()
                             .size(FontSize::Medium)
                             .text(game_state.text().ui(TopBarText::SoldOut))
-                            .center(wh),
+                            .render_center(wh),
                     );
                     ctx.add(simple_rect(
                         wh,

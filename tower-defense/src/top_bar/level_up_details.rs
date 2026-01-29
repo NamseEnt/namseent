@@ -72,7 +72,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -80,7 +80,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -89,7 +89,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                     ]),
@@ -114,7 +114,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -122,7 +122,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -131,7 +131,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                     ]),
@@ -156,7 +156,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -164,7 +164,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -173,7 +173,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                     ]),
@@ -198,7 +198,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -206,7 +206,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(1, |wh, ctx| {
@@ -215,7 +215,7 @@ impl Component for LevelUpDetails {
                                 typography::paragraph()
                                     .size(typography::FontSize::Medium)
                                     .text(&text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                     ]),

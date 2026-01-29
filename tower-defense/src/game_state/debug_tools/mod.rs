@@ -52,7 +52,7 @@ impl Component for DebugToolsModal {
                                     typography::headline()
                                         .size(typography::FontSize::Medium)
                                         .text("Debug Tools")
-                                        .left_center(wh.height),
+                                        .render_left_center(wh.height),
                                 );
                             }),
                             table::fixed(48.px(), |wh, ctx| {
@@ -83,26 +83,34 @@ impl Component for DebugToolsModal {
                                     scroll_ctx.compose(|ctx| {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(MonsterHpBalanceButton { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(MonsterHpBalanceButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AutoSetupButton { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AutoSetupButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AddTowerCardTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AddUpgradeTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
-
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(RouteLengthInfoTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(RouteLengthInfoTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
-
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(PlaceSelectedTowerInSpiralButton {
@@ -111,7 +119,9 @@ impl Component for DebugToolsModal {
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(StateSnapshotTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(StateSnapshotTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -132,7 +142,7 @@ impl Component for DebugToolsModal {
                                                                 typography::paragraph()
                                                                     .color(text_color)
                                                                     .text("Add Shop Reroll Item")
-                                                                    .center(wh),
+                                                                    .render_center(wh),
                                                             );
                                                         },
                                                     )
@@ -158,7 +168,7 @@ impl Component for DebugToolsModal {
                                                                 typography::paragraph()
                                                                     .color(text_color)
                                                                     .text("Add Hand Reroll Item")
-                                                                    .center(wh),
+                                                                    .render_center(wh),
                                                             );
                                                         },
                                                     )

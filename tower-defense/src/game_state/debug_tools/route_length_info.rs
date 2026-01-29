@@ -20,14 +20,14 @@ impl Component for RouteLengthInfoTool {
                     ctx.add(
                         typography::paragraph()
                             .text(format!("Route Length: {}", route_length))
-                            .build(),
+                            .render(),
                     );
                 }),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(
                         typography::paragraph()
                             .text(format!("Active Monsters: {}", active_monsters))
-                            .build(),
+                            .render(),
                     );
                 }),
             ])(Wh::new(self.width, f32::MAX.px()), ctx);

@@ -52,7 +52,7 @@ pub fn render_text_overlay(
         .color(Color::WHITE)
         .stroke(overlay_size.height * text_size_ratio * 0.05, Color::BLACK)
         .static_text(text)
-        .build();
+        .render();
 
     let text_offset = Xy {
         x: (overlay_size.width - rendered_text.width) / 2.0,

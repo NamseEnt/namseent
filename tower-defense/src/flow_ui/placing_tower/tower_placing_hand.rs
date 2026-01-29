@@ -81,7 +81,7 @@ impl Component for TowerPlacingHand {
                                                                 typography::headline()
                                                                     .color(text_color)
                                                                     .text("START")
-                                                                    .center(wh),
+                                                                    .render_center(wh),
                                                             );
                                                         },
                                                     )

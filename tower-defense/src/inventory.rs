@@ -94,7 +94,7 @@ impl Component for Inventory {
                                                                                     TopBarText::Use,
                                                                                 ),
                                                                             )
-                                                                            .center(wh),
+                                                                            .render_center(wh),
                                                                     );
                                                                 },
                                                             )
@@ -111,7 +111,7 @@ impl Component for Inventory {
                                                     .size(FontSize::Small)
                                                     .text(&name)
                                                     .max_width(content_width)
-                                                    .left_top(),
+                                                    .render_left_top(),
                                             );
                                         }),
                                         table::fixed(PADDING, |_, _| {}),
@@ -121,7 +121,7 @@ impl Component for Inventory {
                                                     .size(FontSize::Medium)
                                                     .max_width(content_width)
                                                     .text(&desc)
-                                                    .left_top(),
+                                                    .render_left_top(),
                                             );
                                         }),
                                     ])(

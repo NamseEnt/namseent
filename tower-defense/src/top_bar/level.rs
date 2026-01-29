@@ -44,7 +44,7 @@ impl Component for LevelIndicator {
                         typography::headline()
                             .size(typography::FontSize::Medium)
                             .text(&level_text)
-                            .center(wh),
+                            .render_center(wh),
                     );
                 }),
                 table::ratio(1, |_, _| {}),
@@ -72,7 +72,7 @@ impl Component for LevelIndicator {
                                             .icon::<()>(IconKind::Gold)
                                             .color(text_color)
                                             .text(format!("{level_up_cost}"))
-                                            .center(wh),
+                                            .render_center(wh),
                                     );
                                 },
                             )

@@ -75,7 +75,7 @@ impl Component for UpgradeBoard {
                                 .size(FontSize::Large)
                                 .max_width(wh.width)
                                 .text(&title)
-                                .center(wh),
+                                .render_center(wh),
                         );
                     }),
                     table::ratio(1, |wh, ctx| {
@@ -151,7 +151,7 @@ impl Component for UpgradeItem {
                                         .size(FontSize::Medium)
                                         .max_width(wh.width)
                                         .text(&upgrade_info.description)
-                                        .left_top(),
+                                        .render_left_top(),
                                 );
                             }),
                         ),

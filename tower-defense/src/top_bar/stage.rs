@@ -30,7 +30,7 @@ impl Component for StageIndicator {
                         typography::headline()
                             .size(typography::FontSize::Medium)
                             .text(&text)
-                            .center(wh),
+                            .render_center(wh),
                     );
                 }))
                 .chain((0..5).map(|offset| {

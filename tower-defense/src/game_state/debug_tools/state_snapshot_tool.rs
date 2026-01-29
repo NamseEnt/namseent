@@ -18,7 +18,7 @@ impl Component for StateSnapshotTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(typography::headline().text("State snapshots").left_top());
+                    ctx.add(typography::headline().text("State snapshots").render_left_top());
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -31,7 +31,7 @@ impl Component for StateSnapshotTool {
                                     typography::paragraph()
                                         .color(text_color)
                                         .text("Save snapshot now")
-                                        .center(wh),
+                                        .render_center(wh),
                                 );
                             },
                         )
@@ -49,7 +49,7 @@ impl Component for StateSnapshotTool {
                                     typography::paragraph()
                                         .color(text_color)
                                         .text("Clear all snapshots")
-                                        .center(wh),
+                                        .render_center(wh),
                                 );
                             },
                         )
@@ -71,7 +71,7 @@ impl Component for StateSnapshotTool {
                                                     .text(format!(
                                                         "Snapshot #{idx} (Stage {stage})"
                                                     ))
-                                                    .left_center(wh.height),
+                                                    .render_left_center(wh.height),
                                             );
                                         }),
                                         table::fixed(GAP, |_, _| {}),
@@ -85,7 +85,7 @@ impl Component for StateSnapshotTool {
                                                             typography::paragraph()
                                                                 .color(text_color)
                                                                 .text("Restore")
-                                                                .center(wh),
+                                                                .render_center(wh),
                                                         );
                                                     },
                                                 )

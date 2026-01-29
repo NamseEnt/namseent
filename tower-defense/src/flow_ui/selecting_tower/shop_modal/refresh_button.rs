@@ -53,7 +53,7 @@ impl Component for RefreshButton {
                     builder = builder.space().icon::<()>(IconKind::Health);
                 }
 
-                ctx.add(builder.center(wh));
+                ctx.add(builder.render_center(wh));
             })
             .variant(ButtonVariant::Fab)
             .disabled(disabled),

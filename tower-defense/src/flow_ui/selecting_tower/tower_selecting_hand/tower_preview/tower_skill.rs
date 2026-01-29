@@ -159,7 +159,7 @@ impl Component for TowerEffectDescription<'_> {
                                     },
                                     locale,
                                 )
-                                .left_top(),
+                                .render_left_top(),
                         );
                     }),
                     table::fixed(PADDING, |_, _| {}),
@@ -224,7 +224,7 @@ impl Component for TowerEffectDescription<'_> {
                                     },
                                     locale,
                                 )
-                                .left_top(),
+                                .render_left_top(),
                         );
                     }),
                 ])(

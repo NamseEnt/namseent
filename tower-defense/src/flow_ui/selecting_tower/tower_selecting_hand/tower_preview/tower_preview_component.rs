@@ -98,7 +98,7 @@ impl Component for TowerPreviewContent<'_> {
                         ctx.add(
                             builder
                                 .text(game_state.text().tower(tower_template.kind.to_text()))
-                                .left_center(wh.height),
+                                .render_left_center(wh.height),
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
@@ -115,7 +115,7 @@ impl Component for TowerPreviewContent<'_> {
                             typography::paragraph()
                                 .size(FontSize::Medium)
                                 .text(format_compact_number(rating))
-                                .right_top(wh.width),
+                                .render_right_top(wh.width),
                         );
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {

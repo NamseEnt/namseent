@@ -54,7 +54,7 @@ impl Component for ResultModal {
                                 typography::headline()
                                     .size(typography::FontSize::Large)
                                     .text(game_state.text().result_modal(ResultModalText::Title))
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::fixed(PADDING, |_wh, _ctx| {}),
@@ -88,7 +88,7 @@ impl Component for ResultModal {
                                                         ResultModalText::RestartButton,
                                                     ),
                                                 )
-                                                .center(wh),
+                                                .render_center(wh),
                                         );
                                     },
                                 )

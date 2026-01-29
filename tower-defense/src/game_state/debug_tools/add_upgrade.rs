@@ -277,7 +277,7 @@ impl Component for AddUpgradeTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(typography::headline().text("Add upgrade").left_top());
+                    ctx.add(typography::headline().text("Add upgrade").render_left_top());
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -291,7 +291,7 @@ impl Component for AddUpgradeTool {
                         typography::paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
                             .text(&info_text)
-                            .left_top(),
+                            .render_left_top(),
                     );
                 }),
                 table::fixed(GAP, |_, _| {}),
@@ -317,7 +317,7 @@ impl Component for AddUpgradeTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -357,7 +357,7 @@ impl Component for AddUpgradeTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -404,7 +404,7 @@ impl Component for AddUpgradeTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 },
                                             )
@@ -443,7 +443,7 @@ impl Component for AddUpgradeTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 },
                                             )
@@ -473,7 +473,7 @@ impl Component for AddUpgradeTool {
                                     typography::paragraph()
                                         .color(text_color)
                                         .text("업그레이드 획득")
-                                        .center(wh),
+                                        .render_center(wh),
                                 );
                             },
                         )

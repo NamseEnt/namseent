@@ -134,7 +134,11 @@ impl Component for AddTowerCardTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(typography::headline().text("Add tower card").left_top());
+                    ctx.add(
+                        typography::headline()
+                            .text("Add tower card")
+                            .render_left_top(),
+                    );
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -146,7 +150,7 @@ impl Component for AddTowerCardTool {
                         typography::paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
                             .text(&info_text)
-                            .left_top(),
+                            .render_left_top(),
                     );
                 }),
                 table::fixed(GAP, |_, _| {}),
@@ -172,7 +176,7 @@ impl Component for AddTowerCardTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -216,7 +220,7 @@ impl Component for AddTowerCardTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -260,7 +264,7 @@ impl Component for AddTowerCardTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
@@ -306,7 +310,7 @@ impl Component for AddTowerCardTool {
                                                         typography::paragraph()
                                                             .color(text_color)
                                                             .text(&text)
-                                                            .left_center(wh.height),
+                                                            .render_left_center(wh.height),
                                                     );
                                                 },
                                             )
@@ -355,7 +359,7 @@ impl Component for AddTowerCardTool {
                                                             typography::paragraph()
                                                                 .color(text_color)
                                                                 .text(&text)
-                                                                .left_center(wh.height),
+                                                                .render_left_center(wh.height),
                                                         );
                                                     },
                                                 )
@@ -382,7 +386,7 @@ impl Component for AddTowerCardTool {
                                                             typography::paragraph()
                                                                 .color(text_color)
                                                                 .text(&text)
-                                                                .left_center(wh.height),
+                                                                .render_left_center(wh.height),
                                                         );
                                                     },
                                                 )
@@ -430,7 +434,7 @@ impl Component for AddTowerCardTool {
                                                             typography::paragraph()
                                                                 .color(text_color)
                                                                 .text(&text)
-                                                                .left_center(wh.height),
+                                                                .render_left_center(wh.height),
                                                         );
                                                     },
                                                 )
@@ -457,7 +461,7 @@ impl Component for AddTowerCardTool {
                                                             typography::paragraph()
                                                                 .color(text_color)
                                                                 .text(&text)
-                                                                .left_center(wh.height),
+                                                                .render_left_center(wh.height),
                                                         );
                                                     },
                                                 )
@@ -486,7 +490,7 @@ impl Component for AddTowerCardTool {
                                     typography::paragraph()
                                         .color(text_color)
                                         .text("덱에 추가")
-                                        .center(wh),
+                                        .render_center(wh),
                                 );
                             },
                         )

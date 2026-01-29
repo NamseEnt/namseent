@@ -191,7 +191,7 @@ impl Component for PlaceSelectedTowerInSpiralButton {
                         typography::paragraph()
                             .color(text_color)
                             .text("Place selected tower in spiral")
-                            .center(wh),
+                            .render_center(wh),
                     );
                 },
             )

@@ -136,7 +136,7 @@ impl EventItem<'_> {
                     typography::headline()
                         .size(typography::FontSize::Small)
                         .text(event_text)
-                        .left_center(wh.height),
+                        .render_left_center(wh.height),
                 );
             })(wh, ctx);
         });
@@ -190,7 +190,7 @@ impl Component for EventTooltip {
                 .size(typography::FontSize::Small)
                 .max_width(text_max_width)
                 .text(&content)
-                .left_top(),
+                .render_left_top(),
         );
 
         let Some(text_wh) = text.bounding_box().map(|rect| rect.wh()) else {
@@ -317,7 +317,7 @@ impl Component for TimelineIconComponent<'_> {
                     .size(typography::FontSize::Medium)
                     .color(palette::ON_PRIMARY)
                     .text(stage.to_string())
-                    .center(wh),
+                    .render_center(wh),
             );
         }
 

@@ -1,6 +1,6 @@
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::palette;
 use crate::theme::typography::{self, FontSize};
-use crate::{palette};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -28,7 +28,7 @@ impl Component for HPAndGoldIndicator {
                                 typography::headline()
                                     .size(FontSize::Medium)
                                     .text(&hp_text)
-                                    .center(wh),
+                                    .render_center(wh),
                             );
                         }),
                         table::ratio(
@@ -62,7 +62,7 @@ impl Component for HPAndGoldIndicator {
                                 typography::headline()
                                     .size(FontSize::Medium)
                                     .text(&gold_text)
-                                    .right_top(wh.width),
+                                    .render_right_top(wh.width),
                             );
                         }),
                         table::fixed(PADDING, |_, _| {}),

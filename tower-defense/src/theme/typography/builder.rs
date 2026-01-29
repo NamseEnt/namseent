@@ -212,7 +212,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Build the typography
-    pub fn build(self) -> RenderedRichText {
+    pub fn render(self) -> RenderedRichText {
         let default_style = match self.variant {
             TypographyVariant::Headline => StyleContext::new(
                 super::HEADLINE_FONT_NAME.to_string(),
@@ -233,28 +233,28 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Render and position at top-left
-    pub fn left_top(self) -> PositionedRichText {
-        PositionedRichText::new(self.build(), Xy::zero())
+    pub fn render_left_top(self) -> PositionedRichText {
+        PositionedRichText::new(self.render(), Xy::zero())
     }
 
     /// Render and position at left with vertical centering
-    pub fn left_center(self, height: Px) -> PositionedRichText {
-        let rendered = self.build();
+    pub fn render_left_center(self, height: Px) -> PositionedRichText {
+        let rendered = self.render();
         let offset_y = (height - rendered.height) / 2.0;
         PositionedRichText::new(rendered, Xy::new(Px::zero(), offset_y))
     }
 
     /// Render and center in the given size
-    pub fn center(self, wh: Wh<Px>) -> PositionedRichText {
-        let rendered = self.build();
+    pub fn render_center(self, wh: Wh<Px>) -> PositionedRichText {
+        let rendered = self.render();
         let offset_x = (wh.width - rendered.width) / 2.0;
         let offset_y = (wh.height - rendered.height) / 2.0;
         PositionedRichText::new(rendered, Xy::new(offset_x, offset_y))
     }
 
     /// Render and position at right-top
-    pub fn right_top(self, width: Px) -> PositionedRichText {
-        let rendered = self.build();
+    pub fn render_right_top(self, width: Px) -> PositionedRichText {
+        let rendered = self.render();
         let offset_x = width - rendered.width;
         PositionedRichText::new(rendered, Xy::new(offset_x, Px::zero()))
     }
