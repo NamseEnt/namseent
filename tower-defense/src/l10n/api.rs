@@ -121,11 +121,22 @@ impl TextManager {
 
 /// 업그레이드 텍스트 처리
 impl TextManager {
-    pub fn upgrade_kind(&self, text: upgrade::UpgradeKindText) -> String {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
+    pub fn upgrade_kind_name<'a>(
+        &self,
+        upgrade: &crate::game_state::upgrade::UpgradeKind,
+        mut builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        upgrade::UpgradeKindText::Name(upgrade).apply_to_builder(&mut builder, &self.locale);
+        builder
+    }
+
+    pub fn upgrade_kind_description<'a>(
+        &self,
+        upgrade: &crate::game_state::upgrade::UpgradeKind,
+        mut builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        upgrade::UpgradeKindText::Description(upgrade).apply_to_builder(&mut builder, &self.locale);
+        builder
     }
 }
 
