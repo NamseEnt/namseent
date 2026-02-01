@@ -19,7 +19,7 @@ pub(super) struct StatPreview<'a> {
     pub plus_stat: f32,
     pub multiplier: f32,
     pub wh: Wh<Px>,
-    pub upgrade_texts: &'a [String],
+    pub upgrade_texts: &'a [crate::game_state::upgrade::UpgradeKind],
 }
 impl Component for StatPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -116,7 +116,7 @@ fn calculate_final_stat(base: f32, plus: f32, multiplier: f32) -> f32 {
 
 struct Tooltip<'a> {
     stat_detail: String,
-    upgrade_texts: &'a [String],
+    upgrade_texts: &'a [crate::game_state::upgrade::UpgradeKind],
     max_width: Px,
 }
 impl Component for Tooltip<'_> {
@@ -154,15 +154,15 @@ impl Component for Tooltip<'_> {
             }
 
             // 업그레이드 텍스트들 렌더링
-            for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
+            for (index, upgrade_kind) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
-                    memoized_text((&text_max_width, &index, upgrade_text), |mut builder| {
+                    memoized_text((&text_max_width, &index), |mut builder| {
                         builder
                             .paragraph()
                             .size(FontSize::Medium)
                             .max_width(text_max_width)
-                            .text(upgrade_text.clone())
+                            .l10n(crate::l10n::upgrade::UpgradeKindText::Description(upgrade_kind), &crate::l10n::Locale::default())
                             .render_left_top()
                     }),
                 );

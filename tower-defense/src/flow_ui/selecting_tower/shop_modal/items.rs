@@ -140,6 +140,10 @@ enum ShopItemTitle {
         effect: Effect,
         locale: l10n::Locale,
     },
+    Upgrade {
+        upgrade_kind: UpgradeKind,
+        locale: l10n::Locale,
+    },
 }
 
 impl ShopItemTitle {
@@ -148,6 +152,9 @@ impl ShopItemTitle {
             ShopItemTitle::Plain(text) => text.clone(),
             ShopItemTitle::Effect { effect, locale } => {
                 format!("{:?}:{:?}", locale.language, effect)
+            }
+            ShopItemTitle::Upgrade { upgrade_kind, locale } => {
+                format!("{:?}:{:?}", locale.language, upgrade_kind)
             }
         }
     }
@@ -165,6 +172,10 @@ enum ShopItemDescription<'a> {
         risk: &'a crate::game_state::contract::ContractEffect,
         reward: &'a crate::game_state::contract::ContractEffect,
     },
+    Upgrade {
+        upgrade_kind: &'a UpgradeKind,
+        locale: l10n::Locale,
+    },
 }
 
 impl ShopItemDescription<'_> {
@@ -180,6 +191,9 @@ impl ShopItemDescription<'_> {
                 risk,
                 reward,
             } => format!("{:?}:{:?}:{:?}:{:?}", locale.language, status, risk, reward),
+            ShopItemDescription::Upgrade { upgrade_kind, locale } => {
+                format!("{:?}:{:?}", locale.language, upgrade_kind)
+            }
         }
     }
 }
@@ -272,6 +286,12 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                             locale,
                                         );
                                     }
+                                    ShopItemTitle::Upgrade { upgrade_kind, locale } => {
+                                        builder.l10n(
+                                            l10n::upgrade::UpgradeKindText::Name(&upgrade_kind),
+                                            locale,
+                                        );
+                                    }
                                 };
                                 builder.render_left_top()
                             }));
@@ -321,6 +341,12 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                             builder.line_break();
                                             builder.l10n(
                                                 l10n::contract::ContractText::Reward(reward),
+                                                locale,
+                                            );
+                                        }
+                                        ShopItemDescription::Upgrade { upgrade_kind, locale } => {
+                                            builder.l10n(
+                                                l10n::upgrade::UpgradeKindText::Description(upgrade_kind),
                                                 locale,
                                             );
                                         }
@@ -429,8 +455,15 @@ impl Component for ShopUpgradeContent<'_> {
         } = self;
         let game_state = use_game_state(ctx);
         let available = !purchased && !disabled;
-        let name = ShopItemTitle::Plain(upgrade.kind.name(&game_state.text()));
-        let description = ShopItemDescription::Plain(upgrade.kind.description(&game_state.text()));
+        let locale = game_state.text().locale();
+        let name = ShopItemTitle::Upgrade {
+            upgrade_kind: upgrade.kind.clone(),
+            locale,
+        };
+        let description = ShopItemDescription::Upgrade {
+            upgrade_kind: &upgrade.kind,
+            locale,
+        };
 
         render_shop_item_layout(
             ShopItemLayoutParams {

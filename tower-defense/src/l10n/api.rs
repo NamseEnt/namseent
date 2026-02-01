@@ -74,7 +74,8 @@ impl TextManager {
         effect: &crate::game_state::effect::Effect,
         mut builder: crate::theme::typography::TypographyBuilder<'a>,
     ) -> crate::theme::typography::TypographyBuilder<'a> {
-        effect::EffectText::Description(effect.clone()).apply_to_builder(&mut builder, &self.locale);
+        effect::EffectText::Description(effect.clone())
+            .apply_to_builder(&mut builder, &self.locale);
         builder
     }
 
@@ -116,27 +117,6 @@ impl TextManager {
             Language::Korean => text.to_korean(),
             Language::English => text.to_english(),
         }
-    }
-}
-
-/// 업그레이드 텍스트 처리
-impl TextManager {
-    pub fn upgrade_kind_name<'a>(
-        &self,
-        upgrade: &crate::game_state::upgrade::UpgradeKind,
-        mut builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        upgrade::UpgradeKindText::Name(upgrade).apply_to_builder(&mut builder, &self.locale);
-        builder
-    }
-
-    pub fn upgrade_kind_description<'a>(
-        &self,
-        upgrade: &crate::game_state::upgrade::UpgradeKind,
-        mut builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        upgrade::UpgradeKindText::Description(upgrade).apply_to_builder(&mut builder, &self.locale);
-        builder
     }
 }
 
