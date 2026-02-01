@@ -24,8 +24,8 @@ impl Component for StageIndicator {
                 once(table::fixed(px(128.), |wh, ctx| {
                     ctx.add(memoized_text(&stage, |mut builder| {
                         builder
-                            // .headline()
-                            .size(typography::FontSize::Medium)
+                            .headline()
+                            .size(typography::FontSize::Small)
                             .text(format!(
                                 "{} {stage}",
                                 game_state.text().ui(TopBarText::Stage)

@@ -25,7 +25,8 @@ impl Component for HPAndGoldIndicator {
                         table::fixed(48.px(), |wh, ctx| {
                             ctx.add(memoized_text(&hp, |mut builder| {
                                 builder
-                                    .size(FontSize::Medium)
+                                    .headline()
+                                    .size(FontSize::Small)
                                     .text(format!("{:.0}", hp * 100.0))
                                     .render_center(wh)
                             }));
@@ -58,7 +59,8 @@ impl Component for HPAndGoldIndicator {
                         table::ratio(1, |wh, ctx| {
                             ctx.add(memoized_text(&gold, |mut builder| {
                                 builder
-                                    .size(FontSize::Medium)
+                                    .headline()
+                                    .size(FontSize::Small)
                                     .text(format!("{gold}"))
                                     .render_right_top(wh.width)
                             }));

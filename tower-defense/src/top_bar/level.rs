@@ -41,6 +41,7 @@ impl Component for LevelIndicator {
                 table::fixed(32.px(), |wh, ctx| {
                     ctx.add(memoized_text(&level, |mut builder| {
                         builder
+                            .headline()
                             .size(typography::FontSize::Medium)
                             .text(format!("{level}"))
                             .render_center(wh)
