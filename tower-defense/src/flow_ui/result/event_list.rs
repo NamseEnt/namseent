@@ -142,13 +142,19 @@ impl EventItem<'_> {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 let event_key = format!("{:?}", event_type);
-                ctx.add(memoized_text((&event_key, &wh.height, &locale.language), |mut builder| {
-                    builder
-                        .headline()
-                        .size(typography::FontSize::Small)
-                        .l10n(l10n::event::EventText::Description(event_type, locale), locale)
-                        .render_left_center(wh.height)
-                }));
+                ctx.add(memoized_text(
+                    (&event_key, &wh.height, &locale.language),
+                    |mut builder| {
+                        builder
+                            .headline()
+                            .size(typography::FontSize::Small)
+                            .l10n(
+                                l10n::event::EventText::Description(event_type, locale),
+                                locale,
+                            )
+                            .render_left_center(wh.height)
+                    },
+                ));
             })(wh, ctx);
         });
 
@@ -203,14 +209,20 @@ impl Component for EventTooltip {
         let event_key = format!("{:?}", event_type);
         let text = ctx.ghost_add(
             "tooltip-text",
-            memoized_text((&text_max_width, &locale.language, &event_key), |mut builder| {
-                builder
-                    .paragraph()
-                    .size(typography::FontSize::Small)
-                    .max_width(text_max_width)
-                    .l10n(l10n::event::EventText::Description(&event_type, &locale), &locale)
-                    .render_left_top()
-            }),
+            memoized_text(
+                (&text_max_width, &locale.language, &event_key),
+                |mut builder| {
+                    builder
+                        .paragraph()
+                        .size(typography::FontSize::Small)
+                        .max_width(text_max_width)
+                        .l10n(
+                            l10n::event::EventText::Description(&event_type, &locale),
+                            &locale,
+                        )
+                        .render_left_top()
+                },
+            ),
         );
 
         let Some(text_wh) = text.bounding_box().map(|rect| rect.wh()) else {
@@ -333,15 +345,17 @@ impl Component for TimelineIconComponent<'_> {
         // Render stage label if applicable
         if let HistoryEventType::StageStart { stage } = event_type {
             let stage_str = stage.to_string();
-            ctx.translate(wh.to_xy() * -0.5)
-                .add(memoized_text((&wh, &stage_str), |mut builder| {
+            ctx.translate(wh.to_xy() * -0.5).add(memoized_text(
+                (&wh, &stage_str),
+                |mut builder| {
                     builder
                         .headline()
                         .size(typography::FontSize::Medium)
                         .color(palette::ON_PRIMARY)
                         .text(stage_str.clone())
                         .render_center(wh)
-                }));
+                },
+            ));
         }
 
         // Render circle background if needed

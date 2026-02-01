@@ -358,13 +358,16 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(memoized_text(&text, |mut builder| {
-                                                            builder
-                                                                .paragraph()
-                                                                .color(text_color)
-                                                                .text(&text)
-                                                                .render_left_center(wh.height)
-                                                        }));
+                                                        ctx.add(memoized_text(
+                                                            &text,
+                                                            |mut builder| {
+                                                                builder
+                                                                    .paragraph()
+                                                                    .color(text_color)
+                                                                    .text(&text)
+                                                                    .render_left_center(wh.height)
+                                                            },
+                                                        ));
                                                     },
                                                 )
                                                 .variant(

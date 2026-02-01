@@ -149,19 +149,19 @@ impl Component for UpgradeItem {
                                 ctx.add(memoized_text(
                                     (&description_key, &wh.width, &locale.language),
                                     |mut builder| {
-                                        let builder = builder
-                                            .size(FontSize::Medium)
-                                            .max_width(wh.width);
+                                        let builder =
+                                            builder.size(FontSize::Medium).max_width(wh.width);
                                         let builder = match &upgrade_info.description {
                                             UpgradeInfoDescription::Single(text) => {
                                                 builder.l10n(text.clone(), &locale)
                                             }
-                                            UpgradeInfoDescription::PrefixSuffix { prefix, suffix } => {
-                                                builder
-                                                    .l10n(prefix.clone(), &locale)
-                                                    .space()
-                                                    .l10n(suffix.clone(), &locale)
-                                            }
+                                            UpgradeInfoDescription::PrefixSuffix {
+                                                prefix,
+                                                suffix,
+                                            } => builder
+                                                .l10n(prefix.clone(), &locale)
+                                                .space()
+                                                .l10n(suffix.clone(), &locale),
                                         };
                                         builder.render_left_top()
                                     },

@@ -64,35 +64,35 @@ impl Component for ContractItemContent<'_> {
                 ),
                 table::fixed(PADDING * 2.0, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                            let locale = text_manager.locale();
-                            let risk_key = format!("{:?}", contract.risk);
-                            compose_ctx.add(memoized_text(
-                                (&risk_key, &content_width, &locale.language),
-                                |mut builder| {
-                                    builder
-                                        .paragraph()
-                                        .size(FontSize::Medium)
-                                        .max_width(content_width)
-                                        .l10n(ContractText::Risk(&contract.risk), &locale)
-                                        .render_left_top()
-                                },
-                            ));
+                    let locale = text_manager.locale();
+                    let risk_key = format!("{:?}", contract.risk);
+                    compose_ctx.add(memoized_text(
+                        (&risk_key, &content_width, &locale.language),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(content_width)
+                                .l10n(ContractText::Risk(&contract.risk), &locale)
+                                .render_left_top()
+                        },
+                    ));
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                            let locale = text_manager.locale();
-                            let reward_key = format!("{:?}", contract.reward);
-                            compose_ctx.add(memoized_text(
-                                (&reward_key, &content_width, &locale.language),
-                                |mut builder| {
-                                    builder
-                                        .paragraph()
-                                        .size(FontSize::Medium)
-                                        .max_width(content_width)
-                                        .l10n(ContractText::Reward(&contract.reward), &locale)
-                                        .render_left_top()
-                                },
-                            ));
+                    let locale = text_manager.locale();
+                    let reward_key = format!("{:?}", contract.reward);
+                    compose_ctx.add(memoized_text(
+                        (&reward_key, &content_width, &locale.language),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(content_width)
+                                .l10n(ContractText::Reward(&contract.reward), &locale)
+                                .render_left_top()
+                        },
+                    ));
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);
         });

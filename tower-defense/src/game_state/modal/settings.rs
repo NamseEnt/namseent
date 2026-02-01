@@ -32,16 +32,13 @@ impl Component for SettingsModal {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
-                                ctx.add(memoized_text(
-                                    (),
-                                    |mut builder| {
-                                        builder
-                                            .headline()
-                                            .size(typography::FontSize::Medium)
-                                            .text(game_state.text().ui(TopBarText::Settings))
-                                            .render_left_center(wh.height)
-                                    },
-                                ));
+                                ctx.add(memoized_text((), |mut builder| {
+                                    builder
+                                        .headline()
+                                        .size(typography::FontSize::Medium)
+                                        .text(game_state.text().ui(TopBarText::Settings))
+                                        .render_left_center(wh.height)
+                                }));
                             }),
                             table::fixed(64.px(), |wh, ctx| {
                                 ctx.add(

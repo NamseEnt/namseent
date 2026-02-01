@@ -23,11 +23,7 @@ pub enum TowerSkillText {
 }
 
 impl LocalizedText for TowerSkillText {
-    fn apply_to_builder<'a>(
-        self,
-        builder: &mut TypographyBuilder<'a>,
-        locale: &Locale,
-    ) {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),

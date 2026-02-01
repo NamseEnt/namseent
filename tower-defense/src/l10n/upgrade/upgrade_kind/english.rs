@@ -1,5 +1,5 @@
-use crate::l10n::upgrade::UpgradeKindText;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::upgrade::UpgradeKindText;
 use crate::theme::typography::TypographyBuilder;
 
 impl UpgradeKindText<'_> {
