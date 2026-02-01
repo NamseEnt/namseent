@@ -3,7 +3,8 @@ use crate::{
     hand::{HAND_WH, HandComponent, HandSlotId},
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
-        palette, typography::{memoized_text},
+        palette,
+        typography::memoized_text,
     },
 };
 use namui::*;

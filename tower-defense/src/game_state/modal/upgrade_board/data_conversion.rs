@@ -95,11 +95,9 @@ fn add_basic_upgrades(
     if state.shop_refresh_chance_plus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::ShopRefreshPlus,
-            description: UpgradeInfoDescription::Single(
-                UpgradeBoardText::ShopRefreshChancePlus {
-                    amount: state.shop_refresh_chance_plus,
-                },
-            ),
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopRefreshChancePlus {
+                amount: state.shop_refresh_chance_plus,
+            }),
         });
     }
 
@@ -134,17 +132,11 @@ fn add_tower_select_upgrades(
 ) {
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
         let target_prefix = match target {
-            TowerSelectUpgradeTarget::LowCard => {
-                UpgradeBoardText::TowerSelectLowCard {
-                    amount: LOW_CARD_COUNT,
-                }
-            }
-            TowerSelectUpgradeTarget::NoReroll => {
-                UpgradeBoardText::TowerSelectNoReroll
-            }
-            TowerSelectUpgradeTarget::Reroll => {
-                UpgradeBoardText::TowerSelectReroll
-            }
+            TowerSelectUpgradeTarget::LowCard => UpgradeBoardText::TowerSelectLowCard {
+                amount: LOW_CARD_COUNT,
+            },
+            TowerSelectUpgradeTarget::NoReroll => UpgradeBoardText::TowerSelectNoReroll,
+            TowerSelectUpgradeTarget::Reroll => UpgradeBoardText::TowerSelectReroll,
         };
 
         // 데미지 배수 업그레이드
@@ -183,21 +175,15 @@ fn add_tower_upgrades(
 ) {
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_prefix = match target {
-            TowerUpgradeTarget::Rank { rank } => {
-                UpgradeBoardText::TowerUpgradeRank {
-                    name: rank.to_string(),
-                }
-            }
-            TowerUpgradeTarget::Suit { suit } => {
-                UpgradeBoardText::TowerUpgradeSuit {
-                    name: suit.to_string(),
-                }
-            }
-            TowerUpgradeTarget::TowerKind { tower_kind } => {
-                UpgradeBoardText::TowerUpgradeKind {
-                    name: text.tower(tower_kind.to_text()).to_string(),
-                }
-            }
+            TowerUpgradeTarget::Rank { rank } => UpgradeBoardText::TowerUpgradeRank {
+                name: rank.to_string(),
+            },
+            TowerUpgradeTarget::Suit { suit } => UpgradeBoardText::TowerUpgradeSuit {
+                name: suit.to_string(),
+            },
+            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeBoardText::TowerUpgradeKind {
+                name: text.tower(tower_kind.to_text()).to_string(),
+            },
             TowerUpgradeTarget::EvenOdd { even } => {
                 let name = if *even { "짝수" } else { "홀수" };
                 UpgradeBoardText::TowerUpgradeEvenOdd {

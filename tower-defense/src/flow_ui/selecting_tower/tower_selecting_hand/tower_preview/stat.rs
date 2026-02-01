@@ -162,7 +162,10 @@ impl Component for Tooltip<'_> {
                             .paragraph()
                             .size(FontSize::Medium)
                             .max_width(text_max_width)
-                            .l10n(crate::l10n::upgrade::UpgradeKindText::Description(upgrade_kind), &crate::l10n::Locale::default())
+                            .l10n(
+                                crate::l10n::upgrade::UpgradeKindText::Description(upgrade_kind),
+                                &crate::l10n::Locale::default(),
+                            )
                             .render_left_top()
                     }),
                 );

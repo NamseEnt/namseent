@@ -13,11 +13,7 @@ pub enum EventText<'a> {
 impl EventText<'_> {}
 
 impl LocalizedText for EventText<'_> {
-    fn apply_to_builder<'a>(
-        self,
-        builder: &mut TypographyBuilder<'a>,
-        locale: &Locale,
-    ) {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match self {
             EventText::Description(event_type, _) => match locale.language {
                 Language::Korean => event_type.description_korean_builder(builder, locale),
