@@ -11,7 +11,6 @@ use crate::{
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     icon::{Icon, IconKind, IconSize},
-    l10n::upgrade::UpgradeKindText,
     palette,
     theme::typography::{FontSize, memoized_text},
 };
@@ -131,7 +130,7 @@ impl Component for TowerPreviewContent<'_> {
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,
                             wh,
-                            upgrade_texts: &texts.damage,
+                            upgrade_texts: texts.damage.as_slice(),
                         });
                     }),
                     table::fixed_no_clip(
@@ -189,8 +188,8 @@ impl Component for TowerPreview<'_> {
 
 #[derive(State)]
 struct UpgradeTexts {
-    damage: Vec<String>,
-    speed: Vec<String>,
+    damage: Vec<crate::game_state::upgrade::UpgradeKind>,
+    speed: Vec<crate::game_state::upgrade::UpgradeKind>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -223,11 +222,7 @@ fn calculate_upgrade_state_and_texts(
                     )
                 }
             };
-            texts.damage.push(
-                game_state
-                    .text()
-                    .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),
-            );
+            texts.damage.push(upgrade_kind);
         }
     };
 

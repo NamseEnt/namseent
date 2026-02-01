@@ -1,6 +1,6 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Language, Locale, LocalizedText, contract, effect, tower, ui, upgrade};
+use super::{Language, Locale, LocalizedText, contract, effect, tower, ui};
 use crate::*;
 
 /// 통합 다국어 텍스트 관리자

@@ -153,7 +153,10 @@ impl ShopItemTitle {
             ShopItemTitle::Effect { effect, locale } => {
                 format!("{:?}:{:?}", locale.language, effect)
             }
-            ShopItemTitle::Upgrade { upgrade_kind, locale } => {
+            ShopItemTitle::Upgrade {
+                upgrade_kind,
+                locale,
+            } => {
                 format!("{:?}:{:?}", locale.language, upgrade_kind)
             }
         }
@@ -161,7 +164,6 @@ impl ShopItemTitle {
 }
 
 enum ShopItemDescription<'a> {
-    Plain(String),
     Effect {
         effect: Effect,
         locale: l10n::Locale,
@@ -181,7 +183,6 @@ enum ShopItemDescription<'a> {
 impl ShopItemDescription<'_> {
     fn key(&self) -> String {
         match self {
-            ShopItemDescription::Plain(text) => text.clone(),
             ShopItemDescription::Effect { effect, locale } => {
                 format!("{:?}:{:?}", locale.language, effect)
             }
@@ -191,7 +192,10 @@ impl ShopItemDescription<'_> {
                 risk,
                 reward,
             } => format!("{:?}:{:?}:{:?}:{:?}", locale.language, status, risk, reward),
-            ShopItemDescription::Upgrade { upgrade_kind, locale } => {
+            ShopItemDescription::Upgrade {
+                upgrade_kind,
+                locale,
+            } => {
                 format!("{:?}:{:?}", locale.language, upgrade_kind)
             }
         }
@@ -286,9 +290,12 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                             locale,
                                         );
                                     }
-                                    ShopItemTitle::Upgrade { upgrade_kind, locale } => {
+                                    ShopItemTitle::Upgrade {
+                                        upgrade_kind,
+                                        locale,
+                                    } => {
                                         builder.l10n(
-                                            l10n::upgrade::UpgradeKindText::Name(&upgrade_kind),
+                                            l10n::upgrade::UpgradeKindText::Name(upgrade_kind),
                                             locale,
                                         );
                                     }
@@ -307,9 +314,6 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                         .size(FontSize::Medium)
                                         .max_width(wh.width);
                                     match &description {
-                                        ShopItemDescription::Plain(text) => {
-                                            builder.text(text);
-                                        }
                                         ShopItemDescription::Effect { effect, locale } => {
                                             builder.l10n(
                                                 l10n::effect::EffectText::Description(
@@ -344,9 +348,14 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                                 locale,
                                             );
                                         }
-                                        ShopItemDescription::Upgrade { upgrade_kind, locale } => {
+                                        ShopItemDescription::Upgrade {
+                                            upgrade_kind,
+                                            locale,
+                                        } => {
                                             builder.l10n(
-                                                l10n::upgrade::UpgradeKindText::Description(upgrade_kind),
+                                                l10n::upgrade::UpgradeKindText::Description(
+                                                    upgrade_kind,
+                                                ),
                                                 locale,
                                             );
                                         }
@@ -457,7 +466,7 @@ impl Component for ShopUpgradeContent<'_> {
         let available = !purchased && !disabled;
         let locale = game_state.text().locale();
         let name = ShopItemTitle::Upgrade {
-            upgrade_kind: upgrade.kind.clone(),
+            upgrade_kind: upgrade.kind,
             locale,
         };
         let description = ShopItemDescription::Upgrade {
