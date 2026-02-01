@@ -7,7 +7,7 @@ use crate::game_state::mutate_game_state;
 use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
-use crate::theme::{button::Button, typography::{memoized_text}};
+use crate::theme::{button::Button, typography::memoized_text};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
@@ -166,10 +166,8 @@ impl Component for InteractionArea<'_> {
                                     let health_cost = game_state
                                         .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
-                                    let reroll_count = (
-                                        game_state.rerolled_count,
-                                        game_state.left_reroll_chance,
-                                    );
+                                    let reroll_count =
+                                        (game_state.rerolled_count, game_state.left_reroll_chance);
 
                                     ctx.add(memoized_text(
                                         (&color, &reroll_count.0, &reroll_count.1, &health_cost),
@@ -182,12 +180,12 @@ impl Component for InteractionArea<'_> {
 
                                             let mut builder = builder
                                                 .headline()
-                                                .icon::<()>(IconKind::Refresh)
+                                                .icon(IconKind::Refresh)
                                                 .space()
                                                 .text(reroll_text);
 
                                             if health_cost > 0 {
-                                                builder = builder.space().icon::<()>(IconKind::Health);
+                                                builder = builder.space().icon(IconKind::Health);
                                             }
 
                                             builder.color(color).render_center(wh)

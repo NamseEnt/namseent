@@ -379,7 +379,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                         ctx.add(memoized_text((&color, &cost), |mut builder| {
                                             builder
                                                 .headline()
-                                                .icon::<()>(IconKind::Gold)
+                                                .icon(IconKind::Gold)
                                                 .space()
                                                 .color(color)
                                                 .text(format!("{cost}"))

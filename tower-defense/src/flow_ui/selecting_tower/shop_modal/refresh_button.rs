@@ -2,7 +2,7 @@ use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::IconKind;
 use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{memoized_text};
+use crate::theme::typography::memoized_text;
 use namui::*;
 
 pub struct RefreshButton {
@@ -49,12 +49,12 @@ impl Component for RefreshButton {
                         let mut builder = builder
                             .headline()
                             .color(color)
-                            .icon::<()>(IconKind::Refresh)
+                            .icon(IconKind::Refresh)
                             .text("-")
                             .text(format!("{chance}"));
 
                         if health_cost > 0 {
-                            builder = builder.space().icon::<()>(IconKind::Health);
+                            builder = builder.space().icon(IconKind::Health);
                         }
 
                         builder.render_center(wh)

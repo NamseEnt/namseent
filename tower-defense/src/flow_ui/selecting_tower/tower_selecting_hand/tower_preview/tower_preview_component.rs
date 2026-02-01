@@ -88,7 +88,7 @@ impl Component for TowerPreviewContent<'_> {
                                     crate::game_state::tower::TowerKind::Barricade
                                 ) {
                                     builder = builder
-                                        .icon::<()>(IconKind::Suit {
+                                        .icon(IconKind::Suit {
                                             suit: tower_template.suit,
                                         })
                                         .text(&rank_text)

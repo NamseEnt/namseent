@@ -64,15 +64,15 @@ pub trait RichTextHelpers<'a> {
 impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     fn with_range<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(value.into());
         });
         self
     }
 
     fn with_attack_damage_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon::<()>(IconKind::AttackDamage);
+        self.icon(IconKind::AttackDamage);
         self.with_style(|b| {
-            b.text(value.into()).color(palette::RED);
+            b.color(palette::RED).text(value.into());
         });
         self
     }
@@ -82,7 +82,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         value: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(format!("+{}%", value.into())).color(palette::COMMON);
+            b.color(palette::COMMON).text(format!("+{}%", value.into()));
         });
         self
     }
@@ -92,73 +92,74 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         value: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(format!("-{}%", value.into())).color(palette::RED);
+            b.color(palette::RED).text(format!("-{}%", value.into()));
         });
         self
     }
 
     fn with_value_increase<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(format!("+{}", value.into())).color(palette::COMMON);
+            b.color(palette::COMMON).text(format!("+{}", value.into()));
         });
         self
     }
 
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(format!("x{}", value.into())).color(palette::BLUE);
+            b.color(palette::BLUE).text(format!("x{}", value.into()));
         });
         self
     }
 
     fn with_attack_speed_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon::<()>(IconKind::AttackSpeed);
+        self.icon(IconKind::AttackSpeed);
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW);
+            b.color(palette::YELLOW).text(value.into());
         });
         self
     }
 
     fn with_attack_range_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon::<()>(IconKind::AttackRange);
+        self.icon(IconKind::AttackRange);
         self.with_style(|b| {
-            b.text(value.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(value.into());
         });
         self
     }
 
     fn with_gold_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon::<()>(IconKind::Gold);
+        self.icon(IconKind::Gold);
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW);
+            b.color(palette::YELLOW).text(value.into());
         });
         self
     }
 
     fn with_card_rank<S: Into<String>>(&mut self, rank: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(rank.into()).color(palette::EPIC);
+            b.color(palette::EPIC).text(rank.into());
         });
         self
     }
 
     fn with_heal_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
+        self.icon(IconKind::Health);
         self.with_style(|b| {
-            b.text(format!("❤ {}", value.into())).color(palette::COMMON);
+            b.color(palette::COMMON).text(value.into());
         });
         self
     }
 
     fn with_shield_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(value.into());
         });
         self
     }
 
     fn with_special_item_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(text.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(text.into());
         });
         self
     }
@@ -174,7 +175,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
             Suit::Hearts | Suit::Diamonds => palette::RED,
         };
         self.with_style(|b| {
-            b.text(text.into()).color(color);
+            b.color(color).text(text.into());
         });
         self
     }
@@ -184,7 +185,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         stat_name: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(stat_name.into()).color(palette::RED);
+            b.color(palette::RED).text(stat_name.into());
         });
         self
     }
@@ -194,7 +195,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         stat_name: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(stat_name.into()).color(palette::YELLOW);
+            b.color(palette::YELLOW).text(stat_name.into());
         });
         self
     }
@@ -204,7 +205,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         stat_name: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(stat_name.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(stat_name.into());
         });
         self
     }
@@ -214,7 +215,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         text: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(text.into()).color(palette::RED);
+            b.color(palette::RED).text(text.into());
         });
         self
     }
@@ -224,7 +225,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         value: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::RED);
+            b.color(palette::RED).text(value.into());
         });
         self
     }
@@ -234,84 +235,84 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         value: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(format!("{}%", value.into())).color(palette::COMMON);
+            b.color(palette::COMMON).text(format!("{}%", value.into()));
         });
         self
     }
 
     fn with_contract_risk<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(text.into()).color(palette::RED);
+            b.color(palette::RED).text(text.into());
         });
         self
     }
 
     fn with_contract_reward<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(text.into()).color(palette::BLUE);
+            b.color(palette::BLUE).text(text.into());
         });
         self
     }
 
     fn with_contract_duration<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(text.into()).color(palette::YELLOW);
+            b.color(palette::YELLOW).text(text.into());
         });
         self
     }
 
     fn with_time_duration<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW);
+            b.color(palette::YELLOW).text(value.into());
         });
         self
     }
 
     fn with_health_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::RED).bold();
+            b.color(palette::RED).bold().text(value.into());
         });
         self
     }
 
     fn with_health_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::RED).bold();
+            b.color(palette::RED).bold().text(value.into());
         });
         self
     }
 
     fn with_gold_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW).bold();
+            b.color(palette::YELLOW).bold().text(value.into());
         });
         self
     }
 
     fn with_gold_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW).bold();
+            b.color(palette::YELLOW).bold().text(value.into());
         });
         self
     }
 
     fn with_positive_effect<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::YELLOW).bold();
+            b.color(palette::YELLOW).bold().text(value.into());
         });
         self
     }
 
     fn with_negative_effect<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::RED).bold();
+            b.color(palette::RED).bold().text(value.into());
         });
         self
     }
 
     fn with_neutral_stat<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.text(value.into()).color(palette::BLUE).bold();
+            b.color(palette::BLUE).bold().text(value.into());
         });
         self
     }

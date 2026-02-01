@@ -143,7 +143,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Add static icon (TODO: implement icon rendering)
-    pub fn icon<F>(&mut self, icon_kind: IconKind) -> &mut Self {
+    pub fn icon(&mut self, icon_kind: IconKind) -> &mut Self {
         self.tokens
             .push(Token::Icon(TypographyIcon::new(icon_kind)));
         self

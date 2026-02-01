@@ -68,9 +68,9 @@ impl Component for LevelIndicator {
                                                 false => palette::ON_SURFACE,
                                             };
                                             builder
-                                                .icon::<()>(IconKind::Level)
+                                                .icon(IconKind::Level)
                                                 .space()
-                                                .icon::<()>(IconKind::Gold)
+                                                .icon(IconKind::Gold)
                                                 .color(text_color)
                                                 .text(format!("{level_up_cost}"))
                                                 .render_center(wh)
