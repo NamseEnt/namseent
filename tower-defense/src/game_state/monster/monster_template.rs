@@ -164,10 +164,10 @@ impl MonsterTemplate {
         }
     }
 
-    pub fn skill_descriptions(&self, locale: &crate::l10n::Locale) -> Vec<String> {
+    pub fn skill_descriptions(&self) -> Vec<crate::l10n::monster_skill::MonsterSkillText> {
         self.skills
             .iter()
-            .map(|skill| skill.kind.description(locale))
+            .map(|skill| skill.kind.description())
             .collect()
     }
 }

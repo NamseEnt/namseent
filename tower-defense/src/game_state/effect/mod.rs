@@ -408,12 +408,12 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
 }
 
 impl Effect {
-    pub fn name(&self, text_manager: &crate::l10n::TextManager) -> String {
-        text_manager.effect_name(self)
+    pub fn name_text(&self) -> crate::l10n::effect::EffectText {
+        crate::l10n::effect::EffectText::Name(self.clone())
     }
 
-    pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
-        text_manager.effect_description(self)
+    pub fn description_text(&self) -> crate::l10n::effect::EffectText {
+        crate::l10n::effect::EffectText::Description(self.clone())
     }
 
     pub fn can_execute(&self, game_state: &GameState) -> Result<(), EffectExecutionError> {
@@ -431,12 +431,13 @@ impl Effect {
     }
 
     /// Effect 실행 불가능한 이유를 사용자가 읽을 수 있는 메시지로 변환
-    pub fn execution_error_message(
+    pub fn execution_error_message<'a>(
         &self,
         error: &EffectExecutionError,
         text_manager: &crate::l10n::TextManager,
-    ) -> String {
-        text_manager.effect_execution_error(error)
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        text_manager.effect_execution_error(error, builder)
     }
 }
 

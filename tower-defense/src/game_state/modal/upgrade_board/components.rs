@@ -1,4 +1,4 @@
-use super::data_conversion::{UpgradeInfo, get_upgrade_infos};
+use super::data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 use crate::{
     game_state::use_game_state,
     l10n::upgrade_board::UpgradeBoardText,
@@ -66,12 +66,13 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(memoized_text((), |builder| {
+                        let locale = game_state.text().locale();
+                        ctx.add(memoized_text((&locale.language,), |builder| {
                             builder
                                 .headline()
                                 .size(FontSize::Large)
                                 .max_width(wh.width)
-                                .text(game_state.text().upgrade_board(UpgradeBoardText::Title))
+                                .l10n(UpgradeBoardText::Title, &locale)
                                 .render_center(wh)
                         }));
                     }),
@@ -128,6 +129,7 @@ struct UpgradeItem {
 impl Component for UpgradeItem {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, upgrade_info } = self;
+        let locale = use_game_state(ctx).text().locale();
 
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
@@ -142,15 +144,26 @@ impl Component for UpgradeItem {
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(
                             1,
-                            table::padding(PADDING, |wh, ctx| {
+                            table::padding(PADDING, move |wh, ctx| {
+                                let description_key = upgrade_info.description.key();
                                 ctx.add(memoized_text(
-                                    (&upgrade_info.description, &wh.width),
+                                    (&description_key, &wh.width, &locale.language),
                                     |builder| {
-                                        builder
+                                        let builder = builder
                                             .size(FontSize::Medium)
-                                            .max_width(wh.width)
-                                            .text(&upgrade_info.description)
-                                            .render_left_top()
+                                            .max_width(wh.width);
+                                        let builder = match &upgrade_info.description {
+                                            UpgradeInfoDescription::Single(text) => {
+                                                builder.l10n(text.clone(), &locale)
+                                            }
+                                            UpgradeInfoDescription::PrefixSuffix { prefix, suffix } => {
+                                                builder
+                                                    .l10n(prefix.clone(), &locale)
+                                                    .space()
+                                                    .l10n(suffix.clone(), &locale)
+                                            }
+                                        };
+                                        builder.render_left_top()
                                     },
                                 ));
                             }),

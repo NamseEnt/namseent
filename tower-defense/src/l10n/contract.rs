@@ -24,30 +24,6 @@ impl LocalizedText for ContractText<'_> {
 }
 
 impl<'a> ContractText<'a> {
-    pub(super) fn text_korean(self) -> String {
-        match self {
-            ContractText::Risk(ce) => format!(
-                "리스크:  {} · {}",
-                phase_ko(ce),
-                effect_suffix_string_ko(ce)
-            ),
-            ContractText::Reward(ce) => {
-                format!("리턴: {} · {}", phase_ko(ce), effect_suffix_string_ko(ce))
-            }
-        }
-    }
-
-    pub(super) fn text_english(self) -> String {
-        match self {
-            ContractText::Risk(ce) => {
-                format!("Risk: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-            }
-            ContractText::Reward(ce) => {
-                format!("Return: {} · {}", phase_en(ce), effect_suffix_string_en(ce))
-            }
-        }
-    }
-
     fn apply_korean<'b>(self, builder: TypographyBuilder<'b>) -> TypographyBuilder<'b> {
         match self {
             ContractText::Risk(ce) => {
@@ -223,26 +199,6 @@ fn phase_en(ce: &ContractEffect) -> String {
         ContractEffect::OnStageStart { .. } => "On stage start".into(),
         ContractEffect::OnExpire { .. } => "On expire".into(),
     }
-}
-
-fn effect_suffix_string_ko(ce: &ContractEffect) -> String {
-    let eff = match ce {
-        ContractEffect::OnSign { effect }
-        | ContractEffect::WhileActive { effect }
-        | ContractEffect::OnStageStart { effect }
-        | ContractEffect::OnExpire { effect } => effect,
-    };
-    EffectText::Description(eff.clone()).text_korean()
-}
-
-fn effect_suffix_string_en(ce: &ContractEffect) -> String {
-    let eff = match ce {
-        ContractEffect::OnSign { effect }
-        | ContractEffect::WhileActive { effect }
-        | ContractEffect::OnStageStart { effect }
-        | ContractEffect::OnExpire { effect } => effect,
-    };
-    EffectText::Description(eff.clone()).text_english()
 }
 
 fn apply_effect_suffix_ko<'a>(

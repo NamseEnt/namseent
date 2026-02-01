@@ -4,11 +4,12 @@ use crate::game_state::item::{Effect, Item};
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::l10n;
 use crate::l10n::ui::TopBarText;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData, ShopSlotId};
 use crate::theme::button::{Button, ButtonColor};
-use crate::theme::typography::{memoized_text, FontSize};
+use crate::theme::typography::{FontSize, memoized_text};
 use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -121,8 +122,8 @@ pub struct ShopItemContent<'a> {
 
 struct ShopItemLayoutParams<'a> {
     wh: Wh<Px>,
-    name: String,
-    description: String,
+    name: ShopItemTitle,
+    description: ShopItemDescription<'a>,
     cost: usize,
     purchased: bool,
     available: bool,
@@ -131,6 +132,56 @@ struct ShopItemLayoutParams<'a> {
     upgrade_kind: Option<&'a UpgradeKind>,
     contract_kind: Option<&'a Contract>,
     rarity: crate::rarity::Rarity,
+}
+
+enum ShopItemTitle {
+    Plain(String),
+    Effect {
+        effect: Effect,
+        locale: l10n::Locale,
+    },
+}
+
+impl ShopItemTitle {
+    fn key(&self) -> String {
+        match self {
+            ShopItemTitle::Plain(text) => text.clone(),
+            ShopItemTitle::Effect { effect, locale } => {
+                format!("{:?}:{:?}", locale.language, effect)
+            }
+        }
+    }
+}
+
+enum ShopItemDescription<'a> {
+    Plain(String),
+    Effect {
+        effect: Effect,
+        locale: l10n::Locale,
+    },
+    Contract {
+        locale: l10n::Locale,
+        status: &'a crate::game_state::contract::ContractStatus,
+        risk: &'a crate::game_state::contract::ContractEffect,
+        reward: &'a crate::game_state::contract::ContractEffect,
+    },
+}
+
+impl ShopItemDescription<'_> {
+    fn key(&self) -> String {
+        match self {
+            ShopItemDescription::Plain(text) => text.clone(),
+            ShopItemDescription::Effect { effect, locale } => {
+                format!("{:?}:{:?}", locale.language, effect)
+            }
+            ShopItemDescription::Contract {
+                locale,
+                status,
+                risk,
+                reward,
+            } => format!("{:?}:{:?}:{:?}:{:?}", locale.language, status, risk, reward),
+        }
+    }
 }
 
 fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
@@ -208,31 +259,63 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                     table::vertical([
                         table::fixed(PADDING, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, move |ctx| {
-                            ctx.add(memoized_text(
-                                &name,
-                                |builder| {
-                                    builder
-                                        .headline()
-                                        .size(FontSize::Small)
-                                        .max_width(wh.width)
-                                        .text(&name)
-                                        .render_left_top()
-                                },
-                            ));
+                            let name_key = name.key();
+                            ctx.add(memoized_text((&name_key, &wh.width), |builder| {
+                                let builder =
+                                    builder.headline().size(FontSize::Small).max_width(wh.width);
+                                let builder = match &name {
+                                    ShopItemTitle::Plain(text) => builder.text(text),
+                                    ShopItemTitle::Effect { effect, locale } => builder.l10n(
+                                        l10n::effect::EffectText::Name(effect.clone()),
+                                        locale,
+                                    ),
+                                };
+                                builder.render_left_top()
+                            }));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(1, move |wh, ctx| {
-                            ctx.add(memoized_text(
-                                &description,
-                                |builder| {
-                                    builder
-                                        .paragraph()
-                                        .size(FontSize::Medium)
-                                        .max_width(wh.width)
-                                        .text(&description)
-                                        .render_left_top()
-                                },
-                            ));
+                            let description_key = description.key();
+                            ctx.add(memoized_text((&description_key, &wh.width), |builder| {
+                                let builder = builder
+                                    .paragraph()
+                                    .size(FontSize::Medium)
+                                    .max_width(wh.width);
+                                let builder = match &description {
+                                    ShopItemDescription::Plain(text) => builder.text(text),
+                                    ShopItemDescription::Effect { effect, locale } => builder.l10n(
+                                        l10n::effect::EffectText::Description(effect.clone()),
+                                        locale,
+                                    ),
+                                    ShopItemDescription::Contract {
+                                        locale,
+                                        status,
+                                        risk,
+                                        reward,
+                                    } => {
+                                        use crate::game_state::contract::ContractStatus;
+                                        let builder = match status {
+                                            ContractStatus::Pending { .. } => builder
+                                                .l10n(
+                                                    l10n::contract::ContractDurationText::Status(
+                                                        status,
+                                                    ),
+                                                    locale,
+                                                )
+                                                .line_break(),
+                                            _ => builder,
+                                        };
+                                        builder
+                                            .l10n(l10n::contract::ContractText::Risk(risk), locale)
+                                            .line_break()
+                                            .l10n(
+                                                l10n::contract::ContractText::Reward(reward),
+                                                locale,
+                                            )
+                                    }
+                                };
+                                builder.render_left_top()
+                            }));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(48.px(), |wh, ctx| {
@@ -246,18 +329,15 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                         purchase_action();
                                     },
                                     &|wh, color, ctx| {
-                                        ctx.add(memoized_text(
-                                            (&color, &cost),
-                                            |builder| {
-                                                builder
-                                                    .headline()
-                                                    .icon::<()>(IconKind::Gold)
-                                                    .space()
-                                                    .color(color)
-                                                    .text(format!("{cost}"))
-                                                    .render_center(wh)
-                                            },
-                                        ));
+                                        ctx.add(memoized_text((&color, &cost), |builder| {
+                                            builder
+                                                .headline()
+                                                .icon::<()>(IconKind::Gold)
+                                                .space()
+                                                .color(color)
+                                                .text(format!("{cost}"))
+                                                .render_center(wh)
+                                        }));
                                     },
                                 )
                                 .color(if available {
@@ -287,8 +367,15 @@ impl Component for ShopItemContent<'_> {
         } = self;
         let game_state = use_game_state(ctx);
         let available = !purchased && !disabled;
-        let name = item.name(&game_state.text());
-        let description = item.description(&game_state.text());
+        let locale = game_state.text().locale();
+        let name = ShopItemTitle::Effect {
+            effect: item.effect.clone(),
+            locale,
+        };
+        let description = ShopItemDescription::Effect {
+            effect: item.effect.clone(),
+            locale,
+        };
 
         render_shop_item_layout(
             ShopItemLayoutParams {
@@ -330,8 +417,8 @@ impl Component for ShopUpgradeContent<'_> {
         } = self;
         let game_state = use_game_state(ctx);
         let available = !purchased && !disabled;
-        let name = upgrade.kind.name(&game_state.text());
-        let description = upgrade.kind.description(&game_state.text());
+        let name = ShopItemTitle::Plain(upgrade.kind.name(&game_state.text()));
+        let description = ShopItemDescription::Plain(upgrade.kind.description(&game_state.text()));
 
         render_shop_item_layout(
             ShopItemLayoutParams {
@@ -373,25 +460,19 @@ impl Component for ShopContractContent<'_> {
         } = self;
         let available = !purchased && !disabled;
         let game_state = use_game_state(ctx);
-        let name = game_state
-            .text()
-            .contract_name(crate::l10n::contract::ContractNameText::Rarity(
-                contract.rarity,
-            ))
-            .to_string();
-        let duration_text = game_state.text().contract_duration(&contract.status);
-        let risk_text = game_state
-            .text()
-            .contract(crate::l10n::contract::ContractText::Risk(&contract.risk));
-        let reward_text = game_state
-            .text()
-            .contract(crate::l10n::contract::ContractText::Reward(
-                &contract.reward,
-            ));
-        let description = if duration_text.is_empty() {
-            format!("{}\n{}", risk_text, reward_text)
-        } else {
-            format!("{}\n{}\n{}", duration_text, risk_text, reward_text)
+        let name = ShopItemTitle::Plain(
+            game_state
+                .text()
+                .contract_name(crate::l10n::contract::ContractNameText::Rarity(
+                    contract.rarity,
+                ))
+                .to_string(),
+        );
+        let description = ShopItemDescription::Contract {
+            locale: game_state.text().locale(),
+            status: &contract.status,
+            risk: &contract.risk,
+            reward: &contract.reward,
         };
 
         render_shop_item_layout(
@@ -425,16 +506,13 @@ impl Component for ShopItemSoldOut {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(memoized_text(
-                        (),
-                        |builder| {
-                            builder
-                                .headline()
-                                .size(FontSize::Medium)
-                                .text(game_state.text().ui(TopBarText::SoldOut))
-                                .render_center(wh)
-                        },
-                    ));
+                    ctx.add(memoized_text((), |builder| {
+                        builder
+                            .headline()
+                            .size(FontSize::Medium)
+                            .text(game_state.text().ui(TopBarText::SoldOut))
+                            .render_center(wh)
+                    }));
                     ctx.add(simple_rect(
                         wh,
                         Color::TRANSPARENT,

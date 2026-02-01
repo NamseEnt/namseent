@@ -30,8 +30,11 @@ impl Component for Inventory {
                     content: |mut ctx| {
                         let content_width = wh.width - PADDING * 2.;
                         for (item_index, item) in game_state.items.iter().enumerate() {
-                            let name = item.name(&game_state.text());
-                            let desc = item.description(&game_state.text());
+                            let locale = game_state.text().locale();
+                            let name_text = item.name_text();
+                            let desc_text = item.description_text();
+                            let name_key = format!("{:?}:name", item.effect);
+                            let desc_key = format!("{:?}:desc", item.effect);
                             let content = ctx.ghost_compose(
                                 format!("InventoryItemContent {item_index}"),
                                 |ctx| {
@@ -114,13 +117,13 @@ impl Component for Inventory {
                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(memoized_text(
-                                                (&name, &content_width),
+                                                (&name_key, &content_width, &locale.language),
                                                 |builder| {
                                                     builder
                                                         .headline()
                                                         .size(FontSize::Small)
-                                                        .text(name.clone())
                                                         .max_width(content_width)
+                                                        .l10n(name_text.clone(), &locale)
                                                         .render_left_top()
                                                 },
                                             ));
@@ -128,13 +131,13 @@ impl Component for Inventory {
                                         table::fixed(PADDING, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(memoized_text(
-                                                (&content_width, &desc),
+                                                (&content_width, &desc_key, &locale.language),
                                                 |builder| {
                                                     builder
                                                         .paragraph()
                                                         .size(FontSize::Medium)
                                                         .max_width(content_width)
-                                                        .text(desc.clone())
+                                                        .l10n(desc_text.clone(), &locale)
                                                         .render_left_top()
                                                 },
                                             ));

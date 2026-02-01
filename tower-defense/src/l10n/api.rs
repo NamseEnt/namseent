@@ -1,9 +1,6 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{
-    Language, Locale, contract, effect, event, quest, tower, tower_skill, ui, upgrade,
-    upgrade_board,
-};
+use super::{Language, Locale, LocalizedText, contract, effect, tower, ui, upgrade};
 use crate::*;
 
 /// 통합 다국어 텍스트 관리자
@@ -61,60 +58,36 @@ impl TextManager {
     }
 }
 
-/// 퀘스트 텍스트 처리
-impl TextManager {
-    pub fn quest(&self, text: quest::QuestText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
-    }
-
-    pub fn quest_reward(&self, text: quest::QuestRewardText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
-    }
-}
-
 /// 아이템 텍스트 처리
 impl TextManager {
-    pub fn effect_name(&self, effect: &crate::game_state::effect::Effect) -> String {
-        match self.locale.language {
-            Language::Korean => effect::EffectText::Name(effect.clone()).text_korean(),
-            Language::English => effect::EffectText::Name(effect.clone()).text_english(),
-        }
+    pub fn effect_name<'a>(
+        &self,
+        effect: &crate::game_state::effect::Effect,
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        effect::EffectText::Name(effect.clone()).apply_to_builder(builder, &self.locale)
     }
 
-    pub fn effect_description(&self, effect: &crate::game_state::effect::Effect) -> String {
-        match self.locale.language {
-            Language::Korean => effect::EffectText::Description(effect.clone()).text_korean(),
-            Language::English => effect::EffectText::Description(effect.clone()).text_english(),
-        }
+    pub fn effect_description<'a>(
+        &self,
+        effect: &crate::game_state::effect::Effect,
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        effect::EffectText::Description(effect.clone()).apply_to_builder(builder, &self.locale)
     }
 
-    pub fn effect_execution_error(
+    pub fn effect_execution_error<'a>(
         &self,
         error: &crate::game_state::effect::EffectExecutionError,
-    ) -> String {
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
         let text = effect::EffectExecutionErrorText(error.clone());
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
+        text.apply_to_builder(builder, &self.locale)
     }
 }
 
 /// 계약 텍스트 처리
 impl TextManager {
-    pub fn contract(&self, text: contract::ContractText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
-    }
-
     pub fn contract_name(&self, text: contract::ContractNameText) -> &'static str {
         match self.locale.language {
             Language::Korean => text.to_korean(),
@@ -133,16 +106,6 @@ impl TextManager {
     }
 }
 
-/// 이벤트 텍스트 처리
-impl TextManager {
-    pub fn event(&self, text: event::EventText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
-    }
-}
-
 /// 타워 텍스트 처리
 impl TextManager {
     pub fn tower(&self, text: tower::TowerKindText) -> &'static str {
@@ -153,32 +116,12 @@ impl TextManager {
     }
 }
 
-/// 타워 스킬 텍스트 처리
-impl TextManager {
-    pub fn tower_skill(&self, text: tower_skill::TowerSkillText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
-        }
-    }
-}
-
 /// 업그레이드 텍스트 처리
 impl TextManager {
     pub fn upgrade_kind(&self, text: upgrade::UpgradeKindText) -> String {
         match self.locale.language {
             Language::Korean => text.to_korean(),
             Language::English => text.to_english(),
-        }
-    }
-}
-
-/// 업그레이드 보드 텍스트 처리
-impl TextManager {
-    pub fn upgrade_board(&self, text: upgrade_board::UpgradeBoardText) -> String {
-        match self.locale.language {
-            Language::Korean => text.text_korean(),
-            Language::English => text.text_english(),
         }
     }
 }

@@ -43,11 +43,8 @@ pub enum MonsterSkillKind {
 }
 
 impl MonsterSkillKind {
-    pub fn description(&self, locale: &crate::l10n::Locale) -> String {
-        match locale.language {
-            crate::l10n::Language::Korean => crate::l10n::monster_skill::MonsterSkillText::Description(*self).text_korean(),
-            crate::l10n::Language::English => crate::l10n::monster_skill::MonsterSkillText::Description(*self).text_english(),
-        }
+    pub fn description(&self) -> crate::l10n::monster_skill::MonsterSkillText {
+        crate::l10n::monster_skill::MonsterSkillText::Description(*self)
     }
 }
 

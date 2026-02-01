@@ -4,7 +4,6 @@ pub mod api;
 pub mod contract;
 pub mod effect;
 pub mod event;
-pub mod item;
 pub mod locale;
 pub mod monster_skill;
 pub mod quest;

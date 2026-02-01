@@ -17,6 +17,13 @@ pub trait RichTextHelpers<'a> {
     fn with_heal_icon<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
     fn with_shield_value<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
     fn with_special_item_text<S: Into<String>>(self, text: S) -> TypographyBuilder<'a>;
+    fn with_health_value<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_health_loss<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_gold_value<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_gold_loss<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_positive_effect<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_negative_effect<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
+    fn with_neutral_stat<S: Into<String>>(self, value: S) -> TypographyBuilder<'a>;
     fn with_suit_color<S: Into<String>>(
         self,
         text: S,
@@ -150,5 +157,33 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
 
     fn with_time_duration<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
         self.text(value.into()).color(palette::YELLOW)
+    }
+
+    fn with_health_value<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::RED).bold()
+    }
+
+    fn with_health_loss<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::RED).bold()
+    }
+
+    fn with_gold_value<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::YELLOW).bold()
+    }
+
+    fn with_gold_loss<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::YELLOW).bold()
+    }
+
+    fn with_positive_effect<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::YELLOW).bold()
+    }
+
+    fn with_negative_effect<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::RED).bold()
+    }
+
+    fn with_neutral_stat<S: Into<String>>(self, value: S) -> TypographyBuilder<'a> {
+        self.text(value.into()).color(palette::BLUE).bold()
     }
 }

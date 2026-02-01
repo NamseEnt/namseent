@@ -15,12 +15,12 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn name(&self, text_manager: &crate::l10n::TextManager) -> String {
-        self.effect.name(text_manager)
+    pub fn name_text(&self) -> crate::l10n::effect::EffectText {
+        self.effect.name_text()
     }
 
-    pub fn description(&self, text_manager: &crate::l10n::TextManager) -> String {
-        self.effect.description(text_manager)
+    pub fn description_text(&self) -> crate::l10n::effect::EffectText {
+        self.effect.description_text()
     }
 
     /// 아이템이 현재 게임 상태에서 사용 가능한지 확인
@@ -32,11 +32,13 @@ impl Item {
     }
 
     /// 아이템을 사용할 수 없는 이유를 사용자에게 보여줄 메시지로 반환
-    pub fn usage_error_message(
+    pub fn usage_error_message<'a>(
         &self,
         error: &crate::game_state::effect::EffectExecutionError,
         text_manager: &crate::l10n::TextManager,
-    ) -> String {
-        self.effect.execution_error_message(error, text_manager)
+        builder: crate::theme::typography::TypographyBuilder<'a>,
+    ) -> crate::theme::typography::TypographyBuilder<'a> {
+        self.effect
+            .execution_error_message(error, text_manager, builder)
     }
 }
