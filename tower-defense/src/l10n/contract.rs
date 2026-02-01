@@ -25,8 +25,9 @@ impl<'a> ContractText<'a> {
             ContractText::Risk(ce) => {
                 let phase_text = phase_ko(ce);
                 builder
-                    .color(palette::RED)
-                    .static_text("리스크: ")
+                    .with_style(|builder| {
+                        builder.color(palette::RED).static_text("리스크: ");
+                    })
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_ko(builder, ce);
@@ -34,8 +35,9 @@ impl<'a> ContractText<'a> {
             ContractText::Reward(ce) => {
                 let phase_text = phase_ko(ce);
                 builder
-                    .color(palette::BLUE)
-                    .static_text("리턴: ")
+                    .with_style(|builder| {
+                        builder.color(palette::BLUE).static_text("리턴: ");
+                    })
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_ko(builder, ce);
@@ -48,8 +50,9 @@ impl<'a> ContractText<'a> {
             ContractText::Risk(ce) => {
                 let phase_text = phase_en(ce);
                 builder
-                    .static_text("Risk: ")
-                    .color(palette::RED)
+                    .with_style(|builder| {
+                        builder.color(palette::RED).static_text("Risk: ");
+                    })
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_en(builder, ce);
@@ -57,8 +60,9 @@ impl<'a> ContractText<'a> {
             ContractText::Reward(ce) => {
                 let phase_text = phase_en(ce);
                 builder
-                    .static_text("Return: ")
-                    .color(palette::BLUE)
+                    .with_style(|builder| {
+                        builder.color(palette::BLUE).static_text("Return: ");
+                    })
                     .text(phase_text)
                     .static_text(" ");
                 apply_effect_suffix_en(builder, ce);
@@ -207,6 +211,6 @@ fn apply_effect_suffix_en<'a>(builder: &mut TypographyBuilder<'a>, ce: &Contract
         | ContractEffect::OnExpire { effect } => effect,
     };
     builder
-        .static_text("· ")
+        .static_text(" ")
         .l10n(EffectText::Description(eff.clone()), &Locale::ENGLISH);
 }

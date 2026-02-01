@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::{game_state::effect::Effect, theme::typography::TypographyBuilder, *};
 
 #[allow(unreachable_patterns)]
@@ -144,45 +144,64 @@ impl EffectText {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("보호막 {}~{} 획득", min_amount, max_amount));
+                    builder
+                        .static_text("보호막 ")
+                        .with_shield_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(" 획득");
                 }
                 Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("체력 {}~{} 회복", min_amount, max_amount));
+                    builder
+                        .static_text("체력 ")
+                        .with_health_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(" 회복");
                 }
                 Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("골드 {:.0}~{:.0} 획득", min_amount, max_amount));
+                    builder
+                        .static_text("골드 ")
+                        .with_gold_value(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" 획득");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("체력 {:.0}~{:.0} 감소", min_amount, max_amount));
+                    builder
+                        .static_text("체력 ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" 감소");
                 }
                 Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "골드 {:.0}~{:.0} 감소 (부족 시 체력 {:.0}~{:.0} 감소)",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("골드 ")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" 감소 (부족 시 체력 ")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text(" 감소)");
                 }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
-                    builder.text(format!("❤ {amount:.0} 체력을 회복합니다"));
+                    builder
+                        .with_heal_icon(format!("{amount:.0}"))
+                        .static_text(" 체력을 회복합니다");
                 }
                 Effect::Shield { amount } => {
-                    builder.text(format!("{amount:.0} 피해를 흡수하는 방어막을 획득합니다"));
+                    builder
+                        .with_shield_value(format!("{amount:.0}"))
+                        .static_text(" 피해를 흡수하는 방어막을 획득합니다");
                 }
                 Effect::ExtraReroll => {
                     builder.text("추가 리롤을 획득합니다");
@@ -191,81 +210,100 @@ impl EffectText {
                     builder.text("상점 추가 리롤을 획득합니다");
                 }
                 Effect::EarnGold { amount } => {
-                    builder.text(format!("💰 {amount} 골드를 획득합니다"));
+                    builder
+                        .with_gold_icon(format!("{amount}"))
+                        .static_text(" 골드를 획득합니다");
                 }
                 Effect::Lottery {
                     amount,
                     probability,
                 } => {
-                    builder.text(format!(
-                        "{:.0}% 확률로 💰 {amount:.0} 골드를 획득합니다",
-                        probability * 100.0
-                    ));
+                    builder
+                        .text(format!("{:.0}% 확률로 ", probability * 100.0))
+                        .with_gold_icon(format!("{amount:.0}"))
+                        .static_text(" 골드를 획득합니다");
                 }
                 Effect::DamageReduction {
                     damage_multiply,
                     duration,
                 } => {
-                    builder.text(format!(
-                        "받는 피해를 {:.0}% 감소시킵니다 ({:.1}초간)",
-                        (1.0 - damage_multiply) * 100.0,
-                        duration.as_secs_f32()
-                    ));
+                    builder
+                        .static_text("받는 피해를 ")
+                        .with_reduction_percentage(format!(
+                            "{:.0}",
+                            (1.0 - damage_multiply) * 100.0
+                        ))
+                        .static_text(" 감소시킵니다 (")
+                        .with_time_duration(format!("{:.1}초", duration.as_secs_f32()))
+                        .static_text("간)");
                 }
                 Effect::UserDamageReduction { multiply, duration } => {
-                    builder.text(format!(
-                        "받는 피해를 {:.0}% 감소시킵니다 ({:.1}초간)",
-                        (1.0 - multiply) * 100.0,
-                        duration.as_secs_f32()
-                    ));
+                    builder
+                        .static_text("받는 피해를 ")
+                        .with_reduction_percentage(format!("{:.0}", (1.0 - multiply) * 100.0))
+                        .static_text(" 감소시킵니다 (")
+                        .with_time_duration(format!("{:.1}초", duration.as_secs_f32()))
+                        .static_text("간)");
                 }
                 Effect::LoseHealth { amount } => {
-                    builder.text(format!("체력을 ❤ {amount:.0} 잃습니다"));
+                    builder
+                        .static_text("체력을 ")
+                        .with_health_loss(format!("{amount:.0}"))
+                        .static_text(" 잃습니다");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "체력을 {:.0}~{:.0}만큼 잃습니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("체력을 ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 잃습니다");
                 }
                 Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("골드를 ")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 잃습니다. 골드가 부족하면 체력을 ")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text("만큼 잃습니다");
                 }
                 Effect::LoseHealthExpire {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "계약 만료 시 체력을 {:.0}~{:.0}만큼 잃습니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("계약 만료 시 체력을 ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 잃습니다");
                 }
                 Effect::LoseGoldExpire {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "계약 만료 시 골드를 {:.0}~{:.0}만큼 잃습니다. 골드가 부족하면 체력을 {:.0}~{:.0}만큼 잃습니다",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("계약 만료 시 골드를 ")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 잃습니다. 골드가 부족하면 체력을 ")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text("만큼 잃습니다");
                 }
                 Effect::LoseGold { amount } => {
-                    builder.text(format!("💰 {amount} 골드를 잃습니다"));
+                    builder
+                        .static_text("골드를 ")
+                        .with_gold_loss(format!("{amount}"))
+                        .static_text(" 잃습니다");
                 }
                 Effect::GrantUpgrade { .. } => {
                     builder.text("랜덤한 업그레이드를 획득합니다");
@@ -277,40 +315,48 @@ impl EffectText {
                     builder.text("다음 라운드에 도전 몬스터가 추가됩니다");
                 }
                 Effect::IncreaseAllTowersDamage { multiplier } => {
-                    builder.text(format!(
-                        "모든 타워의 공격력이 {:.0}% 증가합니다",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("모든 타워의 ")
+                        .with_attack_damage_stat("공격력")
+                        .static_text("이 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
                 }
                 Effect::DecreaseAllTowersDamage { multiplier } => {
-                    builder.text(format!(
-                        "모든 타워의 공격력이 {:.0}% 감소합니다",
-                        (1.0 - multiplier) * 100.0
-                    ));
+                    builder
+                        .static_text("모든 타워의 ")
+                        .with_attack_damage_stat("공격력")
+                        .static_text("이 ")
+                        .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0))
+                        .static_text(" 감소합니다");
                 }
                 Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
-                    builder.text(format!(
-                        "모든 타워의 공격속도가 {:.0}% 증가합니다",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("모든 타워의 ")
+                        .with_attack_speed_stat("공격속도")
+                        .static_text("가 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
                 }
                 Effect::IncreaseAllTowersRange { multiplier } => {
-                    builder.text(format!(
-                        "모든 타워의 사정거리가 {:.0}% 증가합니다",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("모든 타워의 ")
+                        .with_attack_range_stat("사정거리")
+                        .static_text("가 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
                 }
                 Effect::DecreaseIncomingDamage { multiplier } => {
-                    builder.text(format!(
-                        "받는 피해가 {:.0}% 감소합니다",
-                        (1.0 - multiplier) * 100.0
-                    ));
+                    builder
+                        .static_text("받는 피해가 ")
+                        .with_reduction_percentage(format!("{:.0}", (1.0 - multiplier) * 100.0))
+                        .static_text(" 감소합니다");
                 }
                 Effect::IncreaseIncomingDamage { multiplier } => {
-                    builder.text(format!(
-                        "받는 피해가 {:.0}% 증가합니다",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("받는 피해가 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
                 }
                 Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
                     builder.text(format!(
@@ -331,18 +377,18 @@ impl EffectText {
                     ));
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
-                    builder.text(format!(
-                        "골드 획득량이 {:.0}% 증가합니다",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("골드 획득량이 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
                 }
                 Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => {
-                    builder.text(format!(
-                        "골드 획득량이 {:.0}% 감소합니다",
-                        reduction_percentage * 100.0
-                    ));
+                    builder
+                        .static_text("골드 획득량이 ")
+                        .with_percentage_decrease(format!("{:.0}", reduction_percentage * 100.0))
+                        .static_text(" 감소합니다");
                 }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("아이템과 업그레이드를 구매할 수 없습니다");
@@ -363,13 +409,22 @@ impl EffectText {
                     builder.text(format!("상점 리롤 시 최대 횟수가 {}회 감소합니다", penalty));
                 }
                 Effect::AddCardSelectionHandRerollHealthCost { cost } => {
-                    builder.text(format!("카드 선택 리롤 시 체력을 {} 잃습니다", cost));
+                    builder
+                        .static_text("카드 선택 리롤 시 체력을 ")
+                        .with_health_loss(format!("{cost}"))
+                        .static_text(" 잃습니다");
                 }
                 Effect::AddShopRerollHealthCost { cost } => {
-                    builder.text(format!("상점 리롤 시 체력을 {} 잃습니다", cost));
+                    builder
+                        .static_text("상점 리롤 시 체력을 ")
+                        .with_health_loss(format!("{cost}"))
+                        .static_text(" 잃습니다");
                 }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
-                    builder.text(format!("적 체력이 {}% 증가합니다", percentage));
+                    builder
+                        .static_text("적 체력이 ")
+                        .with_percentage_increase(format!("{percentage}"))
+                        .static_text(" 증가합니다");
                 }
                 Effect::RankTowerDisable { rank } => {
                     builder.text(format!(
@@ -409,37 +464,37 @@ impl EffectText {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "보호막을 {}~{}만큼 획득합니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("보호막을 ")
+                        .with_shield_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text("만큼 획득합니다");
                 }
                 Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "체력을 {}~{}만큼 회복합니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("체력을 ")
+                        .with_health_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text("만큼 회복합니다");
                 }
                 Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "골드를 {:.0}~{:.0}만큼 획득합니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("골드를 ")
+                        .with_gold_value(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 획득합니다");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "체력을 {:.0}~{:.0}만큼 감소합니다",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("체력을 ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("만큼 감소합니다");
                 }
             },
         }
@@ -569,45 +624,66 @@ impl EffectText {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Gain Shield ({}~{})", min_amount, max_amount));
+                    builder
+                        .static_text("Gain Shield (")
+                        .with_shield_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Heal Health ({}~{})", min_amount, max_amount));
+                    builder
+                        .static_text("Heal Health (")
+                        .with_health_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Gain Gold ({:.0}~{:.0})", min_amount, max_amount));
+                    builder
+                        .static_text("Gain Gold (")
+                        .with_gold_value(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Lose Health ({:.0}~{:.0})", min_amount, max_amount));
+                    builder
+                        .static_text("Lose Health (")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "Lose Gold ({:.0}~{:.0}), if insufficient, lose health ({:.0}~{:.0})",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("Lose Gold (")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text("), if insufficient, lose health (")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text(")");
                 }
             },
             EffectText::Description(effect) => match effect {
                 Effect::Heal { amount } => {
-                    builder.text(format!("Restores ❤ {amount:.0} health"));
+                    builder
+                        .static_text("Restores ")
+                        .with_heal_icon(format!("{amount:.0}"))
+                        .static_text(" health");
                 }
                 Effect::Shield { amount } => {
-                    builder.text(format!("Gain a shield that absorbs {amount:.0} damage"));
+                    builder
+                        .static_text("Gain a shield that absorbs ")
+                        .with_shield_value(format!("{amount:.0}"))
+                        .static_text(" damage");
                 }
                 Effect::ExtraReroll => {
                     builder.text("Gain an extra reroll");
@@ -616,78 +692,99 @@ impl EffectText {
                     builder.text("Gain an extra shop reroll");
                 }
                 Effect::EarnGold { amount } => {
-                    builder.text(format!("Gain 💰 {amount} gold"));
+                    builder
+                        .static_text("Gain ")
+                        .with_gold_icon(format!("{amount}"))
+                        .static_text(" gold");
                 }
                 Effect::Lottery {
                     amount,
                     probability,
                 } => {
-                    builder.text(format!(
-                        "{:.0}% chance to gain 💰 {amount:.0} gold",
-                        probability * 100.0
-                    ));
+                    builder
+                        .text(format!("{:.0}% chance to gain ", probability * 100.0))
+                        .with_gold_icon(format!("{amount:.0}"))
+                        .static_text(" gold");
                 }
                 Effect::DamageReduction {
                     damage_multiply,
                     duration,
                 } => {
-                    builder.text(format!(
-                        "Reduces damage taken by {:.0}% for {:.1}s",
-                        (1.0 - damage_multiply) * 100.0,
-                        duration.as_secs_f32()
-                    ));
+                    builder
+                        .static_text("Reduces damage taken by ")
+                        .with_reduction_percentage(format!(
+                            "{:.0}",
+                            (1.0 - damage_multiply) * 100.0
+                        ))
+                        .static_text(" for ")
+                        .with_time_duration(format!("{:.1}s", duration.as_secs_f32()));
                 }
                 Effect::UserDamageReduction { multiply, duration } => {
-                    builder.text(format!(
-                        "Reduces damage taken by {:.0}% for {:.1}s",
-                        (1.0 - multiply) * 100.0,
-                        duration.as_secs_f32()
-                    ));
+                    builder
+                        .static_text("Reduces damage taken by ")
+                        .with_reduction_percentage(format!("{:.0}", (1.0 - multiply) * 100.0))
+                        .static_text(" for ")
+                        .with_time_duration(format!("{:.1}s", duration.as_secs_f32()));
                 }
                 Effect::LoseHealth { amount } => {
-                    builder.text(format!("Lose ❤ {amount:.0} health"));
+                    builder
+                        .static_text("Lose ")
+                        .with_health_loss(format!("{amount:.0}"))
+                        .static_text(" health");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Lose {:.0}~{:.0} health", min_amount, max_amount));
+                    builder
+                        .static_text("Lose ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" health");
                 }
                 Effect::LoseGoldRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "Lose {:.0}~{:.0} gold, if insufficient, lose {:.0}~{:.0} health",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("Lose ")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" gold, if insufficient, lose ")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text(" health");
                 }
                 Effect::LoseHealthExpire {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "Lose {:.0}~{:.0} health when contract expires",
-                        min_amount, max_amount
-                    ));
+                    builder
+                        .static_text("Lose ")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" health when contract expires");
                 }
                 Effect::LoseGoldExpire {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!(
-                        "Lose {:.0}~{:.0} gold when contract expires, if insufficient, lose {:.0}~{:.0} health",
-                        min_amount,
-                        max_amount,
-                        min_amount / 10.0,
-                        max_amount / 10.0
-                    ));
+                    builder
+                        .static_text("Lose ")
+                        .with_gold_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(" gold when contract expires, if insufficient, lose ")
+                        .with_health_loss(format!(
+                            "{:.0}~{:.0}",
+                            min_amount / 10.0,
+                            max_amount / 10.0
+                        ))
+                        .static_text(" health");
                 }
                 Effect::LoseGold { amount } => {
-                    builder.text(format!("Lose 💰 {amount} gold"));
+                    builder
+                        .static_text("Lose ")
+                        .with_gold_loss(format!("{amount}"))
+                        .static_text(" gold");
                 }
                 Effect::GrantUpgrade { .. } => {
                     builder.text("Gain a random upgrade");
@@ -699,40 +796,42 @@ impl EffectText {
                     builder.text("Add a challenge monster next round");
                 }
                 Effect::IncreaseAllTowersDamage { multiplier } => {
-                    builder.text(format!(
-                        "Increase damage of all towers by {:.0}%",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("Increase all towers' ")
+                        .with_attack_damage_stat("damage")
+                        .static_text(" by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::DecreaseAllTowersDamage { multiplier } => {
-                    builder.text(format!(
-                        "Decrease damage of all towers by {:.0}%",
-                        (1.0 - multiplier) * 100.0
-                    ));
+                    builder
+                        .static_text("Decrease all towers' ")
+                        .with_attack_damage_stat("damage")
+                        .static_text(" by ")
+                        .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0));
                 }
                 Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
-                    builder.text(format!(
-                        "Increase attack speed of all towers by {:.0}%",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("Increase all towers' ")
+                        .with_attack_speed_stat("attack speed")
+                        .static_text(" by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::IncreaseAllTowersRange { multiplier } => {
-                    builder.text(format!(
-                        "Increase range of all towers by {:.0}%",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("Increase all towers' ")
+                        .with_attack_range_stat("range")
+                        .static_text(" by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::DecreaseIncomingDamage { multiplier } => {
-                    builder.text(format!(
-                        "Reduce incoming damage by {:.0}%",
-                        (1.0 - multiplier) * 100.0
-                    ));
+                    builder
+                        .static_text("Reduce incoming damage by ")
+                        .with_reduction_percentage(format!("{:.0}", (1.0 - multiplier) * 100.0));
                 }
                 Effect::IncreaseIncomingDamage { multiplier } => {
-                    builder.text(format!(
-                        "Increase incoming damage by {:.0}%",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("Increase incoming damage by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
                     builder.text(format!(
@@ -750,18 +849,16 @@ impl EffectText {
                     builder.text(format!("Can reroll shop up to {} times", 1 + bonus));
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
-                    builder.text(format!(
-                        "Increase gold gain by {:.0}%",
-                        (multiplier - 1.0) * 100.0
-                    ));
+                    builder
+                        .static_text("Increase gold gain by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => {
-                    builder.text(format!(
-                        "Decrease gold gain by {:.0}%",
-                        reduction_percentage * 100.0
-                    ));
+                    builder
+                        .static_text("Decrease gold gain by ")
+                        .with_percentage_decrease(format!("{:.0}", reduction_percentage * 100.0));
                 }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("Cannot purchase items and upgrades");
@@ -785,16 +882,21 @@ impl EffectText {
                     builder.text(format!("Reduce maximum shop rerolls by {}", penalty));
                 }
                 Effect::AddCardSelectionHandRerollHealthCost { cost } => {
-                    builder.text(format!(
-                        "Lose {} health when rerolling card selection",
-                        cost
-                    ));
+                    builder
+                        .static_text("Lose ")
+                        .with_health_loss(format!("{cost}"))
+                        .static_text(" health when rerolling card selection");
                 }
                 Effect::AddShopRerollHealthCost { cost } => {
-                    builder.text(format!("Lose {} health when rerolling shop", cost));
+                    builder
+                        .static_text("Lose ")
+                        .with_health_loss(format!("{cost}"))
+                        .static_text(" health when rerolling shop");
                 }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
-                    builder.text(format!("Increase enemy health by {}%", percentage));
+                    builder
+                        .static_text("Increase enemy health by ")
+                        .with_percentage_increase(format!("{percentage}"));
                 }
                 Effect::RankTowerDisable { rank } => {
                     builder.text(format!("Cannot use {} rank towers during contract", rank));
@@ -828,25 +930,37 @@ impl EffectText {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Gain shield ({}~{})", min_amount, max_amount));
+                    builder
+                        .static_text("Gain shield (")
+                        .with_shield_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::HealHealth {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Heal health ({}~{})", min_amount, max_amount));
+                    builder
+                        .static_text("Heal health (")
+                        .with_health_value(format!("{}~{}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::GainGold {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Gain gold ({:.0}~{:.0})", min_amount, max_amount));
+                    builder
+                        .static_text("Gain gold (")
+                        .with_gold_value(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(")");
                 }
                 Effect::LoseHealthRange {
                     min_amount,
                     max_amount,
                 } => {
-                    builder.text(format!("Lose health ({:.0}~{:.0})", min_amount, max_amount));
+                    builder
+                        .static_text("Lose health (")
+                        .with_health_loss(format!("{:.0}~{:.0}", min_amount, max_amount))
+                        .static_text(")");
                 }
             },
         }
