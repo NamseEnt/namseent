@@ -1,4 +1,4 @@
-use super::{rich_text_helpers::RichTextHelpers, Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::{theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
@@ -27,14 +27,8 @@ pub enum UpgradeBoardText {
     RangePlus { amount: f32 },
 }
 
-
-
 impl LocalizedText for UpgradeBoardText {
-    fn apply_to_builder<'a>(
-        self,
-        builder: &mut TypographyBuilder<'a>,
-        locale: &Locale,
-    ) {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),
@@ -49,11 +43,9 @@ impl UpgradeBoardText {
                 builder.text("강화 정보");
             }
             UpgradeBoardText::GoldEarnPlus { amount } => {
-                builder
-                    .text("몬스터 처치 시 ");
+                builder.text("몬스터 처치 시 ");
                 builder.with_gold_icon(format!("{amount}"));
-                builder
-                    .text("를 추가로 얻습니다");
+                builder.text("를 추가로 얻습니다");
             }
             UpgradeBoardText::ShopSlotExpand { amount } => {
                 builder.text(format!("[Shop] 상점 슬롯이 {amount}개 증가합니다"));
@@ -65,9 +57,7 @@ impl UpgradeBoardText {
                 builder.text(format!("[Shop] 상점 아이템 가격이 {amount} 감소합니다"));
             }
             UpgradeBoardText::ShopRefreshChancePlus { amount } => {
-                builder.text(format!(
-                    "[Shop] 상점 새로고침 기회가 {amount}개 증가합니다"
-                ));
+                builder.text(format!("[Shop] 상점 새로고침 기회가 {amount}개 증가합니다"));
             }
             UpgradeBoardText::ShortenStraightFlushTo4Cards => {
                 builder.text("스트레이트와 플러시를 4장으로 줄입니다");
@@ -103,19 +93,24 @@ impl UpgradeBoardText {
                 builder.text(format!("{name} 타워의"));
             }
             UpgradeBoardText::DamagePlus { amount } => {
-                builder.text(format!("공격력이 +{amount:.1} 증가합니다"));
+                builder.with_attack_damage_icon(format!("+{amount:.1}"));
+                builder.text(" 증가합니다");
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
-                builder.text(format!("공격력이 x{amount:.1} 증가합니다"));
+                builder.with_attack_damage_icon(format!("x{amount:.1}"));
+                builder.text(" 증가합니다");
             }
             UpgradeBoardText::SpeedPlus { amount } => {
-                builder.text(format!("공격 속도가 +{amount:.1} 증가합니다"));
+                builder.with_attack_speed_icon(format!("+{amount:.1}"));
+                builder.text(" 증가합니다");
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                builder.text(format!("공격 속도가 x{amount:.1} 증가합니다"));
+                builder.with_attack_speed_icon(format!("x{amount:.1}"));
+                builder.text(" 증가합니다");
             }
             UpgradeBoardText::RangePlus { amount } => {
-                builder.text(format!("사정거리가 +{amount:.1} 증가합니다"));
+                builder.with_attack_range_icon(format!("+{amount:.1}"));
+                builder.text(" 증가합니다");
             }
         }
     }
@@ -126,11 +121,9 @@ impl UpgradeBoardText {
                 builder.text("Upgrade Information");
             }
             UpgradeBoardText::GoldEarnPlus { amount } => {
-                builder
-                    .text("Earn an additional ");
+                builder.text("Earn an additional ");
                 builder.with_gold_icon(format!("{amount}"));
-                builder
-                    .text(" when defeating monsters");
+                builder.text(" when defeating monsters");
             }
             UpgradeBoardText::ShopSlotExpand { amount } => {
                 builder.text(format!("[Shop] Increases shop slots by {amount}"));
@@ -180,19 +173,24 @@ impl UpgradeBoardText {
                 builder.text(format!("For {name} towers,"));
             }
             UpgradeBoardText::DamagePlus { amount } => {
-                builder.text(format!("Attack Damage increases by +{amount:.1}"));
+                builder.with_attack_damage_icon(format!("+{amount:.1}"));
+                builder.text(" increases");
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
-                builder.text(format!("Attack Damage increases by x{amount:.1}"));
+                builder.with_attack_damage_icon(format!("x{amount:.1}"));
+                builder.text(" increases");
             }
             UpgradeBoardText::SpeedPlus { amount } => {
-                builder.text(format!("Attack Speed increases by +{amount:.1}"));
+                builder.with_attack_speed_icon(format!("+{amount:.1}"));
+                builder.text(" increases");
             }
             UpgradeBoardText::SpeedMultiplier { amount } => {
-                builder.text(format!("Attack Speed increases by x{amount:.1}"));
+                builder.with_attack_speed_icon(format!("x{amount:.1}"));
+                builder.text(" increases");
             }
             UpgradeBoardText::RangePlus { amount } => {
-                builder.text(format!("Attack Range increases by +{amount:.1}"));
+                builder.with_attack_range_icon(format!("+{amount:.1}"));
+                builder.text(" increases");
             }
         }
     }
