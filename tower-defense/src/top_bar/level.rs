@@ -60,14 +60,10 @@ impl Component for LevelIndicator {
                                     }
                                     level_up();
                                 },
-                                &|wh, _text_color, ctx| {
+                                &|wh, text_color, ctx| {
                                     ctx.add(memoized_text(
-                                        (&can_upgrade, &level_up_cost),
+                                        (&level_up_cost, &text_color),
                                         |mut builder| {
-                                            let text_color = match can_upgrade {
-                                                true => palette::ON_PRIMARY,
-                                                false => palette::ON_SURFACE,
-                                            };
                                             builder
                                                 .icon(IconKind::Level)
                                                 .space()
