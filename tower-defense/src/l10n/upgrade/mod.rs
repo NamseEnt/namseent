@@ -13,9 +13,9 @@ pub enum UpgradeKindText<'a> {
 impl LocalizedText for UpgradeKindText<'_> {
     fn apply_to_builder<'a>(
         self,
-        builder: TypographyBuilder<'a>,
+        builder: &mut TypographyBuilder<'a>,
         locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    ) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),
@@ -24,13 +24,13 @@ impl LocalizedText for UpgradeKindText<'_> {
 }
 
 impl UpgradeKindText<'_> {
-    fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         let text = self.to_korean();
-        builder.text(text)
+        builder.text(text);
     }
 
-    fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         let text = self.to_english();
-        builder.text(text)
+        builder.text(text);
     }
 }

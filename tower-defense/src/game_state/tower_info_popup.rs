@@ -44,7 +44,7 @@ impl Component for TowerInfoPopup<'_> {
                                             });
                                         },
                                         &|wh, text_color, ctx| {
-                                            ctx.add(memoized_text((&text_color, &wh), |builder| {
+                                            ctx.add(memoized_text((&text_color, &wh), |mut builder| {
                                                 builder
                                                     .size(FontSize::Medium)
                                                     .color(text_color)

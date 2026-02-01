@@ -110,7 +110,7 @@ impl Component for MonsterHpBalanceButton {
                 &|wh, text_color, ctx| {
                     ctx.add(memoized_text(
                         (&text_color, &display_text, &wh),
-                        |builder| {
+                        |mut builder| {
                             builder
                                 .paragraph()
                                 .color(text_color)

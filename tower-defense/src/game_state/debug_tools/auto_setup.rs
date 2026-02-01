@@ -56,7 +56,7 @@ impl Component for AutoSetupButton {
                 &|wh, text_color, ctx| {
                     ctx.add(memoized_text(
                         (&text_color, &wh),
-                        |builder| {
+                        |mut builder| {
                             builder
                                 .paragraph()
                                 .color(text_color)

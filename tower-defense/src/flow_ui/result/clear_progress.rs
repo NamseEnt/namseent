@@ -23,7 +23,7 @@ impl Component for ClearProgress {
         const PROGRESS_BAR_BORDER_COLOR: Color = palette::OUTLINE;
 
         // 클리어율 텍스트
-        ctx.add(memoized_text(&clear_rate, |builder| {
+        ctx.add(memoized_text(&clear_rate, |mut builder| {
             builder
                 .headline()
                 .size(typography::FontSize::Medium)

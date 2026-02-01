@@ -187,7 +187,7 @@ impl Component for PlaceSelectedTowerInSpiralButton {
                     mutate_game_state(place_selected_tower_in_spiral);
                 },
                 &|wh, text_color, ctx| {
-                    ctx.add(memoized_text((&text_color, &wh), |builder| {
+                    ctx.add(memoized_text((&text_color, &wh), |mut builder| {
                         builder
                             .paragraph()
                             .color(text_color)

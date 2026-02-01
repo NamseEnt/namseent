@@ -34,7 +34,7 @@ impl Component for SettingsModal {
                             table::ratio(1, |wh, ctx| {
                                 ctx.add(memoized_text(
                                     (),
-                                    |builder| {
+                                    |mut builder| {
                                         builder
                                             .headline()
                                             .size(typography::FontSize::Medium)

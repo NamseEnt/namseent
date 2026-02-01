@@ -277,7 +277,7 @@ impl Component for AddUpgradeTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(memoized_text((), |builder| {
+                    ctx.add(memoized_text((), |mut builder| {
                         builder.headline().text("Add upgrade").render_left_top()
                     }));
                 }),
@@ -289,7 +289,7 @@ impl Component for AddUpgradeTool {
                         expected_rarity,
                         expected_category.display_name()
                     );
-                    ctx.add(memoized_text(&info_text, |builder| {
+                    ctx.add(memoized_text(&info_text, |mut builder| {
                         builder
                             .paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
@@ -321,7 +321,7 @@ impl Component for AddUpgradeTool {
                                                             &text_color,
                                                             &wh.height,
                                                         ),
-                                                        |builder| {
+                                                        |mut builder| {
                                                             builder
                                                                 .paragraph()
                                                                 .color(text_color)
@@ -368,7 +368,7 @@ impl Component for AddUpgradeTool {
                                                 table::ratio(1, |wh, ctx| {
                                                     ctx.add(memoized_text(
                                                         (selected_rarity, &text_color, &wh.height),
-                                                        |builder| {
+                                                        |mut builder| {
                                                             builder
                                                                 .color(text_color)
                                                                 .text(format!(
@@ -420,7 +420,7 @@ impl Component for AddUpgradeTool {
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(memoized_text(
                                                         (&category, &text_color, &wh.height),
-                                                        |builder| {
+                                                        |mut builder| {
                                                             builder
                                                                 .paragraph()
                                                                 .color(text_color)
@@ -466,7 +466,7 @@ impl Component for AddUpgradeTool {
                                                 &|wh, text_color, ctx| {
                                                     ctx.add(memoized_text(
                                                         (&rarity, &text_color, &wh.height),
-                                                        |builder| {
+                                                        |mut builder| {
                                                             builder
                                                                 .color(text_color)
                                                                 .text(format!("{:?}", rarity))
@@ -497,7 +497,7 @@ impl Component for AddUpgradeTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &add_upgrade,
                             &|wh, text_color, ctx| {
-                                ctx.add(memoized_text((&text_color, &wh), |builder| {
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
                                     builder
                                         .color(text_color)
                                         .text("업그레이드 획득")

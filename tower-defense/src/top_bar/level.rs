@@ -39,7 +39,7 @@ impl Component for LevelIndicator {
                     ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
                 }),
                 table::fixed(32.px(), |wh, ctx| {
-                    ctx.add(memoized_text(&level, |builder| {
+                    ctx.add(memoized_text(&level, |mut builder| {
                         builder
                             .size(typography::FontSize::Medium)
                             .text(format!("{level}"))
@@ -62,7 +62,7 @@ impl Component for LevelIndicator {
                                 &|wh, _text_color, ctx| {
                                     ctx.add(memoized_text(
                                         (&can_upgrade, &level_up_cost),
-                                        |builder| {
+                                        |mut builder| {
                                             let text_color = match can_upgrade {
                                                 true => palette::ON_PRIMARY,
                                                 false => palette::ON_SURFACE,

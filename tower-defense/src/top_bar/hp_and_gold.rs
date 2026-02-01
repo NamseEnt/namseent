@@ -23,7 +23,7 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Health).size(IconSize::Medium).wh(wh));
                         }),
                         table::fixed(48.px(), |wh, ctx| {
-                            ctx.add(memoized_text(&hp, |builder| {
+                            ctx.add(memoized_text(&hp, |mut builder| {
                                 builder
                                     .size(FontSize::Medium)
                                     .text(format!("{:.0}", hp * 100.0))
@@ -56,7 +56,7 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Gold).size(IconSize::Medium).wh(wh));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text(&gold, |builder| {
+                            ctx.add(memoized_text(&gold, |mut builder| {
                                 builder
                                     .size(FontSize::Medium)
                                     .text(format!("{gold}"))

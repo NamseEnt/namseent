@@ -20,12 +20,16 @@ pub enum TowerKindText {
 impl LocalizedText for TowerKindText {
     fn apply_to_builder<'a>(
         self,
-        builder: TypographyBuilder<'a>,
+        builder: &mut TypographyBuilder<'a>,
         locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    ) {
         match locale.language {
-            Language::Korean => builder.static_text(self.to_korean()),
-            Language::English => builder.static_text(self.to_english()),
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
         }
     }
 }

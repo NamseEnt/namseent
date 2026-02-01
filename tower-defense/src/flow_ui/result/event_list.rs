@@ -142,7 +142,7 @@ impl EventItem<'_> {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
                 let event_key = format!("{:?}", event_type);
-                ctx.add(memoized_text((&event_key, &wh.height, &locale.language), |builder| {
+                ctx.add(memoized_text((&event_key, &wh.height, &locale.language), |mut builder| {
                     builder
                         .headline()
                         .size(typography::FontSize::Small)
@@ -203,7 +203,7 @@ impl Component for EventTooltip {
         let event_key = format!("{:?}", event_type);
         let text = ctx.ghost_add(
             "tooltip-text",
-            memoized_text((&text_max_width, &locale.language, &event_key), |builder| {
+            memoized_text((&text_max_width, &locale.language, &event_key), |mut builder| {
                 builder
                     .paragraph()
                     .size(typography::FontSize::Small)
@@ -334,7 +334,7 @@ impl Component for TimelineIconComponent<'_> {
         if let HistoryEventType::StageStart { stage } = event_type {
             let stage_str = stage.to_string();
             ctx.translate(wh.to_xy() * -0.5)
-                .add(memoized_text((&wh, &stage_str), |builder| {
+                .add(memoized_text((&wh, &stage_str), |mut builder| {
                     builder
                         .headline()
                         .size(typography::FontSize::Medium)

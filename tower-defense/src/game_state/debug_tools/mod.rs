@@ -48,7 +48,7 @@ impl Component for DebugToolsModal {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
-                                ctx.add(memoized_text(&wh.height, |builder| {
+                                ctx.add(memoized_text(&wh.height, |mut builder| {
                                     builder
                                         .headline()
                                         .size(typography::FontSize::Medium)
@@ -141,7 +141,7 @@ impl Component for DebugToolsModal {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(typography::memoized_text(
                                                                 (&text_color, &wh),
-                                                                |builder| {
+                                                                |mut builder| {
                                                                     builder
                                                                         .paragraph()
                                                                         .color(text_color)
@@ -173,7 +173,7 @@ impl Component for DebugToolsModal {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(typography::memoized_text(
                                                                 (&text_color, &wh),
-                                                                |builder| {
+                                                                |mut builder| {
                                                                     builder
                                                                         .paragraph()
                                                                         .color(text_color)

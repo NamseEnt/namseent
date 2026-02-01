@@ -18,7 +18,7 @@ impl Component for RouteLengthInfoTool {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(
-                        memoized_text(&route_length, |builder| {
+                        memoized_text(&route_length, |mut builder| {
                             builder
                                 .paragraph()
                                 .text(format!("Route Length: {}", route_length))
@@ -28,7 +28,7 @@ impl Component for RouteLengthInfoTool {
                 }),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     ctx.add(
-                        memoized_text(&active_monsters, |builder| {
+                        memoized_text(&active_monsters, |mut builder| {
                             builder
                                 .paragraph()
                                 .text(format!("Active Monsters: {}", active_monsters))

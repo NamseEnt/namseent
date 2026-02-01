@@ -67,7 +67,7 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[0][0], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[0][0], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[0][0]))
@@ -75,7 +75,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text(&wh, |builder| {
+                            ctx.add(memoized_text(&wh, |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
@@ -83,7 +83,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[0][1], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[0][1], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[0][1]))
@@ -107,7 +107,7 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&wh, &weights[1][0]), |builder| {
+                            ctx.add(memoized_text((&wh, &weights[1][0]), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[1][0]))
@@ -115,7 +115,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text(&wh, |builder| {
+                            ctx.add(memoized_text(&wh, |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
@@ -123,7 +123,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[1][1], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[1][1], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[1][1]))
@@ -147,7 +147,7 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[2][0], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[2][0], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[2][0]))
@@ -155,7 +155,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text(&wh, |builder| {
+                            ctx.add(memoized_text(&wh, |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
@@ -163,7 +163,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[2][1], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[2][1], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[2][1]))
@@ -187,7 +187,7 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[3][0], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[3][0], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[3][0]))
@@ -195,7 +195,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((), |builder| {
+                            ctx.add(memoized_text((), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(">>>")
@@ -203,7 +203,7 @@ impl Component for LevelUpDetails {
                             }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(memoized_text((&weights[3][1], &wh), |builder| {
+                            ctx.add(memoized_text((&weights[3][1], &wh), |mut builder| {
                                 builder
                                     .size(typography::FontSize::Medium)
                                     .text(format!("{}%", weights[3][1]))

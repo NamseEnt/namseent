@@ -80,7 +80,7 @@ impl Component for TowerPreviewContent<'_> {
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
                         ctx.add(memoized_text(
                             (&wh, &tower_template.kind, &tower_template.suit),
-                            |builder| {
+                            |mut builder| {
                                 let rank_text = tower_template.rank.to_string();
                                 let mut builder = builder.size(FontSize::Small).max_width(wh.width);
 
@@ -112,7 +112,7 @@ impl Component for TowerPreviewContent<'_> {
                                 .size(IconSize::Small)
                                 .wh(Wh::new(16.px(), wh.height)),
                         );
-                        ctx.add(memoized_text((&rating, &wh.width), |builder| {
+                        ctx.add(memoized_text((&rating, &wh.width), |mut builder| {
                             builder
                                 .paragraph()
                                 .size(FontSize::Medium)

@@ -63,26 +63,29 @@ impl TextManager {
     pub fn effect_name<'a>(
         &self,
         effect: &crate::game_state::effect::Effect,
-        builder: crate::theme::typography::TypographyBuilder<'a>,
+        mut builder: crate::theme::typography::TypographyBuilder<'a>,
     ) -> crate::theme::typography::TypographyBuilder<'a> {
-        effect::EffectText::Name(effect.clone()).apply_to_builder(builder, &self.locale)
+        effect::EffectText::Name(effect.clone()).apply_to_builder(&mut builder, &self.locale);
+        builder
     }
 
     pub fn effect_description<'a>(
         &self,
         effect: &crate::game_state::effect::Effect,
-        builder: crate::theme::typography::TypographyBuilder<'a>,
+        mut builder: crate::theme::typography::TypographyBuilder<'a>,
     ) -> crate::theme::typography::TypographyBuilder<'a> {
-        effect::EffectText::Description(effect.clone()).apply_to_builder(builder, &self.locale)
+        effect::EffectText::Description(effect.clone()).apply_to_builder(&mut builder, &self.locale);
+        builder
     }
 
     pub fn effect_execution_error<'a>(
         &self,
         error: &crate::game_state::effect::EffectExecutionError,
-        builder: crate::theme::typography::TypographyBuilder<'a>,
+        mut builder: crate::theme::typography::TypographyBuilder<'a>,
     ) -> crate::theme::typography::TypographyBuilder<'a> {
         let text = effect::EffectExecutionErrorText(error.clone());
-        text.apply_to_builder(builder, &self.locale)
+        text.apply_to_builder(&mut builder, &self.locale);
+        builder
     }
 }
 

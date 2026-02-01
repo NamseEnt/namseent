@@ -32,7 +32,7 @@ pub trait LocalizedText {
     /// Apply localized rich text formatting to a builder
     fn apply_to_builder<'a>(
         self,
-        builder: crate::theme::typography::TypographyBuilder<'a>,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &Locale,
-    ) -> crate::theme::typography::TypographyBuilder<'a>;
+    );
 }

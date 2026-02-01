@@ -51,12 +51,12 @@ impl<'a> TypographyBuilder<'a> {
         }
     }
 
-    pub fn headline(mut self) -> Self {
+    pub fn headline(&mut self) -> &mut Self {
         self.variant = TypographyVariant::Headline;
         self
     }
 
-    pub fn paragraph(mut self) -> Self {
+    pub fn paragraph(&mut self) -> &mut Self {
         self.variant = TypographyVariant::Paragraph;
         self
     }
@@ -67,7 +67,7 @@ impl<'a> TypographyBuilder<'a> {
     /// Set font size using predefined FontSize enum
     /// - FontSize::Large, Medium, Small: Uses predefined sizes based on variant
     /// - FontSize::Custom { size }: Uses custom size
-    pub fn size(mut self, size: FontSize) -> Self {
+    pub fn size(&mut self, size: FontSize) -> &mut Self {
         let size_px = match size {
             FontSize::Large => match self.variant {
                 TypographyVariant::Headline => super::HEADLINE_FONT_SIZE_LARGE,
@@ -89,20 +89,20 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Set text color
-    pub fn color(mut self, color: Color) -> Self {
+    pub fn color(&mut self, color: Color) -> &mut Self {
         self.tokens
             .push(Token::ApplyStyle(StyleDelta::color(color)));
         self
     }
 
     /// Set bold style
-    pub fn bold(mut self) -> Self {
+    pub fn bold(&mut self) -> &mut Self {
         self.tokens.push(Token::ApplyStyle(StyleDelta::bold()));
         self
     }
 
     /// Set underline style
-    pub fn underline(mut self) -> Self {
+    pub fn underline(&mut self) -> &mut Self {
         self.tokens.push(Token::ApplyStyle(StyleDelta {
             font_size: None,
             color: None,
@@ -115,40 +115,41 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Add stroke (text border)
-    pub fn stroke(mut self, width: Px, color: Color) -> Self {
+    pub fn stroke(&mut self, width: Px, color: Color) -> &mut Self {
         self.tokens
             .push(Token::ApplyStyle(StyleDelta::stroke(width, color)));
         self
     }
 
     /// Add static text (borrowed reference - lifetime must match builder's 'a)
-    pub fn static_text(mut self, text: &'a str) -> Self {
+    pub fn static_text(&mut self, text: &'a str) -> &mut Self {
         self.tokens.push(Token::StaticText(text));
         self
     }
 
     /// Add dynamic text (owned String - no lifetime constraints)
-    pub fn text<S: Into<String>>(mut self, text: S) -> Self {
+    pub fn text<S: Into<String>>(&mut self, text: S) -> &mut Self {
         self.tokens.push(Token::Text(text.into()));
         self
     }
 
     /// Add localized rich text (supports l10n types with builder integration)
-    pub fn l10n<L>(self, localized: L, locale: &crate::l10n::Locale) -> Self
+    pub fn l10n<L>(&mut self, localized: L, locale: &crate::l10n::Locale) -> &mut Self
     where
         L: crate::l10n::LocalizedText,
     {
-        localized.apply_to_builder(self, locale)
+        localized.apply_to_builder(self, locale);
+        self
     }
 
     /// Add static icon (TODO: implement icon rendering)
-    pub fn icon<F>(mut self, icon_kind: IconKind) -> Self {
+    pub fn icon<F>(&mut self, icon_kind: IconKind) -> &mut Self {
         self.tokens
             .push(Token::Icon(TypographyIcon::new(icon_kind)));
         self
     }
 
-    pub fn icon_with_attribute<F>(mut self, icon_kind: IconKind, build: F) -> Self
+    pub fn icon_with_attribute<F>(&mut self, icon_kind: IconKind, build: F) -> &mut Self
     where
         F: FnOnce(&mut TypographyIcon),
     {
@@ -159,57 +160,57 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Add space
-    pub fn space(mut self) -> Self {
+    pub fn space(&mut self) -> &mut Self {
         self.tokens.push(Token::Space);
         self
     }
 
     /// Add line break
-    pub fn line_break(mut self) -> Self {
+    pub fn line_break(&mut self) -> &mut Self {
         self.tokens.push(Token::LineBreak);
         self
     }
 
     /// Apply temporary style scope using save/restore pattern
-    /// The closure receives a builder with the style saved,
+    /// The closure receives a mutable reference to the builder with the style saved,
     /// and the style is automatically restored after the closure returns
-    pub fn with_style<F>(mut self, f: F) -> Self
+    pub fn with_style<F>(&mut self, f: F) -> &mut Self
     where
-        F: FnOnce(&mut TypographyBuilder<'a>) -> TypographyBuilder<'a>,
+        F: FnOnce(&mut TypographyBuilder<'a>),
     {
         self.tokens.push(Token::Save);
-        f(&mut self);
+        f(self);
         self.tokens.push(Token::Restore);
         self
     }
 
     /// Set text alignment for layout (Left, Center, Right)
-    pub fn text_align(mut self, align: TextAlign) -> Self {
+    pub fn text_align(&mut self, align: TextAlign) -> &mut Self {
         self.layout_config.text_align = align;
         self
     }
 
     /// Set vertical alignment (Top, Middle, Bottom)
-    pub fn vertical_align(mut self, align: super::style::VerticalAlign) -> Self {
+    pub fn vertical_align(&mut self, align: super::style::VerticalAlign) -> &mut Self {
         self.tokens
             .push(Token::ApplyStyle(StyleDelta::vertical_align(align)));
         self
     }
 
     /// Set max width for text wrapping
-    pub fn max_width(mut self, max_width: Px) -> Self {
+    pub fn max_width(&mut self, max_width: Px) -> &mut Self {
         self.layout_config.max_width = Some(max_width);
         self
     }
 
     /// Set line height as a percentage multiplier (e.g., 1.3 for 130% line height)
-    pub fn line_height(mut self, percent: f32) -> Self {
+    pub fn line_height(&mut self, percent: f32) -> &mut Self {
         self.layout_config.line_height_percent = percent;
         self
     }
 
     /// Build the typography
-    pub fn render(self) -> RenderedRichText {
+    pub fn render(&mut self) -> RenderedRichText {
         let default_style = match self.variant {
             TypographyVariant::Headline => StyleContext::new(
                 super::HEADLINE_FONT_NAME.to_string(),
@@ -230,19 +231,19 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Render and position at top-left
-    pub fn render_left_top(self) -> PositionedRichText {
+    pub fn render_left_top(&mut self) -> PositionedRichText {
         PositionedRichText::new(self.render(), Xy::zero())
     }
 
     /// Render and position at left with vertical centering
-    pub fn render_left_center(self, height: Px) -> PositionedRichText {
+    pub fn render_left_center(&mut self, height: Px) -> PositionedRichText {
         let rendered = self.render();
         let offset_y = (height - rendered.height) / 2.0;
         PositionedRichText::new(rendered, Xy::new(Px::zero(), offset_y))
     }
 
     /// Render and center in the given size
-    pub fn render_center(self, wh: Wh<Px>) -> PositionedRichText {
+    pub fn render_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
         let rendered = self.render();
         let offset_x = (wh.width - rendered.width) / 2.0;
         let offset_y = (wh.height - rendered.height) / 2.0;
@@ -250,7 +251,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Render and position at right-top
-    pub fn render_right_top(self, width: Px) -> PositionedRichText {
+    pub fn render_right_top(&mut self, width: Px) -> PositionedRichText {
         let rendered = self.render();
         let offset_x = width - rendered.width;
         PositionedRichText::new(rendered, Xy::new(offset_x, Px::zero()))

@@ -43,7 +43,7 @@ impl Component for GameSpeedIndicator {
                 table::fixed(32.px(), |wh, ctx| {
                     ctx.add(memoized_text(
                         (&game_state.fast_forward_multiplier, &wh),
-                        |builder| {
+                        |mut builder| {
                             let current_speed_text = match game_state.fast_forward_multiplier {
                                 FastForwardMultiplier::X1 => "1x",
                                 FastForwardMultiplier::X2 => "2x",
@@ -65,7 +65,7 @@ impl Component for GameSpeedIndicator {
                         table::fixed(28.px(), |wh, ctx| {
                             ctx.add(
                                 Button::new(wh, &slower_action, &|wh, color, ctx| {
-                                    ctx.add(memoized_text((&color, &wh), |builder| {
+                                    ctx.add(memoized_text((&color, &wh), |mut builder| {
                                         builder
                                             .paragraph()
                                             .color(color)
@@ -81,7 +81,7 @@ impl Component for GameSpeedIndicator {
                         // Default button
                         table::fixed(36.px(), |wh, ctx| {
                             ctx.add(Button::new(wh, &default_action, &|wh, color, ctx| {
-                                ctx.add(memoized_text((&color, &wh), |builder| {
+                                ctx.add(memoized_text((&color, &wh), |mut builder| {
                                     builder
                                         .paragraph()
                                         .color(color)
@@ -94,7 +94,7 @@ impl Component for GameSpeedIndicator {
                         table::fixed(28.px(), |wh, ctx| {
                             ctx.add(
                                 Button::new(wh, &faster_action, &|wh, color, ctx| {
-                                    ctx.add(memoized_text((&color, &wh), |builder| {
+                                    ctx.add(memoized_text((&color, &wh), |mut builder| {
                                         builder
                                             .paragraph()
                                             .color(color)

@@ -11,11 +11,7 @@ pub enum ContractText<'a> {
 }
 
 impl LocalizedText for ContractText<'_> {
-    fn apply_to_builder<'a>(
-        self,
-        builder: TypographyBuilder<'a>,
-        locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),
@@ -24,48 +20,48 @@ impl LocalizedText for ContractText<'_> {
 }
 
 impl<'a> ContractText<'a> {
-    fn apply_korean<'b>(self, builder: TypographyBuilder<'b>) -> TypographyBuilder<'b> {
+    fn apply_korean<'b>(self, builder: &mut TypographyBuilder<'b>) {
         match self {
             ContractText::Risk(ce) => {
                 let phase_text = phase_ko(ce);
-                let builder = builder
+                builder
                     .color(palette::RED)
                     .static_text("리스크: ")
                     .text(phase_text)
                     .static_text(" ");
-                apply_effect_suffix_ko(builder, ce)
+                apply_effect_suffix_ko(builder, ce);
             }
             ContractText::Reward(ce) => {
                 let phase_text = phase_ko(ce);
-                let builder = builder
+                builder
                     .color(palette::BLUE)
                     .static_text("리턴: ")
                     .text(phase_text)
                     .static_text(" ");
-                apply_effect_suffix_ko(builder, ce)
+                apply_effect_suffix_ko(builder, ce);
             }
         }
     }
 
-    fn apply_english<'b>(self, builder: TypographyBuilder<'b>) -> TypographyBuilder<'b> {
+    fn apply_english<'b>(self, builder: &mut TypographyBuilder<'b>) {
         match self {
             ContractText::Risk(ce) => {
                 let phase_text = phase_en(ce);
-                let builder = builder
+                builder
                     .static_text("Risk: ")
                     .color(palette::RED)
                     .text(phase_text)
                     .static_text(" ");
-                apply_effect_suffix_en(builder, ce)
+                apply_effect_suffix_en(builder, ce);
             }
             ContractText::Reward(ce) => {
                 let phase_text = phase_en(ce);
-                let builder = builder
+                builder
                     .static_text("Return: ")
                     .color(palette::BLUE)
                     .text(phase_text)
                     .static_text(" ");
-                apply_effect_suffix_en(builder, ce)
+                apply_effect_suffix_en(builder, ce);
             }
         }
     }
@@ -77,11 +73,7 @@ pub enum ContractNameText {
 }
 
 impl LocalizedText for ContractNameText {
-    fn apply_to_builder<'a>(
-        self,
-        builder: TypographyBuilder<'a>,
-        locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),
@@ -108,12 +100,12 @@ impl ContractNameText {
         }
     }
 
-    fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
-        builder.static_text(self.to_korean())
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        builder.static_text(self.to_korean());
     }
 
-    fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
-        builder.static_text(self.to_english())
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        builder.static_text(self.to_english());
     }
 }
 
@@ -122,11 +114,7 @@ pub enum ContractDurationText<'a> {
 }
 
 impl LocalizedText for ContractDurationText<'_> {
-    fn apply_to_builder<'a>(
-        self,
-        builder: TypographyBuilder<'a>,
-        locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
             Language::Korean => self.apply_korean(builder),
             Language::English => self.apply_english(builder),
@@ -135,30 +123,28 @@ impl LocalizedText for ContractDurationText<'_> {
 }
 
 impl ContractDurationText<'_> {
-    fn apply_korean<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             ContractDurationText::Status(status) => {
                 use crate::game_state::contract::ContractStatus;
-                match status {
-                    ContractStatus::Pending { duration_stages } => builder
+                if let ContractStatus::Pending { duration_stages } = status {
+                    builder
                         .text(format!("{}", duration_stages))
-                        .static_text("스테이지동안 지속됩니다"),
-                    _ => builder,
+                        .static_text("스테이지동안 지속됩니다");
                 }
             }
         }
     }
 
-    fn apply_english<'a>(self, builder: TypographyBuilder<'a>) -> TypographyBuilder<'a> {
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             ContractDurationText::Status(status) => {
                 use crate::game_state::contract::ContractStatus;
-                match status {
-                    ContractStatus::Pending { duration_stages } => builder
+                if let ContractStatus::Pending { duration_stages } = status {
+                    builder
                         .static_text("for ")
                         .text(format!("{}", duration_stages))
-                        .static_text(" stages"),
-                    _ => builder,
+                        .static_text(" stages");
                 }
             }
         }
@@ -201,10 +187,7 @@ fn phase_en(ce: &ContractEffect) -> String {
     }
 }
 
-fn apply_effect_suffix_ko<'a>(
-    builder: TypographyBuilder<'a>,
-    ce: &ContractEffect,
-) -> TypographyBuilder<'a> {
+fn apply_effect_suffix_ko<'a>(builder: &mut TypographyBuilder<'a>, ce: &ContractEffect) {
     let eff = match ce {
         ContractEffect::OnSign { effect }
         | ContractEffect::WhileActive { effect }
@@ -213,13 +196,10 @@ fn apply_effect_suffix_ko<'a>(
     };
     builder
         .static_text("· ")
-        .l10n(EffectText::Description(eff.clone()), &Locale::KOREAN)
+        .l10n(EffectText::Description(eff.clone()), &Locale::KOREAN);
 }
 
-fn apply_effect_suffix_en<'a>(
-    builder: TypographyBuilder<'a>,
-    ce: &ContractEffect,
-) -> TypographyBuilder<'a> {
+fn apply_effect_suffix_en<'a>(builder: &mut TypographyBuilder<'a>, ce: &ContractEffect) {
     let eff = match ce {
         ContractEffect::OnSign { effect }
         | ContractEffect::WhileActive { effect }
@@ -228,5 +208,5 @@ fn apply_effect_suffix_en<'a>(
     };
     builder
         .static_text("· ")
-        .l10n(EffectText::Description(eff.clone()), &Locale::ENGLISH)
+        .l10n(EffectText::Description(eff.clone()), &Locale::ENGLISH);
 }

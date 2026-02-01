@@ -50,7 +50,7 @@ impl Component for ResultModal {
                     PADDING,
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                            ctx.add(memoized_text((), |builder| {
+                            ctx.add(memoized_text((), |mut builder| {
                                 builder
                                     .headline()
                                     .size(typography::FontSize::Large)
@@ -80,7 +80,7 @@ impl Component for ResultModal {
                                         set_modal(None);
                                     },
                                     &|wh, text_color, ctx| {
-                                        ctx.add(memoized_text(&text_color, |builder| {
+                                        ctx.add(memoized_text(&text_color, |mut builder| {
                                             builder
                                                 .headline()
                                                 .size(typography::FontSize::Medium)

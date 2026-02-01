@@ -67,7 +67,7 @@ impl Component for UpgradeBoard {
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
                         let locale = game_state.text().locale();
-                        ctx.add(memoized_text((&locale.language,), |builder| {
+                        ctx.add(memoized_text((&locale.language,), |mut builder| {
                             builder
                                 .headline()
                                 .size(FontSize::Large)
@@ -148,7 +148,7 @@ impl Component for UpgradeItem {
                                 let description_key = upgrade_info.description.key();
                                 ctx.add(memoized_text(
                                     (&description_key, &wh.width, &locale.language),
-                                    |builder| {
+                                    |mut builder| {
                                         let builder = builder
                                             .size(FontSize::Medium)
                                             .max_width(wh.width);

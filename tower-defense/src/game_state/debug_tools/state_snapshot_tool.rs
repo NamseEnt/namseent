@@ -18,7 +18,7 @@ impl Component for StateSnapshotTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(memoized_text((), |builder| {
+                    ctx.add(memoized_text((), |mut builder| {
                         builder.headline().text("State snapshots").render_left_top()
                     }));
                 }),
@@ -29,7 +29,7 @@ impl Component for StateSnapshotTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &|| state_snapshot::save_current_snapshot(),
                             &|wh, text_color, ctx| {
-                                ctx.add(memoized_text((&text_color, &wh), |builder| {
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
                                     builder
                                         .paragraph()
                                         .color(text_color)
@@ -48,7 +48,7 @@ impl Component for StateSnapshotTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &|| state_snapshot::clear_snapshots(),
                             &|wh, text_color, ctx| {
-                                ctx.add(memoized_text((&text_color, &wh), |builder| {
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
                                     builder
                                         .paragraph()
                                         .color(text_color)
@@ -72,7 +72,7 @@ impl Component for StateSnapshotTool {
                                         table::ratio(1, |wh, ctx| {
                                             ctx.add(memoized_text(
                                                 (&idx, &stage, &wh.height),
-                                                |builder| {
+                                                |mut builder| {
                                                     builder
                                                         .text(format!(
                                                             "Snapshot #{idx} (Stage {stage})"
@@ -90,7 +90,7 @@ impl Component for StateSnapshotTool {
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(memoized_text(
                                                             (&text_color, &wh),
-                                                            |builder| {
+                                                            |mut builder| {
                                                                 builder
                                                                     .color(text_color)
                                                                     .text("Restore")

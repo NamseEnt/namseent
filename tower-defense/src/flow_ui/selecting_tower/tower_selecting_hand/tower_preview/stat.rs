@@ -63,7 +63,7 @@ impl Component for StatPreview<'_> {
                 .wh(Wh::new(16.px(), wh.height)),
         );
         let stat_text = format_stat_final(default_stat, plus_stat, multiplier);
-        ctx.add(memoized_text((&wh.width, &stat_text), |builder| {
+        ctx.add(memoized_text((&wh.width, &stat_text), |mut builder| {
             builder
                 .paragraph()
                 .size(FontSize::Medium)
@@ -132,7 +132,7 @@ impl Component for Tooltip<'_> {
             // 통계 상세 정보 렌더링
             let stat_text = ctx.ghost_add(
                 "stat-detail",
-                memoized_text((&text_max_width, &stat_detail), |builder| {
+                memoized_text((&text_max_width, &stat_detail), |mut builder| {
                     builder
                         .paragraph()
                         .size(FontSize::Medium)
@@ -157,7 +157,7 @@ impl Component for Tooltip<'_> {
             for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
-                    memoized_text((&text_max_width, &index, upgrade_text), |builder| {
+                    memoized_text((&text_max_width, &index, upgrade_text), |mut builder| {
                         builder
                             .paragraph()
                             .size(FontSize::Medium)

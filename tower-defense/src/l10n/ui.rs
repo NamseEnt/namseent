@@ -24,12 +24,16 @@ pub enum ResultModalText {
 impl LocalizedText for TopBarText {
     fn apply_to_builder<'a>(
         self,
-        builder: TypographyBuilder<'a>,
+        builder: &mut TypographyBuilder<'a>,
         locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    ) {
         match locale.language {
-            Language::Korean => builder.static_text(self.to_korean()),
-            Language::English => builder.static_text(self.to_english()),
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
         }
     }
 }
@@ -67,12 +71,16 @@ impl TopBarText {
 impl LocalizedText for ResultModalText {
     fn apply_to_builder<'a>(
         self,
-        builder: TypographyBuilder<'a>,
+        builder: &mut TypographyBuilder<'a>,
         locale: &Locale,
-    ) -> TypographyBuilder<'a> {
+    ) {
         match locale.language {
-            Language::Korean => builder.static_text(self.to_korean()),
-            Language::English => builder.static_text(self.to_english()),
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ impl Component for StageIndicator {
         ctx.compose(|ctx| {
             table::horizontal(
                 once(table::fixed(px(128.), |wh, ctx| {
-                    ctx.add(memoized_text(&stage, |builder| {
+                    ctx.add(memoized_text(&stage, |mut builder| {
                         builder
                             // .headline()
                             .size(typography::FontSize::Medium)

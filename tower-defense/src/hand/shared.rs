@@ -26,7 +26,7 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
 
     let ctx = ctx.translate(Xy::new(padding, padding));
 
-    ctx.add(memoized_text((&rank, &text_color), |builder| {
+    ctx.add(memoized_text((&rank, &text_color), |mut builder| {
         builder
             .headline()
             .size(FontSize::Small)

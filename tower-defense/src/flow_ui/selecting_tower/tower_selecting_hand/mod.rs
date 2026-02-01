@@ -173,7 +173,7 @@ impl Component for InteractionArea<'_> {
 
                                     ctx.add(memoized_text(
                                         (&color, &reroll_count.0, &reroll_count.1, &health_cost),
-                                        |builder| {
+                                        |mut builder| {
                                             let reroll_text = format!(
                                                 "{}/{}",
                                                 reroll_count.0,

@@ -260,15 +260,18 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                         table::fixed(PADDING, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, move |ctx| {
                             let name_key = name.key();
-                            ctx.add(memoized_text((&name_key, &wh.width), |builder| {
-                                let builder =
-                                    builder.headline().size(FontSize::Small).max_width(wh.width);
-                                let builder = match &name {
-                                    ShopItemTitle::Plain(text) => builder.text(text),
-                                    ShopItemTitle::Effect { effect, locale } => builder.l10n(
-                                        l10n::effect::EffectText::Name(effect.clone()),
-                                        locale,
-                                    ),
+                            ctx.add(memoized_text((&name_key, &wh.width), |mut builder| {
+                                builder.headline().size(FontSize::Small).max_width(wh.width);
+                                match &name {
+                                    ShopItemTitle::Plain(text) => {
+                                        builder.text(text);
+                                    }
+                                    ShopItemTitle::Effect { effect, locale } => {
+                                        builder.l10n(
+                                            l10n::effect::EffectText::Name(effect.clone()),
+                                            locale,
+                                        );
+                                    }
                                 };
                                 builder.render_left_top()
                             }));
@@ -276,46 +279,55 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(1, move |wh, ctx| {
                             let description_key = description.key();
-                            ctx.add(memoized_text((&description_key, &wh.width), |builder| {
-                                let builder = builder
-                                    .paragraph()
-                                    .size(FontSize::Medium)
-                                    .max_width(wh.width);
-                                let builder = match &description {
-                                    ShopItemDescription::Plain(text) => builder.text(text),
-                                    ShopItemDescription::Effect { effect, locale } => builder.l10n(
-                                        l10n::effect::EffectText::Description(effect.clone()),
-                                        locale,
-                                    ),
-                                    ShopItemDescription::Contract {
-                                        locale,
-                                        status,
-                                        risk,
-                                        reward,
-                                    } => {
-                                        use crate::game_state::contract::ContractStatus;
-                                        let builder = match status {
-                                            ContractStatus::Pending { .. } => builder
-                                                .l10n(
+                            ctx.add(memoized_text(
+                                (&description_key, &wh.width),
+                                |mut builder| {
+                                    builder
+                                        .paragraph()
+                                        .size(FontSize::Medium)
+                                        .max_width(wh.width);
+                                    match &description {
+                                        ShopItemDescription::Plain(text) => {
+                                            builder.text(text);
+                                        }
+                                        ShopItemDescription::Effect { effect, locale } => {
+                                            builder.l10n(
+                                                l10n::effect::EffectText::Description(
+                                                    effect.clone(),
+                                                ),
+                                                locale,
+                                            );
+                                        }
+                                        ShopItemDescription::Contract {
+                                            locale,
+                                            status,
+                                            risk,
+                                            reward,
+                                        } => {
+                                            use crate::game_state::contract::ContractStatus;
+                                            if let ContractStatus::Pending { .. } = status {
+                                                builder.l10n(
                                                     l10n::contract::ContractDurationText::Status(
                                                         status,
                                                     ),
                                                     locale,
-                                                )
-                                                .line_break(),
-                                            _ => builder,
-                                        };
-                                        builder
-                                            .l10n(l10n::contract::ContractText::Risk(risk), locale)
-                                            .line_break()
-                                            .l10n(
+                                                );
+                                                builder.line_break();
+                                            };
+                                            builder.l10n(
+                                                l10n::contract::ContractText::Risk(risk),
+                                                locale,
+                                            );
+                                            builder.line_break();
+                                            builder.l10n(
                                                 l10n::contract::ContractText::Reward(reward),
                                                 locale,
-                                            )
-                                    }
-                                };
-                                builder.render_left_top()
-                            }));
+                                            );
+                                        }
+                                    };
+                                    builder.render_left_top()
+                                },
+                            ));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                         table::fixed(48.px(), |wh, ctx| {
@@ -329,7 +341,7 @@ fn render_shop_item_layout(params: ShopItemLayoutParams, ctx: &RenderCtx) {
                                         purchase_action();
                                     },
                                     &|wh, color, ctx| {
-                                        ctx.add(memoized_text((&color, &cost), |builder| {
+                                        ctx.add(memoized_text((&color, &cost), |mut builder| {
                                             builder
                                                 .headline()
                                                 .icon::<()>(IconKind::Gold)
@@ -506,12 +518,12 @@ impl Component for ShopItemSoldOut {
             table::vertical([
                 table::ratio(1, |_, _| {}),
                 table::fixed(SOLD_OUT_HEIGHT, |wh, ctx| {
-                    ctx.add(memoized_text((), |builder| {
+                    ctx.add(memoized_text((), |mut builder| {
                         builder
                             .headline()
                             .size(FontSize::Medium)
-                            .text(game_state.text().ui(TopBarText::SoldOut))
-                            .render_center(wh)
+                            .text(game_state.text().ui(TopBarText::SoldOut));
+                        builder.render_center(wh)
                     }));
                     ctx.add(simple_rect(
                         wh,

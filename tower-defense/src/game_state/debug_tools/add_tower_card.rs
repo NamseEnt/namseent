@@ -134,7 +134,7 @@ impl Component for AddTowerCardTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(memoized_text((), |builder| {
+                    ctx.add(memoized_text((), |mut builder| {
                         builder.headline().text("Add tower card").render_left_top()
                     }));
                 }),
@@ -144,7 +144,7 @@ impl Component for AddTowerCardTool {
                         "Stage {}: Expected Tower - {:?}",
                         game_state.stage, expected_tower
                     );
-                    ctx.add(memoized_text(&info_text, |builder| {
+                    ctx.add(memoized_text(&info_text, |mut builder| {
                         builder
                             .paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
@@ -171,7 +171,7 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(memoized_text(&text, |builder| {
+                                                    ctx.add(memoized_text(&text, |mut builder| {
                                                         builder
                                                             .paragraph()
                                                             .color(text_color)
@@ -216,7 +216,7 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(memoized_text(&text, |builder| {
+                                                    ctx.add(memoized_text(&text, |mut builder| {
                                                         builder
                                                             .paragraph()
                                                             .color(text_color)
@@ -261,7 +261,7 @@ impl Component for AddTowerCardTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(memoized_text(&text, |builder| {
+                                                    ctx.add(memoized_text(&text, |mut builder| {
                                                         builder
                                                             .paragraph()
                                                             .color(text_color)
@@ -308,7 +308,7 @@ impl Component for AddTowerCardTool {
                                                     set_dropdown.set(0);
                                                 },
                                                 &|wh, text_color, ctx| {
-                                                    ctx.add(memoized_text(&text, |builder| {
+                                                    ctx.add(memoized_text(&text, |mut builder| {
                                                         builder
                                                             .paragraph()
                                                             .color(text_color)
@@ -358,7 +358,7 @@ impl Component for AddTowerCardTool {
                                                         set_dropdown.set(0);
                                                     },
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(memoized_text(&text, |builder| {
+                                                        ctx.add(memoized_text(&text, |mut builder| {
                                                             builder
                                                                 .paragraph()
                                                                 .color(text_color)
@@ -388,7 +388,7 @@ impl Component for AddTowerCardTool {
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(memoized_text(
                                                             &text_color,
-                                                            |builder| {
+                                                            |mut builder| {
                                                                 builder
                                                                     .paragraph()
                                                                     .color(text_color)
@@ -440,7 +440,7 @@ impl Component for AddTowerCardTool {
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(memoized_text(
                                                             &text_color,
-                                                            |builder| {
+                                                            |mut builder| {
                                                                 builder
                                                                     .paragraph()
                                                                     .color(text_color)
@@ -471,7 +471,7 @@ impl Component for AddTowerCardTool {
                                                     &|wh, text_color, ctx| {
                                                         ctx.add(memoized_text(
                                                             &text_color,
-                                                            |builder| {
+                                                            |mut builder| {
                                                                 builder
                                                                     .paragraph()
                                                                     .color(text_color)
@@ -502,7 +502,7 @@ impl Component for AddTowerCardTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &add_card,
                             &|wh, text_color, ctx| {
-                                ctx.add(memoized_text((), |builder| {
+                                ctx.add(memoized_text((), |mut builder| {
                                     builder
                                         .paragraph()
                                         .color(text_color)

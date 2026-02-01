@@ -79,7 +79,7 @@ impl Component for TowerPlacingHand {
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(memoized_text(
                                                                 &text_color,
-                                                                |builder| {
+                                                                |mut builder| {
                                                                     builder
                                                                         .headline()
                                                                         .color(text_color)

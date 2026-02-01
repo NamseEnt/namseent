@@ -45,7 +45,7 @@ impl Component for RefreshButton {
 
                 ctx.add(memoized_text(
                     (&color, &chance, &health_cost),
-                    |builder| {
+                    |mut builder| {
                         let mut builder = builder
                             .headline()
                             .color(color)

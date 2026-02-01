@@ -152,7 +152,7 @@ impl Component for TowerEffectDescription<'_> {
                                 TowerSkillText::TopCardBonusTitle
                             }
                         };
-                        ctx.add(typography::memoized_text((), |builder| {
+                        ctx.add(typography::memoized_text((), |mut builder| {
                             builder
                                 .headline()
                                 .size(FontSize::Small)
@@ -210,7 +210,7 @@ impl Component for TowerEffectDescription<'_> {
                                 }
                             }
                         };
-                        ctx.add(typography::memoized_text((), |builder| {
+                        ctx.add(typography::memoized_text((), |mut builder| {
                             builder
                                 .paragraph()
                                 .size(FontSize::Medium)

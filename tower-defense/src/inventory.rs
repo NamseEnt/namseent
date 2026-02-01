@@ -88,7 +88,7 @@ impl Component for Inventory {
                                                                 &|wh, color, ctx| {
                                                                     ctx.add(memoized_text(
                                                                         (&color, &wh),
-                                                                        |builder| {
+                                                                        |mut builder| {
                                                                             let use_text =
                                                                                 game_state
                                                                                     .text()
@@ -118,7 +118,7 @@ impl Component for Inventory {
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(memoized_text(
                                                 (&name_key, &content_width, &locale.language),
-                                                |builder| {
+                                                |mut builder| {
                                                     builder
                                                         .headline()
                                                         .size(FontSize::Small)
@@ -132,7 +132,7 @@ impl Component for Inventory {
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
                                             compose_ctx.add(memoized_text(
                                                 (&content_width, &desc_key, &locale.language),
-                                                |builder| {
+                                                |mut builder| {
                                                     builder
                                                         .paragraph()
                                                         .size(FontSize::Medium)
