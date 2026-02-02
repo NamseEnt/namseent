@@ -12,6 +12,19 @@ pub trait SkCanvas {
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     );
+    /// Draws multiple sprites from an atlas image in a single draw call.
+    ///
+    /// * `atlas` - The atlas image containing all sprites
+    /// * `xforms` - RSXform transformations for each sprite
+    /// * `tex_rects` - Source rectangles within the atlas for each sprite
+    /// * `paint` - Optional paint to apply to all sprites
+    fn draw_atlas(
+        &self,
+        atlas: &Image,
+        xforms: &[RSXform],
+        tex_rects: &[Rect<Px>],
+        paint: &Option<Paint>,
+    );
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);
