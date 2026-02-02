@@ -1,5 +1,5 @@
-use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
-use crate::{card::Suit, *};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
+use crate::{card::Suit, theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
 pub enum QuestText {
@@ -55,122 +55,156 @@ pub enum QuestText {
 }
 
 impl QuestText {
-    pub(super) fn to_korean(&self) -> String {
+    fn apply_korean<'a>(&self, builder: &mut TypographyBuilder<'a>) {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
-                format!("{rank}타워를 {count}개 새로 건설하세요.")
+                builder.text(format!("{rank}타워를 {count}개 새로 건설하세요."));
             }
             QuestText::BuildTowerRank {
                 rank,
                 count,
                 current_count,
-            } => format!("{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"),
+            } => {
+                builder.text(format!(
+                    "{rank}타워를 {count}개 소유하세요. ({current_count}/{count})"
+                ));
+            }
             QuestText::BuildTowerSuitNew { suit, count } => {
-                let suit_text = suit_icon(*suit);
-                format!("{suit_text}타워를 {count}개 새로 건설하세요.")
+                builder.text(format!("{:?}타워를 {count}개 새로 건설하세요.", suit));
             }
             QuestText::BuildTowerSuit {
                 suit,
                 count,
                 current_count,
             } => {
-                let suit_text = suit_icon(*suit);
-                format!("{suit_text}타워를 {count}개 소유하세요. ({current_count}/{count})")
+                builder.text(format!(
+                    "{:?}타워를 {count}개 소유하세요. ({current_count}/{count})",
+                    suit
+                ));
             }
             QuestText::BuildTowerHandNew { hand, count } => {
-                format!("{hand}타워를 {count}개 새로 건설하세요.")
+                builder.text(format!("{hand}타워를 {count}개 새로 건설하세요."));
             }
             QuestText::BuildTowerHand {
                 hand,
                 count,
                 current_count,
-            } => format!("{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"),
+            } => {
+                builder.text(format!(
+                    "{hand}타워를 {count}개 소유하세요. ({current_count}/{count})"
+                ));
+            }
             QuestText::ClearBossRoundWithoutItems => {
-                "아이템을 사용하지않고 보스라운드 클리어".to_string()
+                builder.text("아이템을 사용하지않고 보스라운드 클리어");
             }
             QuestText::DealDamageWithItems { damage } => {
-                format!("아이템을 사용해 {}피해 입히기", attack_damage_icon(damage))
+                builder.text("아이템을 사용해 ");
+                builder.with_attack_damage_icon(format!("{damage}"));
+                builder.text(" 피해 입히기");
             }
             QuestText::BuildTowersWithoutReroll { count } => {
-                format!("리롤하지않고 타워 {count}개 만들기")
+                builder.text(format!("리롤하지않고 타워 {count}개 만들기"));
             }
-            QuestText::UseReroll { count } => format!("리롤 {count}회 사용하기"),
+            QuestText::UseReroll { count } => {
+                builder.text(format!("리롤 {count}회 사용하기"));
+            }
             QuestText::SpendGold { gold } => {
-                format!("{} 사용하기", gold_icon(*gold))
+                builder.with_gold_icon(format!("{gold}"));
+                builder.text(" 사용하기");
             }
             QuestText::EarnGold { gold } => {
-                format!("{} 획득하기", gold_icon(*gold))
+                builder.with_gold_icon(format!("{gold}"));
+                builder.text(" 획득하기");
             }
             QuestText::IncreaseAttackSpeed { speed } => {
-                format!("{} 증가시키기", attack_speed_icon(speed))
+                builder.with_attack_speed_icon(format!("{speed}"));
+                builder.text(" 증가시키기");
             }
             QuestText::IncreaseAttackRange { range } => {
-                format!("{} 증가시키기", attack_range_icon(range))
+                builder.with_attack_range_icon(format!("{range}"));
+                builder.text(" 증가시키기");
             }
         }
     }
 
-    pub(super) fn to_english(&self) -> String {
+    fn apply_english<'a>(&self, builder: &mut TypographyBuilder<'a>) {
         match self {
             QuestText::BuildTowerRankNew { rank, count } => {
-                format!("Build {count} new {rank} towers.")
+                builder.text(format!("Build {count} new {rank} towers."));
             }
             QuestText::BuildTowerRank {
                 rank,
                 count,
                 current_count,
-            } => format!("Own {count} {rank} towers. ({current_count}/{count})"),
+            } => {
+                builder.text(format!(
+                    "Own {count} {rank} towers. ({current_count}/{count})"
+                ));
+            }
             QuestText::BuildTowerSuitNew { suit, count } => {
-                let suit_text = suit_icon(*suit);
-                format!("Build {count} new {suit_text} towers.")
+                builder.text(format!("Build {count} new {:?} towers.", suit));
             }
             QuestText::BuildTowerSuit {
                 suit,
                 count,
                 current_count,
             } => {
-                let suit_text = suit_icon(*suit);
-                format!("Own {count} {suit_text} towers. ({current_count}/{count})")
+                builder.text(format!(
+                    "Own {count} {:?} towers. ({current_count}/{count})",
+                    suit
+                ));
             }
             QuestText::BuildTowerHandNew { hand, count } => {
-                format!("Build {count} new {hand} towers.")
+                builder.text(format!("Build {count} new {hand} towers."));
             }
             QuestText::BuildTowerHand {
                 hand,
                 count,
                 current_count,
-            } => format!("Own {count} {hand} towers. ({current_count}/{count})"),
+            } => {
+                builder.text(format!(
+                    "Own {count} {hand} towers. ({current_count}/{count})"
+                ));
+            }
             QuestText::ClearBossRoundWithoutItems => {
-                "Clear the boss round without using items".to_string()
+                builder.text("Clear the boss round without using items");
             }
             QuestText::DealDamageWithItems { damage } => {
-                format!("Deal {} damage using items", attack_damage_icon(damage))
+                builder.text("Deal ");
+                builder.with_attack_damage_icon(format!("{damage}"));
+                builder.text(" damage using items");
             }
             QuestText::BuildTowersWithoutReroll { count } => {
-                format!("Build {count} towers without rerolling")
+                builder.text(format!("Build {count} towers without rerolling"));
             }
-            QuestText::UseReroll { count } => format!("Use reroll {count} times"),
+            QuestText::UseReroll { count } => {
+                builder.text(format!("Use reroll {count} times"));
+            }
             QuestText::SpendGold { gold } => {
-                format!("Spend {}", gold_icon(*gold))
+                builder.text("Spend ");
+                builder.with_gold_icon(format!("{gold}"));
             }
             QuestText::EarnGold { gold } => {
-                format!("Gain {}", gold_icon(*gold))
+                builder.text("Gain ");
+                builder.with_gold_icon(format!("{gold}"));
             }
             QuestText::IncreaseAttackSpeed { speed } => {
-                format!("Increase {} by {speed}", attack_speed_icon("attack speed"))
+                builder.text("Increase attack speed by ");
+                builder.with_attack_speed_icon(format!("{speed}"));
             }
             QuestText::IncreaseAttackRange { range } => {
-                format!("Increase {} by {range}", attack_range_icon("attack range"))
+                builder.text("Increase attack range by ");
+                builder.with_attack_range_icon(format!("{range}"));
             }
         }
     }
 }
 
 impl LocalizedText for QuestText {
-    fn localized_text(&self, locale: &Locale) -> String {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
         }
     }
 }
@@ -183,32 +217,44 @@ pub enum QuestRewardText {
 }
 
 impl QuestRewardText {
-    pub(super) fn to_korean(&self) -> String {
+    fn apply_korean<'a>(&self, builder: &mut TypographyBuilder<'a>) {
         match self {
             QuestRewardText::Money { amount } => {
-                format!("{} 골드", gold_icon(amount))
+                builder.with_gold_icon(format!("{amount}"));
+                builder.space();
+                builder.text("골드");
             }
-            QuestRewardText::Item => "아이템".to_string(),
-            QuestRewardText::Upgrade => "업그레이드".to_string(),
+            QuestRewardText::Item => {
+                builder.text("아이템");
+            }
+            QuestRewardText::Upgrade => {
+                builder.text("업그레이드");
+            }
         }
     }
 
-    pub(super) fn to_english(&self) -> String {
+    fn apply_english<'a>(&self, builder: &mut TypographyBuilder<'a>) {
         match self {
             QuestRewardText::Money { amount } => {
-                format!("{} Gold", gold_icon(amount))
+                builder.with_gold_icon(format!("{amount}"));
+                builder.space();
+                builder.text("Gold");
             }
-            QuestRewardText::Item => "Item".to_string(),
-            QuestRewardText::Upgrade => "Upgrade".to_string(),
+            QuestRewardText::Item => {
+                builder.text("Item");
+            }
+            QuestRewardText::Upgrade => {
+                builder.text("Upgrade");
+            }
         }
     }
 }
 
 impl LocalizedText for QuestRewardText {
-    fn localized_text(&self, locale: &Locale) -> String {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
         }
     }
 }

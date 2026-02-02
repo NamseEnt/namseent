@@ -209,7 +209,7 @@ impl UpgradeState {
     }
 }
 
-#[derive(Debug, Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State, PartialEq)]
 pub enum UpgradeKind {
     GoldEarnPlus,
     RankAttackDamageMultiply {

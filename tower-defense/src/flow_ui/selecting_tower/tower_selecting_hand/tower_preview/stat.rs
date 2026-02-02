@@ -1,15 +1,13 @@
 use super::format_compact_number;
-use crate::l10n::rich_text_helpers::{additive_value, multiplier_value};
 use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::{
         palette,
-        typography::{FontSize, TextAlign, paragraph},
+        typography::{FontSize, memoized_text},
     },
 };
 use namui::*;
 use namui_prebuilt::simple_rect;
-use std::fmt;
 
 const TOOLTIP_MAX_WIDTH: Px = px(256.);
 const PADDING: Px = px(8.);
@@ -21,7 +19,7 @@ pub(super) struct StatPreview<'a> {
     pub plus_stat: f32,
     pub multiplier: f32,
     pub wh: Wh<Px>,
-    pub upgrade_texts: &'a [String],
+    pub upgrade_texts: &'a [crate::game_state::upgrade::UpgradeKind],
 }
 impl Component for StatPreview<'_> {
     fn render(self, ctx: &RenderCtx) {
@@ -64,12 +62,14 @@ impl Component for StatPreview<'_> {
                 .size(IconSize::Small)
                 .wh(Wh::new(16.px(), wh.height)),
         );
-        ctx.add(
-            paragraph(format_stat_final(default_stat, plus_stat, multiplier))
+        let stat_text = format_stat_final(default_stat, plus_stat, multiplier);
+        ctx.add(memoized_text((&wh.width, &stat_text), |mut builder| {
+            builder
+                .paragraph()
                 .size(FontSize::Medium)
-                .align(TextAlign::RightTop { width: wh.width })
-                .build_rich(),
-        );
+                .text(stat_text.clone())
+                .render_right_top(wh.width)
+        }));
 
         ctx.add(
             simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(|event| {
@@ -98,32 +98,15 @@ fn format_stat_detail(base: f32, plus: f32, multiplier: f32) -> String {
 
     match (has_plus, has_multiplier) {
         (true, true) => format!(
-            "({:.1} {}) {} = {:.1}",
+            "({:.1} +{:.1}) x{:.1} = {:.1}",
             base,
-            additive_value(OneDecimal(plus)),
-            multiplier_value(OneDecimal(multiplier)),
+            plus,
+            multiplier,
             calculate_final_stat(base, plus, multiplier)
         ),
-        (true, false) => format!(
-            "{:.1} {} = {:.1}",
-            base,
-            additive_value(OneDecimal(plus)),
-            base + plus
-        ),
-        (false, true) => format!(
-            "{:.1} {} = {:.1}",
-            base,
-            multiplier_value(OneDecimal(multiplier)),
-            base * multiplier
-        ),
+        (true, false) => format!("{:.1} +{:.1} = {:.1}", base, plus, base + plus),
+        (false, true) => format!("{:.1} x{:.1} = {:.1}", base, multiplier, base * multiplier),
         (false, false) => format!("{base:.1}"),
-    }
-}
-
-struct OneDecimal(f32);
-impl fmt::Display for OneDecimal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:.1}", self.0)
     }
 }
 
@@ -133,7 +116,7 @@ fn calculate_final_stat(base: f32, plus: f32, multiplier: f32) -> f32 {
 
 struct Tooltip<'a> {
     stat_detail: String,
-    upgrade_texts: &'a [String],
+    upgrade_texts: &'a [crate::game_state::upgrade::UpgradeKind],
     max_width: Px,
 }
 impl Component for Tooltip<'_> {
@@ -149,11 +132,14 @@ impl Component for Tooltip<'_> {
             // 통계 상세 정보 렌더링
             let stat_text = ctx.ghost_add(
                 "stat-detail",
-                paragraph(stat_detail)
-                    .size(FontSize::Medium)
-                    .align(TextAlign::LeftTop)
-                    .max_width(text_max_width)
-                    .build_rich(),
+                memoized_text((&text_max_width, &stat_detail), |mut builder| {
+                    builder
+                        .paragraph()
+                        .size(FontSize::Medium)
+                        .max_width(text_max_width)
+                        .text(stat_detail.clone())
+                        .render_left_top()
+                }),
             );
             let stat_text_height = stat_text
                 .bounding_box()
@@ -168,14 +154,20 @@ impl Component for Tooltip<'_> {
             }
 
             // 업그레이드 텍스트들 렌더링
-            for (index, upgrade_text) in upgrade_texts.iter().enumerate() {
+            for (index, upgrade_kind) in upgrade_texts.iter().enumerate() {
                 let rendered_text = ctx.ghost_add(
                     format!("tooltip-content-{index}"),
-                    paragraph(upgrade_text.clone())
-                        .size(FontSize::Medium)
-                        .align(TextAlign::LeftTop)
-                        .max_width(text_max_width)
-                        .build_rich(),
+                    memoized_text((&text_max_width, &index), |mut builder| {
+                        builder
+                            .paragraph()
+                            .size(FontSize::Medium)
+                            .max_width(text_max_width)
+                            .l10n(
+                                crate::l10n::upgrade::UpgradeKindText::Description(upgrade_kind),
+                                &crate::l10n::Locale::default(),
+                            )
+                            .render_left_top()
+                    }),
                 );
                 let text_height = rendered_text
                     .bounding_box()

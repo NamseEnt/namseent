@@ -5,7 +5,7 @@ use crate::{
     palette,
     theme::{
         button::Button,
-        typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+        typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, memoized_text},
     },
 };
 use namui::*;
@@ -30,8 +30,11 @@ impl Component for Inventory {
                     content: |mut ctx| {
                         let content_width = wh.width - PADDING * 2.;
                         for (item_index, item) in game_state.items.iter().enumerate() {
-                            let name = item.name(&game_state.text());
-                            let desc = item.description(&game_state.text());
+                            let locale = game_state.text().locale();
+                            let name_text = item.name_text();
+                            let desc_text = item.description_text();
+                            let name_key = format!("{:?}:name", item.effect);
+                            let desc_key = format!("{:?}:desc", item.effect);
                             let content = ctx.ghost_compose(
                                 format!("InventoryItemContent {item_index}"),
                                 |ctx| {
@@ -83,20 +86,26 @@ impl Component for Inventory {
                                                                     );
                                                                 },
                                                                 &|wh, color, ctx| {
-                                                                    ctx.add(
-                                                                        headline(
-                                                                            game_state
-                                                                                .text()
-                                                                                .ui(TopBarText::Use)
-                                                                                .to_string(),
-                                                                        )
-                                                                        .size(FontSize::Small)
-                                                                        .align(TextAlign::Center {
-                                                                            wh,
-                                                                        })
-                                                                        .color(color)
-                                                                        .build(),
-                                                                    );
+                                                                    ctx.add(memoized_text(
+                                                                        (&color, &wh),
+                                                                        |mut builder| {
+                                                                            let use_text =
+                                                                                game_state
+                                                                                    .text()
+                                                                                    .ui(
+                                                                                    TopBarText::Use,
+                                                                                );
+
+                                                                            builder
+                                                                                .headline()
+                                                                                .size(
+                                                                                    FontSize::Small,
+                                                                                )
+                                                                                .color(color)
+                                                                                .text(use_text)
+                                                                                .render_center(wh)
+                                                                        },
+                                                                    ));
                                                                 },
                                                             )
                                                             .disabled(is_disabled),
@@ -107,23 +116,31 @@ impl Component for Inventory {
                                         ),
                                         table::fixed(PADDING * 2.0, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                            compose_ctx.add(
-                                                headline(name)
-                                                    .size(FontSize::Small)
-                                                    .align(TextAlign::LeftTop)
-                                                    .max_width(content_width)
-                                                    .build(),
-                                            );
+                                            compose_ctx.add(memoized_text(
+                                                (&name_key, &content_width, &locale.language),
+                                                |mut builder| {
+                                                    builder
+                                                        .headline()
+                                                        .size(FontSize::Small)
+                                                        .max_width(content_width)
+                                                        .l10n(name_text.clone(), &locale)
+                                                        .render_left_top()
+                                                },
+                                            ));
                                         }),
                                         table::fixed(PADDING, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                                            compose_ctx.add(
-                                                paragraph(desc.clone())
-                                                    .size(FontSize::Medium)
-                                                    .align(TextAlign::LeftTop)
-                                                    .max_width(content_width)
-                                                    .build_rich(),
-                                            );
+                                            compose_ctx.add(memoized_text(
+                                                (&content_width, &desc_key, &locale.language),
+                                                |mut builder| {
+                                                    builder
+                                                        .paragraph()
+                                                        .size(FontSize::Medium)
+                                                        .max_width(content_width)
+                                                        .l10n(desc_text.clone(), &locale)
+                                                        .render_left_top()
+                                                },
+                                            ));
                                         }),
                                     ])(
                                         Wh::new(content_width, f32::MAX.px()), ctx

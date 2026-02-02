@@ -3,7 +3,7 @@ use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind};
 use crate::l10n;
 use crate::theme::palette;
-use crate::theme::typography::{self, HeadlineBuilder, TextAlign};
+use crate::theme::typography::{self, memoized_text};
 use namui::*;
 use namui_prebuilt::list_view::ListViewWithCtx;
 use namui_prebuilt::{simple_rect, table};
@@ -70,16 +70,13 @@ impl Component for EventItem<'_> {
         let (mouse_hovering, set_mouse_hovering) = ctx.state::<bool>(|| false);
         let (mouse_xy, set_mouse_xy) = ctx.state(|| Xy::new(0.px(), 0.px()));
 
-        let event_text = game_state.text().event(l10n::event::EventText::Description(
-            &event.event_type,
-            &game_state.text().locale(),
-        ));
+        let locale = game_state.text().locale();
 
         // Render tooltip on hover
-        Self::render_tooltip(ctx, *mouse_hovering, *mouse_xy, &event_text);
+        Self::render_tooltip(ctx, *mouse_hovering, *mouse_xy, &event.event_type, &locale);
 
         // Render main content
-        Self::render_content(ctx, wh, event, &event_text);
+        Self::render_content(ctx, wh, event, &locale);
 
         // Attach event handlers
         Self::attach_event_handlers(ctx, wh, set_mouse_hovering, set_mouse_xy);
@@ -87,7 +84,13 @@ impl Component for EventItem<'_> {
 }
 
 impl EventItem<'_> {
-    fn render_tooltip(ctx: &RenderCtx, hovering: bool, mouse_xy: Xy<Px>, content: &str) {
+    fn render_tooltip(
+        ctx: &RenderCtx,
+        hovering: bool,
+        mouse_xy: Xy<Px>,
+        event_type: &HistoryEventType,
+        locale: &l10n::Locale,
+    ) {
         ctx.compose(|ctx| {
             if !hovering {
                 return;
@@ -95,7 +98,8 @@ impl EventItem<'_> {
             let tooltip = ctx.ghost_add(
                 "event-tooltip",
                 EventTooltip {
-                    content: content.to_string(),
+                    event_type: event_type.clone(),
+                    locale: *locale,
                     max_width: tooltip::MAX_WIDTH,
                 },
             );
@@ -113,7 +117,7 @@ impl EventItem<'_> {
         });
     }
 
-    fn render_content(ctx: &RenderCtx, wh: Wh<Px>, event: &HistoryEvent, event_text: &str) {
+    fn render_content(ctx: &RenderCtx, wh: Wh<Px>, event: &HistoryEvent, locale: &l10n::Locale) {
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed(timeline::WIDTH, |wh, ctx| {
@@ -122,22 +126,35 @@ impl EventItem<'_> {
                 table::ratio(
                     1,
                     table::padding(PADDING, |wh, ctx| {
-                        Self::render_event_description(&ctx, wh, event_text);
+                        Self::render_event_description(&ctx, wh, &event.event_type, locale);
                     }),
                 ),
             ])(wh, ctx);
         });
     }
 
-    fn render_event_description(ctx: &ComposeCtx, wh: Wh<Px>, event_text: &str) {
+    fn render_event_description(
+        ctx: &ComposeCtx,
+        wh: Wh<Px>,
+        event_type: &HistoryEventType,
+        locale: &l10n::Locale,
+    ) {
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
-                ctx.add(
-                    HeadlineBuilder::new(event_text)
-                        .size(typography::FontSize::Small)
-                        .align(TextAlign::LeftCenter { height: wh.height })
-                        .build_rich(),
-                );
+                let event_key = format!("{:?}", event_type);
+                ctx.add(memoized_text(
+                    (&event_key, &wh.height, &locale.language),
+                    |mut builder| {
+                        builder
+                            .headline()
+                            .size(typography::FontSize::Small)
+                            .l10n(
+                                l10n::event::EventText::Description(event_type, locale),
+                                locale,
+                            )
+                            .render_left_center(wh.height)
+                    },
+                ));
             })(wh, ctx);
         });
 
@@ -175,22 +192,37 @@ impl EventItem<'_> {
 }
 
 struct EventTooltip {
-    content: String,
+    event_type: HistoryEventType,
+    locale: l10n::Locale,
     max_width: Px,
 }
 
 impl Component for EventTooltip {
     fn render(self, ctx: &RenderCtx) {
-        let EventTooltip { content, max_width } = self;
+        let EventTooltip {
+            event_type,
+            locale,
+            max_width,
+        } = self;
         let text_max_width = max_width - (tooltip::PADDING * 2.0);
 
+        let event_key = format!("{:?}", event_type);
         let text = ctx.ghost_add(
             "tooltip-text",
-            typography::paragraph(content)
-                .size(typography::FontSize::Small)
-                .align(TextAlign::LeftTop)
-                .max_width(text_max_width)
-                .build_rich(),
+            memoized_text(
+                (&text_max_width, &locale.language, &event_key),
+                |mut builder| {
+                    builder
+                        .paragraph()
+                        .size(typography::FontSize::Small)
+                        .max_width(text_max_width)
+                        .l10n(
+                            l10n::event::EventText::Description(&event_type, &locale),
+                            &locale,
+                        )
+                        .render_left_top()
+                },
+            ),
         );
 
         let Some(text_wh) = text.bounding_box().map(|rect| rect.wh()) else {
@@ -312,13 +344,18 @@ impl Component for TimelineIconComponent<'_> {
 
         // Render stage label if applicable
         if let HistoryEventType::StageStart { stage } = event_type {
-            ctx.translate(wh.to_xy() * -0.5).add(
-                HeadlineBuilder::new(stage.to_string())
-                    .size(typography::FontSize::Medium)
-                    .align(TextAlign::Center { wh })
-                    .color(palette::ON_PRIMARY)
-                    .build(),
-            );
+            let stage_str = stage.to_string();
+            ctx.translate(wh.to_xy() * -0.5).add(memoized_text(
+                (&wh, &stage_str),
+                |mut builder| {
+                    builder
+                        .headline()
+                        .size(typography::FontSize::Medium)
+                        .color(palette::ON_PRIMARY)
+                        .text(stage_str.clone())
+                        .render_center(wh)
+                },
+            ));
         }
 
         // Render circle background if needed

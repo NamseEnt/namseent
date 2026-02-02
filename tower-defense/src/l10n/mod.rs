@@ -4,7 +4,6 @@ pub mod api;
 pub mod contract;
 pub mod effect;
 pub mod event;
-pub mod item;
 pub mod locale;
 pub mod monster_skill;
 pub mod quest;
@@ -16,13 +15,10 @@ pub mod upgrade;
 pub mod upgrade_board;
 
 // 핵심 타입들 재export
-pub use locale::{Language, Locale, LocalizedStaticText, LocalizedText};
+pub use locale::{Language, Locale, LocalizedText};
 
 // 현대적 API (권장)
 pub use api::{ENGLISH_TEXT, KOREAN_TEXT, TextManager};
-
-// 레거시 호환성 타입들 (점진적 마이그레이션용)
-pub use api::{LegacyKoKRLocale as KoKRLocale, LegacyLocales as Locales};
 
 // 편의 함수들
 /// 기본 텍스트 매니저 (한국어)

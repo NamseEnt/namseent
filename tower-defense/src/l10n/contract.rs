@@ -2,6 +2,8 @@ use super::effect::EffectText;
 use super::{Language, Locale, LocalizedText};
 use crate::game_state::contract::ContractEffect;
 use crate::rarity::Rarity;
+use crate::theme::palette;
+use crate::theme::typography::TypographyBuilder;
 
 pub enum ContractText<'a> {
     Risk(&'a ContractEffect),
@@ -9,46 +11,62 @@ pub enum ContractText<'a> {
 }
 
 impl LocalizedText for ContractText<'_> {
-    fn localized_text(&self, locale: &Locale) -> String {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
         }
     }
 }
 
 impl<'a> ContractText<'a> {
-    pub fn to_korean(&self) -> String {
+    fn apply_korean<'b>(self, builder: &mut TypographyBuilder<'b>) {
         match self {
-            ContractText::Risk(ce) => format!(
-                "{} {} {}",
-                super::rich_text_helpers::contract_risk("리스크:"),
-                phase_ko(ce),
-                effect_suffix_ko(ce)
-            ),
-            ContractText::Reward(ce) => format!(
-                "{} {} {}",
-                super::rich_text_helpers::contract_reward("리턴:"),
-                phase_ko(ce),
-                effect_suffix_ko(ce)
-            ),
+            ContractText::Risk(ce) => {
+                let phase_text = phase_ko(ce);
+                builder
+                    .with_style(|builder| {
+                        builder.color(palette::RED).static_text("리스크: ");
+                    })
+                    .text(phase_text)
+                    .static_text(" ");
+                apply_effect_suffix_ko(builder, ce);
+            }
+            ContractText::Reward(ce) => {
+                let phase_text = phase_ko(ce);
+                builder
+                    .with_style(|builder| {
+                        builder.color(palette::BLUE).static_text("리턴: ");
+                    })
+                    .text(phase_text)
+                    .static_text(" ");
+                apply_effect_suffix_ko(builder, ce);
+            }
         }
     }
 
-    pub fn to_english(&self) -> String {
+    fn apply_english<'b>(self, builder: &mut TypographyBuilder<'b>) {
         match self {
-            ContractText::Risk(ce) => format!(
-                "{} {} {}",
-                super::rich_text_helpers::contract_risk("Risk:"),
-                phase_en(ce),
-                effect_suffix_en(ce)
-            ),
-            ContractText::Reward(ce) => format!(
-                "{} {} {}",
-                super::rich_text_helpers::contract_reward("Return:"),
-                phase_en(ce),
-                effect_suffix_en(ce)
-            ),
+            ContractText::Risk(ce) => {
+                let phase_text = phase_en(ce);
+                builder
+                    .with_style(|builder| {
+                        builder.color(palette::RED).static_text("Risk: ");
+                    })
+                    .text(phase_text)
+                    .static_text(" ");
+                apply_effect_suffix_en(builder, ce);
+            }
+            ContractText::Reward(ce) => {
+                let phase_text = phase_en(ce);
+                builder
+                    .with_style(|builder| {
+                        builder.color(palette::BLUE).static_text("Return: ");
+                    })
+                    .text(phase_text)
+                    .static_text(" ");
+                apply_effect_suffix_en(builder, ce);
+            }
         }
     }
 }
@@ -56,6 +74,15 @@ impl<'a> ContractText<'a> {
 // 계약 이름 (희귀도 기반) l10n
 pub enum ContractNameText {
     Rarity(Rarity),
+}
+
+impl LocalizedText for ContractNameText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
+        }
+    }
 }
 
 impl ContractNameText {
@@ -74,6 +101,56 @@ impl ContractNameText {
             ContractNameText::Rarity(Rarity::Rare) => "Rare Contract",
             ContractNameText::Rarity(Rarity::Epic) => "Epic Contract",
             ContractNameText::Rarity(Rarity::Legendary) => "Legendary Contract",
+        }
+    }
+
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        builder.static_text(self.to_korean());
+    }
+
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        builder.static_text(self.to_english());
+    }
+}
+
+pub enum ContractDurationText<'a> {
+    Status(&'a crate::game_state::contract::ContractStatus),
+}
+
+impl LocalizedText for ContractDurationText<'_> {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
+        }
+    }
+}
+
+impl ContractDurationText<'_> {
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            ContractDurationText::Status(status) => {
+                use crate::game_state::contract::ContractStatus;
+                if let ContractStatus::Pending { duration_stages } = status {
+                    builder
+                        .text(format!("{}", duration_stages))
+                        .static_text("스테이지동안 지속됩니다");
+                }
+            }
+        }
+    }
+
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            ContractDurationText::Status(status) => {
+                use crate::game_state::contract::ContractStatus;
+                if let ContractStatus::Pending { duration_stages } = status {
+                    builder
+                        .static_text("for ")
+                        .text(format!("{}", duration_stages))
+                        .static_text(" stages");
+                }
+            }
         }
     }
 }
@@ -114,32 +191,26 @@ fn phase_en(ce: &ContractEffect) -> String {
     }
 }
 
-fn effect_suffix_ko(ce: &ContractEffect) -> String {
+fn apply_effect_suffix_ko<'a>(builder: &mut TypographyBuilder<'a>, ce: &ContractEffect) {
     let eff = match ce {
         ContractEffect::OnSign { effect }
         | ContractEffect::WhileActive { effect }
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    let s = EffectText::Description(eff.clone()).to_korean();
-    if s.is_empty() {
-        String::new()
-    } else {
-        format!(" · {s}")
-    }
+    builder
+        .static_text("· ")
+        .l10n(EffectText::Description(eff.clone()), &Locale::KOREAN);
 }
 
-fn effect_suffix_en(ce: &ContractEffect) -> String {
+fn apply_effect_suffix_en<'a>(builder: &mut TypographyBuilder<'a>, ce: &ContractEffect) {
     let eff = match ce {
         ContractEffect::OnSign { effect }
         | ContractEffect::WhileActive { effect }
         | ContractEffect::OnStageStart { effect }
         | ContractEffect::OnExpire { effect } => effect,
     };
-    let s = EffectText::Description(eff.clone()).to_english();
-    if s.is_empty() {
-        String::new()
-    } else {
-        format!(" · {s}")
-    }
+    builder
+        .static_text(" ")
+        .l10n(EffectText::Description(eff.clone()), &Locale::ENGLISH);
 }

@@ -1,9 +1,9 @@
-use super::data_conversion::{UpgradeInfo, get_upgrade_infos};
+use super::data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 use crate::{
     game_state::use_game_state,
     l10n::upgrade_board::UpgradeBoardText,
     palette,
-    theme::typography::{FontSize, TextAlign, headline, paragraph},
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{
@@ -66,18 +66,15 @@ impl Component for UpgradeBoard {
                 PADDING,
                 table::vertical([
                     table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                        ctx.add(
-                            headline(
-                                game_state
-                                    .text()
-                                    .upgrade_board(UpgradeBoardText::Title)
-                                    .to_string(),
-                            )
-                            .size(FontSize::Large)
-                            .align(TextAlign::Center { wh })
-                            .max_width(wh.width)
-                            .build(),
-                        );
+                        let locale = game_state.text().locale();
+                        ctx.add(memoized_text((&locale.language,), |mut builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Large)
+                                .max_width(wh.width)
+                                .l10n(UpgradeBoardText::Title, &locale)
+                                .render_center(wh)
+                        }));
                     }),
                     table::ratio(1, |wh, ctx| {
                         let item_wh = Wh {
@@ -132,6 +129,7 @@ struct UpgradeItem {
 impl Component for UpgradeItem {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, upgrade_info } = self;
+        let locale = use_game_state(ctx).text().locale();
 
         ctx.compose(|ctx| {
             table::padding(PADDING, |wh, ctx| {
@@ -146,14 +144,28 @@ impl Component for UpgradeItem {
                         table::fixed(PADDING, |_, _| {}),
                         table::ratio(
                             1,
-                            table::padding(PADDING, |wh, ctx| {
-                                ctx.add(
-                                    paragraph(&upgrade_info.description)
-                                        .size(FontSize::Medium)
-                                        .align(TextAlign::LeftTop)
-                                        .max_width(wh.width)
-                                        .build_rich(),
-                                );
+                            table::padding(PADDING, move |wh, ctx| {
+                                let description_key = upgrade_info.description.key();
+                                ctx.add(memoized_text(
+                                    (&description_key, &wh.width, &locale.language),
+                                    |mut builder| {
+                                        let builder =
+                                            builder.size(FontSize::Medium).max_width(wh.width);
+                                        let builder = match &upgrade_info.description {
+                                            UpgradeInfoDescription::Single(text) => {
+                                                builder.l10n(text.clone(), &locale)
+                                            }
+                                            UpgradeInfoDescription::PrefixSuffix {
+                                                prefix,
+                                                suffix,
+                                            } => builder
+                                                .l10n(prefix.clone(), &locale)
+                                                .space()
+                                                .l10n(suffix.clone(), &locale),
+                                        };
+                                        builder.render_left_top()
+                                    },
+                                ));
                             }),
                         ),
                     ])(wh, ctx);

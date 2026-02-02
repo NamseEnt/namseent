@@ -1,9 +1,6 @@
 use crate::{
     animation::with_spring,
-    theme::{
-        palette,
-        typography::{self, TextAlign, headline},
-    },
+    theme::{palette, typography, typography::memoized_text},
 };
 use namui::*;
 
@@ -26,14 +23,15 @@ impl Component for ClearProgress {
         const PROGRESS_BAR_BORDER_COLOR: Color = palette::OUTLINE;
 
         // 클리어율 텍스트
-        ctx.add(
-            headline(format!("{:.2}%", clear_rate))
-                .align(TextAlign::Center { wh })
+        ctx.add(memoized_text(&clear_rate, |mut builder| {
+            builder
+                .headline()
                 .size(typography::FontSize::Medium)
                 .color(palette::ON_SURFACE)
                 .stroke(1.px(), palette::ON_PRIMARY)
-                .build(),
-        );
+                .text(format!("{:.2}%", clear_rate))
+                .render_center(wh)
+        }));
 
         // 진행률 바
         if fill_width_with_spring > px(0.0) {

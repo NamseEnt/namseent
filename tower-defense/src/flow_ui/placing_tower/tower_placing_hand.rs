@@ -4,7 +4,7 @@ use crate::{
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
-        typography::{TextAlign, headline},
+        typography::memoized_text,
     },
 };
 use namui::*;
@@ -78,12 +78,16 @@ impl Component for TowerPlacingHand {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                headline("START")
-                                                                    .color(text_color)
-                                                                    .align(TextAlign::Center { wh })
-                                                                    .build(),
-                                                            );
+                                                            ctx.add(memoized_text(
+                                                                &text_color,
+                                                                |mut builder| {
+                                                                    builder
+                                                                        .headline()
+                                                                        .color(text_color)
+                                                                        .text("START")
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .long_press_time(1.sec())

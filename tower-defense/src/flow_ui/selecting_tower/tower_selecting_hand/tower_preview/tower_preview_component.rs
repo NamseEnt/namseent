@@ -11,9 +11,8 @@ use crate::{
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     icon::{Icon, IconKind, IconSize},
-    l10n::upgrade::UpgradeKindText,
     palette,
-    theme::typography::{FontSize, TextAlign, headline, paragraph},
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -78,33 +77,29 @@ impl Component for TowerPreviewContent<'_> {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
-                        let mut tower_name = String::new();
+                        ctx.add(memoized_text(
+                            (&wh, &tower_template.kind, &tower_template.suit),
+                            |mut builder| {
+                                let rank_text = tower_template.rank.to_string();
+                                let mut builder = builder.size(FontSize::Small).max_width(wh.width);
 
-                        if !matches!(
-                            tower_template.kind,
-                            crate::game_state::tower::TowerKind::Barricade
-                        ) {
-                            tower_name.push_str(
-                                &Icon::new(IconKind::Suit {
-                                    suit: tower_template.suit,
-                                })
-                                .size(crate::icon::IconSize::Small)
-                                .wh(Wh::single(crate::icon::IconSize::Small.px()))
-                                .as_tag(),
-                            );
-                            tower_name.push_str(&tower_template.rank.to_string());
-                            tower_name.push(' ');
-                        }
+                                if !matches!(
+                                    tower_template.kind,
+                                    crate::game_state::tower::TowerKind::Barricade
+                                ) {
+                                    builder = builder
+                                        .icon(IconKind::Suit {
+                                            suit: tower_template.suit,
+                                        })
+                                        .text(&rank_text)
+                                        .space();
+                                }
 
-                        tower_name.push_str(game_state.text().tower(tower_template.kind.to_text()));
-
-                        ctx.add(
-                            headline(tower_name)
-                                .size(FontSize::Small)
-                                .align(TextAlign::LeftCenter { height: wh.height })
-                                .max_width(wh.width)
-                                .build_rich(),
-                        );
+                                builder
+                                    .text(game_state.text().tower(tower_template.kind.to_text()))
+                                    .render_left_center(wh.height)
+                            },
+                        ));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let rating =
@@ -116,12 +111,13 @@ impl Component for TowerPreviewContent<'_> {
                                 .size(IconSize::Small)
                                 .wh(Wh::new(16.px(), wh.height)),
                         );
-                        ctx.add(
-                            paragraph(format_compact_number(rating))
+                        ctx.add(memoized_text((&rating, &wh.width), |mut builder| {
+                            builder
+                                .paragraph()
                                 .size(FontSize::Medium)
-                                .align(TextAlign::RightTop { width: wh.width })
-                                .build_rich(),
-                        );
+                                .text(format_compact_number(rating))
+                                .render_right_top(wh.width)
+                        }));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let damage = tower_template.kind.default_damage();
@@ -134,7 +130,7 @@ impl Component for TowerPreviewContent<'_> {
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,
                             wh,
-                            upgrade_texts: &texts.damage,
+                            upgrade_texts: texts.damage.as_slice(),
                         });
                     }),
                     table::fixed_no_clip(
@@ -192,8 +188,8 @@ impl Component for TowerPreview<'_> {
 
 #[derive(State)]
 struct UpgradeTexts {
-    damage: Vec<String>,
-    speed: Vec<String>,
+    damage: Vec<crate::game_state::upgrade::UpgradeKind>,
+    speed: Vec<crate::game_state::upgrade::UpgradeKind>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -226,11 +222,7 @@ fn calculate_upgrade_state_and_texts(
                     )
                 }
             };
-            texts.damage.push(
-                game_state
-                    .text()
-                    .upgrade_kind(UpgradeKindText::Description(&upgrade_kind)),
-            );
+            texts.damage.push(upgrade_kind);
         }
     };
 

@@ -3,7 +3,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
     rarity::Rarity,
-    theme::typography::paragraph,
+    theme::typography::{self, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -67,28 +67,28 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[0][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[0][0], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[0][0]))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text(&wh, |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(">>>")
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[0][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[0][1], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[0][1]))
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),
@@ -107,28 +107,28 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[1][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&wh, &weights[1][0]), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[1][0]))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text(&wh, |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(">>>")
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[1][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[1][1], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[1][1]))
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),
@@ -147,28 +147,28 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[2][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[2][0], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[2][0]))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text(&wh, |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(">>>")
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[2][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[2][1], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[2][1]))
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),
@@ -187,28 +187,28 @@ impl Component for LevelUpDetails {
                         }),
                         table::ratio(1, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[3][0]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[3][0], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[3][0]))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(">>>".to_string())
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(">>>")
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                paragraph(format!("{}%", weights[3][1]))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text((&weights[3][1], &wh), |mut builder| {
+                                builder
+                                    .size(typography::FontSize::Medium)
+                                    .text(format!("{}%", weights[3][1]))
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),

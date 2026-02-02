@@ -1,6 +1,6 @@
 use crate::game_state::debug_tools::state_snapshot;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{TextAlign, headline, paragraph};
+use crate::theme::typography::memoized_text;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -18,7 +18,9 @@ impl Component for StateSnapshotTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(headline("State snapshots").build());
+                    ctx.add(memoized_text((), |mut builder| {
+                        builder.headline().text("State snapshots").render_left_top()
+                    }));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -27,12 +29,13 @@ impl Component for StateSnapshotTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &|| state_snapshot::save_current_snapshot(),
                             &|wh, text_color, ctx| {
-                                ctx.add(
-                                    paragraph("Save snapshot now")
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                                    builder
+                                        .paragraph()
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
-                                );
+                                        .text("Save snapshot now")
+                                        .render_center(wh)
+                                }));
                             },
                         )
                         .variant(ButtonVariant::Outlined),
@@ -45,12 +48,13 @@ impl Component for StateSnapshotTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &|| state_snapshot::clear_snapshots(),
                             &|wh, text_color, ctx| {
-                                ctx.add(
-                                    paragraph("Clear all snapshots")
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                                    builder
+                                        .paragraph()
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
-                                );
+                                        .text("Clear all snapshots")
+                                        .render_center(wh)
+                                }));
                             },
                         )
                         .variant(ButtonVariant::Text),
@@ -66,13 +70,16 @@ impl Component for StateSnapshotTool {
                                 table::fit(table::FitAlign::LeftTop, move |ctx| {
                                     table::horizontal([
                                         table::ratio(1, |wh, ctx| {
-                                            ctx.add(
-                                                paragraph(format!(
-                                                    "Snapshot #{idx} (Stage {stage})"
-                                                ))
-                                                .align(TextAlign::LeftCenter { height: wh.height })
-                                                .build(),
-                                            );
+                                            ctx.add(memoized_text(
+                                                (&idx, &stage, &wh.height),
+                                                |mut builder| {
+                                                    builder
+                                                        .text(format!(
+                                                            "Snapshot #{idx} (Stage {stage})"
+                                                        ))
+                                                        .render_left_center(wh.height)
+                                                },
+                                            ));
                                         }),
                                         table::fixed(GAP, |_, _| {}),
                                         table::fit(table::FitAlign::LeftTop, move |ctx| {
@@ -81,12 +88,15 @@ impl Component for StateSnapshotTool {
                                                     Wh::new(px(80.), BUTTON_HEIGHT),
                                                     &move || state_snapshot::restore_snapshot(idx),
                                                     &|wh, text_color, ctx| {
-                                                        ctx.add(
-                                                            paragraph("Restore")
-                                                                .color(text_color)
-                                                                .align(TextAlign::Center { wh })
-                                                                .build(),
-                                                        );
+                                                        ctx.add(memoized_text(
+                                                            (&text_color, &wh),
+                                                            |mut builder| {
+                                                                builder
+                                                                    .color(text_color)
+                                                                    .text("Restore")
+                                                                    .render_center(wh)
+                                                            },
+                                                        ));
                                                     },
                                                 )
                                                 .variant(ButtonVariant::Contained),

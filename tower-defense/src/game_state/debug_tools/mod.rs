@@ -11,7 +11,7 @@ use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
-    typography::{self, headline, paragraph},
+    typography::{self, memoized_text},
 };
 use add_tower_card::AddTowerCardTool;
 use add_upgrade::AddUpgradeTool;
@@ -48,14 +48,13 @@ impl Component for DebugToolsModal {
                         table::horizontal([
                             table::fixed(PADDING, |_, _| {}),
                             table::ratio(1, |wh, ctx| {
-                                ctx.add(
-                                    headline("Debug Tools")
+                                ctx.add(memoized_text(&wh.height, |mut builder| {
+                                    builder
+                                        .headline()
                                         .size(typography::FontSize::Medium)
-                                        .align(typography::TextAlign::LeftCenter {
-                                            height: wh.height,
-                                        })
-                                        .build(),
-                                );
+                                        .text("Debug Tools")
+                                        .render_left_center(wh.height)
+                                }));
                             }),
                             table::fixed(48.px(), |wh, ctx| {
                                 ctx.add(
@@ -85,26 +84,34 @@ impl Component for DebugToolsModal {
                                     scroll_ctx.compose(|ctx| {
                                         table::vertical([
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(MonsterHpBalanceButton { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(MonsterHpBalanceButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AutoSetupButton { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AutoSetupButton {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AddTowerCardTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AddTowerCardTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(AddUpgradeTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(AddUpgradeTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
-
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(RouteLengthInfoTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(RouteLengthInfoTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
-
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(PlaceSelectedTowerInSpiralButton {
@@ -113,7 +120,9 @@ impl Component for DebugToolsModal {
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(StateSnapshotTool { width: _wh.width - PADDING * 2.0 });
+                                                ctx.add(StateSnapshotTool {
+                                                    width: _wh.width - PADDING * 2.0,
+                                                });
                                             }),
                                             table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -130,14 +139,18 @@ impl Component for DebugToolsModal {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                paragraph("Add Shop Reroll Item")
-                                                                    .color(text_color)
-                                                                    .align(typography::TextAlign::Center {
-                                                                        wh,
-                                                                    })
-                                                                    .build(),
-                                                            );
+                                                            ctx.add(typography::memoized_text(
+                                                                (&text_color, &wh),
+                                                                |mut builder| {
+                                                                    builder
+                                                                        .paragraph()
+                                                                        .color(text_color)
+                                                                        .text(
+                                                                            "Add Shop Reroll Item",
+                                                                        )
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .variant(ButtonVariant::Outlined),
@@ -158,14 +171,18 @@ impl Component for DebugToolsModal {
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
-                                                            ctx.add(
-                                                                paragraph("Add Hand Reroll Item")
-                                                                    .color(text_color)
-                                                                    .align(typography::TextAlign::Center {
-                                                                        wh,
-                                                                    })
-                                                                    .build(),
-                                                            );
+                                                            ctx.add(typography::memoized_text(
+                                                                (&text_color, &wh),
+                                                                |mut builder| {
+                                                                    builder
+                                                                        .paragraph()
+                                                                        .color(text_color)
+                                                                        .text(
+                                                                            "Add Hand Reroll Item",
+                                                                        )
+                                                                        .render_center(wh)
+                                                                },
+                                                            ));
                                                         },
                                                     )
                                                     .variant(ButtonVariant::Outlined),

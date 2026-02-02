@@ -1,6 +1,6 @@
 use crate::icon::{Icon, IconKind, IconSize};
-use crate::theme::typography::FontSize;
-use crate::{palette, theme::typography::headline};
+use crate::palette;
+use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -23,12 +23,13 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Health).size(IconSize::Medium).wh(wh));
                         }),
                         table::fixed(48.px(), |wh, ctx| {
-                            ctx.add(
-                                headline(format!("{:.0}", hp * 100.0))
-                                    .size(FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text(&hp, |mut builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Small)
+                                    .text(format!("{:.0}", hp * 100.0))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::ratio(
                             1,
@@ -56,14 +57,13 @@ impl Component for HPAndGoldIndicator {
                             ctx.add(Icon::new(IconKind::Gold).size(IconSize::Medium).wh(wh));
                         }),
                         table::ratio(1, |wh, ctx| {
-                            ctx.add(
-                                headline(format!("{gold}"))
-                                    .size(crate::theme::typography::FontSize::Medium)
-                                    .align(crate::theme::typography::TextAlign::RightTop {
-                                        width: wh.width,
-                                    })
-                                    .build(),
-                            );
+                            ctx.add(memoized_text(&gold, |mut builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Small)
+                                    .text(format!("{gold}"))
+                                    .render_right_top(wh.width)
+                            }));
                         }),
                         table::fixed(PADDING, |_, _| {}),
                     ]),

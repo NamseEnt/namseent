@@ -10,7 +10,27 @@ use crate::{
 #[derive(Clone, State)]
 pub struct UpgradeInfo {
     pub upgrade_kind: UpgradeKind,
-    pub description: String,
+    pub description: UpgradeInfoDescription,
+}
+
+#[derive(Clone, State)]
+pub enum UpgradeInfoDescription {
+    Single(UpgradeBoardText),
+    PrefixSuffix {
+        prefix: UpgradeBoardText,
+        suffix: UpgradeBoardText,
+    },
+}
+
+impl UpgradeInfoDescription {
+    pub fn key(&self) -> String {
+        match self {
+            UpgradeInfoDescription::Single(text) => format!("{:?}", text),
+            UpgradeInfoDescription::PrefixSuffix { prefix, suffix } => {
+                format!("{:?}:{:?}", prefix, suffix)
+            }
+        }
+    }
 }
 
 pub fn get_upgrade_infos(
@@ -33,13 +53,13 @@ pub fn get_upgrade_infos(
 
 fn add_basic_upgrades(
     state: &UpgradeState,
-    text: &crate::l10n::TextManager,
+    _text: &crate::l10n::TextManager,
     infos: &mut Vec<UpgradeInfo>,
 ) {
     if state.gold_earn_plus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::GoldEarnPlus,
-            description: text.upgrade_board(UpgradeBoardText::GoldEarnPlus {
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::GoldEarnPlus {
                 amount: state.gold_earn_plus,
             }),
         });
@@ -48,7 +68,7 @@ fn add_basic_upgrades(
     if state.shop_slot_expand != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::ShopSlotExpansion,
-            description: text.upgrade_board(UpgradeBoardText::ShopSlotExpand {
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopSlotExpand {
                 amount: state.shop_slot_expand,
             }),
         });
@@ -57,7 +77,7 @@ fn add_basic_upgrades(
     if state.reroll_chance_plus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::RerollCountPlus,
-            description: text.upgrade_board(UpgradeBoardText::RerollChancePlus {
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::RerollChancePlus {
                 amount: state.reroll_chance_plus,
             }),
         });
@@ -66,7 +86,7 @@ fn add_basic_upgrades(
     if state.shop_item_price_minus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::ShopItemPriceMinus,
-            description: text.upgrade_board(UpgradeBoardText::ShopItemPriceMinus {
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopItemPriceMinus {
                 amount: state.shop_item_price_minus,
             }),
         });
@@ -75,7 +95,7 @@ fn add_basic_upgrades(
     if state.shop_refresh_chance_plus != 0 {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::ShopRefreshPlus,
-            description: text.upgrade_board(UpgradeBoardText::ShopRefreshChancePlus {
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopRefreshChancePlus {
                 amount: state.shop_refresh_chance_plus,
             }),
         });
@@ -84,43 +104,39 @@ fn add_basic_upgrades(
     if state.shorten_straight_flush_to_4_cards {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::ShortenStraightFlushTo4Cards,
-            description: text.upgrade_board(UpgradeBoardText::ShortenStraightFlushTo4Cards),
+            description: UpgradeInfoDescription::Single(
+                UpgradeBoardText::ShortenStraightFlushTo4Cards,
+            ),
         });
     }
 
     if state.skip_rank_for_straight {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::SkipRankForStraight,
-            description: text.upgrade_board(UpgradeBoardText::SkipRankForStraight),
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::SkipRankForStraight),
         });
     }
 
     if state.treat_suits_as_same {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::TreatSuitsAsSame,
-            description: text.upgrade_board(UpgradeBoardText::TreatSuitsAsSame),
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::TreatSuitsAsSame),
         });
     }
 }
 
 fn add_tower_select_upgrades(
     state: &UpgradeState,
-    text: &crate::l10n::TextManager,
+    _text: &crate::l10n::TextManager,
     infos: &mut Vec<UpgradeInfo>,
 ) {
     for (target, tower_upgrade_state) in &state.tower_select_upgrade_states {
         let target_prefix = match target {
-            TowerSelectUpgradeTarget::LowCard => {
-                text.upgrade_board(UpgradeBoardText::TowerSelectLowCard {
-                    amount: LOW_CARD_COUNT,
-                })
-            }
-            TowerSelectUpgradeTarget::NoReroll => {
-                text.upgrade_board(UpgradeBoardText::TowerSelectNoReroll)
-            }
-            TowerSelectUpgradeTarget::Reroll => {
-                text.upgrade_board(UpgradeBoardText::TowerSelectReroll)
-            }
+            TowerSelectUpgradeTarget::LowCard => UpgradeBoardText::TowerSelectLowCard {
+                amount: LOW_CARD_COUNT,
+            },
+            TowerSelectUpgradeTarget::NoReroll => UpgradeBoardText::TowerSelectNoReroll,
+            TowerSelectUpgradeTarget::Reroll => UpgradeBoardText::TowerSelectReroll,
         };
 
         // 데미지 배수 업그레이드
@@ -138,12 +154,15 @@ fn add_tower_select_upgrades(
                     damage_multiplier: tower_upgrade_state.damage_multiplier,
                 },
             };
-            let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
+            let suffix = UpgradeBoardText::DamageMultiplier {
                 amount: tower_upgrade_state.damage_multiplier,
-            });
+            };
             infos.push(UpgradeInfo {
                 upgrade_kind,
-                description: format!("{target_prefix} {suffix}"),
+                description: UpgradeInfoDescription::PrefixSuffix {
+                    prefix: target_prefix.clone(),
+                    suffix,
+                },
             });
         }
     }
@@ -156,32 +175,26 @@ fn add_tower_upgrades(
 ) {
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_prefix = match target {
-            TowerUpgradeTarget::Rank { rank } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeRank {
-                    name: rank.to_string(),
-                })
-            }
-            TowerUpgradeTarget::Suit { suit } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeSuit {
-                    name: suit.to_string(),
-                })
-            }
-            TowerUpgradeTarget::TowerKind { tower_kind } => {
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeKind {
-                    name: text.tower(tower_kind.to_text()).to_string(),
-                })
-            }
+            TowerUpgradeTarget::Rank { rank } => UpgradeBoardText::TowerUpgradeRank {
+                name: rank.to_string(),
+            },
+            TowerUpgradeTarget::Suit { suit } => UpgradeBoardText::TowerUpgradeSuit {
+                name: suit.to_string(),
+            },
+            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeBoardText::TowerUpgradeKind {
+                name: text.tower(tower_kind.to_text()).to_string(),
+            },
             TowerUpgradeTarget::EvenOdd { even } => {
                 let name = if *even { "짝수" } else { "홀수" };
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeEvenOdd {
+                UpgradeBoardText::TowerUpgradeEvenOdd {
                     name: name.to_string(),
-                })
+                }
             }
             TowerUpgradeTarget::FaceNumber { face } => {
                 let name = if *face { "그림" } else { "숫자" };
-                text.upgrade_board(UpgradeBoardText::TowerUpgradeFaceNumber {
+                UpgradeBoardText::TowerUpgradeFaceNumber {
                     name: name.to_string(),
-                })
+                }
             }
         };
 
@@ -193,8 +206,8 @@ fn add_tower_upgrades(
 fn add_tower_damage_upgrades(
     target: &TowerUpgradeTarget,
     tower_upgrade_state: &TowerUpgradeState,
-    target_prefix: &str,
-    text: &crate::l10n::TextManager,
+    target_prefix: &UpgradeBoardText,
+    _text: &crate::l10n::TextManager,
     infos: &mut Vec<UpgradeInfo>,
 ) {
     if tower_upgrade_state.damage_multiplier != 1.0 {
@@ -222,12 +235,15 @@ fn add_tower_damage_upgrades(
                 }
             }
         };
-        let suffix = text.upgrade_board(UpgradeBoardText::DamageMultiplier {
+        let suffix = UpgradeBoardText::DamageMultiplier {
             amount: tower_upgrade_state.damage_multiplier,
-        });
+        };
         infos.push(UpgradeInfo {
             upgrade_kind,
-            description: format!("{target_prefix} {suffix}"),
+            description: UpgradeInfoDescription::PrefixSuffix {
+                prefix: target_prefix.clone(),
+                suffix,
+            },
         });
     }
 }

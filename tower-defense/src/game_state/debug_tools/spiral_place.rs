@@ -5,7 +5,7 @@ use crate::game_state::{
 };
 use crate::route::calculate_routes;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{self, paragraph};
+use crate::theme::typography::memoized_text;
 use namui::*;
 
 const BUTTON_HEIGHT: Px = px(40.);
@@ -187,12 +187,13 @@ impl Component for PlaceSelectedTowerInSpiralButton {
                     mutate_game_state(place_selected_tower_in_spiral);
                 },
                 &|wh, text_color, ctx| {
-                    ctx.add(
-                        paragraph("Place selected tower in spiral")
+                    ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                        builder
+                            .paragraph()
                             .color(text_color)
-                            .align(typography::TextAlign::Center { wh })
-                            .build(),
-                    );
+                            .text("Place selected tower in spiral")
+                            .render_center(wh)
+                    }));
                 },
             )
             .variant(ButtonVariant::Contained),

@@ -1,5 +1,5 @@
 use crate::game_state::use_game_state;
-use crate::theme::typography;
+use crate::theme::typography::memoized_text;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -17,15 +17,20 @@ impl Component for RouteLengthInfoTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(
-                        typography::paragraph(format!("Route Length: {}", route_length)).build(),
-                    );
+                    ctx.add(memoized_text(&route_length, |mut builder| {
+                        builder
+                            .paragraph()
+                            .text(format!("Route Length: {}", route_length))
+                            .render_left_top()
+                    }));
                 }),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(
-                        typography::paragraph(format!("Active Monsters: {}", active_monsters))
-                            .build(),
-                    );
+                    ctx.add(memoized_text(&active_monsters, |mut builder| {
+                        builder
+                            .paragraph()
+                            .text(format!("Active Monsters: {}", active_monsters))
+                            .render_left_top()
+                    }));
                 }),
             ])(Wh::new(self.width, f32::MAX.px()), ctx);
         });

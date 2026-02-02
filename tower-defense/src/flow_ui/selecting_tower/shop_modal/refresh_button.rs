@@ -1,8 +1,8 @@
 use crate::game_state::{mutate_game_state, use_game_state};
-use crate::icon::{Icon, IconKind, IconSize};
+use crate::icon::IconKind;
 use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
-use crate::theme::typography::{TextAlign, headline};
+use crate::theme::typography::memoized_text;
 use namui::*;
 
 pub struct RefreshButton {
@@ -41,32 +41,25 @@ impl Component for RefreshButton {
             Button::new(wh, &on_refresh, &|wh, color, ctx| {
                 let game_state = use_game_state(ctx);
                 let health_cost = game_state.stage_modifiers.get_shop_reroll_health_cost();
+                let chance = game_state.left_shop_refresh_chance;
 
-                let mut text = format!(
-                    "{}-{}",
-                    Icon::new(IconKind::Refresh)
-                        .size(IconSize::Large)
-                        .wh(Wh::single(wh.height))
-                        .as_tag(),
-                    game_state.left_shop_refresh_chance
-                );
+                ctx.add(memoized_text(
+                    (&color, &chance, &health_cost),
+                    |mut builder| {
+                        let mut builder = builder
+                            .headline()
+                            .color(color)
+                            .icon(IconKind::Refresh)
+                            .text("-")
+                            .text(format!("{chance}"));
 
-                if health_cost > 0 {
-                    text.push_str(&format!(
-                        " {}",
-                        Icon::new(IconKind::Health)
-                            .size(IconSize::Small)
-                            .wh(Wh::single(wh.height * 0.5))
-                            .as_tag()
-                    ));
-                }
+                        if health_cost > 0 {
+                            builder = builder.space().icon(IconKind::Health);
+                        }
 
-                ctx.add(
-                    headline(text)
-                        .color(color)
-                        .align(TextAlign::Center { wh })
-                        .build_rich(),
-                );
+                        builder.render_center(wh)
+                    },
+                ));
             })
             .variant(ButtonVariant::Fab)
             .disabled(disabled),

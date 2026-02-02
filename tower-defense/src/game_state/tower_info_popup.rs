@@ -3,7 +3,7 @@ use crate::flow_ui::TowerPreviewContent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
-    typography::{FontSize, TextAlign, paragraph},
+    typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -44,14 +44,17 @@ impl Component for TowerInfoPopup<'_> {
                                             });
                                         },
                                         &|wh, text_color, ctx| {
-                                            ctx.add(
-                                                paragraph("철거".to_string())
-                                                    .size(FontSize::Medium)
-                                                    .align(TextAlign::Center { wh })
-                                                    .color(text_color)
-                                                    .max_width(wh.width)
-                                                    .build(),
-                                            );
+                                            ctx.add(memoized_text(
+                                                (&text_color, &wh),
+                                                |mut builder| {
+                                                    builder
+                                                        .size(FontSize::Medium)
+                                                        .color(text_color)
+                                                        .max_width(wh.width)
+                                                        .text("철거")
+                                                        .render_center(wh)
+                                                },
+                                            ));
                                         },
                                     )
                                     .variant(ButtonVariant::Contained)

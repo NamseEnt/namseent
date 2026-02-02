@@ -12,7 +12,7 @@ use crate::game_state::{
 };
 use crate::theme::{
     button::{Button, ButtonVariant},
-    typography::{self, paragraph},
+    typography::memoized_text,
 };
 use namui::*;
 use rand::{Rng, thread_rng};
@@ -54,14 +54,18 @@ impl Component for AutoSetupButton {
                     });
                 },
                 &|wh, text_color, ctx| {
-                    ctx.add(
-                        paragraph(
-                            "Auto setup: snapshot → place expected tower → expected upgrade → spiral place → defense",
-                        )
-                        .color(text_color)
-                        .align(typography::TextAlign::Center { wh })
-                        .build(),
-                    );
+                    ctx.add(memoized_text(
+                        (&text_color, &wh),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .color(text_color)
+                                .text(
+                                    "Auto setup: snapshot → place expected tower → expected upgrade → spiral place → defense",
+                                )
+                                .render_center(wh)
+                        },
+                    ));
                 },
             )
             .variant(ButtonVariant::Contained),

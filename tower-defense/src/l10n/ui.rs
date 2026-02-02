@@ -1,4 +1,5 @@
-use super::{Language, Locale, LocalizedStaticText};
+use super::{Language, Locale, LocalizedText};
+use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
 #[derive(Debug, Clone, Copy, State)]
@@ -20,11 +21,15 @@ pub enum ResultModalText {
     RestartButton,
 }
 
-impl LocalizedStaticText for TopBarText {
-    fn localized_text(&self, locale: &Locale) -> &'static str {
+impl LocalizedText for TopBarText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
-            Language::Korean => self.to_korean(),
-            Language::English => self.to_english(),
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
         }
     }
 }
@@ -55,6 +60,19 @@ impl TopBarText {
             TopBarText::Shop => "Shop",
             TopBarText::SoldOut => "Sold Out",
             TopBarText::UseTower => "Use Tower",
+        }
+    }
+}
+
+impl LocalizedText for ResultModalText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
         }
     }
 }

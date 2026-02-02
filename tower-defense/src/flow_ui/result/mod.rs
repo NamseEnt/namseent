@@ -8,10 +8,9 @@ use crate::game_state::use_game_state;
 use crate::game_state::{restart_game, set_modal};
 use crate::l10n::ui::ResultModalText;
 use crate::theme::button::{Button, ButtonColor, ButtonVariant};
-use crate::theme::typography::TextAlign;
 use crate::theme::{
     palette,
-    typography::{self, headline},
+    typography::{self, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -51,13 +50,13 @@ impl Component for ResultModal {
                     PADDING,
                     table::vertical([
                         table::fixed(TITLE_HEIGHT, |wh, ctx| {
-                            ctx.add(
-                                headline(game_state.text().result_modal(ResultModalText::Title))
-                                    .align(TextAlign::Center { wh })
+                            ctx.add(memoized_text((), |mut builder| {
+                                builder
+                                    .headline()
                                     .size(typography::FontSize::Large)
-                                    .align(typography::TextAlign::Center { wh })
-                                    .build(),
-                            );
+                                    .text(game_state.text().result_modal(ResultModalText::Title))
+                                    .render_center(wh)
+                            }));
                         }),
                         table::fixed(PADDING, |_wh, _ctx| {}),
                         table::fixed(PROGRESS_BAR_HEIGHT, |wh, ctx| {
@@ -80,18 +79,19 @@ impl Component for ResultModal {
                                         restart_game();
                                         set_modal(None);
                                     },
-                                    &|_wh, text_color, ctx| {
-                                        ctx.add(
-                                            headline(
-                                                game_state
-                                                    .text()
-                                                    .result_modal(ResultModalText::RestartButton),
-                                            )
-                                            .align(TextAlign::Center { wh })
-                                            .size(typography::FontSize::Medium)
-                                            .color(text_color)
-                                            .build(),
-                                        );
+                                    &|wh, text_color, ctx| {
+                                        ctx.add(memoized_text(&text_color, |mut builder| {
+                                            builder
+                                                .headline()
+                                                .size(typography::FontSize::Medium)
+                                                .color(text_color)
+                                                .text(
+                                                    game_state.text().result_modal(
+                                                        ResultModalText::RestartButton,
+                                                    ),
+                                                )
+                                                .render_center(wh)
+                                        }));
                                     },
                                 )
                                 .long_press_time(2.sec())

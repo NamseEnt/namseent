@@ -6,7 +6,7 @@ pub enum Language {
     English,
 }
 
-#[derive(Debug, Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct Locale {
     pub language: Language,
 }
@@ -27,10 +27,12 @@ impl Default for Locale {
     }
 }
 
+/// Trait for localized text that can be integrated into TypographyBuilder chains
 pub trait LocalizedText {
-    fn localized_text(&self, locale: &Locale) -> String;
-}
-
-pub trait LocalizedStaticText {
-    fn localized_text(&self, locale: &Locale) -> &'static str;
+    /// Apply localized rich text formatting to a builder
+    fn apply_to_builder<'a>(
+        self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &Locale,
+    );
 }

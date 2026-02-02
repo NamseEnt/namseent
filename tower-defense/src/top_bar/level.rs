@@ -1,10 +1,9 @@
-use crate::icon::IconAttribute;
 use crate::theme::button::Button;
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     palette,
-    theme::typography::headline,
+    theme::typography::{self, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -40,12 +39,13 @@ impl Component for LevelIndicator {
                     ctx.add(Icon::new(IconKind::Level).size(IconSize::Large).wh(wh));
                 }),
                 table::fixed(32.px(), |wh, ctx| {
-                    ctx.add(
-                        headline(format!("{level}",))
-                            .size(crate::theme::typography::FontSize::Medium)
-                            .align(crate::theme::typography::TextAlign::Center { wh })
-                            .build(),
-                    );
+                    ctx.add(memoized_text(&level, |mut builder| {
+                        builder
+                            .headline()
+                            .size(typography::FontSize::Medium)
+                            .text(format!("{level}"))
+                            .render_center(wh)
+                    }));
                 }),
                 table::ratio(1, |_, _| {}),
                 table::fixed(
@@ -60,29 +60,19 @@ impl Component for LevelIndicator {
                                     }
                                     level_up();
                                 },
-                                &|wh, _text_color, ctx| {
-                                    let text_color = match can_upgrade {
-                                        true => palette::ON_PRIMARY,
-                                        false => palette::ON_SURFACE,
-                                    };
-                                    ctx.add(
-                                        headline(format!(
-                                            "{} {}{level_up_cost}",
-                                            Icon::new(IconKind::Level)
-                                                .attributes(vec![IconAttribute {
-                                                    icon_kind: IconKind::Up,
-                                                    position: crate::icon::IconAttributePosition::BottomRight
-                                                }])
-                                                .wh(Wh::single(wh.height))
-                                                .as_tag(),
-                                            Icon::new(IconKind::Gold)
-                                                .wh(Wh::single(wh.height))
-                                                .as_tag(),
-                                        ))
-                                        .align(crate::theme::typography::TextAlign::Center { wh })
-                                        .color(text_color)
-                                        .build_rich(),
-                                    );
+                                &|wh, text_color, ctx| {
+                                    ctx.add(memoized_text(
+                                        (&level_up_cost, &text_color),
+                                        |mut builder| {
+                                            builder
+                                                .icon(IconKind::Level)
+                                                .space()
+                                                .icon(IconKind::Gold)
+                                                .color(text_color)
+                                                .text(format!("{level_up_cost}"))
+                                                .render_center(wh)
+                                        },
+                                    ));
                                 },
                             )
                             .variant(crate::theme::button::ButtonVariant::Contained)

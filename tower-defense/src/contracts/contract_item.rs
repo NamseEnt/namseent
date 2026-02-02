@@ -4,7 +4,7 @@ use crate::{
     icon::{Icon, IconKind, IconSize},
     l10n::{TextManager, contract::ContractText},
     palette,
-    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, TextAlign, headline, paragraph},
+    theme::typography::{FontSize, HEADLINE_FONT_SIZE_LARGE, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -52,36 +52,47 @@ impl Component for ContractItemContent<'_> {
                         }),
                         table::ratio(1, move |_, _| {}),
                         table::fixed(HEADLINE_FONT_SIZE_LARGE.into_px() * 2.0, |wh, ctx| {
-                            ctx.add(
-                                headline(contract.status.to_string())
+                            ctx.add(memoized_text(&contract.status, |mut builder| {
+                                builder
+                                    .headline()
                                     .size(FontSize::Small)
-                                    .align(TextAlign::Center { wh })
-                                    .build(),
-                            );
+                                    .text(contract.status.to_string())
+                                    .render_center(wh)
+                            }));
                         }),
                     ]),
                 ),
                 table::fixed(PADDING * 2.0, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                    let text = text_manager.contract(ContractText::Risk(&contract.risk));
-                    compose_ctx.add(
-                        paragraph(text)
-                            .size(FontSize::Medium)
-                            .align(TextAlign::LeftTop)
-                            .max_width(content_width)
-                            .build_rich(),
-                    );
+                    let locale = text_manager.locale();
+                    let risk_key = format!("{:?}", contract.risk);
+                    compose_ctx.add(memoized_text(
+                        (&risk_key, &content_width, &locale.language),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(content_width)
+                                .l10n(ContractText::Risk(&contract.risk), &locale)
+                                .render_left_top()
+                        },
+                    ));
                 }),
                 table::fixed(PADDING, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, move |compose_ctx| {
-                    let text = text_manager.contract(ContractText::Reward(&contract.reward));
-                    compose_ctx.add(
-                        paragraph(text)
-                            .size(FontSize::Medium)
-                            .align(TextAlign::LeftTop)
-                            .max_width(content_width)
-                            .build_rich(),
-                    );
+                    let locale = text_manager.locale();
+                    let reward_key = format!("{:?}", contract.reward);
+                    compose_ctx.add(memoized_text(
+                        (&reward_key, &content_width, &locale.language),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Medium)
+                                .max_width(content_width)
+                                .l10n(ContractText::Reward(&contract.reward), &locale)
+                                .render_left_top()
+                        },
+                    ));
                 }),
             ])(Wh::new(content_width, f32::MAX.px()), ctx);
         });

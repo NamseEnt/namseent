@@ -1,31 +1,43 @@
-use super::{Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::game_state::play_history::HistoryEventType;
 use crate::l10n::contract::ContractText;
 use crate::l10n::effect::EffectText;
 use crate::l10n::upgrade::UpgradeKindText;
+use crate::theme::typography::TypographyBuilder;
 
 #[derive(Debug, Clone)]
 pub enum EventText<'a> {
     Description(&'a HistoryEventType, &'a Locale),
 }
 
+impl EventText<'_> {}
+
 impl LocalizedText for EventText<'_> {
-    fn localized_text(&self, locale: &Locale) -> String {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match self {
             EventText::Description(event_type, _) => match locale.language {
-                Language::Korean => event_type.description_korean(locale),
-                Language::English => event_type.description_english(locale),
+                Language::Korean => event_type.description_korean_builder(builder, locale),
+                Language::English => event_type.description_english_builder(builder, locale),
             },
         }
     }
 }
 
 impl HistoryEventType {
-    pub fn description_korean(&self, locale: &Locale) -> String {
+    fn description_korean_builder<'a>(
+        &self,
+        builder: &mut TypographyBuilder<'a>,
+        _locale: &Locale,
+    ) {
         match self {
-            HistoryEventType::GameStart => "게임 시작".to_string(),
+            HistoryEventType::GameStart => {
+                builder.static_text("게임 시작");
+            }
             HistoryEventType::StageStart { stage } => {
-                format!("스테이지 {} 시작", stage)
+                builder
+                    .static_text("스테이지 ")
+                    .text(format!("{}", stage))
+                    .static_text(" 시작");
             }
             HistoryEventType::TowerPlaced {
                 tower_kind,
@@ -33,41 +45,71 @@ impl HistoryEventType {
                 suit,
                 ..
             } => {
-                format!("타워 배치: {:?} {} {}", tower_kind, rank, suit)
+                builder
+                    .static_text("타워 배치: ")
+                    .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
             HistoryEventType::DamageTaken { amount } => {
-                format!("데미지 피격: {:.0}", amount)
+                builder
+                    .static_text("데미지 피격: ")
+                    .text(format!("{:.0}", amount));
             }
             HistoryEventType::ItemPurchased { item, cost } => {
-                let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
-                format!("아이템 구매: {} ({}G)", item_name, cost)
+                builder
+                    .static_text("아이템 구매: ")
+                    .l10n(EffectText::Name(item.effect.clone()), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
             HistoryEventType::ItemUsed { item_effect } => {
-                let effect_name = EffectText::Name(item_effect.clone()).localized_text(locale);
-                format!("아이템 사용: {}", effect_name)
+                builder
+                    .static_text("아이템 사용: ")
+                    .l10n(EffectText::Name(item_effect.clone()), _locale);
             }
             HistoryEventType::UpgradeSelected { upgrade } => {
-                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
-                format!("업그레이드 선택: {}", upgrade_name)
+                builder
+                    .static_text("업그레이드 선택: ")
+                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
             }
             HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
-                format!("업그레이드 구매: {} ({}G)", upgrade_name, cost)
+                builder
+                    .static_text("업그레이드 구매: ")
+                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
             HistoryEventType::ContractPurchased { contract, cost } => {
-                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
-                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
-                format!("계약 구매: {} / {} ({}G)", risk_text, reward_text, cost)
+                builder
+                    .static_text("계약 구매: ")
+                    .l10n(ContractText::Risk(&contract.risk), _locale)
+                    .static_text(" / ")
+                    .l10n(ContractText::Reward(&contract.reward), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
-            HistoryEventType::GameOver => "게임 오버".to_string(),
+            HistoryEventType::GameOver => {
+                builder.static_text("게임 오버");
+            }
         }
     }
 
-    pub fn description_english(&self, locale: &Locale) -> String {
+    fn description_english_builder<'a>(
+        &self,
+        builder: &mut TypographyBuilder<'a>,
+        _locale: &Locale,
+    ) {
         match self {
-            HistoryEventType::GameStart => "Game Started".to_string(),
+            HistoryEventType::GameStart => {
+                builder.static_text("Game Started");
+            }
             HistoryEventType::StageStart { stage } => {
-                format!("Stage {} Started", stage)
+                builder
+                    .static_text("Stage ")
+                    .text(format!("{}", stage))
+                    .static_text(" Started");
             }
             HistoryEventType::TowerPlaced {
                 tower_kind,
@@ -75,36 +117,56 @@ impl HistoryEventType {
                 suit,
                 ..
             } => {
-                format!("Tower Placed: {:?} {} {}", tower_kind, rank, suit)
+                builder
+                    .static_text("Tower Placed: ")
+                    .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
             HistoryEventType::DamageTaken { amount } => {
-                format!("Damage Taken: {:.0}", amount)
+                builder
+                    .static_text("Damage Taken: ")
+                    .text(format!("{:.0}", amount));
             }
             HistoryEventType::ItemPurchased { item, cost } => {
-                let item_name = EffectText::Name(item.effect.clone()).localized_text(locale);
-                format!("Item Purchased: {} ({}G)", item_name, cost)
+                builder
+                    .static_text("Item Purchased: ")
+                    .l10n(EffectText::Name(item.effect.clone()), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
             HistoryEventType::ItemUsed { item_effect } => {
-                let effect_name = EffectText::Name(item_effect.clone()).localized_text(locale);
-                format!("Item Used: {}", effect_name)
+                builder
+                    .static_text("Item Used: ")
+                    .l10n(EffectText::Name(item_effect.clone()), _locale);
             }
             HistoryEventType::UpgradeSelected { upgrade } => {
-                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
-                format!("Upgrade Selected: {}", upgrade_name)
+                builder
+                    .static_text("Upgrade Selected: ")
+                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
             }
             HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                let upgrade_name = UpgradeKindText::Name(&upgrade.kind).localized_text(locale);
-                format!("Upgrade Purchased: {} ({}G)", upgrade_name, cost)
+                builder
+                    .static_text("Upgrade Purchased: ")
+                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
             HistoryEventType::ContractPurchased { contract, cost } => {
-                let risk_text = ContractText::Risk(&contract.risk).localized_text(locale);
-                let reward_text = ContractText::Reward(&contract.reward).localized_text(locale);
-                format!(
-                    "Contract Purchased: {} / {} ({}G)",
-                    risk_text, reward_text, cost
-                )
+                builder
+                    .static_text("Contract Purchased: ")
+                    .l10n(ContractText::Risk(&contract.risk), _locale)
+                    .static_text(" / ")
+                    .l10n(ContractText::Reward(&contract.reward), _locale)
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
-            HistoryEventType::GameOver => "Game Over".to_string(),
+            HistoryEventType::GameOver => {
+                builder.static_text("Game Over");
+            }
         }
     }
 }
+
+impl HistoryEventType {}

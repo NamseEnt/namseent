@@ -6,7 +6,7 @@ use crate::icon::{Icon, IconKind, IconSize};
 use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::palette;
-use crate::theme::typography::{TextAlign, headline, paragraph};
+use crate::theme::typography::memoized_text;
 use namui::*;
 use namui_prebuilt::table;
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -24,7 +24,7 @@ const RARITIES: [Rarity; 4] = [
     Rarity::Legendary,
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum UpgradeCategory {
     Random,
     GoldEarnPlus,
@@ -277,7 +277,9 @@ impl Component for AddUpgradeTool {
         ctx.compose(|ctx| {
             table::vertical([
                 table::fit(table::FitAlign::LeftTop, |ctx| {
-                    ctx.add(headline("Add upgrade").build());
+                    ctx.add(memoized_text((), |mut builder| {
+                        builder.headline().text("Add upgrade").render_left_top()
+                    }));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
@@ -287,17 +289,18 @@ impl Component for AddUpgradeTool {
                         expected_rarity,
                         expected_category.display_name()
                     );
-                    ctx.add(
-                        paragraph(&info_text)
+                    ctx.add(memoized_text(&info_text, |mut builder| {
+                        builder
+                            .paragraph()
                             .color(palette::ON_SURFACE_VARIANT)
-                            .build(),
-                    );
+                            .text(&info_text)
+                            .render_left_top()
+                    }));
                 }),
                 table::fixed(GAP, |_, _| {}),
                 table::fit(table::FitAlign::LeftTop, |ctx| {
                     table::horizontal([
                         table::ratio(1, |wh, ctx| {
-                            let text = selected_category.display_name();
                             ctx.add(
                                 Button::new(
                                     wh,
@@ -312,14 +315,24 @@ impl Component for AddUpgradeTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text)
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
+                                                    ctx.add(memoized_text(
+                                                        (
+                                                            &selected_category,
+                                                            &text_color,
+                                                            &wh.height,
+                                                        ),
+                                                        |mut builder| {
+                                                            builder
+                                                                .paragraph()
+                                                                .color(text_color)
+                                                                .text(
+                                                                    selected_category
+                                                                        .display_name()
+                                                                        .to_string(),
+                                                                )
+                                                                .render_left_center(wh.height)
+                                                        },
+                                                    ));
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
                                                     ctx.add(
@@ -339,7 +352,6 @@ impl Component for AddUpgradeTool {
                         }),
                         table::fixed(GAP, |_, _| {}),
                         table::ratio(1, |wh, ctx| {
-                            let text = format!("{:?}", *selected_rarity);
                             ctx.add(
                                 Button::new(
                                     wh,
@@ -354,14 +366,18 @@ impl Component for AddUpgradeTool {
                                         ctx.compose(|ctx| {
                                             table::horizontal([
                                                 table::ratio(1, |wh, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text.clone())
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
+                                                    ctx.add(memoized_text(
+                                                        (selected_rarity, &text_color, &wh.height),
+                                                        |mut builder| {
+                                                            builder
+                                                                .color(text_color)
+                                                                .text(format!(
+                                                                    "{:?}",
+                                                                    *selected_rarity
+                                                                ))
+                                                                .render_left_center(wh.height)
+                                                        },
+                                                    ));
                                                 }),
                                                 table::fixed(DROPDOWN_ICON_SIZE, |wh, ctx| {
                                                     ctx.add(
@@ -394,7 +410,6 @@ impl Component for AddUpgradeTool {
                                     let category = *category;
 
                                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                        let text = category.display_name();
                                         ctx.add(
                                             Button::new(
                                                 Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
@@ -403,14 +418,20 @@ impl Component for AddUpgradeTool {
                                                     set_dropdown.set(0);
                                                 },
                                                 &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text)
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
+                                                    ctx.add(memoized_text(
+                                                        (&category, &text_color, &wh.height),
+                                                        |mut builder| {
+                                                            builder
+                                                                .paragraph()
+                                                                .color(text_color)
+                                                                .text(
+                                                                    category
+                                                                        .display_name()
+                                                                        .to_string(),
+                                                                )
+                                                                .render_left_center(wh.height)
+                                                        },
+                                                    ));
                                                 },
                                             )
                                             .variant(
@@ -435,7 +456,6 @@ impl Component for AddUpgradeTool {
                                     let rarity = *rarity;
 
                                     table::fit(table::FitAlign::LeftTop, move |ctx| {
-                                        let text = format!("{:?}", rarity);
                                         ctx.add(
                                             Button::new(
                                                 Wh::new(selector_width, DROPDOWN_ITEM_HEIGHT),
@@ -444,14 +464,15 @@ impl Component for AddUpgradeTool {
                                                     set_dropdown.set(0);
                                                 },
                                                 &|wh, text_color, ctx| {
-                                                    ctx.add(
-                                                        paragraph(text.clone())
-                                                            .color(text_color)
-                                                            .align(TextAlign::LeftCenter {
-                                                                height: wh.height,
-                                                            })
-                                                            .build(),
-                                                    );
+                                                    ctx.add(memoized_text(
+                                                        (&rarity, &text_color, &wh.height),
+                                                        |mut builder| {
+                                                            builder
+                                                                .color(text_color)
+                                                                .text(format!("{:?}", rarity))
+                                                                .render_left_center(wh.height)
+                                                        },
+                                                    ));
                                                 },
                                             )
                                             .variant(
@@ -476,12 +497,12 @@ impl Component for AddUpgradeTool {
                             Wh::new(self.width, BUTTON_HEIGHT),
                             &add_upgrade,
                             &|wh, text_color, ctx| {
-                                ctx.add(
-                                    paragraph("업그레이드 획득")
+                                ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                                    builder
                                         .color(text_color)
-                                        .align(TextAlign::Center { wh })
-                                        .build(),
-                                );
+                                        .text("업그레이드 획득")
+                                        .render_center(wh)
+                                }));
                             },
                         )
                         .variant(ButtonVariant::Contained),

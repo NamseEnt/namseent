@@ -1,6 +1,5 @@
 mod component;
 mod rendering_tree;
-pub mod rich_text;
 
 use crate::{card::Suit, rarity::Rarity};
 use namui::*;
@@ -321,7 +320,7 @@ impl IconSize {
     }
 }
 
-#[derive(Clone, State)]
+#[derive(Clone, Debug, State)]
 pub struct Icon {
     pub kind: IconKind,
     pub size: IconSize,

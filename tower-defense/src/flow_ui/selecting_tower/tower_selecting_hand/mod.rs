@@ -7,8 +7,7 @@ use crate::game_state::mutate_game_state;
 use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
-use crate::theme::button::Button;
-use crate::theme::typography::{TextAlign, headline};
+use crate::theme::{button::Button, typography::memoized_text};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
 use namui_prebuilt::table;
@@ -167,30 +166,31 @@ impl Component for InteractionArea<'_> {
                                     let health_cost = game_state
                                         .stage_modifiers
                                         .get_card_selection_hand_reroll_health_cost();
-                                    let mut text = format!(
-                                        "{} {}/{}",
-                                        Icon::new(IconKind::Refresh)
-                                            .size(IconSize::Large)
-                                            .wh(Wh::single(wh.height))
-                                            .as_tag(),
-                                        game_state.rerolled_count,
-                                        game_state.rerolled_count + game_state.left_reroll_chance,
-                                    );
-                                    if health_cost > 0 {
-                                        text.push_str(&format!(
-                                            " {}",
-                                            Icon::new(IconKind::Health)
-                                                .size(IconSize::Small)
-                                                .wh(Wh::single(wh.height * 0.5))
-                                                .as_tag()
-                                        ));
-                                    }
-                                    ctx.add(
-                                        headline(text)
-                                            .color(color)
-                                            .align(TextAlign::Center { wh })
-                                            .build_rich(),
-                                    );
+                                    let reroll_count =
+                                        (game_state.rerolled_count, game_state.left_reroll_chance);
+
+                                    ctx.add(memoized_text(
+                                        (&color, &reroll_count.0, &reroll_count.1, &health_cost),
+                                        |mut builder| {
+                                            let reroll_text = format!(
+                                                "{}/{}",
+                                                reroll_count.0,
+                                                reroll_count.0 + reroll_count.1,
+                                            );
+
+                                            let mut builder = builder
+                                                .headline()
+                                                .icon(IconKind::Refresh)
+                                                .space()
+                                                .text(reroll_text);
+
+                                            if health_cost > 0 {
+                                                builder = builder.space().icon(IconKind::Health);
+                                            }
+
+                                            builder.color(color).render_center(wh)
+                                        },
+                                    ));
                                 },
                             )
                             .disabled(
