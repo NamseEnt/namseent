@@ -13,6 +13,7 @@ mod rect;
 mod simple_signed;
 mod time;
 mod uuid;
+mod rsxform;
 mod vector_types;
 
 pub use self::uuid::*;
@@ -30,4 +31,5 @@ pub use ratio::*;
 pub use rect::*;
 pub use simple_signed::*;
 pub use time::*;
+pub use rsxform::*;
 pub use vector_types::*;

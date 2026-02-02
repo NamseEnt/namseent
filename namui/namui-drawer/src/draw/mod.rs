@@ -1,3 +1,4 @@
+mod atlas;
 mod image;
 mod path;
 mod text;
@@ -111,6 +112,7 @@ impl Draw for &DrawCommand {
             DrawCommand::Path { command } => command.draw(skia),
             DrawCommand::Text { command } => command.draw(skia),
             DrawCommand::Image { command } => command.draw(skia),
+            DrawCommand::Atlas { command } => command.draw(skia),
         }
     }
 }
