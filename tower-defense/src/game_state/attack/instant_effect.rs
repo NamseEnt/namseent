@@ -1,7 +1,7 @@
 use namui::*;
 
 /// 이펙트 수명
-const EFFECT_LIFETIME: Duration = Duration::from_millis(400);
+pub const EFFECT_LIFETIME: Duration = Duration::from_millis(400);
 
 /// 이펙트 종류
 #[derive(Clone, Copy, PartialEq, Eq, State)]
@@ -67,12 +67,7 @@ impl TowerEmitEffect {
 }
 
 impl TargetHitEffect {
-    pub fn new(
-        xy: (f32, f32),
-        created_at: Instant,
-        kind: InstantEffectKind,
-        scale: f32,
-    ) -> Self {
+    pub fn new(xy: (f32, f32), created_at: Instant, kind: InstantEffectKind, scale: f32) -> Self {
         Self {
             xy,
             created_at,

@@ -9,7 +9,10 @@ use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, IconParticle, MonsterCorpseParticle, MonsterSoulParticle};
+pub use particle::{
+    DamageTextParticle, IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle,
+    MonsterCorpseParticle, MonsterSoulParticle,
+};
 
 #[derive(State)]
 pub struct TempParticleEmitter {
@@ -104,6 +107,9 @@ pub enum FieldParticle {
     DamageText { particle: DamageTextParticle },
     MonsterDeath { particle: MonsterSoulParticle },
     MonsterCorpse { particle: MonsterCorpseParticle },
+    LaserBeam { particle: LaserBeamParticle },
+    InstantEmit { particle: InstantEmitParticle },
+    InstantHit { particle: InstantHitParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -124,6 +130,18 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::LaserBeam { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::InstantEmit { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::InstantHit { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -133,6 +151,9 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.render(),
             FieldParticle::MonsterDeath { particle } => particle.render(),
             FieldParticle::MonsterCorpse { particle } => particle.render(),
+            FieldParticle::LaserBeam { particle } => particle.render(),
+            FieldParticle::InstantEmit { particle } => particle.render(),
+            FieldParticle::InstantHit { particle } => particle.render(),
         }
     }
 
@@ -142,6 +163,9 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.is_done(now),
             FieldParticle::MonsterDeath { particle } => particle.is_done(now),
             FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
+            FieldParticle::LaserBeam { particle } => particle.is_done(now),
+            FieldParticle::InstantEmit { particle } => particle.is_done(now),
+            FieldParticle::InstantHit { particle } => particle.is_done(now),
         }
     }
 }

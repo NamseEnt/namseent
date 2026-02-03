@@ -54,8 +54,6 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     move_projectiles(game_state, dt, now);
     shoot_attacks(game_state);
-    remove_expired_lasers(game_state, now);
-    remove_expired_effects(game_state, now);
     check_defense_end(game_state);
 }
 
@@ -170,30 +168,13 @@ fn emit_damage_text_particles(
     }
 }
 
-fn emit_monster_death_particles(
-    game_state: &mut GameState,
-    emitters: Vec<field_particle::emitter::MonsterDeathEmitter>,
-) {
-    if !emitters.is_empty() {
-        let field_emitters = emitters
-            .into_iter()
-            .map(|emitter| field_particle::FieldParticleEmitter::MonsterDeath { emitter })
-            .collect::<Vec<_>>();
-        game_state
-            .field_particle_system_manager
-            .add_emitters(field_emitters);
-    }
-}
-
 fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
 
     let now = game_state.now();
 
     let mut projectiles = Vec::new();
-    let mut lasers = Vec::new();
-    let mut emit_effects = Vec::new();
-    let mut hit_effects = Vec::new();
+    let mut attack_effect_particles = Vec::new();
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
@@ -252,7 +233,13 @@ fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     );
 
-                    lasers.push(laser);
+                    attack_effect_particles.push(field_particle::FieldParticle::LaserBeam {
+                        particle: field_particle::LaserBeamParticle::new(
+                            laser.start_xy,
+                            laser.end_xy,
+                            laser.created_at,
+                        ),
+                    });
 
                     if damage > 0.0 {
                         damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
@@ -270,8 +257,22 @@ fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     );
 
-                    emit_effects.push(emit_effect);
-                    hit_effects.push(hit_effect);
+                    attack_effect_particles.push(field_particle::FieldParticle::InstantEmit {
+                        particle: field_particle::InstantEmitParticle::new(
+                            emit_effect.tower_xy,
+                            emit_effect.target_xy,
+                            emit_effect.created_at,
+                            emit_effect.kind,
+                        ),
+                    });
+                    attack_effect_particles.push(field_particle::FieldParticle::InstantHit {
+                        particle: field_particle::InstantHitParticle::new(
+                            hit_effect.xy,
+                            hit_effect.created_at,
+                            hit_effect.kind,
+                            hit_effect.scale,
+                        ),
+                    });
 
                     if damage > 0.0 {
                         damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
@@ -315,12 +316,40 @@ fn shoot_attacks(game_state: &mut GameState) {
     }
 
     game_state.projectiles.extend(projectiles);
-    game_state.laser_beams.extend(lasers);
-    game_state.tower_emit_effects.extend(emit_effects);
-    game_state.target_hit_effects.extend(hit_effects);
 
+    emit_attack_effect_particles(game_state, attack_effect_particles);
     emit_damage_text_particles(game_state, damage_emitters);
     emit_monster_death_particles(game_state, monster_death_emitters);
+}
+
+fn emit_attack_effect_particles(
+    game_state: &mut GameState,
+    particles: Vec<field_particle::FieldParticle>,
+) {
+    if particles.is_empty() {
+        return;
+    }
+
+    game_state.field_particle_system_manager.add_emitters(vec![
+        field_particle::FieldParticleEmitter::TempParticle {
+            emitter: field_particle::TempParticleEmitter::new(particles),
+        },
+    ]);
+}
+
+fn emit_monster_death_particles(
+    game_state: &mut GameState,
+    emitters: Vec<field_particle::emitter::MonsterDeathEmitter>,
+) {
+    if !emitters.is_empty() {
+        let field_emitters = emitters
+            .into_iter()
+            .map(|emitter| field_particle::FieldParticleEmitter::MonsterDeath { emitter })
+            .collect::<Vec<_>>();
+        game_state
+            .field_particle_system_manager
+            .add_emitters(field_emitters);
+    }
 }
 
 fn check_defense_end(game_state: &mut GameState) {
@@ -355,21 +384,6 @@ fn check_defense_end(game_state: &mut GameState) {
 
     game_state.goto_next_stage();
 }
-fn remove_expired_lasers(game_state: &mut GameState, now: Instant) {
-    game_state
-        .laser_beams
-        .retain(|laser| !laser.is_expired(now));
-}
-
-fn remove_expired_effects(game_state: &mut GameState, now: Instant) {
-    game_state
-        .tower_emit_effects
-        .retain(|effect| !effect.is_expired(now));
-    game_state
-        .target_hit_effects
-        .retain(|effect| !effect.is_expired(now));
-}
-
 fn handle_monster_death(
     game_state: &mut GameState,
     target_idx: usize,

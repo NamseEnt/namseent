@@ -1,7 +1,7 @@
 use namui::*;
 
 /// 레이저 광선의 수명
-const LASER_LIFETIME: Duration = Duration::from_millis(500);
+pub const LASER_LIFETIME: Duration = Duration::from_millis(500);
 
 #[derive(Clone, State)]
 pub struct LaserBeam {
@@ -16,12 +16,7 @@ pub struct LaserBeam {
 }
 
 impl LaserBeam {
-    pub fn new(
-        start_xy: (f32, f32),
-        end_xy: (f32, f32),
-        created_at: Instant,
-        damage: f32,
-    ) -> Self {
+    pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant, damage: f32) -> Self {
         Self {
             start_xy,
             end_xy,
