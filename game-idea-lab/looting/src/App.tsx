@@ -14,10 +14,8 @@ function App() {
   const inventory = useInventory()
 
   const handleItemPickup = useCallback((item: ItemInstance) => {
-    const result = inventory.addItem(item)
-    if (result.success) {
-      setChestItems(prev => prev.filter(i => i.id !== item.id))
-    }
+    inventory.addItem(item)
+    setChestItems(prev => prev.filter(i => i.id !== item.id))
   }, [inventory])
 
   const handleChestEmpty = useCallback(() => {
