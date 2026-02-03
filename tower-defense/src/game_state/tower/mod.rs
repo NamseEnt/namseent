@@ -3,6 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
+use crate::game_state::attack::AttackType;
 use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
@@ -59,6 +60,58 @@ impl Tower {
             target_indicator,
             self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
         )
+    }
+
+    /// 레이저 공격 수행 - 즉시 데미지를 주고 LaserBeam 반환
+    pub fn shoot_laser(
+        &mut self,
+        target_xy: (f32, f32),
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
+        now: Instant,
+    ) -> (attack::laser::LaserBeam, f32) {
+        self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack, now);
+
+        let damage = self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+
+        let laser = attack::laser::LaserBeam::new(
+            (self.left_top.x as f32 + 0.5, self.left_top.y as f32 + 0.5),
+            target_xy,
+            now,
+            damage,
+        );
+
+        (laser, damage)
+    }
+
+    /// 즉시 이펙트 공격 수행 - 즉시 데미지를 주고 이펙트들 반환
+    pub fn shoot_instant_effect(
+        &mut self,
+        target_xy: (f32, f32),
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
+        now: Instant,
+    ) -> (
+        attack::instant_effect::TowerEmitEffect,
+        attack::instant_effect::TargetHitEffect,
+        f32,
+    ) {
+        self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack, now);
+
+        let damage = self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+
+        let tower_xy = (self.left_top.x as f32 + 0.5, self.left_top.y as f32 + 0.5);
+        let effect_kind = attack::instant_effect::InstantEffectKind::Explosion;
+
+        let emit_effect =
+            attack::instant_effect::TowerEmitEffect::new(tower_xy, target_xy, now, effect_kind);
+
+        let hit_effect =
+            attack::instant_effect::TargetHitEffect::new(target_xy, now, effect_kind, 1.0);
+
+        (emit_effect, hit_effect, damage)
     }
 
     fn center_xy(&self) -> MapCoord {
@@ -149,6 +202,7 @@ pub struct TowerTemplate {
     pub rank: Rank,
     pub skill_templates: Vec<TowerSkillTemplate>,
     pub default_status_effects: Vec<TowerStatusEffect>,
+    pub attack_type: AttackType,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
@@ -161,6 +215,7 @@ impl TowerTemplate {
             rank,
             skill_templates: kind.skill_templates(),
             default_status_effects: vec![],
+            attack_type: kind.attack_type(),
         }
     }
     pub fn barricade() -> Self {
@@ -286,6 +341,22 @@ impl TowerKind {
     }
     pub fn is_low_card_tower(&self) -> bool {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
+    }
+
+    pub fn attack_type(&self) -> AttackType {
+        match self {
+            Self::Barricade => AttackType::Projectile,
+            Self::High => AttackType::InstantEffect,
+            Self::OnePair => AttackType::Projectile,
+            Self::TwoPair => AttackType::Projectile,
+            Self::ThreeOfAKind => AttackType::Projectile,
+            Self::Straight => AttackType::Projectile,
+            Self::Flush => AttackType::Laser,
+            Self::FullHouse => AttackType::Projectile,
+            Self::FourOfAKind => AttackType::InstantEffect,
+            Self::StraightFlush => AttackType::Laser,
+            Self::RoyalFlush => AttackType::Laser,
+        }
     }
 
     pub fn to_text(self) -> TowerKindText {

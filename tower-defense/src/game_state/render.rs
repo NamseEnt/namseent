@@ -17,6 +17,9 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_tower_info_popup, self.game_state));
                 ctx.add((render_cursor_preview, self.game_state));
                 ctx.add((render_field_particles, self.game_state));
+                ctx.add((render_laser_beams, self.game_state));
+                ctx.add((render_tower_emit_effects, self.game_state));
+                ctx.add((render_target_hit_effects, self.game_state));
                 ctx.add((render_projectiles, self.game_state));
                 ctx.add((render_monsters, self.game_state));
                 ctx.add((render_route_guide, self.game_state));
@@ -297,4 +300,176 @@ fn render_field_particles(ctx: &RenderCtx, game_state: &GameState) {
     game_state
         .field_particle_system_manager
         .render(ctx, game_state.now());
+}
+
+fn render_laser_beams(ctx: &RenderCtx, game_state: &GameState) {
+    let now = game_state.now();
+
+    for laser in &game_state.laser_beams {
+        let alpha = laser.current_alpha(now);
+        if alpha <= 0.0 {
+            continue;
+        }
+
+        // 맵 좌표를 픽셀 좌표로 변환
+        let start_px = TILE_PX_SIZE.to_xy() * Xy::new(laser.start_xy.0, laser.start_xy.1);
+        let end_px = TILE_PX_SIZE.to_xy() * Xy::new(laser.end_xy.0, laser.end_xy.1);
+
+        // 레이저 색상에 투명도 적용
+        let color = Color::from_f01(1.0, 0.2, 0.2, alpha);
+
+        // 레이저 광선 그리기 (굵은 선)
+        let mut path = Path::new();
+        path = path.move_to(start_px.x, start_px.y);
+        path = path.line_to(end_px.x, end_px.y);
+
+        let paint = Paint::new(color)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(px(8.0 * alpha))
+            .set_stroke_cap(StrokeCap::Round);
+
+        ctx.add(namui::path(path, paint));
+
+        // 광선 중심에 더 밝은 선 추가 (광선 효과)
+        let mut inner_path = Path::new();
+        inner_path = inner_path.move_to(start_px.x, start_px.y);
+        inner_path = inner_path.line_to(end_px.x, end_px.y);
+
+        let inner_alpha = alpha * 0.8;
+        let inner_paint = Paint::new(Color::WHITE.with_alpha((inner_alpha * 255.0) as u8))
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(px(3.0 * alpha))
+            .set_stroke_cap(StrokeCap::Round);
+
+        ctx.add(namui::path(inner_path, inner_paint));
+    }
+}
+
+fn render_tower_emit_effects(ctx: &RenderCtx, game_state: &GameState) {
+    let now = game_state.now();
+
+    for effect in &game_state.tower_emit_effects {
+        let progress = effect.progress(now);
+        if progress >= 1.0 {
+            continue;
+        }
+
+        // 타워에서 적까지 빛줄기 효과
+        let tower_px = TILE_PX_SIZE.to_xy() * Xy::new(effect.tower_xy.0, effect.tower_xy.1);
+        let target_px = TILE_PX_SIZE.to_xy() * Xy::new(effect.target_xy.0, effect.target_xy.1);
+
+        // 진행도에 따라 빛줄기가 타워에서 적으로 이동
+        let current_end = tower_px + (target_px - tower_px) * (progress * 2.0).min(1.0);
+
+        let alpha = if progress < 0.5 {
+            1.0
+        } else {
+            1.0 - (progress - 0.5) * 2.0
+        };
+
+        let color = match effect.kind {
+            attack::instant_effect::InstantEffectKind::Explosion => {
+                Color::from_f01(1.0, 0.5, 0.0, alpha)
+            }
+            attack::instant_effect::InstantEffectKind::Lightning => {
+                Color::from_f01(1.0, 1.0, 0.2, alpha)
+            }
+            attack::instant_effect::InstantEffectKind::MagicCircle => {
+                Color::from_f01(0.5, 0.2, 1.0, alpha)
+            }
+        };
+
+        let mut path = Path::new();
+        path = path.move_to(tower_px.x, tower_px.y);
+        path = path.line_to(current_end.x, current_end.y);
+
+        let paint = Paint::new(color)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(px(4.0))
+            .set_stroke_cap(StrokeCap::Round);
+
+        ctx.add(namui::path(path, paint));
+    }
+}
+
+fn render_target_hit_effects(ctx: &RenderCtx, game_state: &GameState) {
+    let now = game_state.now();
+
+    for effect in &game_state.target_hit_effects {
+        let progress = effect.progress(now);
+        if progress >= 1.0 {
+            continue;
+        }
+
+        let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(effect.xy.0, effect.xy.1);
+        let scale = effect.current_scale(now);
+        let alpha = effect.current_alpha(now);
+
+        match effect.kind {
+            attack::instant_effect::InstantEffectKind::Explosion => {
+                // 원형 폭발 이펙트 - 호로 근사
+                let radius = 32.0 * scale;
+                let num_points = 16;
+                let mut path = Path::new();
+
+                for i in 0..=num_points {
+                    let angle = (i as f32 / num_points as f32) * std::f32::consts::PI * 2.0;
+                    let x = xy_px.x + px(radius * angle.cos());
+                    let y = xy_px.y + px(radius * angle.sin());
+                    if i == 0 {
+                        path = path.move_to(x, y);
+                    } else {
+                        path = path.line_to(x, y);
+                    }
+                }
+
+                let color = Color::from_f01(1.0, 0.5, 0.0, alpha);
+                let paint = Paint::new(color).set_style(PaintStyle::Fill);
+
+                ctx.add(namui::path(path, paint));
+            }
+            attack::instant_effect::InstantEffectKind::Lightning => {
+                // 번개 이펙트 (십자가 형태)
+                let size = 24.0 * scale;
+                let color = Color::from_f01(1.0, 1.0, 0.2, alpha);
+
+                let mut path = Path::new();
+                path = path.move_to(xy_px.x - px(size), xy_px.y);
+                path = path.line_to(xy_px.x + px(size), xy_px.y);
+                path = path.move_to(xy_px.x, xy_px.y - px(size));
+                path = path.line_to(xy_px.x, xy_px.y + px(size));
+
+                let paint = Paint::new(color)
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(px(4.0 * scale))
+                    .set_stroke_cap(StrokeCap::Round);
+
+                ctx.add(namui::path(path, paint));
+            }
+            attack::instant_effect::InstantEffectKind::MagicCircle => {
+                // 마법진 이펙트 (원형)
+                let radius = 28.0 * scale;
+                let num_points = 16;
+                let mut path = Path::new();
+
+                for i in 0..=num_points {
+                    let angle = (i as f32 / num_points as f32) * std::f32::consts::PI * 2.0;
+                    let x = xy_px.x + px(radius * angle.cos());
+                    let y = xy_px.y + px(radius * angle.sin());
+                    if i == 0 {
+                        path = path.move_to(x, y);
+                    } else {
+                        path = path.line_to(x, y);
+                    }
+                }
+
+                let color = Color::from_f01(0.5, 0.2, 1.0, alpha);
+                let paint = Paint::new(color)
+                    .set_style(PaintStyle::Stroke)
+                    .set_stroke_width(px(3.0));
+
+                ctx.add(namui::path(path, paint));
+            }
+        }
+    }
 }

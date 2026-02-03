@@ -10,7 +10,8 @@ pub fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTe
         default_damage: kind.default_damage(),
         suit,
         rank,
-        skill_templates: vec![],
+        skill_templates: kind.skill_templates(),
         default_status_effects: vec![],
+        attack_type: kind.attack_type(),
     }
 }

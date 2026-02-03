@@ -53,7 +53,9 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     monster::move_monsters(game_state, dt);
 
     move_projectiles(game_state, dt, now);
-    shoot_projectiles(game_state);
+    shoot_attacks(game_state);
+    remove_expired_lasers(game_state, now);
+    remove_expired_effects(game_state, now);
     check_defense_end(game_state);
 }
 
@@ -183,59 +185,142 @@ fn emit_monster_death_particles(
     }
 }
 
-fn shoot_projectiles(game_state: &mut GameState) {
+fn shoot_attacks(game_state: &mut GameState) {
+    use crate::game_state::attack::AttackType;
+
     let now = game_state.now();
-    let GameState {
-        towers,
-        upgrade_state,
-        ..
-    } = game_state;
-    let projectiles = towers.iter_mut().filter_map(|tower| {
-        if tower.in_cooltime() {
-            return None;
+
+    let mut projectiles = Vec::new();
+    let mut lasers = Vec::new();
+    let mut emit_effects = Vec::new();
+    let mut hit_effects = Vec::new();
+    let mut damage_emitters = Vec::new();
+    let mut monster_death_emitters = Vec::new();
+    let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
+
+    // towers.iter_mut()의 scope을 최소화
+    {
+        let towers = &mut game_state.towers;
+        let upgrade_state = &game_state.upgrade_state;
+        let stage_modifiers = &game_state.stage_modifiers;
+        let monsters = &game_state.monsters;
+
+        for tower in towers.iter_mut() {
+            if tower.in_cooltime() {
+                continue;
+            }
+
+            // Check if tower rank is disabled by contract
+            if stage_modifiers.get_disabled_ranks().contains(&tower.rank()) {
+                continue;
+            }
+
+            // Check if tower suit is disabled by contract
+            if stage_modifiers.get_disabled_suits().contains(&tower.suit()) {
+                continue;
+            }
+
+            let tower_upgrades = upgrade_state.tower_upgrades(tower);
+
+            let attack_range_radius =
+                tower.attack_range_radius(&tower_upgrades, stage_modifiers.get_range_multiplier());
+
+            let target_idx = monsters.iter().position(|monster| {
+                (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
+                    < attack_range_radius
+            });
+
+            let Some(target_idx) = target_idx else {
+                continue;
+            };
+
+            let contract_multiplier = stage_modifiers.get_damage_multiplier();
+            let target_xy = monsters[target_idx].move_on_route.xy();
+
+            match tower.attack_type {
+                AttackType::Projectile => {
+                    let target_indicator = monsters[target_idx].projectile_target_indicator;
+                    let projectile =
+                        tower.shoot(target_indicator, &tower_upgrades, contract_multiplier, now);
+                    projectiles.push(projectile);
+                }
+                AttackType::Laser => {
+                    let (laser, damage) = tower.shoot_laser(
+                        (target_xy.x, target_xy.y),
+                        &tower_upgrades,
+                        contract_multiplier,
+                        now,
+                    );
+
+                    lasers.push(laser);
+
+                    if damage > 0.0 {
+                        damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
+                            target_xy, damage,
+                        ));
+                    }
+
+                    monster_kills.push((target_idx, damage, target_xy));
+                }
+                AttackType::InstantEffect => {
+                    let (emit_effect, hit_effect, damage) = tower.shoot_instant_effect(
+                        (target_xy.x, target_xy.y),
+                        &tower_upgrades,
+                        contract_multiplier,
+                        now,
+                    );
+
+                    emit_effects.push(emit_effect);
+                    hit_effects.push(hit_effect);
+
+                    if damage > 0.0 {
+                        damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
+                            target_xy, damage,
+                        ));
+                    }
+
+                    monster_kills.push((target_idx, damage, target_xy));
+                }
+            }
         }
+    } // towers 빌려주기 종료
 
-        // Check if tower rank is disabled by contract
-        if game_state
-            .stage_modifiers
-            .get_disabled_ranks()
-            .contains(&tower.rank())
-        {
-            return None;
-        }
+    // 괴물에게 데미지 적용 및 사망 처리
+    let indices_to_remove: Vec<_> = monster_kills
+        .into_iter()
+        .filter_map(|(target_idx, damage, target_xy)| {
+            if target_idx >= game_state.monsters.len() {
+                return None;
+            }
 
-        // Check if tower suit is disabled by contract
-        if game_state
-            .stage_modifiers
-            .get_disabled_suits()
-            .contains(&tower.suit())
-        {
-            return None;
-        }
+            game_state.monsters[target_idx].get_damage(damage);
 
-        let tower_upgrades = upgrade_state.tower_upgrades(tower);
+            if game_state.monsters[target_idx].dead() {
+                Some((target_idx, target_xy))
+            } else {
+                None
+            }
+        })
+        .collect();
 
-        let attack_range_radius = tower.attack_range_radius(
-            &tower_upgrades,
-            game_state.stage_modifiers.get_range_multiplier(),
-        );
-
-        let target = game_state.monsters.iter().find(|monster| {
-            (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
-                < attack_range_radius
-        })?;
-
-        let contract_multiplier = game_state.stage_modifiers.get_damage_multiplier();
-
-        Some(tower.shoot(
-            target.projectile_target_indicator,
-            &tower_upgrades,
-            contract_multiplier,
+    // 사망한 괴물 처리 (역순으로 처리해서 인덱스 문제 회피)
+    for (target_idx, target_xy) in indices_to_remove.into_iter().rev() {
+        handle_monster_death(
+            game_state,
+            target_idx,
+            target_xy,
             now,
-        ))
-    });
+            &mut monster_death_emitters,
+        );
+    }
 
     game_state.projectiles.extend(projectiles);
+    game_state.laser_beams.extend(lasers);
+    game_state.tower_emit_effects.extend(emit_effects);
+    game_state.target_hit_effects.extend(hit_effects);
+
+    emit_damage_text_particles(game_state, damage_emitters);
+    emit_monster_death_particles(game_state, monster_death_emitters);
 }
 
 fn check_defense_end(game_state: &mut GameState) {
@@ -269,4 +354,66 @@ fn check_defense_end(game_state: &mut GameState) {
     game_state.just_cleared_boss_stage = is_boss_stage;
 
     game_state.goto_next_stage();
+}
+fn remove_expired_lasers(game_state: &mut GameState, now: Instant) {
+    game_state
+        .laser_beams
+        .retain(|laser| !laser.is_expired(now));
+}
+
+fn remove_expired_effects(game_state: &mut GameState, now: Instant) {
+    game_state
+        .tower_emit_effects
+        .retain(|effect| !effect.is_expired(now));
+    game_state
+        .target_hit_effects
+        .retain(|effect| !effect.is_expired(now));
+}
+
+fn handle_monster_death(
+    game_state: &mut GameState,
+    target_idx: usize,
+    target_xy: Xy<f32>,
+    now: Instant,
+    monster_death_emitters: &mut Vec<field_particle::emitter::MonsterDeathEmitter>,
+) {
+    // 몬스터 데이터 먼저 추출 (mutable borrow 충돌 회피)
+    let monster_max_hp = game_state.monsters[target_idx].max_hp;
+    let monster_reward = game_state.monsters[target_idx].reward;
+    let monster_kind = game_state.monsters[target_idx].kind;
+    let rotation = game_state.monsters[target_idx].animation.rotation;
+    let y_offset = game_state.monsters[target_idx].animation.y_offset;
+
+    if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
+        defense_flow.stage_progress.processed_hp += monster_max_hp;
+    }
+
+    let earn = monster_reward + game_state.upgrade_state.gold_earn_plus;
+    let earn = (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
+
+    monster_death_emitters.push(field_particle::emitter::MonsterDeathEmitter::new(target_xy));
+
+    let wh = monster::monster_wh(monster_kind);
+
+    let tile_base_xy = TILE_PX_SIZE.to_xy() * target_xy;
+    let monster_center_offset = Xy::new(
+        TILE_PX_SIZE.width * 0.5,
+        TILE_PX_SIZE.height - wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
+    );
+    let pixel_xy = tile_base_xy + monster_center_offset;
+
+    let corpse_particle =
+        field_particle::MonsterCorpseParticle::new(pixel_xy, now, rotation, monster_kind, wh);
+    game_state.field_particle_system_manager.add_emitters(vec![
+        field_particle::FieldParticleEmitter::MonsterCorpse {
+            emitter: field_particle::TempParticleEmitter::new(vec![
+                field_particle::FieldParticle::MonsterCorpse {
+                    particle: corpse_particle,
+                },
+            ]),
+        },
+    ]);
+
+    game_state.earn_gold(earn);
+    game_state.monsters.swap_remove(target_idx);
 }
