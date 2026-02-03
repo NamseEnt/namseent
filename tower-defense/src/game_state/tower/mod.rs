@@ -13,6 +13,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+const PROJECTILE_SPEED: Velocity = Per::new(16.0, Duration::from_secs(1));
+
 #[derive(Clone, PartialEq, State)]
 pub struct Tower {
     id: usize,
@@ -50,13 +52,13 @@ impl Tower {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, now);
 
-        Projectile {
-            kind: self.projectile_kind,
-            xy: self.left_top.map(|t| t as f32 + 0.5),
-            velocity: self.projectile_speed,
+        Projectile::new(
+            self.left_top.map(|t| t as f32 + 0.5),
+            ProjectileKind::random_trash(),
+            PROJECTILE_SPEED,
             target_indicator,
-            damage: self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
-        }
+            self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
+        )
     }
 
     fn center_xy(&self) -> MapCoord {
@@ -142,8 +144,6 @@ pub struct TowerTemplate {
     pub kind: TowerKind,
     pub shoot_interval: Duration,
     pub default_attack_range_radius: f32,
-    pub projectile_kind: ProjectileKind,
-    pub projectile_speed: Velocity,
     pub default_damage: f32,
     pub suit: Suit,
     pub rank: Rank,
@@ -156,8 +156,6 @@ impl TowerTemplate {
             kind,
             shoot_interval: kind.shoot_interval(),
             default_attack_range_radius: kind.default_attack_range_radius(),
-            projectile_kind: ProjectileKind::Ball,
-            projectile_speed: Per::new(48.0, 1.sec()),
             default_damage: kind.default_damage(),
             suit,
             rank,
