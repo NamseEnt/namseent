@@ -43,7 +43,7 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot(
+    pub fn shoot_projectile(
         &mut self,
         target_indicator: ProjectileTargetIndicator,
         tower_upgrade_states: &[TowerUpgradeState],
@@ -346,7 +346,7 @@ impl TowerKind {
     pub fn attack_type(&self) -> AttackType {
         match self {
             Self::Barricade => AttackType::Projectile,
-            Self::High => AttackType::InstantEffect,
+            Self::High => AttackType::Projectile,
             Self::OnePair => AttackType::Projectile,
             Self::TwoPair => AttackType::Projectile,
             Self::ThreeOfAKind => AttackType::Projectile,
