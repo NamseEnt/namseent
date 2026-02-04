@@ -1,6 +1,8 @@
 pub mod emitter;
 pub mod particle;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use crate::game_state::{
     GameState,
     field_particle::emitter::{DamageTextEmitter, MonsterDeathEmitter, MonsterStatusEffectEmitter},
@@ -41,7 +43,29 @@ impl TempParticleEmitter {
     }
 }
 
-pub type FieldParticleSystem = namui::particle::System<FieldParticleEmitter, FieldParticle>;
+#[derive(State)]
+pub struct FieldParticleSystem {
+    id: usize,
+    system: namui::particle::System<FieldParticleEmitter, FieldParticle>,
+}
+impl FieldParticleSystem {
+    pub fn new(emitters: Vec<FieldParticleEmitter>) -> Self {
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let system = namui::particle::System::new(emitters);
+        Self { id, system }
+    }
+}
+impl AsMut<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
+    fn as_mut(&mut self) -> &mut namui::particle::System<FieldParticleEmitter, FieldParticle> {
+        &mut self.system
+    }
+}
+impl AsRef<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
+    fn as_ref(&self) -> &namui::particle::System<FieldParticleEmitter, FieldParticle> {
+        &self.system
+    }
+}
 
 #[derive(Default, State)]
 pub struct FieldParticleSystemManager {
@@ -51,7 +75,9 @@ pub struct FieldParticleSystemManager {
 impl FieldParticleSystemManager {
     pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
         for system in &self.systems {
-            system.render(ctx, now);
+            ctx.compose_with_key(system.id, |ctx| {
+                system.as_ref().render(&ctx, now);
+            });
         }
     }
 
@@ -67,7 +93,7 @@ impl FieldParticleSystemManager {
     }
 
     fn remove_finished_field_particle_systems(&mut self, now: Instant) {
-        self.systems.retain(|system| !system.is_done(now));
+        self.systems.retain(|system| !system.as_ref().is_done(now));
     }
 }
 
