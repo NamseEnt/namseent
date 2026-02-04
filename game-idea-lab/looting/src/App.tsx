@@ -54,8 +54,8 @@ function App() {
           onClick={handleNewChest}
           style={{
             position: 'absolute',
-            top: 20,
-            right: 20,
+            top: 120,
+            left: 820,
             padding: '12px 24px',
             fontSize: 16,
             backgroundColor: '#4a4a6a',
