@@ -12,8 +12,9 @@ use namui::{
     *,
 };
 pub use particle::{
-    BurningTrailParticle, DamageTextParticle, IconParticle, InstantEmitParticle,
-    InstantHitParticle, LaserBeamParticle, MonsterCorpseParticle, MonsterSoulParticle,
+    BurningTrailParticle, DamageTextParticle, EmberSparkParticle, IconParticle,
+    InstantEmitParticle, InstantHitParticle, LaserBeamParticle, MonsterCorpseParticle,
+    MonsterSoulParticle,
 };
 
 #[derive(State)]
@@ -99,12 +100,24 @@ impl FieldParticleSystemManager {
 
 #[derive(State)]
 pub enum FieldParticleEmitter {
-    TempParticle { emitter: TempParticleEmitter },
-    MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
-    DamageText { emitter: DamageTextEmitter },
-    MonsterDeath { emitter: MonsterDeathEmitter },
-    MonsterCorpse { emitter: TempParticleEmitter },
-    BurningTrail { emitter: emitter::BurningTrailEmitter },
+    TempParticle {
+        emitter: TempParticleEmitter,
+    },
+    MonsterStatusEffect {
+        emitter: MonsterStatusEffectEmitter,
+    },
+    DamageText {
+        emitter: DamageTextEmitter,
+    },
+    MonsterDeath {
+        emitter: MonsterDeathEmitter,
+    },
+    MonsterCorpse {
+        emitter: TempParticleEmitter,
+    },
+    BurningTrail {
+        emitter: emitter::BurningTrailEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -137,6 +150,7 @@ pub enum FieldParticle {
     MonsterDeath { particle: MonsterSoulParticle },
     MonsterCorpse { particle: MonsterCorpseParticle },
     BurningTrail { particle: BurningTrailParticle },
+    EmberSpark { particle: EmberSparkParticle },
     LaserBeam { particle: LaserBeamParticle },
     InstantEmit { particle: InstantEmitParticle },
     InstantHit { particle: InstantHitParticle },
@@ -164,6 +178,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::EmberSpark { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
             FieldParticle::LaserBeam { particle } => {
                 particle.tick(now, dt);
                 vec![]
@@ -186,6 +204,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::MonsterDeath { particle } => particle.render(),
             FieldParticle::MonsterCorpse { particle } => particle.render(),
             FieldParticle::BurningTrail { particle } => particle.render(),
+            FieldParticle::EmberSpark { particle } => particle.render(),
             FieldParticle::LaserBeam { particle } => particle.render(),
             FieldParticle::InstantEmit { particle } => particle.render(),
             FieldParticle::InstantHit { particle } => particle.render(),
@@ -199,6 +218,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::MonsterDeath { particle } => particle.is_done(now),
             FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
             FieldParticle::BurningTrail { particle } => particle.is_done(now),
+            FieldParticle::EmberSpark { particle } => particle.is_done(now),
             FieldParticle::LaserBeam { particle } => particle.is_done(now),
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),
