@@ -47,6 +47,8 @@ impl Tower {
     pub fn shoot_projectile(
         &mut self,
         target_indicator: ProjectileTargetIndicator,
+        speed: Velocity,
+        trail: ProjectileTrail,
         tower_upgrade_states: &[TowerUpgradeState],
         contract_multiplier: f32,
         now: Instant,
@@ -57,30 +59,10 @@ impl Tower {
         Projectile::new(
             self.left_top.map(|t| t as f32 + 0.5),
             ProjectileKind::random_trash(),
-            PROJECTILE_SPEED,
+            speed,
             target_indicator,
             self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
-            ProjectileTrail::None,
-        )
-    }
-
-    pub fn shoot_fast_projectile(
-        &mut self,
-        target_indicator: ProjectileTargetIndicator,
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> Projectile {
-        self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, now);
-
-        Projectile::new(
-            self.left_top.map(|t| t as f32 + 0.5),
-            ProjectileKind::random_trash(),
-            FAST_PROJECTILE_SPEED,
-            target_indicator,
-            self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
-            ProjectileTrail::Burning,
+            trail,
         )
     }
 
@@ -367,14 +349,35 @@ impl TowerKind {
 
     pub fn attack_type(&self) -> AttackType {
         match self {
-            Self::Barricade => AttackType::Projectile,
-            Self::High => AttackType::Projectile,
-            Self::OnePair => AttackType::Projectile,
-            Self::TwoPair => AttackType::Projectile,
-            Self::ThreeOfAKind => AttackType::BurningProjectile,
-            Self::Straight => AttackType::Projectile,
+            Self::Barricade => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
+            Self::High => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
+            Self::OnePair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
+            Self::TwoPair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
+            Self::ThreeOfAKind => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::Burning,
+            },
+            Self::Straight => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
             Self::Flush => AttackType::Laser,
-            Self::FullHouse => AttackType::Projectile,
+            Self::FullHouse => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+            },
             Self::FourOfAKind => AttackType::InstantEffect,
             Self::StraightFlush => AttackType::Laser,
             Self::RoyalFlush => AttackType::Laser,

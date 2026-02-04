@@ -92,7 +92,7 @@ impl ProjectileKind {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum ProjectileTrail {
     None,
     Burning,
