@@ -28,13 +28,16 @@ export function ChestItem({
   const [animProgress, setAnimProgress] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
+  const [fixedTargetX] = useState(targetX)
+  const [fixedTargetY] = useState(targetY)
+  const [fixedDelay] = useState(delay)
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setStartTime(performance.now())
-    }, delay)
+    }, fixedDelay)
     return () => clearTimeout(timer)
-  }, [delay])
+  }, [])
 
   useTick(() => {
     if (startTime === null) return
@@ -48,11 +51,11 @@ export function ChestItem({
   if (!definition) return null
 
   const color = RARITY_COLORS[definition.rarity]
-  const width = 70
-  const height = 50
+  const width = 105
+  const height = 90
 
-  const currentX = baseX + (targetX - baseX) * animProgress
-  const currentY = baseY + (targetY - baseY) * animProgress
+  const currentX = baseX + (fixedTargetX - baseX) * animProgress
+  const currentY = baseY + (fixedTargetY - baseY) * animProgress
   const scale = 0.5 + 0.5 * animProgress
 
   const drawBackground = useCallback(
@@ -60,7 +63,7 @@ export function ChestItem({
       g.clear()
       g.setFillStyle({ color: isHovered ? 0x3a3a5a : 0x2a2a4a })
       g.setStrokeStyle({ width: isHovered ? 3 : 2, color })
-      g.roundRect(-width / 2, -height / 2, width, height, 6)
+      g.roundRect(-width / 2, -height / 2, width, height, 9)
       g.fill()
       g.stroke()
     },
@@ -69,14 +72,16 @@ export function ChestItem({
 
   const nameStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 10,
+    fontSize: 15,
     fill: 0xffffff,
     align: 'center',
-  }), [])
+    wordWrap: true,
+    wordWrapWidth: width - 12,
+  }), [width])
 
   const quantityStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 9,
+    fontSize: 14,
     fill: 0xcccccc,
   }), [])
 
@@ -96,9 +101,9 @@ export function ChestItem({
     >
       <pixiGraphics draw={drawBackground} />
       <pixiText
-        text={definition.name.length > 10 ? definition.name.substring(0, 8) + '..' : definition.name}
+        text={definition.name}
         x={0}
-        y={-6}
+        y={0}
         anchor={{ x: 0.5, y: 0.5 }}
         style={nameStyle}
       />
@@ -106,7 +111,7 @@ export function ChestItem({
         <pixiText
           text={`x${item.quantity}`}
           x={0}
-          y={10}
+          y={30}
           anchor={{ x: 0.5, y: 0.5 }}
           style={quantityStyle}
         />

@@ -24,25 +24,50 @@ function App() {
     }
   }, [chestItems.length])
 
+  const handleNewChest = useCallback(() => {
+    setChestItems([])
+    setChestState('closed')
+  }, [])
+
   return (
-    <Application background={0x1a1a2e} resizeTo={window}>
-      <Chest
-        x={640}
-        y={150}
-        state={chestState}
-        items={chestItems}
-        onStateChange={setChestState}
-        onItemsGenerated={setChestItems}
-        onItemPickup={handleItemPickup}
-        onEmpty={handleChestEmpty}
-      />
-      <Inventory
-        x={140}
-        y={320}
-        state={inventory.state}
-        onItemDrop={inventory.dropItem}
-      />
-    </Application>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      <Application background={0x1a1a2e} resizeTo={window}>
+        <Chest
+          x={640}
+          y={150}
+          state={chestState}
+          items={chestItems}
+          onStateChange={setChestState}
+          onItemsGenerated={setChestItems}
+          onItemPickup={handleItemPickup}
+          onEmpty={handleChestEmpty}
+        />
+        <Inventory
+          x={140}
+          y={320}
+          state={inventory.state}
+          onItemDrop={inventory.dropItem}
+        />
+      </Application>
+      <button
+        onClick={handleNewChest}
+        style={{
+          position: 'absolute',
+          top: 40,
+          left: 640,
+          transform: 'translateX(-50%)',
+          padding: '12px 24px',
+          fontSize: 16,
+          backgroundColor: '#4a4a6a',
+          color: 'white',
+          border: '2px solid #6a6a8a',
+          borderRadius: 8,
+          cursor: 'pointer',
+        }}
+      >
+        새 박스
+      </button>
+    </div>
   )
 }
 

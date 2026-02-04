@@ -24,7 +24,7 @@ export function BagGrid({
   onItemClick,
 }: BagGridProps) {
   const rows = Math.ceil(bagSize / columns)
-  const padding = 4
+  const padding = 6
 
   const drawBackground = useCallback(
     (g: Graphics) => {
@@ -38,7 +38,7 @@ export function BagGrid({
 
   const titleStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 12,
+    fontSize: 18,
     fill: 0x888899,
   }), [])
 
@@ -69,7 +69,7 @@ export function BagGrid({
       <pixiText
         text={`Bag (${items.filter(Boolean).length}/${bagSize})`}
         x={0}
-        y={-24}
+        y={-36}
         style={titleStyle}
       />
       {cells}
@@ -104,14 +104,16 @@ function BagCell({ x, y, cellSize, padding, item, onClick }: BagCellProps) {
 
   const nameStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 9,
+    fontSize: 11,
     fill: 0xffffff,
     align: 'center',
-  }), [])
+    wordWrap: true,
+    wordWrapWidth: cellSize - padding - 4,
+  }), [cellSize, padding])
 
   const quantityStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 9,
+    fontSize: 14,
     fill: 0xcccccc,
   }), [])
 
@@ -127,7 +129,7 @@ function BagCell({ x, y, cellSize, padding, item, onClick }: BagCellProps) {
       {item && definition && (
         <>
           <pixiText
-            text={definition.name.length > 8 ? definition.name.substring(0, 6) + '..' : definition.name}
+            text={definition.name}
             x={(cellSize - padding) / 2}
             y={(cellSize - padding) / 2 - 6}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -136,8 +138,8 @@ function BagCell({ x, y, cellSize, padding, item, onClick }: BagCellProps) {
           {definition.stackSize > 1 && (
             <pixiText
               text={`x${item.quantity}`}
-              x={cellSize - padding - 6}
-              y={cellSize - padding - 8}
+              x={cellSize - padding - 9}
+              y={cellSize - padding - 12}
               anchor={{ x: 1, y: 1 }}
               style={quantityStyle}
             />
