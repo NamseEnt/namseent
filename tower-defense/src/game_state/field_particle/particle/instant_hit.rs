@@ -1,4 +1,4 @@
-use crate::game_state::{attack, TILE_PX_SIZE};
+use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
 #[derive(Clone, State)]
@@ -104,6 +104,14 @@ impl InstantHitParticle {
                     .set_stroke_width(px(3.0));
 
                 namui::path(path, paint)
+            }
+            attack::instant_effect::InstantEffectKind::FullHouseRain => {
+                // FullHouse Rain 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
+                RenderingTree::Empty
+            }
+            attack::instant_effect::InstantEffectKind::FullHouseBurst => {
+                // FullHouse Burst 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
+                RenderingTree::Empty
             }
         }
     }

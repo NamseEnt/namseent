@@ -4,7 +4,7 @@ use namui::*;
 pub const EFFECT_LIFETIME: Duration = Duration::from_millis(400);
 
 /// 이펙트 종류
-#[derive(Clone, Copy, PartialEq, Eq, State)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, State)]
 pub enum InstantEffectKind {
     /// 폭발 이펙트
     Explosion,
@@ -12,10 +12,14 @@ pub enum InstantEffectKind {
     Lightning,
     /// 마법진 이펙트
     MagicCircle,
+    /// FullHouse 이펙트 - 하늘에서 trash가 떨어짐
+    FullHouseRain,
+    /// FullHouse 이펙트 - 하늘로 trash가 솟구침
+    FullHouseBurst,
 }
 
 /// 타워 위치에서 시작되는 발사 이펙트
-#[derive(Clone, State)]
+#[derive(Clone, Debug, PartialEq, State)]
 pub struct TowerEmitEffect {
     /// 타워 위치
     pub tower_xy: (f32, f32),
@@ -28,7 +32,7 @@ pub struct TowerEmitEffect {
 }
 
 /// 적 위치에 생성되는 히트 이펙트
-#[derive(Clone, State)]
+#[derive(Clone, Debug, PartialEq, State)]
 pub struct TargetHitEffect {
     /// 이펙트 위치
     pub xy: (f32, f32),

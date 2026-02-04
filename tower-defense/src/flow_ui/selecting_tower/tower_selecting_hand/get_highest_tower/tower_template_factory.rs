@@ -12,6 +12,5 @@ pub fn create_tower_template(kind: TowerKind, suit: Suit, rank: Rank) -> TowerTe
         rank,
         skill_templates: kind.skill_templates(),
         default_status_effects: vec![],
-        attack_type: kind.attack_type(),
     }
 }

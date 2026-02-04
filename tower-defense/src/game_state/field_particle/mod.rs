@@ -14,7 +14,7 @@ use namui::{
 pub use particle::{
     BurningTrailParticle, DamageTextParticle, EmberSparkParticle, IconParticle,
     InstantEmitParticle, InstantHitParticle, LaserBeamParticle, MonsterCorpseParticle,
-    MonsterSoulParticle,
+    MonsterSoulParticle, TrashParticle, EaseMode,
 };
 
 #[derive(State)]
@@ -118,6 +118,12 @@ pub enum FieldParticleEmitter {
     BurningTrail {
         emitter: emitter::BurningTrailEmitter,
     },
+    TrashBurst {
+        emitter: emitter::TrashBurstEmitter,
+    },
+    TrashRain {
+        emitter: emitter::TrashRainEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -128,6 +134,8 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -139,6 +147,8 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -154,6 +164,7 @@ pub enum FieldParticle {
     LaserBeam { particle: LaserBeamParticle },
     InstantEmit { particle: InstantEmitParticle },
     InstantHit { particle: InstantHitParticle },
+    Trash { particle: TrashParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -194,6 +205,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::Trash { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -208,6 +223,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LaserBeam { particle } => particle.render(),
             FieldParticle::InstantEmit { particle } => particle.render(),
             FieldParticle::InstantHit { particle } => particle.render(),
+            FieldParticle::Trash { particle } => particle.render(),
         }
     }
 
@@ -222,6 +238,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LaserBeam { particle } => particle.is_done(now),
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),
+            FieldParticle::Trash { particle } => particle.is_done(now),
         }
     }
 }

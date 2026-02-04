@@ -2,11 +2,14 @@ use super::*;
 
 pub fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
+    use crate::game_state::attack::instant_effect::InstantEffectKind;
+    use crate::game_state::field_particle;
 
     let now = game_state.now();
 
     let mut projectiles = Vec::new();
     let mut attack_effect_particles = Vec::new();
+    let mut field_emitters = Vec::new();
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
@@ -49,8 +52,14 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let contract_multiplier = stage_modifiers.get_damage_multiplier();
             let target_xy = monsters[target_idx].move_on_route.xy();
+            let (attack_type, instant_damage) = tower.attack_type(
+                (target_xy.x, target_xy.y),
+                &tower_upgrades,
+                contract_multiplier,
+                now,
+            );
 
-            match tower.attack_type {
+            match attack_type {
                 AttackType::Projectile { speed, trail } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
                     let projectile = tower.shoot_projectile(
@@ -87,38 +96,59 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
                     monster_kills.push((target_idx, damage, target_xy));
                 }
-                AttackType::InstantEffect => {
-                    let (emit_effect, hit_effect, damage) = tower.shoot_instant_effect(
-                        (target_xy.x, target_xy.y),
-                        &tower_upgrades,
-                        contract_multiplier,
-                        now,
-                    );
+                AttackType::InstantEffect {
+                    emit_effect,
+                    hit_effect,
+                } => {
+                    // FullHouse 이펙트인 경우 특별한 particle 생성
+                    match emit_effect.kind {
+                        InstantEffectKind::FullHouseRain => {
+                            // emit via TrashRain and TrashBurst emitters
+                            field_emitters.push(field_particle::FieldParticleEmitter::TrashRain {
+                                emitter: field_particle::emitter::TrashRainEmitter::new(
+                                    crate::MapCoordF32::new(hit_effect.xy.0, hit_effect.xy.1),
+                                    emit_effect.created_at,
+                                ),
+                            });
+                            field_emitters.push(field_particle::FieldParticleEmitter::TrashBurst {
+                                emitter: field_particle::emitter::TrashBurstEmitter::new(
+                                    crate::MapCoordF32::new(emit_effect.tower_xy.0, emit_effect.tower_xy.1),
+                                    emit_effect.created_at,
+                                ),
+                            });
+                        }
+                        _ => {
+                            attack_effect_particles.push(
+                                field_particle::FieldParticle::InstantEmit {
+                                    particle: field_particle::InstantEmitParticle::new(
+                                        emit_effect.tower_xy,
+                                        emit_effect.target_xy,
+                                        emit_effect.created_at,
+                                        emit_effect.kind,
+                                    ),
+                                },
+                            );
+                            attack_effect_particles.push(
+                                field_particle::FieldParticle::InstantHit {
+                                    particle: field_particle::InstantHitParticle::new(
+                                        hit_effect.xy,
+                                        hit_effect.created_at,
+                                        hit_effect.kind,
+                                        hit_effect.scale,
+                                    ),
+                                },
+                            );
+                        }
+                    }
 
-                    attack_effect_particles.push(field_particle::FieldParticle::InstantEmit {
-                        particle: field_particle::InstantEmitParticle::new(
-                            emit_effect.tower_xy,
-                            emit_effect.target_xy,
-                            emit_effect.created_at,
-                            emit_effect.kind,
-                        ),
-                    });
-                    attack_effect_particles.push(field_particle::FieldParticle::InstantHit {
-                        particle: field_particle::InstantHitParticle::new(
-                            hit_effect.xy,
-                            hit_effect.created_at,
-                            hit_effect.kind,
-                            hit_effect.scale,
-                        ),
-                    });
-
-                    if damage > 0.0 {
+                    if instant_damage > 0.0 {
                         damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
-                            target_xy, damage,
+                            target_xy,
+                            instant_damage,
                         ));
                     }
 
-                    monster_kills.push((target_idx, damage, target_xy));
+                    monster_kills.push((target_idx, instant_damage, target_xy));
                 }
             }
         }
@@ -155,6 +185,12 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     }
 
     game_state.projectiles.extend(projectiles);
+
+    if !field_emitters.is_empty() {
+        game_state
+            .field_particle_system_manager
+            .add_emitters(field_emitters);
+    }
 
     super::particle_emit::emit_attack_effect_particles(game_state, attack_effect_particles);
     super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);

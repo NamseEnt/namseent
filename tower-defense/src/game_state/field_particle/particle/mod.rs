@@ -7,6 +7,7 @@ mod instant_hit;
 mod laser_beam;
 mod monster_corpse;
 mod monster_soul;
+mod trash;
 
 pub use burning_trail::*;
 pub use damage_text::*;
@@ -17,3 +18,4 @@ pub use instant_hit::*;
 pub use laser_beam::*;
 pub use monster_corpse::*;
 pub use monster_soul::*;
+pub use trash::*;
