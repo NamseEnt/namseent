@@ -10,8 +10,8 @@ use namui::{
     *,
 };
 pub use particle::{
-    DamageTextParticle, IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle,
-    MonsterCorpseParticle, MonsterSoulParticle,
+    BurningTrailParticle, DamageTextParticle, IconParticle, InstantEmitParticle,
+    InstantHitParticle, LaserBeamParticle, MonsterCorpseParticle, MonsterSoulParticle,
 };
 
 #[derive(State)]
@@ -107,6 +107,7 @@ pub enum FieldParticle {
     DamageText { particle: DamageTextParticle },
     MonsterDeath { particle: MonsterSoulParticle },
     MonsterCorpse { particle: MonsterCorpseParticle },
+    BurningTrail { particle: BurningTrailParticle },
     LaserBeam { particle: LaserBeamParticle },
     InstantEmit { particle: InstantEmitParticle },
     InstantHit { particle: InstantHitParticle },
@@ -127,6 +128,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 vec![]
             }
             FieldParticle::MonsterCorpse { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::BurningTrail { particle } => {
                 particle.tick(now, dt);
                 vec![]
             }
@@ -151,6 +156,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.render(),
             FieldParticle::MonsterDeath { particle } => particle.render(),
             FieldParticle::MonsterCorpse { particle } => particle.render(),
+            FieldParticle::BurningTrail { particle } => particle.render(),
             FieldParticle::LaserBeam { particle } => particle.render(),
             FieldParticle::InstantEmit { particle } => particle.render(),
             FieldParticle::InstantHit { particle } => particle.render(),
@@ -163,6 +169,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.is_done(now),
             FieldParticle::MonsterDeath { particle } => particle.is_done(now),
             FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
+            FieldParticle::BurningTrail { particle } => particle.is_done(now),
             FieldParticle::LaserBeam { particle } => particle.is_done(now),
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),

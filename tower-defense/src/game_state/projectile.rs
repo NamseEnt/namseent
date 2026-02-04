@@ -13,6 +13,7 @@ pub struct Projectile {
     pub damage: f32,
     pub rotation: Angle,
     pub rotation_speed: Angle,
+    pub trail: ProjectileTrail,
 }
 impl Projectile {
     pub fn new(
@@ -21,6 +22,7 @@ impl Projectile {
         velocity: Velocity,
         target_indicator: ProjectileTargetIndicator,
         damage: f32,
+        trail: ProjectileTrail,
     ) -> Self {
         Self {
             xy,
@@ -30,6 +32,7 @@ impl Projectile {
             damage,
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
+            trail,
         }
     }
 
@@ -87,6 +90,12 @@ impl ProjectileKind {
             ProjectileKind::Trash04 => crate::asset::image::attack::projectile::TRASH_04,
         }
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, State)]
+pub enum ProjectileTrail {
+    None,
+    Burning,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]

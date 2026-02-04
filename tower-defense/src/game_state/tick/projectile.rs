@@ -10,6 +10,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut total_earn_gold = 0;
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
+    let mut attack_effect_particles = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -26,6 +27,14 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
         if (monster_xy - start_xy).length() > projectile.velocity * dt {
             projectile.move_by(dt, monster_xy);
+            if projectile.trail == ProjectileTrail::Burning {
+                attack_effect_particles.push(field_particle::FieldParticle::BurningTrail {
+                    particle: field_particle::BurningTrailParticle::new(
+                        (projectile.xy.x, projectile.xy.y),
+                        now,
+                    ),
+                });
+            }
             return true;
         }
 
@@ -90,6 +99,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
     super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
     super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
+    super::particle_emit::emit_attack_effect_particles(game_state, attack_effect_particles);
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);

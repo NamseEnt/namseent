@@ -61,6 +61,16 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     );
                     projectiles.push(projectile);
                 }
+                AttackType::BurningProjectile => {
+                    let target_indicator = monsters[target_idx].projectile_target_indicator;
+                    let projectile = tower.shoot_fast_projectile(
+                        target_indicator,
+                        &tower_upgrades,
+                        contract_multiplier,
+                        now,
+                    );
+                    projectiles.push(projectile);
+                }
                 AttackType::Laser => {
                     let (laser, damage) = tower.shoot_laser(
                         (target_xy.x, target_xy.y),

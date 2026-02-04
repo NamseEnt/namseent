@@ -14,7 +14,8 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-const PROJECTILE_SPEED: Velocity = Per::new(16.0, Duration::from_secs(1));
+const PROJECTILE_SPEED: Velocity = Per::new(12.0, Duration::from_secs(1));
+const FAST_PROJECTILE_SPEED: Velocity = Per::new(4.0, Duration::from_secs(1));
 
 #[derive(Clone, PartialEq, State)]
 pub struct Tower {
@@ -59,6 +60,27 @@ impl Tower {
             PROJECTILE_SPEED,
             target_indicator,
             self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
+            ProjectileTrail::None,
+        )
+    }
+
+    pub fn shoot_fast_projectile(
+        &mut self,
+        target_indicator: ProjectileTargetIndicator,
+        tower_upgrade_states: &[TowerUpgradeState],
+        contract_multiplier: f32,
+        now: Instant,
+    ) -> Projectile {
+        self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack, now);
+
+        Projectile::new(
+            self.left_top.map(|t| t as f32 + 0.5),
+            ProjectileKind::random_trash(),
+            FAST_PROJECTILE_SPEED,
+            target_indicator,
+            self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
+            ProjectileTrail::Burning,
         )
     }
 
@@ -349,7 +371,7 @@ impl TowerKind {
             Self::High => AttackType::Projectile,
             Self::OnePair => AttackType::Projectile,
             Self::TwoPair => AttackType::Projectile,
-            Self::ThreeOfAKind => AttackType::Projectile,
+            Self::ThreeOfAKind => AttackType::BurningProjectile,
             Self::Straight => AttackType::Projectile,
             Self::Flush => AttackType::Laser,
             Self::FullHouse => AttackType::Projectile,
