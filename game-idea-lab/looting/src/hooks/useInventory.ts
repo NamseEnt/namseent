@@ -67,6 +67,7 @@ export function useInventory() {
             return newState
           }
         }
+        return prev
       }
 
       if (definition.category === 'weapon') {
@@ -147,12 +148,15 @@ export function useInventory() {
     return result
   }, [])
 
-  const dropItem = useCallback((slotType: 'equipment' | 'weapon' | 'bag', slotIndex: number | EquipmentSlotType | WeaponSlotType) => {
+  const dropItem = useCallback((slotType: 'equipment' | 'weapon' | 'bag', slotIndex: number | EquipmentSlotType | WeaponSlotType): ItemInstance | null => {
+    let droppedItem: ItemInstance | null = null
+
     setState(prev => {
       const newState = { ...prev }
 
       if (slotType === 'equipment' && typeof slotIndex === 'string') {
         const slot = slotIndex as EquipmentSlotType
+        droppedItem = newState.equipment[slot]
         newState.equipment = { ...newState.equipment, [slot]: null }
 
         if (slot === 'backpack') {
@@ -163,14 +167,18 @@ export function useInventory() {
         }
       } else if (slotType === 'weapon' && typeof slotIndex === 'string') {
         const slot = slotIndex as WeaponSlotType
+        droppedItem = newState.weapons[slot]
         newState.weapons = { ...newState.weapons, [slot]: null }
       } else if (slotType === 'bag' && typeof slotIndex === 'number') {
+        droppedItem = newState.bag[slotIndex]
         newState.bag = [...newState.bag]
         newState.bag[slotIndex] = null
       }
 
       return newState
     })
+
+    return droppedItem
   }, [])
 
   const swapSlots = useCallback((
@@ -210,10 +218,92 @@ export function useInventory() {
     })
   }, [])
 
+  const removeAttachment = useCallback((weaponSlot: WeaponSlotType, attachmentType: AttachmentType): ItemInstance | null => {
+    let removedAttachment: ItemInstance | null = null
+
+    setState(prev => {
+      const weapon = prev.weapons[weaponSlot]
+      if (!weapon || !weapon.attachments) return prev
+
+      removedAttachment = weapon.attachments[attachmentType]
+      if (!removedAttachment) return prev
+
+      const newWeapon: ItemInstance = {
+        ...weapon,
+        attachments: {
+          ...weapon.attachments,
+          [attachmentType]: null,
+        },
+      }
+
+      return {
+        ...prev,
+        weapons: { ...prev.weapons, [weaponSlot]: newWeapon },
+      }
+    })
+
+    return removedAttachment
+  }, [])
+
+  const addAttachmentToWeapon = useCallback((weaponSlot: WeaponSlotType, attachment: ItemInstance): { success: boolean, replacedItem: ItemInstance | null } => {
+    const definition = getItemDefinition(attachment.definitionId)
+    if (!definition || definition.category !== 'attachment') return { success: false, replacedItem: null }
+
+    let replacedAttachment: ItemInstance | null = null
+    let success = false
+
+    setState(prev => {
+      const weapon = prev.weapons[weaponSlot]
+      if (!weapon || !weapon.attachments) return prev
+
+      const weaponDef = getItemDefinition(weapon.definitionId)
+      if (!weaponDef?.attachmentSlots?.includes(definition.subType as AttachmentType)) return prev
+
+      const attachmentType = definition.subType as AttachmentType
+      replacedAttachment = weapon.attachments[attachmentType]
+      success = true
+
+      const newWeapon: ItemInstance = {
+        ...weapon,
+        attachments: {
+          ...weapon.attachments,
+          [attachmentType]: attachment,
+        },
+      }
+
+      return {
+        ...prev,
+        weapons: { ...prev.weapons, [weaponSlot]: newWeapon },
+      }
+    })
+
+    return { success, replacedItem: replacedAttachment }
+  }, [])
+
+  const addToBag = useCallback((item: ItemInstance): boolean => {
+    let success = false
+
+    setState(prev => {
+      const emptySlot = findEmptyBagSlot(prev)
+      if (emptySlot === -1) return prev
+
+      const newBag = [...prev.bag]
+      newBag[emptySlot] = item
+      success = true
+
+      return { ...prev, bag: newBag }
+    })
+
+    return success
+  }, [])
+
   return {
     state,
     addItem,
     dropItem,
     swapSlots,
+    removeAttachment,
+    addAttachmentToWeapon,
+    addToBag,
   }
 }

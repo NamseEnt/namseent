@@ -12,6 +12,8 @@ interface BagGridProps {
   columns?: number
   cellSize?: number
   onItemClick?: (index: number) => void
+  onDrop?: () => void
+  isDragging?: boolean
 }
 
 export function BagGrid({
@@ -22,18 +24,27 @@ export function BagGrid({
   columns = 5,
   cellSize = 60,
   onItemClick,
+  onDrop,
+  isDragging,
 }: BagGridProps) {
   const rows = Math.ceil(bagSize / columns)
   const padding = 6
+  const hasEmptySlot = items.some(item => item === null)
 
   const drawBackground = useCallback(
     (g: Graphics) => {
       g.clear()
       g.setFillStyle({ color: 0x0a0a1a, alpha: 0.8 })
+      if (isDragging && hasEmptySlot) {
+        g.setStrokeStyle({ width: 2, color: 0x44ff44 })
+      }
       g.roundRect(-8, -8, columns * cellSize + 16, rows * cellSize + 16, 8)
       g.fill()
+      if (isDragging && hasEmptySlot) {
+        g.stroke()
+      }
     },
-    [columns, rows, cellSize]
+    [columns, rows, cellSize, isDragging, hasEmptySlot]
   )
 
   const titleStyle = useMemo(() => new TextStyle({
@@ -65,7 +76,13 @@ export function BagGrid({
 
   return (
     <pixiContainer x={x} y={y}>
-      <pixiGraphics draw={drawBackground} />
+      <pixiContainer
+        eventMode={isDragging ? 'static' : 'auto'}
+        cursor={isDragging && hasEmptySlot ? 'pointer' : 'default'}
+        onPointerDown={isDragging && hasEmptySlot && onDrop ? onDrop : undefined}
+      >
+        <pixiGraphics draw={drawBackground} />
+      </pixiContainer>
       <pixiText
         text={`Bag (${items.filter(Boolean).length}/${bagSize})`}
         x={0}

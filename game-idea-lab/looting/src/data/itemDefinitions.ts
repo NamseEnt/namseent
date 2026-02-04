@@ -36,7 +36,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
 
   bodyShield_1: {
     id: 'bodyShield_1',
-    name: 'Body Shield LV1',
+    name: '아머 LV1',
     category: 'equipment',
     subType: 'bodyShield',
     rarity: 1,
@@ -44,7 +44,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   bodyShield_2: {
     id: 'bodyShield_2',
-    name: 'Body Shield LV2',
+    name: '아머 LV2',
     category: 'equipment',
     subType: 'bodyShield',
     rarity: 2,
@@ -52,7 +52,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   bodyShield_3: {
     id: 'bodyShield_3',
-    name: 'Body Shield LV3',
+    name: '아머 LV3',
     category: 'equipment',
     subType: 'bodyShield',
     rarity: 3,
@@ -60,7 +60,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   bodyShield_4: {
     id: 'bodyShield_4',
-    name: 'Body Shield LV4',
+    name: '아머 LV4',
     category: 'equipment',
     subType: 'bodyShield',
     rarity: 4,
@@ -68,7 +68,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   bodyShield_5: {
     id: 'bodyShield_5',
-    name: 'Evo Shield LV5',
+    name: '아머 LV5',
     category: 'equipment',
     subType: 'bodyShield',
     rarity: 5,
@@ -199,7 +199,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
 
   extendedMag_1: {
     id: 'extendedMag_1',
-    name: 'Extended Mag LV1',
+    name: 'Mag LV1',
     category: 'attachment',
     subType: 'extendedMag',
     rarity: 1,
@@ -207,7 +207,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   extendedMag_2: {
     id: 'extendedMag_2',
-    name: 'Extended Mag LV2',
+    name: 'Mag LV2',
     category: 'attachment',
     subType: 'extendedMag',
     rarity: 2,
@@ -215,7 +215,7 @@ export const ITEM_DEFINITIONS: Record<string, ItemDefinition> = {
   },
   extendedMag_3: {
     id: 'extendedMag_3',
-    name: 'Extended Mag LV3',
+    name: 'Mag LV3',
     category: 'attachment',
     subType: 'extendedMag',
     rarity: 3,

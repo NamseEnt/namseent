@@ -16,7 +16,7 @@ interface EquipmentSlotProps {
 
 const SLOT_LABELS: Record<EquipmentSlotType, string> = {
   helmet: 'Helmet',
-  bodyShield: 'Shield',
+  bodyShield: '아머',
   knockdownShield: 'Knockdown',
   backpack: 'Backpack',
 }
@@ -47,21 +47,21 @@ export function EquipmentSlot({
 
   const labelStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 10,
+    fontSize: 15,
     fill: 0x666688,
     align: 'center',
   }), [])
 
   const nameStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 10,
+    fontSize: 15,
     fill: 0xffffff,
     align: 'center',
   }), [])
 
   const levelStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 9,
+    fontSize: 14,
     fill: borderColor,
   }), [borderColor])
 
@@ -82,14 +82,14 @@ export function EquipmentSlot({
           <pixiText
             text={definition.name}
             x={width / 2}
-            y={height / 2 - 6}
+            y={height / 2 - 9}
             anchor={{ x: 0.5, y: 0.5 }}
             style={nameStyle}
           />
           <pixiText
             text={`LV${definition.rarity}`}
             x={width / 2}
-            y={height / 2 + 8}
+            y={height / 2 + 12}
             anchor={{ x: 0.5, y: 0.5 }}
             style={levelStyle}
           />
