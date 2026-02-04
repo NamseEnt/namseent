@@ -15,7 +15,7 @@ use std::{
 };
 
 const PROJECTILE_SPEED: Velocity = Per::new(12.0, Duration::from_secs(1));
-const FAST_PROJECTILE_SPEED: Velocity = Per::new(4.0, Duration::from_secs(1));
+const FAST_PROJECTILE_SPEED: Velocity = Per::new(16.0, Duration::from_secs(1));
 
 #[derive(Clone, PartialEq, State)]
 pub struct Tower {

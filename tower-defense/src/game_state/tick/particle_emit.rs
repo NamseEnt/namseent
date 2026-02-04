@@ -46,3 +46,20 @@ pub fn emit_monster_death_particles(
         .field_particle_system_manager
         .add_emitters(field_emitters);
 }
+
+pub fn emit_burning_trail_emitters(
+    game_state: &mut GameState,
+    emitters: Vec<field_particle::emitter::BurningTrailEmitter>,
+) {
+    if emitters.is_empty() {
+        return;
+    }
+
+    let field_emitters = emitters
+        .into_iter()
+        .map(|emitter| field_particle::FieldParticleEmitter::BurningTrail { emitter })
+        .collect::<Vec<_>>();
+    game_state
+        .field_particle_system_manager
+        .add_emitters(field_emitters);
+}

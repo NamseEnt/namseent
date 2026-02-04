@@ -104,6 +104,7 @@ pub enum FieldParticleEmitter {
     DamageText { emitter: DamageTextEmitter },
     MonsterDeath { emitter: MonsterDeathEmitter },
     MonsterCorpse { emitter: TempParticleEmitter },
+    BurningTrail { emitter: emitter::BurningTrailEmitter },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -113,6 +114,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -123,6 +125,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
         }
     }
 }
