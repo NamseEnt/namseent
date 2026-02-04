@@ -49,24 +49,25 @@ function App() {
           onItemDrop={inventory.dropItem}
         />
       </Application>
-      <button
-        onClick={handleNewChest}
-        style={{
-          position: 'absolute',
-          top: 40,
-          left: 640,
-          transform: 'translateX(-50%)',
-          padding: '12px 24px',
-          fontSize: 16,
-          backgroundColor: '#4a4a6a',
-          color: 'white',
-          border: '2px solid #6a6a8a',
-          borderRadius: 8,
-          cursor: 'pointer',
-        }}
-      >
-        새 박스
-      </button>
+      {chestState !== 'closed' && (
+        <button
+          onClick={handleNewChest}
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            padding: '12px 24px',
+            fontSize: 16,
+            backgroundColor: '#4a4a6a',
+            color: 'white',
+            border: '2px solid #6a6a8a',
+            borderRadius: 8,
+            cursor: 'pointer',
+          }}
+        >
+          새 박스
+        </button>
+      )}
     </div>
   )
 }
