@@ -9,7 +9,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
     let mut projectiles = Vec::new();
     let mut attack_effect_particles = Vec::new();
-    let mut field_emitters = Vec::new();
+    let field_emitters = Vec::new();
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
@@ -103,19 +103,22 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     // FullHouse 이펙트인 경우 특별한 particle 생성
                     match emit_effect.kind {
                         InstantEffectKind::FullHouseRain => {
-                            // emit via TrashRain and TrashBurst emitters
-                            field_emitters.push(field_particle::FieldParticleEmitter::TrashRain {
-                                emitter: field_particle::emitter::TrashRainEmitter::new(
-                                    crate::MapCoordF32::new(hit_effect.xy.0, hit_effect.xy.1),
-                                    emit_effect.created_at,
-                                ),
-                            });
-                            field_emitters.push(field_particle::FieldParticleEmitter::TrashBurst {
-                                emitter: field_particle::emitter::TrashBurstEmitter::new(
-                                    crate::MapCoordF32::new(emit_effect.tower_xy.0, emit_effect.tower_xy.1),
-                                    emit_effect.created_at,
-                                ),
-                            });
+                            let target_indicator = monsters[target_idx].projectile_target_indicator;
+                            let damage_per_projectile = instant_damage / 4.0;
+
+                            for _ in 0..4 {
+                                let projectile = Projectile::new_homing(
+                                    crate::MapCoordF32::new(
+                                        emit_effect.tower_xy.0,
+                                        emit_effect.tower_xy.1,
+                                    ),
+                                    ProjectileKind::random_trash(),
+                                    target_indicator,
+                                    damage_per_projectile,
+                                    ProjectileTrail::None,
+                                );
+                                projectiles.push(projectile);
+                            }
                         }
                         _ => {
                             attack_effect_particles.push(
@@ -141,14 +144,17 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         }
                     }
 
-                    if instant_damage > 0.0 {
+                    if emit_effect.kind != InstantEffectKind::FullHouseRain && instant_damage > 0.0
+                    {
                         damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
                             target_xy,
                             instant_damage,
                         ));
                     }
 
-                    monster_kills.push((target_idx, instant_damage, target_xy));
+                    if emit_effect.kind != InstantEffectKind::FullHouseRain {
+                        monster_kills.push((target_idx, instant_damage, target_xy));
+                    }
                 }
             }
         }

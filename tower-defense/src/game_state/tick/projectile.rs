@@ -25,8 +25,16 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let monster = &mut monsters[monster_index];
         let monster_xy = monster.move_on_route.xy();
 
-        if (monster_xy - start_xy).length() > projectile.velocity * dt {
-            projectile.move_by(dt, monster_xy);
+        let step_distance = match projectile.behavior {
+            ProjectileBehavior::Direct => projectile.velocity * dt,
+            ProjectileBehavior::Homing { velocity, .. } => velocity.length() * dt.as_secs_f32(),
+        };
+
+        if (monster_xy - start_xy).length() > step_distance {
+            match projectile.behavior {
+                ProjectileBehavior::Direct => projectile.move_by(dt, monster_xy),
+                ProjectileBehavior::Homing { .. } => projectile.move_homing(dt, monster_xy),
+            }
 
             if projectile.trail == ProjectileTrail::Burning {
                 burning_trail_emitters.push(field_particle::emitter::BurningTrailEmitter::new(
