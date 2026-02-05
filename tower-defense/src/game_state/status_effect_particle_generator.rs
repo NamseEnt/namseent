@@ -60,7 +60,7 @@ fn generate_monster_status_effect_emitters(
             {
                 let monster_emitter = MonsterStatusEffectEmitter::new_with_default_duration(
                     now,
-                    monster.xy(),
+                    monster.center_xy_tile(),
                     status_effect.kind,
                 );
                 let field_particle_emitter = FieldParticleEmitter::MonsterStatusEffect {

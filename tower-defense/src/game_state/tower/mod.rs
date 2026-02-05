@@ -57,7 +57,7 @@ impl Tower {
         self.animation.transition(AnimationKind::Attack, now);
 
         Projectile::new(
-            self.left_top.map(|t| t as f32 + 0.5),
+            self.head_xy_tile(),
             ProjectileKind::random_trash(),
             speed,
             target_indicator,
@@ -79,12 +79,8 @@ impl Tower {
 
         let damage = self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
 
-        let laser = attack::laser::LaserBeam::new(
-            (self.left_top.x as f32 + 0.5, self.left_top.y as f32 + 0.5),
-            target_xy,
-            now,
-            damage,
-        );
+        let head_xy = self.head_xy_tile();
+        let laser = attack::laser::LaserBeam::new((head_xy.x, head_xy.y), target_xy, now, damage);
 
         (laser, damage)
     }
@@ -132,16 +128,10 @@ impl Tower {
                 },
                 0.0,
             ),
-            TowerKind::Straight => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                },
-                0.0,
-            ),
-            TowerKind::Flush | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
-                (AttackType::Laser, 0.0)
-            }
+            TowerKind::Straight
+            | TowerKind::Flush
+            | TowerKind::StraightFlush
+            | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
             TowerKind::FullHouse | TowerKind::FourOfAKind => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, now);
@@ -149,7 +139,8 @@ impl Tower {
                 let damage =
                     self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
 
-                let tower_xy = (self.left_top.x as f32 + 0.5, self.left_top.y as f32 + 0.5);
+                let head_xy = self.head_xy_tile();
+                let tower_xy = (head_xy.x, head_xy.y);
                 let effect_kind = if self.kind == TowerKind::FullHouse {
                     attack::instant_effect::InstantEffectKind::FullHouseRain
                 } else {
@@ -182,6 +173,12 @@ impl Tower {
     }
     pub fn center_xy_f32(&self) -> MapCoordF32 {
         self.center_xy().map(|t| t as f32)
+    }
+
+    /// 타워의 공격 시작점 (타일 단위) - center_xy에서 y - 0.5
+    pub fn head_xy_tile(&self) -> MapCoordF32 {
+        let center = self.center_xy_f32();
+        MapCoordF32::new(center.x, center.y - 0.5)
     }
 
     pub fn id(&self) -> usize {

@@ -163,16 +163,14 @@ impl Component for &Projectile {
         let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
         let image = self.kind.image();
 
-        ctx.translate(TILE_PX_SIZE.to_xy() * 0.5)
-            .rotate(self.rotation)
-            .add(namui::image(ImageParam {
-                rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
-                image,
-                style: ImageStyle {
-                    fit: ImageFit::Contain,
-                    paint: None,
-                },
-            }));
+        ctx.rotate(self.rotation).add(namui::image(ImageParam {
+            rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
+            image,
+            style: ImageStyle {
+                fit: ImageFit::Contain,
+                paint: None,
+            },
+        }));
     }
 }
 

@@ -129,18 +129,14 @@ impl TrashParticle {
             px_xy.y,
             namui::rotate(
                 self.rotation,
-                namui::translate(
-                    -wh.width * 0.5,
-                    -wh.height * 0.5,
-                    namui::image(ImageParam {
-                        rect: Rect::from_xy_wh(Xy::new(0.px(), 0.px()), wh),
-                        image,
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: Some(paint),
-                        },
-                    }),
-                ),
+                namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(wh.to_xy() * -0.5, wh),
+                    image,
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: Some(paint),
+                    },
+                }),
             ),
         )
     }

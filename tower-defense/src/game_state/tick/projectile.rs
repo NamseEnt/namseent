@@ -37,7 +37,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         };
 
         let monster = &mut monsters[monster_index];
-        let monster_xy = monster.move_on_route.xy();
+        let monster_xy = monster.center_xy_tile();
 
         let step_distance = match projectile.behavior {
             ProjectileBehavior::Direct => projectile.velocity.length() * dt.as_secs_f32(),

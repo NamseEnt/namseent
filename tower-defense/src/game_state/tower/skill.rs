@@ -114,7 +114,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
 
         let mut on_nearby_monsters = |range_radius: f32, effect: MonsterStatusEffect| {
             for monster in game_state.monsters.iter_mut() {
-                if caster_xy.distance(monster.xy()) <= range_radius {
+                if caster_xy.distance(monster.center_xy_tile()) <= range_radius {
                     monster.status_effects.push(effect.clone());
                 }
             }

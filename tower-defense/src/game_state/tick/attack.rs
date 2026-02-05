@@ -41,9 +41,9 @@ pub fn shoot_attacks(game_state: &mut GameState) {
             let attack_range_radius =
                 tower.attack_range_radius(&tower_upgrades, stage_modifiers.get_range_multiplier());
 
+            let tower_center = tower.center_xy_f32();
             let target_idx = monsters.iter().position(|monster| {
-                (monster.move_on_route.xy() - tower.left_top.map(|t| t as f32)).length()
-                    < attack_range_radius
+                (monster.center_xy_tile() - tower_center).length() < attack_range_radius
             });
 
             let Some(target_idx) = target_idx else {
@@ -51,7 +51,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
             };
 
             let contract_multiplier = stage_modifiers.get_damage_multiplier();
-            let target_xy = monsters[target_idx].move_on_route.xy();
+            let target_xy = monsters[target_idx].center_xy_tile();
             let (attack_type, instant_damage) = tower.attack_type(
                 (target_xy.x, target_xy.y),
                 &tower_upgrades,

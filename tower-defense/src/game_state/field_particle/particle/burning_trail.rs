@@ -113,15 +113,10 @@ impl BurningTrailParticle {
             .set_style(PaintStyle::Fill)
             .set_blend_mode(BlendMode::Screen);
 
-        let half_offset = TILE_PX_SIZE.to_xy() * 0.5;
-        namui::translate(
-            half_offset.x,
-            half_offset.y,
-            namui::render([
-                namui::path(outer_path, outer_paint),
-                namui::path(inner_path, inner_paint),
-            ]),
-        )
+        namui::render([
+            namui::path(outer_path, outer_paint),
+            namui::path(inner_path, inner_paint),
+        ])
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
