@@ -137,7 +137,7 @@ const HOMING_INITIAL_SPEED_MIN_TILE: f32 = 24.0;
 /// Homing projectile initial upward speed - maximum (tiles/second, map coordinate units)
 const HOMING_INITIAL_SPEED_MAX_TILE: f32 = 32.0;
 /// Homing projectile maximum speed (tiles/second, map coordinate units)
-const HOMING_MAX_SPEED_TILE: f32 = 48.0;
+const HOMING_MAX_SPEED_TILE: f32 = 36.0;
 /// Homing projectile acceleration (tiles/second², map coordinate units)
 const HOMING_ACCELERATION_TILE: f32 = 1024.0;
 /// Homing projectile turn rate - minimum blending factor for direction change (0.0 = no turn, 1.0 = instant turn)
@@ -147,7 +147,7 @@ const HOMING_TURN_RATE_MAX_TILE: f32 = 8.0;
 /// Distance threshold to switch from homing to direct movement (tiles, map coordinate units)
 const HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE: f32 = 4.0;
 /// Acceleration multiplier when in direct phase (applied to base acceleration)
-const HOMING_DIRECT_ACCELERATION_MULTIPLIER: f32 = 0.4;
+const HOMING_DIRECT_ACCELERATION_MULTIPLIER: f32 = 0.1;
 impl Component for &Projectile {
     fn render(self, ctx: &RenderCtx) {
         let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
