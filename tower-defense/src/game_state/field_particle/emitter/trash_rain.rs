@@ -69,14 +69,17 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
                 rng.gen_range(TRASH_RAIN_DURATION_MIN_MS..=TRASH_RAIN_DURATION_MAX_MS);
             let duration = Duration::from_millis(duration_ms);
 
-            let particle = TrashParticle::new_with_random_end(
+            let cfg = crate::game_state::field_particle::particle::TrashParticleConfig {
                 kind,
-                start,
-                end,
-                now,
+                start_xy: start,
+                end_xy: end,
+                created_at: now,
                 duration,
-                EaseMode::Linear,
-            );
+                ease_mode: EaseMode::Linear,
+                should_bounce: true,
+                gravity: 0.0,
+            };
+            let particle = TrashParticle::new_with_random_end(cfg);
             out.push(crate::game_state::field_particle::FieldParticle::Trash { particle });
         }
 

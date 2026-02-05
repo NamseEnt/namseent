@@ -24,6 +24,21 @@ pub struct TrashParticle {
     pub ease_mode: EaseMode,
     pub rotation: Angle,
     pub rotation_speed: Angle, // per second
+    pub should_bounce: bool,
+    pub bounced: bool,
+    pub gravity: f32, // tiles per second^2
+}
+
+#[derive(Clone, State)]
+pub struct TrashParticleConfig {
+    pub kind: ProjectileKind,
+    pub start_xy: (f32, f32),
+    pub end_xy: (f32, f32),
+    pub created_at: Instant,
+    pub duration: Duration,
+    pub ease_mode: EaseMode,
+    pub should_bounce: bool,
+    pub gravity: f32,
 }
 
 impl TrashParticle {
@@ -46,12 +61,36 @@ impl TrashParticle {
             ease_mode,
             rotation: 0.deg(),
             rotation_speed: 0.deg(),
+            should_bounce: false,
+            bounced: false,
+            gravity: 0.0,
         }
     }
 
-    pub fn tick(&mut self, now: Instant, dt: Duration) {
+    pub fn tick(
+        &mut self,
+        now: Instant,
+        dt: Duration,
+    ) -> Vec<crate::game_state::field_particle::FieldParticleEmitter> {
         self.progress = self.progress(now);
         self.rotation += self.rotation_speed * dt.as_secs_f32();
+
+        // when finished, optionally emit a bounce emitter (only once)
+        if self.progress >= 1.0 && self.should_bounce && !self.bounced {
+            self.bounced = true;
+            return vec![
+                crate::game_state::field_particle::FieldParticleEmitter::TrashBounce {
+                    emitter: crate::game_state::field_particle::emitter::TrashBounceEmitter::new(
+                        self.kind,
+                        self.start_xy,
+                        self.end_xy,
+                        now,
+                    ),
+                },
+            ];
+        }
+
+        vec![]
     }
 
     pub fn render(&self) -> RenderingTree {
@@ -68,7 +107,12 @@ impl TrashParticle {
         };
 
         let x = self.start_xy.0 + (self.end_xy.0 - self.start_xy.0) * eased;
-        let y = self.start_xy.1 + (self.end_xy.1 - self.start_xy.1) * eased;
+        let mut y = self.start_xy.1 + (self.end_xy.1 - self.start_xy.1) * eased;
+
+        // apply gravity offset using elapsed estimated from progress and duration
+        let elapsed_secs = self.progress * self.duration.as_secs_f32();
+        let y_offset = 0.5 * self.gravity * elapsed_secs * elapsed_secs;
+        y += y_offset;
 
         let px_xy = TILE_PX_SIZE.to_xy() * Xy::new(x, y);
 
@@ -103,7 +147,9 @@ impl TrashParticle {
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= self.duration
+        let base_done = now - self.created_at >= self.duration;
+        // If bounce is requested but not yet emitted, keep particle alive until bounce is emitted
+        (self.bounced || !self.should_bounce) && base_done
     }
 
     fn progress(&self, now: Instant) -> f32 {
@@ -111,25 +157,27 @@ impl TrashParticle {
         (elapsed.as_secs_f32() / self.duration.as_secs_f32()).min(1.0)
     }
 
-    // helper to create with small random offset on end position
-    pub fn new_with_random_end(
-        kind: ProjectileKind,
-        start_xy: (f32, f32),
-        end_xy: (f32, f32),
-        created_at: Instant,
-        duration: Duration,
-        ease_mode: EaseMode,
-    ) -> Self {
+    // helper to create with small random offset on end position using a config
+    pub fn new_with_random_end(config: TrashParticleConfig) -> Self {
         let mut rng = rand::thread_rng();
         let offset_x = rng.gen_range(-0.25..0.25);
         let offset_y = rng.gen_range(-0.1..0.1);
-        let end = (end_xy.0 + offset_x, end_xy.1 + offset_y);
-        let mut s = Self::new(kind, start_xy, end, created_at, duration, ease_mode);
+        let end = (config.end_xy.0 + offset_x, config.end_xy.1 + offset_y);
+        let mut s = Self::new(
+            config.kind,
+            config.start_xy,
+            end,
+            config.created_at,
+            config.duration,
+            config.ease_mode,
+        );
         // random rotation and speed
         s.rotation = rng.gen_range(0.0..360.0).deg();
         s.rotation_speed = rng
             .gen_range(-ROTATION_SPEED_MAX_DEG..ROTATION_SPEED_MAX_DEG)
             .deg();
+        s.should_bounce = config.should_bounce;
+        s.gravity = config.gravity;
         s
     }
 }

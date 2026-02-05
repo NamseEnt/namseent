@@ -121,6 +121,9 @@ pub enum FieldParticleEmitter {
     TrashBurst {
         emitter: emitter::TrashBurstEmitter,
     },
+    TrashBounce {
+        emitter: emitter::TrashBounceEmitter,
+    },
     TrashRain {
         emitter: emitter::TrashRainEmitter,
     },
@@ -135,6 +138,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
         }
     }
@@ -148,6 +152,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
         }
     }
@@ -206,8 +211,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 vec![]
             }
             FieldParticle::Trash { particle } => {
-                particle.tick(now, dt);
-                vec![]
+                particle.tick(now, dt)
             }
         }
     }
