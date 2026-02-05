@@ -15,7 +15,8 @@ use namui::{
 pub use particle::{
     BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle, IconParticle,
     InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
-    MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle, TrashParticle,
+    LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
+    TrashParticle,
 };
 
 #[derive(State)]
@@ -183,6 +184,7 @@ pub enum FieldParticle {
     Trash { particle: TrashParticle },
     Projectile { particle: ProjectileParticle },
     LaserLine { particle: LaserLineParticle },
+    LightningBolt { particle: LightningBoltParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -232,6 +234,15 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::LightningBolt { particle } => {
+                if let Some(new_particle) = particle.tick(now, dt) {
+                    vec![FieldParticleEmitter::TempParticle {
+                        emitter: TempParticleEmitter::new(vec![new_particle]),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
         }
     }
 
@@ -252,6 +263,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 render_projectile_particle(particle)
             }
             FieldParticle::LaserLine { particle } => particle.render(),
+            FieldParticle::LightningBolt { particle } => particle.render(),
         }
     }
 
@@ -267,7 +279,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),
             FieldParticle::Trash { particle } => particle.is_done(now),
-            FieldParticle::Projectile { particle } => !particle.is_alive(now),            FieldParticle::LaserLine { particle } => particle.is_done(now),        }
+            FieldParticle::Projectile { particle } => !particle.is_alive(now),
+            FieldParticle::LaserLine { particle } => particle.is_done(now),
+            FieldParticle::LightningBolt { particle } => particle.is_done(now),
+        }
     }
 }
 

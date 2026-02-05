@@ -10,6 +10,8 @@ const LASER_LIFETIME_MS: i64 = 120; // 레이저 수명
 const START_OFFSET_RANGE: f32 = 0.9; // start 점 오프셋 범위 (직선 길이 비율)
 const END_OFFSET_RANGE: f32 = 0.9; // end 점 오프셋 범위 (직선 길이 비율)
 const MOVEMENT_SPEED: f32 = 32.0; // 초당 target 방향으로 이동하는 거리 (타일 단위)
+const LIGHTNING_BOLT_COUNT: usize = 4; // 레이저 빔마다 생성할 번개줄기 개수
+const LIGHTNING_BOLT_SPAWN_CHANCE: f32 = 0.8; // 번개줄기가 죽을 때 새로운 번개줄기를 생성할 확률
 
 #[derive(Clone, State)]
 pub struct LaserBeamEmitter {
@@ -44,12 +46,42 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
 
         self.emitted = true;
         let mut rng = rand::thread_rng();
-        let mut out = Vec::with_capacity(LASER_LINE_COUNT);
+        let mut out = Vec::with_capacity(LASER_LINE_COUNT + LIGHTNING_BOLT_COUNT);
 
         // 직선의 방향 벡터 계산
         let dx = self.end_xy.0 - self.start_xy.0;
         let dy = self.end_xy.1 - self.start_xy.1;
+        let laser_length = (dx * dx + dy * dy).sqrt();
 
+        // 레이저 라인 생성
+        self.emit_laser_lines(now, dx, dy, &mut rng, &mut out);
+
+        // 번개줄기 생성 (빔 주변에 여러 개)
+        for _ in 0..LIGHTNING_BOLT_COUNT {
+            let lightning = self.create_lightning_bolt(now, dx, dy, laser_length, &mut rng);
+            out.push(FieldParticle::LightningBolt {
+                particle: lightning,
+            });
+        }
+
+        out
+    }
+
+    fn is_done(&self, _now: Instant) -> bool {
+        self.emitted
+    }
+}
+
+impl LaserBeamEmitter {
+    /// 레이저 라인들을 생성
+    fn emit_laser_lines(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        rng: &mut rand::rngs::ThreadRng,
+        out: &mut Vec<FieldParticle>,
+    ) {
         for i in 0..LASER_LINE_COUNT {
             let (start_t, end_t, thickness) = if i == 0 {
                 // 첫 번째 직선은 최대 두께로 시작점과 끝점을 완전히 연결
@@ -80,11 +112,43 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
 
             out.push(FieldParticle::LaserLine { particle });
         }
-
-        out
     }
 
-    fn is_done(&self, _now: Instant) -> bool {
-        self.emitted
+    /// 레이저 빔 주변에 번개줄기를 생성
+    fn create_lightning_bolt(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        laser_length: f32,
+        rng: &mut rand::rngs::ThreadRng,
+    ) -> crate::game_state::field_particle::LightningBoltParticle {
+        // 빔 상의 랜덤 위치에서 번개줄기 시작
+        let t = rng.gen_range(0.0..1.0);
+        let bolt_start = (self.start_xy.0 + dx * t, self.start_xy.1 + dy * t);
+
+        // 빔의 수직 방향으로 랜덤 오프셋
+        let perp_x = -dy / laser_length.max(0.001);
+        let perp_y = dx / laser_length.max(0.001);
+
+        // 빔 끝 근처로 랜덤 각도로 방향 지정
+        let end_t = rng.gen_range(0.6..1.0); // 대략 빔의 뒷부분
+        let mut bolt_end = (self.start_xy.0 + dx * end_t, self.start_xy.1 + dy * end_t);
+
+        // 번개줄기는 약간 구부러지거나 옆으로 간다
+        let angle_offset = rng.gen_range(-0.5..0.5);
+        bolt_end.0 += perp_x * angle_offset;
+        bolt_end.1 += perp_y * angle_offset;
+
+        // 번개줄기 수명은 레이저보다 짧고 랜덤 (50~100ms)
+        let bolt_lifetime = Duration::from_millis(rng.gen_range(50..100));
+
+        crate::game_state::field_particle::LightningBoltParticle::new(
+            bolt_start,
+            bolt_end,
+            now,
+            bolt_lifetime,
+            LIGHTNING_BOLT_SPAWN_CHANCE,
+        )
     }
 }
