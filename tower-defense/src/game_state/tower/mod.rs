@@ -132,7 +132,7 @@ impl Tower {
             | TowerKind::Flush
             | TowerKind::StraightFlush
             | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
-            TowerKind::FullHouse | TowerKind::FourOfAKind => {
+            TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, now);
 
@@ -141,21 +141,38 @@ impl Tower {
 
                 let head_xy = self.head_xy_tile();
                 let tower_xy = (head_xy.x, head_xy.y);
-                let effect_kind = if self.kind == TowerKind::FullHouse {
-                    attack::instant_effect::InstantEffectKind::FullHouseRain
-                } else {
-                    attack::instant_effect::InstantEffectKind::Explosion
-                };
+
+                (
+                    AttackType::FullHouseRain {
+                        tower_xy,
+                        target_xy,
+                    },
+                    damage,
+                )
+            }
+            TowerKind::FourOfAKind => {
+                self.cooldown = self.shoot_interval;
+                self.animation.transition(AnimationKind::Attack, now);
+
+                let damage =
+                    self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+
+                let head_xy = self.head_xy_tile();
+                let tower_xy = (head_xy.x, head_xy.y);
 
                 let emit_effect = attack::instant_effect::TowerEmitEffect::new(
                     tower_xy,
                     target_xy,
                     now,
-                    effect_kind,
+                    attack::instant_effect::InstantEffectKind::Explosion,
                 );
 
-                let hit_effect =
-                    attack::instant_effect::TargetHitEffect::new(target_xy, now, effect_kind, 1.0);
+                let hit_effect = attack::instant_effect::TargetHitEffect::new(
+                    target_xy,
+                    now,
+                    attack::instant_effect::InstantEffectKind::Explosion,
+                    1.0,
+                );
 
                 (
                     AttackType::InstantEffect {

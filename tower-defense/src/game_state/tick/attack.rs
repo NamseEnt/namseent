@@ -2,7 +2,6 @@ use super::*;
 
 pub fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
-    use crate::game_state::attack::instant_effect::InstantEffectKind;
     use crate::game_state::field_particle;
 
     let now = game_state.now();
@@ -101,60 +100,48 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     emit_effect,
                     hit_effect,
                 } => {
-                    // FullHouse 이펙트인 경우 특별한 particle 생성
-                    match emit_effect.kind {
-                        InstantEffectKind::FullHouseRain => {
-                            let target_indicator = monsters[target_idx].projectile_target_indicator;
-                            let damage_per_projectile = instant_damage / 4.0;
+                    attack_effect_particles.push(field_particle::FieldParticle::InstantEmit {
+                        particle: field_particle::InstantEmitParticle::new(
+                            emit_effect.tower_xy,
+                            emit_effect.target_xy,
+                            emit_effect.created_at,
+                            emit_effect.kind,
+                        ),
+                    });
+                    attack_effect_particles.push(field_particle::FieldParticle::InstantHit {
+                        particle: field_particle::InstantHitParticle::new(
+                            hit_effect.xy,
+                            hit_effect.created_at,
+                            hit_effect.kind,
+                            hit_effect.scale,
+                        ),
+                    });
 
-                            for _ in 0..4 {
-                                let projectile = Projectile::new_homing(
-                                    crate::MapCoordF32::new(
-                                        emit_effect.tower_xy.0,
-                                        emit_effect.tower_xy.1,
-                                    ),
-                                    ProjectileKind::random_trash(),
-                                    target_indicator,
-                                    damage_per_projectile,
-                                    ProjectileTrail::None,
-                                );
-                                projectiles.push(projectile);
-                            }
-                        }
-                        _ => {
-                            attack_effect_particles.push(
-                                field_particle::FieldParticle::InstantEmit {
-                                    particle: field_particle::InstantEmitParticle::new(
-                                        emit_effect.tower_xy,
-                                        emit_effect.target_xy,
-                                        emit_effect.created_at,
-                                        emit_effect.kind,
-                                    ),
-                                },
-                            );
-                            attack_effect_particles.push(
-                                field_particle::FieldParticle::InstantHit {
-                                    particle: field_particle::InstantHitParticle::new(
-                                        hit_effect.xy,
-                                        hit_effect.created_at,
-                                        hit_effect.kind,
-                                        hit_effect.scale,
-                                    ),
-                                },
-                            );
-                        }
-                    }
-
-                    if emit_effect.kind != InstantEffectKind::FullHouseRain && instant_damage > 0.0
-                    {
+                    if instant_damage > 0.0 {
                         damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
                             target_xy,
                             instant_damage,
                         ));
                     }
 
-                    if emit_effect.kind != InstantEffectKind::FullHouseRain {
-                        monster_kills.push((target_idx, instant_damage, target_xy));
+                    monster_kills.push((target_idx, instant_damage, target_xy));
+                }
+                AttackType::FullHouseRain {
+                    tower_xy,
+                    target_xy: _,
+                } => {
+                    let target_indicator = monsters[target_idx].projectile_target_indicator;
+                    let damage_per_projectile = instant_damage / 4.0;
+
+                    for _ in 0..4 {
+                        let projectile = Projectile::new_homing(
+                            crate::MapCoordF32::new(tower_xy.0, tower_xy.1),
+                            ProjectileKind::random_trash(),
+                            target_indicator,
+                            damage_per_projectile,
+                            ProjectileTrail::Burning,
+                        );
+                        projectiles.push(projectile);
                     }
                 }
             }

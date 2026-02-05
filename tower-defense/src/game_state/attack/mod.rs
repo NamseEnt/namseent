@@ -20,4 +20,9 @@ pub enum AttackType {
         emit_effect: TowerEmitEffect,
         hit_effect: TargetHitEffect,
     },
+    /// FullHouse 이펙트: 하늘에서 trash가 떨어짐
+    FullHouseRain {
+        tower_xy: (f32, f32),
+        target_xy: (f32, f32),
+    },
 }

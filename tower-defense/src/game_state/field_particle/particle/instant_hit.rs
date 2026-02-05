@@ -105,14 +105,6 @@ impl InstantHitParticle {
 
                 namui::path(path, paint)
             }
-            attack::instant_effect::InstantEffectKind::FullHouseRain => {
-                // FullHouse Rain 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
-                RenderingTree::Empty
-            }
-            attack::instant_effect::InstantEffectKind::FullHouseBurst => {
-                // FullHouse Burst 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
-                RenderingTree::Empty
-            }
         }
     }
 

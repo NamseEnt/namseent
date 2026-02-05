@@ -12,10 +12,6 @@ pub enum InstantEffectKind {
     Lightning,
     /// 마법진 이펙트
     MagicCircle,
-    /// FullHouse 이펙트 - 하늘에서 trash가 떨어짐
-    FullHouseRain,
-    /// FullHouse 이펙트 - 하늘로 trash가 솟구침
-    FullHouseBurst,
 }
 
 /// 타워 위치에서 시작되는 발사 이펙트

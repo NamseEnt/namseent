@@ -57,14 +57,6 @@ impl InstantEmitParticle {
             attack::instant_effect::InstantEffectKind::MagicCircle => {
                 Color::from_f01(0.5, 0.2, 1.0, self.alpha)
             }
-            attack::instant_effect::InstantEffectKind::FullHouseRain => {
-                // FullHouse Rain 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
-                return RenderingTree::Empty;
-            }
-            attack::instant_effect::InstantEffectKind::FullHouseBurst => {
-                // FullHouse Burst 이펙트는 emitter에서 처리되므로 여기서는 렌더링하지 않음
-                return RenderingTree::Empty;
-            }
         };
 
         let mut path = Path::new();
