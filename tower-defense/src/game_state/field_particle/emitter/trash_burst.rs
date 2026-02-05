@@ -9,6 +9,8 @@ const TRASH_BURST_DURATION_MIN_MS: i64 = 200;
 const TRASH_BURST_DURATION_MAX_MS: i64 = 800;
 const BURST_HEIGHT_MIN: f32 = 1.2;
 const BURST_HEIGHT_MAX: f32 = 3.0;
+const ROTATION_SPEED_MIN_DEG: f32 = -360.0;
+const ROTATION_SPEED_MAX_DEG: f32 = 360.0;
 
 #[derive(Clone, State)]
 pub struct TrashBurstEmitter {
@@ -63,6 +65,7 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
                 ease_mode: EaseMode::EaseOutCubic,
                 should_bounce: false,
                 gravity: 0.0,
+                rotation_speed_deg_per_sec: (ROTATION_SPEED_MIN_DEG, ROTATION_SPEED_MAX_DEG),
             };
             let particle = TrashParticle::new_with_random_end(cfg);
             out.push(crate::game_state::field_particle::FieldParticle::Trash { particle });

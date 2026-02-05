@@ -18,6 +18,9 @@ const END_X_MAX: f32 = 0.9;
 const RAIN_HEIGHT_MIN: f32 = 2.5;
 const RAIN_HEIGHT_MAX: f32 = 5.0;
 
+const ROTATION_SPEED_MIN_DEG: f32 = -360.0;
+const ROTATION_SPEED_MAX_DEG: f32 = 360.0;
+
 // Duration per particle in milliseconds (randomized)
 const TRASH_RAIN_DURATION_MIN_MS: i64 = 120;
 const TRASH_RAIN_DURATION_MAX_MS: i64 = 240;
@@ -78,6 +81,7 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
                 ease_mode: EaseMode::Linear,
                 should_bounce: true,
                 gravity: 0.0,
+                rotation_speed_deg_per_sec: (ROTATION_SPEED_MIN_DEG, ROTATION_SPEED_MAX_DEG),
             };
             let particle = TrashParticle::new_with_random_end(cfg);
             out.push(crate::game_state::field_particle::FieldParticle::Trash { particle });

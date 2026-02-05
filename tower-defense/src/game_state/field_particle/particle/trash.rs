@@ -4,8 +4,6 @@ use namui::*;
 use rand::Rng;
 
 const TRASH_SIZE_TILE: f32 = 0.5;
-// max absolute rotation speed in degrees per second for random particles
-const ROTATION_SPEED_MAX_DEG: f32 = 360.0;
 
 #[derive(Clone, Copy, State)]
 pub enum EaseMode {
@@ -39,6 +37,7 @@ pub struct TrashParticleConfig {
     pub ease_mode: EaseMode,
     pub should_bounce: bool,
     pub gravity: f32,
+    pub rotation_speed_deg_per_sec: (f32, f32),
 }
 
 impl TrashParticle {
@@ -174,7 +173,7 @@ impl TrashParticle {
         // random rotation and speed
         s.rotation = rng.gen_range(0.0..360.0).deg();
         s.rotation_speed = rng
-            .gen_range(-ROTATION_SPEED_MAX_DEG..ROTATION_SPEED_MAX_DEG)
+            .gen_range(config.rotation_speed_deg_per_sec.0..config.rotation_speed_deg_per_sec.1)
             .deg();
         s.should_bounce = config.should_bounce;
         s.gravity = config.gravity;

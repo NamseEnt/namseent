@@ -4,10 +4,13 @@ use namui::*;
 use rand::Rng;
 
 const BOUNCE_COUNT: usize = 1;
-const BOUNCE_DISTANCE_MIN: f32 = 3.5;
-const BOUNCE_DISTANCE_MAX: f32 = 4.5;
-const BOUNCE_DURATION_MIN_MS: i64 = 360;
-const BOUNCE_DURATION_MAX_MS: i64 = 720;
+const BOUNCE_DISTANCE_MIN: f32 = 0.4;
+const BOUNCE_DISTANCE_MAX: f32 = 0.8;
+const BOUNCE_DURATION_MIN_MS: i64 = 120;
+const BOUNCE_DURATION_MAX_MS: i64 = 480;
+const GRAVITY: f32 = 48.0;
+const ROTATION_SPEED_MIN_DEG: f32 = -3600.0;
+const ROTATION_SPEED_MAX_DEG: f32 = 3600.0;
 
 #[derive(Clone, State)]
 pub struct TrashBounceEmitter {
@@ -70,16 +73,15 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
             let by = bounce_dir_y / b_len;
 
             let dist = rng.gen_range(BOUNCE_DISTANCE_MIN..BOUNCE_DISTANCE_MAX);
-            let start = (self.orig_end.0, self.orig_end.1);
+            let start = (self.orig_end.0 + 0.5, self.orig_end.1 + 0.5);
             let end = (
-                start.0 + bx * dist + rng.gen_range(-0.15..0.15),
-                start.1 + by * dist + rng.gen_range(-0.08..0.08),
+                start.0 + bx * dist + rng.gen_range(-0.15..0.15) + 0.5,
+                start.1 + by * dist + rng.gen_range(-0.08..0.08) + 0.5,
             );
 
             let dur_ms = rng.gen_range(BOUNCE_DURATION_MIN_MS..=BOUNCE_DURATION_MAX_MS);
             let duration = Duration::from_millis(dur_ms);
 
-            let gravity = rng.gen_range(8.0..12.0);
             let cfg = crate::game_state::field_particle::particle::TrashParticleConfig {
                 kind: self.kind,
                 start_xy: start,
@@ -88,7 +90,8 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
                 duration,
                 ease_mode: crate::game_state::field_particle::EaseMode::EaseOutCubic,
                 should_bounce: false,
-                gravity,
+                gravity: GRAVITY,
+                rotation_speed_deg_per_sec: (ROTATION_SPEED_MIN_DEG, ROTATION_SPEED_MAX_DEG),
             };
             let particle = TrashParticle::new_with_random_end(cfg);
 
