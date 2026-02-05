@@ -1,5 +1,6 @@
 mod burning_trail;
 mod damage_text;
+mod laser_beam;
 mod monster_death;
 mod monster_status_effect;
 mod projectile;
@@ -9,6 +10,7 @@ mod trash_bounce;
 
 pub use burning_trail::*;
 pub use damage_text::*;
+pub use laser_beam::*;
 pub use monster_death::*;
 pub use monster_status_effect::*;
 pub use projectile::*;

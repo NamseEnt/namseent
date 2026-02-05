@@ -9,7 +9,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
     let mut projectiles = Vec::new();
     let mut attack_effect_particles = Vec::new();
-    let field_emitters = Vec::new();
+    let mut field_emitters = Vec::new();
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
@@ -80,8 +80,9 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     );
 
-                    attack_effect_particles.push(field_particle::FieldParticle::LaserBeam {
-                        particle: field_particle::LaserBeamParticle::new(
+                    // Particle을 즉시 생성하지 않고 Emitter를 생성
+                    field_emitters.push(field_particle::FieldParticleEmitter::LaserBeam {
+                        emitter: field_particle::emitter::LaserBeamEmitter::new(
                             laser.start_xy,
                             laser.end_xy,
                             laser.created_at,

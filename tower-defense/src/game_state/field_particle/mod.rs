@@ -14,8 +14,8 @@ use namui::{
 };
 pub use particle::{
     BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle, IconParticle,
-    InstantEmitParticle, InstantHitParticle, LaserBeamParticle, MonsterCorpseParticle,
-    MonsterSoulParticle, ProjectileParticle, TrashParticle,
+    InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
+    MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle, TrashParticle,
 };
 
 #[derive(State)]
@@ -131,6 +131,9 @@ pub enum FieldParticleEmitter {
     ProjectileParticle {
         emitter: emitter::ProjectileParticleEmitter,
     },
+    LaserBeam {
+        emitter: emitter::LaserBeamEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -145,6 +148,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -160,6 +164,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -177,6 +182,7 @@ pub enum FieldParticle {
     InstantHit { particle: InstantHitParticle },
     Trash { particle: TrashParticle },
     Projectile { particle: ProjectileParticle },
+    LaserLine { particle: LaserLineParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -222,6 +228,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::LaserLine { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -241,6 +251,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 // Render projectile using the same logic as the main projectile rendering
                 render_projectile_particle(particle)
             }
+            FieldParticle::LaserLine { particle } => particle.render(),
         }
     }
 
@@ -256,8 +267,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),
             FieldParticle::Trash { particle } => particle.is_done(now),
-            FieldParticle::Projectile { particle } => !particle.is_alive(now),
-        }
+            FieldParticle::Projectile { particle } => !particle.is_alive(now),            FieldParticle::LaserLine { particle } => particle.is_done(now),        }
     }
 }
 
