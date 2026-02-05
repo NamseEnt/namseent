@@ -11,6 +11,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut burning_trail_emitters = Vec::new();
+    let mut trash_bounce_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -55,6 +56,13 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 monster_xy, damage,
             ));
         }
+
+        trash_bounce_emitters.push(field_particle::emitter::TrashBounceEmitter::new(
+            projectile.kind,
+            (start_xy.x, start_xy.y),
+            (monster_xy.x, monster_xy.y),
+            now,
+        ));
 
         if monster.dead() {
             if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
@@ -110,6 +118,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
     super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
     super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
+    super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);
