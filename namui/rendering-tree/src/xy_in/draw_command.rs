@@ -35,11 +35,11 @@ impl XyIn for AtlasDrawCommand {
         for sprite in &self.sprites {
             let tex = &sprite.tex;
             let xform = &sprite.xform;
-            
+
             // Get the sprite dimensions
             let w = tex.width();
             let h = tex.height();
-            
+
             // Inverse transform the test point to sprite-local coordinates
             // RSXform: x' = scos * x - ssin * y + tx
             //          y' = ssin * x + scos * y + ty
@@ -49,13 +49,13 @@ impl XyIn for AtlasDrawCommand {
             if det == 0.0 {
                 continue;
             }
-            
+
             let dx = xy.x - xform.tx;
             let dy = xy.y - xform.ty;
-            
+
             let local_x = (dx * xform.scos + dy * xform.ssin) / det;
             let local_y = (dx * (-xform.ssin) + dy * xform.scos) / det;
-            
+
             // Check if the local point is within the sprite bounds
             if local_x >= px(0.0) && local_x <= w && local_y >= px(0.0) && local_y <= h {
                 return true;

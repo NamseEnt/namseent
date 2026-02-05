@@ -111,26 +111,21 @@ impl BoundingBox for &AtlasDrawCommand {
         for sprite in &self.sprites {
             let tex = &sprite.tex;
             let xform = &sprite.xform;
-            
+
             // Get the sprite dimensions
             let w = tex.width();
             let h = tex.height();
-            
+
             // Transform the four corners of the sprite
-            let corners = [
-                (px(0.0), px(0.0)),
-                (w, px(0.0)),
-                (w, h),
-                (px(0.0), h),
-            ];
-            
+            let corners = [(px(0.0), px(0.0)), (w, px(0.0)), (w, h), (px(0.0), h)];
+
             for (x, y) in corners {
-                // Apply RSXform transformation: 
+                // Apply RSXform transformation:
                 // x' = scos * x - ssin * y + tx
                 // y' = ssin * x + scos * y + ty
                 let tx = x * xform.scos - y * xform.ssin + xform.tx;
                 let ty = x * xform.ssin + y * xform.scos + xform.ty;
-                
+
                 min_x = min_x.min(tx);
                 min_y = min_y.min(ty);
                 max_x = max_x.max(tx);
