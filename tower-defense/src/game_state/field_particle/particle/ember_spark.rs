@@ -8,7 +8,7 @@ const EMBER_SPARK_RADIUS_MIN_TILE: f32 = 0.05;
 const EMBER_SPARK_RADIUS_MAX_TILE: f32 = 0.1;
 const EMBER_SPARK_SPEED_MIN: f32 = 2.0; // 맵 좌표 단위/초
 const EMBER_SPARK_SPEED_MAX: f32 = 8.0;
-const EMBER_SPARK_GRAVITY: f32 = 1.0; // 맵 좌표 단위/초^2 (아래로)
+const EMBER_SPARK_GRAVITY: f32 = 48.0; // 맵 좌표 단위/초^2 (아래로)
 const EMBER_SPARK_FADE_START: f32 = 0.5; // progress 50%부터 페이드 시작
 
 // Colors (RGB, 0.0..1.0)

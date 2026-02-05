@@ -8,7 +8,7 @@ const BLUE_DOT_RADIUS_MIN_TILE: f32 = 0.03;
 const BLUE_DOT_RADIUS_MAX_TILE: f32 = 0.06;
 const BLUE_DOT_SPEED_MIN: f32 = 4.0; // 맵 좌표 단위/초
 const BLUE_DOT_SPEED_MAX: f32 = 12.0;
-const BLUE_DOT_GRAVITY: f32 = 0.3; // 맵 좌표 단위/초^2 (아래로, EmberSpark보다 약함)
+const BLUE_DOT_GRAVITY: f32 = 48.0; // 맵 좌표 단위/초^2 (아래로, EmberSpark보다 약함)
 const BLUE_DOT_FADE_START: f32 = 0.6; // progress 60%부터 페이드 시작
 
 // Colors (RGB, 0.0..1.0)
