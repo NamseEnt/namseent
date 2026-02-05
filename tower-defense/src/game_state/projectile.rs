@@ -8,7 +8,7 @@ const PROJECTILE_ROTATION_SPEED_DEG_RANGE: std::ops::RangeInclusive<f32> = -720.
 pub struct Projectile {
     pub xy: MapCoordF32,
     pub kind: ProjectileKind,
-    pub velocity: Velocity,
+    pub velocity: Xy<f32>,
     pub target_indicator: ProjectileTargetIndicator,
     pub damage: f32,
     pub rotation: Angle,
@@ -25,10 +25,13 @@ impl Projectile {
         damage: f32,
         trail: ProjectileTrail,
     ) -> Self {
+        // Initialize with upward direction for Direct projectiles (tiles/second)
+        let speed = velocity * Duration::from_secs(1);
+        let initial_direction = Xy::new(0.0, -1.0);
         Self {
             xy,
             kind,
-            velocity,
+            velocity: initial_direction * speed,
             target_indicator,
             damage,
             rotation: 0.0.deg(),
@@ -55,7 +58,7 @@ impl Projectile {
         Self {
             xy,
             kind,
-            velocity: Per::new(HOMING_MAX_SPEED_TILE, Duration::from_secs(1)),
+            velocity: initial_velocity,
             target_indicator,
             damage,
             rotation: 0.0.deg(),
@@ -71,7 +74,11 @@ impl Projectile {
     }
 
     pub(crate) fn move_by(&mut self, dt: Duration, dest_xy: MapCoordF32) {
-        self.xy += (dest_xy - self.xy).normalize() * (self.velocity * dt);
+        let direction = (dest_xy - self.xy).normalize();
+        let speed = self.velocity.length();
+        self.xy += direction * speed * dt.as_secs_f32();
+        // Update velocity to reflect actual movement direction (tiles/second)
+        self.velocity = direction * speed;
         self.rotation += self.rotation_speed * dt.as_secs_f32();
     }
 
@@ -111,6 +118,9 @@ impl Projectile {
                 *velocity = desired_dir * speed;
                 self.xy += *velocity * dt_secs;
             }
+
+            // Update self.velocity to reflect actual movement velocity
+            self.velocity = *velocity;
         }
 
         self.rotation += self.rotation_speed * dt.as_secs_f32();

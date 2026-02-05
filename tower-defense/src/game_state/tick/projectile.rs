@@ -12,6 +12,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut monster_death_emitters = Vec::new();
     let mut burning_trail_emitters = Vec::new();
     let mut trash_bounce_emitters = Vec::new();
+    let mut projectile_particle_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -20,6 +21,18 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             .iter()
             .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
         else {
+            // Create a projectile particle that fades out over 300ms
+            projectile_particle_emitters.push(
+                field_particle::emitter::ProjectileParticleEmitter::new(
+                    projectile.xy,
+                    projectile.kind,
+                    projectile.rotation,
+                    projectile.rotation_speed,
+                    projectile.velocity,
+                    now,
+                    Duration::from_millis(300),
+                ),
+            );
             return false;
         };
 
@@ -27,7 +40,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let monster_xy = monster.move_on_route.xy();
 
         let step_distance = match projectile.behavior {
-            ProjectileBehavior::Direct => projectile.velocity * dt,
+            ProjectileBehavior::Direct => projectile.velocity.length() * dt.as_secs_f32(),
             ProjectileBehavior::Homing { velocity, .. } => velocity.length() * dt.as_secs_f32(),
         };
 
@@ -119,6 +132,15 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
     super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
     super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
+
+    if !projectile_particle_emitters.is_empty() {
+        game_state.field_particle_system_manager.add_emitters(
+            projectile_particle_emitters
+                .into_iter()
+                .map(|emitter| field_particle::FieldParticleEmitter::ProjectileParticle { emitter })
+                .collect(),
+        );
+    }
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);
