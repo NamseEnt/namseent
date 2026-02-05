@@ -13,7 +13,7 @@ use namui::{
     *,
 };
 pub use particle::{
-    BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle, IconParticle,
+    BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle, IconParticle,
     InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
     TrashParticle,
@@ -178,6 +178,7 @@ pub enum FieldParticle {
     MonsterCorpse { particle: MonsterCorpseParticle },
     BurningTrail { particle: BurningTrailParticle },
     EmberSpark { particle: EmberSparkParticle },
+    BlueDotSpark { particle: BlueDotSparkParticle },
     LaserBeam { particle: LaserBeamParticle },
     InstantEmit { particle: InstantEmitParticle },
     InstantHit { particle: InstantHitParticle },
@@ -210,6 +211,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 vec![]
             }
             FieldParticle::EmberSpark { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::BlueDotSpark { particle } => {
                 particle.tick(now, dt);
                 vec![]
             }
@@ -254,6 +259,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::MonsterCorpse { particle } => particle.render(),
             FieldParticle::BurningTrail { particle } => particle.render(),
             FieldParticle::EmberSpark { particle } => particle.render(),
+            FieldParticle::BlueDotSpark { particle } => particle.render(),
             FieldParticle::LaserBeam { particle } => particle.render(),
             FieldParticle::InstantEmit { particle } => particle.render(),
             FieldParticle::InstantHit { particle } => particle.render(),
@@ -275,6 +281,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
             FieldParticle::BurningTrail { particle } => particle.is_done(now),
             FieldParticle::EmberSpark { particle } => particle.is_done(now),
+            FieldParticle::BlueDotSpark { particle } => particle.is_done(now),
             FieldParticle::LaserBeam { particle } => particle.is_done(now),
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),

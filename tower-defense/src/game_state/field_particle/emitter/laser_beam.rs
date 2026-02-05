@@ -12,6 +12,8 @@ const END_OFFSET_RANGE: f32 = 0.9; // end 점 오프셋 범위 (직선 길이 �
 const MOVEMENT_SPEED: f32 = 32.0; // 초당 target 방향으로 이동하는 거리 (타일 단위)
 const LIGHTNING_BOLT_COUNT: usize = 4; // 레이저 빔마다 생성할 번개줄기 개수
 const LIGHTNING_BOLT_SPAWN_CHANCE: f32 = 0.8; // 번개줄기가 죽을 때 새로운 번개줄기를 생성할 확률
+const BLUE_DOT_SPARK_COUNT: usize = 4; // target 위치에서 생성할 파란 점 개수
+const BLUE_DOT_SPARK_ANGLE_RANGE: f32 = 0.436; // 약 ±25도 (라디안)
 
 #[derive(Clone, State)]
 pub struct LaserBeamEmitter {
@@ -46,12 +48,15 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
 
         self.emitted = true;
         let mut rng = rand::thread_rng();
-        let mut out = Vec::with_capacity(LASER_LINE_COUNT + LIGHTNING_BOLT_COUNT);
 
         // 직선의 방향 벡터 계산
         let dx = self.end_xy.0 - self.start_xy.0;
         let dy = self.end_xy.1 - self.start_xy.1;
         let laser_length = (dx * dx + dy * dy).sqrt();
+
+        // 레이저 라인, 번개줄기, 파란 점 파티클을 모두 포함하는 vec 생성
+        let mut out =
+            Vec::with_capacity(LASER_LINE_COUNT + LIGHTNING_BOLT_COUNT + BLUE_DOT_SPARK_COUNT);
 
         // 레이저 라인 생성
         self.emit_laser_lines(now, dx, dy, &mut rng, &mut out);
@@ -63,6 +68,9 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
                 particle: lightning,
             });
         }
+
+        // 파란 점 파티클 생성 (target 위치에서 tower 방향으로 터져나옴)
+        self.emit_blue_dot_sparks(now, dx, dy, &mut rng, &mut out);
 
         out
     }
@@ -150,5 +158,48 @@ impl LaserBeamEmitter {
             bolt_lifetime,
             LIGHTNING_BOLT_SPAWN_CHANCE,
         )
+    }
+
+    /// 파란 점 파티클을 target 위치에서 tower 방향으로 터져나오도록 생성
+    fn emit_blue_dot_sparks(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        rng: &mut rand::rngs::ThreadRng,
+        out: &mut Vec<FieldParticle>,
+    ) {
+        let laser_length = (dx * dx + dy * dy).sqrt();
+        if laser_length < 0.001 {
+            return; // 빔 길이가 너무 짧으면 생성하지 않음
+        }
+
+        // target에서 tower로의 방향 벡터 (반대 방향)
+        let base_dir_x = -dx / laser_length;
+        let base_dir_y = -dy / laser_length;
+
+        for _ in 0..BLUE_DOT_SPARK_COUNT {
+            // target 위치에서 스파크 생성
+            let spark_xy = self.end_xy;
+
+            // tower 방향에서 ±25도 범위의 랜덤 각도
+            let angle_variation =
+                rng.gen_range(-BLUE_DOT_SPARK_ANGLE_RANGE..BLUE_DOT_SPARK_ANGLE_RANGE);
+            let cos_a = angle_variation.cos();
+            let sin_a = angle_variation.sin();
+
+            // 회전된 방향 계산
+            let movement_dir_x = base_dir_x * cos_a - base_dir_y * sin_a;
+            let movement_dir_y = base_dir_x * sin_a + base_dir_y * cos_a;
+
+            let particle = crate::game_state::field_particle::BlueDotSparkParticle::new_with_random(
+                spark_xy,
+                (movement_dir_x, movement_dir_y),
+                now,
+                rng,
+            );
+
+            out.push(FieldParticle::BlueDotSpark { particle });
+        }
     }
 }

@@ -1,3 +1,4 @@
+mod blue_dot_spark;
 mod burning_trail;
 mod damage_text;
 mod ember_spark;
@@ -11,6 +12,7 @@ mod monster_soul;
 mod projectile;
 mod trash;
 
+pub use blue_dot_spark::*;
 pub use burning_trail::*;
 pub use damage_text::*;
 pub use ember_spark::*;
