@@ -13,8 +13,8 @@ use namui::{
     *,
 };
 pub use particle::{
-    BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle, IconParticle,
-    InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
+    BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle,
+    IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
     TrashParticle,
 };
