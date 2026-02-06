@@ -186,6 +186,7 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 fn create_initial_game_state() -> GameState {
+    let now = Instant::now();
     let mut game_state = GameState {
         monsters: Default::default(),
         towers: Default::default(),
@@ -194,7 +195,7 @@ fn create_initial_game_state() -> GameState {
         backgrounds: generate_backgrounds(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
-        stage: 1,
+        stage: 49,
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
@@ -239,7 +240,7 @@ fn create_initial_game_state() -> GameState {
         left_quest_board_refresh_chance: 0,
         item_used: false,
         level: NonZeroUsize::new(1).unwrap(),
-        game_now: Instant::now(),
+        game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
@@ -252,8 +253,26 @@ fn create_initial_game_state() -> GameState {
         just_cleared_boss_stage: false,
     };
 
+    // 에러 재현 및 파티클 성능 최적화를 위한 초기 타워 배치
+    // 풀하우스 타워를 (6,0), (6,2), (6,4), (6,6), (6,8)에 배치
+    let tower_positions = [
+        MapCoord::new(8, 0),
+        MapCoord::new(8, 2),
+        MapCoord::new(8, 4),
+        MapCoord::new(8, 6),
+        MapCoord::new(8, 8),
+    ];
+    for pos in tower_positions {
+        let template = TowerTemplate::new(TowerKind::FullHouse, Suit::Spades, Rank::Ace);
+        let tower = Tower::new(&template, pos, now);
+        game_state.towers.place_tower(tower);
+    }
+
     game_state.record_game_start();
-    game_state.goto_next_stage();
+    // Defense flow부터 바로 시작
+    game_state.stage = 50;
+    game_state.flow = GameFlow::Defense(flow::DefenseFlow::new(&game_state));
+    start_spawn(&mut game_state);
     game_state
 }
 
