@@ -86,60 +86,6 @@ impl SkCanvas for skia_safe::Canvas {
     fn scale(&self, sx: f32, sy: f32) {
         self.scale((sx, sy));
     }
-
-    fn draw_atlas(
-        &self,
-        atlas: &Image,
-        xforms: &[RSXform],
-        tex_rects: &[Rect<Px>],
-        paint: &Option<Paint>,
-    ) {
-        if xforms.is_empty() || xforms.len() != tex_rects.len() {
-            return;
-        }
-
-        // Convert RSXform to skia_safe::RSXform
-        let skia_xforms: Vec<skia_safe::RSXform> = xforms
-            .iter()
-            .map(|xform| {
-                skia_safe::RSXform::new(
-                    xform.scos,
-                    xform.ssin,
-                    (xform.tx.as_f32(), xform.ty.as_f32()),
-                )
-            })
-            .collect();
-
-        // Convert Rect<Px> to skia_safe::Rect
-        let skia_tex_rects: Vec<skia_safe::Rect> = tex_rects
-            .iter()
-            .map(|rect| {
-                skia_safe::Rect::new(
-                    rect.left().as_f32(),
-                    rect.top().as_f32(),
-                    rect.right().as_f32(),
-                    rect.bottom().as_f32(),
-                )
-            })
-            .collect();
-
-        // Get the native skia image
-        let skia_image = atlas.skia_image();
-
-        // Prepare paint if provided
-        let skia_paint = paint.as_ref().map(|p| NativePaint::get(p).skia().clone());
-
-        self.draw_atlas(
-            &skia_image,
-            &skia_xforms,
-            &skia_tex_rects,
-            None, // colors
-            skia_safe::BlendMode::SrcOver,
-            skia_safe::SamplingOptions::default(),
-            None, // cull_rect
-            skia_paint.as_ref(),
-        );
-    }
 }
 
 fn namui_matrix_to_skia_matrix(matrix: TransformMatrix) -> skia_safe::M44 {

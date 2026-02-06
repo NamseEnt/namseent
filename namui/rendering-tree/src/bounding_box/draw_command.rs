@@ -7,7 +7,6 @@ impl BoundingBox for &DrawCommand {
             DrawCommand::Path { command } => command.bounding_box(),
             DrawCommand::Text { command } => command.bounding_box(),
             DrawCommand::Image { command } => command.bounding_box(),
-            DrawCommand::Atlas { command } => command.bounding_box(),
         }
     }
 }
@@ -93,56 +92,5 @@ impl BoundingBox for &ImageDrawCommand {
             }
             _ => Some(self.rect),
         }
-    }
-}
-
-impl BoundingBox for &AtlasDrawCommand {
-    fn bounding_box(self) -> Option<Rect<Px>> {
-        if self.sprites.is_empty() {
-            return None;
-        }
-
-        // Calculate bounding box by transforming each sprite's corners
-        let mut min_x = px(f32::MAX);
-        let mut min_y = px(f32::MAX);
-        let mut max_x = px(f32::MIN);
-        let mut max_y = px(f32::MIN);
-
-        for sprite in &self.sprites {
-            let tex = &sprite.tex;
-            let xform = &sprite.xform;
-            
-            // Get the sprite dimensions
-            let w = tex.width();
-            let h = tex.height();
-            
-            // Transform the four corners of the sprite
-            let corners = [
-                (px(0.0), px(0.0)),
-                (w, px(0.0)),
-                (w, h),
-                (px(0.0), h),
-            ];
-            
-            for (x, y) in corners {
-                // Apply RSXform transformation: 
-                // x' = scos * x - ssin * y + tx
-                // y' = ssin * x + scos * y + ty
-                let tx = x * xform.scos - y * xform.ssin + xform.tx;
-                let ty = x * xform.ssin + y * xform.scos + xform.ty;
-                
-                min_x = min_x.min(tx);
-                min_y = min_y.min(ty);
-                max_x = max_x.max(tx);
-                max_y = max_y.max(ty);
-            }
-        }
-
-        Some(Rect::Ltrb {
-            left: min_x,
-            top: min_y,
-            right: max_x,
-            bottom: max_y,
-        })
     }
 }
