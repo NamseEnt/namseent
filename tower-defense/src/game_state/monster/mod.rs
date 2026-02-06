@@ -106,6 +106,11 @@ impl Monster {
         self.move_on_route.xy()
     }
 
+    /// 몬스터의 중심점 (타일 단위) - 프로젝타일/레이저 유도용
+    pub fn center_xy_tile(&self) -> MapCoordF32 {
+        self.move_on_route.xy() + MapCoordF32::new(0.5, 0.5)
+    }
+
     pub fn id(&self) -> usize {
         self.id
     }

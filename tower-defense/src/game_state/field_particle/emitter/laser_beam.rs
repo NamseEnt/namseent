@@ -1,0 +1,205 @@
+use crate::game_state::field_particle::FieldParticle;
+use namui::*;
+use rand::Rng;
+
+// 상수 정의
+const LASER_LINE_COUNT: usize = 8; // 생성할 직선 개수
+const LINE_THICKNESS_MIN: f32 = 0.1; // 최소 두께 (타일)
+const LINE_THICKNESS_MAX: f32 = 0.25; // 최대 두께 (타일)
+const LASER_LIFETIME_MS: i64 = 120; // 레이저 수명
+const START_OFFSET_RANGE: f32 = 0.9; // start 점 오프셋 범위 (직선 길이 비율)
+const END_OFFSET_RANGE: f32 = 0.9; // end 점 오프셋 범위 (직선 길이 비율)
+const MOVEMENT_SPEED: f32 = 32.0; // 초당 target 방향으로 이동하는 거리 (타일 단위)
+const LIGHTNING_BOLT_COUNT: usize = 4; // 레이저 빔마다 생성할 번개줄기 개수
+const LIGHTNING_BOLT_SPAWN_CHANCE: f32 = 0.8; // 번개줄기가 죽을 때 새로운 번개줄기를 생성할 확률
+const BLUE_DOT_SPARK_COUNT: usize = 4; // target 위치에서 생성할 파란 점 개수
+const BLUE_DOT_SPARK_ANGLE_RANGE: f32 = 0.436; // 약 ±25도 (라디안)
+
+#[derive(Clone, State)]
+pub struct LaserBeamEmitter {
+    pub start_xy: (f32, f32), // 타워 위치
+    pub end_xy: (f32, f32),   // 타겟 위치
+    pub created_at: Instant,
+    pub emitted: bool,
+}
+
+impl LaserBeamEmitter {
+    pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) -> Self {
+        Self {
+            start_xy,
+            end_xy,
+            created_at,
+            emitted: false,
+        }
+    }
+}
+
+impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
+    for LaserBeamEmitter
+{
+    fn emit(
+        &mut self,
+        now: Instant,
+        _dt: Duration,
+    ) -> Vec<crate::game_state::field_particle::FieldParticle> {
+        if self.emitted {
+            return vec![];
+        }
+
+        self.emitted = true;
+        let mut rng = rand::thread_rng();
+
+        // 직선의 방향 벡터 계산
+        let dx = self.end_xy.0 - self.start_xy.0;
+        let dy = self.end_xy.1 - self.start_xy.1;
+        let laser_length = (dx * dx + dy * dy).sqrt();
+
+        // 레이저 라인, 번개줄기, 파란 점 파티클을 모두 포함하는 vec 생성
+        let mut out =
+            Vec::with_capacity(LASER_LINE_COUNT + LIGHTNING_BOLT_COUNT + BLUE_DOT_SPARK_COUNT);
+
+        // 레이저 라인 생성
+        self.emit_laser_lines(now, dx, dy, &mut rng, &mut out);
+
+        // 번개줄기 생성 (빔 주변에 여러 개)
+        for _ in 0..LIGHTNING_BOLT_COUNT {
+            let lightning = self.create_lightning_bolt(now, dx, dy, laser_length, &mut rng);
+            out.push(FieldParticle::LightningBolt {
+                particle: lightning,
+            });
+        }
+
+        // 파란 점 파티클 생성 (target 위치에서 tower 방향으로 터져나옴)
+        self.emit_blue_dot_sparks(now, dx, dy, &mut rng, &mut out);
+
+        out
+    }
+
+    fn is_done(&self, _now: Instant) -> bool {
+        self.emitted
+    }
+}
+
+impl LaserBeamEmitter {
+    /// 레이저 라인들을 생성
+    fn emit_laser_lines(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        rng: &mut rand::rngs::ThreadRng,
+        out: &mut Vec<FieldParticle>,
+    ) {
+        for i in 0..LASER_LINE_COUNT {
+            let (start_t, end_t, thickness) = if i == 0 {
+                // 첫 번째 직선은 최대 두께로 시작점과 끝점을 완전히 연결
+                (0.0, 1.0, LINE_THICKNESS_MAX)
+            } else {
+                // 나머지는 랜덤
+                let start_t = rng.gen_range(0.0..START_OFFSET_RANGE);
+                let end_t = rng.gen_range((1.0 - END_OFFSET_RANGE)..1.0);
+                let thickness = rng.gen_range(LINE_THICKNESS_MIN..LINE_THICKNESS_MAX);
+                (start_t, end_t, thickness)
+            };
+
+            let line_start = (
+                self.start_xy.0 + dx * start_t,
+                self.start_xy.1 + dy * start_t,
+            );
+            let line_end = (self.start_xy.0 + dx * end_t, self.start_xy.1 + dy * end_t);
+
+            let particle = crate::game_state::field_particle::LaserLineParticle::new(
+                line_start,
+                line_end,
+                self.end_xy, // clamp용 target 위치
+                now,
+                Duration::from_millis(LASER_LIFETIME_MS),
+                thickness,
+                MOVEMENT_SPEED,
+            );
+
+            out.push(FieldParticle::LaserLine { particle });
+        }
+    }
+
+    /// 레이저 빔 주변에 번개줄기를 생성
+    fn create_lightning_bolt(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        laser_length: f32,
+        rng: &mut rand::rngs::ThreadRng,
+    ) -> crate::game_state::field_particle::LightningBoltParticle {
+        // 빔 상의 랜덤 위치에서 번개줄기 시작
+        let t = rng.gen_range(0.0..1.0);
+        let bolt_start = (self.start_xy.0 + dx * t, self.start_xy.1 + dy * t);
+
+        // 빔의 수직 방향으로 랜덤 오프셋
+        let perp_x = -dy / laser_length.max(0.001);
+        let perp_y = dx / laser_length.max(0.001);
+
+        // 빔 끝 근처로 랜덤 각도로 방향 지정
+        let end_t = rng.gen_range(0.6..1.0); // 대략 빔의 뒷부분
+        let mut bolt_end = (self.start_xy.0 + dx * end_t, self.start_xy.1 + dy * end_t);
+
+        // 번개줄기는 약간 구부러지거나 옆으로 간다
+        let angle_offset = rng.gen_range(-0.5..0.5);
+        bolt_end.0 += perp_x * angle_offset;
+        bolt_end.1 += perp_y * angle_offset;
+
+        // 번개줄기 수명은 레이저보다 짧고 랜덤 (50~100ms)
+        let bolt_lifetime = Duration::from_millis(rng.gen_range(50..100));
+
+        crate::game_state::field_particle::LightningBoltParticle::new(
+            bolt_start,
+            bolt_end,
+            now,
+            bolt_lifetime,
+            LIGHTNING_BOLT_SPAWN_CHANCE,
+        )
+    }
+
+    /// 파란 점 파티클을 target 위치에서 tower 방향으로 터져나오도록 생성
+    fn emit_blue_dot_sparks(
+        &self,
+        now: Instant,
+        dx: f32,
+        dy: f32,
+        rng: &mut rand::rngs::ThreadRng,
+        out: &mut Vec<FieldParticle>,
+    ) {
+        let laser_length = (dx * dx + dy * dy).sqrt();
+        if laser_length < 0.001 {
+            return; // 빔 길이가 너무 짧으면 생성하지 않음
+        }
+
+        // target에서 tower로의 방향 벡터 (반대 방향)
+        let base_dir_x = -dx / laser_length;
+        let base_dir_y = -dy / laser_length;
+
+        for _ in 0..BLUE_DOT_SPARK_COUNT {
+            // target 위치에서 스파크 생성
+            let spark_xy = self.end_xy;
+
+            // tower 방향에서 ±25도 범위의 랜덤 각도
+            let angle_variation =
+                rng.gen_range(-BLUE_DOT_SPARK_ANGLE_RANGE..BLUE_DOT_SPARK_ANGLE_RANGE);
+            let cos_a = angle_variation.cos();
+            let sin_a = angle_variation.sin();
+
+            // 회전된 방향 계산
+            let movement_dir_x = base_dir_x * cos_a - base_dir_y * sin_a;
+            let movement_dir_y = base_dir_x * sin_a + base_dir_y * cos_a;
+
+            let particle = crate::game_state::field_particle::BlueDotSparkParticle::new_with_random(
+                spark_xy,
+                (movement_dir_x, movement_dir_y),
+                now,
+                rng,
+            );
+
+            out.push(FieldParticle::BlueDotSpark { particle });
+        }
+    }
+}

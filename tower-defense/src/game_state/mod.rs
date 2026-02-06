@@ -1,3 +1,4 @@
+pub mod attack;
 pub mod background;
 mod camera;
 pub mod can_place_tower;

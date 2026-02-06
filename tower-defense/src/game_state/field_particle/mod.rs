@@ -1,6 +1,9 @@
 pub mod emitter;
 pub mod particle;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::TILE_PX_SIZE;
 use crate::game_state::{
     GameState,
     field_particle::emitter::{DamageTextEmitter, MonsterDeathEmitter, MonsterStatusEffectEmitter},
@@ -9,7 +12,12 @@ use namui::{
     particle::{Emitter, Particle},
     *,
 };
-pub use particle::{DamageTextParticle, IconParticle, MonsterCorpseParticle, MonsterSoulParticle};
+pub use particle::{
+    BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle,
+    IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
+    LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
+    TrashParticle,
+};
 
 #[derive(State)]
 pub struct TempParticleEmitter {
@@ -38,7 +46,29 @@ impl TempParticleEmitter {
     }
 }
 
-pub type FieldParticleSystem = namui::particle::System<FieldParticleEmitter, FieldParticle>;
+#[derive(State)]
+pub struct FieldParticleSystem {
+    id: usize,
+    system: namui::particle::System<FieldParticleEmitter, FieldParticle>,
+}
+impl FieldParticleSystem {
+    pub fn new(emitters: Vec<FieldParticleEmitter>) -> Self {
+        static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let system = namui::particle::System::new(emitters);
+        Self { id, system }
+    }
+}
+impl AsMut<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
+    fn as_mut(&mut self) -> &mut namui::particle::System<FieldParticleEmitter, FieldParticle> {
+        &mut self.system
+    }
+}
+impl AsRef<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
+    fn as_ref(&self) -> &namui::particle::System<FieldParticleEmitter, FieldParticle> {
+        &self.system
+    }
+}
 
 #[derive(Default, State)]
 pub struct FieldParticleSystemManager {
@@ -48,7 +78,9 @@ pub struct FieldParticleSystemManager {
 impl FieldParticleSystemManager {
     pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
         for system in &self.systems {
-            system.render(ctx, now);
+            ctx.compose_with_key(system.id, |ctx| {
+                system.as_ref().render(&ctx, now);
+            });
         }
     }
 
@@ -64,17 +96,45 @@ impl FieldParticleSystemManager {
     }
 
     fn remove_finished_field_particle_systems(&mut self, now: Instant) {
-        self.systems.retain(|system| !system.is_done(now));
+        self.systems.retain(|system| !system.as_ref().is_done(now));
     }
 }
 
 #[derive(State)]
 pub enum FieldParticleEmitter {
-    TempParticle { emitter: TempParticleEmitter },
-    MonsterStatusEffect { emitter: MonsterStatusEffectEmitter },
-    DamageText { emitter: DamageTextEmitter },
-    MonsterDeath { emitter: MonsterDeathEmitter },
-    MonsterCorpse { emitter: TempParticleEmitter },
+    TempParticle {
+        emitter: TempParticleEmitter,
+    },
+    MonsterStatusEffect {
+        emitter: MonsterStatusEffectEmitter,
+    },
+    DamageText {
+        emitter: DamageTextEmitter,
+    },
+    MonsterDeath {
+        emitter: MonsterDeathEmitter,
+    },
+    MonsterCorpse {
+        emitter: TempParticleEmitter,
+    },
+    BurningTrail {
+        emitter: emitter::BurningTrailEmitter,
+    },
+    TrashBurst {
+        emitter: emitter::TrashBurstEmitter,
+    },
+    TrashBounce {
+        emitter: emitter::TrashBounceEmitter,
+    },
+    TrashRain {
+        emitter: emitter::TrashRainEmitter,
+    },
+    ProjectileParticle {
+        emitter: emitter::ProjectileParticleEmitter,
+    },
+    LaserBeam {
+        emitter: emitter::LaserBeamEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -84,6 +144,12 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -94,6 +160,12 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -104,6 +176,16 @@ pub enum FieldParticle {
     DamageText { particle: DamageTextParticle },
     MonsterDeath { particle: MonsterSoulParticle },
     MonsterCorpse { particle: MonsterCorpseParticle },
+    BurningTrail { particle: BurningTrailParticle },
+    EmberSpark { particle: EmberSparkParticle },
+    BlueDotSpark { particle: BlueDotSparkParticle },
+    LaserBeam { particle: LaserBeamParticle },
+    InstantEmit { particle: InstantEmitParticle },
+    InstantHit { particle: InstantHitParticle },
+    Trash { particle: TrashParticle },
+    Projectile { particle: ProjectileParticle },
+    LaserLine { particle: LaserLineParticle },
+    LightningBolt { particle: LightningBoltParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -124,6 +206,48 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::BurningTrail { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::EmberSpark { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::BlueDotSpark { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::LaserBeam { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::InstantEmit { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::InstantHit { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::Trash { particle } => particle.tick(now, dt),
+            FieldParticle::Projectile { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::LaserLine { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
+            FieldParticle::LightningBolt { particle } => {
+                if let Some(new_particle) = particle.tick(now, dt) {
+                    vec![FieldParticleEmitter::TempParticle {
+                        emitter: TempParticleEmitter::new(vec![new_particle]),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
         }
     }
 
@@ -133,6 +257,19 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.render(),
             FieldParticle::MonsterDeath { particle } => particle.render(),
             FieldParticle::MonsterCorpse { particle } => particle.render(),
+            FieldParticle::BurningTrail { particle } => particle.render(),
+            FieldParticle::EmberSpark { particle } => particle.render(),
+            FieldParticle::BlueDotSpark { particle } => particle.render(),
+            FieldParticle::LaserBeam { particle } => particle.render(),
+            FieldParticle::InstantEmit { particle } => particle.render(),
+            FieldParticle::InstantHit { particle } => particle.render(),
+            FieldParticle::Trash { particle } => particle.render(),
+            FieldParticle::Projectile { particle } => {
+                // Render projectile using the same logic as the main projectile rendering
+                render_projectile_particle(particle)
+            }
+            FieldParticle::LaserLine { particle } => particle.render(),
+            FieldParticle::LightningBolt { particle } => particle.render(),
         }
     }
 
@@ -142,6 +279,16 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::DamageText { particle } => particle.is_done(now),
             FieldParticle::MonsterDeath { particle } => particle.is_done(now),
             FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
+            FieldParticle::BurningTrail { particle } => particle.is_done(now),
+            FieldParticle::EmberSpark { particle } => particle.is_done(now),
+            FieldParticle::BlueDotSpark { particle } => particle.is_done(now),
+            FieldParticle::LaserBeam { particle } => particle.is_done(now),
+            FieldParticle::InstantEmit { particle } => particle.is_done(now),
+            FieldParticle::InstantHit { particle } => particle.is_done(now),
+            FieldParticle::Trash { particle } => particle.is_done(now),
+            FieldParticle::Projectile { particle } => !particle.is_alive(now),
+            FieldParticle::LaserLine { particle } => particle.is_done(now),
+            FieldParticle::LightningBolt { particle } => particle.is_done(now),
         }
     }
 }
@@ -150,4 +297,32 @@ pub fn remove_finished_field_particle_systems(game_state: &mut GameState, now: I
     game_state
         .field_particle_system_manager
         .remove_finished_field_particle_systems(now);
+}
+fn render_projectile_particle(particle: &ProjectileParticle) -> RenderingTree {
+    let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
+    let image = particle.kind.image();
+    let half_wh = projectile_wh / 2.0;
+
+    let tile_px = TILE_PX_SIZE.to_xy();
+    let particle_px_xy = tile_px * Xy::new(particle.xy.x, particle.xy.y);
+
+    namui::translate(
+        particle_px_xy.x,
+        particle_px_xy.y,
+        namui::rotate(
+            particle.rotation,
+            namui::translate(
+                -half_wh.width,
+                -half_wh.height,
+                namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(Xy::zero(), projectile_wh),
+                    image,
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: None,
+                    },
+                }),
+            ),
+        ),
+    )
 }
