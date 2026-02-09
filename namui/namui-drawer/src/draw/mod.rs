@@ -150,7 +150,7 @@ pub fn draw_mouse_cursor(
                             .elapsed();
 
                         let frame_index = ((elapsed.as_millis() / frame_duration.as_millis())
-                            % frame_count as i128)
+                            % frame_count as i64)
                             as usize;
                         (start_index + frame_index, hotspot_xy)
                     }
