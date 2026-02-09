@@ -15,19 +15,12 @@ pub struct ImageParam {
 
 pub fn image(ImageParam { image, rect, style }: ImageParam) -> RenderingTree {
     RenderingTree::Node(DrawCommand::Image {
-        command: ImageDrawCommand {
-            image,
-            rect,
-            fit: style.fit,
-            paint: style.paint,
-        }
-        .into(),
+        command: ImageDrawCommand::from_fit(image, rect, style.fit, style.paint).into(),
     })
 }
 
 pub enum ImageSource {
     Image { image: Image },
-    // ResourceLocation { resource_location: ResourceLocation },
 }
 
 pub struct ImageRender {
@@ -52,20 +45,7 @@ impl Component for ImageRender {
                     image,
                     style: ImageStyle { fit, paint },
                 }));
-            } // ImageSource::ResourceLocation { resource_location } => {
-              //     let image_result = ctx.image(resource_location);
-              //     let image_guard = image_result.lock().unwrap();
-
-              //     let Some(Ok(image)) = image_guard.as_ref() else {
-              //         return;
-              //     };
-
-              //     ctx.add(crate::image(crate::ImageParam {
-              //         rect,
-              //         image: *image,
-              //         style: ImageStyle { fit, paint },
-              //     }));
-              // }
+            }
         }
     }
 }

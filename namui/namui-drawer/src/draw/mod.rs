@@ -1,4 +1,3 @@
-mod atlas;
 mod image;
 mod path;
 mod text;
@@ -112,7 +111,6 @@ impl Draw for &DrawCommand {
             DrawCommand::Path { command } => command.draw(skia),
             DrawCommand::Text { command } => command.draw(skia),
             DrawCommand::Image { command } => command.draw(skia),
-            DrawCommand::Atlas { command } => command.draw(skia),
         }
     }
 }
@@ -152,22 +150,19 @@ pub fn draw_mouse_cursor(
                             .elapsed();
 
                         let frame_index = ((elapsed.as_millis() / frame_duration.as_millis())
-                            % frame_count as i128)
+                            % frame_count as i64)
                             as usize;
                         (start_index + frame_index, hotspot_xy)
                     }
                 };
                 let offset_xy = calculate_offset_xy(index);
 
-                skia.surface().canvas().clip_path(
-                    &Path::new().add_rect(Rect::from_xy_wh(-hotspot_xy, sprite_set.cursor_wh)),
-                    ClipOp::Intersect,
-                    false,
-                );
                 ImageDrawCommand {
-                    rect: Rect::from_xy_wh(-offset_xy - hotspot_xy, sprite_set.sheet.info().wh()),
                     image: sprite_set.sheet,
-                    fit: ImageFit::None,
+                    sprites: vec![ImageSprite {
+                        src_rect: Rect::from_xy_wh(offset_xy, sprite_set.cursor_wh),
+                        xform: RSXform::from_translate(-hotspot_xy.x, -hotspot_xy.y),
+                    }],
                     paint: None,
                 }
                 .draw(skia);
