@@ -30,8 +30,8 @@ export function Chest({
   const [openProgress, setOpenProgress] = useState(0)
   const [openStartTime, setOpenStartTime] = useState<number | null>(null)
 
-  const chestWidth = 80
-  const chestHeight = 60
+  const chestWidth = 120
+  const chestHeight = 90
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,20 +89,20 @@ export function Chest({
       const bodyColor = state === 'empty' ? 0x3a2a1a : 0x654321
 
       g.setFillStyle({ color: bodyColor })
-      g.setStrokeStyle({ width: isHovered && state === 'closed' ? 3 : 2, color: highlightColor })
-      g.roundRect(-chestWidth / 2, -chestHeight / 2, chestWidth, chestHeight, 8)
+      g.setStrokeStyle({ width: isHovered && state === 'closed' ? 4 : 3, color: highlightColor })
+      g.roundRect(-chestWidth / 2, -chestHeight / 2, chestWidth, chestHeight, 12)
       g.fill()
       g.stroke()
 
       if (state !== 'empty') {
         g.setFillStyle({ color: 0x8b6914 })
-        g.roundRect(-chestWidth / 2 + 10, -chestHeight / 2 + 10, chestWidth - 20, 8, 2)
+        g.roundRect(-chestWidth / 2 + 15, -chestHeight / 2 + 15, chestWidth - 30, 12, 3)
         g.fill()
       }
 
-      const lockY = state === 'closed' ? 5 : 5 - openProgress * 20
+      const lockY = state === 'closed' ? 8 : 8 - openProgress * 30
       g.setFillStyle({ color: state === 'empty' ? 0x333333 : 0xffd700 })
-      g.circle(0, lockY, 8)
+      g.circle(0, lockY, 12)
       g.fill()
     },
     [chestWidth, chestHeight, isHovered, state, openProgress]
@@ -113,11 +113,11 @@ export function Chest({
       if (state === 'closed') return
 
       g.clear()
-      const lidHeight = 15
+      const lidHeight = 22
 
       g.setFillStyle({ color: state === 'empty' ? 0x3a2a1a : 0x654321 })
-      g.setStrokeStyle({ width: 2, color: 0x8b4513 })
-      g.roundRect(-chestWidth / 2, -chestHeight / 2 - lidHeight, chestWidth, lidHeight, 4)
+      g.setStrokeStyle({ width: 3, color: 0x8b4513 })
+      g.roundRect(-chestWidth / 2, -chestHeight / 2 - lidHeight, chestWidth, lidHeight, 6)
       g.fill()
       g.stroke()
     },
@@ -139,19 +139,19 @@ export function Chest({
 
   const hintStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 12,
+    fontSize: 18,
     fill: 0xffcc00,
     align: 'center',
   }), [])
 
   const emptyStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 12,
+    fontSize: 18,
     fill: 0x666666,
     align: 'center',
   }), [])
 
-  const itemSpacing = 80
+  const itemSpacing = 120
   const itemsStartX = x - ((items.length - 1) * itemSpacing) / 2
 
   return (
@@ -166,13 +166,13 @@ export function Chest({
         onPointerDown={handleClick}
       >
         <pixiGraphics draw={drawChestBody} />
-        {state !== 'closed' && <pixiGraphics draw={drawLid} y={-openProgress * 15} />}
+        {state !== 'closed' && <pixiGraphics draw={drawLid} y={-openProgress * 22} />}
 
         {state === 'closed' && isHovered && (
           <pixiText
             text="Press E or Click"
             x={0}
-            y={-50}
+            y={-75}
             anchor={{ x: 0.5, y: 0.5 }}
             style={hintStyle}
           />
@@ -195,9 +195,9 @@ export function Chest({
             key={item.id}
             item={item}
             baseX={x}
-            baseY={y - 30}
+            baseY={y - 45}
             targetX={itemsStartX + i * itemSpacing}
-            targetY={y + 70}
+            targetY={y + 105}
             delay={i * 100}
             onClick={() => handleItemPickup(item)}
           />

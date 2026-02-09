@@ -40,14 +40,14 @@ export function InventoryItem({
 
   const nameStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 10,
+    fontSize: 15,
     fill: 0xffffff,
     align: 'center',
   }), [])
 
   const quantityStyle = useMemo(() => new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 10,
+    fontSize: 15,
     fill: 0xcccccc,
   }), [])
 
@@ -61,15 +61,15 @@ export function InventoryItem({
       <pixiText
         text={shortName}
         x={width / 2 - 2}
-        y={height / 2 - 10}
+        y={height / 2 - 15}
         anchor={{ x: 0.5, y: 0.5 }}
         style={nameStyle}
       />
       {definition.stackSize > 1 && (
         <pixiText
           text={`x${item.quantity}`}
-          x={width - 10}
-          y={height - 14}
+          x={width - 15}
+          y={height - 21}
           anchor={{ x: 1, y: 1 }}
           style={quantityStyle}
         />
