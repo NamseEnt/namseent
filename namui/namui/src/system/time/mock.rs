@@ -30,14 +30,12 @@ struct MockTimeSystem;
 
 impl TimeSystem for MockTimeSystem {
     fn since_start(&self) -> Duration {
-        Duration::from_std(
-            true,
-            INSTANT_NOW
-                .get_or_init(|| Mutex::new(std::time::Instant::now()))
-                .lock()
-                .unwrap()
-                .elapsed(),
-        )
+        INSTANT_NOW
+            .get_or_init(|| Mutex::new(std::time::Instant::now()))
+            .lock()
+            .unwrap()
+            .elapsed()
+            .into()
     }
 
     fn system_time_now(&self) -> SystemTime {
@@ -52,6 +50,6 @@ impl TimeSystem for MockTimeSystem {
     }
 
     fn sleep(&self, duration: Duration) -> time::Sleep {
-        time::sleep(duration.to_std().unwrap_or_default())
+        time::sleep(duration)
     }
 }
