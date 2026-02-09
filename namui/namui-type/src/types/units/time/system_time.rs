@@ -51,17 +51,20 @@ fn sub_system_time(lhs: SystemTime, rhs: SystemTime) -> Duration {
     };
 
     let sign = lhs.inner > rhs.inner;
-    Duration::from_std(sign, duration)
+    let secs = duration.as_secs_f32();
+    Duration::from_secs_f32(if sign { secs } else { -secs })
 }
 
 fn add_duration(lhs: SystemTime, rhs: Duration) -> SystemTime {
-    match rhs.sign {
-        true => SystemTime {
-            inner: lhs.inner + rhs.inner,
-        },
-        false => SystemTime {
-            inner: lhs.inner - rhs.inner,
-        },
+    let secs = rhs.as_secs_f32();
+    if secs >= 0.0 {
+        SystemTime {
+            inner: lhs.inner + std::time::Duration::from_secs_f32(secs),
+        }
+    } else {
+        SystemTime {
+            inner: lhs.inner - std::time::Duration::from_secs_f32(-secs),
+        }
     }
 }
 
