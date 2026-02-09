@@ -50,6 +50,6 @@ impl TimeSystem for MockTimeSystem {
     }
 
     fn sleep(&self, duration: Duration) -> time::Sleep {
-        time::sleep(duration)
+        time::sleep(std::time::Duration::from_secs_f32(duration.as_secs_f32().max(0.0)))
     }
 }
