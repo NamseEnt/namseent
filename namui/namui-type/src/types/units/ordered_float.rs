@@ -14,6 +14,9 @@ impl OrderedFloat {
     pub const fn new(inner: f32) -> Self {
         Self { inner }
     }
+    pub const fn get(self) -> f32 {
+        self.inner
+    }
 }
 
 impl PartialOrd for OrderedFloat {

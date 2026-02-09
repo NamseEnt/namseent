@@ -20,7 +20,7 @@ struct NonWasmTimeSystem {
 
 impl TimeSystem for NonWasmTimeSystem {
     fn since_start(&self) -> Duration {
-        Duration::from_std(true, self.start_instant.elapsed())
+        self.start_instant.elapsed().into()
     }
 
     fn system_time_now(&self) -> SystemTime {
@@ -32,6 +32,8 @@ impl TimeSystem for NonWasmTimeSystem {
     }
 
     fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
-        tokio::time::sleep(duration.to_std().unwrap_or_default())
+        tokio::time::sleep(std::time::Duration::from_secs_f32(
+            duration.as_secs_f32().max(0.0),
+        ))
     }
 }
