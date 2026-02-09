@@ -32,6 +32,8 @@ impl TimeSystem for NonWasmTimeSystem {
     }
 
     fn sleep(&self, duration: Duration) -> tokio::time::Sleep {
-        tokio::time::sleep(std::time::Duration::from_secs_f32(duration.as_secs_f32().max(0.0)))
+        tokio::time::sleep(std::time::Duration::from_secs_f32(
+            duration.as_secs_f32().max(0.0),
+        ))
     }
 }
