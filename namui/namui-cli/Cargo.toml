@@ -39,6 +39,6 @@ clap_complete = "*"
 serde = { version = "*", features = ["derive"] }
 namui-user-config = { path = "../namui-user-config" }
 anyhow = { version = "1.0.71", features = ["backtrace"] }
-reqwest = "0.12.4"
+reqwest = "0.13"
 flate2 = "1.0"
 tar = "0.4.40"
