@@ -1,7 +1,7 @@
 use crate::icon::Icon;
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct IconParticle {
     pub icon: Icon,
     pub xy: Xy<Px>,
@@ -104,7 +104,7 @@ impl IconParticle {
     }
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub enum IconParticleBehavior {
     FadeRise {
         duration: Duration,
@@ -130,5 +130,17 @@ fn fast_in_slow_out_easing(t: f32) -> f32 {
         t / 0.1
     } else {
         (1.0 - (t - 0.1) / 0.9).max(0.0)
+    }
+}
+
+impl namui::particle::Particle for IconParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        IconParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        IconParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        IconParticle::is_done(self, now)
     }
 }

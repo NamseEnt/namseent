@@ -8,11 +8,6 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     } = game_state;
 
     let mut total_earn_gold = 0;
-    let mut damage_emitters = Vec::new();
-    let mut monster_death_emitters = Vec::new();
-    let mut burning_trail_emitters = Vec::new();
-    let mut trash_bounce_emitters = Vec::new();
-    let mut projectile_particle_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -21,9 +16,8 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             .iter()
             .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
         else {
-            // Create a projectile particle that fades out over 300ms
-            projectile_particle_emitters.push(
-                field_particle::emitter::ProjectileParticleEmitter::new(
+            field_particle::PROJECTILES.spawn(
+                field_particle::ProjectileParticle::new(
                     projectile.xy,
                     projectile.kind,
                     projectile.rotation,
@@ -51,12 +45,12 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             }
 
             if projectile.trail == ProjectileTrail::Burning {
-                burning_trail_emitters.push(field_particle::emitter::BurningTrailEmitter::new(
+                field_particle::emitter::spawn_burning_trail(
                     start_xy,
                     projectile.xy,
                     dt,
                     now,
-                ));
+                );
             }
 
             return true;
@@ -65,17 +59,20 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let damage = projectile.damage;
         monster.get_damage(damage);
         if damage > 0.0 {
-            damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
-                monster_xy, damage,
-            ));
+            field_particle::DAMAGE_TEXTS.spawn(
+                field_particle::DamageTextParticle::new(monster_xy, damage, now),
+            );
         }
 
-        trash_bounce_emitters.push(field_particle::emitter::TrashBounceEmitter::new(
+        let bounce_particles = field_particle::emitter::create_bounce_particles(
             projectile.kind,
             (start_xy.x, start_xy.y),
             (monster_xy.x, monster_xy.y),
             now,
-        ));
+        );
+        for p in bounce_particles {
+            field_particle::TRASHES.spawn(p);
+        }
 
         if monster.dead() {
             if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
@@ -86,17 +83,10 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
 
-            // Emit monster death particle (soul)
-            monster_death_emitters.push(field_particle::emitter::MonsterDeathEmitter::new(
-                monster_xy,
-            ));
-
-            // Emit monster corpse particle
             let monster_kind = monster.kind;
             let rotation = monster.animation.rotation;
             let wh = monster::monster_wh(monster_kind);
 
-            // Calculate the pixel position where the monster is rendered
             let tile_base_xy = TILE_PX_SIZE.to_xy() * monster_xy;
             let monster_center_offset = Xy::new(
                 TILE_PX_SIZE.width * 0.5,
@@ -105,42 +95,21 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
 
-            let corpse_particle = field_particle::MonsterCorpseParticle::new(
-                pixel_xy,
-                now,
-                rotation,
-                monster_kind,
-                wh,
+            field_particle::MONSTER_SOULS.spawn(
+                field_particle::MonsterSoulParticle::new(pixel_xy, now, rotation),
             );
-            game_state.field_particle_system_manager.add_emitters(vec![
-                field_particle::FieldParticleEmitter::MonsterCorpse {
-                    emitter: field_particle::TempParticleEmitter::new(vec![
-                        field_particle::FieldParticle::MonsterCorpse {
-                            particle: corpse_particle,
-                        },
-                    ]),
-                },
-            ]);
+
+            field_particle::MONSTER_CORPSES.spawn(
+                field_particle::MonsterCorpseParticle::new(
+                    pixel_xy, now, rotation, monster_kind, wh,
+                ),
+            );
 
             monsters.swap_remove(monster_index);
         }
 
         false
     });
-
-    super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
-    super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
-    super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
-    super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
-
-    if !projectile_particle_emitters.is_empty() {
-        game_state.field_particle_system_manager.add_emitters(
-            projectile_particle_emitters
-                .into_iter()
-                .map(|emitter| field_particle::FieldParticleEmitter::ProjectileParticle { emitter })
-                .collect(),
-        );
-    }
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);

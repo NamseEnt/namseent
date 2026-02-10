@@ -1196,6 +1196,7 @@ dependencies = [
  "namui-hooks",
  "namui-rendering-tree",
  "namui-type",
+ "orx-parallel",
 ]
 
 [[package]]

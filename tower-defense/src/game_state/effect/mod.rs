@@ -491,7 +491,6 @@ pub mod tests_support {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,

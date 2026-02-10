@@ -1,131 +1,115 @@
 use namui_hooks::*;
 use namui_rendering_tree::*;
 use namui_type::*;
-use std::{
-    cell::RefCell,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+use orx_parallel::*;
+use std::sync::{
+    Arc, Mutex, OnceLock,
+    atomic::{AtomicBool, Ordering},
+    mpsc::{Receiver, Sender},
 };
 
-pub trait Emitter<P> {
-    fn emit(&mut self, now: Instant, dt: Duration) -> Vec<P>;
-    fn is_done(&self, now: Instant) -> bool;
-}
-
-pub trait Particle<E> {
-    fn tick(&mut self, now: Instant, dt: Duration) -> Vec<E>;
+pub trait Particle: Send + Sync + 'static + Sized {
+    fn tick(&mut self, now: Instant, dt: Duration);
     fn render(&self) -> RenderingTree;
     fn is_done(&self, now: Instant) -> bool;
 }
 
-#[derive(State)]
-pub struct System<E, P>
-where
-    E: State,
-    P: State,
-{
-    _emitter: std::marker::PhantomData<E>,
-    _particle: std::marker::PhantomData<P>,
-    initial_emitters: RefCell<Vec<E>>,
-    is_done: Arc<AtomicBool>,
+pub struct Emitter<P: Particle> {
+    inner: OnceLock<EmitterInner<P>>,
 }
 
-impl<E, P> System<E, P>
-where
-    E: Emitter<P> + State,
-    P: Particle<E> + State,
-{
-    pub fn new(emitters: Vec<E>) -> Self {
+struct EmitterInner<P: Particle> {
+    spawn_tx: Sender<P>,
+    rendered_tree: Arc<Mutex<Arc<RenderingTree>>>,
+    stop_flag: Arc<AtomicBool>,
+}
+
+impl<P: Particle> Emitter<P> {
+    pub const fn new() -> Self {
         Self {
-            _emitter: std::marker::PhantomData,
-            _particle: std::marker::PhantomData,
-            initial_emitters: emitters.into(),
-            is_done: Arc::new(AtomicBool::new(false)),
+            inner: OnceLock::new(),
         }
     }
-    pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
-        ctx.add(SystemComponent {
-            now,
-            initial_emitters: &self.initial_emitters,
-            system_is_done: &self.is_done,
-            _p: std::marker::PhantomData,
-        });
+
+    pub fn spawn(&self, particle: P) {
+        self.init();
+        let inner = self.inner.get().unwrap();
+        let _ = inner.spawn_tx.send(particle);
     }
 
-    pub fn is_done(&self, _now: Instant) -> bool {
-        self.is_done.load(Ordering::Acquire)
-    }
-}
+    fn init(&self) {
+        self.inner.get_or_init(|| {
+            let (spawn_tx, spawn_rx) = std::sync::mpsc::channel();
+            let rendered_tree = Arc::new(Mutex::new(Arc::new(RenderingTree::Empty)));
+            let stop_flag = Arc::new(AtomicBool::new(false));
 
-struct SystemComponent<'a, E, P> {
-    now: Instant,
-    initial_emitters: &'a RefCell<Vec<E>>,
-    system_is_done: &'a Arc<AtomicBool>,
-    _p: std::marker::PhantomData<P>,
-}
+            let rendered_tree_clone = rendered_tree.clone();
+            let stop_flag_clone = stop_flag.clone();
 
-impl<E, P> Component for SystemComponent<'_, E, P>
-where
-    E: Emitter<P> + State,
-    P: Particle<E> + State,
-{
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            now,
-            initial_emitters,
-            system_is_done,
-            ..
-        } = self;
-        #[derive(State)]
-        struct State<E: namui_type::State, P: namui_type::State> {
-            emitters: Vec<E>,
-            particles: Vec<P>,
-            last_now: Instant,
-        }
-        let (state, set_state) = ctx.state(|| State {
-            emitters: initial_emitters.replace(vec![]),
-            particles: Vec::<P>::with_capacity(65536),
-            last_now: now,
-        });
-
-        ctx.attach_event(|event| {
-            let Event::ScreenRedraw = event else {
-                return;
-            };
-
-            let system_is_done = system_is_done.clone();
-            set_state.mutate(move |state| {
-                let &mut State {
-                    ref mut emitters,
-                    ref mut particles,
-                    ref mut last_now,
-                } = state;
-                let dt = now - *last_now;
-
-                emitters.retain_mut(|emitter| {
-                    particles.extend(emitter.emit(now, dt));
-                    !emitter.is_done(now)
-                });
-
-                let new_emitters = particles
-                    .iter_mut()
-                    .flat_map(|particle| particle.tick(now, dt));
-                emitters.extend(new_emitters);
-
-                particles.retain_mut(|particle| !particle.is_done(now));
-
-                if emitters.is_empty() && particles.is_empty() {
-                    system_is_done.store(true, Ordering::Release);
-                }
-
-                *last_now = now;
+            std::thread::spawn(move || {
+                tick_thread_main(spawn_rx, &rendered_tree_clone, &stop_flag_clone);
             });
-        });
 
-        for particle in state.particles.iter() {
-            ctx.add(particle.render());
+            EmitterInner {
+                spawn_tx,
+                rendered_tree,
+                stop_flag,
+            }
+        });
+    }
+
+    fn latest_tree(&self) -> Arc<RenderingTree> {
+        self.inner
+            .get()
+            .map(|inner| inner.rendered_tree.lock().unwrap().clone())
+            .unwrap_or_else(|| Arc::new(RenderingTree::Empty))
+    }
+}
+
+unsafe impl<P: Particle> Sync for Emitter<P> {}
+
+impl<P: Particle> Component for &Emitter<P> {
+    fn render(self, ctx: &RenderCtx) {
+        self.init();
+
+        let tree = self.latest_tree();
+        ctx.add(Arc::unwrap_or_clone(tree));
+    }
+}
+
+fn tick_thread_main<P: Particle>(
+    rx: Receiver<P>,
+    rendered_tree: &Mutex<Arc<RenderingTree>>,
+    stop_flag: &AtomicBool,
+) {
+    let mut particles: Vec<P> = Vec::with_capacity(65536);
+    let mut last_now = Instant::now();
+
+    loop {
+        if stop_flag.load(Ordering::Acquire) {
+            break;
         }
+
+        let now = Instant::now();
+        let dt = now - last_now;
+
+        while let Ok(p) = rx.try_recv() {
+            particles.push(p);
+        }
+
+        particles.par_mut().for_each(|p| p.tick(now, dt));
+
+        particles.retain(|p| !p.is_done(now));
+
+        let tree = if particles.is_empty() {
+            RenderingTree::Empty
+        } else {
+            let trees: Vec<RenderingTree> = particles.par().map(|p| p.render()).collect();
+            RenderingTree::Children(trees)
+        };
+        *rendered_tree.lock().unwrap() = Arc::new(tree);
+
+        last_now = now;
+        std::thread::sleep(std::time::Duration::from_millis(8));
     }
 }

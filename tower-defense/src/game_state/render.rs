@@ -293,8 +293,19 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
     }
 }
 
-fn render_field_particles(ctx: &RenderCtx, game_state: &GameState) {
-    game_state
-        .field_particle_system_manager
-        .render(ctx, game_state.now());
+fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
+    ctx.add(&field_particle::BURNING_TRAILS);
+    ctx.add(&field_particle::EMBER_SPARKS);
+    ctx.add(&field_particle::LASER_LINES);
+    ctx.add(&field_particle::LIGHTNING_BOLTS);
+    ctx.add(&field_particle::BLUE_DOT_SPARKS);
+    ctx.add(&field_particle::LASER_BEAMS);
+    ctx.add(&field_particle::MONSTER_CORPSES);
+    ctx.add(&field_particle::PROJECTILES);
+    ctx.add(&field_particle::TRASHES);
+    ctx.add(&field_particle::INSTANT_EMITS);
+    ctx.add(&field_particle::INSTANT_HITS);
+    ctx.add(&field_particle::MONSTER_SOULS);
+    ctx.add(&field_particle::ICONS);
+    ctx.add(&field_particle::DAMAGE_TEXTS);
 }

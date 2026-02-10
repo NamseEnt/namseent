@@ -26,7 +26,7 @@ const MAX_ROTATION_SPEED: f32 = 25.0; // degrees per second
 const COLOR_YELLOW_THRESHOLD: f32 = 2000.0;
 const COLOR_RED_THRESHOLD: f32 = 10000.0;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct DamageTextParticle {
     pub position: MapCoordF32, // tile coordinates
     pub initial_position: MapCoordF32,
@@ -199,5 +199,17 @@ impl DamageTextParticle {
             (255u8, 40u8, 40u8)
         };
         Color::from_u8(r, g, b, 255)
+    }
+}
+
+impl namui::particle::Particle for DamageTextParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        DamageTextParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        DamageTextParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        DamageTextParticle::is_done(self, now)
     }
 }

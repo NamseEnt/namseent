@@ -2,7 +2,7 @@ use crate::MapCoordF32;
 use crate::game_state::projectile::ProjectileKind;
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct ProjectileParticle {
     pub xy: MapCoordF32,
     pub kind: ProjectileKind,
@@ -44,5 +44,45 @@ impl ProjectileParticle {
 
     pub fn is_alive(&self, now: Instant) -> bool {
         now - self.created_at < self.duration
+    }
+
+    pub fn render_particle(&self) -> RenderingTree {
+        let tile_px_size = crate::game_state::TILE_PX_SIZE;
+        let projectile_wh = tile_px_size * Wh::new(0.4, 0.4);
+        let image = self.kind.image();
+        let half_wh = projectile_wh / 2.0;
+        let tile_px = tile_px_size.to_xy();
+        let particle_px_xy = tile_px * Xy::new(self.xy.x, self.xy.y);
+        namui::translate(
+            particle_px_xy.x,
+            particle_px_xy.y,
+            namui::rotate(
+                self.rotation,
+                namui::translate(
+                    -half_wh.width,
+                    -half_wh.height,
+                    namui::image(ImageParam {
+                        rect: Rect::from_xy_wh(Xy::zero(), projectile_wh),
+                        image,
+                        style: ImageStyle {
+                            fit: ImageFit::Contain,
+                            paint: None,
+                        },
+                    }),
+                ),
+            ),
+        )
+    }
+}
+
+impl namui::particle::Particle for ProjectileParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        ProjectileParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        ProjectileParticle::render_particle(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        !self.is_alive(now)
     }
 }

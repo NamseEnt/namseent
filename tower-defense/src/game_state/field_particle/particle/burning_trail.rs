@@ -22,7 +22,7 @@ const RADIUS_START_RATIO: f32 = 0.6; // relative to initial_radius at progress 0
 const RADIUS_PEAK_RATIO: f32 = 1.0; // relative at peak (progress 0.1)
 const RADIUS_END_RATIO: f32 = 0.0; // relative at end (progress 1.0)
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct BurningTrailParticle {
     pub xy: (f32, f32),
     pub created_at: Instant,
@@ -126,5 +126,17 @@ impl BurningTrailParticle {
     fn progress(&self, now: Instant) -> f32 {
         let elapsed = now - self.created_at;
         (elapsed.as_secs_f32() / self.lifetime.as_secs_f32()).min(1.0)
+    }
+}
+
+impl namui::particle::Particle for BurningTrailParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        BurningTrailParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        BurningTrailParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        BurningTrailParticle::is_done(self, now)
     }
 }

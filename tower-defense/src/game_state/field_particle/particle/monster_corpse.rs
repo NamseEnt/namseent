@@ -9,7 +9,7 @@ const LINEAR_DRAG_PER_SEC: f32 = 2.0;
 const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 1080.0;
 const ANGULAR_DRAG_PER_SEC: f32 = 0.125;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct MonsterCorpseParticle {
     pub position: Xy<Px>,
     pub created_at: Instant,
@@ -121,5 +121,17 @@ impl MonsterCorpseParticle {
                 ),
             ),
         )
+    }
+}
+
+impl namui::particle::Particle for MonsterCorpseParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        MonsterCorpseParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        MonsterCorpseParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        MonsterCorpseParticle::is_done(self, now)
     }
 }

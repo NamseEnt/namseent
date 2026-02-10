@@ -16,7 +16,7 @@ const BLUE_DOT_OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.6, 1.0); // 청색
 const BLUE_DOT_INNER_COLOR_RGB: (f32, f32, f32) = (0.7, 0.95, 1.0); // 밝은 청색
 const BLUE_DOT_INNER_RADIUS_RATIO: f32 = 0.3;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct BlueDotSparkParticle {
     pub xy: (f32, f32),
     pub velocity: (f32, f32), // 맵 좌표 단위/초
@@ -119,5 +119,17 @@ impl BlueDotSparkParticle {
     fn progress(&self, now: Instant) -> f32 {
         let elapsed = now - self.created_at;
         (elapsed.as_secs_f32() / self.lifetime.as_secs_f32()).min(1.0)
+    }
+}
+
+impl namui::particle::Particle for BlueDotSparkParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        BlueDotSparkParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        BlueDotSparkParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        BlueDotSparkParticle::is_done(self, now)
     }
 }

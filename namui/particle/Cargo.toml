@@ -7,3 +7,4 @@ edition = "2021"
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
 namui-rendering-tree = { path = "../rendering-tree" }
+orx-parallel = "3.3.0"

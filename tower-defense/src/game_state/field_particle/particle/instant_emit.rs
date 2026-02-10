@@ -1,7 +1,7 @@
 use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct InstantEmitParticle {
     pub tower_xy: (f32, f32),
     pub target_xy: (f32, f32),
@@ -78,5 +78,17 @@ impl InstantEmitParticle {
     fn progress(&self, now: Instant) -> f32 {
         let elapsed = now - self.created_at;
         (elapsed.as_secs_f32() / attack::instant_effect::EFFECT_LIFETIME.as_secs_f32()).min(1.0)
+    }
+}
+
+impl namui::particle::Particle for InstantEmitParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        InstantEmitParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        InstantEmitParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        InstantEmitParticle::is_done(self, now)
     }
 }

@@ -1,7 +1,7 @@
 use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct InstantHitParticle {
     pub xy: (f32, f32),
     pub created_at: Instant,
@@ -133,5 +133,17 @@ impl InstantHitParticle {
         } else {
             1.0 - (progress - 0.1) / 0.9
         }
+    }
+}
+
+impl namui::particle::Particle for InstantHitParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        InstantHitParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        InstantHitParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        InstantHitParticle::is_done(self, now)
     }
 }

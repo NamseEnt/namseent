@@ -5,7 +5,7 @@ const SOUL_OFFSET_MAX_PX: f32 = 128.0;
 const SOUL_SCALE_MIN: f32 = 0.0;
 const SOUL_SCALE_MAX: f32 = 1.0;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct MonsterSoulParticle {
     pub position: Xy<Px>,
     pub created_at: Instant,
@@ -88,5 +88,17 @@ impl MonsterSoulParticle {
                 ),
             ),
         )
+    }
+}
+
+impl namui::particle::Particle for MonsterSoulParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        MonsterSoulParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        MonsterSoulParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        MonsterSoulParticle::is_done(self, now)
     }
 }

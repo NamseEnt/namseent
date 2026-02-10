@@ -95,7 +95,6 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
-    pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
@@ -243,7 +242,6 @@ fn create_initial_game_state() -> GameState {
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
-        field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
         locale: crate::l10n::Locale::KOREAN,
         play_history: PlayHistory::new(),
         opened_modal: None,
@@ -253,20 +251,28 @@ fn create_initial_game_state() -> GameState {
         just_cleared_boss_stage: false,
     };
 
-    // 에러 재현 및 파티클 성능 최적화를 위한 초기 타워 배치
-    // 풀하우스 타워를 (6,0), (6,2), (6,4), (6,6), (6,8)에 배치
-    let tower_positions = [
-        MapCoord::new(8, 0),
-        MapCoord::new(8, 2),
-        MapCoord::new(8, 4),
-        MapCoord::new(8, 6),
-        MapCoord::new(8, 8),
-    ];
-    for pos in tower_positions {
-        let template = TowerTemplate::new(TowerKind::FullHouse, Suit::Spades, Rank::Ace);
-        let tower = Tower::new(&template, pos, now);
-        game_state.towers.place_tower(tower);
+    let mut route = calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap();
+    for y in 0..MAP_SIZE.height - 1 {
+        for x in 0..MAP_SIZE.width - 1 {
+            let pos = MapCoord::new(x, y);
+            if can_place_tower::can_place_tower(
+                pos,
+                Wh::new(2, 2),
+                &TRAVEL_POINTS,
+                &game_state.towers.coords(),
+                route.iter_coords(),
+                MAP_SIZE,
+            ) {
+                let template = TowerTemplate::new(TowerKind::FullHouse, Suit::Spades, Rank::Ace);
+                let tower = Tower::new(&template, pos, now);
+                game_state.towers.place_tower(tower);
+                route = calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
+                    .unwrap();
+            }
+        }
     }
+
+    game_state.route = route;
 
     game_state.record_game_start();
     // Defense flow부터 바로 시작
@@ -329,7 +335,6 @@ impl GameState {
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             locale: self.locale,
             play_history: self.play_history.clone(),
             opened_modal: None,

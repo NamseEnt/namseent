@@ -1,7 +1,6 @@
 mod attack;
 mod defense_end;
 mod monster_death;
-mod particle_emit;
 mod projectile;
 
 use super::*;
@@ -51,8 +50,6 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     monster::remove_monster_finished_status_effects(game_state, now);
     tower::remove_tower_finished_status_effects(game_state, now);
     user_status_effect::remove_user_finished_status_effects(game_state, now);
-    field_particle::remove_finished_field_particle_systems(game_state, now);
-
     monster::activate_monster_skills(game_state, now);
     tower::activate_tower_skills(game_state, now);
 

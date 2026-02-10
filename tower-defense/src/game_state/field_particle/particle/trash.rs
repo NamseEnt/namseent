@@ -5,13 +5,13 @@ use rand::Rng;
 
 const TRASH_SIZE_TILE: f32 = 0.5;
 
-#[derive(Clone, Copy, State)]
+#[derive(Clone, Copy)]
 pub enum EaseMode {
     Linear,
     EaseOutCubic,
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct TrashParticle {
     pub kind: ProjectileKind,
     pub start_xy: (f32, f32),
@@ -21,13 +21,13 @@ pub struct TrashParticle {
     pub progress: f32,
     pub ease_mode: EaseMode,
     pub rotation: Angle,
-    pub rotation_speed: Angle, // per second
+    pub rotation_speed: Angle,
     pub should_bounce: bool,
     pub bounced: bool,
-    pub gravity: f32, // tiles per second^2
+    pub gravity: f32,
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct TrashParticleConfig {
     pub kind: ProjectileKind,
     pub start_xy: (f32, f32),
@@ -49,7 +49,6 @@ impl TrashParticle {
         duration: Duration,
         ease_mode: EaseMode,
     ) -> Self {
-        // default rotation / speed 0
         Self {
             kind,
             start_xy,
@@ -66,30 +65,21 @@ impl TrashParticle {
         }
     }
 
-    pub fn tick(
-        &mut self,
-        now: Instant,
-        dt: Duration,
-    ) -> Vec<crate::game_state::field_particle::FieldParticleEmitter> {
+    pub fn tick_impl(&mut self, now: Instant, dt: Duration) {
         self.progress = self.progress(now);
         self.rotation += self.rotation_speed * dt.as_secs_f32();
 
-        // when finished, optionally emit a bounce emitter (only once)
         if self.progress >= 1.0 && self.should_bounce && !self.bounced {
             self.bounced = true;
-            return vec![
-                crate::game_state::field_particle::FieldParticleEmitter::TrashBounce {
-                    emitter: crate::game_state::field_particle::emitter::TrashBounceEmitter::new(
-                        self.kind,
-                        self.start_xy,
-                        self.end_xy,
-                        now,
-                    ),
-                },
-            ];
+            for p in crate::game_state::field_particle::emitter::create_bounce_particles(
+                self.kind,
+                self.start_xy,
+                self.end_xy,
+                now,
+            ) {
+                crate::game_state::field_particle::TRASHES.spawn(p);
+            }
         }
-
-        vec![]
     }
 
     pub fn render(&self) -> RenderingTree {
@@ -108,7 +98,6 @@ impl TrashParticle {
         let x = self.start_xy.0 + (self.end_xy.0 - self.start_xy.0) * eased;
         let mut y = self.start_xy.1 + (self.end_xy.1 - self.start_xy.1) * eased;
 
-        // apply gravity offset using elapsed estimated from progress and duration
         let elapsed_secs = self.progress * self.duration.as_secs_f32();
         let y_offset = 0.5 * self.gravity * elapsed_secs * elapsed_secs;
         y += y_offset;
@@ -120,7 +109,6 @@ impl TrashParticle {
 
         let image = self.kind.image();
 
-        // alpha fades out linearly with progress so it's not eased
         let alpha = (1.0 - self.progress).max(0.0);
         let paint = Paint::new(Color::WHITE.with_alpha((alpha * 255.0) as u8));
 
@@ -143,7 +131,6 @@ impl TrashParticle {
 
     pub fn is_done(&self, now: Instant) -> bool {
         let base_done = now - self.created_at >= self.duration;
-        // If bounce is requested but not yet emitted, keep particle alive until bounce is emitted
         (self.bounced || !self.should_bounce) && base_done
     }
 
@@ -152,7 +139,6 @@ impl TrashParticle {
         (elapsed.as_secs_f32() / self.duration.as_secs_f32()).min(1.0)
     }
 
-    // helper to create with small random offset on end position using a config
     pub fn new_with_random_end(config: TrashParticleConfig) -> Self {
         let mut rng = rand::thread_rng();
         let offset_x = rng.gen_range(-0.25..0.25);
@@ -166,7 +152,6 @@ impl TrashParticle {
             config.duration,
             config.ease_mode,
         );
-        // random rotation and speed
         s.rotation = rng.gen_range(0.0..360.0).deg();
         s.rotation_speed = rng
             .gen_range(config.rotation_speed_deg_per_sec.0..config.rotation_speed_deg_per_sec.1)
@@ -174,5 +159,19 @@ impl TrashParticle {
         s.should_bounce = config.should_bounce;
         s.gravity = config.gravity;
         s
+    }
+}
+
+impl namui::particle::Particle for TrashParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        self.tick_impl(now, dt);
+    }
+
+    fn render(&self) -> RenderingTree {
+        TrashParticle::render(self)
+    }
+
+    fn is_done(&self, now: Instant) -> bool {
+        TrashParticle::is_done(self, now)
     }
 }

@@ -5,7 +5,7 @@ use namui::*;
 const OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.5, 1.0); // 푸른 외곽
 const INNER_COLOR_RGB: (f32, f32, f32) = (0.6, 0.85, 1.0); // 밝은 푸른 내부/흰색 기조
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct LaserBeamParticle {
     pub start_xy: (f32, f32),
     pub end_xy: (f32, f32),
@@ -13,7 +13,7 @@ pub struct LaserBeamParticle {
     pub alpha: f32,
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct LaserLineParticle {
     pub start_xy: (f32, f32),  // 현재 시작점 (이동됨)
     pub end_xy: (f32, f32),    // 현재 끝점 (이동됨)
@@ -86,6 +86,18 @@ impl LaserBeamParticle {
 
         let progress = elapsed.as_secs_f32() / attack::laser::LASER_LIFETIME.as_secs_f32();
         1.0 - progress
+    }
+}
+
+impl namui::particle::Particle for LaserBeamParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        LaserBeamParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        LaserBeamParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        LaserBeamParticle::is_done(self, now)
     }
 }
 
@@ -226,14 +238,24 @@ impl LaserLineParticle {
         // - appear phase (0~10%): 급격히 1.0에 도달
         // - fade phase (10~100%): 천천히 0으로 감소
         if progress < 0.1 {
-            // 급격히 나타남 (ease out quad)
             let appear_progress = progress / 0.1;
             let inv = 1.0 - appear_progress;
             1.0 - (inv * inv)
         } else {
-            // 천천히 사라짐 (linear하게 1 -> 0)
             let fade_progress = (progress - 0.1) / 0.9;
             1.0 - fade_progress
         }
+    }
+}
+
+impl namui::particle::Particle for LaserLineParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        LaserLineParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        LaserLineParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        LaserLineParticle::is_done(self, now)
     }
 }

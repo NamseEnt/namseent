@@ -16,7 +16,7 @@ const EMBER_SPARK_OUTER_COLOR_RGB: (f32, f32, f32) = (1.0, 0.5, 0.1);
 const EMBER_SPARK_INNER_COLOR_RGB: (f32, f32, f32) = (1.0, 0.9, 0.4);
 const EMBER_SPARK_INNER_RADIUS_RATIO: f32 = 0.4;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct EmberSparkParticle {
     pub xy: (f32, f32),
     pub velocity: (f32, f32), // 맵 좌표 단위/초
@@ -130,5 +130,17 @@ impl EmberSparkParticle {
     fn progress(&self, now: Instant) -> f32 {
         let elapsed = now - self.created_at;
         (elapsed.as_secs_f32() / self.lifetime.as_secs_f32()).min(1.0)
+    }
+}
+
+impl namui::particle::Particle for EmberSparkParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        EmberSparkParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> RenderingTree {
+        EmberSparkParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        EmberSparkParticle::is_done(self, now)
     }
 }

@@ -22,7 +22,7 @@ impl Default for Duration {
 
 impl Debug for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let secs = self.secs.get();
+        let secs = *self.secs;
         if secs < 0.0 {
             f.write_fmt(format_args!(
                 "-{:?}",
@@ -63,6 +63,20 @@ impl Duration {
             secs: OrderedFloat::new(secs as f32),
         }
     }
+    pub fn from_std(sign: bool, duration: std::time::Duration) -> Self {
+        let secs = duration.as_secs_f32();
+        Self {
+            secs: OrderedFloat::new(if sign { secs } else { -secs }),
+        }
+    }
+    pub fn to_std(&self) -> anyhow::Result<std::time::Duration> {
+        let secs = *self.secs;
+        if secs >= 0.0 {
+            Ok(std::time::Duration::from_secs_f32(secs))
+        } else {
+            Err(anyhow::anyhow!("negative duration"))
+        }
+    }
     pub const fn abs(self) -> Self {
         let s = self.secs.get();
         Self {
@@ -92,17 +106,13 @@ impl Duration {
 impl std::ops::Neg for Duration {
     type Output = Self;
     fn neg(self) -> Self::Output {
-        Self {
-            secs: OrderedFloat::new(-self.secs.get()),
-        }
+        Self { secs: -self.secs }
     }
 }
 impl std::ops::Neg for &Duration {
     type Output = Duration;
     fn neg(self) -> Self::Output {
-        Duration {
-            secs: OrderedFloat::new(-self.secs.get()),
-        }
+        Duration { secs: -self.secs }
     }
 }
 
@@ -114,187 +124,42 @@ impl From<std::time::Duration> for Duration {
     }
 }
 
-auto_ops::impl_op!(+|lhs: Duration, rhs: Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-auto_ops::impl_op!(+|lhs: &Duration, rhs: Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-auto_ops::impl_op!(+|lhs: Duration, rhs: &Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-auto_ops::impl_op!(+|lhs: &Duration, rhs: &Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-
-auto_ops::impl_op!(-|lhs: Duration, rhs: Duration| -> Duration {
+auto_ops::impl_op_ex!(+|lhs: &Duration, rhs: &Duration| -> Duration {
+    Duration { secs: lhs.secs + rhs.secs }
+});
+auto_ops::impl_op_ex!(-|lhs: &Duration, rhs: &Duration| -> Duration {
     Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
+        secs: lhs.secs - rhs.secs,
     }
 });
-auto_ops::impl_op!(-|lhs: &Duration, rhs: Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
-});
-auto_ops::impl_op!(-|lhs: Duration, rhs: &Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
-});
-auto_ops::impl_op!(-|lhs: &Duration, rhs: &Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
+auto_ops::impl_op_ex!(/|lhs: &Duration, rhs: &Duration| -> f32 { *lhs.secs / *rhs.secs });
+auto_ops::impl_op_ex!(%|lhs: &Duration, rhs: &Duration| -> Duration {
+    Duration { secs: OrderedFloat::new(*lhs.secs % *rhs.secs) }
 });
 
-auto_ops::impl_op!(/|lhs: Duration, rhs: Duration| -> f32 { lhs.secs.get() / rhs.secs.get() });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: Duration| -> f32 { lhs.secs.get() / rhs.secs.get() });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &Duration| -> f32 { lhs.secs.get() / rhs.secs.get() });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: &Duration| -> f32 { lhs.secs.get() / rhs.secs.get() });
-
-auto_ops::impl_op!(%|lhs: Duration, rhs: Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() % rhs.secs.get()) } });
-auto_ops::impl_op!(%|lhs: &Duration, rhs: Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() % rhs.secs.get()) } });
-auto_ops::impl_op!(%|lhs: Duration, rhs: &Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() % rhs.secs.get()) } });
-auto_ops::impl_op!(%|lhs: &Duration, rhs: &Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() % rhs.secs.get()) } });
-
-auto_ops::impl_op!(*|lhs: Duration, rhs: f32| -> Duration {
+auto_ops::impl_op_ex!(*|lhs: &Duration, rhs: &f32| -> Duration {
     Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs),
+        secs: lhs.secs * *rhs,
     }
 });
-auto_ops::impl_op!(*|lhs: &Duration, rhs: f32| -> Duration {
+auto_ops::impl_op_ex!(/|lhs: &Duration, rhs: &f32| -> Duration { Duration { secs: lhs.secs / *rhs } });
+
+auto_ops::impl_op_ex!(*|lhs: &Duration, rhs: &i32| -> Duration {
     Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs),
+        secs: lhs.secs * *rhs as f32,
     }
 });
-auto_ops::impl_op!(*|lhs: Duration, rhs: &f32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs),
-    }
-});
-auto_ops::impl_op!(*|lhs: &Duration, rhs: &f32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs),
-    }
-});
+auto_ops::impl_op_ex!(/|lhs: &Duration, rhs: &i32| -> Duration { Duration { secs: lhs.secs / *rhs as f32 } });
 
-auto_ops::impl_op!(/|lhs: Duration, rhs: f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: &f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs) } });
+auto_ops::impl_op_ex!(/|lhs: &Duration, rhs: &usize| -> Duration { Duration { secs: lhs.secs / *rhs as f32 } });
 
-auto_ops::impl_op!(*|lhs: Duration, rhs: i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs as f32),
-    }
-});
-auto_ops::impl_op!(*|lhs: &Duration, rhs: i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs as f32),
-    }
-});
-auto_ops::impl_op!(*|lhs: Duration, rhs: &i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs as f32),
-    }
-});
-auto_ops::impl_op!(*|lhs: &Duration, rhs: &i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs as f32),
-    }
-});
-
-auto_ops::impl_op!(/|lhs: Duration, rhs: i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: &i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-
-auto_ops::impl_op!(/|lhs: Duration, rhs: usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &Duration, rhs: &usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-
-auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: Duration| { *lhs.secs += rhs.secs.get() });
-auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs.secs += rhs.secs.get() });
-
-auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: Duration| { *lhs.secs -= rhs.secs.get() });
-auto_ops::impl_op!(-=|lhs: &mut Duration, rhs: &Duration| { *lhs.secs -= rhs.secs.get() });
-
-auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: f32| { *lhs.secs *= rhs });
-auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: &f32| { *lhs.secs *= *rhs });
-
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: f32| { *lhs.secs /= rhs });
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &f32| { *lhs.secs /= *rhs });
-
-auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: i32| { *lhs.secs *= rhs as f32 });
-auto_ops::impl_op!(*=|lhs: &mut Duration, rhs: &i32| { *lhs.secs *= *rhs as f32 });
-
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: i32| { *lhs.secs /= rhs as f32 });
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &i32| { *lhs.secs /= *rhs as f32 });
-
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: usize| { *lhs.secs /= rhs as f32 });
-auto_ops::impl_op!(/=|lhs: &mut Duration, rhs: &usize| { *lhs.secs /= *rhs as f32 });
-
-//
-
-auto_ops::impl_op!(+|lhs: &mut Duration, rhs: Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-auto_ops::impl_op!(+|lhs: Duration, rhs: &mut Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-auto_ops::impl_op!(+|lhs: &mut Duration, rhs: &mut Duration| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() + rhs.secs.get()) } });
-
-auto_ops::impl_op!(-|lhs: &mut Duration, rhs: Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
-});
-auto_ops::impl_op!(-|lhs: Duration, rhs: &mut Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
-});
-auto_ops::impl_op!(-|lhs: &mut Duration, rhs: &mut Duration| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() - rhs.secs.get()),
-    }
-});
-
-auto_ops::impl_op!(*|lhs: &mut Duration, rhs: f32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs),
-    }
-});
-auto_ops::impl_op!(*|lhs: Duration, rhs: &mut f32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs),
-    }
-});
-auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut f32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs),
-    }
-});
-
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &mut f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs) } });
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut f32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs) } });
-
-auto_ops::impl_op!(*|lhs: &mut Duration, rhs: i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * rhs as f32),
-    }
-});
-auto_ops::impl_op!(*|lhs: Duration, rhs: &mut i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs as f32),
-    }
-});
-auto_ops::impl_op!(*|lhs: &mut Duration, rhs: &mut i32| -> Duration {
-    Duration {
-        secs: OrderedFloat::new(lhs.secs.get() * *rhs as f32),
-    }
-});
-
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &mut i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut i32| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / rhs as f32) } });
-auto_ops::impl_op!(/|lhs: Duration, rhs: &mut usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-auto_ops::impl_op!(/|lhs: &mut Duration, rhs: &mut usize| -> Duration { Duration { secs: OrderedFloat::new(lhs.secs.get() / *rhs as f32) } });
-
-auto_ops::impl_op!(+=|lhs: &mut Duration, rhs: &mut Duration| { *lhs.secs += rhs.secs.get() });
+auto_ops::impl_op_ex!(+=|lhs: &mut Duration, rhs: &Duration| { *lhs.secs += *rhs.secs });
+auto_ops::impl_op_ex!(-=|lhs: &mut Duration, rhs: &Duration| { *lhs.secs -= *rhs.secs });
+auto_ops::impl_op_ex!(*=|lhs: &mut Duration, rhs: &f32| { *lhs.secs *= *rhs });
+auto_ops::impl_op_ex!(/=|lhs: &mut Duration, rhs: &f32| { *lhs.secs /= *rhs });
+auto_ops::impl_op_ex!(*=|lhs: &mut Duration, rhs: &i32| { *lhs.secs *= *rhs as f32 });
+auto_ops::impl_op_ex!(/=|lhs: &mut Duration, rhs: &i32| { *lhs.secs /= *rhs as f32 });
+auto_ops::impl_op_ex!(/=|lhs: &mut Duration, rhs: &usize| { *lhs.secs /= *rhs as f32 });
 
 #[cfg(test)]
 mod tests {

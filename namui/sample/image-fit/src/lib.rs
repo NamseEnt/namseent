@@ -12,7 +12,7 @@ struct App;
 impl Component for App {
     fn render(self, ctx: &RenderCtx) {
         let size = namui::screen::size();
-        let (image_fit, set_image_fit) = ctx.state(|| ImageFit::Fill);
+        let (image_fit, set_image_fit) = ctx.state(|| ImageFit::Contain);
         let (image_location, set_image_location) =
             ctx.state(|| ResourceLocation::bundle("resources/0.jpg"));
         let image = ctx.image(&image_location);
@@ -23,7 +23,7 @@ impl Component for App {
         ctx.add(namui_prebuilt::typography::center_text(
             size.into_type(),
             format!(
-                "current: {:?}\n1: Fill, 2: Contain, 3: Cover, 4: ScaleDown, 5: None\nr: rotate",
+                "current: {:?}\n1: Contain, 2: Cover, 3: ScaleDown, 4: None\nr: rotate",
                 *image_fit
             ),
             Color::RED,
@@ -46,11 +46,10 @@ impl Component for App {
                 .attach_event(|event| {
                     if let Event::KeyDown { event } = event {
                         match event.code {
-                            Code::Digit1 => set_image_fit.set(ImageFit::Fill),
-                            Code::Digit2 => set_image_fit.set(ImageFit::Contain),
-                            Code::Digit3 => set_image_fit.set(ImageFit::Cover),
-                            Code::Digit4 => set_image_fit.set(ImageFit::ScaleDown),
-                            Code::Digit5 => set_image_fit.set(ImageFit::None),
+                            Code::Digit1 => set_image_fit.set(ImageFit::Contain),
+                            Code::Digit2 => set_image_fit.set(ImageFit::Cover),
+                            Code::Digit3 => set_image_fit.set(ImageFit::ScaleDown),
+                            Code::Digit4 => set_image_fit.set(ImageFit::None),
                             Code::KeyR => {
                                 if *image_location == ResourceLocation::bundle("resources/0.jpg") {
                                     set_image_location
