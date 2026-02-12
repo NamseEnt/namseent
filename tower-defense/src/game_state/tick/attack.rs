@@ -59,12 +59,17 @@ pub fn shoot_attacks(game_state: &mut GameState) {
             );
 
             match attack_type {
-                AttackType::Projectile { speed, trail } => {
+                AttackType::Projectile {
+                    speed,
+                    trail,
+                    projectile_group,
+                } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
                     let projectile = tower.shoot_projectile(
                         target_indicator,
                         speed,
                         trail,
+                        projectile_group,
                         &tower_upgrades,
                         contract_multiplier,
                         now,

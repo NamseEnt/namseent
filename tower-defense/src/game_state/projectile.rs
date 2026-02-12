@@ -185,6 +185,11 @@ pub enum ProjectileKind {
     Trash02,
     Trash03,
     Trash04,
+    Girl00,
+    Girl01,
+    Girl02,
+    Girl03,
+    Girl04,
 }
 impl ProjectileKind {
     pub fn random_trash() -> Self {
@@ -197,12 +202,28 @@ impl ProjectileKind {
         }
     }
 
+    pub fn random_girl() -> Self {
+        match thread_rng().gen_range(0..5) {
+            0 => ProjectileKind::Girl00,
+            1 => ProjectileKind::Girl01,
+            2 => ProjectileKind::Girl02,
+            3 => ProjectileKind::Girl03,
+            4 => ProjectileKind::Girl04,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn image(&self) -> Image {
         match self {
             ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
             ProjectileKind::Trash02 => crate::asset::image::attack::projectile::TRASH_02,
             ProjectileKind::Trash03 => crate::asset::image::attack::projectile::TRASH_03,
             ProjectileKind::Trash04 => crate::asset::image::attack::projectile::TRASH_04,
+            ProjectileKind::Girl00 => crate::asset::image::attack::projectile::GIRL_00,
+            ProjectileKind::Girl01 => crate::asset::image::attack::projectile::GIRL_01,
+            ProjectileKind::Girl02 => crate::asset::image::attack::projectile::GIRL_02,
+            ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
+            ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
         }
     }
 }

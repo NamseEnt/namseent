@@ -3,7 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
-use crate::game_state::attack::AttackType;
+use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
@@ -49,6 +49,7 @@ impl Tower {
         target_indicator: ProjectileTargetIndicator,
         speed: Velocity,
         trail: ProjectileTrail,
+        projectile_group: ProjectileGroup,
         tower_upgrade_states: &[TowerUpgradeState],
         contract_multiplier: f32,
         now: Instant,
@@ -58,7 +59,7 @@ impl Tower {
 
         Projectile::new(
             self.head_xy_tile(),
-            ProjectileKind::random_trash(),
+            projectile_group.random_kind(),
             speed,
             target_indicator,
             self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
@@ -97,6 +98,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
                 },
                 0.0,
             ),
@@ -104,6 +106,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
                 },
                 0.0,
             ),
@@ -111,6 +114,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
                 },
                 0.0,
             ),
@@ -118,6 +122,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
                 },
                 0.0,
             ),
@@ -125,6 +130,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
                     trail: ProjectileTrail::Burning,
+                    projectile_group: ProjectileGroup::Trash,
                 },
                 0.0,
             ),
@@ -135,6 +141,7 @@ impl Tower {
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
                     trail: ProjectileTrail::Sparkle,
+                    projectile_group: ProjectileGroup::Girl,
                 },
                 0.0,
             ),
