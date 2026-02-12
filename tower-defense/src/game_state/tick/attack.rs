@@ -63,6 +63,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     speed,
                     trail,
                     projectile_group,
+                    hit_effect,
                 } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
                     let projectile = tower.shoot_projectile(
@@ -70,6 +71,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         speed,
                         trail,
                         projectile_group,
+                        hit_effect,
                         &tower_upgrades,
                         contract_multiplier,
                         now,
@@ -145,6 +147,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             target_indicator,
                             damage_per_projectile,
                             ProjectileTrail::Burning,
+                            crate::game_state::attack::ProjectileHitEffect::TrashBounce,
                         );
                         projectiles.push(projectile);
                     }

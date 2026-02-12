@@ -1,5 +1,6 @@
 mod blue_dot_spark;
 mod burning_trail;
+mod card;
 mod damage_text;
 mod ember_spark;
 mod icon;
@@ -15,6 +16,7 @@ mod trash;
 
 pub use blue_dot_spark::*;
 pub use burning_trail::*;
+pub use card::*;
 pub use damage_text::*;
 pub use ember_spark::*;
 pub use icon::*;
@@ -26,4 +28,4 @@ pub use monster_corpse::*;
 pub use monster_soul::*;
 pub use projectile::*;
 pub use sparkle::*;
-pub use trash::*;
+pub use trash::{EaseMode, TrashParticle, TrashParticleConfig};

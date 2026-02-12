@@ -1,4 +1,5 @@
 mod burning_trail;
+mod card_burst;
 mod damage_text;
 mod laser_beam;
 mod monster_death;
@@ -11,6 +12,7 @@ mod trash_burst;
 mod trash_rain;
 
 pub use burning_trail::*;
+pub use card_burst::*;
 pub use damage_text::*;
 pub use laser_beam::*;
 pub use monster_death::*;

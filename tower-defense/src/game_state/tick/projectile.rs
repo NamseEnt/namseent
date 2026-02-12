@@ -82,20 +82,33 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             ));
         }
 
-        trash_bounce_emitters.push(field_particle::emitter::TrashBounceEmitter::new(
-            projectile.kind,
-            (start_xy.x, start_xy.y),
-            (monster_xy.x, monster_xy.y),
-            now,
-        ));
-
-        // Add sparkle burst hit effect for Flush projectiles
-        if projectile.trail == ProjectileTrail::Sparkle {
-            game_state.field_particle_system_manager.add_emitters(vec![
-                field_particle::FieldParticleEmitter::SparkleBurst {
+        // Create burst effect based on projectile hit effect
+        use crate::game_state::attack::ProjectileHitEffect;
+        let hit_emitter = match projectile.hit_effect {
+            ProjectileHitEffect::TrashBounce => {
+                trash_bounce_emitters.push(field_particle::emitter::TrashBounceEmitter::new(
+                    projectile.kind,
+                    (start_xy.x, start_xy.y),
+                    (monster_xy.x, monster_xy.y),
+                    now,
+                ));
+                None
+            }
+            ProjectileHitEffect::CardBurst => {
+                Some(field_particle::FieldParticleEmitter::CardBurst {
+                    emitter: field_particle::emitter::CardBurstEmitter::new(monster_xy, now),
+                })
+            }
+            ProjectileHitEffect::SparkleBurst => {
+                Some(field_particle::FieldParticleEmitter::SparkleBurst {
                     emitter: field_particle::emitter::SparkleBurstEmitter::new(monster_xy, now),
-                },
-            ]);
+                })
+            }
+        };
+        if let Some(emitter) = hit_emitter {
+            game_state
+                .field_particle_system_manager
+                .add_emitters(vec![emitter]);
         }
 
         if monster.dead() {

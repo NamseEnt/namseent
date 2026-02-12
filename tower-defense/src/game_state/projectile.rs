@@ -15,6 +15,7 @@ pub struct Projectile {
     pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
     pub behavior: ProjectileBehavior,
+    pub hit_effect: attack::ProjectileHitEffect,
 }
 impl Projectile {
     pub fn new(
@@ -24,6 +25,7 @@ impl Projectile {
         target_indicator: ProjectileTargetIndicator,
         damage: f32,
         trail: ProjectileTrail,
+        hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
         // Initialize with upward direction for Direct projectiles (tiles/second)
         let speed = velocity * Duration::from_secs(1);
@@ -38,6 +40,7 @@ impl Projectile {
             rotation_speed: random_rotation_speed(),
             trail,
             behavior: ProjectileBehavior::Direct,
+            hit_effect,
         }
     }
 
@@ -47,6 +50,7 @@ impl Projectile {
         target_indicator: ProjectileTargetIndicator,
         damage: f32,
         trail: ProjectileTrail,
+        hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
         // Randomize initial speed and turn rate within configured ranges
         let mut rng = thread_rng();
@@ -70,6 +74,7 @@ impl Projectile {
                 turn_rate,
                 max_speed: HOMING_MAX_SPEED_TILE,
             },
+            hit_effect,
         }
     }
 
@@ -190,6 +195,7 @@ pub enum ProjectileKind {
     Girl02,
     Girl03,
     Girl04,
+    Cards00,
 }
 impl ProjectileKind {
     pub fn random_trash() -> Self {
@@ -213,6 +219,10 @@ impl ProjectileKind {
         }
     }
 
+    pub fn random_cards() -> Self {
+        ProjectileKind::Cards00
+    }
+
     pub fn image(&self) -> Image {
         match self {
             ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
@@ -224,6 +234,7 @@ impl ProjectileKind {
             ProjectileKind::Girl02 => crate::asset::image::attack::projectile::GIRL_02,
             ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
             ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
+            ProjectileKind::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
         }
     }
 }
