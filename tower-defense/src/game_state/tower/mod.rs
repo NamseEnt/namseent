@@ -3,7 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
-use crate::game_state::attack::AttackType;
+use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
@@ -49,6 +49,8 @@ impl Tower {
         target_indicator: ProjectileTargetIndicator,
         speed: Velocity,
         trail: ProjectileTrail,
+        projectile_group: ProjectileGroup,
+        hit_effect: attack::ProjectileHitEffect,
         tower_upgrade_states: &[TowerUpgradeState],
         contract_multiplier: f32,
         now: Instant,
@@ -58,11 +60,12 @@ impl Tower {
 
         Projectile::new(
             self.head_xy_tile(),
-            ProjectileKind::random_trash(),
+            projectile_group.random_kind(),
             speed,
             target_indicator,
             self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
             trail,
+            hit_effect,
         )
     }
 
@@ -97,6 +100,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -104,6 +109,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -111,6 +118,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -118,6 +127,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -125,13 +136,23 @@ impl Tower {
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
                     trail: ProjectileTrail::Burning,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
-            TowerKind::Straight
-            | TowerKind::Flush
-            | TowerKind::StraightFlush
-            | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::Straight | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
+                (AttackType::Laser, 0.0)
+            }
+            TowerKind::Flush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::Sparkle,
+                    projectile_group: ProjectileGroup::Girl,
+                    hit_effect: attack::ProjectileHitEffect::SparkleBurst,
+                },
+                0.0,
+            ),
             TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, now);
@@ -150,38 +171,15 @@ impl Tower {
                     damage,
                 )
             }
-            TowerKind::FourOfAKind => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, now);
-
-                let damage =
-                    self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
-
-                let head_xy = self.head_xy_tile();
-                let tower_xy = (head_xy.x, head_xy.y);
-
-                let emit_effect = attack::instant_effect::TowerEmitEffect::new(
-                    tower_xy,
-                    target_xy,
-                    now,
-                    attack::instant_effect::InstantEffectKind::Explosion,
-                );
-
-                let hit_effect = attack::instant_effect::TargetHitEffect::new(
-                    target_xy,
-                    now,
-                    attack::instant_effect::InstantEffectKind::Explosion,
-                    1.0,
-                );
-
-                (
-                    AttackType::InstantEffect {
-                        emit_effect,
-                        hit_effect,
-                    },
-                    damage,
-                )
-            }
+            TowerKind::FourOfAKind => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::WindCurve,
+                    projectile_group: ProjectileGroup::Cards,
+                    hit_effect: attack::ProjectileHitEffect::CardBurst,
+                },
+                0.0,
+            ),
         }
     }
 

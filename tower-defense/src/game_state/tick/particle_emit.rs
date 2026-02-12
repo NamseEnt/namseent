@@ -64,6 +64,40 @@ pub fn emit_burning_trail_emitters(
         .add_emitters(field_emitters);
 }
 
+pub fn emit_sparkle_emitters(
+    game_state: &mut GameState,
+    emitters: Vec<field_particle::emitter::SparkleEmitter>,
+) {
+    if emitters.is_empty() {
+        return;
+    }
+
+    let field_emitters = emitters
+        .into_iter()
+        .map(|emitter| field_particle::FieldParticleEmitter::Sparkle { emitter })
+        .collect::<Vec<_>>();
+    game_state
+        .field_particle_system_manager
+        .add_emitters(field_emitters);
+}
+
+pub fn emit_wind_curve_trail_emitters(
+    game_state: &mut GameState,
+    emitters: Vec<field_particle::emitter::WindCurveTrailEmitter>,
+) {
+    if emitters.is_empty() {
+        return;
+    }
+
+    let field_emitters = emitters
+        .into_iter()
+        .map(|emitter| field_particle::FieldParticleEmitter::WindCurveTrail { emitter })
+        .collect::<Vec<_>>();
+    game_state
+        .field_particle_system_manager
+        .add_emitters(field_emitters);
+}
+
 pub fn emit_trash_bounce_emitters(
     game_state: &mut GameState,
     emitters: Vec<field_particle::emitter::TrashBounceEmitter>,

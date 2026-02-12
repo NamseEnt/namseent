@@ -13,10 +13,10 @@ use namui::{
     *,
 };
 pub use particle::{
-    BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle,
-    IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
-    LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
-    TrashParticle,
+    BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
+    EmberSparkParticle, IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle,
+    LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
+    ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
 #[derive(State)]
@@ -120,6 +120,12 @@ pub enum FieldParticleEmitter {
     BurningTrail {
         emitter: emitter::BurningTrailEmitter,
     },
+    Sparkle {
+        emitter: emitter::SparkleEmitter,
+    },
+    SparkleBurst {
+        emitter: emitter::SparkleBurstEmitter,
+    },
     TrashBurst {
         emitter: emitter::TrashBurstEmitter,
     },
@@ -129,11 +135,17 @@ pub enum FieldParticleEmitter {
     TrashRain {
         emitter: emitter::TrashRainEmitter,
     },
+    CardBurst {
+        emitter: emitter::CardBurstEmitter,
+    },
     ProjectileParticle {
         emitter: emitter::ProjectileParticleEmitter,
     },
     LaserBeam {
         emitter: emitter::LaserBeamEmitter,
+    },
+    WindCurveTrail {
+        emitter: emitter::WindCurveTrailEmitter,
     },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
@@ -145,11 +157,15 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::Sparkle { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::SparkleBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::CardBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -161,11 +177,15 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::Sparkle { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::SparkleBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::CardBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -183,9 +203,12 @@ pub enum FieldParticle {
     InstantEmit { particle: InstantEmitParticle },
     InstantHit { particle: InstantHitParticle },
     Trash { particle: TrashParticle },
+    Card { particle: CardParticle },
     Projectile { particle: ProjectileParticle },
     LaserLine { particle: LaserLineParticle },
     LightningBolt { particle: LightningBoltParticle },
+    Sparkle { particle: SparkleParticle },
+    WindCurveTrail { particle: WindCurveTrailParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -231,6 +254,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 vec![]
             }
             FieldParticle::Trash { particle } => particle.tick(now, dt),
+            FieldParticle::Card { particle } => particle.tick(now, dt),
             FieldParticle::Projectile { particle } => {
                 particle.tick(now, dt);
                 vec![]
@@ -248,6 +272,21 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                     vec![]
                 }
             }
+            FieldParticle::Sparkle { particle } => {
+                if let Some(new_particle) = particle.tick(now, dt) {
+                    vec![FieldParticleEmitter::TempParticle {
+                        emitter: TempParticleEmitter::new(vec![FieldParticle::Sparkle {
+                            particle: new_particle,
+                        }]),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
+            FieldParticle::WindCurveTrail { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -264,12 +303,15 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::InstantEmit { particle } => particle.render(),
             FieldParticle::InstantHit { particle } => particle.render(),
             FieldParticle::Trash { particle } => particle.render(),
+            FieldParticle::Card { particle } => particle.render(),
             FieldParticle::Projectile { particle } => {
                 // Render projectile using the same logic as the main projectile rendering
                 render_projectile_particle(particle)
             }
             FieldParticle::LaserLine { particle } => particle.render(),
             FieldParticle::LightningBolt { particle } => particle.render(),
+            FieldParticle::Sparkle { particle } => particle.render(),
+            FieldParticle::WindCurveTrail { particle } => particle.render(),
         }
     }
 
@@ -286,9 +328,12 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::InstantEmit { particle } => particle.is_done(now),
             FieldParticle::InstantHit { particle } => particle.is_done(now),
             FieldParticle::Trash { particle } => particle.is_done(now),
+            FieldParticle::Card { particle } => particle.is_done(now),
             FieldParticle::Projectile { particle } => !particle.is_alive(now),
             FieldParticle::LaserLine { particle } => particle.is_done(now),
             FieldParticle::LightningBolt { particle } => particle.is_done(now),
+            FieldParticle::Sparkle { particle } => particle.is_done(now),
+            FieldParticle::WindCurveTrail { particle } => particle.is_done(now),
         }
     }
 }
