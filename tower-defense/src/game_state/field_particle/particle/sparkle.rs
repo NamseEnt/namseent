@@ -8,7 +8,7 @@ const SPARKLE_LIFETIME_MAX_MS: i64 = 300;
 const SPARKLE_SIZE_TILE: f32 = 0.25; // Height of the diamond
 const SPARKLE_WIDTH_RATIO: f32 = 0.4; // Width relative to height
 const OFFSET_RANGE: f32 = 0.25; // 맵 좌표 단위
-const VELOCITY_RANGE: f32 = 0.3; // 초기 속도 범위 (맵 좌표/초)
+const VELOCITY_RANGE: f32 = 0.8; // 초기 속도 범위 (맵 좌표/초)
 const SIZE_SCALE_MIN: f32 = 0.5; // 최소 크기 스케일
 const SIZE_SCALE_MAX: f32 = 1.0; // 최대 크기 스케일
 
@@ -41,13 +41,22 @@ impl SparkleParticle {
         created_at: Instant,
         rng: &mut R,
     ) -> Self {
+        Self::new_with_random_velocity(xy, created_at, rng, VELOCITY_RANGE)
+    }
+
+    pub fn new_with_random_velocity<R: Rng + ?Sized>(
+        xy: (f32, f32),
+        created_at: Instant,
+        rng: &mut R,
+        velocity_range: f32,
+    ) -> Self {
         let offset_x = rng.gen_range(-OFFSET_RANGE..=OFFSET_RANGE);
         let offset_y = rng.gen_range(-OFFSET_RANGE..=OFFSET_RANGE);
         let final_xy = (xy.0 + offset_x, xy.1 + offset_y);
 
         // 랜덤 방향 생성
-        let velocity_x = rng.gen_range(-VELOCITY_RANGE..=VELOCITY_RANGE);
-        let velocity_y = rng.gen_range(-VELOCITY_RANGE..=VELOCITY_RANGE);
+        let velocity_x = rng.gen_range(-velocity_range..=velocity_range);
+        let velocity_y = rng.gen_range(-velocity_range..=velocity_range);
 
         let lifetime_ms = rng.gen_range(SPARKLE_LIFETIME_MIN_MS..=SPARKLE_LIFETIME_MAX_MS);
         let lifetime = Duration::from_millis(lifetime_ms);

@@ -89,6 +89,15 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             now,
         ));
 
+        // Add sparkle burst hit effect for Flush projectiles
+        if projectile.trail == ProjectileTrail::Sparkle {
+            game_state.field_particle_system_manager.add_emitters(vec![
+                field_particle::FieldParticleEmitter::SparkleBurst {
+                    emitter: field_particle::emitter::SparkleBurstEmitter::new(monster_xy, now),
+                },
+            ]);
+        }
+
         if monster.dead() {
             if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
                 defense_flow.stage_progress.processed_hp += monster.max_hp;

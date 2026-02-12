@@ -123,6 +123,9 @@ pub enum FieldParticleEmitter {
     Sparkle {
         emitter: emitter::SparkleEmitter,
     },
+    SparkleBurst {
+        emitter: emitter::SparkleBurstEmitter,
+    },
     TrashBurst {
         emitter: emitter::TrashBurstEmitter,
     },
@@ -149,6 +152,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::Sparkle { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::SparkleBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
@@ -166,6 +170,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
             FieldParticleEmitter::Sparkle { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::SparkleBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
