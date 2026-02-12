@@ -10,6 +10,7 @@ mod lightning_bolt;
 mod monster_corpse;
 mod monster_soul;
 mod projectile;
+mod sparkle;
 mod trash;
 
 pub use blue_dot_spark::*;
@@ -24,4 +25,5 @@ pub use lightning_bolt::*;
 pub use monster_corpse::*;
 pub use monster_soul::*;
 pub use projectile::*;
+pub use sparkle::*;
 pub use trash::*;

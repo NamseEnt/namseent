@@ -16,7 +16,7 @@ pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle,
     IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
-    TrashParticle,
+    SparkleParticle, TrashParticle,
 };
 
 #[derive(State)]
@@ -120,6 +120,9 @@ pub enum FieldParticleEmitter {
     BurningTrail {
         emitter: emitter::BurningTrailEmitter,
     },
+    Sparkle {
+        emitter: emitter::SparkleEmitter,
+    },
     TrashBurst {
         emitter: emitter::TrashBurstEmitter,
     },
@@ -145,6 +148,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::Sparkle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
@@ -161,6 +165,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
             FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
             FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::Sparkle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
             FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
@@ -186,6 +191,7 @@ pub enum FieldParticle {
     Projectile { particle: ProjectileParticle },
     LaserLine { particle: LaserLineParticle },
     LightningBolt { particle: LightningBoltParticle },
+    Sparkle { particle: SparkleParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -248,6 +254,17 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                     vec![]
                 }
             }
+            FieldParticle::Sparkle { particle } => {
+                if let Some(new_particle) = particle.tick(now, dt) {
+                    vec![FieldParticleEmitter::TempParticle {
+                        emitter: TempParticleEmitter::new(vec![FieldParticle::Sparkle {
+                            particle: new_particle,
+                        }]),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
         }
     }
 
@@ -270,6 +287,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             }
             FieldParticle::LaserLine { particle } => particle.render(),
             FieldParticle::LightningBolt { particle } => particle.render(),
+            FieldParticle::Sparkle { particle } => particle.render(),
         }
     }
 
@@ -289,6 +307,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::Projectile { particle } => !particle.is_alive(now),
             FieldParticle::LaserLine { particle } => particle.is_done(now),
             FieldParticle::LightningBolt { particle } => particle.is_done(now),
+            FieldParticle::Sparkle { particle } => particle.is_done(now),
         }
     }
 }

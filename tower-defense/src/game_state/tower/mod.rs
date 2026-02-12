@@ -128,10 +128,16 @@ impl Tower {
                 },
                 0.0,
             ),
-            TowerKind::Straight
-            | TowerKind::Flush
-            | TowerKind::StraightFlush
-            | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::Straight | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
+                (AttackType::Laser, 0.0)
+            }
+            TowerKind::Flush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::Sparkle,
+                },
+                0.0,
+            ),
             TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, now);

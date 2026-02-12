@@ -11,6 +11,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut damage_emitters = Vec::new();
     let mut monster_death_emitters = Vec::new();
     let mut burning_trail_emitters = Vec::new();
+    let mut sparkle_emitters = Vec::new();
     let mut trash_bounce_emitters = Vec::new();
     let mut projectile_particle_emitters = Vec::new();
 
@@ -50,13 +51,24 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 ProjectileBehavior::Homing { .. } => projectile.move_homing(dt, monster_xy),
             }
 
-            if projectile.trail == ProjectileTrail::Burning {
-                burning_trail_emitters.push(field_particle::emitter::BurningTrailEmitter::new(
-                    start_xy,
-                    projectile.xy,
-                    dt,
-                    now,
-                ));
+            match projectile.trail {
+                ProjectileTrail::Burning => {
+                    burning_trail_emitters.push(field_particle::emitter::BurningTrailEmitter::new(
+                        start_xy,
+                        projectile.xy,
+                        dt,
+                        now,
+                    ));
+                }
+                ProjectileTrail::Sparkle => {
+                    sparkle_emitters.push(field_particle::emitter::SparkleEmitter::new(
+                        start_xy,
+                        projectile.xy,
+                        dt,
+                        now,
+                    ));
+                }
+                _ => {}
             }
 
             return true;
@@ -131,6 +143,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
     super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
     super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
+    super::particle_emit::emit_sparkle_emitters(game_state, sparkle_emitters);
     super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
 
     if !projectile_particle_emitters.is_empty() {

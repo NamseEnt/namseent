@@ -211,6 +211,7 @@ impl ProjectileKind {
 pub enum ProjectileTrail {
     None,
     Burning,
+    Sparkle,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]
