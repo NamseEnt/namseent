@@ -16,7 +16,7 @@ pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
     EmberSparkParticle, IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle,
     LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
-    ProjectileParticle, SparkleParticle, TrashParticle,
+    ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
 #[derive(State)]
@@ -144,6 +144,9 @@ pub enum FieldParticleEmitter {
     LaserBeam {
         emitter: emitter::LaserBeamEmitter,
     },
+    WindCurveTrail {
+        emitter: emitter::WindCurveTrailEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -162,6 +165,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::CardBurst { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -181,6 +185,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::CardBurst { emitter } => emitter.is_done(now),
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -203,6 +208,7 @@ pub enum FieldParticle {
     LaserLine { particle: LaserLineParticle },
     LightningBolt { particle: LightningBoltParticle },
     Sparkle { particle: SparkleParticle },
+    WindCurveTrail { particle: WindCurveTrailParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -277,6 +283,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                     vec![]
                 }
             }
+            FieldParticle::WindCurveTrail { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -301,6 +311,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LaserLine { particle } => particle.render(),
             FieldParticle::LightningBolt { particle } => particle.render(),
             FieldParticle::Sparkle { particle } => particle.render(),
+            FieldParticle::WindCurveTrail { particle } => particle.render(),
         }
     }
 
@@ -322,6 +333,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LaserLine { particle } => particle.is_done(now),
             FieldParticle::LightningBolt { particle } => particle.is_done(now),
             FieldParticle::Sparkle { particle } => particle.is_done(now),
+            FieldParticle::WindCurveTrail { particle } => particle.is_done(now),
         }
     }
 }

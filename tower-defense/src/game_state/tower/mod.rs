@@ -174,7 +174,7 @@ impl Tower {
             TowerKind::FourOfAKind => (
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
+                    trail: ProjectileTrail::WindCurve,
                     projectile_group: ProjectileGroup::Cards,
                     hit_effect: attack::ProjectileHitEffect::CardBurst,
                 },

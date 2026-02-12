@@ -12,6 +12,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut monster_death_emitters = Vec::new();
     let mut burning_trail_emitters = Vec::new();
     let mut sparkle_emitters = Vec::new();
+    let mut wind_curve_trail_emitters = Vec::new();
     let mut trash_bounce_emitters = Vec::new();
     let mut projectile_particle_emitters = Vec::new();
 
@@ -67,6 +68,15 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                         dt,
                         now,
                     ));
+                }
+                ProjectileTrail::WindCurve => {
+                    wind_curve_trail_emitters.push(
+                        field_particle::emitter::WindCurveTrailEmitter::new(
+                            start_xy,
+                            projectile.xy,
+                            now,
+                        ),
+                    );
                 }
                 _ => {}
             }
@@ -166,6 +176,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
     super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
     super::particle_emit::emit_sparkle_emitters(game_state, sparkle_emitters);
+    super::particle_emit::emit_wind_curve_trail_emitters(game_state, wind_curve_trail_emitters);
     super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
 
     if !projectile_particle_emitters.is_empty() {

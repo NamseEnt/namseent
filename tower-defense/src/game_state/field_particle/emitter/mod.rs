@@ -10,6 +10,7 @@ mod sparkle_burst;
 mod trash_bounce;
 mod trash_burst;
 mod trash_rain;
+mod wind_curve_trail;
 
 pub use burning_trail::*;
 pub use card_burst::*;
@@ -23,3 +24,4 @@ pub use sparkle_burst::*;
 pub use trash_bounce::*;
 pub use trash_burst::*;
 pub use trash_rain::*;
+pub use wind_curve_trail::*;

@@ -13,6 +13,7 @@ mod monster_soul;
 mod projectile;
 mod sparkle;
 mod trash;
+mod wind_curve_trail;
 
 pub use blue_dot_spark::*;
 pub use burning_trail::*;
@@ -29,3 +30,4 @@ pub use monster_soul::*;
 pub use projectile::*;
 pub use sparkle::*;
 pub use trash::{EaseMode, TrashParticle, TrashParticleConfig};
+pub use wind_curve_trail::*;
