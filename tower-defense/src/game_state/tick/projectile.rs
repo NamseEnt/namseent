@@ -14,6 +14,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut sparkle_emitters = Vec::new();
     let mut wind_curve_trail_emitters = Vec::new();
     let mut heart_trail_emitters = Vec::new();
+    let mut lightning_trail_emitters = Vec::new();
     let mut trash_bounce_emitters = Vec::new();
     let mut projectile_particle_emitters = Vec::new();
 
@@ -61,6 +62,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 ProjectileTrail::Sparkle => Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE),
                 ProjectileTrail::WindCurve => Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE),
                 ProjectileTrail::Heart => Some(field_particle::emitter::HEART_SPAWN_DISTANCE),
+                ProjectileTrail::LightningSparkle => Some(0.6), // lightning + sparkle + heart를 섞으므로 더 낮은 rate
             };
 
             if let Some(spawn_distance) = spawn_distance {
@@ -111,6 +113,43 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                                     now,
                                 ),
                             );
+                        }
+                        ProjectileTrail::LightningSparkle => {
+                            // lightning_trail, sparkle, heart를 동시에 생성하되 더 적은 수로
+                            let lightning_count = (spawn_count as f32 * 0.33).ceil() as usize;
+                            let sparkle_count = (spawn_count as f32 * 0.33).ceil() as usize;
+                            let heart_count = (spawn_count as f32 * 0.34).ceil() as usize;
+                            
+                            if lightning_count > 0 {
+                                lightning_trail_emitters.push(
+                                    field_particle::emitter::LightningTrailEmitter::new_with_particle_count(
+                                        start_xy,
+                                        projectile.xy,
+                                        lightning_count,
+                                        now,
+                                    ),
+                                );
+                            }
+                            if sparkle_count > 0 {
+                                sparkle_emitters.push(
+                                    field_particle::emitter::SparkleEmitter::new_with_particle_count(
+                                        start_xy,
+                                        projectile.xy,
+                                        sparkle_count,
+                                        now,
+                                    ),
+                                );
+                            }
+                            if heart_count > 0 {
+                                heart_trail_emitters.push(
+                                    field_particle::emitter::HeartTrailEmitter::new_with_particle_count(
+                                        start_xy,
+                                        projectile.xy,
+                                        heart_count,
+                                        now,
+                                    ),
+                                );
+                            }
                         }
                         ProjectileTrail::None => {}
                     }
@@ -219,6 +258,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_sparkle_emitters(game_state, sparkle_emitters);
     super::particle_emit::emit_wind_curve_trail_emitters(game_state, wind_curve_trail_emitters);
     super::particle_emit::emit_heart_trail_emitters(game_state, heart_trail_emitters);
+    super::particle_emit::emit_lightning_trail_emitters(game_state, lightning_trail_emitters);
     super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
 
     if !projectile_particle_emitters.is_empty() {

@@ -151,6 +151,9 @@ pub enum FieldParticleEmitter {
     HeartTrail {
         emitter: emitter::HeartTrailEmitter,
     },
+    LightningTrail {
+        emitter: emitter::LightningTrailEmitter,
+    },
     HeartBurst {
         emitter: emitter::HeartBurstEmitter,
     },
@@ -174,6 +177,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::WindCurveTrail { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::HeartTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::LightningTrail { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::HeartBurst { emitter } => emitter.emit(now, dt),
         }
     }
@@ -196,6 +200,7 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
             FieldParticleEmitter::WindCurveTrail { emitter } => emitter.is_done(now),
             FieldParticleEmitter::HeartTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::LightningTrail { emitter } => emitter.is_done(now),
             FieldParticleEmitter::HeartBurst { emitter } => emitter.is_done(now),
         }
     }

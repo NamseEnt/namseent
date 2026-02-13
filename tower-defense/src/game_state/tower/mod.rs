@@ -145,7 +145,7 @@ impl Tower {
             TowerKind::StraightFlush => (
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::Heart,
+                    trail: ProjectileTrail::LightningSparkle,
                     projectile_group: ProjectileGroup::Heart,
                     hit_effect: attack::ProjectileHitEffect::HeartBurst,
                 },

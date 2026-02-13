@@ -255,6 +255,7 @@ pub enum ProjectileTrail {
     Sparkle,
     WindCurve,
     Heart,
+    LightningSparkle,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]
