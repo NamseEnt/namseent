@@ -141,9 +141,16 @@ impl Tower {
                 },
                 0.0,
             ),
-            TowerKind::Straight | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
-                (AttackType::Laser, 0.0)
-            }
+            TowerKind::Straight | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::StraightFlush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::Heart,
+                    projectile_group: ProjectileGroup::Heart,
+                    hit_effect: attack::ProjectileHitEffect::HeartBurst,
+                },
+                0.0,
+            ),
             TowerKind::Flush => (
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,

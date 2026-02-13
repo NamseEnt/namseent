@@ -14,9 +14,10 @@ use namui::{
 };
 pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
-    EmberSparkParticle, IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle,
-    LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
-    ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
+    EmberSparkParticle, HeartParticle, IconParticle, InstantEmitParticle, InstantHitParticle,
+    LaserBeamParticle, LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle,
+    MonsterSoulParticle, ProjectileParticle, SparkleParticle, TrashParticle,
+    WindCurveTrailParticle,
 };
 
 #[derive(State)]
@@ -147,6 +148,12 @@ pub enum FieldParticleEmitter {
     WindCurveTrail {
         emitter: emitter::WindCurveTrailEmitter,
     },
+    HeartTrail {
+        emitter: emitter::HeartTrailEmitter,
+    },
+    HeartBurst {
+        emitter: emitter::HeartBurstEmitter,
+    },
 }
 impl Emitter<FieldParticle> for FieldParticleEmitter {
     fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
@@ -166,6 +173,8 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
             FieldParticleEmitter::WindCurveTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::HeartTrail { emitter } => emitter.emit(now, dt),
+            FieldParticleEmitter::HeartBurst { emitter } => emitter.emit(now, dt),
         }
     }
 
@@ -186,6 +195,8 @@ impl Emitter<FieldParticle> for FieldParticleEmitter {
             FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
             FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
             FieldParticleEmitter::WindCurveTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::HeartTrail { emitter } => emitter.is_done(now),
+            FieldParticleEmitter::HeartBurst { emitter } => emitter.is_done(now),
         }
     }
 }
@@ -209,6 +220,7 @@ pub enum FieldParticle {
     LightningBolt { particle: LightningBoltParticle },
     Sparkle { particle: SparkleParticle },
     WindCurveTrail { particle: WindCurveTrailParticle },
+    Heart { particle: HeartParticle },
 }
 impl Particle<FieldParticleEmitter> for FieldParticle {
     fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
@@ -287,6 +299,10 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
                 particle.tick(now, dt);
                 vec![]
             }
+            FieldParticle::Heart { particle } => {
+                particle.tick(now, dt);
+                vec![]
+            }
         }
     }
 
@@ -312,6 +328,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LightningBolt { particle } => particle.render(),
             FieldParticle::Sparkle { particle } => particle.render(),
             FieldParticle::WindCurveTrail { particle } => particle.render(),
+            FieldParticle::Heart { particle } => particle.render(),
         }
     }
 
@@ -334,6 +351,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::LightningBolt { particle } => particle.is_done(now),
             FieldParticle::Sparkle { particle } => particle.is_done(now),
             FieldParticle::WindCurveTrail { particle } => particle.is_done(now),
+            FieldParticle::Heart { particle } => particle.is_done(now),
         }
     }
 }

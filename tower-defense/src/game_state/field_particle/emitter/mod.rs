@@ -1,6 +1,8 @@
 mod burning_trail;
 mod card_burst;
 mod damage_text;
+mod heart_burst;
+mod heart_trail;
 mod laser_beam;
 mod monster_death;
 mod monster_status_effect;
@@ -15,6 +17,8 @@ mod wind_curve_trail;
 pub use burning_trail::*;
 pub use card_burst::*;
 pub use damage_text::*;
+pub use heart_burst::*;
+pub use heart_trail::*;
 pub use laser_beam::*;
 pub use monster_death::*;
 pub use monster_status_effect::*;

@@ -196,6 +196,7 @@ pub enum ProjectileKind {
     Girl03,
     Girl04,
     Cards00,
+    Heart00,
 }
 impl ProjectileKind {
     pub fn random_trash() -> Self {
@@ -223,6 +224,10 @@ impl ProjectileKind {
         ProjectileKind::Cards00
     }
 
+    pub fn random_heart() -> Self {
+        ProjectileKind::Heart00
+    }
+
     pub fn image(&self) -> Image {
         match self {
             ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
@@ -235,6 +240,7 @@ impl ProjectileKind {
             ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
             ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
             ProjectileKind::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
+            ProjectileKind::Heart00 => crate::asset::image::attack::projectile::HEART_00,
         }
     }
 }
@@ -245,6 +251,7 @@ pub enum ProjectileTrail {
     Burning,
     Sparkle,
     WindCurve,
+    Heart,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]

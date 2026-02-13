@@ -13,6 +13,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     let mut burning_trail_emitters = Vec::new();
     let mut sparkle_emitters = Vec::new();
     let mut wind_curve_trail_emitters = Vec::new();
+    let mut heart_trail_emitters = Vec::new();
     let mut trash_bounce_emitters = Vec::new();
     let mut projectile_particle_emitters = Vec::new();
 
@@ -78,6 +79,14 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                         ),
                     );
                 }
+                ProjectileTrail::Heart => {
+                    heart_trail_emitters.push(field_particle::emitter::HeartTrailEmitter::new(
+                        start_xy,
+                        projectile.xy,
+                        dt,
+                        now,
+                    ));
+                }
                 _ => {}
             }
 
@@ -112,6 +121,11 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             ProjectileHitEffect::SparkleBurst => {
                 Some(field_particle::FieldParticleEmitter::SparkleBurst {
                     emitter: field_particle::emitter::SparkleBurstEmitter::new(monster_xy, now),
+                })
+            }
+            ProjectileHitEffect::HeartBurst => {
+                Some(field_particle::FieldParticleEmitter::HeartBurst {
+                    emitter: field_particle::emitter::HeartBurstEmitter::new(monster_xy, now),
                 })
             }
         };
@@ -177,6 +191,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
     super::particle_emit::emit_sparkle_emitters(game_state, sparkle_emitters);
     super::particle_emit::emit_wind_curve_trail_emitters(game_state, wind_curve_trail_emitters);
+    super::particle_emit::emit_heart_trail_emitters(game_state, heart_trail_emitters);
     super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
 
     if !projectile_particle_emitters.is_empty() {
