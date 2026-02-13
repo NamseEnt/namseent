@@ -1,15 +1,28 @@
 use crate::{MapCoordF32, game_state::field_particle::HeartParticle};
 use namui::*;
 
-const BURST_DURATION_MS: i64 = 100;
-const PARTICLES_PER_EMIT: usize = 4; // 한 번의 emit당 생성 개수
-const TOTAL_PARTICLES: usize = 8; // 총 생성할 파티클 개수
+// === Position offset ===
+const EXPLOSION_Y_OFFSET: f32 = 0.5; // 착탄점 바닥 위치 (y + 0.5 tile)
+const COLUMN_TOP_Y_OFFSET: f32 = -0.5; // 기둥 상단 높이
+
+// === Particle counts per phase ===
+const EXPLOSION_PARTICLES_PER_EMIT: usize = 4; // 폭발: 한 번 emit당
+const EXPLOSION_TOTAL: usize = 8; // 폭발: 총 개수
+
+const COLUMN_PARTICLES_PER_EMIT: usize = 16; // 기둥: 한 번 emit당
+const COLUMN_TOTAL: usize = 128; // 기둥: 총 개수
+
+const TOP_HEART_PARTICLES_PER_EMIT: usize = 1; // 상승 하트: 한 번 emit당
+const TOP_HEART_TOTAL: usize = 1; // 상승 하트: 총 개수 1개
 
 #[derive(Clone, State)]
 pub struct HeartBurstEmitter {
     xy: MapCoordF32,
     created_at: Instant,
-    emitted_particles: usize,
+    // Phase별 emitted count
+    explosion_emitted: usize,
+    column_emitted: usize,
+    top_heart_emitted: usize,
 }
 
 impl HeartBurstEmitter {
@@ -17,8 +30,30 @@ impl HeartBurstEmitter {
         Self {
             xy,
             created_at,
-            emitted_particles: 0,
+            explosion_emitted: 0,
+            column_emitted: 0,
+            top_heart_emitted: 0,
         }
+    }
+
+    /// 모든 phase 완료 여부
+    fn all_phases_done(&self) -> bool {
+        self.explosion_emitted >= EXPLOSION_TOTAL
+            && self.column_emitted >= COLUMN_TOTAL
+            && self.top_heart_emitted >= TOP_HEART_TOTAL
+    }
+
+    fn scaled_emit_count(remaining: usize, particles_per_emit: usize, dt_scale: f32) -> usize {
+        if remaining == 0 {
+            return 0;
+        }
+
+        let mut max_emit = ((particles_per_emit as f32) * dt_scale).round() as usize;
+        if max_emit == 0 {
+            max_emit = 1;
+        }
+
+        remaining.min(max_emit)
     }
 }
 
@@ -30,35 +65,73 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
         now: Instant,
         dt: Duration,
     ) -> Vec<crate::game_state::field_particle::FieldParticle> {
-        if self.emitted_particles >= TOTAL_PARTICLES {
+        if self.all_phases_done() {
             return vec![];
         }
 
-        // dt에 따라 생성량을 보정
-        let dt_scale = (dt.as_secs_f32() / (1.0 / 60.0)).max(0.5);
-        let mut max_emit = ((PARTICLES_PER_EMIT as f32) * dt_scale).round() as usize;
-        if max_emit == 0 {
-            max_emit = 1;
-        }
-
-        let remaining = TOTAL_PARTICLES - self.emitted_particles;
-        let emit_count = remaining.min(max_emit);
-
         let mut rng = rand::thread_rng();
-        let mut particles = Vec::with_capacity(emit_count);
+        let mut particles = Vec::new();
+        let dt_scale = (dt.as_secs_f32() / (1.0 / 60.0)).max(0.5);
 
-        for _ in 0..emit_count {
-            particles.push(crate::game_state::field_particle::FieldParticle::Heart {
-                particle: HeartParticle::new_burst((self.xy.x, self.xy.y), now, &mut rng),
-            });
+        // === EXPLOSION ===
+        if self.explosion_emitted < EXPLOSION_TOTAL {
+            let remaining = EXPLOSION_TOTAL - self.explosion_emitted;
+            let emit_count =
+                Self::scaled_emit_count(remaining, EXPLOSION_PARTICLES_PER_EMIT, dt_scale);
+
+            let explosion_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
+            for _ in 0..emit_count {
+                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
+                    particle: HeartParticle::new_mushroom_explosion(explosion_xy, now, &mut rng),
+                });
+            }
+            self.explosion_emitted += emit_count;
         }
 
-        self.emitted_particles += emit_count;
+        // === COLUMN ===
+        if self.column_emitted < COLUMN_TOTAL {
+            let remaining = COLUMN_TOTAL - self.column_emitted;
+            let emit_count =
+                Self::scaled_emit_count(remaining, COLUMN_PARTICLES_PER_EMIT, dt_scale);
+
+            let column_start_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
+            let column_end_xy = (self.xy.x, self.xy.y + COLUMN_TOP_Y_OFFSET); // 기존 대비 2배 높이
+            for _ in 0..emit_count {
+                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
+                    particle: HeartParticle::new_mushroom_column(
+                        column_start_xy,
+                        column_end_xy,
+                        now,
+                        &mut rng,
+                    ),
+                });
+            }
+            self.column_emitted += emit_count;
+        }
+
+        // === TOP HEART ===
+        if self.top_heart_emitted < TOP_HEART_TOTAL {
+            let remaining = TOP_HEART_TOTAL - self.top_heart_emitted;
+            let emit_count =
+                Self::scaled_emit_count(remaining, TOP_HEART_PARTICLES_PER_EMIT, dt_scale);
+
+            for _ in 0..emit_count {
+                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
+                    particle: HeartParticle::new_rising_heart(
+                        (self.xy.x, self.xy.y),
+                        now,
+                        self.top_heart_emitted as f32,
+                        &mut rng,
+                    ),
+                });
+            }
+            self.top_heart_emitted += emit_count;
+        }
+
         particles
     }
 
-    fn is_done(&self, now: Instant) -> bool {
-        self.emitted_particles >= TOTAL_PARTICLES
-            || (now - self.created_at) > Duration::from_millis(BURST_DURATION_MS)
+    fn is_done(&self, _now: Instant) -> bool {
+        self.all_phases_done()
     }
 }
