@@ -53,41 +53,68 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 ProjectileBehavior::Homing { .. } => projectile.move_homing(dt, monster_xy),
             }
 
-            match projectile.trail {
-                ProjectileTrail::Burning => {
-                    burning_trail_emitters.push(field_particle::emitter::BurningTrailEmitter::new(
-                        start_xy,
-                        projectile.xy,
-                        dt,
-                        now,
-                    ));
+            let moved_distance = (projectile.xy - start_xy).length();
+
+            let spawn_distance = match projectile.trail {
+                ProjectileTrail::None => None,
+                ProjectileTrail::Burning => Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE),
+                ProjectileTrail::Sparkle => Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE),
+                ProjectileTrail::WindCurve => Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE),
+                ProjectileTrail::Heart => Some(field_particle::emitter::HEART_SPAWN_DISTANCE),
+            };
+
+            if let Some(spawn_distance) = spawn_distance {
+                projectile.trail_distance_remainder += moved_distance;
+
+                let spawn_count =
+                    (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
+
+                if spawn_count > 0 {
+                    projectile.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
+                    match projectile.trail {
+                        ProjectileTrail::Burning => {
+                            burning_trail_emitters.push(
+                                field_particle::emitter::BurningTrailEmitter::new_with_particle_count(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                ),
+                            );
+                        }
+                        ProjectileTrail::Sparkle => {
+                            sparkle_emitters.push(
+                                field_particle::emitter::SparkleEmitter::new_with_particle_count(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                ),
+                            );
+                        }
+                        ProjectileTrail::WindCurve => {
+                            wind_curve_trail_emitters.push(
+                                field_particle::emitter::WindCurveTrailEmitter::new_with_particle_count(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                ),
+                            );
+                        }
+                        ProjectileTrail::Heart => {
+                            heart_trail_emitters.push(
+                                field_particle::emitter::HeartTrailEmitter::new_with_particle_count(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                ),
+                            );
+                        }
+                        ProjectileTrail::None => {}
+                    }
                 }
-                ProjectileTrail::Sparkle => {
-                    sparkle_emitters.push(field_particle::emitter::SparkleEmitter::new(
-                        start_xy,
-                        projectile.xy,
-                        dt,
-                        now,
-                    ));
-                }
-                ProjectileTrail::WindCurve => {
-                    wind_curve_trail_emitters.push(
-                        field_particle::emitter::WindCurveTrailEmitter::new(
-                            start_xy,
-                            projectile.xy,
-                            now,
-                        ),
-                    );
-                }
-                ProjectileTrail::Heart => {
-                    heart_trail_emitters.push(field_particle::emitter::HeartTrailEmitter::new(
-                        start_xy,
-                        projectile.xy,
-                        dt,
-                        now,
-                    ));
-                }
-                _ => {}
             }
 
             return true;

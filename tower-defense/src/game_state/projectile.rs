@@ -14,6 +14,7 @@ pub struct Projectile {
     pub rotation: Angle,
     pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
+    pub trail_distance_remainder: f32,
     pub behavior: ProjectileBehavior,
     pub hit_effect: attack::ProjectileHitEffect,
 }
@@ -39,6 +40,7 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Direct,
             hit_effect,
         }
@@ -68,6 +70,7 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
                 acceleration: HOMING_ACCELERATION_TILE,
