@@ -3,7 +3,6 @@ pub mod particle;
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::TILE_PX_SIZE;
 use crate::game_state::{
     GameState,
     field_particle::emitter::{DamageTextEmitter, MonsterDeathEmitter, MonsterStatusEffectEmitter},
@@ -325,10 +324,7 @@ impl Particle<FieldParticleEmitter> for FieldParticle {
             FieldParticle::InstantHit { particle } => particle.render(),
             FieldParticle::Trash { particle } => particle.render(),
             FieldParticle::Card { particle } => particle.render(),
-            FieldParticle::Projectile { particle } => {
-                // Render projectile using the same logic as the main projectile rendering
-                render_projectile_particle(particle)
-            }
+            FieldParticle::Projectile { particle } => particle.render(),
             FieldParticle::LaserLine { particle } => particle.render(),
             FieldParticle::LightningBolt { particle } => particle.render(),
             FieldParticle::Sparkle { particle } => particle.render(),
@@ -365,32 +361,4 @@ pub fn remove_finished_field_particle_systems(game_state: &mut GameState, now: I
     game_state
         .field_particle_system_manager
         .remove_finished_field_particle_systems(now);
-}
-fn render_projectile_particle(particle: &ProjectileParticle) -> RenderingTree {
-    let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
-    let image = particle.kind.image();
-    let half_wh = projectile_wh / 2.0;
-
-    let tile_px = TILE_PX_SIZE.to_xy();
-    let particle_px_xy = tile_px * Xy::new(particle.xy.x, particle.xy.y);
-
-    namui::translate(
-        particle_px_xy.x,
-        particle_px_xy.y,
-        namui::rotate(
-            particle.rotation,
-            namui::translate(
-                -half_wh.width,
-                -half_wh.height,
-                namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(Xy::zero(), projectile_wh),
-                    image,
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: None,
-                    },
-                }),
-            ),
-        ),
-    )
 }
