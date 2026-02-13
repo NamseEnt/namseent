@@ -21,15 +21,15 @@ const MUSHROOM_EXPLOSION_SPEED_MIN: f32 = 0.3;
 const MUSHROOM_EXPLOSION_SPEED_MAX: f32 = 0.6;
 const MUSHROOM_EXPLOSION_LIFETIME_MIN_MS: i64 = 300;
 const MUSHROOM_EXPLOSION_LIFETIME_MAX_MS: i64 = 800;
-const MUSHROOM_EXPLOSION_ALPHA_MIN: f32 = 0.6;
-const MUSHROOM_EXPLOSION_ALPHA_MAX: f32 = 0.85;
+const MUSHROOM_EXPLOSION_ALPHA_MIN: f32 = 0.3;
+const MUSHROOM_EXPLOSION_ALPHA_MAX: f32 = 0.6;
 
 // === Mushroom Column (기둥) ===
 const MUSHROOM_COLUMN_WOBBLE_RANGE: f32 = 0.1; // 좌우 흔들림 범위
 const MUSHROOM_COLUMN_LIFETIME_MIN_MS: i64 = 400;
 const MUSHROOM_COLUMN_LIFETIME_MAX_MS: i64 = 800;
-const MUSHROOM_COLUMN_ALPHA_MIN: f32 = 0.5;
-const MUSHROOM_COLUMN_ALPHA_MAX: f32 = 0.7;
+const MUSHROOM_COLUMN_ALPHA_MIN: f32 = 0.3;
+const MUSHROOM_COLUMN_ALPHA_MAX: f32 = 0.6;
 
 // === Rising Heart (상단 하트) ===
 const RISING_HEART_LIFETIME_MIN_MS: i64 = 1000;
@@ -88,6 +88,15 @@ fn ease_out_cubic(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(3)
 }
 
+#[inline]
+fn random_heart_kind<R: Rng + ?Sized>(rng: &mut R) -> HeartParticleKind {
+    match rng.gen_range(0..3) {
+        0 => HeartParticleKind::Heart00,
+        1 => HeartParticleKind::Heart01,
+        _ => HeartParticleKind::Heart02,
+    }
+}
+
 impl HeartParticle {
     /// Burst 이펙트용 - 모든 방향으로 0-5 tiles/sec 속도
     pub fn new_burst<R: Rng + ?Sized>(xy: (f32, f32), created_at: Instant, rng: &mut R) -> Self {
@@ -104,12 +113,6 @@ impl HeartParticle {
         let lifetime_ms = rng.gen_range(HEART_LIFETIME_MIN_MS..=HEART_LIFETIME_MAX_MS);
         let lifetime = Duration::from_millis(lifetime_ms);
 
-        let kind = match rng.gen_range(0..3) {
-            0 => HeartParticleKind::Heart00,
-            1 => HeartParticleKind::Heart01,
-            _ => HeartParticleKind::Heart02,
-        };
-
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
@@ -118,7 +121,7 @@ impl HeartParticle {
             initial_opacity: 1.0,
             alpha: 1.0,
             scale: 1.0,
-            kind,
+            kind: random_heart_kind(rng),
         }
     }
 
@@ -152,12 +155,6 @@ impl HeartParticle {
         let lifetime_ms = rng.gen_range(HEART_LIFETIME_MIN_MS..=HEART_LIFETIME_MAX_MS);
         let lifetime = Duration::from_millis(lifetime_ms);
 
-        let kind = match rng.gen_range(0..3) {
-            0 => HeartParticleKind::Heart00,
-            1 => HeartParticleKind::Heart01,
-            _ => HeartParticleKind::Heart02,
-        };
-
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
@@ -166,7 +163,7 @@ impl HeartParticle {
             initial_opacity: 1.0,
             alpha: 1.0,
             scale: 1.0,
-            kind,
+            kind: random_heart_kind(rng),
         }
     }
 
@@ -227,9 +224,9 @@ impl HeartParticle {
         let vertical_distance = end_xy.1 - start_xy.1; // 음수값 (위쪽)
         // 수명 동안 거리만큼 이동하도록 속도 계산
         let lifetime_ms =
-            rng.gen_range(MUSHROOM_COLUMN_LIFETIME_MIN_MS..=MUSHROOM_COLUMN_LIFETIME_MAX_MS) as f32
-                / 1000.0;
-        let target_speed = vertical_distance.abs() / lifetime_ms;
+            rng.gen_range(MUSHROOM_COLUMN_LIFETIME_MIN_MS..=MUSHROOM_COLUMN_LIFETIME_MAX_MS);
+        let lifetime = Duration::from_millis(lifetime_ms);
+        let target_speed = vertical_distance.abs() / lifetime.as_secs_f32();
 
         let velocity_x = rng.gen_range(-0.2..=0.2); // 약한 좌우 표류
         let velocity_y = -target_speed;
@@ -244,9 +241,7 @@ impl HeartParticle {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
             created_at,
-            lifetime: Duration::from_millis(
-                rng.gen_range(MUSHROOM_COLUMN_LIFETIME_MIN_MS..=MUSHROOM_COLUMN_LIFETIME_MAX_MS),
-            ),
+            lifetime,
             initial_opacity,
             alpha: initial_opacity,
             scale: 1.0,

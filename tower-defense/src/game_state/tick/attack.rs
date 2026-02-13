@@ -3,6 +3,7 @@ use super::*;
 pub fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
     use crate::game_state::field_particle;
+    use crate::game_state::tower::{AttackTypeParams, ShootLaserParams, ShootProjectileParams};
 
     let now = game_state.now();
 
@@ -51,12 +52,12 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let contract_multiplier = stage_modifiers.get_damage_multiplier();
             let target_xy = monsters[target_idx].center_xy_tile();
-            let (attack_type, instant_damage) = tower.attack_type(
-                (target_xy.x, target_xy.y),
-                &tower_upgrades,
+            let (attack_type, instant_damage) = tower.attack_type(AttackTypeParams {
+                target_xy: (target_xy.x, target_xy.y),
+                tower_upgrade_states: &tower_upgrades,
                 contract_multiplier,
                 now,
-            );
+            });
 
             match attack_type {
                 AttackType::Projectile {
@@ -66,25 +67,25 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     hit_effect,
                 } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
-                    let projectile = tower.shoot_projectile(
+                    let projectile = tower.shoot_projectile(ShootProjectileParams {
                         target_indicator,
                         speed,
                         trail,
                         projectile_group,
                         hit_effect,
-                        &tower_upgrades,
+                        tower_upgrade_states: &tower_upgrades,
                         contract_multiplier,
                         now,
-                    );
+                    });
                     projectiles.push(projectile);
                 }
                 AttackType::Laser => {
-                    let (laser, damage) = tower.shoot_laser(
-                        (target_xy.x, target_xy.y),
-                        &tower_upgrades,
+                    let (laser, damage) = tower.shoot_laser(ShootLaserParams {
+                        target_xy: (target_xy.x, target_xy.y),
+                        tower_upgrade_states: &tower_upgrades,
                         contract_multiplier,
                         now,
-                    );
+                    });
 
                     // Particle을 즉시 생성하지 않고 Emitter를 생성
                     field_emitters.push(field_particle::FieldParticleEmitter::LaserBeam {

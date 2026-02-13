@@ -55,6 +55,29 @@ impl HeartBurstEmitter {
 
         remaining.min(max_emit)
     }
+
+    fn emit_phase<F>(
+        emitted: &mut usize,
+        total: usize,
+        particles_per_emit: usize,
+        dt_scale: f32,
+        particles: &mut Vec<crate::game_state::field_particle::FieldParticle>,
+        mut spawn: F,
+    ) where
+        F: FnMut(usize) -> crate::game_state::field_particle::FieldParticle,
+    {
+        if *emitted >= total {
+            return;
+        }
+
+        let remaining = total - *emitted;
+        let emit_count = Self::scaled_emit_count(remaining, particles_per_emit, dt_scale);
+
+        for i in 0..emit_count {
+            particles.push(spawn(*emitted + i));
+        }
+        *emitted += emit_count;
+    }
 }
 
 impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
@@ -70,63 +93,70 @@ impl namui::particle::Emitter<crate::game_state::field_particle::FieldParticle>
         }
 
         let mut rng = rand::thread_rng();
-        let mut particles = Vec::new();
         let dt_scale = (dt.as_secs_f32() / (1.0 / 60.0)).max(0.5);
+        let capacity = Self::scaled_emit_count(
+            TOP_HEART_TOTAL.saturating_sub(self.top_heart_emitted),
+            TOP_HEART_PARTICLES_PER_EMIT,
+            dt_scale,
+        ) + Self::scaled_emit_count(
+            EXPLOSION_TOTAL.saturating_sub(self.explosion_emitted),
+            EXPLOSION_PARTICLES_PER_EMIT,
+            dt_scale,
+        ) + Self::scaled_emit_count(
+            COLUMN_TOTAL.saturating_sub(self.column_emitted),
+            COLUMN_PARTICLES_PER_EMIT,
+            dt_scale,
+        );
+        let mut particles = Vec::with_capacity(capacity);
 
         // === TOP HEART ===
-        if self.top_heart_emitted < TOP_HEART_TOTAL {
-            let remaining = TOP_HEART_TOTAL - self.top_heart_emitted;
-            let emit_count =
-                Self::scaled_emit_count(remaining, TOP_HEART_PARTICLES_PER_EMIT, dt_scale);
-
-            for _ in 0..emit_count {
-                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
-                    particle: HeartParticle::new_rising_heart(
-                        (self.xy.x, self.xy.y),
-                        now,
-                        self.top_heart_emitted as f32,
-                        &mut rng,
-                    ),
-                });
-            }
-            self.top_heart_emitted += emit_count;
-        }
+        Self::emit_phase(
+            &mut self.top_heart_emitted,
+            TOP_HEART_TOTAL,
+            TOP_HEART_PARTICLES_PER_EMIT,
+            dt_scale,
+            &mut particles,
+            |emitted_index| crate::game_state::field_particle::FieldParticle::Heart {
+                particle: HeartParticle::new_rising_heart(
+                    (self.xy.x, self.xy.y),
+                    now,
+                    emitted_index as f32,
+                    &mut rng,
+                ),
+            },
+        );
 
         // === EXPLOSION ===
-        if self.explosion_emitted < EXPLOSION_TOTAL {
-            let remaining = EXPLOSION_TOTAL - self.explosion_emitted;
-            let emit_count =
-                Self::scaled_emit_count(remaining, EXPLOSION_PARTICLES_PER_EMIT, dt_scale);
-
-            let explosion_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
-            for _ in 0..emit_count {
-                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
-                    particle: HeartParticle::new_mushroom_explosion(explosion_xy, now, &mut rng),
-                });
-            }
-            self.explosion_emitted += emit_count;
-        }
+        let explosion_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
+        Self::emit_phase(
+            &mut self.explosion_emitted,
+            EXPLOSION_TOTAL,
+            EXPLOSION_PARTICLES_PER_EMIT,
+            dt_scale,
+            &mut particles,
+            |_| crate::game_state::field_particle::FieldParticle::Heart {
+                particle: HeartParticle::new_mushroom_explosion(explosion_xy, now, &mut rng),
+            },
+        );
 
         // === COLUMN ===
-        if self.column_emitted < COLUMN_TOTAL {
-            let remaining = COLUMN_TOTAL - self.column_emitted;
-            let emit_count =
-                Self::scaled_emit_count(remaining, COLUMN_PARTICLES_PER_EMIT, dt_scale);
-
-            let column_start_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
-            let column_end_xy = (self.xy.x, self.xy.y + COLUMN_TOP_Y_OFFSET); // 기존 대비 2배 높이
-            for _ in 0..emit_count {
-                particles.push(crate::game_state::field_particle::FieldParticle::Heart {
-                    particle: HeartParticle::new_mushroom_column(
-                        column_start_xy,
-                        column_end_xy,
-                        now,
-                        &mut rng,
-                    ),
-                });
-            }
-            self.column_emitted += emit_count;
-        }
+        let column_start_xy = (self.xy.x, self.xy.y + EXPLOSION_Y_OFFSET);
+        let column_end_xy = (self.xy.x, self.xy.y + COLUMN_TOP_Y_OFFSET); // 기존 대비 2배 높이
+        Self::emit_phase(
+            &mut self.column_emitted,
+            COLUMN_TOTAL,
+            COLUMN_PARTICLES_PER_EMIT,
+            dt_scale,
+            &mut particles,
+            |_| crate::game_state::field_particle::FieldParticle::Heart {
+                particle: HeartParticle::new_mushroom_column(
+                    column_start_xy,
+                    column_end_xy,
+                    now,
+                    &mut rng,
+                ),
+            },
+        );
 
         particles
     }
