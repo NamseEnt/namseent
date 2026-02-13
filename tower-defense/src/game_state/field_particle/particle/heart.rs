@@ -17,15 +17,15 @@ const TRAIL_SPEED_MAX: f32 = 8.0; // tiles/sec
 const TRAIL_ANGLE_RANGE_DEG: f32 = 22.5; // 반대방향 ±22.5도
 
 // === Mushroom Explosion (폭발) ===
-const MUSHROOM_EXPLOSION_SPEED_MIN: f32 = 1.0;
-const MUSHROOM_EXPLOSION_SPEED_MAX: f32 = 2.5;
-const MUSHROOM_EXPLOSION_LIFETIME_MIN_MS: i64 = 200;
-const MUSHROOM_EXPLOSION_LIFETIME_MAX_MS: i64 = 400;
+const MUSHROOM_EXPLOSION_SPEED_MIN: f32 = 0.3;
+const MUSHROOM_EXPLOSION_SPEED_MAX: f32 = 0.6;
+const MUSHROOM_EXPLOSION_LIFETIME_MIN_MS: i64 = 300;
+const MUSHROOM_EXPLOSION_LIFETIME_MAX_MS: i64 = 800;
 const MUSHROOM_EXPLOSION_ALPHA_MIN: f32 = 0.6;
 const MUSHROOM_EXPLOSION_ALPHA_MAX: f32 = 0.85;
 
 // === Mushroom Column (기둥) ===
-const MUSHROOM_COLUMN_WOBBLE_RANGE: f32 = 0.3; // 좌우 흔들림 범위
+const MUSHROOM_COLUMN_WOBBLE_RANGE: f32 = 0.1; // 좌우 흔들림 범위
 const MUSHROOM_COLUMN_LIFETIME_MIN_MS: i64 = 400;
 const MUSHROOM_COLUMN_LIFETIME_MAX_MS: i64 = 800;
 const MUSHROOM_COLUMN_ALPHA_MIN: f32 = 0.5;
@@ -34,24 +34,20 @@ const MUSHROOM_COLUMN_ALPHA_MAX: f32 = 0.7;
 // === Rising Heart (상단 하트) ===
 const RISING_HEART_LIFETIME_MIN_MS: i64 = 1000;
 const RISING_HEART_LIFETIME_MAX_MS: i64 = 1500;
-const RISING_HEART_INITIAL_ALPHA: f32 = 0.4;
-const RISING_HEART_SPEED_MIN: f32 = 0.5; // tiles/sec
-const RISING_HEART_SPEED_MAX: f32 = 0.8; // tiles/sec
+const RISING_HEART_INITIAL_ALPHA: f32 = 0.75;
 const RISING_HEART_START_SCALE: f32 = 0.0;
 const RISING_HEART_FINAL_SCALE_MIN: f32 = 2.70;
 const RISING_HEART_FINAL_SCALE_MAX: f32 = 3.45;
-const RISING_HEART_GROW_RATIO: f32 = 0.26; // 초반 급격 성장 후 유지
-const RISING_HEART_ANGLE_DEG: f32 = 5.0;
+const RISING_HEART_INITIAL_ANGLE_DEG: f32 = 5.0;
 const RISING_HEART_MAX_OPACITY: f32 = 0.75;
-const RISING_HEART_MIN_SPEED_MULT: f32 = 0.08;
-const RISING_HEART_VERTICAL_DISTANCE_MULT: f32 = 3.0;
-const RISING_HEART_RANDOM_ROTATION_DEG_PER_SEC: f32 = 5.0;
+const RISING_HEART_RISE_DISTANCE_TILE: f32 = 0.6;
+const RISING_HEART_ROTATION_DEG_PER_SEC_MAX: f32 = 10.0;
 
 // === Mushroom Sphere (분홍 반투명 구체) ===
 const MUSHROOM_EXPLOSION_RADIUS_MIN_TILE: f32 = 0.15;
 const MUSHROOM_EXPLOSION_RADIUS_MAX_TILE: f32 = 0.25;
-const MUSHROOM_COLUMN_RADIUS_MIN_TILE: f32 = 0.03;
-const MUSHROOM_COLUMN_RADIUS_MAX_TILE: f32 = 0.06;
+const MUSHROOM_COLUMN_RADIUS_MIN_TILE: f32 = 0.1;
+const MUSHROOM_COLUMN_RADIUS_MAX_TILE: f32 = 0.15;
 const MUSHROOM_SPHERE_INNER_RADIUS_RATIO: f32 = 0.4; // inner = outer * ratio
 // Colors: 분홍색 (RGB)
 const MUSHROOM_OUTER_COLOR_RGB: (f32, f32, f32) = (1.0, 0.6, 0.75); // 분홍색
@@ -75,9 +71,16 @@ pub enum HeartParticleKind {
     Heart00,
     Heart01,
     Heart02,
-    MushroomExplosion { radius_px: Px },
-    MushroomColumn { radius_px: Px },
-    RisingHeart { final_scale: f32, grow_ratio: f32 },
+    MushroomExplosion {
+        radius_px: Px,
+    },
+    MushroomColumn {
+        radius_px: Px,
+    },
+    RisingHeart {
+        final_scale: f32,
+        rotation_rad_per_sec: f32,
+    },
 }
 
 #[inline]
@@ -251,26 +254,28 @@ impl HeartParticle {
         }
     }
 
-    /// 버섯구름 상단 하트 - 천천히 상승 + 선형 페이드
+    /// 버섯구름 상단 하트 - ease-out 상승/스케일/투명도
     pub fn new_rising_heart<R: Rng + ?Sized>(
         xy: (f32, f32),
         created_at: Instant,
         spawn_index: f32,
         rng: &mut R,
     ) -> Self {
-        let offset_x = rng.gen_range(-0.18..=0.18);
         let offset_y = rng.gen_range(-0.08..=0.02);
-        let start_xy = (xy.0 + offset_x, xy.1 + offset_y);
+        let start_xy = (xy.0, xy.1 + offset_y);
 
         let lifetime_ms =
             rng.gen_range(RISING_HEART_LIFETIME_MIN_MS..=RISING_HEART_LIFETIME_MAX_MS);
         let lifetime = Duration::from_millis(lifetime_ms);
+        let lifetime_secs = lifetime.as_secs_f32();
 
-        let angle_offset_deg = rng.gen_range(-RISING_HEART_ANGLE_DEG..=RISING_HEART_ANGLE_DEG);
+        // 초기 회전: 정방향(위쪽) 기준 좌우 5도 랜덤
+        let angle_offset_deg =
+            rng.gen_range(-RISING_HEART_INITIAL_ANGLE_DEG..=RISING_HEART_INITIAL_ANGLE_DEG);
         let angle_offset_rad = angle_offset_deg * PI / 180.0;
-        let speed = rng.gen_range(RISING_HEART_SPEED_MIN..=RISING_HEART_SPEED_MAX);
+        // ease-out 속도 곡선(1 - ease_out_cubic)의 적분값이 0.25이므로 이를 반영해 기본 속도 계산
+        let speed = RISING_HEART_RISE_DISTANCE_TILE * 4.0 / lifetime_secs;
 
-        // 정방향(위쪽) 기준 좌우 5도 랜덤
         let velocity_x = angle_offset_rad.sin() * speed;
         let velocity_y = -angle_offset_rad.cos() * speed;
 
@@ -282,6 +287,12 @@ impl HeartParticle {
         let initial_opacity =
             (RISING_HEART_INITIAL_ALPHA * spawn_alpha_mul).min(RISING_HEART_MAX_OPACITY);
 
+        // 회전 속도: 좌/우 초당 10도 내 랜덤
+        let rotation_deg_per_sec = rng.gen_range(
+            -RISING_HEART_ROTATION_DEG_PER_SEC_MAX..=RISING_HEART_ROTATION_DEG_PER_SEC_MAX,
+        );
+        let rotation_rad_per_sec = rotation_deg_per_sec * PI / 180.0;
+
         Self {
             xy: start_xy,
             velocity: (velocity_x, velocity_y),
@@ -292,7 +303,7 @@ impl HeartParticle {
             scale: RISING_HEART_START_SCALE,
             kind: HeartParticleKind::RisingHeart {
                 final_scale,
-                grow_ratio: RISING_HEART_GROW_RATIO,
+                rotation_rad_per_sec,
             },
         }
     }
@@ -303,43 +314,40 @@ impl HeartParticle {
         let progress = (elapsed / lifetime).clamp(0.0, 1.0);
         let dt_secs = dt.as_secs_f32();
         let mut movement_speed_mul = 1.0;
-        let mut movement_y_mul = 1.0;
 
         if let HeartParticleKind::RisingHeart {
             final_scale,
-            grow_ratio,
+            rotation_rad_per_sec,
         } = self.kind
         {
-            self.alpha =
-                (self.initial_opacity * (1.0 - progress)).clamp(0.0, RISING_HEART_MAX_OPACITY);
-
             // 상승 속도 ease-out: 초반 빠르고 후반으로 갈수록 천천히
             let ease_out_progress = ease_out_cubic(progress);
-            movement_speed_mul = (1.0 - ease_out_progress).max(RISING_HEART_MIN_SPEED_MULT);
-            movement_y_mul = RISING_HEART_VERTICAL_DISTANCE_MULT;
+            movement_speed_mul = (1.0 - ease_out_progress).clamp(0.0, 1.0);
 
-            // 이동 중 랜덤 회전(초당 ±5도 이내)
-            let mut rng = rand::thread_rng();
-            let random_rot_deg_per_sec = rng.gen_range(
-                -RISING_HEART_RANDOM_ROTATION_DEG_PER_SEC
-                    ..=RISING_HEART_RANDOM_ROTATION_DEG_PER_SEC,
-            );
-            let dtheta = random_rot_deg_per_sec * PI / 180.0 * dt_secs;
+            // opacity도 ease-out 곡선, 최대 0.5
+            self.alpha = (self.initial_opacity * (1.0 - ease_out_progress))
+                .clamp(0.0, RISING_HEART_MAX_OPACITY);
+
+            // scale도 ease-out 곡선
+            self.scale = RISING_HEART_START_SCALE
+                + (final_scale - RISING_HEART_START_SCALE) * ease_out_progress;
+
+            // 회전 속도는 개체별로 고정된 랜덤 값(좌/우 초당 10도 내)
+            let dtheta = rotation_rad_per_sec * dt_secs;
             let (vx, vy) = self.velocity;
             let cos_t = dtheta.cos();
             let sin_t = dtheta.sin();
             self.velocity = (vx * cos_t - vy * sin_t, vx * sin_t + vy * cos_t);
-
-            // 초반 급격 성장(ease-out) 후 유지
-            if progress < grow_ratio {
-                let t = (progress / grow_ratio).clamp(0.0, 1.0);
-                let ease_out = ease_out_cubic(t);
-                self.scale =
-                    RISING_HEART_START_SCALE + (final_scale - RISING_HEART_START_SCALE) * ease_out;
-            } else {
-                self.scale = final_scale;
-            }
         } else {
+            if matches!(
+                self.kind,
+                HeartParticleKind::MushroomExplosion { .. }
+                    | HeartParticleKind::MushroomColumn { .. }
+            ) {
+                let ease_out_progress = ease_out_cubic(progress);
+                movement_speed_mul = (1.0 - ease_out_progress).clamp(0.0, 1.0);
+            }
+
             // 기존 분홍 구체용: 기존 알파 감쇠 유지
             let alpha_progress = if progress < 0.5 {
                 0.95 - progress * 0.1
@@ -351,7 +359,7 @@ impl HeartParticle {
 
         // Velocity 적용
         self.xy.0 += self.velocity.0 * dt_secs * movement_speed_mul;
-        self.xy.1 += self.velocity.1 * dt_secs * movement_speed_mul * movement_y_mul;
+        self.xy.1 += self.velocity.1 * dt_secs * movement_speed_mul;
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -436,7 +444,9 @@ impl HeartParticle {
         let inner_color = Color::from_f01(ir_r, ir_g, ir_b, self.alpha);
 
         let outer_paint = Paint::new(outer_color).set_style(PaintStyle::Fill);
-        let inner_paint = Paint::new(inner_color).set_style(PaintStyle::Fill);
+        let inner_paint = Paint::new(inner_color)
+            .set_style(PaintStyle::Fill)
+            .set_blend_mode(BlendMode::Screen);
 
         namui::render([
             namui::path(outer_path, outer_paint),
