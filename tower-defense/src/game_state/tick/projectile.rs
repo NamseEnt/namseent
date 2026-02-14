@@ -119,7 +119,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                             let lightning_count = (spawn_count as f32 * 0.33).ceil() as usize;
                             let sparkle_count = (spawn_count as f32 * 0.33).ceil() as usize;
                             let heart_count = (spawn_count as f32 * 0.34).ceil() as usize;
-                            
+
                             if lightning_count > 0 {
                                 lightning_trail_emitters.push(
                                     field_particle::emitter::LightningTrailEmitter::new_with_particle_count(
