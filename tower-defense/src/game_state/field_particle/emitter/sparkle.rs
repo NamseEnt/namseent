@@ -5,7 +5,7 @@ use crate::{
 use namui::*;
 use rand::Rng;
 
-const SPARKLE_SPAWN_DISTANCE: f32 = 0.25; // 맵 좌표 단위
+pub(crate) const SPARKLE_SPAWN_DISTANCE: f32 = 0.25; // 맵 좌표 단위
 const PARTICLES_PER_EMIT: usize = 2; // 한 번의 emit당 최대 생성 개수
 const EMBER_SPARK_SPAWN_CHANCE: f32 = 0.15; // 15% 확률로 ember spark 생성
 
@@ -13,7 +13,6 @@ const EMBER_SPARK_SPAWN_CHANCE: f32 = 0.15; // 15% 확률로 ember spark 생성
 pub struct SparkleEmitter {
     from_xy: MapCoordF32,
     to_xy: MapCoordF32,
-    movement_dt: Duration,
     created_at: Instant,
     total_particles: usize,
     emitted_particles: usize,
@@ -23,15 +22,23 @@ impl SparkleEmitter {
     pub fn new(
         from_xy: MapCoordF32,
         to_xy: MapCoordF32,
-        movement_dt: Duration,
+        _movement_dt: Duration,
         created_at: Instant,
     ) -> Self {
         let distance = (to_xy - from_xy).length();
         let total_particles = (distance / SPARKLE_SPAWN_DISTANCE).ceil() as usize;
+        Self::new_with_particle_count(from_xy, to_xy, total_particles, created_at)
+    }
+
+    pub fn new_with_particle_count(
+        from_xy: MapCoordF32,
+        to_xy: MapCoordF32,
+        total_particles: usize,
+        created_at: Instant,
+    ) -> Self {
         Self {
             from_xy,
             to_xy,
-            movement_dt,
             created_at,
             total_particles,
             emitted_particles: 0,

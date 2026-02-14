@@ -14,6 +14,7 @@ pub struct Projectile {
     pub rotation: Angle,
     pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
+    pub trail_distance_remainder: f32,
     pub behavior: ProjectileBehavior,
     pub hit_effect: attack::ProjectileHitEffect,
 }
@@ -39,6 +40,7 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Direct,
             hit_effect,
         }
@@ -68,6 +70,7 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
                 acceleration: HOMING_ACCELERATION_TILE,
@@ -196,6 +199,7 @@ pub enum ProjectileKind {
     Girl03,
     Girl04,
     Cards00,
+    Heart00,
 }
 impl ProjectileKind {
     pub fn random_trash() -> Self {
@@ -223,6 +227,10 @@ impl ProjectileKind {
         ProjectileKind::Cards00
     }
 
+    pub fn random_heart() -> Self {
+        ProjectileKind::Heart00
+    }
+
     pub fn image(&self) -> Image {
         match self {
             ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
@@ -235,6 +243,7 @@ impl ProjectileKind {
             ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
             ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
             ProjectileKind::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
+            ProjectileKind::Heart00 => crate::asset::image::attack::projectile::HEART_00,
         }
     }
 }
@@ -245,6 +254,8 @@ pub enum ProjectileTrail {
     Burning,
     Sparkle,
     WindCurve,
+    Heart,
+    LightningSparkle,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]

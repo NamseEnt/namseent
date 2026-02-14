@@ -27,6 +27,32 @@ pub struct Tower {
     pub skills: Vec<TowerSkill>,
     pub(self) animation: Animation,
 }
+
+pub struct ShootProjectileParams<'a> {
+    pub target_indicator: ProjectileTargetIndicator,
+    pub speed: Velocity,
+    pub trail: ProjectileTrail,
+    pub projectile_group: ProjectileGroup,
+    pub hit_effect: attack::ProjectileHitEffect,
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
+pub struct ShootLaserParams<'a> {
+    pub target_xy: (f32, f32),
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
+pub struct AttackTypeParams<'a> {
+    pub target_xy: (f32, f32),
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
@@ -44,57 +70,44 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot_projectile(
-        &mut self,
-        target_indicator: ProjectileTargetIndicator,
-        speed: Velocity,
-        trail: ProjectileTrail,
-        projectile_group: ProjectileGroup,
-        hit_effect: attack::ProjectileHitEffect,
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> Projectile {
+    pub fn shoot_projectile(&mut self, params: ShootProjectileParams<'_>) -> Projectile {
         self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, now);
+        self.animation.transition(AnimationKind::Attack, params.now);
 
         Projectile::new(
             self.head_xy_tile(),
-            projectile_group.random_kind(),
-            speed,
-            target_indicator,
-            self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
-            trail,
-            hit_effect,
+            params.projectile_group.random_kind(),
+            params.speed,
+            params.target_indicator,
+            self.calculate_projectile_damage(
+                params.tower_upgrade_states,
+                params.contract_multiplier,
+            ),
+            params.trail,
+            params.hit_effect,
         )
     }
 
     /// 레이저 공격 수행 - 즉시 데미지를 주고 LaserBeam 반환
-    pub fn shoot_laser(
-        &mut self,
-        target_xy: (f32, f32),
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> (attack::laser::LaserBeam, f32) {
+    pub fn shoot_laser(&mut self, params: ShootLaserParams<'_>) -> (attack::laser::LaserBeam, f32) {
         self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, now);
+        self.animation.transition(AnimationKind::Attack, params.now);
 
-        let damage = self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+        let damage = self
+            .calculate_projectile_damage(params.tower_upgrade_states, params.contract_multiplier);
 
         let head_xy = self.head_xy_tile();
-        let laser = attack::laser::LaserBeam::new((head_xy.x, head_xy.y), target_xy, now, damage);
+        let laser = attack::laser::LaserBeam::new(
+            (head_xy.x, head_xy.y),
+            params.target_xy,
+            params.now,
+            damage,
+        );
 
         (laser, damage)
     }
 
-    pub fn attack_type(
-        &mut self,
-        target_xy: (f32, f32),
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> (AttackType, f32) {
+    pub fn attack_type(&mut self, params: AttackTypeParams<'_>) -> (AttackType, f32) {
         match self.kind {
             TowerKind::Barricade => (
                 AttackType::Projectile {
@@ -141,9 +154,16 @@ impl Tower {
                 },
                 0.0,
             ),
-            TowerKind::Straight | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
-                (AttackType::Laser, 0.0)
-            }
+            TowerKind::Straight | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::StraightFlush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::LightningSparkle,
+                    projectile_group: ProjectileGroup::Heart,
+                    hit_effect: attack::ProjectileHitEffect::HeartBurst,
+                },
+                0.0,
+            ),
             TowerKind::Flush => (
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
@@ -155,10 +175,12 @@ impl Tower {
             ),
             TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, now);
+                self.animation.transition(AnimationKind::Attack, params.now);
 
-                let damage =
-                    self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+                let damage = self.calculate_projectile_damage(
+                    params.tower_upgrade_states,
+                    params.contract_multiplier,
+                );
 
                 let head_xy = self.head_xy_tile();
                 let tower_xy = (head_xy.x, head_xy.y);
@@ -166,7 +188,7 @@ impl Tower {
                 (
                     AttackType::FullHouseRain {
                         tower_xy,
-                        target_xy,
+                        target_xy: params.target_xy,
                     },
                     damage,
                 )

@@ -11,6 +11,7 @@ pub enum ProjectileHitEffect {
     TrashBounce,
     CardBurst,
     SparkleBurst,
+    HeartBurst,
 }
 
 /// 투사체 그룹 - 투사체 종류를 분류
@@ -19,6 +20,7 @@ pub enum ProjectileGroup {
     Trash,
     Girl,
     Cards,
+    Heart,
 }
 
 impl ProjectileGroup {
@@ -27,6 +29,7 @@ impl ProjectileGroup {
             Self::Trash => ProjectileKind::random_trash(),
             Self::Girl => ProjectileKind::random_girl(),
             Self::Cards => ProjectileKind::random_cards(),
+            Self::Heart => ProjectileKind::random_heart(),
         }
     }
 }

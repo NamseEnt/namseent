@@ -5,7 +5,7 @@ use crate::{
 use namui::*;
 use rand::Rng;
 
-const WIND_CURVE_SPAWN_DISTANCE: f32 = 0.12;
+pub(crate) const WIND_CURVE_SPAWN_DISTANCE: f32 = 0.12;
 const PARTICLES_PER_EMIT: usize = 3;
 const BLUE_DOT_SPAWN_CHANCE: f32 = 0.22;
 
@@ -22,7 +22,15 @@ impl WindCurveTrailEmitter {
     pub fn new(from_xy: MapCoordF32, to_xy: MapCoordF32, created_at: Instant) -> Self {
         let distance = (to_xy - from_xy).length();
         let total_particles = (distance / WIND_CURVE_SPAWN_DISTANCE).ceil() as usize;
+        Self::new_with_particle_count(from_xy, to_xy, total_particles, created_at)
+    }
 
+    pub fn new_with_particle_count(
+        from_xy: MapCoordF32,
+        to_xy: MapCoordF32,
+        total_particles: usize,
+        created_at: Instant,
+    ) -> Self {
         Self {
             from_xy,
             to_xy,
