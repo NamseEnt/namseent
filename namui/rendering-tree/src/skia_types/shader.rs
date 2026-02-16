@@ -95,11 +95,9 @@ impl NativeShader {
                 uniforms,
                 children,
             } => {
-                // RuntimeEffect 컴파일 결과를 sksl 기반으로 캐싱 (무거운 작업)
                 static RUNTIME_EFFECT_SHADER_MAP: LruCache<Arc<str>, NativeRuntimeEffect, 32> =
                     LruCache::new();
 
-                // sksl을 Arc<str>로 변환하여 캐시 키로 사용
                 let sksl_key: Arc<str> = Arc::from(sksl.as_str());
                 let effect = RUNTIME_EFFECT_SHADER_MAP.get_or_create(&sksl_key, |sksl_str| {
                     NativeRuntimeEffect(
@@ -111,7 +109,6 @@ impl NativeShader {
                     )
                 });
 
-                // children shader 변환 (가벼운 작업)
                 let child_ptrs = children
                     .iter()
                     .map(|child| {
@@ -120,7 +117,6 @@ impl NativeShader {
                     })
                     .collect::<Vec<_>>();
 
-                // 컴파일된 effect로 shader 생성 (가벼운 작업)
                 let shader = effect
                     .make_shader(
                         skia_safe::Data::new_copy(uniforms.as_slice()),
