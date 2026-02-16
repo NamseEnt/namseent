@@ -55,8 +55,8 @@ impl Paint {
         self.blend_mode = Some(blend_mode);
         self
     }
-    pub fn set_shader(mut self, shader: Shader) -> Self {
-        self.shader = Some(Box::new(shader));
+    pub fn set_shader(mut self, shader: impl Into<Shader>) -> Self {
+        self.shader = Some(Box::new(shader.into()));
         self
     }
     pub fn set_mask_filter(mut self, mask_filter: MaskFilter) -> Self {

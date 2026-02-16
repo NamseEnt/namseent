@@ -89,7 +89,7 @@ use token_consume::*;
 ///        "
 ///     }
 ///     fn make(&self) -> std::sync::Arc<namui::Shader> {{
-///         namui::make_runtime_effect_shader(&self.uniforms(), Self::code(), Box::new(self.children()))
+///         namui::Shader::runtime_effect(&self.uniforms(), Self::code(), Box::new(self.children()))
 ///     }}
 /// }
 ///
@@ -230,7 +230,7 @@ impl {shader_ident} {{
         \"{sksl_code}\"
     }}
     fn make(&self) -> std::sync::Arc<namui::Shader> {{
-        namui::make_runtime_effect_shader(&self.uniforms(), Self::code(), Box::new(self.children()))
+        namui::Shader::runtime_effect(&self.uniforms(), Self::code(), Box::new(self.children()))
     }}
 }}
 "
