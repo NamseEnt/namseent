@@ -20,14 +20,21 @@ impl<Key: Hash + Eq + Clone, Value, const CAPACITY: usize> LruCache<Key, Value, 
             .map
             .get_or_init(|| Mutex::new(lru::LruCache::new(NonZeroUsize::new(CAPACITY).unwrap())));
 
-        let mut map = map.lock().unwrap();
-
-        match map.get(key) {
-            Some(value) => value.clone(),
-            None => {
-                let value = Arc::new(create(key));
-                map.get_or_insert(key.clone(), || value).clone()
+        {
+            let mut map = map.lock().unwrap();
+            if let Some(value) = map.get(key) {
+                return value.clone();
             }
+        }
+
+        let created = Arc::new(create(key));
+
+        let mut map = map.lock().unwrap();
+        if let Some(value) = map.get(key) {
+            value.clone()
+        } else {
+            map.put(key.clone(), created.clone());
+            created
         }
     }
 
@@ -40,12 +47,22 @@ impl<Key: Hash + Eq + Clone, Value, const CAPACITY: usize> LruCache<Key, Value, 
             .map
             .get_or_init(|| Mutex::new(lru::LruCache::new(NonZeroUsize::new(CAPACITY).unwrap())));
 
-        let mut map = map.lock().unwrap();
+        {
+            let mut map = map.lock().unwrap();
+            if let Some(value) = map.get(key) {
+                return Some(value.clone());
+            }
+        }
 
-        map.get(key).cloned().or_else(|| {
-            let value = try_create(key)?;
-            Some(map.get_or_insert(key.clone(), || Arc::new(value)).clone())
-        })
+        let created = Arc::new(try_create(key)?);
+
+        let mut map = map.lock().unwrap();
+        if let Some(value) = map.get(key) {
+            Some(value.clone())
+        } else {
+            map.put(key.clone(), created.clone());
+            Some(created)
+        }
     }
 
     pub fn get(&self, key: &Key) -> Option<Arc<Value>> {

@@ -18,6 +18,11 @@ pub enum Shader {
         colors: Vec<Color>,
         tile_mode: TileMode,
     },
+    RuntimeEffect {
+        sksl: String,
+        uniforms: Vec<u8>,
+        children: Vec<Shader>,
+    },
 }
 
 impl Shader {
@@ -57,6 +62,21 @@ impl Hash for Shader {
                 colors.hash(state);
                 tile_mode.hash(state);
             }
+            Shader::RuntimeEffect {
+                sksl,
+                uniforms,
+                children,
+            } => {
+                sksl.hash(state);
+                uniforms.hash(state);
+                children.hash(state);
+            }
         }
+    }
+}
+
+impl From<std::sync::Arc<Shader>> for Shader {
+    fn from(value: std::sync::Arc<Shader>) -> Self {
+        (*value).clone()
     }
 }
