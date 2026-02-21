@@ -3,7 +3,6 @@ import { textInputImports } from "./textInput";
 import { type DrawerExports, type Exports } from "@/exports";
 import { storageImports } from "@/storage/imports";
 import { ThreadStartSupplies } from "@/thread/startThread";
-import SubThreadWorker from "@/thread/SubThreadWorker?worker";
 
 export function createImportObject({
     supplies,
@@ -88,26 +87,18 @@ export function createImportObject({
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {
             "thread-spawn": (startArgPtr: number) => {
-                const tid = Atomics.add(
-                    new Uint32Array(supplies.nextTid),
-                    0,
-                    1,
-                );
-                const worker = new SubThreadWorker();
                 if (
                     supplies.type === "drawer" ||
                     supplies.type === "font-load"
                 ) {
                     throw new Error("not implemented");
                 }
-                const nextSupplies = {
-                    ...supplies,
-                    type: "sub",
-                    startArgPtr,
-                    tid,
-                } satisfies ThreadStartSupplies;
-                worker.postMessage(nextSupplies);
-
+                const tid = Atomics.add(
+                    new Uint32Array(supplies.nextTid),
+                    0,
+                    1,
+                );
+                supplies.spawnPort.postMessage({ startArgPtr, tid });
                 return tid;
             },
         },

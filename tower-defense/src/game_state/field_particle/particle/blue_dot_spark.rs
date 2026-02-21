@@ -1,4 +1,5 @@
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
@@ -10,11 +11,6 @@ const BLUE_DOT_SPEED_MIN: f32 = 4.0; // 맵 좌표 단위/초
 const BLUE_DOT_SPEED_MAX: f32 = 12.0;
 const BLUE_DOT_GRAVITY: f32 = 48.0; // 맵 좌표 단위/초^2 (아래로, EmberSpark보다 약함)
 const BLUE_DOT_FADE_START: f32 = 0.6; // progress 60%부터 페이드 시작
-
-// Colors (RGB, 0.0..1.0)
-const BLUE_DOT_OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.6, 1.0); // 청색
-const BLUE_DOT_INNER_COLOR_RGB: (f32, f32, f32) = (0.7, 0.95, 1.0); // 밝은 청색
-const BLUE_DOT_INNER_RADIUS_RATIO: f32 = 0.3;
 
 #[derive(Clone)]
 pub struct BlueDotSparkParticle {
@@ -72,44 +68,15 @@ impl BlueDotSparkParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
-        let outer_radius = self.radius;
-        let inner_radius = px(self.radius.as_f32() * BLUE_DOT_INNER_RADIUS_RATIO);
-
-        let outer_path = Path::new().add_oval(Rect::Ltrb {
-            left: xy_px.x - outer_radius,
-            top: xy_px.y - outer_radius,
-            right: xy_px.x + outer_radius,
-            bottom: xy_px.y + outer_radius,
-        });
-        let inner_path = Path::new().add_oval(Rect::Ltrb {
-            left: xy_px.x - inner_radius,
-            top: xy_px.y - inner_radius,
-            right: xy_px.x + inner_radius,
-            bottom: xy_px.y + inner_radius,
-        });
-
-        let (or_r, or_g, or_b) = BLUE_DOT_OUTER_COLOR_RGB;
-        let (ir_r, ir_g, ir_b) = BLUE_DOT_INNER_COLOR_RGB;
-        let outer_color = Color::from_f01(or_r, or_g, or_b, self.alpha * 0.6);
-        let inner_color = Color::from_f01(ir_r, ir_g, ir_b, self.alpha);
-
-        let outer_paint = Paint::new(outer_color)
-            .set_style(PaintStyle::Fill)
-            .set_blend_mode(BlendMode::Screen);
-        let inner_paint = Paint::new(inner_color)
-            .set_style(PaintStyle::Fill)
-            .set_blend_mode(BlendMode::Screen);
-
-        namui::render([
-            namui::path(outer_path, outer_paint),
-            namui::path(inner_path, inner_paint),
-        ])
+        let scale = (self.radius.as_f32() * 2.0) / 128.0;
+        let color = Color::from_f01(0.2, 0.6, 1.0, self.alpha * 0.6);
+        Some(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color)))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -126,7 +93,7 @@ impl namui::particle::Particle for BlueDotSparkParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         BlueDotSparkParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         BlueDotSparkParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

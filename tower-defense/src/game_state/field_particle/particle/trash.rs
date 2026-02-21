@@ -1,4 +1,5 @@
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use crate::game_state::projectile::ProjectileKind;
 use namui::*;
 use rand::Rng;
@@ -82,9 +83,9 @@ impl TrashParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.progress >= 1.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let eased = match self.ease_mode {
@@ -104,29 +105,15 @@ impl TrashParticle {
 
         let px_xy = TILE_PX_SIZE.to_xy() * Xy::new(x, y);
 
-        let trash_size_px = TILE_PX_SIZE.width * TRASH_SIZE_TILE;
-        let wh = Wh::new(trash_size_px, trash_size_px);
-
-        let image = self.kind.image();
+        let scale = (TILE_PX_SIZE.width.as_f32() * TRASH_SIZE_TILE) / 128.0;
 
         let alpha = (1.0 - self.progress).max(0.0);
-        let paint = Paint::new(Color::WHITE.with_alpha((alpha * 255.0) as u8));
+        let color = Color::WHITE.with_alpha((alpha * 255.0) as u8);
 
-        namui::translate(
-            px_xy.x,
-            px_xy.y,
-            namui::rotate(
-                self.rotation,
-                namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(wh.to_xy() * -0.5, wh),
-                    image,
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: Some(paint),
-                    },
-                }),
-            ),
-        )
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::projectile_rect(self.kind);
+
+        Some(atlas::centered_rotated_sprite(src_rect, px_xy.x, px_xy.y, scale, angle_rad, Some(color)))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -167,7 +154,7 @@ impl namui::particle::Particle for TrashParticle {
         self.tick_impl(now, dt);
     }
 
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         TrashParticle::render(self)
     }
 

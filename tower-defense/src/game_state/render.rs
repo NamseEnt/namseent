@@ -294,18 +294,91 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
-    ctx.add(&field_particle::BURNING_TRAILS);
-    ctx.add(&field_particle::EMBER_SPARKS);
-    ctx.add(&field_particle::LASER_LINES);
-    ctx.add(&field_particle::LIGHTNING_BOLTS);
-    ctx.add(&field_particle::BLUE_DOT_SPARKS);
-    ctx.add(&field_particle::LASER_BEAMS);
-    ctx.add(&field_particle::MONSTER_CORPSES);
-    ctx.add(&field_particle::PROJECTILES);
-    ctx.add(&field_particle::TRASHES);
-    ctx.add(&field_particle::INSTANT_EMITS);
-    ctx.add(&field_particle::INSTANT_HITS);
-    ctx.add(&field_particle::MONSTER_SOULS);
-    ctx.add(&field_particle::ICONS);
-    ctx.add(&field_particle::DAMAGE_TEXTS);
+    let atlas = crate::asset::image::PARTICLE_ATLAS;
+    let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
+
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::BURNING_TRAILS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::EMBER_SPARKS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::LASER_LINES,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::LIGHTNING_BOLTS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::BLUE_DOT_SPARKS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::LASER_BEAMS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::MONSTER_CORPSES,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::PROJECTILES,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::TRASHES,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::INSTANT_EMITS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::INSTANT_HITS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::MONSTER_SOULS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::ICONS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::DAMAGE_TEXTS,
+        image: atlas,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
 }

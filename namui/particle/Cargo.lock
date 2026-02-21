@@ -63,6 +63,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arc-swap"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9f3647c145568cec02c42054e07bdf9a5a698e15b466fb2341bfc393cd24aa5"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "auto_ops"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,6 +248,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dd111b7b7f7d55b72c0a6ae361660ee5853c9af73f70c3c2ef6858b950e2e51"
+dependencies = [
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b82ac4a3c2ca9c3460964f020e1402edd5753411d7737aa39c3714ad1b5420e"
+dependencies = [
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -586,9 +614,12 @@ dependencies = [
 name = "namui-particle"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
  "namui-hooks",
  "namui-rendering-tree",
  "namui-type",
+ "rayon",
+ "tokio",
 ]
 
 [[package]]
@@ -802,6 +833,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "rayon"
+version = "1.11.0"
+source = "git+https://github.com/NamseEnt/rayon?branch=v1.11.0-fork#b8f2e80ea1046dcf9df272d9009859164779ae29"
+dependencies = [
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.13.0"
+source = "git+https://github.com/NamseEnt/rayon?branch=v1.11.0-fork#b8f2e80ea1046dcf9df272d9009859164779ae29"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
 ]
 
 [[package]]

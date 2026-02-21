@@ -1,16 +1,15 @@
+use arc_swap::ArcSwap;
 use namui_hooks::*;
 use namui_rendering_tree::*;
 use namui_type::*;
-use orx_parallel::*;
 use std::sync::{
-    Arc, Mutex, OnceLock,
-    atomic::{AtomicBool, Ordering},
+    Arc, OnceLock,
     mpsc::{Receiver, Sender},
 };
 
 pub trait Particle: Send + Sync + 'static + Sized {
     fn tick(&mut self, now: Instant, dt: Duration);
-    fn render(&self) -> RenderingTree;
+    fn render(&self) -> Option<ImageSprite>;
     fn is_done(&self, now: Instant) -> bool;
 }
 
@@ -20,8 +19,7 @@ pub struct Emitter<P: Particle> {
 
 struct EmitterInner<P: Particle> {
     spawn_tx: Sender<P>,
-    rendered_tree: Arc<Mutex<Arc<RenderingTree>>>,
-    stop_flag: Arc<AtomicBool>,
+    rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 }
 
 impl<P: Particle> Emitter<P> {
@@ -40,56 +38,80 @@ impl<P: Particle> Emitter<P> {
     fn init(&self) {
         self.inner.get_or_init(|| {
             let (spawn_tx, spawn_rx) = std::sync::mpsc::channel();
-            let rendered_tree = Arc::new(Mutex::new(Arc::new(RenderingTree::Empty)));
-            let stop_flag = Arc::new(AtomicBool::new(false));
+            let rendered_sprites = Arc::new(ArcSwap::from_pointee(Vec::new()));
 
-            let rendered_tree_clone = rendered_tree.clone();
-            let stop_flag_clone = stop_flag.clone();
+            let rendered_sprites_clone = rendered_sprites.clone();
 
-            std::thread::spawn(move || {
-                tick_thread_main(spawn_rx, &rendered_tree_clone, &stop_flag_clone);
+            tokio::spawn(async move {
+                tick_task_main(spawn_rx, rendered_sprites_clone).await;
             });
 
             EmitterInner {
                 spawn_tx,
-                rendered_tree,
-                stop_flag,
+                rendered_sprites,
             }
         });
     }
 
-    fn latest_tree(&self) -> Arc<RenderingTree> {
+    pub fn latest_sprites(&self) -> Arc<Vec<ImageSprite>> {
         self.inner
             .get()
-            .map(|inner| inner.rendered_tree.lock().unwrap().clone())
-            .unwrap_or_else(|| Arc::new(RenderingTree::Empty))
+            .map(|inner| inner.rendered_sprites.load_full())
+            .unwrap_or_else(|| Arc::new(Vec::new()))
     }
 }
 
 unsafe impl<P: Particle> Sync for Emitter<P> {}
 
-impl<P: Particle> Component for &Emitter<P> {
-    fn render(self, ctx: &RenderCtx) {
-        self.init();
+pub struct RenderEmitter<'a, P: Particle> {
+    pub emitter: &'a Emitter<P>,
+    pub image: Image,
+    pub sprite_colors_blend_mode: BlendMode,
+    pub paint: Option<Paint>,
+}
 
-        let tree = self.latest_tree();
-        ctx.add(Arc::unwrap_or_clone(tree));
+impl<P: Particle> Component for RenderEmitter<'_, P> {
+    fn render(self, ctx: &RenderCtx) {
+        self.emitter.init();
+        let sprites = self.emitter.latest_sprites();
+        if sprites.is_empty() {
+            return;
+        }
+        let cloned = Arc::unwrap_or_clone(sprites);
+        ctx.add(RenderingTree::Node(DrawCommand::Image {
+            command: Box::new(ImageDrawCommand {
+                image: self.image,
+                sprites: cloned,
+                paint: self.paint,
+                sprite_colors_blend_mode: self.sprite_colors_blend_mode,
+            }),
+        }));
     }
 }
 
-fn tick_thread_main<P: Particle>(
+async fn tick_task_main<P: Particle>(
     rx: Receiver<P>,
-    rendered_tree: &Mutex<Arc<RenderingTree>>,
-    stop_flag: &AtomicBool,
+    rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 ) {
-    let mut particles: Vec<P> = Vec::with_capacity(65536);
+    let _ = rayon::ThreadPoolBuilder::new()
+        .spawn_handler(|thread| {
+            let mut builder = std::thread::Builder::new();
+            if let Some(name) = thread.name() {
+                builder = builder.name(namui_hooks::Dependencies::to_owned(&name).to_string());
+            }
+            if let Some(stack_size) = thread.stack_size() {
+                builder = builder.stack_size(stack_size);
+            }
+            builder.spawn(move || {
+                thread.run();
+            })?;
+            Ok(())
+        })
+        .build_global();
+    let mut particles: Vec<P> = Vec::with_capacity(256);
     let mut last_now = Instant::now();
 
     loop {
-        if stop_flag.load(Ordering::Acquire) {
-            break;
-        }
-
         let now = Instant::now();
         let dt = now - last_now;
 
@@ -97,19 +119,32 @@ fn tick_thread_main<P: Particle>(
             particles.push(p);
         }
 
-        particles.par_mut().for_each(|p| p.tick(now, dt));
-
-        particles.retain(|p| !p.is_done(now));
-
-        let tree = if particles.is_empty() {
-            RenderingTree::Empty
+        if !particles.is_empty() {
+            let (tx, oneshot_rx) = tokio::sync::oneshot::channel();
+            rayon::spawn(move || {
+                use rayon::prelude::*;
+                particles.par_iter_mut().for_each(|p| p.tick(now, dt));
+                particles.retain(|p| !p.is_done(now));
+                let sprites: Vec<ImageSprite> = particles
+                    .par_iter()
+                    .filter_map(|p| p.render())
+                    .collect();
+                let _ = tx.send((particles, sprites));
+            });
+            match oneshot_rx.await {
+                Ok((returned_particles, sprites)) => {
+                    particles = returned_particles;
+                    rendered_sprites.store(Arc::new(sprites));
+                }
+                Err(_) => {
+                    particles = Vec::new();
+                }
+            }
         } else {
-            let trees: Vec<RenderingTree> = particles.par().map(|p| p.render()).collect();
-            RenderingTree::Children(trees)
-        };
-        *rendered_tree.lock().unwrap() = Arc::new(tree);
+            rendered_sprites.store(Arc::new(vec![]));
+        }
 
         last_now = now;
-        std::thread::sleep(std::time::Duration::from_millis(8));
+        tokio::time::sleep(std::time::Duration::from_millis(8)).await;
     }
 }

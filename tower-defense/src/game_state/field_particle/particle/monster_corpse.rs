@@ -1,4 +1,5 @@
 use crate::game_state::MonsterKind;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::{Rng, thread_rng};
 
@@ -91,36 +92,12 @@ impl MonsterCorpseParticle {
         self.rotation += self.angular_velocity * delta_time;
     }
 
-    pub fn render(&self) -> RenderingTree {
-        let Self {
-            rotation,
-            monster_kind,
-            wh,
-            scale,
-            ..
-        } = self;
+    pub fn render(&self) -> Option<ImageSprite> {
+        let scale = self.wh.width.as_f32() / 128.0 * self.scale;
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::monster_rect(self.monster_kind);
 
-        let image = monster_kind.image();
-
-        namui::translate(
-            self.position.x,
-            self.position.y,
-            namui::rotate(
-                *rotation,
-                namui::scale(
-                    *scale,
-                    *scale,
-                    namui::image(ImageParam {
-                        rect: Rect::from_xy_wh(wh.to_xy() * -0.5, *wh),
-                        image,
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: None,
-                        },
-                    }),
-                ),
-            ),
-        )
+        Some(atlas::centered_rotated_sprite(src_rect, self.position.x, self.position.y, scale, angle_rad, None))
     }
 }
 
@@ -128,7 +105,7 @@ impl namui::particle::Particle for MonsterCorpseParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         MonsterCorpseParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         MonsterCorpseParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

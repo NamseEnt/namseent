@@ -17,6 +17,8 @@ pub trait SkCanvas {
         atlas: &Image,
         xforms: &[RSXform],
         tex_rects: &[Rect<Px>],
+        colors: Option<&[Color]>,
+        sprite_colors_blend_mode: BlendMode,
         paint: &Option<Paint>,
     );
     fn translate(&self, dx: Px, dy: Px);

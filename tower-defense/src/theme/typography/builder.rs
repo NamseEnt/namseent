@@ -239,7 +239,7 @@ impl<'a> TypographyBuilder<'a> {
     pub fn render_left_center(&mut self, height: Px) -> PositionedRichText {
         let rendered = self.render();
         let offset_y = (height - rendered.height) / 2.0;
-        PositionedRichText::new(rendered, Xy::new(Px::zero(), offset_y))
+        PositionedRichText::new(rendered, Xy::new(px(0.0), offset_y))
     }
 
     /// Render and center in the given size
@@ -254,7 +254,7 @@ impl<'a> TypographyBuilder<'a> {
     pub fn render_right_top(&mut self, width: Px) -> PositionedRichText {
         let rendered = self.render();
         let offset_x = width - rendered.width;
-        PositionedRichText::new(rendered, Xy::new(offset_x, Px::zero()))
+        PositionedRichText::new(rendered, Xy::new(offset_x, px(0.0)))
     }
 }
 

@@ -4,6 +4,7 @@ use crate::*;
 pub struct ImageSprite {
     pub src_rect: Rect<Px>,
     pub xform: RSXform,
+    pub color: Option<Color>,
 }
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
@@ -11,6 +12,7 @@ pub struct ImageDrawCommand {
     pub image: Image,
     pub sprites: Vec<ImageSprite>,
     pub paint: Option<Paint>,
+    pub sprite_colors_blend_mode: BlendMode,
 }
 
 impl ImageDrawCommand {
@@ -21,6 +23,7 @@ impl ImageDrawCommand {
             image,
             sprites: vec![sprite],
             paint,
+            sprite_colors_blend_mode: BlendMode::SrcOver,
         }
     }
 }
@@ -35,6 +38,7 @@ pub fn fit_to_sprite(fit: ImageFit, image_size: Wh<Px>, rect: Rect<Px>) -> Image
     ImageSprite {
         src_rect,
         xform: RSXform::from_scale_and_translate(scale, dest_rect.x(), dest_rect.y()),
+        color: None,
     }
 }
 

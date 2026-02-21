@@ -1,4 +1,5 @@
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
@@ -11,15 +12,7 @@ const LIGHTNING_BOLT_SPAWN_LIFETIME_MAX_MS: i64 = 150;
 const LIGHTNING_BOLT_SPAWN_CHANCE_REDUCTION: f32 = 0.8;
 const LIGHTNING_BOLT_END_OFFSET_RANGE: f32 = 0.2;
 
-const LIGHTNING_BOLT_LINE_THICKNESS_FULL: f32 = 0.01;
-const LIGHTNING_BOLT_LINE_THICKNESS_MID: f32 = 0.03;
-const LIGHTNING_BOLT_LINE_THICKNESS_CENTER: f32 = 0.05;
-const LIGHTNING_BOLT_LINE_INNER_THICKNESS_RATIO: f32 = 0.4;
 const LIGHTNING_BOLT_ALPHA_APPEAR_PHASE: f32 = 0.2;
-
-const OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.5, 1.0);
-const INNER_COLOR_RGB: (f32, f32, f32) = (0.6, 0.85, 1.0);
-const INNER_COLOR_ALPHA_RATIO: f32 = 0.8;
 
 #[derive(Clone)]
 pub struct LightningBoltParticle {
@@ -128,94 +121,18 @@ impl LightningBoltParticle {
         ))
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 || self.points.len() < 2 {
-            return RenderingTree::Empty;
+            return None;
         }
 
-        let mut renders = Vec::new();
-
-        let line_configs = [(0, self.points.len(), LIGHTNING_BOLT_LINE_THICKNESS_FULL)];
-        self.render_line_with_configs(&line_configs, &mut renders);
-
-        if self.points.len() > 2 {
-            let line_configs = [(1, self.points.len() - 1, LIGHTNING_BOLT_LINE_THICKNESS_MID)];
-            self.render_line_with_configs(&line_configs, &mut renders);
-        }
-
-        if self.points.len() > 4 {
-            let line_configs = [(
-                2,
-                self.points.len() - 2,
-                LIGHTNING_BOLT_LINE_THICKNESS_CENTER,
-            )];
-            self.render_line_with_configs(&line_configs, &mut renders);
-        }
-
-        namui::render(renders)
-    }
-
-    fn render_line_with_configs(
-        &self,
-        configs: &[(usize, usize, f32)],
-        renders: &mut Vec<RenderingTree>,
-    ) {
-        for &(start_idx, end_idx, thickness) in configs {
-            let outer_color = Color::from_f01(
-                OUTER_COLOR_RGB.0,
-                OUTER_COLOR_RGB.1,
-                OUTER_COLOR_RGB.2,
-                self.alpha,
-            );
-
-            let mut outer_path = Path::new();
-            let first_point = self.points[start_idx];
-            let first_px = TILE_PX_SIZE.to_xy() * Xy::new(first_point.0, first_point.1);
-            outer_path = outer_path.move_to(first_px.x, first_px.y);
-
-            for i in (start_idx + 1)..end_idx {
-                let point = self.points[i];
-                let point_px = TILE_PX_SIZE.to_xy() * Xy::new(point.0, point.1);
-                outer_path = outer_path.line_to(point_px.x, point_px.y);
-            }
-
-            let outer_paint = Paint::new(outer_color)
-                .set_style(PaintStyle::Stroke)
-                .set_stroke_width(TILE_PX_SIZE.width * thickness)
-                .set_stroke_cap(StrokeCap::Round)
-                .set_stroke_join(StrokeJoin::Round)
-                .set_blend_mode(BlendMode::Screen);
-
-            renders.push(namui::path(outer_path, outer_paint));
-
-            let inner_alpha = self.alpha * INNER_COLOR_ALPHA_RATIO;
-            let inner_color = Color::from_f01(
-                INNER_COLOR_RGB.0,
-                INNER_COLOR_RGB.1,
-                INNER_COLOR_RGB.2,
-                inner_alpha,
-            );
-
-            let mut inner_path = Path::new();
-            inner_path = inner_path.move_to(first_px.x, first_px.y);
-
-            for i in (start_idx + 1)..end_idx {
-                let point = self.points[i];
-                let point_px = TILE_PX_SIZE.to_xy() * Xy::new(point.0, point.1);
-                inner_path = inner_path.line_to(point_px.x, point_px.y);
-            }
-
-            let inner_paint = Paint::new(inner_color)
-                .set_style(PaintStyle::Stroke)
-                .set_stroke_width(
-                    TILE_PX_SIZE.width * thickness * LIGHTNING_BOLT_LINE_INNER_THICKNESS_RATIO,
-                )
-                .set_stroke_cap(StrokeCap::Round)
-                .set_stroke_join(StrokeJoin::Round)
-                .set_blend_mode(BlendMode::Screen);
-
-            renders.push(namui::path(inner_path, inner_paint));
-        }
+        let first = self.points[0];
+        let last = self.points[self.points.len() - 1];
+        let start_px = TILE_PX_SIZE.to_xy() * Xy::new(first.0, first.1);
+        let end_px = TILE_PX_SIZE.to_xy() * Xy::new(last.0, last.1);
+        let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
+        let thickness = TILE_PX_SIZE.width.as_f32() * 0.03;
+        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -247,7 +164,7 @@ impl namui::particle::Particle for LightningBoltParticle {
         self.tick_impl(now, dt);
     }
 
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         LightningBoltParticle::render(self)
     }
 

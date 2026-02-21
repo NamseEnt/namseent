@@ -1,3 +1,4 @@
+use crate::game_state::field_particle::atlas;
 use namui::*;
 
 const SOUL_OPACITY_START: f32 = 0.75;
@@ -52,42 +53,20 @@ impl MonsterSoulParticle {
         self.scale = Xy::single(scale_v);
     }
 
-    pub fn render(&self) -> RenderingTree {
-        let Self {
-            rotation,
-            opacity,
-            scale,
-            offset,
-            ..
-        } = self;
+    pub fn render(&self) -> Option<ImageSprite> {
+        let scale_value = self.scale.x;
+        let alpha = (self.opacity * 255.0) as u8;
+        let color = Color::WHITE.with_alpha(alpha);
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::monster_soul();
 
-        let wh = Wh::new(px(128.0), px(192.0));
+        let cos_a = angle_rad.cos();
+        let sin_a = angle_rad.sin();
+        let offset_f = self.offset.as_f32();
+        let cx = self.position.x + px(sin_a * offset_f);
+        let cy = self.position.y - px(cos_a * offset_f);
 
-        let paint = Paint::new(Color::WHITE.with_alpha((opacity * 255.0) as u8));
-
-        namui::translate(
-            self.position.x,
-            self.position.y,
-            namui::rotate(
-                *rotation,
-                namui::translate(
-                    0.px(),
-                    -*offset,
-                    namui::scale(
-                        scale.x,
-                        scale.y,
-                        namui::image(ImageParam {
-                            rect: Rect::from_xy_wh(Xy::new(-wh.width * 0.5, -wh.height), wh),
-                            image: crate::asset::image::MONSTER_SOUL,
-                            style: ImageStyle {
-                                fit: ImageFit::None,
-                                paint: Some(paint),
-                            },
-                        }),
-                    ),
-                ),
-            ),
-        )
+        Some(atlas::centered_rotated_sprite(src_rect, cx, cy, scale_value, angle_rad, Some(color)))
     }
 }
 
@@ -95,7 +74,7 @@ impl namui::particle::Particle for MonsterSoulParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         MonsterSoulParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         MonsterSoulParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

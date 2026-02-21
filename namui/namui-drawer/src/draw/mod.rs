@@ -162,8 +162,10 @@ pub fn draw_mouse_cursor(
                     sprites: vec![ImageSprite {
                         src_rect: Rect::from_xy_wh(offset_xy, sprite_set.cursor_wh),
                         xform: RSXform::from_translate(-hotspot_xy.x, -hotspot_xy.y),
+                        color: None,
                     }],
                     paint: None,
+                    sprite_colors_blend_mode: BlendMode::SrcOver,
                 }
                 .draw(skia);
             }

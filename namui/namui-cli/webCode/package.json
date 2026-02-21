@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.1",
+    "@vitejs/plugin-basic-ssl": "^2.1.4",
     "compression": "^1.8.0",
     "express": "^5.1.0",
     "typescript": "^5.4.5",

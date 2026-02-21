@@ -92,6 +92,8 @@ impl SkCanvas for skia_safe::Canvas {
         atlas: &Image,
         xforms: &[RSXform],
         tex_rects: &[Rect<Px>],
+        colors: Option<&[Color]>,
+        sprite_colors_blend_mode: BlendMode,
         paint: &Option<Paint>,
     ) {
         if xforms.is_empty() || xforms.len() != tex_rects.len() {
@@ -126,17 +128,20 @@ impl SkCanvas for skia_safe::Canvas {
         // Get the native skia image
         let skia_image = atlas.skia_image();
 
-        // Prepare paint if provided
+        let skia_colors: Option<Vec<skia_safe::Color>> = colors.map(|c| {
+            c.iter().map(|color| (*color).into()).collect()
+        });
+
         let skia_paint = paint.as_ref().map(|p| NativePaint::get(p).skia().clone());
 
         self.draw_atlas(
             &skia_image,
             &skia_xforms,
             &skia_tex_rects,
-            None, // colors
-            skia_safe::BlendMode::SrcOver,
+            skia_colors.as_deref(),
+            sprite_colors_blend_mode.into(),
             skia_safe::SamplingOptions::default(),
-            None, // cull_rect
+            None,
             skia_paint.as_ref(),
         );
     }

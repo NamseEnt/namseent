@@ -1,9 +1,6 @@
 use crate::game_state::{TILE_PX_SIZE, attack};
+use crate::game_state::field_particle::atlas;
 use namui::*;
-
-// 푸른색 상수
-const OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.5, 1.0); // 푸른 외곽
-const INNER_COLOR_RGB: (f32, f32, f32) = (0.6, 0.85, 1.0); // 밝은 푸른 내부/흰색 기조
 
 #[derive(Clone)]
 pub struct LaserBeamParticle {
@@ -39,39 +36,16 @@ impl LaserBeamParticle {
         self.alpha = self.current_alpha(now);
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-
         let color = Color::from_f01(1.0, 0.2, 0.2, self.alpha);
-
-        let mut path = Path::new();
-        path = path.move_to(start_px.x, start_px.y);
-        path = path.line_to(end_px.x, end_px.y);
-
-        let paint = Paint::new(color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(8.0 * self.alpha))
-            .set_stroke_cap(StrokeCap::Round);
-
-        let mut inner_path = Path::new();
-        inner_path = inner_path.move_to(start_px.x, start_px.y);
-        inner_path = inner_path.line_to(end_px.x, end_px.y);
-
-        let inner_alpha = self.alpha * 0.8;
-        let inner_paint = Paint::new(Color::WHITE.with_alpha((inner_alpha * 255.0) as u8))
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(3.0 * self.alpha))
-            .set_stroke_cap(StrokeCap::Round);
-
-        namui::render([
-            namui::path(path, paint),
-            namui::path(inner_path, inner_paint),
-        ])
+        let thickness = 8.0 * self.alpha;
+        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -93,7 +67,7 @@ impl namui::particle::Particle for LaserBeamParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         LaserBeamParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         LaserBeamParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {
@@ -170,55 +144,16 @@ impl LaserLineParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-
-        // 외곽 직선 (푸른색, Screen blend mode)
-        let outer_color = Color::from_f01(
-            OUTER_COLOR_RGB.0,
-            OUTER_COLOR_RGB.1,
-            OUTER_COLOR_RGB.2,
-            self.alpha,
-        );
-
-        let mut outer_path = Path::new();
-        outer_path = outer_path.move_to(start_px.x, start_px.y);
-        outer_path = outer_path.line_to(end_px.x, end_px.y);
-
-        let outer_paint = Paint::new(outer_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_blend_mode(BlendMode::Screen);
-
-        // 내부 직선 (더 밝은 색, 더 얇게)
-        let inner_alpha = self.alpha * 0.8;
-        let inner_color = Color::from_f01(
-            INNER_COLOR_RGB.0,
-            INNER_COLOR_RGB.1,
-            INNER_COLOR_RGB.2,
-            inner_alpha,
-        );
-
-        let mut inner_path = Path::new();
-        inner_path = inner_path.move_to(start_px.x, start_px.y);
-        inner_path = inner_path.line_to(end_px.x, end_px.y);
-
-        let inner_paint = Paint::new(inner_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness * 0.4)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_blend_mode(BlendMode::Screen);
-
-        namui::render([
-            namui::path(outer_path, outer_paint),
-            namui::path(inner_path, inner_paint),
-        ])
+        let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
+        let thickness = TILE_PX_SIZE.width.as_f32() * self.thickness;
+        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -252,7 +187,7 @@ impl namui::particle::Particle for LaserLineParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         LaserLineParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         LaserLineParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

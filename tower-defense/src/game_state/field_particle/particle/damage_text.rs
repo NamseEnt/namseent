@@ -1,4 +1,5 @@
 use crate::{MapCoordF32, game_state::TILE_PX_SIZE};
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
@@ -31,7 +32,6 @@ pub struct DamageTextParticle {
     pub position: MapCoordF32, // tile coordinates
     pub initial_position: MapCoordF32,
     pub velocity: Xy<f32>, // tile units per second
-    pub display_value: String,
     pub display_color: Color,
     pub created_at: Instant,
     pub duration: Duration,
@@ -43,7 +43,6 @@ pub struct DamageTextParticle {
 
 impl DamageTextParticle {
     pub fn new(position: MapCoordF32, damage_value: f32, now: Instant) -> Self {
-        let display_value = Self::format_display_value(damage_value);
         let display_color = Self::calculate_display_color(damage_value);
 
         let mut rng = rand::thread_rng();
@@ -66,7 +65,6 @@ impl DamageTextParticle {
             position: randomized_position,
             initial_position: randomized_position,
             velocity: Xy::new(velocity_x, velocity_y),
-            display_value,
             display_color,
             created_at: now,
             duration: Duration::from_millis(PARTICLE_LIFETIME_MS),
@@ -78,18 +76,6 @@ impl DamageTextParticle {
     }
     pub fn is_done(&self, now: Instant) -> bool {
         now - self.created_at >= self.duration
-    }
-    fn format_display_value(damage_value: f32) -> String {
-        let abs_value = damage_value.abs();
-        if abs_value >= 1_000_000_000.0 {
-            format!("{:.1}b", damage_value / 1_000_000_000.0)
-        } else if abs_value >= 1_000_000.0 {
-            format!("{:.1}m", damage_value / 1_000_000.0)
-        } else if abs_value >= 1_000.0 {
-            format!("{:.1}k", damage_value / 1_000.0)
-        } else {
-            format!("{damage_value:.0}")
-        }
     }
     pub fn tick(&mut self, now: Instant, _delta_time: Duration) {
         let elapsed = now - self.created_at;
@@ -138,45 +124,23 @@ impl DamageTextParticle {
             MAX_SCALE - (MAX_SCALE - MIN_SCALE) * ease_out
         }
     }
-    pub fn render(&self) -> RenderingTree {
-        let opacity = self.opacity;
-        let style = TextStyle {
-            border: Some(TextStyleBorder {
-                color: Color::BLACK.with_alpha(opacity),
-                width: 4.0.into(),
-            }),
-            color: self.display_color.with_alpha(opacity),
-            ..Default::default()
-        };
+    pub fn render(&self) -> Option<ImageSprite> {
+        if self.opacity == 0 {
+            return None;
+        }
 
-        // Convert tile coordinates to pixel coordinates
         let tile_size = TILE_PX_SIZE.to_xy();
         let position_px = tile_size * self.position;
-
-        namui::translate(
+        let scale = self.scale * 0.5;
+        let color = self.display_color.with_alpha(self.opacity);
+        Some(atlas::centered_rotated_sprite(
+            atlas::star_burst(),
             position_px.x,
             position_px.y,
-            namui::rotate(
-                self.rotation,
-                namui::scale(
-                    self.scale,
-                    self.scale,
-                    namui::text(namui::TextParam {
-                        text: self.display_value.clone(),
-                        x: 0.px(),
-                        y: 0.px(),
-                        align: namui::TextAlign::Center,
-                        baseline: namui::TextBaseline::Middle,
-                        font: namui::Font {
-                            name: crate::theme::typography::HEADLINE_FONT_NAME.to_string(),
-                            size: int_px(64),
-                        },
-                        style,
-                        max_width: None,
-                    }),
-                ),
-            ),
-        )
+            scale,
+            self.rotation.as_radians(),
+            Some(color),
+        ))
     }
     fn calculate_display_color(damage_value: f32) -> Color {
         let (r, g, b) = if damage_value < COLOR_YELLOW_THRESHOLD {
@@ -206,7 +170,7 @@ impl namui::particle::Particle for DamageTextParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         DamageTextParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         DamageTextParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

@@ -20,6 +20,7 @@ export type ThreadStartSupplies = {
           type: "main";
           imageInfoBytes: Uint8Array;
           imageCount: number;
+          spawnPort: MessagePort;
       }
     | {
           type: "sub";
@@ -27,6 +28,7 @@ export type ThreadStartSupplies = {
           tid: number;
           imageInfoBytes: Uint8Array;
           imageCount: number;
+          spawnPort: MessagePort;
       }
     | {
           type: "drawer";
@@ -43,13 +45,10 @@ export async function startThread(supplies: ThreadStartSupplies) {
 
     const env = [
         "RUST_BACKTRACE=full",
-        `ORX_PARALLEL_MAX_NUM_THREADS=${navigator.hardwareConcurrency}`,
+        `RAYON_NUM_THREADS=${navigator.hardwareConcurrency}`,
     ];
 
     const tid = supplies.type === "sub" ? supplies.tid : 0;
-
-    const nextTid = new SharedArrayBuffer(4);
-    new Uint32Array(nextTid)[0] = 1;
 
     const fd: Fd[] = [
         new OpenFile(new File([])), // stdin

@@ -1,3 +1,4 @@
+use crate::game_state::field_particle::atlas;
 use crate::icon::Icon;
 use namui::*;
 
@@ -66,20 +67,19 @@ impl IconParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
-        let half_wh = self.icon.wh / 2.0;
-        namui::translate(
-            self.xy.x,
-            self.xy.y,
-            namui::rotate(
-                self.rotation,
-                namui::translate(
-                    -half_wh.width,
-                    -half_wh.height,
-                    self.icon.to_rendering_tree(),
-                ),
-            ),
-        )
+    pub fn render(&self) -> Option<ImageSprite> {
+        let base_scale = self.icon.wh.width.as_f32() / 128.0;
+        let behavior_scale = match &self.behavior {
+            IconParticleBehavior::Physics { scale, .. } => *scale,
+            IconParticleBehavior::FadeRise { .. } => 1.0,
+        };
+        let scale = base_scale * behavior_scale;
+        let opacity = self.icon.opacity;
+        let color = Color::WHITE.with_alpha((opacity * 255.0) as u8);
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::icon_rect(&self.icon.kind);
+
+        Some(atlas::centered_rotated_sprite(src_rect, self.xy.x, self.xy.y, scale, angle_rad, Some(color)))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -137,7 +137,7 @@ impl namui::particle::Particle for IconParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         IconParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         IconParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

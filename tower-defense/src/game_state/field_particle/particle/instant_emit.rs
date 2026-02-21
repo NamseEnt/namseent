@@ -1,4 +1,5 @@
 use crate::game_state::{TILE_PX_SIZE, attack};
+use crate::game_state::field_particle::atlas;
 use namui::*;
 
 #[derive(Clone)]
@@ -37,9 +38,9 @@ impl InstantEmitParticle {
         };
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let tower_px = TILE_PX_SIZE.to_xy() * Xy::new(self.tower_xy.0, self.tower_xy.1);
@@ -59,16 +60,8 @@ impl InstantEmitParticle {
             }
         };
 
-        let mut path = Path::new();
-        path = path.move_to(tower_px.x, tower_px.y);
-        path = path.line_to(current_end.x, current_end.y);
-
-        let paint = Paint::new(color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(4.0))
-            .set_stroke_cap(StrokeCap::Round);
-
-        namui::path(path, paint)
+        let thickness = 4.0;
+        atlas::line_sprite(tower_px.x, tower_px.y, current_end.x, current_end.y, thickness, Some(color))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -85,7 +78,7 @@ impl namui::particle::Particle for InstantEmitParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         InstantEmitParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         InstantEmitParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

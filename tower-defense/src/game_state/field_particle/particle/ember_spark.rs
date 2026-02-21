@@ -1,4 +1,5 @@
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
@@ -10,11 +11,6 @@ const EMBER_SPARK_SPEED_MIN: f32 = 2.0; // 맵 좌표 단위/초
 const EMBER_SPARK_SPEED_MAX: f32 = 8.0;
 const EMBER_SPARK_GRAVITY: f32 = 48.0; // 맵 좌표 단위/초^2 (아래로)
 const EMBER_SPARK_FADE_START: f32 = 0.5; // progress 50%부터 페이드 시작
-
-// Colors (RGB, 0.0..1.0)
-const EMBER_SPARK_OUTER_COLOR_RGB: (f32, f32, f32) = (1.0, 0.5, 0.1);
-const EMBER_SPARK_INNER_COLOR_RGB: (f32, f32, f32) = (1.0, 0.9, 0.4);
-const EMBER_SPARK_INNER_RADIUS_RATIO: f32 = 0.4;
 
 #[derive(Clone)]
 pub struct EmberSparkParticle {
@@ -65,14 +61,11 @@ impl EmberSparkParticle {
     pub fn tick(&mut self, now: Instant, dt: Duration) {
         let dt_sec = dt.as_secs_f32();
 
-        // 속도 업데이트 (중력 적용)
         self.velocity.1 += EMBER_SPARK_GRAVITY * dt_sec;
 
-        // 위치 업데이트
         self.xy.0 += self.velocity.0 * dt_sec;
         self.xy.1 += self.velocity.1 * dt_sec;
 
-        // 알파 업데이트
         let progress = self.progress(now);
         if progress >= EMBER_SPARK_FADE_START {
             let fade_progress =
@@ -83,44 +76,16 @@ impl EmberSparkParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
         let outer_radius = self.radius;
-        let inner_radius = px(self.radius.as_f32() * EMBER_SPARK_INNER_RADIUS_RATIO);
-
-        let outer_path = Path::new().add_oval(Rect::Ltrb {
-            left: xy_px.x - outer_radius,
-            top: xy_px.y - outer_radius,
-            right: xy_px.x + outer_radius,
-            bottom: xy_px.y + outer_radius,
-        });
-        let inner_path = Path::new().add_oval(Rect::Ltrb {
-            left: xy_px.x - inner_radius,
-            top: xy_px.y - inner_radius,
-            right: xy_px.x + inner_radius,
-            bottom: xy_px.y + inner_radius,
-        });
-
-        let (or_r, or_g, or_b) = EMBER_SPARK_OUTER_COLOR_RGB;
-        let (ir_r, ir_g, ir_b) = EMBER_SPARK_INNER_COLOR_RGB;
-        let outer_color = Color::from_f01(or_r, or_g, or_b, self.alpha * 0.8);
-        let inner_color = Color::from_f01(ir_r, ir_g, ir_b, self.alpha);
-
-        let outer_paint = Paint::new(outer_color)
-            .set_style(PaintStyle::Fill)
-            .set_blend_mode(BlendMode::Screen);
-        let inner_paint = Paint::new(inner_color)
-            .set_style(PaintStyle::Fill)
-            .set_blend_mode(BlendMode::Screen);
-
-        namui::render([
-            namui::path(outer_path, outer_paint),
-            namui::path(inner_path, inner_paint),
-        ])
+        let scale = (outer_radius.as_f32() * 2.0) / 128.0;
+        let color = Color::from_f01(1.0, 0.5, 0.1, self.alpha * 0.8);
+        Some(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color)))
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -137,7 +102,7 @@ impl namui::particle::Particle for EmberSparkParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         EmberSparkParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         EmberSparkParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

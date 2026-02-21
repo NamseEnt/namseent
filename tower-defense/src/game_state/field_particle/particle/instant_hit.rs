@@ -1,4 +1,5 @@
 use crate::game_state::{TILE_PX_SIZE, attack};
+use crate::game_state::field_particle::atlas;
 use namui::*;
 
 #[derive(Clone)]
@@ -36,76 +37,31 @@ impl InstantHitParticle {
         self.alpha = self.current_alpha(now);
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> Option<ImageSprite> {
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return None;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
 
-        match self.kind {
+        let sprite = match self.kind {
             attack::instant_effect::InstantEffectKind::Explosion => {
-                let radius = 32.0 * self.current_scale;
-                let num_points = 16;
-                let mut path = Path::new();
-
-                for i in 0..=num_points {
-                    let angle = (i as f32 / num_points as f32) * std::f32::consts::PI * 2.0;
-                    let x = xy_px.x + px(radius * angle.cos());
-                    let y = xy_px.y + px(radius * angle.sin());
-                    if i == 0 {
-                        path = path.move_to(x, y);
-                    } else {
-                        path = path.line_to(x, y);
-                    }
-                }
-
+                let scale = (32.0 * self.current_scale * 2.0) / 128.0;
                 let color = Color::from_f01(1.0, 0.5, 0.0, self.alpha);
-                let paint = Paint::new(color).set_style(PaintStyle::Fill);
-
-                namui::path(path, paint)
+                atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color))
             }
             attack::instant_effect::InstantEffectKind::Lightning => {
-                let size = 24.0 * self.current_scale;
+                let scale = (24.0 * self.current_scale * 2.0) / 128.0;
                 let color = Color::from_f01(1.0, 1.0, 0.2, self.alpha);
-
-                let mut path = Path::new();
-                path = path.move_to(xy_px.x - px(size), xy_px.y);
-                path = path.line_to(xy_px.x + px(size), xy_px.y);
-                path = path.move_to(xy_px.x, xy_px.y - px(size));
-                path = path.line_to(xy_px.x, xy_px.y + px(size));
-
-                let paint = Paint::new(color)
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(px(4.0 * self.current_scale))
-                    .set_stroke_cap(StrokeCap::Round);
-
-                namui::path(path, paint)
+                atlas::centered_sprite(atlas::cross(), xy_px.x, xy_px.y, scale, Some(color))
             }
             attack::instant_effect::InstantEffectKind::MagicCircle => {
-                let radius = 28.0 * self.current_scale;
-                let num_points = 16;
-                let mut path = Path::new();
-
-                for i in 0..=num_points {
-                    let angle = (i as f32 / num_points as f32) * std::f32::consts::PI * 2.0;
-                    let x = xy_px.x + px(radius * angle.cos());
-                    let y = xy_px.y + px(radius * angle.sin());
-                    if i == 0 {
-                        path = path.move_to(x, y);
-                    } else {
-                        path = path.line_to(x, y);
-                    }
-                }
-
+                let scale = (28.0 * self.current_scale * 2.0) / 128.0;
                 let color = Color::from_f01(0.5, 0.2, 1.0, self.alpha);
-                let paint = Paint::new(color)
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(px(3.0));
-
-                namui::path(path, paint)
+                atlas::centered_sprite(atlas::ring(), xy_px.x, xy_px.y, scale, Some(color))
             }
-        }
+        };
+        Some(sprite)
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -140,7 +96,7 @@ impl namui::particle::Particle for InstantHitParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         InstantHitParticle::tick(self, now, dt);
     }
-    fn render(&self) -> RenderingTree {
+    fn render(&self) -> Option<ImageSprite> {
         InstantHitParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {
