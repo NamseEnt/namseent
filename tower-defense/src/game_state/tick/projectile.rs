@@ -44,13 +44,42 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 ProjectileBehavior::Homing { .. } => projectile.move_homing(dt, monster_xy),
             }
 
-            if projectile.trail == ProjectileTrail::Burning {
-                field_particle::emitter::spawn_burning_trail(
-                    start_xy,
-                    projectile.xy,
-                    dt,
-                    now,
-                );
+            let moved_distance = (projectile.xy - start_xy).length();
+
+            let spawn_distance = match projectile.trail {
+                ProjectileTrail::None => None,
+                ProjectileTrail::Burning => Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE),
+                ProjectileTrail::Sparkle => Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE),
+                ProjectileTrail::WindCurve => Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE),
+                ProjectileTrail::Heart => Some(field_particle::emitter::HEART_SPAWN_DISTANCE),
+                ProjectileTrail::LightningSparkle => Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE),
+            };
+
+            if let Some(spawn_distance) = spawn_distance {
+                projectile.trail_distance_remainder += moved_distance;
+                let spawn_count = (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
+                if spawn_count > 0 {
+                    projectile.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
+                    match projectile.trail {
+                        ProjectileTrail::Burning => {
+                            field_particle::emitter::spawn_burning_trail(start_xy, projectile.xy, spawn_count, now);
+                        }
+                        ProjectileTrail::Sparkle => {
+                            field_particle::emitter::spawn_sparkle_trail(start_xy, projectile.xy, spawn_count, now);
+                        }
+                        ProjectileTrail::WindCurve => {
+                            field_particle::emitter::spawn_wind_curve_trail(start_xy, projectile.xy, spawn_count, now);
+                        }
+                        ProjectileTrail::Heart => {
+                            field_particle::emitter::spawn_heart_trail(start_xy, projectile.xy, spawn_count, now);
+                        }
+                        ProjectileTrail::LightningSparkle => {
+                            field_particle::emitter::spawn_lightning_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_sparkle_trail(start_xy, projectile.xy, spawn_count, now);
+                        }
+                        ProjectileTrail::None => {}
+                    }
+                }
             }
 
             return true;
@@ -64,14 +93,28 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             );
         }
 
-        let bounce_particles = field_particle::emitter::create_bounce_particles(
-            projectile.kind,
-            (start_xy.x, start_xy.y),
-            (monster_xy.x, monster_xy.y),
-            now,
-        );
-        for p in bounce_particles {
-            field_particle::TRASHES.spawn(p);
+        use crate::game_state::attack::ProjectileHitEffect;
+        match projectile.hit_effect {
+            ProjectileHitEffect::TrashBounce => {
+                let bounce_particles = field_particle::emitter::create_bounce_particles(
+                    projectile.kind,
+                    (start_xy.x, start_xy.y),
+                    (monster_xy.x, monster_xy.y),
+                    now,
+                );
+                for p in bounce_particles {
+                    field_particle::TRASHES.spawn(p);
+                }
+            }
+            ProjectileHitEffect::CardBurst => {
+                field_particle::emitter::spawn_card_burst(monster_xy, now);
+            }
+            ProjectileHitEffect::SparkleBurst => {
+                field_particle::emitter::spawn_sparkle_burst(monster_xy, now);
+            }
+            ProjectileHitEffect::HeartBurst => {
+                field_particle::emitter::spawn_heart_burst(monster_xy, now);
+            }
         }
 
         if monster.dead() {
@@ -79,30 +122,29 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 defense_flow.stage_progress.processed_hp += monster.max_hp;
             }
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-            let earn =
-                (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
+            let earn = (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
 
             let monster_kind = monster.kind;
             let rotation = monster.animation.rotation;
+            let y_offset = monster.animation.y_offset;
             let wh = monster::monster_wh(monster_kind);
 
             let tile_base_xy = TILE_PX_SIZE.to_xy() * monster_xy;
             let monster_center_offset = Xy::new(
                 TILE_PX_SIZE.width * 0.5,
-                TILE_PX_SIZE.height - wh.height * 0.5
-                    + TILE_PX_SIZE.height * monster.animation.y_offset,
+                TILE_PX_SIZE.height - wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
-
-            field_particle::MONSTER_SOULS.spawn(
-                field_particle::MonsterSoulParticle::new(pixel_xy, now, rotation),
-            );
 
             field_particle::MONSTER_CORPSES.spawn(
                 field_particle::MonsterCorpseParticle::new(
                     pixel_xy, now, rotation, monster_kind, wh,
                 ),
+            );
+
+            field_particle::MONSTER_SOULS.spawn(
+                field_particle::MonsterSoulParticle::new(pixel_xy, now, rotation),
             );
 
             monsters.swap_remove(monster_index);

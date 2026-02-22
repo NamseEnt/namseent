@@ -386,4 +386,28 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::CARDS,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::HEARTS,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::SPARKLES,
+        image: shapes,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::WIND_CURVE_TRAILS,
+        image: line,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
 }

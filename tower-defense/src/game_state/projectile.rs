@@ -14,7 +14,9 @@ pub struct Projectile {
     pub rotation: Angle,
     pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
+    pub trail_distance_remainder: f32,
     pub behavior: ProjectileBehavior,
+    pub hit_effect: attack::ProjectileHitEffect,
 }
 impl Projectile {
     pub fn new(
@@ -24,8 +26,8 @@ impl Projectile {
         target_indicator: ProjectileTargetIndicator,
         damage: f32,
         trail: ProjectileTrail,
+        hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
-        // Initialize with upward direction for Direct projectiles (tiles/second)
         let speed = velocity * Duration::from_secs(1);
         let initial_direction = Xy::new(0.0, -1.0);
         Self {
@@ -37,7 +39,9 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Direct,
+            hit_effect,
         }
     }
 
@@ -47,13 +51,12 @@ impl Projectile {
         target_indicator: ProjectileTargetIndicator,
         damage: f32,
         trail: ProjectileTrail,
+        hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
-        // Randomize initial speed and turn rate within configured ranges
         let mut rng = thread_rng();
         let initial_speed =
             rng.gen_range(HOMING_INITIAL_SPEED_MIN_TILE..=HOMING_INITIAL_SPEED_MAX_TILE);
         let turn_rate = rng.gen_range(HOMING_TURN_RATE_MIN_TILE..=HOMING_TURN_RATE_MAX_TILE);
-        // Initial velocity: straight up in map coordinate space (tiles/second)
         let initial_velocity = Xy::new(0.0, -initial_speed);
         Self {
             xy,
@@ -64,12 +67,14 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
+            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
                 acceleration: HOMING_ACCELERATION_TILE,
                 turn_rate,
                 max_speed: HOMING_MAX_SPEED_TILE,
             },
+            hit_effect,
         }
     }
 
@@ -77,7 +82,6 @@ impl Projectile {
         let direction = (dest_xy - self.xy).normalize();
         let speed = self.velocity.length();
         self.xy += direction * speed * dt.as_secs_f32();
-        // Update velocity to reflect actual movement direction (tiles/second)
         self.velocity = direction * speed;
         self.rotation += self.rotation_speed * dt.as_secs_f32();
     }
@@ -94,9 +98,7 @@ impl Projectile {
             let distance_to_target = (dest_xy - self.xy).length();
             let desired_dir = (dest_xy - self.xy).normalize();
 
-            // Phase transition: far = homing, close = direct high-speed
             if distance_to_target > HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE {
-                // Phase 1: Homing behavior - turn gradually toward target
                 let mut speed = velocity.length();
                 let acceleration = *acceleration;
                 let turn_rate = *turn_rate;
@@ -107,19 +109,15 @@ impl Projectile {
                 *velocity += (target_velocity - *velocity) * t;
                 self.xy += *velocity * dt_secs;
             } else {
-                // Phase 2: Direct high-speed - accelerate toward target in straight line
                 let acceleration = *acceleration;
                 let max_speed = *max_speed;
                 let mut speed = velocity.length();
-                // Accelerate more aggressively when close
                 speed = (speed + acceleration * dt_secs * HOMING_DIRECT_ACCELERATION_MULTIPLIER)
                     .min(max_speed);
-                // Move directly toward target
                 *velocity = desired_dir * speed;
                 self.xy += *velocity * dt_secs;
             }
 
-            // Update self.velocity to reflect actual movement velocity
             self.velocity = *velocity;
         }
 
@@ -131,32 +129,20 @@ impl Projectile {
 pub enum ProjectileBehavior {
     Direct,
     Homing {
-        /// Current velocity vector (tiles/second, map coordinate units)
         velocity: Xy<f32>,
-        /// Acceleration magnitude (tiles/second², map coordinate units)
         acceleration: f32,
-        /// Turn rate - blending factor for direction change per second
         turn_rate: f32,
-        /// Maximum speed (tiles/second, map coordinate units)
         max_speed: f32,
     },
 }
 
-/// Homing projectile initial upward speed - minimum (tiles/second, map coordinate units)
 const HOMING_INITIAL_SPEED_MIN_TILE: f32 = 24.0;
-/// Homing projectile initial upward speed - maximum (tiles/second, map coordinate units)
 const HOMING_INITIAL_SPEED_MAX_TILE: f32 = 32.0;
-/// Homing projectile maximum speed (tiles/second, map coordinate units)
 const HOMING_MAX_SPEED_TILE: f32 = 36.0;
-/// Homing projectile acceleration (tiles/second², map coordinate units)
 const HOMING_ACCELERATION_TILE: f32 = 1024.0;
-/// Homing projectile turn rate - minimum blending factor for direction change (0.0 = no turn, 1.0 = instant turn)
 const HOMING_TURN_RATE_MIN_TILE: f32 = 2.0;
-/// Homing projectile turn rate - maximum blending factor for direction change (0.0 = no turn, 1.0 = instant turn)
 const HOMING_TURN_RATE_MAX_TILE: f32 = 8.0;
-/// Distance threshold to switch from homing to direct movement (tiles, map coordinate units)
 const HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE: f32 = 4.0;
-/// Acceleration multiplier when in direct phase (applied to base acceleration)
 const HOMING_DIRECT_ACCELERATION_MULTIPLIER: f32 = 0.1;
 impl Component for &Projectile {
     fn render(self, ctx: &RenderCtx) {
@@ -179,12 +165,19 @@ fn random_rotation_speed() -> Angle {
     degrees_per_sec.deg()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, State)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProjectileKind {
     Trash01,
     Trash02,
     Trash03,
     Trash04,
+    Girl00,
+    Girl01,
+    Girl02,
+    Girl03,
+    Girl04,
+    Cards00,
+    Heart00,
 }
 impl ProjectileKind {
     pub fn random_trash() -> Self {
@@ -197,23 +190,53 @@ impl ProjectileKind {
         }
     }
 
+    pub fn random_girl() -> Self {
+        match thread_rng().gen_range(0..5) {
+            0 => ProjectileKind::Girl00,
+            1 => ProjectileKind::Girl01,
+            2 => ProjectileKind::Girl02,
+            3 => ProjectileKind::Girl03,
+            4 => ProjectileKind::Girl04,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn random_cards() -> Self {
+        ProjectileKind::Cards00
+    }
+
+    pub fn random_heart() -> Self {
+        ProjectileKind::Heart00
+    }
+
     pub fn image(&self) -> Image {
         match self {
             ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
             ProjectileKind::Trash02 => crate::asset::image::attack::projectile::TRASH_02,
             ProjectileKind::Trash03 => crate::asset::image::attack::projectile::TRASH_03,
             ProjectileKind::Trash04 => crate::asset::image::attack::projectile::TRASH_04,
+            ProjectileKind::Girl00 => crate::asset::image::attack::projectile::GIRL_00,
+            ProjectileKind::Girl01 => crate::asset::image::attack::projectile::GIRL_01,
+            ProjectileKind::Girl02 => crate::asset::image::attack::projectile::GIRL_02,
+            ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
+            ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
+            ProjectileKind::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
+            ProjectileKind::Heart00 => crate::asset::image::attack::projectile::HEART_00,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectileTrail {
     None,
     Burning,
+    Sparkle,
+    WindCurve,
+    Heart,
+    LightningSparkle,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, State)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ProjectileTargetIndicator {
     id: usize,
 }

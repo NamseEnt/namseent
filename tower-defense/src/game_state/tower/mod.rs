@@ -3,7 +3,7 @@ mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
 use crate::card::{Rank, Suit};
-use crate::game_state::attack::AttackType;
+use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
@@ -27,6 +27,32 @@ pub struct Tower {
     pub skills: Vec<TowerSkill>,
     pub(self) animation: Animation,
 }
+
+pub struct ShootProjectileParams<'a> {
+    pub target_indicator: ProjectileTargetIndicator,
+    pub speed: Velocity,
+    pub trail: ProjectileTrail,
+    pub projectile_group: ProjectileGroup,
+    pub hit_effect: attack::ProjectileHitEffect,
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
+pub struct ShootLaserParams<'a> {
+    pub target_xy: (f32, f32),
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
+pub struct AttackTypeParams<'a> {
+    pub target_xy: (f32, f32),
+    pub tower_upgrade_states: &'a [TowerUpgradeState],
+    pub contract_multiplier: f32,
+    pub now: Instant,
+}
+
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
@@ -44,59 +70,50 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot_projectile(
-        &mut self,
-        target_indicator: ProjectileTargetIndicator,
-        speed: Velocity,
-        trail: ProjectileTrail,
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> Projectile {
+    pub fn shoot_projectile(&mut self, params: ShootProjectileParams<'_>) -> Projectile {
         self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, now);
+        self.animation.transition(AnimationKind::Attack, params.now);
 
         Projectile::new(
             self.head_xy_tile(),
-            ProjectileKind::random_trash(),
-            speed,
-            target_indicator,
-            self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier),
-            trail,
+            params.projectile_group.random_kind(),
+            params.speed,
+            params.target_indicator,
+            self.calculate_projectile_damage(
+                params.tower_upgrade_states,
+                params.contract_multiplier,
+            ),
+            params.trail,
+            params.hit_effect,
         )
     }
 
-    /// 레이저 공격 수행 - 즉시 데미지를 주고 LaserBeam 반환
-    pub fn shoot_laser(
-        &mut self,
-        target_xy: (f32, f32),
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> (attack::laser::LaserBeam, f32) {
+    pub fn shoot_laser(&mut self, params: ShootLaserParams<'_>) -> (attack::laser::LaserBeam, f32) {
         self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, now);
+        self.animation.transition(AnimationKind::Attack, params.now);
 
-        let damage = self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+        let damage = self
+            .calculate_projectile_damage(params.tower_upgrade_states, params.contract_multiplier);
 
         let head_xy = self.head_xy_tile();
-        let laser = attack::laser::LaserBeam::new((head_xy.x, head_xy.y), target_xy, now, damage);
+        let laser = attack::laser::LaserBeam::new(
+            (head_xy.x, head_xy.y),
+            params.target_xy,
+            params.now,
+            damage,
+        );
 
         (laser, damage)
     }
 
-    pub fn attack_type(
-        &mut self,
-        target_xy: (f32, f32),
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
-        now: Instant,
-    ) -> (AttackType, f32) {
+    pub fn attack_type(&mut self, params: AttackTypeParams<'_>) -> (AttackType, f32) {
         match self.kind {
             TowerKind::Barricade => (
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -104,6 +121,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -111,6 +130,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -118,6 +139,8 @@ impl Tower {
                 AttackType::Projectile {
                     speed: PROJECTILE_SPEED,
                     trail: ProjectileTrail::None,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
@@ -125,19 +148,38 @@ impl Tower {
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
                     trail: ProjectileTrail::Burning,
+                    projectile_group: ProjectileGroup::Trash,
+                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
                 },
                 0.0,
             ),
-            TowerKind::Straight
-            | TowerKind::Flush
-            | TowerKind::StraightFlush
-            | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::Straight | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::StraightFlush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::LightningSparkle,
+                    projectile_group: ProjectileGroup::Heart,
+                    hit_effect: attack::ProjectileHitEffect::HeartBurst,
+                },
+                0.0,
+            ),
+            TowerKind::Flush => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::Sparkle,
+                    projectile_group: ProjectileGroup::Girl,
+                    hit_effect: attack::ProjectileHitEffect::SparkleBurst,
+                },
+                0.0,
+            ),
             TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, now);
+                self.animation.transition(AnimationKind::Attack, params.now);
 
-                let damage =
-                    self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
+                let damage = self.calculate_projectile_damage(
+                    params.tower_upgrade_states,
+                    params.contract_multiplier,
+                );
 
                 let head_xy = self.head_xy_tile();
                 let tower_xy = (head_xy.x, head_xy.y);
@@ -145,43 +187,20 @@ impl Tower {
                 (
                     AttackType::FullHouseRain {
                         tower_xy,
-                        target_xy,
+                        target_xy: params.target_xy,
                     },
                     damage,
                 )
             }
-            TowerKind::FourOfAKind => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, now);
-
-                let damage =
-                    self.calculate_projectile_damage(tower_upgrade_states, contract_multiplier);
-
-                let head_xy = self.head_xy_tile();
-                let tower_xy = (head_xy.x, head_xy.y);
-
-                let emit_effect = attack::instant_effect::TowerEmitEffect::new(
-                    tower_xy,
-                    target_xy,
-                    now,
-                    attack::instant_effect::InstantEffectKind::Explosion,
-                );
-
-                let hit_effect = attack::instant_effect::TargetHitEffect::new(
-                    target_xy,
-                    now,
-                    attack::instant_effect::InstantEffectKind::Explosion,
-                    1.0,
-                );
-
-                (
-                    AttackType::InstantEffect {
-                        emit_effect,
-                        hit_effect,
-                    },
-                    damage,
-                )
-            }
+            TowerKind::FourOfAKind => (
+                AttackType::Projectile {
+                    speed: FAST_PROJECTILE_SPEED,
+                    trail: ProjectileTrail::WindCurve,
+                    projectile_group: ProjectileGroup::Cards,
+                    hit_effect: attack::ProjectileHitEffect::CardBurst,
+                },
+                0.0,
+            ),
         }
     }
 
@@ -192,7 +211,6 @@ impl Tower {
         self.center_xy().map(|t| t as f32)
     }
 
-    /// 타워의 공격 시작점 (타일 단위) - center_xy에서 y - 0.5
     pub fn head_xy_tile(&self) -> MapCoordF32 {
         let center = self.center_xy_f32();
         MapCoordF32::new(center.x, center.y - 0.5)
@@ -235,7 +253,6 @@ impl Tower {
             damage *= tower_upgrade_state.damage_multiplier;
         });
 
-        // Apply contract damage multiplier
         damage *= contract_multiplier;
 
         damage
@@ -297,14 +314,12 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    /// Calculate tower power rating based on damage
     pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
         (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier
     }
 }
 impl PartialOrd for TowerTemplate {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // 타워끼리는 kind(역순) -> suit -> rank 순으로 정렬
         Some(
             self.kind
                 .cmp(&other.kind)
@@ -460,7 +475,6 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             }
         });
 
-        // Apply contract attack speed multiplier
         time_multiple *= attack_speed_multiplier;
 
         let cooldown_sub = dt * time_multiple;

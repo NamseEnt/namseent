@@ -39,10 +39,8 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     tower::tower_animation_tick(game_state, now);
     monster::monster_animation_tick(game_state, dt);
 
-    // Update UI state (info popup animations, etc.)
     game_state.ui_state.tick(now);
 
-    // Clean up unused popup states periodically (only when needed)
     if game_state.ui_state.should_cleanup(now) {
         game_state.cleanup_unused_tower_popup_states();
     }
@@ -50,14 +48,15 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     monster::remove_monster_finished_status_effects(game_state, now);
     tower::remove_tower_finished_status_effects(game_state, now);
     user_status_effect::remove_user_finished_status_effects(game_state, now);
+
     monster::activate_monster_skills(game_state, now);
     tower::activate_tower_skills(game_state, now);
 
     monster::move_monsters(game_state, dt);
 
+    field_particle::tick_all_emitters(now, dt);
+
     projectile::move_projectiles(game_state, dt, now);
     attack::shoot_attacks(game_state);
     defense_end::check_defense_end(game_state);
-
-    field_particle::tick_all_emitters(now, dt);
 }
