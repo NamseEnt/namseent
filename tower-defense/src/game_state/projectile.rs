@@ -165,7 +165,7 @@ fn random_rotation_speed() -> Angle {
     degrees_per_sec.deg()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum ProjectileKind {
     Trash01,
     Trash02,
@@ -226,7 +226,7 @@ impl ProjectileKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum ProjectileTrail {
     None,
     Burning,
@@ -236,7 +236,7 @@ pub enum ProjectileTrail {
     LightningSparkle,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, State)]
 pub struct ProjectileTargetIndicator {
     id: usize,
 }

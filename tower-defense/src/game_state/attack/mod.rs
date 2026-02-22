@@ -5,7 +5,7 @@ use super::projectile::{ProjectileKind, ProjectileTrail};
 use instant_effect::{TargetHitEffect, TowerEmitEffect};
 use namui::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum ProjectileHitEffect {
     TrashBounce,
     CardBurst,

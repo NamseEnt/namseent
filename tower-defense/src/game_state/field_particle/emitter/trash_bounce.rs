@@ -66,3 +66,15 @@ pub fn create_bounce_particles(
 
     out
 }
+
+pub fn spawn_trash_bounce(
+    kind: ProjectileKind,
+    orig_start: (f32, f32),
+    orig_end: (f32, f32),
+    now: Instant,
+) {
+    let particles = create_bounce_particles(kind, orig_start, orig_end, now);
+    for p in particles {
+        crate::game_state::field_particle::TRASHES.spawn(p);
+    }
+}

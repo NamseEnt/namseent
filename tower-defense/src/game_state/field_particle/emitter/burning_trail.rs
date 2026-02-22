@@ -5,17 +5,15 @@ use crate::MapCoordF32;
 use namui::*;
 use rand::Rng;
 
-const BURNING_TRAIL_SPAWN_DISTANCE: f32 = 0.12;
+pub const BURNING_TRAIL_SPAWN_DISTANCE: f32 = 0.12;
 const EMBER_SPARK_SPAWN_CHANCE: f32 = 0.15;
 
 pub fn spawn_burning_trail(
     from_xy: MapCoordF32,
     to_xy: MapCoordF32,
-    _movement_dt: Duration,
+    total_particles: usize,
     now: Instant,
 ) {
-    let distance = (to_xy - from_xy).length();
-    let total_particles = (distance / BURNING_TRAIL_SPAWN_DISTANCE).ceil() as usize;
     if total_particles == 0 {
         return;
     }

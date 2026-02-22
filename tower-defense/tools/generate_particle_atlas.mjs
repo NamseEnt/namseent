@@ -145,11 +145,26 @@ async function main() {
   const line = createAtlas('line', 1024, LINE_H);
   drawCapsuleLine(line);
 
-  const projectiles = createAtlas('projectiles', 512, CELL);
+  const projectiles = createAtlas('projectiles', ROW_W, CELL * 2);
   for (let i = 1; i <= 4; i++) {
     const num = String(i).padStart(2, '0');
     await drawImage(projectiles, `TRASH_${num}`, path.join(ASSET_DIR, 'attack', 'projectile', `trash_${num}.png`));
   }
+  for (let i = 0; i <= 4; i++) {
+    const num = String(i).padStart(2, '0');
+    await drawImage(projectiles, `GIRL_${num}`, path.join(ASSET_DIR, 'attack', 'projectile', `girl_${num}.png`));
+  }
+  await drawImage(projectiles, 'CARDS_00', path.join(ASSET_DIR, 'attack', 'projectile', 'cards_00.png'));
+  await drawImage(projectiles, 'HEART_PROJ_00', path.join(ASSET_DIR, 'attack', 'projectile', 'heart_00.png'));
+  for (let i = 0; i <= 3; i++) {
+    const num = String(i).padStart(2, '0');
+    await drawImage(projectiles, `CARD_PARTICLE_${num}`, path.join(ASSET_DIR, 'attack', 'particle', `card_${num}.png`));
+  }
+  for (let i = 0; i <= 2; i++) {
+    const num = String(i).padStart(2, '0');
+    await drawImage(projectiles, `HEART_PARTICLE_${num}`, path.join(ASSET_DIR, 'attack', 'particle', `heart_${num}.png`));
+  }
+  drawGlowCircle(projectiles);
 
   const monsters = createAtlas('monsters', ROW_W, 320);
   for (let i = 1; i <= 15; i++) {
@@ -290,16 +305,59 @@ function generateRust(shapes, line, projectiles, monsters, icons) {
   const ms = monsters.sprites;
   rs += `pub fn monster_soul() -> Rect<Px> { rect(${ms.MONSTER_SOUL.x}.0, ${ms.MONSTER_SOUL.y}.0, ${ms.MONSTER_SOUL.w}.0, ${ms.MONSTER_SOUL.h}.0) }\n`;
 
+  const ps = projectiles.sprites;
   rs += `\npub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> Rect<Px> {\n`;
   rs += `    use crate::game_state::projectile::ProjectileKind;\n`;
   rs += `    match kind {\n`;
-  const ps = projectiles.sprites;
   for (let i = 1; i <= 4; i++) {
     const num = String(i).padStart(2, '0');
     const r = ps[`TRASH_${num}`];
     rs += `        ProjectileKind::Trash${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
+  for (let i = 0; i <= 4; i++) {
+    const num = String(i).padStart(2, '0');
+    const r = ps[`GIRL_${num}`];
+    rs += `        ProjectileKind::Girl${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
+  {
+    const r = ps['CARDS_00'];
+    rs += `        ProjectileKind::Cards00 => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
+  {
+    const r = ps['HEART_PROJ_00'];
+    rs += `        ProjectileKind::Heart00 => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
   rs += `    }\n}\n`;
+
+  rs += `\npub fn card_particle_rect(kind: crate::game_state::field_particle::particle::CardKind) -> Rect<Px> {\n`;
+  rs += `    use crate::game_state::field_particle::particle::CardKind;\n`;
+  rs += `    match kind {\n`;
+  for (let i = 0; i <= 3; i++) {
+    const num = String(i).padStart(2, '0');
+    const r = ps[`CARD_PARTICLE_${num}`];
+    rs += `        CardKind::Card${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
+  rs += `    }\n}\n`;
+
+  rs += `\npub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::HeartParticleKind) -> Rect<Px> {\n`;
+  rs += `    use crate::game_state::field_particle::particle::HeartParticleKind;\n`;
+  rs += `    match kind {\n`;
+  for (let i = 0; i <= 2; i++) {
+    const num = String(i).padStart(2, '0');
+    const r = ps[`HEART_PARTICLE_${num}`];
+    rs += `        HeartParticleKind::Heart${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
+  {
+    const r = ps['HEART_PROJ_00'];
+    rs += `        HeartParticleKind::RisingHeart { .. } => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
+  }
+  rs += `        _ => rect(${ps.GLOW_CIRCLE.x}.0, ${ps.GLOW_CIRCLE.y}.0, ${ps.GLOW_CIRCLE.w}.0, ${ps.GLOW_CIRCLE.h}.0),\n`;
+  rs += `    }\n}\n`;
+
+  {
+    const r = ps['GLOW_CIRCLE'];
+    rs += `\npub fn projectile_glow_circle() -> Rect<Px> { rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0) }\n`;
+  }
 
   rs += `\npub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {\n`;
   rs += `    use crate::game_state::MonsterKind;\n`;

@@ -106,8 +106,38 @@ pub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> R
         ProjectileKind::Trash02 => rect(128.0, 0.0, 128.0, 128.0),
         ProjectileKind::Trash03 => rect(256.0, 0.0, 128.0, 128.0),
         ProjectileKind::Trash04 => rect(384.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl00 => rect(512.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl01 => rect(640.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl02 => rect(768.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl03 => rect(896.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl04 => rect(1024.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Cards00 => rect(1152.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Heart00 => rect(1280.0, 0.0, 128.0, 128.0),
     }
 }
+
+pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::CardKind) -> Rect<Px> {
+    use crate::game_state::field_particle::particle::CardKind;
+    match kind {
+        CardKind::Card00 => rect(1408.0, 0.0, 128.0, 128.0),
+        CardKind::Card01 => rect(1536.0, 0.0, 128.0, 128.0),
+        CardKind::Card02 => rect(1664.0, 0.0, 128.0, 128.0),
+        CardKind::Card03 => rect(1792.0, 0.0, 128.0, 128.0),
+    }
+}
+
+pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::HeartParticleKind) -> Rect<Px> {
+    use crate::game_state::field_particle::particle::HeartParticleKind;
+    match kind {
+        HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
+        HeartParticleKind::Heart01 => rect(0.0, 128.0, 128.0, 128.0),
+        HeartParticleKind::Heart02 => rect(128.0, 128.0, 128.0, 128.0),
+        HeartParticleKind::RisingHeart { .. } => rect(1280.0, 0.0, 128.0, 128.0),
+        _ => rect(256.0, 128.0, 128.0, 128.0),
+    }
+}
+
+pub fn projectile_glow_circle() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
     use crate::game_state::MonsterKind;
