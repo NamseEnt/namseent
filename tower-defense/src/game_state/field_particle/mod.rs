@@ -2,6 +2,8 @@ pub mod atlas;
 pub mod emitter;
 pub mod particle;
 
+use namui::{Duration, Instant};
+
 pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, DamageTextParticle, EaseMode, EmberSparkParticle,
     IconParticle, InstantEmitParticle, InstantHitParticle, LaserBeamParticle, LaserLineParticle,
@@ -35,3 +37,20 @@ pub static LIGHTNING_BOLTS: namui::particle::Emitter<LightningBoltParticle> =
     namui::particle::Emitter::new();
 pub static LASER_BEAMS: namui::particle::Emitter<LaserBeamParticle> =
     namui::particle::Emitter::new();
+
+pub fn tick_all_emitters(now: Instant, dt: Duration) {
+    BURNING_TRAILS.tick(now, dt);
+    EMBER_SPARKS.tick(now, dt);
+    PROJECTILES.tick(now, dt);
+    TRASHES.tick(now, dt);
+    MONSTER_SOULS.tick(now, dt);
+    MONSTER_CORPSES.tick(now, dt);
+    ICONS.tick(now, dt);
+    DAMAGE_TEXTS.tick(now, dt);
+    BLUE_DOT_SPARKS.tick(now, dt);
+    LASER_LINES.tick(now, dt);
+    INSTANT_EMITS.tick(now, dt);
+    INSTANT_HITS.tick(now, dt);
+    LIGHTNING_BOLTS.tick(now, dt);
+    LASER_BEAMS.tick(now, dt);
+}

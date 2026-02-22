@@ -58,4 +58,6 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     projectile::move_projectiles(game_state, dt, now);
     attack::shoot_attacks(game_state);
     defense_end::check_defense_end(game_state);
+
+    field_particle::tick_all_emitters(now, dt);
 }

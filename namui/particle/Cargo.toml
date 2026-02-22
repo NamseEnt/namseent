@@ -7,6 +7,7 @@ edition = "2021"
 namui-type = { path = "../namui-type" }
 namui-hooks = { path = "../namui-hooks" }
 namui-rendering-tree = { path = "../rendering-tree" }
-tokio = { path = "../third-party-forks/tokio/tokio", features = ["sync", "rt", "time"] }
 rayon = "1.10.0"
+crossbeam-queue = "0.3"
 arc-swap = "1"
+arrayvec = "0.7"

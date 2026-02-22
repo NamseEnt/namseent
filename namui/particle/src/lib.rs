@@ -1,16 +1,23 @@
 use arc_swap::ArcSwap;
+use arrayvec::ArrayVec;
+use crossbeam_queue::SegQueue;
 use namui_hooks::*;
 use namui_rendering_tree::*;
 use namui_type::*;
-use std::sync::{
-    Arc, OnceLock,
-    mpsc::{Receiver, Sender},
-};
+use std::sync::{Arc, OnceLock};
+use std::thread::Thread;
+
+pub type ParticleSprites = ArrayVec<ImageSprite, 8>;
 
 pub trait Particle: Send + Sync + 'static + Sized {
     fn tick(&mut self, now: Instant, dt: Duration);
-    fn render(&self) -> Option<ImageSprite>;
+    fn render(&self) -> ParticleSprites;
     fn is_done(&self, now: Instant) -> bool;
+}
+
+enum EmitterMsg<P> {
+    Spawn(P),
+    Tick { now: Instant, dt: Duration },
 }
 
 pub struct Emitter<P: Particle> {
@@ -18,7 +25,8 @@ pub struct Emitter<P: Particle> {
 }
 
 struct EmitterInner<P: Particle> {
-    spawn_tx: Sender<P>,
+    queue: Arc<SegQueue<EmitterMsg<P>>>,
+    worker_thread: Thread,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 }
 
@@ -32,22 +40,35 @@ impl<P: Particle> Emitter<P> {
     pub fn spawn(&self, particle: P) {
         self.init();
         let inner = self.inner.get().unwrap();
-        let _ = inner.spawn_tx.send(particle);
+        inner.queue.push(EmitterMsg::Spawn(particle));
+        inner.worker_thread.unpark();
+    }
+
+    pub fn tick(&self, now: Instant, dt: Duration) {
+        self.init();
+        let inner = self.inner.get().unwrap();
+        inner.queue.push(EmitterMsg::Tick { now, dt });
+        inner.worker_thread.unpark();
     }
 
     fn init(&self) {
         self.inner.get_or_init(|| {
-            let (spawn_tx, spawn_rx) = std::sync::mpsc::channel();
+            let queue = Arc::new(SegQueue::new());
             let rendered_sprites = Arc::new(ArcSwap::from_pointee(Vec::new()));
 
+            let queue_clone = queue.clone();
             let rendered_sprites_clone = rendered_sprites.clone();
 
-            tokio::spawn(async move {
-                tick_task_main(spawn_rx, rendered_sprites_clone).await;
-            });
+            let handle = std::thread::Builder::new()
+                .stack_size(64 * 1024)
+                .spawn(move || {
+                    tick_thread_main(queue_clone, rendered_sprites_clone);
+                })
+                .expect("failed to spawn emitter thread");
 
             EmitterInner {
-                spawn_tx,
+                queue,
+                worker_thread: handle.thread().clone(),
                 rendered_sprites,
             }
         });
@@ -89,8 +110,8 @@ impl<P: Particle> Component for RenderEmitter<'_, P> {
     }
 }
 
-async fn tick_task_main<P: Particle>(
-    rx: Receiver<P>,
+fn tick_thread_main<P: Particle>(
+    queue: Arc<SegQueue<EmitterMsg<P>>>,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 ) {
     let _ = rayon::ThreadPoolBuilder::new()
@@ -108,43 +129,25 @@ async fn tick_task_main<P: Particle>(
             Ok(())
         })
         .build_global();
+
     let mut particles: Vec<P> = Vec::with_capacity(256);
-    let mut last_now = Instant::now();
 
     loop {
-        let now = Instant::now();
-        let dt = now - last_now;
-
-        while let Ok(p) = rx.try_recv() {
-            particles.push(p);
-        }
-
-        if !particles.is_empty() {
-            let (tx, oneshot_rx) = tokio::sync::oneshot::channel();
-            rayon::spawn(move || {
-                use rayon::prelude::*;
-                particles.par_iter_mut().for_each(|p| p.tick(now, dt));
-                particles.retain(|p| !p.is_done(now));
-                let sprites: Vec<ImageSprite> = particles
-                    .par_iter()
-                    .filter_map(|p| p.render())
-                    .collect();
-                let _ = tx.send((particles, sprites));
-            });
-            match oneshot_rx.await {
-                Ok((returned_particles, sprites)) => {
-                    particles = returned_particles;
+        while let Some(msg) = queue.pop() {
+            match msg {
+                EmitterMsg::Spawn(p) => {
+                    particles.push(p);
+                }
+                EmitterMsg::Tick { now, dt } => {
+                    use rayon::prelude::*;
+                    particles.par_iter_mut().for_each(|p| p.tick(now, dt));
+                    particles.retain(|p| !p.is_done(now));
+                    let sprites: Vec<ImageSprite> =
+                        particles.par_iter().flat_map_iter(|p| p.render()).collect();
                     rendered_sprites.store(Arc::new(sprites));
                 }
-                Err(_) => {
-                    particles = Vec::new();
-                }
             }
-        } else {
-            rendered_sprites.store(Arc::new(vec![]));
         }
-
-        last_now = now;
-        tokio::time::sleep(std::time::Duration::from_millis(8)).await;
+        std::thread::park();
     }
 }
