@@ -47,14 +47,15 @@ impl ProjectileParticle {
         now - self.created_at < self.duration
     }
 
-    pub fn render_particle(&self) -> Option<ImageSprite> {
+    pub fn render_particle(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         let tile_px_size = crate::game_state::TILE_PX_SIZE;
         let scale = (tile_px_size.width.as_f32() * 0.4) / 128.0;
         let particle_px_xy = tile_px_size.to_xy() * Xy::new(self.xy.x, self.xy.y);
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::projectile_rect(self.kind);
-
-        Some(atlas::centered_rotated_sprite(src_rect, particle_px_xy.x, particle_px_xy.y, scale, angle_rad, None))
+        sprites.push(atlas::centered_rotated_sprite(src_rect, particle_px_xy.x, particle_px_xy.y, scale, angle_rad, None));
+        sprites
     }
 }
 
@@ -62,7 +63,7 @@ impl namui::particle::Particle for ProjectileParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         ProjectileParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         ProjectileParticle::render_particle(self)
     }
     fn is_done(&self, now: Instant) -> bool {

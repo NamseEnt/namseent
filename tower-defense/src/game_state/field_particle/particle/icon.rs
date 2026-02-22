@@ -67,7 +67,8 @@ impl IconParticle {
         }
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         let base_scale = self.icon.wh.width.as_f32() / 128.0;
         let behavior_scale = match &self.behavior {
             IconParticleBehavior::Physics { scale, .. } => *scale,
@@ -78,8 +79,8 @@ impl IconParticle {
         let color = Color::WHITE.with_alpha((opacity * 255.0) as u8);
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::icon_rect(&self.icon.kind);
-
-        Some(atlas::centered_rotated_sprite(src_rect, self.xy.x, self.xy.y, scale, angle_rad, Some(color)))
+        sprites.push(atlas::centered_rotated_sprite(src_rect, self.xy.x, self.xy.y, scale, angle_rad, Some(color)));
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -137,7 +138,7 @@ impl namui::particle::Particle for IconParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         IconParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         IconParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

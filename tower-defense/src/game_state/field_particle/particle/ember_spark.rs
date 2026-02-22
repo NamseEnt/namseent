@@ -9,8 +9,9 @@ const EMBER_SPARK_RADIUS_MIN_TILE: f32 = 0.05;
 const EMBER_SPARK_RADIUS_MAX_TILE: f32 = 0.1;
 const EMBER_SPARK_SPEED_MIN: f32 = 2.0; // 맵 좌표 단위/초
 const EMBER_SPARK_SPEED_MAX: f32 = 8.0;
-const EMBER_SPARK_GRAVITY: f32 = 48.0; // 맵 좌표 단위/초^2 (아래로)
-const EMBER_SPARK_FADE_START: f32 = 0.5; // progress 50%부터 페이드 시작
+const EMBER_SPARK_GRAVITY: f32 = 1.0;
+const EMBER_SPARK_FADE_START: f32 = 0.5;
+const EMBER_SPARK_INNER_RADIUS_RATIO: f32 = 0.4;
 
 #[derive(Clone)]
 pub struct EmberSparkParticle {
@@ -76,16 +77,25 @@ impl EmberSparkParticle {
         }
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
+
         let outer_radius = self.radius;
-        let scale = (outer_radius.as_f32() * 2.0) / 128.0;
-        let color = Color::from_f01(1.0, 0.5, 0.1, self.alpha * 0.8);
-        Some(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color)))
+        let outer_scale = (outer_radius.as_f32() * 2.0) / 128.0;
+        let outer_color = Color::from_f01(1.0, 0.5, 0.1, self.alpha * 0.8);
+        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, outer_scale, Some(outer_color)));
+
+        let inner_radius = px(self.radius.as_f32() * EMBER_SPARK_INNER_RADIUS_RATIO);
+        let inner_scale = (inner_radius.as_f32() * 2.0) / 128.0;
+        let inner_color = Color::from_f01(1.0, 0.9, 0.4, self.alpha);
+        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, inner_scale, Some(inner_color)));
+
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -102,7 +112,7 @@ impl namui::particle::Particle for EmberSparkParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         EmberSparkParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         EmberSparkParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

@@ -37,9 +37,10 @@ impl InstantHitParticle {
         self.alpha = self.current_alpha(now);
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
@@ -61,7 +62,8 @@ impl InstantHitParticle {
                 atlas::centered_sprite(atlas::ring(), xy_px.x, xy_px.y, scale, Some(color))
             }
         };
-        Some(sprite)
+        sprites.push(sprite);
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -96,7 +98,7 @@ impl namui::particle::Particle for InstantHitParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         InstantHitParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         InstantHitParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

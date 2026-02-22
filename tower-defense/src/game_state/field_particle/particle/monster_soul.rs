@@ -53,7 +53,8 @@ impl MonsterSoulParticle {
         self.scale = Xy::single(scale_v);
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         let scale_value = self.scale.x;
         let alpha = (self.opacity * 255.0) as u8;
         let color = Color::WHITE.with_alpha(alpha);
@@ -66,7 +67,8 @@ impl MonsterSoulParticle {
         let cx = self.position.x + px(sin_a * offset_f);
         let cy = self.position.y - px(cos_a * offset_f);
 
-        Some(atlas::centered_rotated_sprite(src_rect, cx, cy, scale_value, angle_rad, Some(color)))
+        sprites.push(atlas::centered_rotated_sprite(src_rect, cx, cy, scale_value, angle_rad, Some(color)));
+        sprites
     }
 }
 
@@ -74,7 +76,7 @@ impl namui::particle::Particle for MonsterSoulParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         MonsterSoulParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         MonsterSoulParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

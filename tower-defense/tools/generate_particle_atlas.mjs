@@ -3,161 +3,164 @@ import fs from 'fs';
 import path from 'path';
 
 const ASSET_DIR = path.join(import.meta.dirname, '..', 'asset', 'image');
-const OUTPUT_PNG = path.join(ASSET_DIR, 'particle_atlas.png');
 const OUTPUT_RS = path.join(import.meta.dirname, '..', 'src', 'game_state', 'field_particle', 'atlas.rs');
 
 const CELL = 128;
 const LINE_H = 16;
-const ATLAS_W = 2048;
-const ATLAS_H = 2048;
+const ROW_W = 2048;
 
-const canvas = createCanvas(ATLAS_W, ATLAS_H);
-const ctx = canvas.getContext('2d');
+function createAtlas(name, width, height) {
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  let cursorX = 0;
+  let cursorY = 0;
+  let rowMaxH = 0;
+  const sprites = {};
 
-const sprites = {};
-let cursorX = 0;
-let cursorY = 0;
-let rowMaxH = 0;
-
-function alloc(name, w, h) {
-  if (cursorX + w > ATLAS_W) {
-    cursorX = 0;
-    cursorY += rowMaxH;
-    rowMaxH = 0;
+  function alloc(spriteName, w, h) {
+    if (cursorX + w > width) {
+      cursorX = 0;
+      cursorY += rowMaxH;
+      rowMaxH = 0;
+    }
+    const rect = { x: cursorX, y: cursorY, w, h };
+    sprites[spriteName] = rect;
+    cursorX += w;
+    rowMaxH = Math.max(rowMaxH, h);
+    return rect;
   }
-  const rect = { x: cursorX, y: cursorY, w, h };
-  sprites[name] = rect;
-  cursorX += w;
-  rowMaxH = Math.max(rowMaxH, h);
-  return rect;
+
+  return { name, canvas, ctx, width, height, sprites, alloc };
 }
 
-function drawGlowCircle() {
-  const r = alloc('GLOW_CIRCLE', CELL, CELL);
+function drawGlowCircle(atlas) {
+  const r = atlas.alloc('GLOW_CIRCLE', CELL, CELL);
   const cx = r.x + CELL / 2, cy = r.y + CELL / 2;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, CELL / 2);
+  const grad = atlas.ctx.createRadialGradient(cx, cy, 0, cx, cy, CELL / 2);
   grad.addColorStop(0.0, 'rgba(255,255,255,1.0)');
   grad.addColorStop(0.3, 'rgba(255,255,255,0.8)');
   grad.addColorStop(0.6, 'rgba(255,255,255,0.4)');
   grad.addColorStop(1.0, 'rgba(255,255,255,0.0)');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(cx, cy, CELL / 2, 0, Math.PI * 2);
-  ctx.fill();
+  atlas.ctx.fillStyle = grad;
+  atlas.ctx.beginPath();
+  atlas.ctx.arc(cx, cy, CELL / 2, 0, Math.PI * 2);
+  atlas.ctx.fill();
 }
 
-function drawStarBurst() {
-  const r = alloc('STAR_BURST', CELL, CELL);
+function drawStarBurst(atlas) {
+  const r = atlas.alloc('STAR_BURST', CELL, CELL);
   const cx = r.x + CELL / 2, cy = r.y + CELL / 2;
   const spikes = 8;
   const outerR = CELL / 2 - 4;
   const innerR = CELL / 6;
-  ctx.fillStyle = 'white';
-  ctx.beginPath();
+  atlas.ctx.fillStyle = 'white';
+  atlas.ctx.beginPath();
   for (let i = 0; i < spikes * 2; i++) {
     const angle = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
     const radius = i % 2 === 0 ? outerR : innerR;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    if (i === 0) atlas.ctx.moveTo(x, y); else atlas.ctx.lineTo(x, y);
   }
-  ctx.closePath();
-  ctx.fill();
+  atlas.ctx.closePath();
+  atlas.ctx.fill();
 }
 
-function drawCross() {
-  const r = alloc('CROSS', CELL, CELL);
+function drawCross(atlas) {
+  const r = atlas.alloc('CROSS', CELL, CELL);
   const cx = r.x + CELL / 2, cy = r.y + CELL / 2;
   const arm = CELL / 2 - 8;
   const thickness = 12;
-  ctx.fillStyle = 'white';
-  ctx.fillRect(cx - arm, cy - thickness / 2, arm * 2, thickness);
-  ctx.fillRect(cx - thickness / 2, cy - arm, thickness, arm * 2);
+  atlas.ctx.fillStyle = 'white';
+  atlas.ctx.fillRect(cx - arm, cy - thickness / 2, arm * 2, thickness);
+  atlas.ctx.fillRect(cx - thickness / 2, cy - arm, thickness, arm * 2);
 }
 
-function drawRing() {
-  const r = alloc('RING', CELL, CELL);
+function drawRing(atlas) {
+  const r = atlas.alloc('RING', CELL, CELL);
   const cx = r.x + CELL / 2, cy = r.y + CELL / 2;
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.arc(cx, cy, CELL / 2 - 8, 0, Math.PI * 2);
-  ctx.stroke();
+  atlas.ctx.strokeStyle = 'white';
+  atlas.ctx.lineWidth = 6;
+  atlas.ctx.beginPath();
+  atlas.ctx.arc(cx, cy, CELL / 2 - 8, 0, Math.PI * 2);
+  atlas.ctx.stroke();
 }
 
-function drawCapsuleLine() {
+function drawCapsuleLine(atlas) {
   const w = 1024, h = LINE_H;
-  const r = alloc('CAPSULE_LINE', w, h);
+  const r = atlas.alloc('CAPSULE_LINE', w, h);
   const cy = r.y + h / 2;
   const radius = h / 2;
-  ctx.fillStyle = 'white';
-  ctx.beginPath();
-  ctx.moveTo(r.x + radius, r.y);
-  ctx.lineTo(r.x + w - radius, r.y);
-  ctx.arcTo(r.x + w, r.y, r.x + w, cy, radius);
-  ctx.arcTo(r.x + w, r.y + h, r.x + w - radius, r.y + h, radius);
-  ctx.lineTo(r.x + radius, r.y + h);
-  ctx.arcTo(r.x, r.y + h, r.x, cy, radius);
-  ctx.arcTo(r.x, r.y, r.x + radius, r.y, radius);
-  ctx.closePath();
-  ctx.fill();
+  atlas.ctx.fillStyle = 'white';
+  atlas.ctx.beginPath();
+  atlas.ctx.moveTo(r.x + radius, r.y);
+  atlas.ctx.lineTo(r.x + w - radius, r.y);
+  atlas.ctx.arcTo(r.x + w, r.y, r.x + w, cy, radius);
+  atlas.ctx.arcTo(r.x + w, r.y + h, r.x + w - radius, r.y + h, radius);
+  atlas.ctx.lineTo(r.x + radius, r.y + h);
+  atlas.ctx.arcTo(r.x, r.y + h, r.x, cy, radius);
+  atlas.ctx.arcTo(r.x, r.y, r.x + radius, r.y, radius);
+  atlas.ctx.closePath();
+  atlas.ctx.fill();
 }
 
-function drawZigzagLine() {
-  const w = 512, h = 32;
-  const r = alloc('ZIGZAG_LINE', w, h);
-  const segments = 8;
-  const segW = w / segments;
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(r.x, r.y + h / 2);
-  for (let i = 1; i <= segments; i++) {
-    const x = r.x + i * segW;
-    const y = r.y + (i % 2 === 1 ? 4 : h - 4);
-    ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-}
-
-async function drawImage(name, filePath, size = CELL) {
-  const r = alloc(name, size, size);
+async function drawImage(atlas, name, filePath, size = CELL) {
+  const r = atlas.alloc(name, size, size);
   try {
     const img = await loadImage(filePath);
-    ctx.drawImage(img, r.x, r.y, size, size);
+    atlas.ctx.drawImage(img, r.x, r.y, size, size);
   } catch (e) {
-    ctx.fillStyle = 'magenta';
-    ctx.fillRect(r.x, r.y, size, size);
+    atlas.ctx.fillStyle = 'magenta';
+    atlas.ctx.fillRect(r.x, r.y, size, size);
     console.warn(`Failed to load ${filePath}: ${e.message}`);
   }
 }
 
-async function main() {
-  drawGlowCircle();
-  drawStarBurst();
-  drawCross();
-  drawRing();
-  drawCapsuleLine();
-  drawZigzagLine();
+async function drawImageRect(atlas, name, filePath, w, h) {
+  const r = atlas.alloc(name, w, h);
+  try {
+    const img = await loadImage(filePath);
+    atlas.ctx.drawImage(img, r.x, r.y, w, h);
+  } catch (e) {
+    atlas.ctx.fillStyle = 'magenta';
+    atlas.ctx.fillRect(r.x, r.y, w, h);
+    console.warn(`Failed to load ${filePath}: ${e.message}`);
+  }
+}
 
+function saveAtlas(atlas, filename) {
+  const buf = atlas.canvas.toBuffer('image/png');
+  const outputPath = path.join(ASSET_DIR, filename);
+  fs.writeFileSync(outputPath, buf);
+  console.log(`Atlas written to ${outputPath}`);
+}
+
+async function main() {
+  const shapes = createAtlas('shapes', 512, CELL);
+  drawGlowCircle(shapes);
+  drawStarBurst(shapes);
+  drawCross(shapes);
+  drawRing(shapes);
+
+  const line = createAtlas('line', 1024, LINE_H);
+  drawCapsuleLine(line);
+
+  const projectiles = createAtlas('projectiles', 512, CELL);
   for (let i = 1; i <= 4; i++) {
     const num = String(i).padStart(2, '0');
-    await drawImage(`TRASH_${num}`, path.join(ASSET_DIR, 'attack', 'projectile', `trash_${num}.png`));
+    await drawImage(projectiles, `TRASH_${num}`, path.join(ASSET_DIR, 'attack', 'projectile', `trash_${num}.png`));
   }
 
+  const monsters = createAtlas('monsters', ROW_W, 320);
   for (let i = 1; i <= 15; i++) {
     const num = String(i).padStart(2, '0');
-    await drawImage(`MOB${num}`, path.join(ASSET_DIR, 'monster', `mob${num}.png`));
+    await drawImage(monsters, `MOB${num}`, path.join(ASSET_DIR, 'monster', `mob${num}.png`));
   }
-
   for (let i = 1; i <= 11; i++) {
     const num = String(i).padStart(2, '0');
-    await drawImage(`BOSS${num}`, path.join(ASSET_DIR, 'monster', `boss${num}.png`));
+    await drawImage(monsters, `BOSS${num}`, path.join(ASSET_DIR, 'monster', `boss${num}.png`));
   }
-
-  await drawImage('MONSTER_SOUL', path.join(ASSET_DIR, 'monster_soul.png'));
+  await drawImageRect(monsters, 'MONSTER_SOUL', path.join(ASSET_DIR, 'monster_soul.png'), 128, 192);
 
   const iconFiles = [
     'accept', 'add', 'attack_damage', 'attack_range', 'attack_speed',
@@ -168,30 +171,132 @@ async function main() {
     'shield', 'shop', 'speaker', 'suit_clubs', 'suit_diamonds',
     'suit_hearts', 'suit_spades', 'up',
   ];
+  const icons = createAtlas('icons', ROW_W, CELL * 3);
   for (const name of iconFiles) {
     const constName = 'ICON_' + name.toUpperCase();
-    await drawImage(constName, path.join(ASSET_DIR, 'icon', `${name}.png`));
+    await drawImage(icons, constName, path.join(ASSET_DIR, 'icon', `${name}.png`));
   }
 
-  const buf = canvas.toBuffer('image/png');
-  fs.writeFileSync(OUTPUT_PNG, buf);
-  console.log(`Atlas written to ${OUTPUT_PNG}`);
+  saveAtlas(shapes, 'particle_shapes.png');
+  saveAtlas(line, 'particle_line.png');
+  saveAtlas(projectiles, 'particle_projectiles.png');
+  saveAtlas(monsters, 'particle_monsters.png');
+  saveAtlas(icons, 'particle_icons.png');
 
+  generateRust(shapes, line, projectiles, monsters, icons);
+}
+
+function generateRust(shapes, line, projectiles, monsters, icons) {
   let rs = `use namui::*;\n\n`;
-  rs += `pub fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {\n`;
+  rs += `fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {\n`;
   rs += `    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }\n`;
   rs += `}\n\n`;
 
-  for (const [name, r] of Object.entries(sprites)) {
-    rs += `pub fn ${name.toLowerCase()}() -> Rect<Px> { rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0) }\n`;
-  }
+  rs += `const LINE_SPRITE_W: f32 = 1024.0;\n`;
+  rs += `const LINE_SPRITE_H: f32 = 16.0;\n\n`;
+
+  rs += `pub fn centered_sprite(\n`;
+  rs += `    src_rect: Rect<Px>,\n`;
+  rs += `    cx: Px,\n`;
+  rs += `    cy: Px,\n`;
+  rs += `    scale: f32,\n`;
+  rs += `    color: Option<Color>,\n`;
+  rs += `) -> ImageSprite {\n`;
+  rs += `    let sw = src_rect.width().as_f32();\n`;
+  rs += `    let sh = src_rect.height().as_f32();\n`;
+  rs += `    ImageSprite {\n`;
+  rs += `        src_rect,\n`;
+  rs += `        xform: RSXform {\n`;
+  rs += `            scos: scale,\n`;
+  rs += `            ssin: 0.0,\n`;
+  rs += `            tx: cx - px(scale * sw / 2.0),\n`;
+  rs += `            ty: cy - px(scale * sh / 2.0),\n`;
+  rs += `        },\n`;
+  rs += `        color,\n`;
+  rs += `    }\n`;
+  rs += `}\n\n`;
+
+  rs += `pub fn centered_rotated_sprite(\n`;
+  rs += `    src_rect: Rect<Px>,\n`;
+  rs += `    cx: Px,\n`;
+  rs += `    cy: Px,\n`;
+  rs += `    scale: f32,\n`;
+  rs += `    angle_rad: f32,\n`;
+  rs += `    color: Option<Color>,\n`;
+  rs += `) -> ImageSprite {\n`;
+  rs += `    let sw = src_rect.width().as_f32();\n`;
+  rs += `    let sh = src_rect.height().as_f32();\n`;
+  rs += `    let cos_a = angle_rad.cos();\n`;
+  rs += `    let sin_a = angle_rad.sin();\n`;
+  rs += `    let scos = scale * cos_a;\n`;
+  rs += `    let ssin = scale * sin_a;\n`;
+  rs += `    ImageSprite {\n`;
+  rs += `        src_rect,\n`;
+  rs += `        xform: RSXform {\n`;
+  rs += `            scos,\n`;
+  rs += `            ssin,\n`;
+  rs += `            tx: cx - px(scos * sw / 2.0 - ssin * sh / 2.0),\n`;
+  rs += `            ty: cy - px(ssin * sw / 2.0 + scos * sh / 2.0),\n`;
+  rs += `        },\n`;
+  rs += `        color,\n`;
+  rs += `    }\n`;
+  rs += `}\n\n`;
+
+  rs += `pub fn line_sprite(\n`;
+  rs += `    start_x: Px,\n`;
+  rs += `    start_y: Px,\n`;
+  rs += `    end_x: Px,\n`;
+  rs += `    end_y: Px,\n`;
+  rs += `    thickness: f32,\n`;
+  rs += `    color: Option<Color>,\n`;
+  rs += `) -> Option<ImageSprite> {\n`;
+  rs += `    let dx = (end_x - start_x).as_f32();\n`;
+  rs += `    let dy = (end_y - start_y).as_f32();\n`;
+  rs += `    let length = (dx * dx + dy * dy).sqrt();\n`;
+  rs += `    if length < 0.001 || thickness < 0.001 {\n`;
+  rs += `        return None;\n`;
+  rs += `    }\n`;
+  rs += `    let angle = dy.atan2(dx);\n`;
+  rs += `    let scale = thickness / LINE_SPRITE_H;\n`;
+  rs += `    let src_w = (length / scale).min(LINE_SPRITE_W);\n`;
+  rs += `    let cos_a = angle.cos();\n`;
+  rs += `    let sin_a = angle.sin();\n`;
+  rs += `    let scos = scale * cos_a;\n`;
+  rs += `    let ssin = scale * sin_a;\n`;
+  rs += `    let half_h = LINE_SPRITE_H / 2.0;\n`;
+  rs += `    Some(ImageSprite {\n`;
+  rs += `        src_rect: Rect::Xywh {\n`;
+  rs += `            x: px(0.0),\n`;
+  rs += `            y: px(0.0),\n`;
+  rs += `            width: px(src_w),\n`;
+  rs += `            height: px(LINE_SPRITE_H),\n`;
+  rs += `        },\n`;
+  rs += `        xform: RSXform {\n`;
+  rs += `            scos,\n`;
+  rs += `            ssin,\n`;
+  rs += `            tx: start_x + px(ssin * half_h),\n`;
+  rs += `            ty: start_y - px(scos * half_h),\n`;
+  rs += `        },\n`;
+  rs += `        color,\n`;
+  rs += `    })\n`;
+  rs += `}\n\n`;
+
+  const sh = shapes.sprites;
+  rs += `pub fn glow_circle() -> Rect<Px> { rect(${sh.GLOW_CIRCLE.x}.0, ${sh.GLOW_CIRCLE.y}.0, ${sh.GLOW_CIRCLE.w}.0, ${sh.GLOW_CIRCLE.h}.0) }\n`;
+  rs += `pub fn star_burst() -> Rect<Px> { rect(${sh.STAR_BURST.x}.0, ${sh.STAR_BURST.y}.0, ${sh.STAR_BURST.w}.0, ${sh.STAR_BURST.h}.0) }\n`;
+  rs += `pub fn cross() -> Rect<Px> { rect(${sh.CROSS.x}.0, ${sh.CROSS.y}.0, ${sh.CROSS.w}.0, ${sh.CROSS.h}.0) }\n`;
+  rs += `pub fn ring() -> Rect<Px> { rect(${sh.RING.x}.0, ${sh.RING.y}.0, ${sh.RING.w}.0, ${sh.RING.h}.0) }\n`;
+
+  const ms = monsters.sprites;
+  rs += `pub fn monster_soul() -> Rect<Px> { rect(${ms.MONSTER_SOUL.x}.0, ${ms.MONSTER_SOUL.y}.0, ${ms.MONSTER_SOUL.w}.0, ${ms.MONSTER_SOUL.h}.0) }\n`;
 
   rs += `\npub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> Rect<Px> {\n`;
   rs += `    use crate::game_state::projectile::ProjectileKind;\n`;
   rs += `    match kind {\n`;
+  const ps = projectiles.sprites;
   for (let i = 1; i <= 4; i++) {
     const num = String(i).padStart(2, '0');
-    const r = sprites[`TRASH_${num}`];
+    const r = ps[`TRASH_${num}`];
     rs += `        ProjectileKind::Trash${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
   rs += `    }\n}\n`;
@@ -201,17 +306,17 @@ async function main() {
   rs += `    match kind {\n`;
   for (let i = 1; i <= 15; i++) {
     const num = String(i).padStart(2, '0');
-    const r = sprites[`MOB${num}`];
+    const r = ms[`MOB${num}`];
     rs += `        MonsterKind::Mob${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
-  const mob15 = sprites['MOB15'];
+  const mob15 = ms['MOB15'];
   for (let i = 16; i <= 50; i++) {
     const num = String(i).padStart(2, '0');
     rs += `        MonsterKind::Mob${num} => rect(${mob15.x}.0, ${mob15.y}.0, ${mob15.w}.0, ${mob15.h}.0),\n`;
   }
   for (let i = 1; i <= 11; i++) {
     const num = String(i).padStart(2, '0');
-    const r = sprites[`BOSS${num}`];
+    const r = ms[`BOSS${num}`];
     rs += `        MonsterKind::Boss${num} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
   rs += `    }\n}\n`;
@@ -259,30 +364,48 @@ async function main() {
     'Legendary': 'ICON_RARITY_LEGENDARY',
   };
 
+  const ic = icons.sprites;
   rs += `\npub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {\n`;
   rs += `    use crate::icon::IconKind;\n`;
   rs += `    match kind {\n`;
   for (const [variant, spriteName] of Object.entries(iconMapping)) {
-    const r = sprites[spriteName];
+    const r = ic[spriteName];
     rs += `        IconKind::${variant} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
   rs += `        IconKind::Suit { suit } => match suit {\n`;
   for (const [variant, spriteName] of Object.entries(suitMapping)) {
-    const r = sprites[spriteName];
+    const r = ic[spriteName];
     rs += `            crate::Suit::${variant} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
   rs += `        },\n`;
   rs += `        IconKind::Rarity { rarity } => match rarity {\n`;
   for (const [variant, spriteName] of Object.entries(rarityMapping)) {
-    const r = sprites[spriteName];
+    const r = ic[spriteName];
     rs += `            crate::Rarity::${variant} => rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0),\n`;
   }
   rs += `        },\n`;
   rs += `    }\n}\n`;
 
+  rs += `\npub fn digit_rect(ch: u8) -> Rect<Px> {\n`;
+  rs += `    let idx = match ch {\n`;
+  rs += `        b'0'..=b'9' => (ch - b'0') as f32,\n`;
+  rs += `        b'.' => 10.0,\n`;
+  rs += `        b'k' => 11.0,\n`;
+  rs += `        b'm' => 12.0,\n`;
+  rs += `        b'b' => 13.0,\n`;
+  rs += `        _ => 0.0,\n`;
+  rs += `    };\n`;
+  rs += `    rect(idx * 64.0, 0.0, 64.0, 64.0)\n`;
+  rs += `}\n`;
+
   fs.writeFileSync(OUTPUT_RS, rs);
   console.log(`Rust constants written to ${OUTPUT_RS}`);
-  console.log('Sprite map:', JSON.stringify(sprites, null, 2));
+
+  console.log('Shapes sprites:', JSON.stringify(shapes.sprites, null, 2));
+  console.log('Line sprites:', JSON.stringify(line.sprites, null, 2));
+  console.log('Projectile sprites:', JSON.stringify(projectiles.sprites, null, 2));
+  console.log('Monster sprites:', JSON.stringify(monsters.sprites, null, 2));
+  console.log('Icon sprites:', JSON.stringify(icons.sprites, null, 2));
 }
 
 main().catch(console.error);

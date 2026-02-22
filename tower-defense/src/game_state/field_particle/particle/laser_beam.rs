@@ -36,16 +36,25 @@ impl LaserBeamParticle {
         self.alpha = self.current_alpha(now);
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
 
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
         let color = Color::from_f01(1.0, 0.2, 0.2, self.alpha);
         let thickness = 8.0 * self.alpha;
-        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
+        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color)) {
+            sprites.push(s);
+        }
+        let inner_color = Color::from_f01(1.0, 1.0, 1.0, self.alpha * 0.8);
+        let inner_thickness = 3.0 * self.alpha;
+        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+            sprites.push(s);
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -67,7 +76,7 @@ impl namui::particle::Particle for LaserBeamParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         LaserBeamParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         LaserBeamParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {
@@ -144,16 +153,24 @@ impl LaserLineParticle {
         }
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
-
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
         let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
         let thickness = TILE_PX_SIZE.width.as_f32() * self.thickness;
-        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
+        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color)) {
+            sprites.push(s);
+        }
+        let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
+        let inner_thickness = thickness * 0.4;
+        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+            sprites.push(s);
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -187,7 +204,7 @@ impl namui::particle::Particle for LaserLineParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         LaserLineParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         LaserLineParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

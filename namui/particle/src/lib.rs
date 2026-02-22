@@ -7,7 +7,7 @@ use namui_type::*;
 use std::sync::{Arc, OnceLock};
 use std::thread::Thread;
 
-pub type ParticleSprites = ArrayVec<ImageSprite, 8>;
+pub type ParticleSprites = ArrayVec<ImageSprite, 16>;
 
 pub trait Particle: Send + Sync + 'static + Sized {
     fn tick(&mut self, now: Instant, dt: Duration);
@@ -28,6 +28,12 @@ struct EmitterInner<P: Particle> {
     queue: Arc<SegQueue<EmitterMsg<P>>>,
     worker_thread: Thread,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
+}
+
+impl<P: Particle> Default for Emitter<P> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<P: Particle> Emitter<P> {
@@ -114,22 +120,6 @@ fn tick_thread_main<P: Particle>(
     queue: Arc<SegQueue<EmitterMsg<P>>>,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 ) {
-    let _ = rayon::ThreadPoolBuilder::new()
-        .spawn_handler(|thread| {
-            let mut builder = std::thread::Builder::new();
-            if let Some(name) = thread.name() {
-                builder = builder.name(namui_hooks::Dependencies::to_owned(&name).to_string());
-            }
-            if let Some(stack_size) = thread.stack_size() {
-                builder = builder.stack_size(stack_size);
-            }
-            builder.spawn(move || {
-                thread.run();
-            })?;
-            Ok(())
-        })
-        .build_global();
-
     let mut particles: Vec<P> = Vec::with_capacity(256);
 
     loop {

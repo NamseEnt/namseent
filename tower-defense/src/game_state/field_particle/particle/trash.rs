@@ -83,9 +83,10 @@ impl TrashParticle {
         }
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.progress >= 1.0 {
-            return None;
+            return sprites;
         }
 
         let eased = match self.ease_mode {
@@ -113,7 +114,8 @@ impl TrashParticle {
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::projectile_rect(self.kind);
 
-        Some(atlas::centered_rotated_sprite(src_rect, px_xy.x, px_xy.y, scale, angle_rad, Some(color)))
+        sprites.push(atlas::centered_rotated_sprite(src_rect, px_xy.x, px_xy.y, scale, angle_rad, Some(color)));
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -154,7 +156,7 @@ impl namui::particle::Particle for TrashParticle {
         self.tick_impl(now, dt);
     }
 
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         TrashParticle::render(self)
     }
 

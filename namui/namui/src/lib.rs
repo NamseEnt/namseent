@@ -26,7 +26,7 @@ pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
 
 pub mod particle {
-    pub use namui_particle::{Emitter, Particle, RenderEmitter};
+    pub use namui_particle::{Emitter, Particle, ParticleSprites, RenderEmitter};
 }
 thread_local! {
     static TOKIO_RUNTIME: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(Some(tokio::runtime::Builder::new_multi_thread()

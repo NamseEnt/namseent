@@ -3,19 +3,20 @@ use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
-// Configurable parameters for burning trail particles
 const BURNING_TRAIL_LIFETIME_MIN_MS: i64 = 120;
 const BURNING_TRAIL_LIFETIME_MAX_MS: i64 = 240;
 const OUTER_RADIUS_MIN_TILE: f32 = 0.2;
 const OUTER_RADIUS_MAX_TILE: f32 = 0.35;
 const OFFSET_RANGE: f32 = 0.06;
 
-const ALPHA_RISE_END_PROGRESS: f32 = 0.2; // progress where alpha stops rising
+const ALPHA_RISE_END_PROGRESS: f32 = 0.2;
 const ALPHA_MIN: f32 = 0.2;
 const ALPHA_PEAK: f32 = 0.9;
-const RADIUS_START_RATIO: f32 = 0.6; // relative to initial_radius at progress 0
-const RADIUS_PEAK_RATIO: f32 = 1.0; // relative at peak (progress 0.1)
-const RADIUS_END_RATIO: f32 = 0.0; // relative at end (progress 1.0)
+const RADIUS_START_RATIO: f32 = 0.6;
+const RADIUS_PEAK_RATIO: f32 = 1.0;
+const RADIUS_END_RATIO: f32 = 0.0;
+
+const IMAGE_SIZE: f32 = 128.0;
 
 #[derive(Clone)]
 pub struct BurningTrailParticle {
@@ -72,15 +73,29 @@ impl BurningTrailParticle {
         }
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
-        let scale = (self.radius.as_f32() * 2.0) / 128.0;
-        let color = Color::from_f01(1.0, 0.35, 0.05, self.alpha * 0.7);
-        Some(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color)))
+        let src_rect = Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: px(IMAGE_SIZE),
+            height: px(IMAGE_SIZE),
+        };
+
+        let outer_scale = (self.radius.as_f32() * 2.0) / IMAGE_SIZE;
+        let outer_color = Color::from_f01(1.0, 0.35, 0.05, self.alpha * 0.7);
+        sprites.push(atlas::centered_sprite(src_rect, xy_px.x, xy_px.y, outer_scale, Some(outer_color)));
+
+        let inner_scale = (self.radius.as_f32() * 2.0 * 0.5) / IMAGE_SIZE;
+        let inner_color = Color::from_f01(1.0, 0.85, 0.2, self.alpha);
+        sprites.push(atlas::centered_sprite(src_rect, xy_px.x, xy_px.y, inner_scale, Some(inner_color)));
+
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -97,7 +112,7 @@ impl namui::particle::Particle for BurningTrailParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         BurningTrailParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         BurningTrailParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

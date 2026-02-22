@@ -38,9 +38,10 @@ impl InstantEmitParticle {
         };
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return None;
+            return sprites;
         }
 
         let tower_px = TILE_PX_SIZE.to_xy() * Xy::new(self.tower_xy.0, self.tower_xy.1);
@@ -61,7 +62,10 @@ impl InstantEmitParticle {
         };
 
         let thickness = 4.0;
-        atlas::line_sprite(tower_px.x, tower_px.y, current_end.x, current_end.y, thickness, Some(color))
+        if let Some(s) = atlas::line_sprite(tower_px.x, tower_px.y, current_end.x, current_end.y, thickness, Some(color)) {
+            sprites.push(s);
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -78,7 +82,7 @@ impl namui::particle::Particle for InstantEmitParticle {
     fn tick(&mut self, now: Instant, dt: Duration) {
         InstantEmitParticle::tick(self, now, dt);
     }
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         InstantEmitParticle::render(self)
     }
     fn is_done(&self, now: Instant) -> bool {

@@ -121,18 +121,40 @@ impl LightningBoltParticle {
         ))
     }
 
-    pub fn render(&self) -> Option<ImageSprite> {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 || self.points.len() < 2 {
-            return None;
+            return sprites;
         }
 
-        let first = self.points[0];
-        let last = self.points[self.points.len() - 1];
-        let start_px = TILE_PX_SIZE.to_xy() * Xy::new(first.0, first.1);
-        let end_px = TILE_PX_SIZE.to_xy() * Xy::new(last.0, last.1);
-        let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
-        let thickness = TILE_PX_SIZE.width.as_f32() * 0.03;
-        atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color))
+        let num_segments = self.points.len() - 1;
+        for i in 0..num_segments {
+            let p0 = self.points[i];
+            let p1 = self.points[i + 1];
+            let start_px = TILE_PX_SIZE.to_xy() * Xy::new(p0.0, p0.1);
+            let end_px = TILE_PX_SIZE.to_xy() * Xy::new(p1.0, p1.1);
+
+            let t = if num_segments <= 1 { 0.5 } else { i as f32 / (num_segments - 1) as f32 };
+            let center_dist = (t - 0.5).abs() * 2.0;
+            let thickness_factor = 0.05 - 0.04 * center_dist;
+            let outer_thickness = TILE_PX_SIZE.width.as_f32() * thickness_factor;
+
+            let outer_color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
+            if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, outer_thickness, Some(outer_color)) {
+                sprites.push(s);
+            }
+
+            let inner_thickness = outer_thickness * 0.4;
+            let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
+            if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+                sprites.push(s);
+            }
+
+            if sprites.remaining_capacity() < 2 {
+                break;
+            }
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -164,7 +186,7 @@ impl namui::particle::Particle for LightningBoltParticle {
         self.tick_impl(now, dt);
     }
 
-    fn render(&self) -> Option<ImageSprite> {
+    fn render(&self) -> namui::particle::ParticleSprites {
         LightningBoltParticle::render(self)
     }
 
