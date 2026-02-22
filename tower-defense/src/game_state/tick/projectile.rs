@@ -16,17 +16,15 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             .iter()
             .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
         else {
-            field_particle::PROJECTILES.spawn(
-                field_particle::ProjectileParticle::new(
-                    projectile.xy,
-                    projectile.kind,
-                    projectile.rotation,
-                    projectile.rotation_speed,
-                    projectile.velocity,
-                    now,
-                    Duration::from_millis(300),
-                ),
-            );
+            field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
+                projectile.xy,
+                projectile.kind,
+                projectile.rotation,
+                projectile.rotation_speed,
+                projectile.velocity,
+                now,
+                Duration::from_millis(300),
+            ));
             return false;
         };
 
@@ -48,34 +46,71 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
             let spawn_distance = match projectile.trail {
                 ProjectileTrail::None => None,
-                ProjectileTrail::Burning => Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE),
+                ProjectileTrail::Burning => {
+                    Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE)
+                }
                 ProjectileTrail::Sparkle => Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE),
-                ProjectileTrail::WindCurve => Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE),
+                ProjectileTrail::WindCurve => {
+                    Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE)
+                }
                 ProjectileTrail::Heart => Some(field_particle::emitter::HEART_SPAWN_DISTANCE),
-                ProjectileTrail::LightningSparkle => Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE),
+                ProjectileTrail::LightningSparkle => {
+                    Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE)
+                }
             };
 
             if let Some(spawn_distance) = spawn_distance {
                 projectile.trail_distance_remainder += moved_distance;
-                let spawn_count = (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
+                let spawn_count =
+                    (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
                 if spawn_count > 0 {
                     projectile.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
                     match projectile.trail {
                         ProjectileTrail::Burning => {
-                            field_particle::emitter::spawn_burning_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_burning_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::Sparkle => {
-                            field_particle::emitter::spawn_sparkle_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::WindCurve => {
-                            field_particle::emitter::spawn_wind_curve_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_wind_curve_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::Heart => {
-                            field_particle::emitter::spawn_heart_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_heart_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::LightningSparkle => {
-                            field_particle::emitter::spawn_lightning_trail(start_xy, projectile.xy, spawn_count, now);
-                            field_particle::emitter::spawn_sparkle_trail(start_xy, projectile.xy, spawn_count, now);
+                            field_particle::emitter::spawn_lightning_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::None => {}
                     }
@@ -88,9 +123,9 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let damage = projectile.damage;
         monster.get_damage(damage);
         if damage > 0.0 {
-            field_particle::DAMAGE_TEXTS.spawn(
-                field_particle::DamageTextParticle::new(monster_xy, damage, now),
-            );
+            field_particle::DAMAGE_TEXTS.spawn(field_particle::DamageTextParticle::new(
+                monster_xy, damage, now,
+            ));
         }
 
         use crate::game_state::attack::ProjectileHitEffect;
@@ -122,7 +157,8 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 defense_flow.stage_progress.processed_hp += monster.max_hp;
             }
             let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
-            let earn = (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
+            let earn =
+                (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
 
             let monster_kind = monster.kind;
@@ -137,15 +173,17 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
 
-            field_particle::MONSTER_CORPSES.spawn(
-                field_particle::MonsterCorpseParticle::new(
-                    pixel_xy, now, rotation, monster_kind, wh,
-                ),
-            );
+            field_particle::MONSTER_CORPSES.spawn(field_particle::MonsterCorpseParticle::new(
+                pixel_xy,
+                now,
+                rotation,
+                monster_kind,
+                wh,
+            ));
 
-            field_particle::MONSTER_SOULS.spawn(
-                field_particle::MonsterSoulParticle::new(pixel_xy, now, rotation),
-            );
+            field_particle::MONSTER_SOULS.spawn(field_particle::MonsterSoulParticle::new(
+                pixel_xy, now, rotation,
+            ));
 
             monsters.swap_remove(monster_index);
         }

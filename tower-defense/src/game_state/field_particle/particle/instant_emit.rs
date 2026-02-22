@@ -1,5 +1,5 @@
-use crate::game_state::{TILE_PX_SIZE, attack};
 use crate::game_state::field_particle::atlas;
+use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
 #[derive(Clone)]
@@ -62,7 +62,14 @@ impl InstantEmitParticle {
         };
 
         let thickness = 4.0;
-        if let Some(s) = atlas::line_sprite(tower_px.x, tower_px.y, current_end.x, current_end.y, thickness, Some(color)) {
+        if let Some(s) = atlas::line_sprite(
+            tower_px.x,
+            tower_px.y,
+            current_end.x,
+            current_end.y,
+            thickness,
+            Some(color),
+        ) {
             sprites.push(s);
         }
         sprites

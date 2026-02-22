@@ -100,12 +100,7 @@ impl BoundingBox for &ImageDrawCommand {
             let h = sprite.src_rect.height();
             let xform = &sprite.xform;
 
-            let corners = [
-                (px(0.0), px(0.0)),
-                (w, px(0.0)),
-                (w, h),
-                (px(0.0), h),
-            ];
+            let corners = [(px(0.0), px(0.0)), (w, px(0.0)), (w, h), (px(0.0), h)];
 
             for (x, y) in corners {
                 let tx = x * xform.scos - y * xform.ssin + xform.tx;

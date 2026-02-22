@@ -1,5 +1,7 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::{EMBER_SPARKS, EmberSparkParticle, SPARKLES, SparkleParticle};
+use crate::game_state::field_particle::{
+    EMBER_SPARKS, EmberSparkParticle, SPARKLES, SparkleParticle,
+};
 use namui::*;
 use rand::Rng;
 

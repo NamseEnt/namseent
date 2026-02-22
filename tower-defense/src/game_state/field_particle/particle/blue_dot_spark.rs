@@ -76,10 +76,22 @@ impl BlueDotSparkParticle {
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
         let scale = (self.radius.as_f32() * 2.0) / 128.0;
         let color = Color::from_f01(0.2, 0.6, 1.0, self.alpha * 0.6);
-        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color)));
+        sprites.push(atlas::centered_sprite(
+            atlas::glow_circle(),
+            xy_px.x,
+            xy_px.y,
+            scale,
+            Some(color),
+        ));
         let inner_scale = scale * 0.3;
         let inner_color = Color::from_f01(0.7, 0.95, 1.0, self.alpha);
-        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, inner_scale, Some(inner_color)));
+        sprites.push(atlas::centered_sprite(
+            atlas::glow_circle(),
+            xy_px.x,
+            xy_px.y,
+            inner_scale,
+            Some(inner_color),
+        ));
         sprites
     }
 

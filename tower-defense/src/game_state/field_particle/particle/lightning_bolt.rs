@@ -106,9 +106,10 @@ impl LightningBoltParticle {
             rng.gen_range(-LIGHTNING_BOLT_END_OFFSET_RANGE..LIGHTNING_BOLT_END_OFFSET_RANGE);
         let end_xy = (last_xy.0 + offset_x, last_xy.1 + offset_y);
 
-        let duration = Duration::from_millis(
-            rng.gen_range(LIGHTNING_BOLT_SPAWN_LIFETIME_MIN_MS..LIGHTNING_BOLT_SPAWN_LIFETIME_MAX_MS),
-        );
+        let duration =
+            Duration::from_millis(rng.gen_range(
+                LIGHTNING_BOLT_SPAWN_LIFETIME_MIN_MS..LIGHTNING_BOLT_SPAWN_LIFETIME_MAX_MS,
+            ));
 
         let new_spawn_chance = self.spawn_chance * LIGHTNING_BOLT_SPAWN_CHANCE_REDUCTION;
 
@@ -134,19 +135,37 @@ impl LightningBoltParticle {
             let start_px = TILE_PX_SIZE.to_xy() * Xy::new(p0.0, p0.1);
             let end_px = TILE_PX_SIZE.to_xy() * Xy::new(p1.0, p1.1);
 
-            let t = if num_segments <= 1 { 0.5 } else { i as f32 / (num_segments - 1) as f32 };
+            let t = if num_segments <= 1 {
+                0.5
+            } else {
+                i as f32 / (num_segments - 1) as f32
+            };
             let center_dist = (t - 0.5).abs() * 2.0;
             let thickness_factor = 0.05 - 0.04 * center_dist;
             let outer_thickness = TILE_PX_SIZE.width.as_f32() * thickness_factor;
 
             let outer_color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
-            if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, outer_thickness, Some(outer_color)) {
+            if let Some(s) = atlas::line_sprite(
+                start_px.x,
+                start_px.y,
+                end_px.x,
+                end_px.y,
+                outer_thickness,
+                Some(outer_color),
+            ) {
                 sprites.push(s);
             }
 
             let inner_thickness = outer_thickness * 0.4;
             let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
-            if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+            if let Some(s) = atlas::line_sprite(
+                start_px.x,
+                start_px.y,
+                end_px.x,
+                end_px.y,
+                inner_thickness,
+                Some(inner_color),
+            ) {
                 sprites.push(s);
             }
 

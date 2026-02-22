@@ -79,7 +79,14 @@ impl IconParticle {
         let color = Color::WHITE.with_alpha((opacity * 255.0) as u8);
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::icon_rect(&self.icon.kind);
-        sprites.push(atlas::centered_rotated_sprite(src_rect, self.xy.x, self.xy.y, scale, angle_rad, Some(color)));
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
+            self.xy.x,
+            self.xy.y,
+            scale,
+            angle_rad,
+            Some(color),
+        ));
         sprites
     }
 

@@ -1,7 +1,7 @@
+use crate::MapCoordF32;
 use crate::game_state::field_particle::{
     BURNING_TRAILS, BurningTrailParticle, EMBER_SPARKS, EmberSparkParticle,
 };
-use crate::MapCoordF32;
 use namui::*;
 use rand::Rng;
 

@@ -1,5 +1,5 @@
-use crate::game_state::{TILE_PX_SIZE, attack};
 use crate::game_state::field_particle::atlas;
+use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
 #[derive(Clone)]
@@ -46,12 +46,26 @@ impl LaserBeamParticle {
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
         let color = Color::from_f01(1.0, 0.2, 0.2, self.alpha);
         let thickness = 8.0 * self.alpha;
-        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color)) {
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            thickness,
+            Some(color),
+        ) {
             sprites.push(s);
         }
         let inner_color = Color::from_f01(1.0, 1.0, 1.0, self.alpha * 0.8);
         let inner_thickness = 3.0 * self.alpha;
-        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            inner_thickness,
+            Some(inner_color),
+        ) {
             sprites.push(s);
         }
         sprites
@@ -162,12 +176,26 @@ impl LaserLineParticle {
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
         let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
         let thickness = TILE_PX_SIZE.width.as_f32() * self.thickness;
-        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, thickness, Some(color)) {
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            thickness,
+            Some(color),
+        ) {
             sprites.push(s);
         }
         let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
         let inner_thickness = thickness * 0.4;
-        if let Some(s) = atlas::line_sprite(start_px.x, start_px.y, end_px.x, end_px.y, inner_thickness, Some(inner_color)) {
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            inner_thickness,
+            Some(inner_color),
+        ) {
             sprites.push(s);
         }
         sprites

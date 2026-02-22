@@ -88,12 +88,24 @@ impl EmberSparkParticle {
         let outer_radius = self.radius;
         let outer_scale = (outer_radius.as_f32() * 2.0) / 128.0;
         let outer_color = Color::from_f01(1.0, 0.5, 0.1, self.alpha * 0.8);
-        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, outer_scale, Some(outer_color)));
+        sprites.push(atlas::centered_sprite(
+            atlas::glow_circle(),
+            xy_px.x,
+            xy_px.y,
+            outer_scale,
+            Some(outer_color),
+        ));
 
         let inner_radius = px(self.radius.as_f32() * EMBER_SPARK_INNER_RADIUS_RATIO);
         let inner_scale = (inner_radius.as_f32() * 2.0) / 128.0;
         let inner_color = Color::from_f01(1.0, 0.9, 0.4, self.alpha);
-        sprites.push(atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, inner_scale, Some(inner_color)));
+        sprites.push(atlas::centered_sprite(
+            atlas::glow_circle(),
+            xy_px.x,
+            xy_px.y,
+            inner_scale,
+            Some(inner_color),
+        ));
 
         sprites
     }

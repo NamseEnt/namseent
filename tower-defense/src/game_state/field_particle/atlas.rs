@@ -1,7 +1,12 @@
 use namui::*;
 
 fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
-    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }
+    Rect::Xywh {
+        x: px(x),
+        y: px(y),
+        width: px(w),
+        height: px(h),
+    }
 }
 
 const LINE_SPRITE_W: f32 = 1024.0;
@@ -93,11 +98,21 @@ pub fn line_sprite(
     })
 }
 
-pub fn glow_circle() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
-pub fn star_burst() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
-pub fn cross() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
-pub fn ring() -> Rect<Px> { rect(384.0, 0.0, 128.0, 128.0) }
-pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
+pub fn glow_circle() -> Rect<Px> {
+    rect(0.0, 0.0, 128.0, 128.0)
+}
+pub fn star_burst() -> Rect<Px> {
+    rect(128.0, 0.0, 128.0, 128.0)
+}
+pub fn cross() -> Rect<Px> {
+    rect(256.0, 0.0, 128.0, 128.0)
+}
+pub fn ring() -> Rect<Px> {
+    rect(384.0, 0.0, 128.0, 128.0)
+}
+pub fn monster_soul() -> Rect<Px> {
+    rect(1280.0, 128.0, 128.0, 192.0)
+}
 
 pub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> Rect<Px> {
     use crate::game_state::projectile::ProjectileKind;
@@ -126,7 +141,9 @@ pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::Car
     }
 }
 
-pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::HeartParticleKind) -> Rect<Px> {
+pub fn heart_particle_rect(
+    kind: crate::game_state::field_particle::particle::HeartParticleKind,
+) -> Rect<Px> {
     use crate::game_state::field_particle::particle::HeartParticleKind;
     match kind {
         HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
@@ -137,7 +154,9 @@ pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::He
     }
 }
 
-pub fn projectile_glow_circle() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
+pub fn projectile_glow_circle() -> Rect<Px> {
+    rect(256.0, 128.0, 128.0, 128.0)
+}
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
     use crate::game_state::MonsterKind;

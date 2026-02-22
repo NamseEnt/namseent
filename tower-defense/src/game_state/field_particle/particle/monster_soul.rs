@@ -67,7 +67,14 @@ impl MonsterSoulParticle {
         let cx = self.position.x + px(sin_a * offset_f);
         let cy = self.position.y - px(cos_a * offset_f);
 
-        sprites.push(atlas::centered_rotated_sprite(src_rect, cx, cy, scale_value, angle_rad, Some(color)));
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
+            cx,
+            cy,
+            scale_value,
+            angle_rad,
+            Some(color),
+        ));
         sprites
     }
 }
