@@ -63,8 +63,12 @@ pub enum HeartParticleKind {
     Heart00,
     Heart01,
     Heart02,
-    MushroomExplosion { radius_px: Px },
-    MushroomColumn { radius_px: Px },
+    MushroomExplosion {
+        radius_px: Px,
+    },
+    MushroomColumn {
+        radius_px: Px,
+    },
     RisingHeart {
         final_scale: f32,
         rotation_rad_per_sec: f32,
@@ -362,8 +366,7 @@ impl HeartParticle {
             | HeartParticleKind::Heart01
             | HeartParticleKind::Heart02
             | HeartParticleKind::RisingHeart { .. } => {
-                let scale =
-                    (TILE_PX_SIZE.width.as_f32() * HEART_SIZE_TILE * self.scale) / 128.0;
+                let scale = (TILE_PX_SIZE.width.as_f32() * HEART_SIZE_TILE * self.scale) / 128.0;
                 let color = Color::WHITE.with_alpha((self.alpha * 255.0) as u8);
                 let src_rect = atlas::heart_particle_rect(self.kind);
                 sprites.push(atlas::centered_sprite(

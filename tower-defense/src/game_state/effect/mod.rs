@@ -455,8 +455,7 @@ pub enum EffectExecutionError {
 pub mod tests_support {
     use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
-        GameState, MAP_SIZE, TRAVEL_POINTS, field_particle, flow::GameFlow,
-        monster_spawn::MonsterSpawnState,
+        GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
     };
     use namui::Instant;
     use std::num::NonZeroUsize; // use the same Instant type as production code

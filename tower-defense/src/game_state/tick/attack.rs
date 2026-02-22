@@ -98,22 +98,18 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     emit_effect,
                     hit_effect,
                 } => {
-                    field_particle::INSTANT_EMITS.spawn(
-                        field_particle::InstantEmitParticle::new(
-                            emit_effect.tower_xy,
-                            emit_effect.target_xy,
-                            emit_effect.created_at,
-                            emit_effect.kind,
-                        ),
-                    );
-                    field_particle::INSTANT_HITS.spawn(
-                        field_particle::InstantHitParticle::new(
-                            hit_effect.xy,
-                            hit_effect.created_at,
-                            hit_effect.kind,
-                            hit_effect.scale,
-                        ),
-                    );
+                    field_particle::INSTANT_EMITS.spawn(field_particle::InstantEmitParticle::new(
+                        emit_effect.tower_xy,
+                        emit_effect.target_xy,
+                        emit_effect.created_at,
+                        emit_effect.kind,
+                    ));
+                    field_particle::INSTANT_HITS.spawn(field_particle::InstantHitParticle::new(
+                        hit_effect.xy,
+                        hit_effect.created_at,
+                        hit_effect.kind,
+                        hit_effect.scale,
+                    ));
 
                     if instant_damage > 0.0 {
                         field_particle::DAMAGE_TEXTS.spawn(
@@ -165,12 +161,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
     let now = game_state.now();
     for (target_idx, target_xy) in indices_to_remove.into_iter().rev() {
-        super::monster_death::handle_monster_death(
-            game_state,
-            target_idx,
-            target_xy,
-            now,
-        );
+        super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
     }
 
     game_state.projectiles.extend(projectiles);

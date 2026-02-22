@@ -1,8 +1,8 @@
 use crate::MapCoordF32;
+use crate::game_state::field_particle::CARDS;
 use crate::game_state::field_particle::particle::{
     CardKind, CardParticle, CardParticleConfig, EaseMode,
 };
-use crate::game_state::field_particle::CARDS;
 use namui::*;
 use rand::Rng;
 

@@ -1,5 +1,5 @@
-use crate::{MapCoordF32, game_state::TILE_PX_SIZE};
 use crate::game_state::field_particle::atlas;
+use crate::{MapCoordF32, game_state::TILE_PX_SIZE};
 use namui::*;
 use rand::Rng;
 
@@ -35,7 +35,10 @@ pub struct DisplayValue {
 
 impl DisplayValue {
     fn new() -> Self {
-        Self { buf: [0; 8], len: 0 }
+        Self {
+            buf: [0; 8],
+            len: 0,
+        }
     }
     fn bytes(&self) -> &[u8] {
         &self.buf[..self.len]
@@ -48,7 +51,9 @@ impl DisplayValue {
 impl core::fmt::Write for DisplayValue {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for &b in s.as_bytes() {
-            if self.len >= 8 { break; }
+            if self.len >= 8 {
+                break;
+            }
             self.buf[self.len] = b;
             self.len += 1;
         }
@@ -195,7 +200,12 @@ impl DamageTextParticle {
             let cx = position_px.x + px(cos_a * local_x);
             let cy = position_px.y + px(sin_a * local_x);
             sprites.push(atlas::centered_rotated_sprite(
-                src_rect, cx, cy, base_scale, angle_rad, Some(color),
+                src_rect,
+                cx,
+                cy,
+                base_scale,
+                angle_rad,
+                Some(color),
             ));
             if sprites.remaining_capacity() == 0 {
                 break;

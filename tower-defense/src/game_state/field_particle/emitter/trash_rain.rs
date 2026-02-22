@@ -1,6 +1,6 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::{EaseMode, TrashParticle, TRASHES};
 use crate::game_state::field_particle::particle::TrashParticleConfig;
+use crate::game_state::field_particle::{EaseMode, TRASHES, TrashParticle};
 use crate::game_state::projectile::ProjectileKind;
 use namui::*;
 use rand::Rng;

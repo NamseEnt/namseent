@@ -54,7 +54,14 @@ impl ProjectileParticle {
         let particle_px_xy = tile_px_size.to_xy() * Xy::new(self.xy.x, self.xy.y);
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::projectile_rect(self.kind);
-        sprites.push(atlas::centered_rotated_sprite(src_rect, particle_px_xy.x, particle_px_xy.y, scale, angle_rad, None));
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
+            particle_px_xy.x,
+            particle_px_xy.y,
+            scale,
+            angle_rad,
+            None,
+        ));
         sprites
     }
 }

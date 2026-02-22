@@ -89,11 +89,23 @@ impl BurningTrailParticle {
 
         let outer_scale = (self.radius.as_f32() * 2.0) / IMAGE_SIZE;
         let outer_color = Color::from_f01(1.0, 0.35, 0.05, self.alpha * 0.7);
-        sprites.push(atlas::centered_sprite(src_rect, xy_px.x, xy_px.y, outer_scale, Some(outer_color)));
+        sprites.push(atlas::centered_sprite(
+            src_rect,
+            xy_px.x,
+            xy_px.y,
+            outer_scale,
+            Some(outer_color),
+        ));
 
         let inner_scale = (self.radius.as_f32() * 2.0 * 0.5) / IMAGE_SIZE;
         let inner_color = Color::from_f01(1.0, 0.85, 0.2, self.alpha);
-        sprites.push(atlas::centered_sprite(src_rect, xy_px.x, xy_px.y, inner_scale, Some(inner_color)));
+        sprites.push(atlas::centered_sprite(
+            src_rect,
+            xy_px.x,
+            xy_px.y,
+            inner_scale,
+            Some(inner_color),
+        ));
 
         sprites
     }

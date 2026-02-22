@@ -26,8 +26,8 @@ pub fn spawn_monster_status_effect_icons(
     let debuff_icon = create_monster_debuff_icon(debuff_kind);
 
     for _ in 0..particle_count {
-        let xy = monster_xy
-            + MapCoordF32::new(rng.gen_range(0.25..=0.75), rng.gen_range(0.25..=0.75));
+        let xy =
+            monster_xy + MapCoordF32::new(rng.gen_range(0.25..=0.75), rng.gen_range(0.25..=0.75));
         let position = map_coord_to_pixel_f32(xy);
 
         let behavior = IconParticleBehavior::FadeRise {

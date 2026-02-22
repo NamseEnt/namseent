@@ -114,7 +114,14 @@ impl TrashParticle {
         let angle_rad = self.rotation.as_radians();
         let src_rect = atlas::projectile_rect(self.kind);
 
-        sprites.push(atlas::centered_rotated_sprite(src_rect, px_xy.x, px_xy.y, scale, angle_rad, Some(color)));
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
+            px_xy.x,
+            px_xy.y,
+            scale,
+            angle_rad,
+            Some(color),
+        ));
         sprites
     }
 

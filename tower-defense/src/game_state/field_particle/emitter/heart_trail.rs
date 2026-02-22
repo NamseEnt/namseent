@@ -1,6 +1,6 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::particle::HeartParticle;
 use crate::game_state::field_particle::HEARTS;
+use crate::game_state::field_particle::particle::HeartParticle;
 use namui::*;
 
 pub const HEART_SPAWN_DISTANCE: f32 = 1.5;

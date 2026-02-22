@@ -125,9 +125,8 @@ impl SkCanvas for skia_safe::Canvas {
 
         let skia_image = atlas.skia_image();
 
-        let skia_colors: Option<Vec<skia_safe::Color>> = colors.map(|c| {
-            c.iter().map(|color| (*color).into()).collect()
-        });
+        let skia_colors: Option<Vec<skia_safe::Color>> =
+            colors.map(|c| c.iter().map(|color| (*color).into()).collect());
 
         let skia_paint = paint.as_ref().map(|p| NativePaint::get(p).skia().clone());
 

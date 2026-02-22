@@ -39,8 +39,7 @@ pub static LIGHTNING_BOLTS: namui::particle::Emitter<LightningBoltParticle> =
     namui::particle::Emitter::new();
 pub static LASER_BEAMS: namui::particle::Emitter<LaserBeamParticle> =
     namui::particle::Emitter::new();
-pub static SPARKLES: namui::particle::Emitter<SparkleParticle> =
-    namui::particle::Emitter::new();
+pub static SPARKLES: namui::particle::Emitter<SparkleParticle> = namui::particle::Emitter::new();
 pub static WIND_CURVE_TRAILS: namui::particle::Emitter<WindCurveTrailParticle> =
     namui::particle::Emitter::new();
 pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
