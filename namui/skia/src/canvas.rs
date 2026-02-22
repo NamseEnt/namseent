@@ -100,7 +100,6 @@ impl SkCanvas for skia_safe::Canvas {
             return;
         }
 
-        // Convert RSXform to skia_safe::RSXform
         let skia_xforms: Vec<skia_safe::RSXform> = xforms
             .iter()
             .map(|xform| {
@@ -112,7 +111,6 @@ impl SkCanvas for skia_safe::Canvas {
             })
             .collect();
 
-        // Convert Rect<Px> to skia_safe::Rect
         let skia_tex_rects: Vec<skia_safe::Rect> = tex_rects
             .iter()
             .map(|rect| {
@@ -125,7 +123,6 @@ impl SkCanvas for skia_safe::Canvas {
             })
             .collect();
 
-        // Get the native skia image
         let skia_image = atlas.skia_image();
 
         let skia_colors: Option<Vec<skia_safe::Color>> = colors.map(|c| {
