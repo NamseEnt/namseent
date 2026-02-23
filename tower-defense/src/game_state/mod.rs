@@ -194,7 +194,7 @@ fn create_initial_game_state() -> GameState {
         backgrounds: generate_backgrounds(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
-        stage: 49,
+        stage: 1,
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
@@ -251,34 +251,8 @@ fn create_initial_game_state() -> GameState {
         just_cleared_boss_stage: false,
     };
 
-    let mut route = calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap();
-    for y in 0..MAP_SIZE.height - 1 {
-        for x in 0..MAP_SIZE.width - 1 {
-            let pos = MapCoord::new(x, y);
-            if can_place_tower::can_place_tower(
-                pos,
-                Wh::new(2, 2),
-                &TRAVEL_POINTS,
-                &game_state.towers.coords(),
-                route.iter_coords(),
-                MAP_SIZE,
-            ) {
-                let template = TowerTemplate::new(TowerKind::FullHouse, Suit::Spades, Rank::Ace);
-                let tower = Tower::new(&template, pos, now);
-                game_state.towers.place_tower(tower);
-                route = calculate_routes(&game_state.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
-                    .unwrap();
-            }
-        }
-    }
-
-    game_state.route = route;
-
+    game_state.goto_next_stage();
     game_state.record_game_start();
-    // Defense flow부터 바로 시작
-    game_state.stage = 50;
-    game_state.flow = GameFlow::Defense(flow::DefenseFlow::new(&game_state));
-    start_spawn(&mut game_state);
     game_state
 }
 
