@@ -183,14 +183,14 @@ impl DamageTextParticle {
         }
         let tile_size = TILE_PX_SIZE.to_xy();
         let position_px = tile_size * self.position;
-        let base_scale = self.scale * 0.5;
+        let base_scale = self.scale;
         let color = self.display_color.with_alpha(self.opacity);
         let angle_rad = self.rotation.as_radians();
         let cos_a = angle_rad.cos();
         let sin_a = angle_rad.sin();
 
         let char_count = self.display_value.len() as f32;
-        let char_w = 64.0 * base_scale;
+        let char_w = 64.0 * base_scale * 0.5;
         let total_w = char_count * char_w;
         let start_offset = -total_w / 2.0 + char_w / 2.0;
 
