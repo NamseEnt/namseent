@@ -40,10 +40,10 @@ pub fn create_bounce_particles(
         let by = bounce_dir_y / b_len;
 
         let dist = rng.gen_range(BOUNCE_DISTANCE_MIN..BOUNCE_DISTANCE_MAX);
-        let start = (orig_end.0 + 0.5, orig_end.1 + 0.5);
+        let start = (orig_end.0, orig_end.1);
         let end = (
-            start.0 + bx * dist + rng.gen_range(-0.15..0.15) + 0.5,
-            start.1 + by * dist + rng.gen_range(-0.08..0.08) + 0.5,
+            start.0 + bx * dist + rng.gen_range(-0.15..0.15),
+            start.1 + by * dist + rng.gen_range(-0.08..0.08),
         );
 
         let dur_ms = rng.gen_range(BOUNCE_DURATION_MIN_MS..=BOUNCE_DURATION_MAX_MS);
@@ -65,16 +65,4 @@ pub fn create_bounce_particles(
     }
 
     out
-}
-
-pub fn spawn_trash_bounce(
-    kind: ProjectileKind,
-    orig_start: (f32, f32),
-    orig_end: (f32, f32),
-    now: Instant,
-) {
-    let particles = create_bounce_particles(kind, orig_start, orig_end, now);
-    for p in particles {
-        crate::game_state::field_particle::TRASHES.spawn(p);
-    }
 }
