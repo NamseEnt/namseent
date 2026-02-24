@@ -86,11 +86,38 @@ impl BoundingBox for &TextDrawCommand {
 
 impl BoundingBox for &ImageDrawCommand {
     fn bounding_box(self) -> Option<Rect<Px>> {
-        match &self.paint {
-            Some(paint) => {
-                NativePath::get(&Path::new().add_rect(self.rect)).bounding_box(Some(paint))
-            }
-            _ => Some(self.rect),
+        if self.sprites.is_empty() {
+            return None;
         }
+
+        let mut min_x = px(f32::MAX);
+        let mut min_y = px(f32::MAX);
+        let mut max_x = px(f32::MIN);
+        let mut max_y = px(f32::MIN);
+
+        for sprite in &self.sprites {
+            let w = sprite.src_rect.width();
+            let h = sprite.src_rect.height();
+            let xform = &sprite.xform;
+
+            let corners = [(px(0.0), px(0.0)), (w, px(0.0)), (w, h), (px(0.0), h)];
+
+            for (x, y) in corners {
+                let tx = x * xform.scos - y * xform.ssin + xform.tx;
+                let ty = x * xform.ssin + y * xform.scos + xform.ty;
+
+                min_x = min_x.min(tx);
+                min_y = min_y.min(ty);
+                max_x = max_x.max(tx);
+                max_y = max_y.max(ty);
+            }
+        }
+
+        Some(Rect::Ltrb {
+            left: min_x,
+            top: min_y,
+            right: max_x,
+            bottom: max_y,
+        })
     }
 }

@@ -1,5 +1,5 @@
 import { startEventSystem } from "./eventSystem";
-import { startThread } from "./thread/startThread";
+import { startThread, ThreadStartSupplies } from "./thread/startThread";
 import wasmUrl from "virtual:namui-runtime-wasm.wasm?url";
 import "./drawer";
 import { readyDrawer } from "./drawer";
@@ -53,6 +53,42 @@ if (import.meta.hot) {
     });
 }
 
+function listenSpawnPort(
+    port: MessagePort,
+    baseSupplies: Omit<ThreadStartSupplies & { type: "main" }, "type">,
+) {
+    port.onmessage = (e: MessageEvent<{ startArgPtr: number; tid: number }>) => {
+        const { startArgPtr, tid } = e.data;
+        spawnWorker(startArgPtr, tid, baseSupplies);
+    };
+}
+
+function spawnWorker(
+    startArgPtr: number,
+    tid: number,
+    baseSupplies: Omit<ThreadStartSupplies & { type: "main" }, "type">,
+) {
+    const worker = new Worker(
+        new URL("./thread/SubThreadWorker.ts?worker_file&type=module", import.meta.url),
+        { type: "module" },
+    );
+    worker.onerror = (e) => {
+        console.error("[spawnWorker] worker error tid:", tid, e);
+    };
+
+    const channel = new MessageChannel();
+    listenSpawnPort(channel.port1, baseSupplies);
+
+    const supplies: ThreadStartSupplies = {
+        ...baseSupplies,
+        type: "sub",
+        startArgPtr,
+        tid,
+        spawnPort: channel.port2,
+    };
+    worker.postMessage(supplies, [channel.port2]);
+}
+
 let terminate = () => {};
 let requestedDuringStart = false;
 let starting = false;
@@ -95,14 +131,21 @@ async function startMainThread() {
                 WebAssembly.compileStreaming(fetch(wasmUrl)),
             ]);
 
-            const instance = await startThread({
-                type: "main",
+            const spawnChannel = new MessageChannel();
+            const baseSupplies = {
                 memory,
                 module,
                 nextTid,
                 initialWindowWh: (window.innerWidth << 16) | window.innerHeight,
                 imageCount: drawer.imageCount,
                 imageInfoBytes: drawer.imageInfoBytes,
+                spawnPort: spawnChannel.port2,
+            };
+            listenSpawnPort(spawnChannel.port1, baseSupplies);
+
+            const instance = await startThread({
+                ...baseSupplies,
+                type: "main",
             });
             exports = instance.exports as Exports;
 

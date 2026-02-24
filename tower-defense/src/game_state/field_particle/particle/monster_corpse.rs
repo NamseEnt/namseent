@@ -1,4 +1,5 @@
 use crate::game_state::MonsterKind;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::{Rng, thread_rng};
 
@@ -9,7 +10,7 @@ const LINEAR_DRAG_PER_SEC: f32 = 2.0;
 const ANGULAR_VELOCITY_INIT_DEG_PER_SEC: f32 = 1080.0;
 const ANGULAR_DRAG_PER_SEC: f32 = 0.125;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct MonsterCorpseParticle {
     pub position: Xy<Px>,
     pub created_at: Instant,
@@ -91,35 +92,31 @@ impl MonsterCorpseParticle {
         self.rotation += self.angular_velocity * delta_time;
     }
 
-    pub fn render(&self) -> RenderingTree {
-        let Self {
-            rotation,
-            monster_kind,
-            wh,
-            scale,
-            ..
-        } = self;
-
-        let image = monster_kind.image();
-
-        namui::translate(
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
+        let scale = self.wh.width.as_f32() / 128.0 * self.scale;
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::monster_rect(self.monster_kind);
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
             self.position.x,
             self.position.y,
-            namui::rotate(
-                *rotation,
-                namui::scale(
-                    *scale,
-                    *scale,
-                    namui::image(ImageParam {
-                        rect: Rect::from_xy_wh(wh.to_xy() * -0.5, *wh),
-                        image,
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: None,
-                        },
-                    }),
-                ),
-            ),
-        )
+            scale,
+            angle_rad,
+            None,
+        ));
+        sprites
+    }
+}
+
+impl namui::particle::Particle for MonsterCorpseParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        MonsterCorpseParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> namui::particle::ParticleSprites {
+        MonsterCorpseParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        MonsterCorpseParticle::is_done(self, now)
     }
 }

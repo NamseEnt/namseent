@@ -88,7 +88,6 @@ impl Tower {
         )
     }
 
-    /// 레이저 공격 수행 - 즉시 데미지를 주고 LaserBeam 반환
     pub fn shoot_laser(&mut self, params: ShootLaserParams<'_>) -> (attack::laser::LaserBeam, f32) {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, params.now);
@@ -212,7 +211,6 @@ impl Tower {
         self.center_xy().map(|t| t as f32)
     }
 
-    /// 타워의 공격 시작점 (타일 단위) - center_xy에서 y - 0.5
     pub fn head_xy_tile(&self) -> MapCoordF32 {
         let center = self.center_xy_f32();
         MapCoordF32::new(center.x, center.y - 0.5)
@@ -255,7 +253,6 @@ impl Tower {
             damage *= tower_upgrade_state.damage_multiplier;
         });
 
-        // Apply contract damage multiplier
         damage *= contract_multiplier;
 
         damage
@@ -317,14 +314,12 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    /// Calculate tower power rating based on damage
     pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
         (self.default_damage + self.rank.bonus_damage() as f32) * damage_multiplier
     }
 }
 impl PartialOrd for TowerTemplate {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // 타워끼리는 kind(역순) -> suit -> rank 순으로 정렬
         Some(
             self.kind
                 .cmp(&other.kind)
@@ -480,7 +475,6 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             }
         });
 
-        // Apply contract attack speed multiplier
         time_multiple *= attack_speed_multiplier;
 
         let cooldown_sub = dt * time_multiple;

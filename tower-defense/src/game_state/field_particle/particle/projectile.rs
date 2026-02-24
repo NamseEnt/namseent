@@ -1,9 +1,9 @@
 use crate::MapCoordF32;
-use crate::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use crate::game_state::projectile::ProjectileKind;
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct ProjectileParticle {
     pub xy: MapCoordF32,
     pub kind: ProjectileKind,
@@ -12,7 +12,7 @@ pub struct ProjectileParticle {
     pub velocity: Xy<f32>,
     pub created_at: Instant,
     pub duration: Duration,
-    pub alpha: f32,
+    pub progress: f32,
 }
 
 impl ProjectileParticle {
@@ -33,7 +33,7 @@ impl ProjectileParticle {
             velocity,
             created_at,
             duration,
-            alpha: 1.0,
+            progress: 0.0,
         }
     }
 
@@ -44,53 +44,55 @@ impl ProjectileParticle {
         // Update position based on velocity vector (tiles/second)
         self.xy += self.velocity * dt.as_secs_f32();
 
-        // Fade out linearly by remaining lifetime
-        self.alpha = self.remaining_life_ratio(now);
-    }
-
-    pub fn render(&self) -> RenderingTree {
-        let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
-        let image = self.kind.image();
-        let half_wh = projectile_wh / 2.0;
-
-        let tile_px = TILE_PX_SIZE.to_xy();
-        let particle_px_xy = tile_px * Xy::new(self.xy.x, self.xy.y);
-
-        let paint = Paint::new(Color::WHITE.with_alpha((self.alpha * 255.0) as u8));
-
-        namui::translate(
-            particle_px_xy.x,
-            particle_px_xy.y,
-            namui::rotate(
-                self.rotation,
-                namui::translate(
-                    -half_wh.width,
-                    -half_wh.height,
-                    namui::image(ImageParam {
-                        rect: Rect::from_xy_wh(Xy::zero(), projectile_wh),
-                        image,
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: Some(paint),
-                        },
-                    }),
-                ),
-            ),
-        )
+        let duration_secs = self.duration.as_secs_f32();
+        self.progress = if duration_secs <= f32::EPSILON {
+            1.0
+        } else {
+            ((now - self.created_at).as_secs_f32() / duration_secs).clamp(0.0, 1.0)
+        };
     }
 
     pub fn is_alive(&self, now: Instant) -> bool {
         now - self.created_at < self.duration
     }
 
-    fn remaining_life_ratio(&self, now: Instant) -> f32 {
-        let duration_secs = self.duration.as_secs_f32();
-        if duration_secs <= f32::EPSILON {
-            return 0.0;
+    pub fn render_particle(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
+        if self.progress >= 1.0 {
+            return sprites;
         }
 
-        let elapsed = now - self.created_at;
-        let progress = (elapsed.as_secs_f32() / duration_secs).clamp(0.0, 1.0);
-        1.0 - progress
+        let life_ratio = (1.0 - self.progress).max(0.0);
+        if life_ratio <= 0.0 {
+            return sprites;
+        }
+
+        let tile_px_size = crate::game_state::TILE_PX_SIZE;
+        let scale = ((tile_px_size.width.as_f32() * 0.4) / 128.0) * life_ratio;
+        let particle_px_xy = tile_px_size.to_xy() * Xy::new(self.xy.x, self.xy.y);
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::projectile_rect(self.kind);
+        let color = Color::WHITE.with_alpha((life_ratio * 255.0).round() as u8);
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
+            particle_px_xy.x,
+            particle_px_xy.y,
+            scale,
+            angle_rad,
+            Some(color),
+        ));
+        sprites
+    }
+}
+
+impl namui::particle::Particle for ProjectileParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        ProjectileParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> namui::particle::ParticleSprites {
+        ProjectileParticle::render_particle(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        !self.is_alive(now)
     }
 }

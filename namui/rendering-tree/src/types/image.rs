@@ -60,7 +60,7 @@ impl Image {
         })
     }
 
-    pub(crate) fn skia_image(&self) -> Arc<skia_safe::Image> {
+    pub fn skia_image(&self) -> Arc<skia_safe::Image> {
         IMAGES.get().unwrap().get(&self.id).unwrap().clone()
     }
 }

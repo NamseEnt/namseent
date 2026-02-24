@@ -12,6 +12,15 @@ pub trait SkCanvas {
         dest_rect: Rect<Px>,
         paint: &Option<Paint>,
     );
+    fn draw_atlas(
+        &self,
+        atlas: &Image,
+        xforms: &[RSXform],
+        tex_rects: &[Rect<Px>],
+        colors: Option<&[Color]>,
+        sprite_colors_blend_mode: BlendMode,
+        paint: &Option<Paint>,
+    );
     fn translate(&self, dx: Px, dy: Px);
     fn save(&self);
     fn clip_path(&self, path: &Path, clip_op: ClipOp, do_anti_alias: bool);

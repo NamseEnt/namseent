@@ -1,11 +1,8 @@
 use crate::MapCoordF32;
 use crate::game_state::TILE_PX_SIZE;
-use crate::game_state::{
-    field_particle::{
-        FieldParticle,
-        particle::{IconParticle, IconParticleBehavior},
-    },
-};
+use crate::game_state::field_particle::ICONS;
+use crate::game_state::field_particle::particle::{IconParticle, IconParticleBehavior};
+use crate::game_state::tower::TowerStatusEffectKind;
 use crate::icon::{Icon, IconAttribute, IconAttributePosition, IconKind, IconSize};
 use namui::*;
 use rand::Rng;
@@ -19,77 +16,18 @@ const TOWER_BUFF_INITIAL_OPACITY: f32 = 0.8;
 const MIN_INSTANT_PARTICLE_COUNT: usize = 1;
 const MAX_INSTANT_PARTICLE_COUNT: usize = 2;
 
-pub struct TowerStatusEffectEmitter {
+pub fn spawn_tower_status_effect_icons(
+    now: Instant,
     tower_xy: MapCoordF32,
-    buff_kind: FieldAreaEffectKind,
-    has_emitted: bool,
-}
+    buff_kind: TowerStatusEffectKind,
+) {
+    let mut rng = rand::thread_rng();
+    let particle_count = rng.gen_range(MIN_INSTANT_PARTICLE_COUNT..=MAX_INSTANT_PARTICLE_COUNT);
 
-impl TowerStatusEffectEmitter {
-    pub fn new(
-        _now: Instant,
-        tower_xy: MapCoordF32,
-        buff_kind: FieldAreaEffectKind,
-        _duration: Duration,
-    ) -> Self {
-        Self {
-            tower_xy,
-            buff_kind,
-            has_emitted: false,
-        }
-    }
+    let buff_icon = create_tower_buff_icon(buff_kind);
+    let tower_pixel = map_coord_to_pixel_f32(tower_xy);
 
-    pub fn new_with_default_duration(
-        now: Instant,
-        tower_xy: MapCoordF32,
-        buff_kind: FieldAreaEffectKind,
-    ) -> Self {
-        Self::new(now, tower_xy, buff_kind, Duration::ZERO)
-    }
-
-    fn create_tower_buff_icon(&self) -> Icon {
-        let (icon_kind, attribute_icon) = match &self.buff_kind {
-            FieldAreaEffectKind::TowerAttackPowerPlusBuffOverTime { .. }
-            | FieldAreaEffectKind::TowerAttackPowerMultiplyBuffOverTime { .. } => {
-                (IconKind::AttackDamage, IconKind::Up)
-            }
-            FieldAreaEffectKind::TowerAttackSpeedPlusBuffOverTime { .. }
-            | FieldAreaEffectKind::TowerAttackSpeedMultiplyBuffOverTime { .. } => {
-                (IconKind::AttackSpeed, IconKind::Up)
-            }
-            FieldAreaEffectKind::TowerAttackRangePlusBuffOverTime { .. } => {
-                (IconKind::AttackRange, IconKind::Up)
-            }
-            _ => (IconKind::AttackDamage, IconKind::Up),
-        };
-
-        Icon {
-            kind: icon_kind,
-            size: IconSize::Custom {
-                size: px(TOWER_BUFF_ICON_SIZE),
-            },
-            attributes: vec![IconAttribute {
-                icon_kind: attribute_icon,
-                position: IconAttributePosition::BottomRight,
-            }],
-            wh: Wh::single(px(TOWER_BUFF_ICON_SIZE)),
-            opacity: TOWER_BUFF_INITIAL_OPACITY,
-        }
-    }
-
-    fn map_coord_to_pixel_f32(&self, coord: MapCoordF32) -> Xy<f32> {
-        let tile_size = crate::game_state::TILE_PX_SIZE;
-        let pixel = tile_size.to_xy() * coord;
-        Xy {
-            x: pixel.x.as_f32(),
-            y: pixel.y.as_f32(),
-        }
-    }
-
-    fn create_fade_rise_particle(&self, now: Instant) -> FieldParticle {
-        let mut rng = rand::thread_rng();
-        let tower_pixel = self.map_coord_to_pixel_f32(self.tower_xy);
-
+    for _ in 0..particle_count {
         let offset_range = 0.75;
         let offset_x = TILE_PX_SIZE.width.as_f32() * rng.gen_range(-offset_range..=offset_range);
         let offset_y = TILE_PX_SIZE.height.as_f32() * rng.gen_range(-offset_range..=offset_range);
@@ -99,8 +37,6 @@ impl TowerStatusEffectEmitter {
             y: tower_pixel.y + offset_y,
         };
 
-        let buff_icon = self.create_tower_buff_icon();
-
         let behavior = IconParticleBehavior::FadeRise {
             duration: Duration::from_millis(TOWER_BUFF_FADE_DURATION_MS),
             speed: rng.gen_range(TOWER_BUFF_MIN_SPEED..=TOWER_BUFF_MAX_SPEED),
@@ -109,35 +45,45 @@ impl TowerStatusEffectEmitter {
         };
 
         let icon_particle = IconParticle {
-            icon: buff_icon,
+            icon: buff_icon.clone(),
             xy: Xy::new(px(position.x), px(position.y)),
             rotation: 0.0.deg(),
             behavior,
         };
 
-        FieldParticle::Icon {
-            particle: icon_particle,
-        }
+        ICONS.spawn(icon_particle);
     }
+}
 
-    pub fn emit(&mut self, now: Instant, _dt: Duration) -> Vec<FieldParticle> {
-        if self.has_emitted {
-            return vec![];
+fn create_tower_buff_icon(buff_kind: TowerStatusEffectKind) -> Icon {
+    let (icon_kind, attribute_icon) = match buff_kind {
+        TowerStatusEffectKind::DamageAdd { .. } | TowerStatusEffectKind::DamageMul { .. } => {
+            (IconKind::AttackDamage, IconKind::Up)
         }
+        TowerStatusEffectKind::AttackSpeedAdd { .. }
+        | TowerStatusEffectKind::AttackSpeedMul { .. } => (IconKind::AttackSpeed, IconKind::Up),
+        TowerStatusEffectKind::AttackRangeAdd { .. } => (IconKind::AttackRange, IconKind::Up),
+    };
 
-        let mut rng = rand::thread_rng();
-        let particle_count = rng.gen_range(MIN_INSTANT_PARTICLE_COUNT..=MAX_INSTANT_PARTICLE_COUNT);
-        let mut particles = Vec::with_capacity(particle_count);
-
-        for _ in 0..particle_count {
-            particles.push(self.create_fade_rise_particle(now));
-        }
-
-        self.has_emitted = true;
-        particles
+    Icon {
+        kind: icon_kind,
+        size: IconSize::Custom {
+            size: px(TOWER_BUFF_ICON_SIZE),
+        },
+        attributes: vec![IconAttribute {
+            icon_kind: attribute_icon,
+            position: IconAttributePosition::BottomRight,
+        }],
+        wh: Wh::single(px(TOWER_BUFF_ICON_SIZE)),
+        opacity: TOWER_BUFF_INITIAL_OPACITY,
     }
+}
 
-    pub fn is_done(&self, _now: Instant) -> bool {
-        self.has_emitted
+fn map_coord_to_pixel_f32(coord: MapCoordF32) -> Xy<f32> {
+    let tile_size = crate::game_state::TILE_PX_SIZE;
+    let pixel = tile_size.to_xy() * coord;
+    Xy {
+        x: pixel.x.as_f32(),
+        y: pixel.y.as_f32(),
     }
 }

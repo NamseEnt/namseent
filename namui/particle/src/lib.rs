@@ -1,131 +1,143 @@
+use arc_swap::ArcSwap;
+use arrayvec::ArrayVec;
+use crossbeam_queue::SegQueue;
 use namui_hooks::*;
 use namui_rendering_tree::*;
 use namui_type::*;
-use std::{
-    cell::RefCell,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::sync::{Arc, OnceLock};
+use std::thread::Thread;
 
-pub trait Emitter<P> {
-    fn emit(&mut self, now: Instant, dt: Duration) -> Vec<P>;
+pub type ParticleSprites = ArrayVec<ImageSprite, 16>;
+
+pub trait Particle: Send + Sync + 'static + Sized {
+    fn tick(&mut self, now: Instant, dt: Duration);
+    fn render(&self) -> ParticleSprites;
     fn is_done(&self, now: Instant) -> bool;
 }
 
-pub trait Particle<E> {
-    fn tick(&mut self, now: Instant, dt: Duration) -> Vec<E>;
-    fn render(&self) -> RenderingTree;
-    fn is_done(&self, now: Instant) -> bool;
+enum EmitterMsg<P> {
+    Spawn(P),
+    Tick { now: Instant, dt: Duration },
 }
 
-#[derive(State)]
-pub struct System<E, P>
-where
-    E: State,
-    P: State,
-{
-    _emitter: std::marker::PhantomData<E>,
-    _particle: std::marker::PhantomData<P>,
-    initial_emitters: RefCell<Vec<E>>,
-    is_done: Arc<AtomicBool>,
+pub struct Emitter<P: Particle> {
+    inner: OnceLock<EmitterInner<P>>,
 }
 
-impl<E, P> System<E, P>
-where
-    E: Emitter<P> + State,
-    P: Particle<E> + State,
-{
-    pub fn new(emitters: Vec<E>) -> Self {
+struct EmitterInner<P: Particle> {
+    queue: Arc<SegQueue<EmitterMsg<P>>>,
+    worker_thread: Thread,
+    rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
+}
+
+impl<P: Particle> Default for Emitter<P> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<P: Particle> Emitter<P> {
+    pub const fn new() -> Self {
         Self {
-            _emitter: std::marker::PhantomData,
-            _particle: std::marker::PhantomData,
-            initial_emitters: emitters.into(),
-            is_done: Arc::new(AtomicBool::new(false)),
+            inner: OnceLock::new(),
         }
     }
-    pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
-        ctx.add(SystemComponent {
-            now,
-            initial_emitters: &self.initial_emitters,
-            system_is_done: &self.is_done,
-            _p: std::marker::PhantomData,
+
+    pub fn spawn(&self, particle: P) {
+        self.init();
+        let inner = self.inner.get().unwrap();
+        inner.queue.push(EmitterMsg::Spawn(particle));
+        inner.worker_thread.unpark();
+    }
+
+    pub fn tick(&self, now: Instant, dt: Duration) {
+        self.init();
+        let inner = self.inner.get().unwrap();
+        inner.queue.push(EmitterMsg::Tick { now, dt });
+        inner.worker_thread.unpark();
+    }
+
+    fn init(&self) {
+        self.inner.get_or_init(|| {
+            let queue = Arc::new(SegQueue::new());
+            let rendered_sprites = Arc::new(ArcSwap::from_pointee(Vec::new()));
+
+            let queue_clone = queue.clone();
+            let rendered_sprites_clone = rendered_sprites.clone();
+
+            let handle = std::thread::Builder::new()
+                .stack_size(64 * 1024)
+                .spawn(move || {
+                    tick_thread_main(queue_clone, rendered_sprites_clone);
+                })
+                .expect("failed to spawn emitter thread");
+
+            EmitterInner {
+                queue,
+                worker_thread: handle.thread().clone(),
+                rendered_sprites,
+            }
         });
     }
 
-    pub fn is_done(&self, _now: Instant) -> bool {
-        self.is_done.load(Ordering::Acquire)
+    pub fn latest_sprites(&self) -> Arc<Vec<ImageSprite>> {
+        self.inner
+            .get()
+            .map(|inner| inner.rendered_sprites.load_full())
+            .unwrap_or_else(|| Arc::new(Vec::new()))
     }
 }
 
-struct SystemComponent<'a, E, P> {
-    now: Instant,
-    initial_emitters: &'a RefCell<Vec<E>>,
-    system_is_done: &'a Arc<AtomicBool>,
-    _p: std::marker::PhantomData<P>,
+unsafe impl<P: Particle> Sync for Emitter<P> {}
+
+pub struct RenderEmitter<'a, P: Particle> {
+    pub emitter: &'a Emitter<P>,
+    pub image: Image,
+    pub sprite_colors_blend_mode: BlendMode,
+    pub paint: Option<Paint>,
 }
 
-impl<E, P> Component for SystemComponent<'_, E, P>
-where
-    E: Emitter<P> + State,
-    P: Particle<E> + State,
-{
+impl<P: Particle> Component for RenderEmitter<'_, P> {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            now,
-            initial_emitters,
-            system_is_done,
-            ..
-        } = self;
-        #[derive(State)]
-        struct State<E: namui_type::State, P: namui_type::State> {
-            emitters: Vec<E>,
-            particles: Vec<P>,
-            last_now: Instant,
+        self.emitter.init();
+        let sprites = self.emitter.latest_sprites();
+        if sprites.is_empty() {
+            return;
         }
-        let (state, set_state) = ctx.state(|| State {
-            emitters: initial_emitters.replace(vec![]),
-            particles: Vec::<P>::with_capacity(65536),
-            last_now: now,
-        });
+        let cloned = Arc::unwrap_or_clone(sprites);
+        ctx.add(RenderingTree::Node(DrawCommand::Image {
+            command: Box::new(ImageDrawCommand {
+                image: self.image,
+                sprites: cloned,
+                paint: self.paint,
+                sprite_colors_blend_mode: self.sprite_colors_blend_mode,
+            }),
+        }));
+    }
+}
 
-        ctx.attach_event(|event| {
-            let Event::ScreenRedraw = event else {
-                return;
-            };
+fn tick_thread_main<P: Particle>(
+    queue: Arc<SegQueue<EmitterMsg<P>>>,
+    rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
+) {
+    let mut particles: Vec<P> = Vec::with_capacity(256);
 
-            let system_is_done = system_is_done.clone();
-            set_state.mutate(move |state| {
-                let &mut State {
-                    ref mut emitters,
-                    ref mut particles,
-                    ref mut last_now,
-                } = state;
-                let dt = now - *last_now;
-
-                emitters.retain_mut(|emitter| {
-                    particles.extend(emitter.emit(now, dt));
-                    !emitter.is_done(now)
-                });
-
-                let new_emitters = particles
-                    .iter_mut()
-                    .flat_map(|particle| particle.tick(now, dt));
-                emitters.extend(new_emitters);
-
-                particles.retain_mut(|particle| !particle.is_done(now));
-
-                if emitters.is_empty() && particles.is_empty() {
-                    system_is_done.store(true, Ordering::Release);
+    loop {
+        while let Some(msg) = queue.pop() {
+            match msg {
+                EmitterMsg::Spawn(p) => {
+                    particles.push(p);
                 }
-
-                *last_now = now;
-            });
-        });
-
-        for particle in state.particles.iter() {
-            ctx.add(particle.render());
+                EmitterMsg::Tick { now, dt } => {
+                    use rayon::prelude::*;
+                    particles.par_iter_mut().for_each(|p| p.tick(now, dt));
+                    particles.retain(|p| !p.is_done(now));
+                    let sprites: Vec<ImageSprite> =
+                        particles.par_iter().flat_map_iter(|p| p.render()).collect();
+                    rendered_sprites.store(Arc::new(sprites));
+                }
+            }
         }
+        std::thread::park();
     }
 }

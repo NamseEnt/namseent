@@ -455,8 +455,7 @@ pub enum EffectExecutionError {
 pub mod tests_support {
     use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
-        GameState, MAP_SIZE, TRAVEL_POINTS, field_particle, flow::GameFlow,
-        monster_spawn::MonsterSpawnState,
+        GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
     };
     use namui::Instant;
     use std::num::NonZeroUsize; // use the same Instant type as production code
@@ -491,7 +490,6 @@ pub mod tests_support {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,
@@ -499,6 +497,10 @@ pub mod tests_support {
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
             just_cleared_boss_stage: false,
+            status_effect_particle_generator:
+                crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
+                    Instant::now(),
+                ),
         }
     }
 }

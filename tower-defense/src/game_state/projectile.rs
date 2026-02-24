@@ -28,7 +28,6 @@ impl Projectile {
         trail: ProjectileTrail,
         hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
-        // Initialize with upward direction for Direct projectiles (tiles/second)
         let speed = velocity * Duration::from_secs(1);
         let initial_direction = Xy::new(0.0, -1.0);
         Self {
@@ -54,12 +53,10 @@ impl Projectile {
         trail: ProjectileTrail,
         hit_effect: attack::ProjectileHitEffect,
     ) -> Self {
-        // Randomize initial speed and turn rate within configured ranges
         let mut rng = thread_rng();
         let initial_speed =
             rng.gen_range(HOMING_INITIAL_SPEED_MIN_TILE..=HOMING_INITIAL_SPEED_MAX_TILE);
         let turn_rate = rng.gen_range(HOMING_TURN_RATE_MIN_TILE..=HOMING_TURN_RATE_MAX_TILE);
-        // Initial velocity: straight up in map coordinate space (tiles/second)
         let initial_velocity = Xy::new(0.0, -initial_speed);
         Self {
             xy,
@@ -85,7 +82,6 @@ impl Projectile {
         let direction = (dest_xy - self.xy).normalize();
         let speed = self.velocity.length();
         self.xy += direction * speed * dt.as_secs_f32();
-        // Update velocity to reflect actual movement direction (tiles/second)
         self.velocity = direction * speed;
         self.rotation += self.rotation_speed * dt.as_secs_f32();
     }
@@ -102,9 +98,7 @@ impl Projectile {
             let distance_to_target = (dest_xy - self.xy).length();
             let desired_dir = (dest_xy - self.xy).normalize();
 
-            // Phase transition: far = homing, close = direct high-speed
             if distance_to_target > HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE {
-                // Phase 1: Homing behavior - turn gradually toward target
                 let mut speed = velocity.length();
                 let acceleration = *acceleration;
                 let turn_rate = *turn_rate;
@@ -115,19 +109,15 @@ impl Projectile {
                 *velocity += (target_velocity - *velocity) * t;
                 self.xy += *velocity * dt_secs;
             } else {
-                // Phase 2: Direct high-speed - accelerate toward target in straight line
                 let acceleration = *acceleration;
                 let max_speed = *max_speed;
                 let mut speed = velocity.length();
-                // Accelerate more aggressively when close
                 speed = (speed + acceleration * dt_secs * HOMING_DIRECT_ACCELERATION_MULTIPLIER)
                     .min(max_speed);
-                // Move directly toward target
                 *velocity = desired_dir * speed;
                 self.xy += *velocity * dt_secs;
             }
 
-            // Update self.velocity to reflect actual movement velocity
             self.velocity = *velocity;
         }
 
@@ -139,32 +129,20 @@ impl Projectile {
 pub enum ProjectileBehavior {
     Direct,
     Homing {
-        /// Current velocity vector (tiles/second, map coordinate units)
         velocity: Xy<f32>,
-        /// Acceleration magnitude (tiles/second², map coordinate units)
         acceleration: f32,
-        /// Turn rate - blending factor for direction change per second
         turn_rate: f32,
-        /// Maximum speed (tiles/second, map coordinate units)
         max_speed: f32,
     },
 }
 
-/// Homing projectile initial upward speed - minimum (tiles/second, map coordinate units)
 const HOMING_INITIAL_SPEED_MIN_TILE: f32 = 24.0;
-/// Homing projectile initial upward speed - maximum (tiles/second, map coordinate units)
 const HOMING_INITIAL_SPEED_MAX_TILE: f32 = 32.0;
-/// Homing projectile maximum speed (tiles/second, map coordinate units)
 const HOMING_MAX_SPEED_TILE: f32 = 36.0;
-/// Homing projectile acceleration (tiles/second², map coordinate units)
 const HOMING_ACCELERATION_TILE: f32 = 1024.0;
-/// Homing projectile turn rate - minimum blending factor for direction change (0.0 = no turn, 1.0 = instant turn)
 const HOMING_TURN_RATE_MIN_TILE: f32 = 2.0;
-/// Homing projectile turn rate - maximum blending factor for direction change (0.0 = no turn, 1.0 = instant turn)
 const HOMING_TURN_RATE_MAX_TILE: f32 = 8.0;
-/// Distance threshold to switch from homing to direct movement (tiles, map coordinate units)
 const HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE: f32 = 4.0;
-/// Acceleration multiplier when in direct phase (applied to base acceleration)
 const HOMING_DIRECT_ACCELERATION_MULTIPLIER: f32 = 0.1;
 impl Component for &Projectile {
     fn render(self, ctx: &RenderCtx) {

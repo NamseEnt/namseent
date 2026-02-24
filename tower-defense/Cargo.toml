@@ -21,3 +21,7 @@ twemoji-assets = "1.4.0"
 image = "0.25.1"
 rayon = "1.10.0"
 resvg = "0.45.1"
+
+[patch.crates-io]
+rayon = { git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }
+rayon-core = { git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }

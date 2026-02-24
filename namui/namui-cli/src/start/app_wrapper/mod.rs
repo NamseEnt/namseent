@@ -31,6 +31,10 @@ opt-level = 1
 # opt-level = 3
 strip = "debuginfo"
 debug = "line-tables-only"
+
+[patch.crates-io]
+rayon = {{ git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }}
+rayon-core = {{ git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }}
 "#,
         ),
     )?;

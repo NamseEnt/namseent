@@ -21,6 +21,7 @@ pub mod play_history;
 pub mod projectile;
 mod render;
 pub mod stage_modifiers;
+mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
@@ -47,6 +48,7 @@ use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
 pub use render::*;
+use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -95,7 +97,6 @@ pub struct GameState {
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
-    pub field_particle_system_manager: field_particle::FieldParticleSystemManager,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
@@ -103,6 +104,7 @@ pub struct GameState {
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
     pub just_cleared_boss_stage: bool,
+    pub status_effect_particle_generator: StatusEffectParticleGenerator,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -186,6 +188,7 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 fn create_initial_game_state() -> GameState {
+    let now = Instant::now();
     let mut game_state = GameState {
         monsters: Default::default(),
         towers: Default::default(),
@@ -239,10 +242,9 @@ fn create_initial_game_state() -> GameState {
         left_quest_board_refresh_chance: 0,
         item_used: false,
         level: NonZeroUsize::new(1).unwrap(),
-        game_now: Instant::now(),
+        game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
-        field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
         locale: crate::l10n::Locale::KOREAN,
         play_history: PlayHistory::new(),
         opened_modal: None,
@@ -250,10 +252,11 @@ fn create_initial_game_state() -> GameState {
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
         just_cleared_boss_stage: false,
+        status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
     };
 
-    game_state.record_game_start();
     game_state.goto_next_stage();
+    game_state.record_game_start();
     game_state
 }
 
@@ -310,7 +313,6 @@ impl GameState {
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
-            field_particle_system_manager: field_particle::FieldParticleSystemManager::default(),
             locale: self.locale,
             play_history: self.play_history.clone(),
             opened_modal: None,
@@ -318,6 +320,7 @@ impl GameState {
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
         }
     }
 

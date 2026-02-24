@@ -1,11 +1,12 @@
 use super::trash::EaseMode;
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
 const CARD_SIZE_TILE: f32 = 0.3;
 
-#[derive(Clone, Copy, State)]
+#[derive(Clone, Copy)]
 pub enum CardKind {
     Card00,
     Card01,
@@ -23,18 +24,9 @@ impl CardKind {
             _ => unreachable!(),
         }
     }
-
-    pub fn image(&self) -> Image {
-        match self {
-            CardKind::Card00 => crate::asset::image::attack::particle::CARD_00,
-            CardKind::Card01 => crate::asset::image::attack::particle::CARD_01,
-            CardKind::Card02 => crate::asset::image::attack::particle::CARD_02,
-            CardKind::Card03 => crate::asset::image::attack::particle::CARD_03,
-        }
-    }
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct CardParticle {
     pub kind: CardKind,
     pub start_xy: (f32, f32),
@@ -44,11 +36,11 @@ pub struct CardParticle {
     pub progress: f32,
     pub ease_mode: EaseMode,
     pub rotation: Angle,
-    pub rotation_speed: Angle, // per second
-    pub gravity: f32,          // tiles per second^2
+    pub rotation_speed: Angle,
+    pub gravity: f32,
 }
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct CardParticleConfig {
     pub kind: CardKind,
     pub start_xy: (f32, f32),
@@ -61,23 +53,18 @@ pub struct CardParticleConfig {
 }
 
 impl CardParticle {
-    pub fn tick(
-        &mut self,
-        now: Instant,
-        dt: Duration,
-    ) -> Vec<crate::game_state::field_particle::FieldParticleEmitter> {
+    pub fn tick_impl(&mut self, now: Instant, dt: Duration) {
         self.progress = self.progress(now);
         self.rotation += self.rotation_speed * dt.as_secs_f32();
-        vec![]
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.progress >= 1.0 {
-            return RenderingTree::Empty;
+            return sprites;
         }
 
         let eased = match self.ease_mode {
-            EaseMode::Linear => self.progress,
             EaseMode::EaseOutCubic => {
                 let inv = 1.0 - self.progress;
                 1.0 - (inv * inv * inv)
@@ -87,37 +74,29 @@ impl CardParticle {
         let x = self.start_xy.0 + (self.end_xy.0 - self.start_xy.0) * eased;
         let mut y = self.start_xy.1 + (self.end_xy.1 - self.start_xy.1) * eased;
 
-        // apply gravity offset using elapsed estimated from progress and duration
         let elapsed_secs = self.progress * self.duration.as_secs_f32();
         let y_offset = 0.5 * self.gravity * elapsed_secs * elapsed_secs;
         y += y_offset;
 
         let px_xy = TILE_PX_SIZE.to_xy() * Xy::new(x, y);
 
-        let card_size_px = TILE_PX_SIZE.width * CARD_SIZE_TILE;
-        let wh = Wh::new(card_size_px, card_size_px);
+        let scale = (TILE_PX_SIZE.width.as_f32() * CARD_SIZE_TILE) / 128.0;
 
-        let image = self.kind.image();
-
-        // alpha fades out linearly with progress so it's not eased
         let alpha = (1.0 - self.progress).max(0.0);
-        let paint = Paint::new(Color::WHITE.with_alpha((alpha * 255.0) as u8));
+        let color = Color::WHITE.with_alpha((alpha * 255.0) as u8);
 
-        namui::translate(
+        let angle_rad = self.rotation.as_radians();
+        let src_rect = atlas::card_particle_rect(self.kind);
+
+        sprites.push(atlas::centered_rotated_sprite(
+            src_rect,
             px_xy.x,
             px_xy.y,
-            namui::rotate(
-                self.rotation,
-                namui::image(ImageParam {
-                    rect: Rect::from_xy_wh(wh.to_xy() * -0.5, wh),
-                    image,
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: Some(paint),
-                    },
-                }),
-            ),
-        )
+            scale,
+            angle_rad,
+            Some(color),
+        ));
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -129,14 +108,12 @@ impl CardParticle {
         (elapsed.as_secs_f32() / self.duration.as_secs_f32()).min(1.0)
     }
 
-    // helper to create with random direction for burst effect
     pub fn new_with_random_burst(config: CardParticleConfig) -> Self {
         let mut rng = rand::thread_rng();
         let offset_x = rng.gen_range(-0.3..0.3);
         let offset_y = rng.gen_range(-0.3..0.3);
         let end = (config.end_xy.0 + offset_x, config.end_xy.1 + offset_y);
 
-        // random rotation and speed
         let rotation = rng.gen_range(0.0..360.0).deg();
         let rotation_speed = rng
             .gen_range(config.rotation_speed_deg_per_sec.0..config.rotation_speed_deg_per_sec.1)
@@ -154,5 +131,19 @@ impl CardParticle {
             rotation_speed,
             gravity: config.gravity,
         }
+    }
+}
+
+impl namui::particle::Particle for CardParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        self.tick_impl(now, dt);
+    }
+
+    fn render(&self) -> namui::particle::ParticleSprites {
+        CardParticle::render(self)
+    }
+
+    fn is_done(&self, now: Instant) -> bool {
+        CardParticle::is_done(self, now)
     }
 }

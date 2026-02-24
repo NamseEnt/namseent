@@ -23,7 +23,26 @@ impl XyIn for TextDrawCommand {
 
 impl XyIn for ImageDrawCommand {
     fn xy_in(&self, xy: Xy<Px>) -> bool {
-        let path = Path::new().add_rect(self.rect);
-        NativePath::get(&path).contains(self.paint.as_ref(), xy)
+        for sprite in &self.sprites {
+            let w = sprite.src_rect.width();
+            let h = sprite.src_rect.height();
+            let xform = &sprite.xform;
+
+            let det = xform.scos * xform.scos + xform.ssin * xform.ssin;
+            if det == 0.0 {
+                continue;
+            }
+
+            let dx = xy.x - xform.tx;
+            let dy = xy.y - xform.ty;
+
+            let local_x = (dx * xform.scos + dy * xform.ssin) / det;
+            let local_y = (dx * (-xform.ssin) + dy * xform.scos) / det;
+
+            if local_x >= px(0.0) && local_x <= w && local_y >= px(0.0) && local_y <= h {
+                return true;
+            }
+        }
+        false
     }
 }

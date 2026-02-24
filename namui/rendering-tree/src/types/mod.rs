@@ -669,11 +669,6 @@ pub enum TextBaseline {
 /// Example: https://developer.mozilla.org/ko/docs/Web/CSS/object-fit
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, State)]
 pub enum ImageFit {
-    /// The replaced content is sized to fill the element's content box.
-    /// The entire object will completely fill the box.
-    /// If the object's aspect ratio does not match the aspect ratio of its box,
-    /// then the object will be stretched to fit.
-    Fill,
     /// The replaced content is scaled to maintain its aspect ratio while fitting within the element's content box.
     /// The entire object is made to fill the box, while preserving its aspect ratio, so the object will be letterboxed
     /// if its aspect ratio does not match the aspect ratio of the box.

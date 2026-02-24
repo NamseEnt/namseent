@@ -8,13 +8,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     let now = game_state.now();
 
     let mut projectiles = Vec::new();
-    let mut attack_effect_particles = Vec::new();
-    let mut field_emitters = Vec::new();
-    let mut damage_emitters = Vec::new();
-    let mut monster_death_emitters = Vec::new();
-    let mut monster_kills = Vec::new(); // (target_idx, damage, target_xy) 튜플
+    let mut monster_kills = Vec::new();
 
-    // towers.iter_mut()의 scope을 최소화
     {
         let towers = &mut game_state.towers;
         let upgrade_state = &game_state.upgrade_state;
@@ -26,12 +21,10 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             }
 
-            // Check if tower rank is disabled by contract
             if stage_modifiers.get_disabled_ranks().contains(&tower.rank()) {
                 continue;
             }
 
-            // Check if tower suit is disabled by contract
             if stage_modifiers.get_disabled_suits().contains(&tower.suit()) {
                 continue;
             }
@@ -87,19 +80,16 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     });
 
-                    // Particle을 즉시 생성하지 않고 Emitter를 생성
-                    field_emitters.push(field_particle::FieldParticleEmitter::LaserBeam {
-                        emitter: field_particle::emitter::LaserBeamEmitter::new(
-                            laser.start_xy,
-                            laser.end_xy,
-                            laser.created_at,
-                        ),
-                    });
+                    field_particle::emitter::spawn_laser_beam(
+                        laser.start_xy,
+                        laser.end_xy,
+                        laser.created_at,
+                    );
 
                     if damage > 0.0 {
-                        damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
-                            target_xy, damage,
-                        ));
+                        field_particle::DAMAGE_TEXTS.spawn(
+                            field_particle::DamageTextParticle::new(target_xy, damage, now),
+                        );
                     }
 
                     monster_kills.push((target_idx, damage, target_xy));
@@ -108,28 +98,23 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     emit_effect,
                     hit_effect,
                 } => {
-                    attack_effect_particles.push(field_particle::FieldParticle::InstantEmit {
-                        particle: field_particle::InstantEmitParticle::new(
-                            emit_effect.tower_xy,
-                            emit_effect.target_xy,
-                            emit_effect.created_at,
-                            emit_effect.kind,
-                        ),
-                    });
-                    attack_effect_particles.push(field_particle::FieldParticle::InstantHit {
-                        particle: field_particle::InstantHitParticle::new(
-                            hit_effect.xy,
-                            hit_effect.created_at,
-                            hit_effect.kind,
-                            hit_effect.scale,
-                        ),
-                    });
+                    field_particle::INSTANT_EMITS.spawn(field_particle::InstantEmitParticle::new(
+                        emit_effect.tower_xy,
+                        emit_effect.target_xy,
+                        emit_effect.created_at,
+                        emit_effect.kind,
+                    ));
+                    field_particle::INSTANT_HITS.spawn(field_particle::InstantHitParticle::new(
+                        hit_effect.xy,
+                        hit_effect.created_at,
+                        hit_effect.kind,
+                        hit_effect.scale,
+                    ));
 
                     if instant_damage > 0.0 {
-                        damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
-                            target_xy,
-                            instant_damage,
-                        ));
+                        field_particle::DAMAGE_TEXTS.spawn(
+                            field_particle::DamageTextParticle::new(target_xy, instant_damage, now),
+                        );
                     }
 
                     monster_kills.push((target_idx, instant_damage, target_xy));
@@ -155,9 +140,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 }
             }
         }
-    } // towers 빌려주기 종료
+    }
 
-    // 괴물에게 데미지 적용 및 사망 처리
     let indices_to_remove: Vec<_> = monster_kills
         .into_iter()
         .filter_map(|(target_idx, damage, target_xy)| {
@@ -175,27 +159,10 @@ pub fn shoot_attacks(game_state: &mut GameState) {
         })
         .collect();
 
-    // 사망한 괴물 처리 (역순으로 처리해서 인덱스 문제 회피)
     let now = game_state.now();
     for (target_idx, target_xy) in indices_to_remove.into_iter().rev() {
-        super::monster_death::handle_monster_death(
-            game_state,
-            target_idx,
-            target_xy,
-            now,
-            &mut monster_death_emitters,
-        );
+        super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
     }
 
     game_state.projectiles.extend(projectiles);
-
-    if !field_emitters.is_empty() {
-        game_state
-            .field_particle_system_manager
-            .add_emitters(field_emitters);
-    }
-
-    super::particle_emit::emit_attack_effect_particles(game_state, attack_effect_particles);
-    super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
-    super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
 }

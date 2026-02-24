@@ -293,8 +293,115 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
     }
 }
 
-fn render_field_particles(ctx: &RenderCtx, game_state: &GameState) {
-    game_state
-        .field_particle_system_manager
-        .render(ctx, game_state.now());
+fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
+    let shapes = crate::asset::image::PARTICLE_SHAPES;
+    let line = crate::asset::image::PARTICLE_LINE;
+    let projectiles = crate::asset::image::PARTICLE_PROJECTILES;
+    let monsters = crate::asset::image::PARTICLE_MONSTERS;
+    let icons = crate::asset::image::PARTICLE_ICONS;
+    let digits = crate::asset::image::PARTICLE_DIGITS;
+    let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
+
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::BURNING_TRAILS,
+        image: crate::asset::image::PARTICLE_BURNING_TRAIL,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::EMBER_SPARKS,
+        image: shapes,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::LASER_LINES,
+        image: line,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::LIGHTNING_BOLTS,
+        image: line,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::BLUE_DOT_SPARKS,
+        image: shapes,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::MONSTER_CORPSES,
+        image: monsters,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::PROJECTILES,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::TRASHES,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::INSTANT_EMITS,
+        image: line,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::INSTANT_HITS,
+        image: shapes,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::MONSTER_SOULS,
+        image: monsters,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::ICONS,
+        image: icons,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::DAMAGE_TEXTS,
+        image: digits,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::CARDS,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::HEARTS,
+        image: projectiles,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::SPARKLES,
+        image: shapes,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::WIND_CURVE_TRAILS,
+        image: line,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: screen_paint.clone(),
+    });
 }

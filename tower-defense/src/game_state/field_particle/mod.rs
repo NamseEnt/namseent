@@ -1,364 +1,62 @@
+pub mod atlas;
 pub mod emitter;
 pub mod particle;
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use namui::{Duration, Instant};
 
-use crate::game_state::{
-    GameState,
-    field_particle::emitter::{DamageTextEmitter, MonsterDeathEmitter, MonsterStatusEffectEmitter},
-};
-use namui::{
-    particle::{Emitter, Particle},
-    *,
-};
 pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
     EmberSparkParticle, HeartParticle, IconParticle, InstantEmitParticle, InstantHitParticle,
-    LaserBeamParticle, LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle,
-    MonsterSoulParticle, ProjectileParticle, SparkleParticle, TrashParticle,
-    WindCurveTrailParticle,
+    LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
+    ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
-#[derive(State)]
-pub struct TempParticleEmitter {
-    particles: Vec<FieldParticle>,
-    emitted: bool,
-}
+pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
+    namui::particle::Emitter::new();
+pub static TRASHES: namui::particle::Emitter<TrashParticle> = namui::particle::Emitter::new();
+pub static CARDS: namui::particle::Emitter<CardParticle> = namui::particle::Emitter::new();
+pub static BURNING_TRAILS: namui::particle::Emitter<BurningTrailParticle> =
+    namui::particle::Emitter::new();
+pub static EMBER_SPARKS: namui::particle::Emitter<EmberSparkParticle> =
+    namui::particle::Emitter::new();
+pub static MONSTER_SOULS: namui::particle::Emitter<MonsterSoulParticle> =
+    namui::particle::Emitter::new();
+pub static MONSTER_CORPSES: namui::particle::Emitter<MonsterCorpseParticle> =
+    namui::particle::Emitter::new();
+pub static ICONS: namui::particle::Emitter<IconParticle> = namui::particle::Emitter::new();
+pub static DAMAGE_TEXTS: namui::particle::Emitter<DamageTextParticle> =
+    namui::particle::Emitter::new();
+pub static BLUE_DOT_SPARKS: namui::particle::Emitter<BlueDotSparkParticle> =
+    namui::particle::Emitter::new();
+pub static LASER_LINES: namui::particle::Emitter<LaserLineParticle> =
+    namui::particle::Emitter::new();
+pub static INSTANT_EMITS: namui::particle::Emitter<InstantEmitParticle> =
+    namui::particle::Emitter::new();
+pub static INSTANT_HITS: namui::particle::Emitter<InstantHitParticle> =
+    namui::particle::Emitter::new();
+pub static LIGHTNING_BOLTS: namui::particle::Emitter<LightningBoltParticle> =
+    namui::particle::Emitter::new();
+pub static SPARKLES: namui::particle::Emitter<SparkleParticle> = namui::particle::Emitter::new();
+pub static WIND_CURVE_TRAILS: namui::particle::Emitter<WindCurveTrailParticle> =
+    namui::particle::Emitter::new();
+pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
 
-impl TempParticleEmitter {
-    pub fn new(particles: Vec<FieldParticle>) -> Self {
-        Self {
-            particles,
-            emitted: false,
-        }
-    }
-
-    pub fn emit(&mut self, _now: Instant, _dt: Duration) -> Vec<FieldParticle> {
-        if self.emitted {
-            return vec![];
-        }
-        self.emitted = true;
-        std::mem::take(&mut self.particles)
-    }
-
-    pub fn is_done(&self, _now: Instant) -> bool {
-        self.emitted
-    }
-}
-
-#[derive(State)]
-pub struct FieldParticleSystem {
-    id: usize,
-    system: namui::particle::System<FieldParticleEmitter, FieldParticle>,
-}
-impl FieldParticleSystem {
-    pub fn new(emitters: Vec<FieldParticleEmitter>) -> Self {
-        static NEXT_ID: AtomicUsize = AtomicUsize::new(1);
-        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        let system = namui::particle::System::new(emitters);
-        Self { id, system }
-    }
-}
-impl AsMut<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
-    fn as_mut(&mut self) -> &mut namui::particle::System<FieldParticleEmitter, FieldParticle> {
-        &mut self.system
-    }
-}
-impl AsRef<namui::particle::System<FieldParticleEmitter, FieldParticle>> for FieldParticleSystem {
-    fn as_ref(&self) -> &namui::particle::System<FieldParticleEmitter, FieldParticle> {
-        &self.system
-    }
-}
-
-#[derive(Default, State)]
-pub struct FieldParticleSystemManager {
-    systems: Vec<FieldParticleSystem>,
-}
-
-impl FieldParticleSystemManager {
-    pub fn render(&self, ctx: &ComposeCtx, now: Instant) {
-        for system in &self.systems {
-            ctx.compose_with_key(system.id, |ctx| {
-                system.as_ref().render(&ctx, now);
-            });
-        }
-    }
-
-    pub fn add_system(&mut self, system: FieldParticleSystem) {
-        self.systems.push(system);
-    }
-
-    pub fn add_emitters(&mut self, emitters: Vec<FieldParticleEmitter>) {
-        if !emitters.is_empty() {
-            let system = FieldParticleSystem::new(emitters);
-            self.add_system(system);
-        }
-    }
-
-    fn remove_finished_field_particle_systems(&mut self, now: Instant) {
-        self.systems.retain(|system| !system.as_ref().is_done(now));
-    }
-}
-
-#[derive(State)]
-pub enum FieldParticleEmitter {
-    TempParticle {
-        emitter: TempParticleEmitter,
-    },
-    MonsterStatusEffect {
-        emitter: MonsterStatusEffectEmitter,
-    },
-    DamageText {
-        emitter: DamageTextEmitter,
-    },
-    MonsterDeath {
-        emitter: MonsterDeathEmitter,
-    },
-    MonsterCorpse {
-        emitter: TempParticleEmitter,
-    },
-    BurningTrail {
-        emitter: emitter::BurningTrailEmitter,
-    },
-    Sparkle {
-        emitter: emitter::SparkleEmitter,
-    },
-    SparkleBurst {
-        emitter: emitter::SparkleBurstEmitter,
-    },
-    TrashBurst {
-        emitter: emitter::TrashBurstEmitter,
-    },
-    TrashBounce {
-        emitter: emitter::TrashBounceEmitter,
-    },
-    TrashRain {
-        emitter: emitter::TrashRainEmitter,
-    },
-    CardBurst {
-        emitter: emitter::CardBurstEmitter,
-    },
-    ProjectileParticle {
-        emitter: emitter::ProjectileParticleEmitter,
-    },
-    LaserBeam {
-        emitter: emitter::LaserBeamEmitter,
-    },
-    WindCurveTrail {
-        emitter: emitter::WindCurveTrailEmitter,
-    },
-    HeartTrail {
-        emitter: emitter::HeartTrailEmitter,
-    },
-    LightningTrail {
-        emitter: emitter::LightningTrailEmitter,
-    },
-    HeartBurst {
-        emitter: emitter::HeartBurstEmitter,
-    },
-}
-impl Emitter<FieldParticle> for FieldParticleEmitter {
-    fn emit(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticle> {
-        match self {
-            FieldParticleEmitter::TempParticle { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::DamageText { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::MonsterDeath { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::MonsterCorpse { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::BurningTrail { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::Sparkle { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::SparkleBurst { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::TrashBurst { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::TrashBounce { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::TrashRain { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::CardBurst { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::ProjectileParticle { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::LaserBeam { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::HeartTrail { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::LightningTrail { emitter } => emitter.emit(now, dt),
-            FieldParticleEmitter::HeartBurst { emitter } => emitter.emit(now, dt),
-        }
-    }
-
-    fn is_done(&self, now: Instant) -> bool {
-        match self {
-            FieldParticleEmitter::TempParticle { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::MonsterStatusEffect { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::DamageText { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::MonsterDeath { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::MonsterCorpse { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::BurningTrail { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::Sparkle { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::SparkleBurst { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::TrashBurst { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::TrashBounce { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::TrashRain { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::CardBurst { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::ProjectileParticle { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::LaserBeam { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::WindCurveTrail { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::HeartTrail { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::LightningTrail { emitter } => emitter.is_done(now),
-            FieldParticleEmitter::HeartBurst { emitter } => emitter.is_done(now),
-        }
-    }
-}
-
-#[derive(Clone, State)]
-pub enum FieldParticle {
-    Icon { particle: IconParticle },
-    DamageText { particle: DamageTextParticle },
-    MonsterDeath { particle: MonsterSoulParticle },
-    MonsterCorpse { particle: MonsterCorpseParticle },
-    BurningTrail { particle: BurningTrailParticle },
-    EmberSpark { particle: EmberSparkParticle },
-    BlueDotSpark { particle: BlueDotSparkParticle },
-    LaserBeam { particle: LaserBeamParticle },
-    InstantEmit { particle: InstantEmitParticle },
-    InstantHit { particle: InstantHitParticle },
-    Trash { particle: TrashParticle },
-    Card { particle: CardParticle },
-    Projectile { particle: ProjectileParticle },
-    LaserLine { particle: LaserLineParticle },
-    LightningBolt { particle: LightningBoltParticle },
-    Sparkle { particle: SparkleParticle },
-    WindCurveTrail { particle: WindCurveTrailParticle },
-    Heart { particle: HeartParticle },
-}
-impl Particle<FieldParticleEmitter> for FieldParticle {
-    fn tick(&mut self, now: Instant, dt: Duration) -> Vec<FieldParticleEmitter> {
-        match self {
-            FieldParticle::Icon { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::DamageText { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::MonsterDeath { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::MonsterCorpse { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::BurningTrail { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::EmberSpark { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::BlueDotSpark { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::LaserBeam { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::InstantEmit { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::InstantHit { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::Trash { particle } => particle.tick(now, dt),
-            FieldParticle::Card { particle } => particle.tick(now, dt),
-            FieldParticle::Projectile { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::LaserLine { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::LightningBolt { particle } => {
-                if let Some(new_particle) = particle.tick(now, dt) {
-                    vec![FieldParticleEmitter::TempParticle {
-                        emitter: TempParticleEmitter::new(vec![new_particle]),
-                    }]
-                } else {
-                    vec![]
-                }
-            }
-            FieldParticle::Sparkle { particle } => {
-                if let Some(new_particle) = particle.tick(now, dt) {
-                    vec![FieldParticleEmitter::TempParticle {
-                        emitter: TempParticleEmitter::new(vec![FieldParticle::Sparkle {
-                            particle: new_particle,
-                        }]),
-                    }]
-                } else {
-                    vec![]
-                }
-            }
-            FieldParticle::WindCurveTrail { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-            FieldParticle::Heart { particle } => {
-                particle.tick(now, dt);
-                vec![]
-            }
-        }
-    }
-
-    fn render(&self) -> RenderingTree {
-        match self {
-            FieldParticle::Icon { particle } => particle.render(),
-            FieldParticle::DamageText { particle } => particle.render(),
-            FieldParticle::MonsterDeath { particle } => particle.render(),
-            FieldParticle::MonsterCorpse { particle } => particle.render(),
-            FieldParticle::BurningTrail { particle } => particle.render(),
-            FieldParticle::EmberSpark { particle } => particle.render(),
-            FieldParticle::BlueDotSpark { particle } => particle.render(),
-            FieldParticle::LaserBeam { particle } => particle.render(),
-            FieldParticle::InstantEmit { particle } => particle.render(),
-            FieldParticle::InstantHit { particle } => particle.render(),
-            FieldParticle::Trash { particle } => particle.render(),
-            FieldParticle::Card { particle } => particle.render(),
-            FieldParticle::Projectile { particle } => particle.render(),
-            FieldParticle::LaserLine { particle } => particle.render(),
-            FieldParticle::LightningBolt { particle } => particle.render(),
-            FieldParticle::Sparkle { particle } => particle.render(),
-            FieldParticle::WindCurveTrail { particle } => particle.render(),
-            FieldParticle::Heart { particle } => particle.render(),
-        }
-    }
-
-    fn is_done(&self, now: Instant) -> bool {
-        match self {
-            FieldParticle::Icon { particle } => particle.is_done(now),
-            FieldParticle::DamageText { particle } => particle.is_done(now),
-            FieldParticle::MonsterDeath { particle } => particle.is_done(now),
-            FieldParticle::MonsterCorpse { particle } => particle.is_done(now),
-            FieldParticle::BurningTrail { particle } => particle.is_done(now),
-            FieldParticle::EmberSpark { particle } => particle.is_done(now),
-            FieldParticle::BlueDotSpark { particle } => particle.is_done(now),
-            FieldParticle::LaserBeam { particle } => particle.is_done(now),
-            FieldParticle::InstantEmit { particle } => particle.is_done(now),
-            FieldParticle::InstantHit { particle } => particle.is_done(now),
-            FieldParticle::Trash { particle } => particle.is_done(now),
-            FieldParticle::Card { particle } => particle.is_done(now),
-            FieldParticle::Projectile { particle } => !particle.is_alive(now),
-            FieldParticle::LaserLine { particle } => particle.is_done(now),
-            FieldParticle::LightningBolt { particle } => particle.is_done(now),
-            FieldParticle::Sparkle { particle } => particle.is_done(now),
-            FieldParticle::WindCurveTrail { particle } => particle.is_done(now),
-            FieldParticle::Heart { particle } => particle.is_done(now),
-        }
-    }
-}
-
-pub fn remove_finished_field_particle_systems(game_state: &mut GameState, now: Instant) {
-    game_state
-        .field_particle_system_manager
-        .remove_finished_field_particle_systems(now);
+pub fn tick_all_emitters(now: Instant, dt: Duration) {
+    BURNING_TRAILS.tick(now, dt);
+    EMBER_SPARKS.tick(now, dt);
+    PROJECTILES.tick(now, dt);
+    TRASHES.tick(now, dt);
+    CARDS.tick(now, dt);
+    MONSTER_SOULS.tick(now, dt);
+    MONSTER_CORPSES.tick(now, dt);
+    ICONS.tick(now, dt);
+    DAMAGE_TEXTS.tick(now, dt);
+    BLUE_DOT_SPARKS.tick(now, dt);
+    LASER_LINES.tick(now, dt);
+    INSTANT_EMITS.tick(now, dt);
+    INSTANT_HITS.tick(now, dt);
+    LIGHTNING_BOLTS.tick(now, dt);
+    SPARKLES.tick(now, dt);
+    WIND_CURVE_TRAILS.tick(now, dt);
+    HEARTS.tick(now, dt);
 }

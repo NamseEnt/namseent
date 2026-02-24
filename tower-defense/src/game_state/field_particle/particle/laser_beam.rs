@@ -1,19 +1,8 @@
-use crate::game_state::{TILE_PX_SIZE, attack};
+use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 
-// 푸른색 상수
-const OUTER_COLOR_RGB: (f32, f32, f32) = (0.2, 0.5, 1.0); // 푸른 외곽
-const INNER_COLOR_RGB: (f32, f32, f32) = (0.6, 0.85, 1.0); // 밝은 푸른 내부/흰색 기조
-
-#[derive(Clone, State)]
-pub struct LaserBeamParticle {
-    pub start_xy: (f32, f32),
-    pub end_xy: (f32, f32),
-    pub created_at: Instant,
-    pub alpha: f32,
-}
-
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct LaserLineParticle {
     pub start_xy: (f32, f32),  // 현재 시작점 (이동됨)
     pub end_xy: (f32, f32),    // 현재 끝점 (이동됨)
@@ -23,70 +12,6 @@ pub struct LaserLineParticle {
     pub thickness: f32,      // 두께 (타일)
     pub movement_speed: f32, // 초당 이동 속도 (타일)
     pub alpha: f32,
-}
-
-impl LaserBeamParticle {
-    pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) -> Self {
-        Self {
-            start_xy,
-            end_xy,
-            created_at,
-            alpha: 1.0,
-        }
-    }
-
-    pub fn tick(&mut self, now: Instant, _dt: Duration) {
-        self.alpha = self.current_alpha(now);
-    }
-
-    pub fn render(&self) -> RenderingTree {
-        if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
-        }
-
-        let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
-        let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-
-        let color = Color::from_f01(1.0, 0.2, 0.2, self.alpha);
-
-        let mut path = Path::new();
-        path = path.move_to(start_px.x, start_px.y);
-        path = path.line_to(end_px.x, end_px.y);
-
-        let paint = Paint::new(color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(8.0 * self.alpha))
-            .set_stroke_cap(StrokeCap::Round);
-
-        let mut inner_path = Path::new();
-        inner_path = inner_path.move_to(start_px.x, start_px.y);
-        inner_path = inner_path.line_to(end_px.x, end_px.y);
-
-        let inner_alpha = self.alpha * 0.8;
-        let inner_paint = Paint::new(Color::WHITE.with_alpha((inner_alpha * 255.0) as u8))
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(3.0 * self.alpha))
-            .set_stroke_cap(StrokeCap::Round);
-
-        namui::render([
-            namui::path(path, paint),
-            namui::path(inner_path, inner_paint),
-        ])
-    }
-
-    pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= attack::laser::LASER_LIFETIME
-    }
-
-    fn current_alpha(&self, now: Instant) -> f32 {
-        let elapsed = now - self.created_at;
-        if elapsed >= attack::laser::LASER_LIFETIME {
-            return 0.0;
-        }
-
-        let progress = elapsed.as_secs_f32() / attack::laser::LASER_LIFETIME.as_secs_f32();
-        1.0 - progress
-    }
 }
 
 impl LaserLineParticle {
@@ -158,55 +83,38 @@ impl LaserLineParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return sprites;
         }
-
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-
-        // 외곽 직선 (푸른색, Screen blend mode)
-        let outer_color = Color::from_f01(
-            OUTER_COLOR_RGB.0,
-            OUTER_COLOR_RGB.1,
-            OUTER_COLOR_RGB.2,
-            self.alpha,
-        );
-
-        let mut outer_path = Path::new();
-        outer_path = outer_path.move_to(start_px.x, start_px.y);
-        outer_path = outer_path.line_to(end_px.x, end_px.y);
-
-        let outer_paint = Paint::new(outer_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_blend_mode(BlendMode::Screen);
-
-        // 내부 직선 (더 밝은 색, 더 얇게)
-        let inner_alpha = self.alpha * 0.8;
-        let inner_color = Color::from_f01(
-            INNER_COLOR_RGB.0,
-            INNER_COLOR_RGB.1,
-            INNER_COLOR_RGB.2,
-            inner_alpha,
-        );
-
-        let mut inner_path = Path::new();
-        inner_path = inner_path.move_to(start_px.x, start_px.y);
-        inner_path = inner_path.line_to(end_px.x, end_px.y);
-
-        let inner_paint = Paint::new(inner_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness * 0.4)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_blend_mode(BlendMode::Screen);
-
-        namui::render([
-            namui::path(outer_path, outer_paint),
-            namui::path(inner_path, inner_paint),
-        ])
+        let color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
+        let thickness = TILE_PX_SIZE.width.as_f32() * self.thickness;
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            thickness,
+            Some(color),
+        ) {
+            sprites.push(s);
+        }
+        let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
+        let inner_thickness = thickness * 0.4;
+        if let Some(s) = atlas::line_sprite(
+            start_px.x,
+            start_px.y,
+            end_px.x,
+            end_px.y,
+            inner_thickness,
+            Some(inner_color),
+        ) {
+            sprites.push(s);
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -226,14 +134,24 @@ impl LaserLineParticle {
         // - appear phase (0~10%): 급격히 1.0에 도달
         // - fade phase (10~100%): 천천히 0으로 감소
         if progress < 0.1 {
-            // 급격히 나타남 (ease out quad)
             let appear_progress = progress / 0.1;
             let inv = 1.0 - appear_progress;
             1.0 - (inv * inv)
         } else {
-            // 천천히 사라짐 (linear하게 1 -> 0)
             let fade_progress = (progress - 0.1) / 0.9;
             1.0 - fade_progress
         }
+    }
+}
+
+impl namui::particle::Particle for LaserLineParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        LaserLineParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> namui::particle::ParticleSprites {
+        LaserLineParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        LaserLineParticle::is_done(self, now)
     }
 }

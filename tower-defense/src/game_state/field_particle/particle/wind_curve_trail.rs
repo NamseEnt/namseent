@@ -1,4 +1,5 @@
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
 
@@ -17,7 +18,9 @@ const INNER_COLOR_RGB: (f32, f32, f32) = (0.85, 0.92, 0.95);
 const OUTER_ALPHA_MULT: f32 = 0.55;
 const FADE_START_PROGRESS: f32 = 0.15;
 
-#[derive(Clone, State)]
+const BEZIER_SEGMENTS: usize = 4;
+
+#[derive(Clone)]
 pub struct WindCurveTrailParticle {
     pub center_xy: (f32, f32),
     pub movement_direction: (f32, f32),
@@ -57,7 +60,7 @@ impl WindCurveTrailParticle {
         }
     }
 
-    pub fn tick(&mut self, now: Instant, _dt: Duration) {
+    pub fn tick_impl(&mut self, now: Instant, _dt: Duration) {
         let progress = self.progress(now);
         if progress <= FADE_START_PROGRESS {
             self.alpha = 1.0;
@@ -67,9 +70,10 @@ impl WindCurveTrailParticle {
         }
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return sprites;
         }
 
         let movement = Xy::new(self.movement_direction.0, self.movement_direction.1);
@@ -85,14 +89,22 @@ impl WindCurveTrailParticle {
         let ctrl1_tile = start_tile + movement * (half_len_tile * 0.45) + perpendicular * amp_tile;
         let ctrl2_tile = end_tile - movement * (half_len_tile * 0.45) - perpendicular * amp_tile;
 
-        let start = TILE_PX_SIZE.to_xy() * start_tile;
-        let end = TILE_PX_SIZE.to_xy() * end_tile;
-        let ctrl1 = TILE_PX_SIZE.to_xy() * ctrl1_tile;
-        let ctrl2 = TILE_PX_SIZE.to_xy() * ctrl2_tile;
+        let mut bezier_points: [Xy<Px>; BEZIER_SEGMENTS + 1] =
+            [Xy::new(px(0.0), px(0.0)); BEZIER_SEGMENTS + 1];
 
-        let path = Path::new()
-            .move_to(start.x, start.y)
-            .cubic_to(ctrl1, ctrl2, end);
+        for (i, point) in bezier_points
+            .iter_mut()
+            .enumerate()
+            .take(BEZIER_SEGMENTS + 1)
+        {
+            let t = i as f32 / BEZIER_SEGMENTS as f32;
+            let inv_t = 1.0 - t;
+            let point_tile = start_tile * (inv_t * inv_t * inv_t)
+                + ctrl1_tile * (3.0 * inv_t * inv_t * t)
+                + ctrl2_tile * (3.0 * inv_t * t * t)
+                + end_tile * (t * t * t);
+            *point = TILE_PX_SIZE.to_xy() * point_tile;
+        }
 
         let outer_color = Color::from_f01(
             OUTER_COLOR_RGB.0,
@@ -107,24 +119,35 @@ impl WindCurveTrailParticle {
             self.alpha,
         );
 
-        let outer_paint = Paint::new(outer_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness_tile)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_stroke_join(StrokeJoin::Round)
-            .set_blend_mode(BlendMode::Screen);
+        let outer_thickness = TILE_PX_SIZE.width.as_f32() * self.thickness_tile;
+        let inner_thickness = outer_thickness * 0.45;
 
-        let inner_paint = Paint::new(inner_color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(TILE_PX_SIZE.width * self.thickness_tile * 0.45)
-            .set_stroke_cap(StrokeCap::Round)
-            .set_stroke_join(StrokeJoin::Round)
-            .set_blend_mode(BlendMode::Screen);
+        for i in 0..BEZIER_SEGMENTS {
+            let p0 = bezier_points[i];
+            let p1 = bezier_points[i + 1];
 
-        namui::render([
-            namui::path(path.clone(), outer_paint),
-            namui::path(path, inner_paint),
-        ])
+            if let Some(s) =
+                atlas::line_sprite(p0.x, p0.y, p1.x, p1.y, outer_thickness, Some(outer_color))
+            {
+                sprites.push(s);
+            }
+
+            if sprites.remaining_capacity() < 1 {
+                break;
+            }
+
+            if let Some(s) =
+                atlas::line_sprite(p0.x, p0.y, p1.x, p1.y, inner_thickness, Some(inner_color))
+            {
+                sprites.push(s);
+            }
+
+            if sprites.remaining_capacity() < 2 {
+                break;
+            }
+        }
+
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -143,5 +166,19 @@ fn normalize_or_default(direction: (f32, f32)) -> (f32, f32) {
         (direction.0 / len, direction.1 / len)
     } else {
         (0.0, -1.0)
+    }
+}
+
+impl namui::particle::Particle for WindCurveTrailParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        self.tick_impl(now, dt);
+    }
+
+    fn render(&self) -> namui::particle::ParticleSprites {
+        WindCurveTrailParticle::render(self)
+    }
+
+    fn is_done(&self, now: Instant) -> bool {
+        WindCurveTrailParticle::is_done(self, now)
     }
 }

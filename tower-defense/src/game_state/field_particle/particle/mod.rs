@@ -31,5 +31,5 @@ pub use monster_corpse::*;
 pub use monster_soul::*;
 pub use projectile::*;
 pub use sparkle::*;
-pub use trash::{EaseMode, TrashParticle, TrashParticleConfig};
+pub use trash::*;
 pub use wind_curve_trail::*;

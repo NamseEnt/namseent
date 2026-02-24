@@ -1,5 +1,9 @@
 import { startThread } from "./startThread";
 
 self.onmessage = async (message) => {
-    startThread(message.data);
+    try {
+        await startThread(message.data);
+    } catch (e) {
+        console.error("[SubThreadWorker] error:", e);
+    }
 };

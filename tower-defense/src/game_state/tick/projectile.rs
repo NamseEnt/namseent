@@ -8,15 +8,6 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     } = game_state;
 
     let mut total_earn_gold = 0;
-    let mut damage_emitters = Vec::new();
-    let mut monster_death_emitters = Vec::new();
-    let mut burning_trail_emitters = Vec::new();
-    let mut sparkle_emitters = Vec::new();
-    let mut wind_curve_trail_emitters = Vec::new();
-    let mut heart_trail_emitters = Vec::new();
-    let mut lightning_trail_emitters = Vec::new();
-    let mut trash_bounce_emitters = Vec::new();
-    let mut projectile_particle_emitters = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -25,18 +16,15 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             .iter()
             .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
         else {
-            // Create a projectile particle that fades out over 300ms
-            projectile_particle_emitters.push(
-                field_particle::emitter::ProjectileParticleEmitter::new(
-                    projectile.xy,
-                    projectile.kind,
-                    projectile.rotation,
-                    projectile.rotation_speed,
-                    projectile.velocity,
-                    now,
-                    Duration::from_millis(300),
-                ),
-            );
+            field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
+                projectile.xy,
+                projectile.kind,
+                projectile.rotation,
+                projectile.rotation_speed,
+                projectile.velocity,
+                now,
+                Duration::from_millis(300),
+            ));
             return false;
         };
 
@@ -58,98 +46,71 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
             let spawn_distance = match projectile.trail {
                 ProjectileTrail::None => None,
-                ProjectileTrail::Burning => Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE),
+                ProjectileTrail::Burning => {
+                    Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE)
+                }
                 ProjectileTrail::Sparkle => Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE),
-                ProjectileTrail::WindCurve => Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE),
+                ProjectileTrail::WindCurve => {
+                    Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE)
+                }
                 ProjectileTrail::Heart => Some(field_particle::emitter::HEART_SPAWN_DISTANCE),
-                ProjectileTrail::LightningSparkle => Some(0.6), // lightning + sparkle + heart를 섞으므로 더 낮은 rate
+                ProjectileTrail::LightningSparkle => {
+                    Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE)
+                }
             };
 
             if let Some(spawn_distance) = spawn_distance {
                 projectile.trail_distance_remainder += moved_distance;
-
                 let spawn_count =
                     (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
-
                 if spawn_count > 0 {
                     projectile.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
                     match projectile.trail {
                         ProjectileTrail::Burning => {
-                            burning_trail_emitters.push(
-                                field_particle::emitter::BurningTrailEmitter::new_with_particle_count(
-                                    start_xy,
-                                    projectile.xy,
-                                    spawn_count,
-                                    now,
-                                ),
+                            field_particle::emitter::spawn_burning_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
                             );
                         }
                         ProjectileTrail::Sparkle => {
-                            sparkle_emitters.push(
-                                field_particle::emitter::SparkleEmitter::new_with_particle_count(
-                                    start_xy,
-                                    projectile.xy,
-                                    spawn_count,
-                                    now,
-                                ),
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
                             );
                         }
                         ProjectileTrail::WindCurve => {
-                            wind_curve_trail_emitters.push(
-                                field_particle::emitter::WindCurveTrailEmitter::new_with_particle_count(
-                                    start_xy,
-                                    projectile.xy,
-                                    spawn_count,
-                                    now,
-                                ),
+                            field_particle::emitter::spawn_wind_curve_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
                             );
                         }
                         ProjectileTrail::Heart => {
-                            heart_trail_emitters.push(
-                                field_particle::emitter::HeartTrailEmitter::new_with_particle_count(
-                                    start_xy,
-                                    projectile.xy,
-                                    spawn_count,
-                                    now,
-                                ),
+                            field_particle::emitter::spawn_heart_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
                             );
                         }
                         ProjectileTrail::LightningSparkle => {
-                            // lightning_trail, sparkle, heart를 동시에 생성하되 더 적은 수로
-                            let lightning_count = (spawn_count as f32 * 0.33).ceil() as usize;
-                            let sparkle_count = (spawn_count as f32 * 0.33).ceil() as usize;
-                            let heart_count = (spawn_count as f32 * 0.34).ceil() as usize;
-
-                            if lightning_count > 0 {
-                                lightning_trail_emitters.push(
-                                    field_particle::emitter::LightningTrailEmitter::new_with_particle_count(
-                                        start_xy,
-                                        projectile.xy,
-                                        lightning_count,
-                                        now,
-                                    ),
-                                );
-                            }
-                            if sparkle_count > 0 {
-                                sparkle_emitters.push(
-                                    field_particle::emitter::SparkleEmitter::new_with_particle_count(
-                                        start_xy,
-                                        projectile.xy,
-                                        sparkle_count,
-                                        now,
-                                    ),
-                                );
-                            }
-                            if heart_count > 0 {
-                                heart_trail_emitters.push(
-                                    field_particle::emitter::HeartTrailEmitter::new_with_particle_count(
-                                        start_xy,
-                                        projectile.xy,
-                                        heart_count,
-                                        now,
-                                    ),
-                                );
-                            }
+                            field_particle::emitter::spawn_lightning_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                projectile.xy,
+                                spawn_count,
+                                now,
+                            );
                         }
                         ProjectileTrail::None => {}
                     }
@@ -162,43 +123,33 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let damage = projectile.damage;
         monster.get_damage(damage);
         if damage > 0.0 {
-            damage_emitters.push(field_particle::emitter::DamageTextEmitter::new(
-                monster_xy, damage,
+            field_particle::DAMAGE_TEXTS.spawn(field_particle::DamageTextParticle::new(
+                monster_xy, damage, now,
             ));
         }
 
-        // Create burst effect based on projectile hit effect
         use crate::game_state::attack::ProjectileHitEffect;
-        let hit_emitter = match projectile.hit_effect {
+        match projectile.hit_effect {
             ProjectileHitEffect::TrashBounce => {
-                trash_bounce_emitters.push(field_particle::emitter::TrashBounceEmitter::new(
+                let bounce_particles = field_particle::emitter::create_bounce_particles(
                     projectile.kind,
                     (start_xy.x, start_xy.y),
                     (monster_xy.x, monster_xy.y),
                     now,
-                ));
-                None
+                );
+                for p in bounce_particles {
+                    field_particle::TRASHES.spawn(p);
+                }
             }
             ProjectileHitEffect::CardBurst => {
-                Some(field_particle::FieldParticleEmitter::CardBurst {
-                    emitter: field_particle::emitter::CardBurstEmitter::new(monster_xy, now),
-                })
+                field_particle::emitter::spawn_card_burst(monster_xy, now);
             }
             ProjectileHitEffect::SparkleBurst => {
-                Some(field_particle::FieldParticleEmitter::SparkleBurst {
-                    emitter: field_particle::emitter::SparkleBurstEmitter::new(monster_xy, now),
-                })
+                field_particle::emitter::spawn_sparkle_burst(monster_xy, now);
             }
             ProjectileHitEffect::HeartBurst => {
-                Some(field_particle::FieldParticleEmitter::HeartBurst {
-                    emitter: field_particle::emitter::HeartBurstEmitter::new(monster_xy, now),
-                })
+                field_particle::emitter::spawn_heart_burst(monster_xy, now);
             }
-        };
-        if let Some(emitter) = hit_emitter {
-            game_state
-                .field_particle_system_manager
-                .add_emitters(vec![emitter]);
         }
 
         if monster.dead() {
@@ -210,65 +161,35 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;
 
-            // Emit monster death particle (soul)
-            monster_death_emitters.push(field_particle::emitter::MonsterDeathEmitter::new(
-                monster_xy,
-            ));
-
-            // Emit monster corpse particle
             let monster_kind = monster.kind;
             let rotation = monster.animation.rotation;
+            let y_offset = monster.animation.y_offset;
             let wh = monster::monster_wh(monster_kind);
 
-            // Calculate the pixel position where the monster is rendered
             let tile_base_xy = TILE_PX_SIZE.to_xy() * monster_xy;
             let monster_center_offset = Xy::new(
                 TILE_PX_SIZE.width * 0.5,
-                TILE_PX_SIZE.height - wh.height * 0.5
-                    + TILE_PX_SIZE.height * monster.animation.y_offset,
+                TILE_PX_SIZE.height - wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
 
-            let corpse_particle = field_particle::MonsterCorpseParticle::new(
+            field_particle::MONSTER_CORPSES.spawn(field_particle::MonsterCorpseParticle::new(
                 pixel_xy,
                 now,
                 rotation,
                 monster_kind,
                 wh,
-            );
-            game_state.field_particle_system_manager.add_emitters(vec![
-                field_particle::FieldParticleEmitter::MonsterCorpse {
-                    emitter: field_particle::TempParticleEmitter::new(vec![
-                        field_particle::FieldParticle::MonsterCorpse {
-                            particle: corpse_particle,
-                        },
-                    ]),
-                },
-            ]);
+            ));
+
+            field_particle::MONSTER_SOULS.spawn(field_particle::MonsterSoulParticle::new(
+                pixel_xy, now, rotation,
+            ));
 
             monsters.swap_remove(monster_index);
         }
 
         false
     });
-
-    super::particle_emit::emit_damage_text_particles(game_state, damage_emitters);
-    super::particle_emit::emit_monster_death_particles(game_state, monster_death_emitters);
-    super::particle_emit::emit_burning_trail_emitters(game_state, burning_trail_emitters);
-    super::particle_emit::emit_sparkle_emitters(game_state, sparkle_emitters);
-    super::particle_emit::emit_wind_curve_trail_emitters(game_state, wind_curve_trail_emitters);
-    super::particle_emit::emit_heart_trail_emitters(game_state, heart_trail_emitters);
-    super::particle_emit::emit_lightning_trail_emitters(game_state, lightning_trail_emitters);
-    super::particle_emit::emit_trash_bounce_emitters(game_state, trash_bounce_emitters);
-
-    if !projectile_particle_emitters.is_empty() {
-        game_state.field_particle_system_manager.add_emitters(
-            projectile_particle_emitters
-                .into_iter()
-                .map(|emitter| field_particle::FieldParticleEmitter::ProjectileParticle { emitter })
-                .collect(),
-        );
-    }
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);

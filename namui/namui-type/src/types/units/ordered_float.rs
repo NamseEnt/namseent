@@ -26,7 +26,7 @@ impl PartialOrd for OrderedFloat {
 }
 impl Ord for OrderedFloat {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.inner.partial_cmp(&other.inner).unwrap()
+        self.inner.total_cmp(&other.inner)
     }
 }
 

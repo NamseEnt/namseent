@@ -1,7 +1,8 @@
+use crate::game_state::field_particle::atlas;
 use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
 
-#[derive(Clone, State)]
+#[derive(Clone)]
 pub struct InstantEmitParticle {
     pub tower_xy: (f32, f32),
     pub target_xy: (f32, f32),
@@ -37,9 +38,10 @@ impl InstantEmitParticle {
         };
     }
 
-    pub fn render(&self) -> RenderingTree {
+    pub fn render(&self) -> namui::particle::ParticleSprites {
+        let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
-            return RenderingTree::Empty;
+            return sprites;
         }
 
         let tower_px = TILE_PX_SIZE.to_xy() * Xy::new(self.tower_xy.0, self.tower_xy.1);
@@ -59,16 +61,18 @@ impl InstantEmitParticle {
             }
         };
 
-        let mut path = Path::new();
-        path = path.move_to(tower_px.x, tower_px.y);
-        path = path.line_to(current_end.x, current_end.y);
-
-        let paint = Paint::new(color)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(px(4.0))
-            .set_stroke_cap(StrokeCap::Round);
-
-        namui::path(path, paint)
+        let thickness = 4.0;
+        if let Some(s) = atlas::line_sprite(
+            tower_px.x,
+            tower_px.y,
+            current_end.x,
+            current_end.y,
+            thickness,
+            Some(color),
+        ) {
+            sprites.push(s);
+        }
+        sprites
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -78,5 +82,17 @@ impl InstantEmitParticle {
     fn progress(&self, now: Instant) -> f32 {
         let elapsed = now - self.created_at;
         (elapsed.as_secs_f32() / attack::instant_effect::EFFECT_LIFETIME.as_secs_f32()).min(1.0)
+    }
+}
+
+impl namui::particle::Particle for InstantEmitParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        InstantEmitParticle::tick(self, now, dt);
+    }
+    fn render(&self) -> namui::particle::ParticleSprites {
+        InstantEmitParticle::render(self)
+    }
+    fn is_done(&self, now: Instant) -> bool {
+        InstantEmitParticle::is_done(self, now)
     }
 }
