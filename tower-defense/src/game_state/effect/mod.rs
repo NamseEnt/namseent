@@ -477,6 +477,7 @@ pub mod tests_support {
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::idle(),
             projectiles: Default::default(),
+            delayed_hits: Default::default(),
             items: vec![],
             gold: 0,
             cursor_preview: Default::default(),

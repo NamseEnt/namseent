@@ -84,6 +84,7 @@ pub struct GameState {
     pub left_reroll_chance: usize,
     pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
+    pub delayed_hits: Vec<attack::DelayedHit>,
     pub items: Vec<item::Item>,
     pub gold: usize,
     pub cursor_preview: CursorPreview,
@@ -201,6 +202,7 @@ fn create_initial_game_state() -> GameState {
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
+        delayed_hits: Default::default(),
         items: vec![
             Item {
                 effect: Effect::ExtraReroll,
@@ -300,6 +302,7 @@ impl GameState {
             left_reroll_chance: self.left_reroll_chance,
             monster_spawn_state: self.monster_spawn_state.clone(),
             projectiles: self.projectiles.clone(),
+            delayed_hits: self.delayed_hits.clone(),
             items: self.items.clone(),
             gold: self.gold,
             cursor_preview: self.cursor_preview.clone(),

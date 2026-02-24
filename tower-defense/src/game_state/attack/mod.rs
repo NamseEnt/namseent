@@ -49,4 +49,14 @@ pub enum AttackType {
         tower_xy: (f32, f32),
         target_xy: (f32, f32),
     },
+    RoyalStraightFlush {
+        target_xy: (f32, f32),
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, State)]
+pub struct DelayedHit {
+    pub target_monster_id: usize,
+    pub damage: f32,
+    pub execute_at: Instant,
 }

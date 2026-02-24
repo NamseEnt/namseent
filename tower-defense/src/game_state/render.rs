@@ -19,8 +19,8 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_field_particles, self.game_state));
                 ctx.add((render_projectiles, self.game_state));
                 ctx.add((render_monsters, self.game_state));
-                ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_towers, self.game_state));
+                ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_grid, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
             });
@@ -198,15 +198,18 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         let tower_xy = tower.left_top.map(|t| t.as_f32());
 
         // Culling check
-        if screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y {
+        if (screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y)
+            && !tower.has_royal_straight_flush_visual()
+        {
             continue;
         }
 
         let px_xy = TILE_PX_SIZE.to_xy() * tower_xy;
+        let now = game_state.now();
         ctx.translate(px_xy).compose(move |ctx| {
             // For now, just render the tower without hover functionality
             // We'll need to modify this once we can access mutable game state
-            ctx.add(tower);
+            ctx.add(crate::game_state::tower::render::RenderTower { tower, now });
 
             // Render hover area
             let tower_size = 128.0; // TILE_PX_SIZE
