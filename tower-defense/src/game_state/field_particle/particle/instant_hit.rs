@@ -49,7 +49,7 @@ impl InstantHitParticle {
             attack::instant_effect::InstantEffectKind::Explosion => {
                 let scale = (32.0 * self.current_scale * 2.0) / 128.0;
                 let color = Color::from_f01(1.0, 0.5, 0.0, self.alpha);
-                atlas::centered_sprite(atlas::glow_circle(), xy_px.x, xy_px.y, scale, Some(color))
+                atlas::centered_sprite(atlas::star_burst(), xy_px.x, xy_px.y, scale, Some(color))
             }
             attack::instant_effect::InstantEffectKind::Lightning => {
                 let scale = (24.0 * self.current_scale * 2.0) / 128.0;

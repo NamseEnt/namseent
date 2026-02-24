@@ -3,13 +3,14 @@ use super::field_particle::emitter::{
     spawn_monster_status_effect_icons, spawn_tower_status_effect_icons,
 };
 use super::monster::MonsterStatusEffectKind;
-use namui::{Duration, Instant};
+use namui::*;
 use rand::random;
 
 const STATUS_EFFECT_TICK_INTERVAL_MS: i64 = 100;
 const MONSTER_STATUS_EFFECT_PARTICLE_CHANCE: f32 = 0.2;
 const TOWER_STATUS_EFFECT_PARTICLE_CHANCE: f32 = 0.2;
 
+#[derive(Clone, State)]
 pub struct StatusEffectParticleGenerator {
     pub last_tick_time: Instant,
 }
@@ -46,11 +47,7 @@ pub fn tick_status_effect_particle_generator(game_state: &mut GameState, now: In
     for tower in game_state.towers.iter() {
         for status_effect in &tower.status_effects {
             if random::<f32>() < TOWER_STATUS_EFFECT_PARTICLE_CHANCE {
-                spawn_tower_status_effect_icons(
-                    now,
-                    tower.center_xy_f32(),
-                    status_effect.kind,
-                );
+                spawn_tower_status_effect_icons(now, tower.center_xy_f32(), status_effect.kind);
             }
         }
     }

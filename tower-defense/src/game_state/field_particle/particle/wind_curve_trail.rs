@@ -92,14 +92,18 @@ impl WindCurveTrailParticle {
         let mut bezier_points: [Xy<Px>; BEZIER_SEGMENTS + 1] =
             [Xy::new(px(0.0), px(0.0)); BEZIER_SEGMENTS + 1];
 
-        for i in 0..=BEZIER_SEGMENTS {
+        for (i, point) in bezier_points
+            .iter_mut()
+            .enumerate()
+            .take(BEZIER_SEGMENTS + 1)
+        {
             let t = i as f32 / BEZIER_SEGMENTS as f32;
             let inv_t = 1.0 - t;
             let point_tile = start_tile * (inv_t * inv_t * inv_t)
                 + ctrl1_tile * (3.0 * inv_t * inv_t * t)
                 + ctrl2_tile * (3.0 * inv_t * t * t)
                 + end_tile * (t * t * t);
-            bezier_points[i] = TILE_PX_SIZE.to_xy() * point_tile;
+            *point = TILE_PX_SIZE.to_xy() * point_tile;
         }
 
         let outer_color = Color::from_f01(

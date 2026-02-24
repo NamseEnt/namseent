@@ -497,6 +497,10 @@ pub mod tests_support {
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
             just_cleared_boss_stage: false,
+            status_effect_particle_generator:
+                crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
+                    Instant::now(),
+                ),
         }
     }
 }

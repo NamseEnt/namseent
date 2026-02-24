@@ -7,9 +7,8 @@ use namui::{Duration, Instant};
 pub use particle::{
     BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
     EmberSparkParticle, HeartParticle, IconParticle, InstantEmitParticle, InstantHitParticle,
-    LaserBeamParticle, LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle,
-    MonsterSoulParticle, ProjectileParticle, SparkleParticle, TrashParticle,
-    WindCurveTrailParticle,
+    LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
+    ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
 pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
@@ -37,8 +36,6 @@ pub static INSTANT_HITS: namui::particle::Emitter<InstantHitParticle> =
     namui::particle::Emitter::new();
 pub static LIGHTNING_BOLTS: namui::particle::Emitter<LightningBoltParticle> =
     namui::particle::Emitter::new();
-pub static LASER_BEAMS: namui::particle::Emitter<LaserBeamParticle> =
-    namui::particle::Emitter::new();
 pub static SPARKLES: namui::particle::Emitter<SparkleParticle> = namui::particle::Emitter::new();
 pub static WIND_CURVE_TRAILS: namui::particle::Emitter<WindCurveTrailParticle> =
     namui::particle::Emitter::new();
@@ -59,7 +56,6 @@ pub fn tick_all_emitters(now: Instant, dt: Duration) {
     INSTANT_EMITS.tick(now, dt);
     INSTANT_HITS.tick(now, dt);
     LIGHTNING_BOLTS.tick(now, dt);
-    LASER_BEAMS.tick(now, dt);
     SPARKLES.tick(now, dt);
     WIND_CURVE_TRAILS.tick(now, dt);
     HEARTS.tick(now, dt);

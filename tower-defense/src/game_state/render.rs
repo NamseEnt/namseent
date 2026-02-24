@@ -333,12 +333,6 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         paint: screen_paint.clone(),
     });
     ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::LASER_BEAMS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::MONSTER_CORPSES,
         image: monsters,
         sprite_colors_blend_mode: BlendMode::Modulate,

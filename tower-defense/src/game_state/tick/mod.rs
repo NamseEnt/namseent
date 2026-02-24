@@ -51,6 +51,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     monster::activate_monster_skills(game_state, now);
     tower::activate_tower_skills(game_state, now);
+    status_effect_particle_generator::tick_status_effect_particle_generator(game_state, now);
 
     monster::move_monsters(game_state, dt);
 

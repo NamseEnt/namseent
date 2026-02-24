@@ -9,8 +9,6 @@ const HEART_LIFETIME_MAX_MS: i64 = 400;
 const HEART_SIZE_TILE: f32 = 0.3;
 const OFFSET_RANGE: f32 = 0.15;
 
-const BURST_SPEED_MAX: f32 = 5.0;
-
 const TRAIL_SPEED_MIN: f32 = 2.0;
 const TRAIL_SPEED_MAX: f32 = 8.0;
 const TRAIL_ANGLE_RANGE_DEG: f32 = 22.5;
@@ -90,31 +88,6 @@ fn random_heart_kind<R: Rng + ?Sized>(rng: &mut R) -> HeartParticleKind {
 }
 
 impl HeartParticle {
-    pub fn new_burst<R: Rng + ?Sized>(xy: (f32, f32), created_at: Instant, rng: &mut R) -> Self {
-        let offset_x = rng.gen_range(-OFFSET_RANGE..=OFFSET_RANGE);
-        let offset_y = rng.gen_range(-OFFSET_RANGE..=OFFSET_RANGE);
-        let final_xy = (xy.0 + offset_x, xy.1 + offset_y);
-
-        let angle = rng.gen_range(0.0..2.0 * PI);
-        let speed = rng.gen_range(0.0..BURST_SPEED_MAX);
-        let velocity_x = angle.cos() * speed;
-        let velocity_y = angle.sin() * speed;
-
-        let lifetime_ms = rng.gen_range(HEART_LIFETIME_MIN_MS..=HEART_LIFETIME_MAX_MS);
-        let lifetime = Duration::from_millis(lifetime_ms);
-
-        Self {
-            xy: final_xy,
-            velocity: (velocity_x, velocity_y),
-            created_at,
-            lifetime,
-            initial_opacity: 1.0,
-            alpha: 1.0,
-            scale: 1.0,
-            kind: random_heart_kind(rng),
-        }
-    }
-
     pub fn new_trail<R: Rng + ?Sized>(
         xy: (f32, f32),
         created_at: Instant,

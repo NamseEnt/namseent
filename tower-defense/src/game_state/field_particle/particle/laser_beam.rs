@@ -1,14 +1,6 @@
+use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::field_particle::atlas;
-use crate::game_state::{TILE_PX_SIZE, attack};
 use namui::*;
-
-#[derive(Clone)]
-pub struct LaserBeamParticle {
-    pub start_xy: (f32, f32),
-    pub end_xy: (f32, f32),
-    pub created_at: Instant,
-    pub alpha: f32,
-}
 
 #[derive(Clone)]
 pub struct LaserLineParticle {
@@ -20,82 +12,6 @@ pub struct LaserLineParticle {
     pub thickness: f32,      // 두께 (타일)
     pub movement_speed: f32, // 초당 이동 속도 (타일)
     pub alpha: f32,
-}
-
-impl LaserBeamParticle {
-    pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant) -> Self {
-        Self {
-            start_xy,
-            end_xy,
-            created_at,
-            alpha: 1.0,
-        }
-    }
-
-    pub fn tick(&mut self, now: Instant, _dt: Duration) {
-        self.alpha = self.current_alpha(now);
-    }
-
-    pub fn render(&self) -> namui::particle::ParticleSprites {
-        let mut sprites = namui::particle::ParticleSprites::new();
-        if self.alpha <= 0.0 {
-            return sprites;
-        }
-
-        let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
-        let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-        let color = Color::from_f01(1.0, 0.2, 0.2, self.alpha);
-        let thickness = 8.0 * self.alpha;
-        if let Some(s) = atlas::line_sprite(
-            start_px.x,
-            start_px.y,
-            end_px.x,
-            end_px.y,
-            thickness,
-            Some(color),
-        ) {
-            sprites.push(s);
-        }
-        let inner_color = Color::from_f01(1.0, 1.0, 1.0, self.alpha * 0.8);
-        let inner_thickness = 3.0 * self.alpha;
-        if let Some(s) = atlas::line_sprite(
-            start_px.x,
-            start_px.y,
-            end_px.x,
-            end_px.y,
-            inner_thickness,
-            Some(inner_color),
-        ) {
-            sprites.push(s);
-        }
-        sprites
-    }
-
-    pub fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= attack::laser::LASER_LIFETIME
-    }
-
-    fn current_alpha(&self, now: Instant) -> f32 {
-        let elapsed = now - self.created_at;
-        if elapsed >= attack::laser::LASER_LIFETIME {
-            return 0.0;
-        }
-
-        let progress = elapsed.as_secs_f32() / attack::laser::LASER_LIFETIME.as_secs_f32();
-        1.0 - progress
-    }
-}
-
-impl namui::particle::Particle for LaserBeamParticle {
-    fn tick(&mut self, now: Instant, dt: Duration) {
-        LaserBeamParticle::tick(self, now, dt);
-    }
-    fn render(&self) -> namui::particle::ParticleSprites {
-        LaserBeamParticle::render(self)
-    }
-    fn is_done(&self, now: Instant) -> bool {
-        LaserBeamParticle::is_done(self, now)
-    }
 }
 
 impl LaserLineParticle {

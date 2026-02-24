@@ -9,8 +9,6 @@ mod sparkle;
 mod sparkle_burst;
 mod tower_status_effect;
 mod trash_bounce;
-mod trash_burst;
-mod trash_rain;
 mod wind_curve_trail;
 
 pub use burning_trail::*;
@@ -19,7 +17,9 @@ pub use heart_burst::*;
 pub use heart_trail::*;
 pub use laser_beam::*;
 pub use lightning_trail::*;
+pub use monster_status_effect::*;
 pub use sparkle::*;
 pub use sparkle_burst::*;
+pub use tower_status_effect::*;
 pub use trash_bounce::*;
 pub use wind_curve_trail::*;

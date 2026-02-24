@@ -21,6 +21,7 @@ pub mod play_history;
 pub mod projectile;
 mod render;
 pub mod stage_modifiers;
+mod status_effect_particle_generator;
 mod tick;
 pub mod tower;
 mod tower_info_popup;
@@ -47,6 +48,7 @@ use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
 pub use render::*;
+use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
@@ -102,6 +104,7 @@ pub struct GameState {
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
     pub just_cleared_boss_stage: bool,
+    pub status_effect_particle_generator: StatusEffectParticleGenerator,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -249,6 +252,7 @@ fn create_initial_game_state() -> GameState {
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
         just_cleared_boss_stage: false,
+        status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
     };
 
     game_state.goto_next_stage();
@@ -316,6 +320,7 @@ impl GameState {
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
         }
     }
 

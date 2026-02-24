@@ -65,7 +65,6 @@ impl CardParticle {
         }
 
         let eased = match self.ease_mode {
-            EaseMode::Linear => self.progress,
             EaseMode::EaseOutCubic => {
                 let inv = 1.0 - self.progress;
                 1.0 - (inv * inv * inv)
