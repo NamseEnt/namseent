@@ -18,6 +18,8 @@ const BLINK_RISE_RATIO: f32 = 0.4;
 
 const RESPAWN_CHANCE: f32 = 0.25;
 const MAX_RESPAWN_COUNT: u8 = 1;
+const SPARKLE_ANGLE_MIN_RAD: f32 = 0.0;
+const SPARKLE_ANGLE_MAX_RAD: f32 = std::f32::consts::TAU;
 
 #[derive(Clone)]
 pub struct SparkleParticle {
@@ -28,6 +30,7 @@ pub struct SparkleParticle {
     pub alpha: f32,
     pub respawn_count: u8,
     pub size_scale: f32,
+    pub angle_rad: f32,
 }
 
 impl SparkleParticle {
@@ -56,6 +59,7 @@ impl SparkleParticle {
         let lifetime = Duration::from_millis(lifetime_ms);
 
         let size_scale = rng.gen_range(SIZE_SCALE_MIN..=SIZE_SCALE_MAX);
+        let angle_rad = rng.gen_range(SPARKLE_ANGLE_MIN_RAD..SPARKLE_ANGLE_MAX_RAD);
 
         Self {
             xy: final_xy,
@@ -65,6 +69,7 @@ impl SparkleParticle {
             alpha: SPARKLE_ALPHA,
             respawn_count: 0,
             size_scale,
+            angle_rad,
         }
     }
 
@@ -80,6 +85,7 @@ impl SparkleParticle {
         let lifetime = Duration::from_millis(lifetime_ms);
 
         let size_scale = rng.gen_range(SIZE_SCALE_MIN..=SIZE_SCALE_MAX);
+        let angle_rad = rng.gen_range(SPARKLE_ANGLE_MIN_RAD..SPARKLE_ANGLE_MAX_RAD);
 
         Self {
             xy: final_xy,
@@ -89,6 +95,7 @@ impl SparkleParticle {
             alpha: SPARKLE_ALPHA,
             respawn_count: self.respawn_count + 1,
             size_scale,
+            angle_rad,
         }
     }
 
@@ -127,13 +134,14 @@ impl SparkleParticle {
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
 
         let scale = (TILE_PX_SIZE.width.as_f32() * SPARKLE_SIZE_TILE * self.size_scale) / 128.0;
-        let color = Color::from_f01(1.0, 0.9, 0.2, self.alpha);
+        let color = Color::BLACK.with_alpha((self.alpha * 255.0) as u8);
 
-        sprites.push(atlas::centered_sprite(
-            atlas::glow_circle(),
+        sprites.push(atlas::centered_rotated_sprite(
+            atlas::sparkle(),
             xy_px.x,
             xy_px.y,
             scale,
+            self.angle_rad,
             Some(color),
         ));
 

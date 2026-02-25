@@ -116,11 +116,11 @@ pub fn line_sprite_from_rect(
 }
 
 pub fn laser_line_rect() -> Rect<Px> { rect(384.0, 0.0, 256.0, 64.0) }
-pub fn glow_circle() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
 pub fn burning_tail() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
 pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
 pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
 pub fn lightning_bolt_rect() -> Rect<Px> { rect(640.0, 0.0, 256.0, 64.0) }
+pub fn sparkle() -> Rect<Px> { rect(896.0, 0.0, 128.0, 128.0) }
 pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
