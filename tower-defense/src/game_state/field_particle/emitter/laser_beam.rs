@@ -6,8 +6,8 @@ use namui::*;
 use rand::Rng;
 
 const LASER_LINE_COUNT: usize = 8;
-const LINE_THICKNESS_MIN: f32 = 0.1;
-const LINE_THICKNESS_MAX: f32 = 0.25;
+const LINE_THICKNESS_MIN: f32 = 0.2;
+const LINE_THICKNESS_MAX: f32 = 0.5;
 const LASER_LIFETIME_MS: i64 = 120;
 const START_OFFSET_RANGE: f32 = 0.9;
 const END_OFFSET_RANGE: f32 = 0.9;

@@ -62,26 +62,48 @@ pub fn line_sprite(
     thickness: f32,
     color: Option<Color>,
 ) -> Option<ImageSprite> {
+    line_sprite_from_rect(
+        Rect::Xywh { x: px(0.0), y: px(0.0), width: px(LINE_SPRITE_W), height: px(LINE_SPRITE_H) },
+        start_x,
+        start_y,
+        end_x,
+        end_y,
+        thickness,
+        color,
+    )
+}
+
+pub fn line_sprite_from_rect(
+    src_base_rect: Rect<Px>,
+    start_x: Px,
+    start_y: Px,
+    end_x: Px,
+    end_y: Px,
+    thickness: f32,
+    color: Option<Color>,
+) -> Option<ImageSprite> {
     let dx = (end_x - start_x).as_f32();
     let dy = (end_y - start_y).as_f32();
     let length = (dx * dx + dy * dy).sqrt();
+    let base_h = src_base_rect.height().as_f32();
+    let base_w = src_base_rect.width().as_f32();
     if length < 0.001 || thickness < 0.001 {
         return None;
     }
     let angle = dy.atan2(dx);
-    let scale = thickness / LINE_SPRITE_H;
-    let src_w = (length / scale).min(LINE_SPRITE_W);
+    let scale = thickness / base_h;
+    let src_w = (length / scale).min(base_w);
     let cos_a = angle.cos();
     let sin_a = angle.sin();
     let scos = scale * cos_a;
     let ssin = scale * sin_a;
-    let half_h = LINE_SPRITE_H / 2.0;
+    let half_h = base_h / 2.0;
     Some(ImageSprite {
         src_rect: Rect::Xywh {
-            x: px(0.0),
-            y: px(0.0),
+            x: src_base_rect.left(),
+            y: src_base_rect.top(),
             width: px(src_w),
-            height: px(LINE_SPRITE_H),
+            height: px(base_h),
         },
         xform: RSXform {
             scos,
@@ -93,6 +115,7 @@ pub fn line_sprite(
     })
 }
 
+pub fn laser_line_rect() -> Rect<Px> { rect(384.0, 0.0, 256.0, 64.0) }
 pub fn glow_circle() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
 pub fn burning_tail() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
 pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }

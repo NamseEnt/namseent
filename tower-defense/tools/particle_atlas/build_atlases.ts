@@ -17,7 +17,7 @@ export async function createShapesAtlas(): Promise<Atlas> {
 }
 
 export async function createAttackAtlas(): Promise<Atlas> {
-    const attack = createAtlas("attack", CELL * 3, CELL);
+    const attack = createAtlas("attack", CELL * 5, CELL);
     await drawImage(
         attack,
         "BURNING_TAIL",
@@ -33,10 +33,17 @@ export async function createAttackAtlas(): Promise<Atlas> {
         "BLUE_SPARK",
         path.join(ASSET_DIR, "attack", "particle", "blue_spark.png"),
     );
+    await drawImageRect(
+        attack,
+        "LASER_LINE",
+        path.join(ASSET_DIR, "attack", "particle", "laser_line.png"),
+        256,
+        64,
+    );
     return attack;
 }
 
-export function createLineAtlas(): Atlas {
+export async function createLineAtlas(): Promise<Atlas> {
     const line = createAtlas("line", 1024, LINE_H);
     drawCapsuleLine(line);
     return line;

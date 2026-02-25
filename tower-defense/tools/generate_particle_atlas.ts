@@ -12,7 +12,7 @@ import { generateRust } from "./particle_atlas/rust_generator.ts";
 async function main() {
     const shapes = await createShapesAtlas();
     const attack = await createAttackAtlas();
-    const line = createLineAtlas();
+    const line = await createLineAtlas();
     const projectiles = await createProjectilesAtlas();
     const monsters = await createMonstersAtlas();
     const icons = await createIconsAtlas();

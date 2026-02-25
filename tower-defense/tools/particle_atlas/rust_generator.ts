@@ -2,6 +2,7 @@ import fs from "fs";
 
 import { OUTPUT_RS } from "./constants.ts";
 import type { Atlas } from "./types.ts";
+import { spriteOrThrow } from "./types.ts";
 import { appendBaseSection } from "./rust_generator/base_section.ts";
 import { appendIconAndDigitSection } from "./rust_generator/icon_digit_section.ts";
 import { appendProjectileSection } from "./rust_generator/projectile_section.ts";
@@ -17,6 +18,10 @@ export function generateRust(
 ): void {
     let rs = "";
     rs = appendBaseSection(rs);
+    {
+        const laserLine = spriteOrThrow(attack.sprites, "LASER_LINE");
+        rs += `pub fn laser_line_rect() -> Rect<Px> { rect(${laserLine.x}.0, ${laserLine.y}.0, ${laserLine.w}.0, ${laserLine.h}.0) }\n`;
+    }
     rs = appendShapeAndMonsterSection(rs, shapes, attack, monsters);
     rs = appendProjectileSection(rs, projectiles);
     rs = appendIconAndDigitSection(rs, icons);
