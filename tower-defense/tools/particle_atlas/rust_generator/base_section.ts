@@ -4,9 +4,6 @@ export function appendBaseSection(rs: string): string {
     rs += `    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }\n`;
     rs += `}\n\n`;
 
-    rs += `const LINE_SPRITE_W: f32 = 1024.0;\n`;
-    rs += `const LINE_SPRITE_H: f32 = 16.0;\n\n`;
-
     rs += `pub fn centered_sprite(\n`;
     rs += `    src_rect: Rect<Px>,\n`;
     rs += `    cx: Px,\n`;
@@ -52,25 +49,6 @@ export function appendBaseSection(rs: string): string {
     rs += `        },\n`;
     rs += `        color,\n`;
     rs += `    }\n`;
-    rs += `}\n\n`;
-
-    rs += `pub fn line_sprite(\n`;
-    rs += `    start_x: Px,\n`;
-    rs += `    start_y: Px,\n`;
-    rs += `    end_x: Px,\n`;
-    rs += `    end_y: Px,\n`;
-    rs += `    thickness: f32,\n`;
-    rs += `    color: Option<Color>,\n`;
-    rs += `) -> Option<ImageSprite> {\n`;
-    rs += `    line_sprite_from_rect(\n`;
-    rs += `        Rect::Xywh { x: px(0.0), y: px(0.0), width: px(LINE_SPRITE_W), height: px(LINE_SPRITE_H) },\n`;
-    rs += `        start_x,\n`;
-    rs += `        start_y,\n`;
-    rs += `        end_x,\n`;
-    rs += `        end_y,\n`;
-    rs += `        thickness,\n`;
-    rs += `        color,\n`;
-    rs += `    )\n`;
     rs += `}\n\n`;
 
     rs += `pub fn line_sprite_from_rect(\n`;

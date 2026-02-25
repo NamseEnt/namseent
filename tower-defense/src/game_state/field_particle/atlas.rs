@@ -4,9 +4,6 @@ fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
     Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }
 }
 
-const LINE_SPRITE_W: f32 = 1024.0;
-const LINE_SPRITE_H: f32 = 16.0;
-
 pub fn centered_sprite(
     src_rect: Rect<Px>,
     cx: Px,
@@ -52,25 +49,6 @@ pub fn centered_rotated_sprite(
         },
         color,
     }
-}
-
-pub fn line_sprite(
-    start_x: Px,
-    start_y: Px,
-    end_x: Px,
-    end_y: Px,
-    thickness: f32,
-    color: Option<Color>,
-) -> Option<ImageSprite> {
-    line_sprite_from_rect(
-        Rect::Xywh { x: px(0.0), y: px(0.0), width: px(LINE_SPRITE_W), height: px(LINE_SPRITE_H) },
-        start_x,
-        start_y,
-        end_x,
-        end_y,
-        thickness,
-        color,
-    )
 }
 
 pub fn line_sprite_from_rect(
@@ -121,6 +99,7 @@ pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
 pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
 pub fn lightning_bolt_rect() -> Rect<Px> { rect(640.0, 0.0, 256.0, 64.0) }
 pub fn sparkle() -> Rect<Px> { rect(896.0, 0.0, 128.0, 128.0) }
+pub fn wind_curve_trail() -> Rect<Px> { rect(1024.0, 0.0, 256.0, 64.0) }
 pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
