@@ -308,7 +308,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
 
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::BURNING_TRAILS,
-        image: crate::asset::image::PARTICLE_BURNING_TRAIL,
+        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: screen_paint.clone(),
     });
