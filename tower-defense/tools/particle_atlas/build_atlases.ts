@@ -13,13 +13,23 @@ import {
 } from "./draw.ts";
 import type { Atlas } from "./types.ts";
 
-export function createShapesAtlas(): Atlas {
+export async function createShapesAtlas(): Promise<Atlas> {
     const shapes = createAtlas("shapes", 512, CELL);
     drawGlowCircle(shapes);
     drawStarBurst(shapes);
     drawCross(shapes);
     drawRing(shapes);
     return shapes;
+}
+
+export async function createAttackAtlas(): Promise<Atlas> {
+    const attack = createAtlas("attack", CELL, CELL);
+    await drawImage(
+        attack,
+        "BLUE_SPARK",
+        path.join(ASSET_DIR, "attack", "particle", "blue_spark.png"),
+    );
+    return attack;
 }
 
 export function createLineAtlas(): Atlas {

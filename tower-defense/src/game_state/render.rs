@@ -298,6 +298,7 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
 
 fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     let shapes = crate::asset::image::PARTICLE_SHAPES;
+    let attack = crate::asset::image::PARTICLE_ATTACK;
     let line = crate::asset::image::PARTICLE_LINE;
     let projectiles = crate::asset::image::PARTICLE_PROJECTILES;
     let monsters = crate::asset::image::PARTICLE_MONSTERS;
@@ -331,7 +332,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     });
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::BLUE_DOT_SPARKS,
-        image: shapes,
+        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: screen_paint.clone(),
     });

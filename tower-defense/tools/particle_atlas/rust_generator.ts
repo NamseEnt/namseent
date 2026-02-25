@@ -9,6 +9,7 @@ import { appendShapeAndMonsterSection } from "./rust_generator/shape_monster_sec
 
 export function generateRust(
     shapes: Atlas,
+    attack: Atlas,
     line: Atlas,
     projectiles: Atlas,
     monsters: Atlas,
@@ -16,7 +17,7 @@ export function generateRust(
 ): void {
     let rs = "";
     rs = appendBaseSection(rs);
-    rs = appendShapeAndMonsterSection(rs, shapes, monsters);
+    rs = appendShapeAndMonsterSection(rs, shapes, attack, monsters);
     rs = appendProjectileSection(rs, projectiles);
     rs = appendIconAndDigitSection(rs, icons);
 
@@ -24,6 +25,7 @@ export function generateRust(
     console.log(`Rust constants written to ${OUTPUT_RS}`);
 
     console.log("Shapes sprites:", JSON.stringify(shapes.sprites, null, 2));
+    console.log("Attack sprites:", JSON.stringify(attack.sprites, null, 2));
     console.log("Line sprites:", JSON.stringify(line.sprites, null, 2));
     console.log(
         "Projectile sprites:",

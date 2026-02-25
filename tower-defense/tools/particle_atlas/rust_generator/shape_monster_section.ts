@@ -4,6 +4,7 @@ import { spriteOrThrow } from "../types.ts";
 export function appendShapeAndMonsterSection(
     rs: string,
     shapes: Atlas,
+    attack: Atlas,
     monsters: Atlas,
 ): string {
     const sh = shapes.sprites;
@@ -11,10 +12,12 @@ export function appendShapeAndMonsterSection(
     const starBurst = spriteOrThrow(sh, "STAR_BURST");
     const cross = spriteOrThrow(sh, "CROSS");
     const ring = spriteOrThrow(sh, "RING");
+    const blueSpark = spriteOrThrow(attack.sprites, "BLUE_SPARK");
     rs += `pub fn glow_circle() -> Rect<Px> { rect(${glowCircle.x}.0, ${glowCircle.y}.0, ${glowCircle.w}.0, ${glowCircle.h}.0) }\n`;
     rs += `pub fn star_burst() -> Rect<Px> { rect(${starBurst.x}.0, ${starBurst.y}.0, ${starBurst.w}.0, ${starBurst.h}.0) }\n`;
     rs += `pub fn cross() -> Rect<Px> { rect(${cross.x}.0, ${cross.y}.0, ${cross.w}.0, ${cross.h}.0) }\n`;
     rs += `pub fn ring() -> Rect<Px> { rect(${ring.x}.0, ${ring.y}.0, ${ring.w}.0, ${ring.h}.0) }\n`;
+    rs += `pub fn blue_spark() -> Rect<Px> { rect(${blueSpark.x}.0, ${blueSpark.y}.0, ${blueSpark.w}.0, ${blueSpark.h}.0) }\n`;
 
     const ms = monsters.sprites;
     const monsterSoul = spriteOrThrow(ms, "MONSTER_SOUL");

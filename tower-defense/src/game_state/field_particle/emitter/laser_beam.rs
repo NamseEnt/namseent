@@ -1,5 +1,5 @@
 use crate::game_state::field_particle::{
-    BLUE_DOT_SPARKS, BlueDotSparkParticle, LASER_LINES, LIGHTNING_BOLTS, LaserLineParticle,
+    BLUE_DOT_SPARKS, BlueSparkParticle, LASER_LINES, LIGHTNING_BOLTS, LaserLineParticle,
     LightningBoltParticle,
 };
 use namui::*;
@@ -125,12 +125,8 @@ fn emit_blue_dot_sparks(
         let movement_dir_x = base_dir_x * cos_a - base_dir_y * sin_a;
         let movement_dir_y = base_dir_x * sin_a + base_dir_y * cos_a;
 
-        let particle = BlueDotSparkParticle::new_with_random(
-            end_xy,
-            (movement_dir_x, movement_dir_y),
-            now,
-            rng,
-        );
+        let particle =
+            BlueSparkParticle::new_with_random(end_xy, (movement_dir_x, movement_dir_y), now, rng);
 
         BLUE_DOT_SPARKS.spawn(particle);
     }

@@ -1,4 +1,4 @@
-mod blue_dot_spark;
+mod blue_spark;
 mod burning_trail;
 mod card;
 mod damage_text;
@@ -16,7 +16,7 @@ mod sparkle;
 mod trash;
 mod wind_curve_trail;
 
-pub use blue_dot_spark::*;
+pub use blue_spark::*;
 pub use burning_trail::*;
 pub use card::*;
 pub use damage_text::*;

@@ -5,7 +5,7 @@ pub mod particle;
 use namui::{Duration, Instant};
 
 pub use particle::{
-    BlueDotSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
+    BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
     EmberSparkParticle, HeartParticle, IconParticle, InstantEmitParticle, InstantHitParticle,
     LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
     ProjectileParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
@@ -26,7 +26,7 @@ pub static MONSTER_CORPSES: namui::particle::Emitter<MonsterCorpseParticle> =
 pub static ICONS: namui::particle::Emitter<IconParticle> = namui::particle::Emitter::new();
 pub static DAMAGE_TEXTS: namui::particle::Emitter<DamageTextParticle> =
     namui::particle::Emitter::new();
-pub static BLUE_DOT_SPARKS: namui::particle::Emitter<BlueDotSparkParticle> =
+pub static BLUE_DOT_SPARKS: namui::particle::Emitter<BlueSparkParticle> =
     namui::particle::Emitter::new();
 pub static LASER_LINES: namui::particle::Emitter<LaserLineParticle> =
     namui::particle::Emitter::new();
