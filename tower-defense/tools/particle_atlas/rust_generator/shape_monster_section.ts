@@ -12,10 +12,12 @@ export function appendShapeAndMonsterSection(
     const burningTail = spriteOrThrow(attack.sprites, "BURNING_TAIL");
     const emberSpark = spriteOrThrow(attack.sprites, "EMBER_SPARK");
     const blueSpark = spriteOrThrow(attack.sprites, "BLUE_SPARK");
+    const lightningBolt = spriteOrThrow(attack.sprites, "LIGHTNING_BOLT");
     rs += `pub fn glow_circle() -> Rect<Px> { rect(${glowCircle.x}.0, ${glowCircle.y}.0, ${glowCircle.w}.0, ${glowCircle.h}.0) }\n`;
     rs += `pub fn burning_tail() -> Rect<Px> { rect(${burningTail.x}.0, ${burningTail.y}.0, ${burningTail.w}.0, ${burningTail.h}.0) }\n`;
     rs += `pub fn ember_spark() -> Rect<Px> { rect(${emberSpark.x}.0, ${emberSpark.y}.0, ${emberSpark.w}.0, ${emberSpark.h}.0) }\n`;
     rs += `pub fn blue_spark() -> Rect<Px> { rect(${blueSpark.x}.0, ${blueSpark.y}.0, ${blueSpark.w}.0, ${blueSpark.h}.0) }\n`;
+    rs += `pub fn lightning_bolt_rect() -> Rect<Px> { rect(${lightningBolt.x}.0, ${lightningBolt.y}.0, ${lightningBolt.w}.0, ${lightningBolt.h}.0) }\n`;
 
     const ms = monsters.sprites;
     const monsterSoul = spriteOrThrow(ms, "MONSTER_SOUL");

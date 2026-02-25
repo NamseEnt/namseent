@@ -13,6 +13,8 @@ const LIGHTNING_BOLT_SPAWN_CHANCE_REDUCTION: f32 = 0.8;
 const LIGHTNING_BOLT_END_OFFSET_RANGE: f32 = 0.2;
 
 const LIGHTNING_BOLT_ALPHA_APPEAR_PHASE: f32 = 0.2;
+const LIGHTNING_BOLT_THICKNESS_CENTER_FACTOR: f32 = 0.1;
+const LIGHTNING_BOLT_THICKNESS_EDGE_FACTOR: f32 = 0.05;
 
 #[derive(Clone)]
 pub struct LightningBoltParticle {
@@ -141,30 +143,20 @@ impl LightningBoltParticle {
                 i as f32 / (num_segments - 1) as f32
             };
             let center_dist = (t - 0.5).abs() * 2.0;
-            let thickness_factor = 0.05 - 0.04 * center_dist;
+            let thickness_factor = LIGHTNING_BOLT_THICKNESS_CENTER_FACTOR
+                - (LIGHTNING_BOLT_THICKNESS_CENTER_FACTOR - LIGHTNING_BOLT_THICKNESS_EDGE_FACTOR)
+                    * center_dist;
             let outer_thickness = TILE_PX_SIZE.width.as_f32() * thickness_factor;
 
-            let outer_color = Color::from_f01(0.2, 0.5, 1.0, self.alpha);
-            if let Some(s) = atlas::line_sprite(
+            let outer_color = Color::BLACK.with_alpha((self.alpha * 255.0) as u8);
+            if let Some(s) = atlas::line_sprite_from_rect(
+                atlas::lightning_bolt_rect(),
                 start_px.x,
                 start_px.y,
                 end_px.x,
                 end_px.y,
                 outer_thickness,
                 Some(outer_color),
-            ) {
-                sprites.push(s);
-            }
-
-            let inner_thickness = outer_thickness * 0.4;
-            let inner_color = Color::from_f01(0.6, 0.85, 1.0, self.alpha * 0.8);
-            if let Some(s) = atlas::line_sprite(
-                start_px.x,
-                start_px.y,
-                end_px.x,
-                end_px.y,
-                inner_thickness,
-                Some(inner_color),
             ) {
                 sprites.push(s);
             }

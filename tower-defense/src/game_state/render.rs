@@ -326,8 +326,8 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     });
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::LIGHTNING_BOLTS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
+        image: attack,
+        sprite_colors_blend_mode: BlendMode::Screen,
         paint: screen_paint.clone(),
     });
     ctx.add(namui::particle::RenderEmitter {
