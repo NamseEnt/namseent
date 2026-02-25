@@ -314,7 +314,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     });
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::EMBER_SPARKS,
-        image: shapes,
+        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: screen_paint.clone(),
     });

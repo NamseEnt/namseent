@@ -23,11 +23,16 @@ export async function createShapesAtlas(): Promise<Atlas> {
 }
 
 export async function createAttackAtlas(): Promise<Atlas> {
-    const attack = createAtlas("attack", CELL * 2, CELL);
+    const attack = createAtlas("attack", CELL * 3, CELL);
     await drawImage(
         attack,
         "BURNING_TAIL",
         path.join(ASSET_DIR, "attack", "particle", "burning_tail.png"),
+    );
+    await drawImage(
+        attack,
+        "EMBER_SPARK",
+        path.join(ASSET_DIR, "attack", "particle", "ember_spark.png"),
     );
     await drawImage(
         attack,
