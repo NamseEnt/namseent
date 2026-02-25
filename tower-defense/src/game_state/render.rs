@@ -305,31 +305,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
 
     ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::BURNING_TRAILS,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::EMBER_SPARKS,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::LASER_LINES,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Screen,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::LIGHTNING_BOLTS,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Screen,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::BLUE_DOT_SPARKS,
+        emitter: &field_particle::ATTACK_PARTICLES,
         image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: screen_paint.clone(),
@@ -381,17 +357,5 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         image: projectiles,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::SPARKLES,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Screen,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::WIND_CURVE_TRAILS,
-        image: attack,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
     });
 }

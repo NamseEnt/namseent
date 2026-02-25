@@ -1,5 +1,5 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::{LIGHTNING_BOLTS, LightningBoltParticle};
+use crate::game_state::field_particle::{LightningBoltParticle, spawn_lightning_bolt};
 use namui::*;
 use rand::Rng;
 
@@ -47,7 +47,7 @@ pub fn spawn_lightning_trail(
 
         let lifetime = Duration::from_millis(rng.gen_range(50..80));
 
-        LIGHTNING_BOLTS.spawn(LightningBoltParticle::new(
+        spawn_lightning_bolt(LightningBoltParticle::new(
             (start_pos.x, start_pos.y),
             (end_pos.x, end_pos.y),
             now,

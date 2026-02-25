@@ -11,14 +11,87 @@ pub use particle::{
     WindCurveTrailParticle,
 };
 
+#[derive(Clone)]
+pub enum AttackParticle {
+    BurningTrail(BurningTrailParticle),
+    EmberSpark(EmberSparkParticle),
+    LaserLine(LaserLineParticle),
+    LightningBolt(LightningBoltParticle),
+    BlueDotSpark(BlueSparkParticle),
+    Sparkle(SparkleParticle),
+    WindCurveTrail(WindCurveTrailParticle),
+}
+
+impl namui::particle::Particle for AttackParticle {
+    fn tick(&mut self, now: Instant, dt: Duration) {
+        match self {
+            AttackParticle::BurningTrail(p) => p.tick(now, dt),
+            AttackParticle::EmberSpark(p) => p.tick(now, dt),
+            AttackParticle::LaserLine(p) => p.tick(now, dt),
+            AttackParticle::LightningBolt(p) => p.tick(now, dt),
+            AttackParticle::BlueDotSpark(p) => p.tick(now, dt),
+            AttackParticle::Sparkle(p) => p.tick(now, dt),
+            AttackParticle::WindCurveTrail(p) => p.tick(now, dt),
+        }
+    }
+
+    fn render(&self) -> namui::particle::ParticleSprites {
+        match self {
+            AttackParticle::BurningTrail(p) => p.render(),
+            AttackParticle::EmberSpark(p) => p.render(),
+            AttackParticle::LaserLine(p) => p.render(),
+            AttackParticle::LightningBolt(p) => p.render(),
+            AttackParticle::BlueDotSpark(p) => p.render(),
+            AttackParticle::Sparkle(p) => p.render(),
+            AttackParticle::WindCurveTrail(p) => p.render(),
+        }
+    }
+
+    fn is_done(&self, now: Instant) -> bool {
+        match self {
+            AttackParticle::BurningTrail(p) => p.is_done(now),
+            AttackParticle::EmberSpark(p) => p.is_done(now),
+            AttackParticle::LaserLine(p) => p.is_done(now),
+            AttackParticle::LightningBolt(p) => p.is_done(now),
+            AttackParticle::BlueDotSpark(p) => p.is_done(now),
+            AttackParticle::Sparkle(p) => p.is_done(now),
+            AttackParticle::WindCurveTrail(p) => p.is_done(now),
+        }
+    }
+}
+
+pub fn spawn_burning_trail(particle: BurningTrailParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::BurningTrail(particle));
+}
+
+pub fn spawn_ember_spark(particle: EmberSparkParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::EmberSpark(particle));
+}
+
+pub fn spawn_laser_line(particle: LaserLineParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::LaserLine(particle));
+}
+
+pub fn spawn_lightning_bolt(particle: LightningBoltParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::LightningBolt(particle));
+}
+
+pub fn spawn_blue_dot_spark(particle: BlueSparkParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::BlueDotSpark(particle));
+}
+
+pub fn spawn_sparkle(particle: SparkleParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::Sparkle(particle));
+}
+
+pub fn spawn_wind_curve_trail_particle(particle: WindCurveTrailParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::WindCurveTrail(particle));
+}
+
 pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
     namui::particle::Emitter::new();
 pub static TRASHES: namui::particle::Emitter<TrashParticle> = namui::particle::Emitter::new();
 pub static CARDS: namui::particle::Emitter<CardParticle> = namui::particle::Emitter::new();
-pub static BURNING_TRAILS: namui::particle::Emitter<BurningTrailParticle> =
-    namui::particle::Emitter::new();
-pub static EMBER_SPARKS: namui::particle::Emitter<EmberSparkParticle> =
-    namui::particle::Emitter::new();
 pub static MONSTER_SOULS: namui::particle::Emitter<MonsterSoulParticle> =
     namui::particle::Emitter::new();
 pub static MONSTER_CORPSES: namui::particle::Emitter<MonsterCorpseParticle> =
@@ -26,20 +99,12 @@ pub static MONSTER_CORPSES: namui::particle::Emitter<MonsterCorpseParticle> =
 pub static ICONS: namui::particle::Emitter<IconParticle> = namui::particle::Emitter::new();
 pub static DAMAGE_TEXTS: namui::particle::Emitter<DamageTextParticle> =
     namui::particle::Emitter::new();
-pub static BLUE_DOT_SPARKS: namui::particle::Emitter<BlueSparkParticle> =
-    namui::particle::Emitter::new();
-pub static LASER_LINES: namui::particle::Emitter<LaserLineParticle> =
-    namui::particle::Emitter::new();
-pub static LIGHTNING_BOLTS: namui::particle::Emitter<LightningBoltParticle> =
-    namui::particle::Emitter::new();
-pub static SPARKLES: namui::particle::Emitter<SparkleParticle> = namui::particle::Emitter::new();
-pub static WIND_CURVE_TRAILS: namui::particle::Emitter<WindCurveTrailParticle> =
+pub static ATTACK_PARTICLES: namui::particle::Emitter<AttackParticle> =
     namui::particle::Emitter::new();
 pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
 
 pub fn tick_all_emitters(now: Instant, dt: Duration) {
-    BURNING_TRAILS.tick(now, dt);
-    EMBER_SPARKS.tick(now, dt);
+    ATTACK_PARTICLES.tick(now, dt);
     PROJECTILES.tick(now, dt);
     TRASHES.tick(now, dt);
     CARDS.tick(now, dt);
@@ -47,10 +112,5 @@ pub fn tick_all_emitters(now: Instant, dt: Duration) {
     MONSTER_CORPSES.tick(now, dt);
     ICONS.tick(now, dt);
     DAMAGE_TEXTS.tick(now, dt);
-    BLUE_DOT_SPARKS.tick(now, dt);
-    LASER_LINES.tick(now, dt);
-    LIGHTNING_BOLTS.tick(now, dt);
-    SPARKLES.tick(now, dt);
-    WIND_CURVE_TRAILS.tick(now, dt);
     HEARTS.tick(now, dt);
 }

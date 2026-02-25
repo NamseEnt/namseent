@@ -1,6 +1,6 @@
 use crate::game_state::field_particle::{
-    BLUE_DOT_SPARKS, BlueSparkParticle, LASER_LINES, LIGHTNING_BOLTS, LaserLineParticle,
-    LightningBoltParticle,
+    BlueSparkParticle, LaserLineParticle, LightningBoltParticle, spawn_blue_dot_spark,
+    spawn_laser_line, spawn_lightning_bolt,
 };
 use namui::*;
 use rand::Rng;
@@ -28,7 +28,7 @@ pub fn spawn_laser_beam(start_xy: (f32, f32), end_xy: (f32, f32), now: Instant) 
 
     for _ in 0..LIGHTNING_BOLT_COUNT {
         let lightning = create_lightning_bolt(start_xy, now, dx, dy, laser_length, &mut rng);
-        LIGHTNING_BOLTS.spawn(lightning);
+        spawn_lightning_bolt(lightning);
     }
 
     emit_blue_dot_sparks(end_xy, dx, dy, &mut rng, now);
@@ -65,7 +65,7 @@ fn emit_laser_lines(
             MOVEMENT_SPEED,
         );
 
-        LASER_LINES.spawn(particle);
+        spawn_laser_line(particle);
     }
 }
 
@@ -128,6 +128,6 @@ fn emit_blue_dot_sparks(
         let particle =
             BlueSparkParticle::new_with_random(end_xy, (movement_dir_x, movement_dir_y), now, rng);
 
-        BLUE_DOT_SPARKS.spawn(particle);
+        spawn_blue_dot_spark(particle);
     }
 }

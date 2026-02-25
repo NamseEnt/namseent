@@ -90,7 +90,7 @@ impl LaserLineParticle {
         }
         let start_px = TILE_PX_SIZE.to_xy() * Xy::new(self.start_xy.0, self.start_xy.1);
         let end_px = TILE_PX_SIZE.to_xy() * Xy::new(self.end_xy.0, self.end_xy.1);
-        let color = Color::BLACK.with_alpha((self.alpha * 255.0) as u8);
+        let color = Color::WHITE.with_alpha((self.alpha * 255.0) as u8);
         let thickness = TILE_PX_SIZE.width.as_f32() * self.thickness;
         if let Some(s) = atlas::line_sprite_from_rect(
             atlas::laser_line_rect(),

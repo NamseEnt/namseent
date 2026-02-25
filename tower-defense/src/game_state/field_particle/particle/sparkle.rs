@@ -120,7 +120,7 @@ impl SparkleParticle {
             let mut rng = rand::thread_rng();
             if rng.gen_range(0.0..1.0) < RESPAWN_CHANCE {
                 let new = self.respawn_from(now, &mut rng);
-                crate::game_state::field_particle::SPARKLES.spawn(new);
+                crate::game_state::field_particle::spawn_sparkle(new);
             }
         }
     }
@@ -134,7 +134,7 @@ impl SparkleParticle {
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
 
         let scale = (TILE_PX_SIZE.width.as_f32() * SPARKLE_SIZE_TILE * self.size_scale) / 128.0;
-        let color = Color::BLACK.with_alpha((self.alpha * 255.0) as u8);
+        let color = Color::WHITE.with_alpha((self.alpha * 255.0) as u8);
 
         sprites.push(atlas::centered_rotated_sprite(
             atlas::sparkle(),

@@ -1,5 +1,5 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::{WIND_CURVE_TRAILS, WindCurveTrailParticle};
+use crate::game_state::field_particle::{WindCurveTrailParticle, spawn_wind_curve_trail_particle};
 use namui::*;
 
 pub const WIND_CURVE_SPAWN_DISTANCE: f32 = 0.12;
@@ -29,7 +29,7 @@ pub fn spawn_wind_curve_trail(
         let particle_xy = from_xy + (to_xy - from_xy) * progress;
         let px = (particle_xy.x, particle_xy.y);
 
-        WIND_CURVE_TRAILS.spawn(WindCurveTrailParticle::new_with_random(
+        spawn_wind_curve_trail_particle(WindCurveTrailParticle::new_with_random(
             px,
             movement_direction,
             now,

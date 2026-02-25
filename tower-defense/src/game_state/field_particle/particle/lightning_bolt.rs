@@ -86,7 +86,7 @@ impl LightningBoltParticle {
         if !self.has_spawned && self.is_done(now) && self.points.len() >= 2 {
             self.has_spawned = true;
             if let Some(child) = self.try_spawn_child(now) {
-                crate::game_state::field_particle::LIGHTNING_BOLTS.spawn(child);
+                crate::game_state::field_particle::spawn_lightning_bolt(child);
             }
         }
     }
@@ -148,7 +148,7 @@ impl LightningBoltParticle {
                     * center_dist;
             let outer_thickness = TILE_PX_SIZE.width.as_f32() * thickness_factor;
 
-            let outer_color = Color::BLACK.with_alpha((self.alpha * 255.0) as u8);
+            let color = Color::WHITE.with_alpha((self.alpha * 255.0) as u8);
             if let Some(s) = atlas::line_sprite_from_rect(
                 atlas::lightning_bolt_rect(),
                 start_px.x,
@@ -156,7 +156,7 @@ impl LightningBoltParticle {
                 end_px.x,
                 end_px.y,
                 outer_thickness,
-                Some(outer_color),
+                Some(color),
             ) {
                 sprites.push(s);
             }
