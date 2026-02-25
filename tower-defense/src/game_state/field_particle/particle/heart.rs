@@ -41,13 +41,16 @@ const MUSHROOM_EXPLOSION_RADIUS_MIN_TILE: f32 = 0.15;
 const MUSHROOM_EXPLOSION_RADIUS_MAX_TILE: f32 = 0.25;
 const MUSHROOM_COLUMN_RADIUS_MIN_TILE: f32 = 0.1;
 const MUSHROOM_COLUMN_RADIUS_MAX_TILE: f32 = 0.15;
-const MUSHROOM_SPHERE_INNER_RADIUS_RATIO: f32 = 0.4;
-const MUSHROOM_OUTER_ALPHA_MULT: f32 = 0.6;
+const MUSHROOM_OUTER_ALPHA_MULT: f32 = 0.2;
+const MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN: f32 = -8.0;
+const MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX: f32 = 8.0;
 
 #[derive(Clone)]
 pub struct HeartParticle {
     pub xy: (f32, f32),
     pub velocity: (f32, f32),
+    pub smoke_rotation_rad: f32,
+    pub smoke_rotation_rad_per_sec: f32,
     pub created_at: Instant,
     pub lifetime: Duration,
     pub initial_opacity: f32,
@@ -114,6 +117,8 @@ impl HeartParticle {
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: 0.0,
+            smoke_rotation_rad_per_sec: 0.0,
             created_at,
             lifetime,
             initial_opacity: 1.0,
@@ -147,10 +152,16 @@ impl HeartParticle {
 
         let initial_opacity =
             rng.gen_range(MUSHROOM_EXPLOSION_ALPHA_MIN..=MUSHROOM_EXPLOSION_ALPHA_MAX);
+        let smoke_rotation_deg_per_sec = rng.gen_range(
+            MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN..=MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX,
+        );
+        let smoke_rotation_rad_per_sec = smoke_rotation_deg_per_sec * PI / 180.0;
 
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: rng.gen_range(0.0..2.0 * PI),
+            smoke_rotation_rad_per_sec,
             created_at,
             lifetime,
             initial_opacity,
@@ -186,10 +197,16 @@ impl HeartParticle {
         let radius_px = TILE_PX_SIZE.width * radius_tile;
 
         let initial_opacity = rng.gen_range(MUSHROOM_COLUMN_ALPHA_MIN..=MUSHROOM_COLUMN_ALPHA_MAX);
+        let smoke_rotation_deg_per_sec = rng.gen_range(
+            MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN..=MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX,
+        );
+        let smoke_rotation_rad_per_sec = smoke_rotation_deg_per_sec * PI / 180.0;
 
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: rng.gen_range(0.0..2.0 * PI),
+            smoke_rotation_rad_per_sec,
             created_at,
             lifetime,
             initial_opacity,
@@ -236,6 +253,8 @@ impl HeartParticle {
         Self {
             xy: start_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: 0.0,
+            smoke_rotation_rad_per_sec: 0.0,
             created_at,
             lifetime,
             initial_opacity,
@@ -294,6 +313,13 @@ impl HeartParticle {
 
         self.xy.0 += self.velocity.0 * dt_secs * movement_speed_mul;
         self.xy.1 += self.velocity.1 * dt_secs * movement_speed_mul;
+
+        if matches!(
+            self.kind,
+            HeartParticleKind::MushroomExplosion { .. } | HeartParticleKind::MushroomColumn { .. }
+        ) {
+            self.smoke_rotation_rad += self.smoke_rotation_rad_per_sec * dt_secs;
+        }
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -315,24 +341,14 @@ impl HeartParticle {
                 let radius = radius_px.as_f32().max(1.0);
                 let outer_scale = (radius * 2.0) / 128.0;
                 let outer_color =
-                    Color::from_f01(1.0, 0.6, 0.75, self.alpha * MUSHROOM_OUTER_ALPHA_MULT);
-                sprites.push(atlas::centered_sprite(
-                    atlas::projectile_glow_circle(),
+                    Color::WHITE.with_alpha((self.alpha * MUSHROOM_OUTER_ALPHA_MULT * 255.0) as u8);
+                sprites.push(atlas::centered_rotated_sprite(
+                    atlas::projectile_pink_smoke(),
                     px_xy.x,
                     px_xy.y,
                     outer_scale,
+                    self.smoke_rotation_rad,
                     Some(outer_color),
-                ));
-
-                let inner_radius = (radius * MUSHROOM_SPHERE_INNER_RADIUS_RATIO).max(0.5);
-                let inner_scale = (inner_radius * 2.0) / 128.0;
-                let inner_color = Color::from_f01(1.0, 0.8, 0.9, self.alpha);
-                sprites.push(atlas::centered_sprite(
-                    atlas::projectile_glow_circle(),
-                    px_xy.x,
-                    px_xy.y,
-                    inner_scale,
-                    Some(inner_color),
                 ));
             }
             HeartParticleKind::Heart00

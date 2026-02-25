@@ -58,8 +58,8 @@ export function appendProjectileSection(
     rs += `    }\n}\n`;
 
     {
-        const r = spriteOrThrow(ps, "GLOW_CIRCLE");
-        rs += `\npub fn projectile_glow_circle() -> Rect<Px> { rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0) }\n`;
+        const r = spriteOrThrow(ps, "PINK_SMOKE");
+        rs += `\npub fn projectile_pink_smoke() -> Rect<Px> { rect(${r.x}.0, ${r.y}.0, ${r.w}.0, ${r.h}.0) }\n`;
     }
 
     return rs;

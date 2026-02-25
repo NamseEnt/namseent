@@ -203,11 +203,11 @@ pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::He
         HeartParticleKind::Heart01 => rect(0.0, 128.0, 128.0, 128.0),
         HeartParticleKind::Heart02 => rect(128.0, 128.0, 128.0, 128.0),
         HeartParticleKind::RisingHeart { .. } => rect(1280.0, 0.0, 128.0, 128.0),
-        _ => rect(256.0, 128.0, 128.0, 128.0),
+        _ => rect(384.0, 128.0, 128.0, 128.0),
     }
 }
 
-pub fn projectile_glow_circle() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
+pub fn projectile_pink_smoke() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
 
 pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
     use crate::icon::IconKind;

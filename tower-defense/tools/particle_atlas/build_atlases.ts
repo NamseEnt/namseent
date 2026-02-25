@@ -92,6 +92,11 @@ export async function createProjectilesAtlas(): Promise<Atlas> {
             path.join(ASSET_DIR, "attack", "particle", `heart_${num}.png`),
         );
     }
+    await drawImage(
+        projectiles,
+        "PINK_SMOKE",
+        path.join(ASSET_DIR, "attack", "particle", "pink_smoke.png"),
+    );
     drawGlowCircle(projectiles);
     return projectiles;
 }
