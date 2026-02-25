@@ -4,21 +4,15 @@ import { createAtlas } from "./atlas.ts";
 import { ASSET_DIR, CELL, LINE_H, ROW_W } from "./constants.ts";
 import {
     drawCapsuleLine,
-    drawCross,
     drawGlowCircle,
     drawImage,
     drawImageRect,
-    drawRing,
-    drawStarBurst,
 } from "./draw.ts";
 import type { Atlas } from "./types.ts";
 
 export async function createShapesAtlas(): Promise<Atlas> {
-    const shapes = createAtlas("shapes", 512, CELL);
+    const shapes = createAtlas("shapes", CELL, CELL);
     drawGlowCircle(shapes);
-    drawStarBurst(shapes);
-    drawCross(shapes);
-    drawRing(shapes);
     return shapes;
 }
 

@@ -19,49 +19,6 @@ export function drawGlowCircle(atlas: Atlas): void {
     atlas.ctx.fill();
 }
 
-export function drawStarBurst(atlas: Atlas): void {
-    const r = atlas.alloc("STAR_BURST", CELL, CELL);
-    const cx = r.x + CELL / 2;
-    const cy = r.y + CELL / 2;
-    const spikes = 8;
-    const outerR = CELL / 2 - 4;
-    const innerR = CELL / 6;
-    atlas.ctx.fillStyle = "white";
-    atlas.ctx.beginPath();
-    for (let i = 0; i < spikes * 2; i++) {
-        const angle = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
-        const radius = i % 2 === 0 ? outerR : innerR;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        if (i === 0) atlas.ctx.moveTo(x, y);
-        else atlas.ctx.lineTo(x, y);
-    }
-    atlas.ctx.closePath();
-    atlas.ctx.fill();
-}
-
-export function drawCross(atlas: Atlas): void {
-    const r = atlas.alloc("CROSS", CELL, CELL);
-    const cx = r.x + CELL / 2;
-    const cy = r.y + CELL / 2;
-    const arm = CELL / 2 - 8;
-    const thickness = 12;
-    atlas.ctx.fillStyle = "white";
-    atlas.ctx.fillRect(cx - arm, cy - thickness / 2, arm * 2, thickness);
-    atlas.ctx.fillRect(cx - thickness / 2, cy - arm, thickness, arm * 2);
-}
-
-export function drawRing(atlas: Atlas): void {
-    const r = atlas.alloc("RING", CELL, CELL);
-    const cx = r.x + CELL / 2;
-    const cy = r.y + CELL / 2;
-    atlas.ctx.strokeStyle = "white";
-    atlas.ctx.lineWidth = 6;
-    atlas.ctx.beginPath();
-    atlas.ctx.arc(cx, cy, CELL / 2 - 8, 0, Math.PI * 2);
-    atlas.ctx.stroke();
-}
-
 export function drawCapsuleLine(atlas: Atlas): void {
     const w = 1024;
     const h = LINE_H;

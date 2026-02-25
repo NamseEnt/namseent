@@ -355,18 +355,6 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         paint: None,
     });
     ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::INSTANT_EMITS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::INSTANT_HITS,
-        image: shapes,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::MONSTER_SOULS,
         image: monsters,
         sprite_colors_blend_mode: BlendMode::Modulate,

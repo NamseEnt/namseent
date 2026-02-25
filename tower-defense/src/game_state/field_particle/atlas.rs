@@ -94,9 +94,6 @@ pub fn line_sprite(
 }
 
 pub fn glow_circle() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
-pub fn star_burst() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
-pub fn cross() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
-pub fn ring() -> Rect<Px> { rect(384.0, 0.0, 128.0, 128.0) }
 pub fn burning_tail() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
 pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
 pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }

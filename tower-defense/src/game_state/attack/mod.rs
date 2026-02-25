@@ -1,8 +1,6 @@
-pub mod instant_effect;
 pub mod laser;
 
 use super::projectile::{ProjectileKind, ProjectileTrail};
-use instant_effect::{TargetHitEffect, TowerEmitEffect};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
@@ -41,10 +39,6 @@ pub enum AttackType {
         hit_effect: ProjectileHitEffect,
     },
     Laser,
-    InstantEffect {
-        emit_effect: TowerEmitEffect,
-        hit_effect: TargetHitEffect,
-    },
     FullHouseRain {
         tower_xy: (f32, f32),
         target_xy: (f32, f32),

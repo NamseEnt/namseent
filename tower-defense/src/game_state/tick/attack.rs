@@ -99,31 +99,6 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
                     monster_kills.push((target_idx, damage, target_xy));
                 }
-                AttackType::InstantEffect {
-                    emit_effect,
-                    hit_effect,
-                } => {
-                    field_particle::INSTANT_EMITS.spawn(field_particle::InstantEmitParticle::new(
-                        emit_effect.tower_xy,
-                        emit_effect.target_xy,
-                        emit_effect.created_at,
-                        emit_effect.kind,
-                    ));
-                    field_particle::INSTANT_HITS.spawn(field_particle::InstantHitParticle::new(
-                        hit_effect.xy,
-                        hit_effect.created_at,
-                        hit_effect.kind,
-                        hit_effect.scale,
-                    ));
-
-                    if instant_damage > 0.0 {
-                        field_particle::DAMAGE_TEXTS.spawn(
-                            field_particle::DamageTextParticle::new(target_xy, instant_damage, now),
-                        );
-                    }
-
-                    monster_kills.push((target_idx, instant_damage, target_xy));
-                }
                 AttackType::FullHouseRain {
                     tower_xy,
                     target_xy: _,
