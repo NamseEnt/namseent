@@ -1,20 +1,9 @@
 import path from "path";
 
 import { createAtlas } from "./atlas.ts";
-import { ASSET_DIR, CELL, LINE_H, ROW_W } from "./constants.ts";
-import {
-    drawCapsuleLine,
-    drawGlowCircle,
-    drawImage,
-    drawImageRect,
-} from "./draw.ts";
+import { ASSET_DIR, CELL, ROW_W } from "./constants.ts";
+import { drawGlowCircle, drawImage, drawImageRect } from "./draw.ts";
 import type { Atlas } from "./types.ts";
-
-export async function createShapesAtlas(): Promise<Atlas> {
-    const shapes = createAtlas("shapes", CELL, CELL);
-    drawGlowCircle(shapes);
-    return shapes;
-}
 
 export async function createAttackAtlas(): Promise<Atlas> {
     const attack = createAtlas("attack", CELL * 10, CELL);
@@ -60,12 +49,6 @@ export async function createAttackAtlas(): Promise<Atlas> {
         64,
     );
     return attack;
-}
-
-export async function createLineAtlas(): Promise<Atlas> {
-    const line = createAtlas("line", 1024, LINE_H);
-    drawCapsuleLine(line);
-    return line;
 }
 
 export async function createProjectilesAtlas(): Promise<Atlas> {

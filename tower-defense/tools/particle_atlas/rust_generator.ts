@@ -9,9 +9,7 @@ import { appendProjectileSection } from "./rust_generator/projectile_section.ts"
 import { appendShapeAndMonsterSection } from "./rust_generator/shape_monster_section.ts";
 
 export function generateRust(
-    shapes: Atlas,
     attack: Atlas,
-    line: Atlas,
     projectiles: Atlas,
     monsters: Atlas,
     icons: Atlas,
@@ -22,16 +20,14 @@ export function generateRust(
         const laserLine = spriteOrThrow(attack.sprites, "LASER_LINE");
         rs += `pub fn laser_line_rect() -> Rect<Px> { rect(${laserLine.x}.0, ${laserLine.y}.0, ${laserLine.w}.0, ${laserLine.h}.0) }\n`;
     }
-    rs = appendShapeAndMonsterSection(rs, shapes, attack, monsters);
+    rs = appendShapeAndMonsterSection(rs, attack, monsters);
     rs = appendProjectileSection(rs, projectiles);
     rs = appendIconAndDigitSection(rs, icons);
 
     fs.writeFileSync(OUTPUT_RS, rs);
     console.log(`Rust constants written to ${OUTPUT_RS}`);
 
-    console.log("Shapes sprites:", JSON.stringify(shapes.sprites, null, 2));
     console.log("Attack sprites:", JSON.stringify(attack.sprites, null, 2));
-    console.log("Line sprites:", JSON.stringify(line.sprites, null, 2));
     console.log(
         "Projectile sprites:",
         JSON.stringify(projectiles.sprites, null, 2),

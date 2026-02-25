@@ -3,7 +3,6 @@ import { spriteOrThrow } from "../types.ts";
 
 export function appendShapeAndMonsterSection(
     rs: string,
-    _shapes: Atlas,
     attack: Atlas,
     monsters: Atlas,
 ): string {
