@@ -1,7 +1,12 @@
 use namui::*;
 
 fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
-    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }
+    Rect::Xywh {
+        x: px(x),
+        y: px(y),
+        width: px(w),
+        height: px(h),
+    }
 }
 
 pub fn centered_sprite(
@@ -93,18 +98,42 @@ pub fn line_sprite_from_rect(
     })
 }
 
-pub fn laser_line_rect() -> Rect<Px> { rect(384.0, 0.0, 256.0, 64.0) }
-pub fn burning_tail() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
-pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
-pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
-pub fn lightning_bolt_rect() -> Rect<Px> { rect(640.0, 0.0, 256.0, 64.0) }
-pub fn sparkle() -> Rect<Px> { rect(896.0, 0.0, 128.0, 128.0) }
-pub fn wind_curve_trail() -> Rect<Px> { rect(1024.0, 0.0, 256.0, 64.0) }
-pub fn black_smoke_00() -> Rect<Px> { rect(1280.0, 0.0, 128.0, 128.0) }
-pub fn black_smoke_01() -> Rect<Px> { rect(1408.0, 0.0, 128.0, 128.0) }
-pub fn red_slash() -> Rect<Px> { rect(1536.0, 0.0, 128.0, 128.0) }
-pub fn yellow_explosion() -> Rect<Px> { rect(1664.0, 0.0, 128.0, 128.0) }
-pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
+pub fn laser_line_rect() -> Rect<Px> {
+    rect(384.0, 0.0, 256.0, 64.0)
+}
+pub fn burning_tail() -> Rect<Px> {
+    rect(0.0, 0.0, 128.0, 128.0)
+}
+pub fn ember_spark() -> Rect<Px> {
+    rect(128.0, 0.0, 128.0, 128.0)
+}
+pub fn blue_spark() -> Rect<Px> {
+    rect(256.0, 0.0, 128.0, 128.0)
+}
+pub fn lightning_bolt_rect() -> Rect<Px> {
+    rect(640.0, 0.0, 256.0, 64.0)
+}
+pub fn sparkle() -> Rect<Px> {
+    rect(896.0, 0.0, 128.0, 128.0)
+}
+pub fn wind_curve_trail() -> Rect<Px> {
+    rect(1024.0, 0.0, 256.0, 64.0)
+}
+pub fn black_smoke_00() -> Rect<Px> {
+    rect(1280.0, 0.0, 128.0, 128.0)
+}
+pub fn black_smoke_01() -> Rect<Px> {
+    rect(1408.0, 0.0, 128.0, 128.0)
+}
+pub fn red_slash() -> Rect<Px> {
+    rect(1536.0, 0.0, 128.0, 128.0)
+}
+pub fn yellow_explosion() -> Rect<Px> {
+    rect(1664.0, 0.0, 128.0, 128.0)
+}
+pub fn monster_soul() -> Rect<Px> {
+    rect(1280.0, 128.0, 128.0, 192.0)
+}
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
     use crate::game_state::MonsterKind;
@@ -200,7 +229,9 @@ pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::Car
     }
 }
 
-pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::HeartParticleKind) -> Rect<Px> {
+pub fn heart_particle_rect(
+    kind: crate::game_state::field_particle::particle::HeartParticleKind,
+) -> Rect<Px> {
     use crate::game_state::field_particle::particle::HeartParticleKind;
     match kind {
         HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
@@ -211,7 +242,9 @@ pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::He
     }
 }
 
-pub fn projectile_pink_smoke() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
+pub fn projectile_pink_smoke() -> Rect<Px> {
+    rect(256.0, 128.0, 128.0, 128.0)
+}
 
 pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
     use crate::icon::IconKind;
