@@ -4,6 +4,7 @@ use crate::game_state::Monster;
 use crate::game_state::field_particle::emitter::{
     BlackSmokeSource, spawn_black_smoke_burst, spawn_black_smoke_burst_reversed,
     spawn_black_smoke_dash_trail, spawn_black_smoke_puff_burst, spawn_red_slash_marks,
+    spawn_yellow_explosion_burst,
 };
 use namui::*;
 use rand::Rng;
@@ -144,6 +145,7 @@ impl RoyalStraightFlushVisual {
                     spawn_black_smoke_dash_trail(clone.spawn_center_xy, clone.end_center_xy, now);
                     spawn_red_slash_marks(clone.spawn_center_xy, target_xy, now);
                 }
+                spawn_yellow_explosion_burst(target_xy, now);
             }
             for clone in &self.clones {
                 spawn_penetration_effect_dummy(clone.spawn_center_xy, now);

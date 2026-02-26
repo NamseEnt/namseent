@@ -15,6 +15,7 @@ mod red_slash;
 mod sparkle;
 mod trash;
 mod wind_curve_trail;
+mod yellow_explosion;
 
 pub use black_smoke::*;
 pub use blue_spark::*;
@@ -33,3 +34,4 @@ pub use red_slash::*;
 pub use sparkle::*;
 pub use trash::*;
 pub use wind_curve_trail::*;
+pub use yellow_explosion::*;

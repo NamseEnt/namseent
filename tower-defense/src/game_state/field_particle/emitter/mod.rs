@@ -12,6 +12,7 @@ mod sparkle_burst;
 mod tower_status_effect;
 mod trash_bounce;
 mod wind_curve_trail;
+mod yellow_explosion;
 
 pub use black_smoke::*;
 pub use burning_trail::*;
@@ -27,3 +28,4 @@ pub use sparkle_burst::*;
 pub use tower_status_effect::*;
 pub use trash_bounce::*;
 pub use wind_curve_trail::*;
+pub use yellow_explosion::*;

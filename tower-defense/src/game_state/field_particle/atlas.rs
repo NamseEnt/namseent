@@ -103,6 +103,7 @@ pub fn wind_curve_trail() -> Rect<Px> { rect(1024.0, 0.0, 256.0, 64.0) }
 pub fn black_smoke_00() -> Rect<Px> { rect(1280.0, 0.0, 128.0, 128.0) }
 pub fn black_smoke_01() -> Rect<Px> { rect(1408.0, 0.0, 128.0, 128.0) }
 pub fn red_slash() -> Rect<Px> { rect(1536.0, 0.0, 128.0, 128.0) }
+pub fn yellow_explosion() -> Rect<Px> { rect(1664.0, 0.0, 128.0, 128.0) }
 pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {

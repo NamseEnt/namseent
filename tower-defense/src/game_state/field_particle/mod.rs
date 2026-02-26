@@ -9,6 +9,7 @@ pub use particle::{
     EaseMode, EmberSparkParticle, HeartParticle, IconParticle, LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
     RedSlashParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
+    YellowExplosionParticle,
 };
 
 #[derive(Clone)]
@@ -21,6 +22,7 @@ pub enum AttackParticle {
     Sparkle(SparkleParticle),
     WindCurveTrail(WindCurveTrailParticle),
     RedSlash(RedSlashParticle),
+    YellowExplosion(YellowExplosionParticle),
 }
 
 impl namui::particle::Particle for AttackParticle {
@@ -34,6 +36,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::Sparkle(p) => p.tick(now, dt),
             AttackParticle::WindCurveTrail(p) => p.tick(now, dt),
             AttackParticle::RedSlash(p) => p.tick(now, dt),
+            AttackParticle::YellowExplosion(p) => p.tick(now, dt),
         }
     }
 
@@ -47,6 +50,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::Sparkle(p) => p.render(),
             AttackParticle::WindCurveTrail(p) => p.render(),
             AttackParticle::RedSlash(p) => p.render(),
+            AttackParticle::YellowExplosion(p) => p.render(),
         }
     }
 
@@ -60,6 +64,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::Sparkle(p) => p.is_done(now),
             AttackParticle::WindCurveTrail(p) => p.is_done(now),
             AttackParticle::RedSlash(p) => p.is_done(now),
+            AttackParticle::YellowExplosion(p) => p.is_done(now),
         }
     }
 }
@@ -94,6 +99,10 @@ pub fn spawn_wind_curve_trail_particle(particle: WindCurveTrailParticle) {
 
 pub fn spawn_red_slash(particle: RedSlashParticle) {
     ATTACK_PARTICLES.spawn(AttackParticle::RedSlash(particle));
+}
+
+pub fn spawn_yellow_explosion(particle: YellowExplosionParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::YellowExplosion(particle));
 }
 
 pub fn spawn_black_smoke_particle(particle: BlackSmokeParticle) {

@@ -15,6 +15,7 @@ export function appendShapeAndMonsterSection(
     const blackSmoke00 = spriteOrThrow(attack.sprites, "BLACK_SMOKE_00");
     const blackSmoke01 = spriteOrThrow(attack.sprites, "BLACK_SMOKE_01");
     const redSlash = spriteOrThrow(attack.sprites, "RED_SLASH");
+    const yellowExplosion = spriteOrThrow(attack.sprites, "YELLOW_EXPLOSION");
     rs += `pub fn burning_tail() -> Rect<Px> { rect(${burningTail.x}.0, ${burningTail.y}.0, ${burningTail.w}.0, ${burningTail.h}.0) }\n`;
     rs += `pub fn ember_spark() -> Rect<Px> { rect(${emberSpark.x}.0, ${emberSpark.y}.0, ${emberSpark.w}.0, ${emberSpark.h}.0) }\n`;
     rs += `pub fn blue_spark() -> Rect<Px> { rect(${blueSpark.x}.0, ${blueSpark.y}.0, ${blueSpark.w}.0, ${blueSpark.h}.0) }\n`;
@@ -24,6 +25,7 @@ export function appendShapeAndMonsterSection(
     rs += `pub fn black_smoke_00() -> Rect<Px> { rect(${blackSmoke00.x}.0, ${blackSmoke00.y}.0, ${blackSmoke00.w}.0, ${blackSmoke00.h}.0) }\n`;
     rs += `pub fn black_smoke_01() -> Rect<Px> { rect(${blackSmoke01.x}.0, ${blackSmoke01.y}.0, ${blackSmoke01.w}.0, ${blackSmoke01.h}.0) }\n`;
     rs += `pub fn red_slash() -> Rect<Px> { rect(${redSlash.x}.0, ${redSlash.y}.0, ${redSlash.w}.0, ${redSlash.h}.0) }\n`;
+    rs += `pub fn yellow_explosion() -> Rect<Px> { rect(${yellowExplosion.x}.0, ${yellowExplosion.y}.0, ${yellowExplosion.w}.0, ${yellowExplosion.h}.0) }\n`;
 
     const ms = monsters.sprites;
     const monsterSoul = spriteOrThrow(ms, "MONSTER_SOUL");
