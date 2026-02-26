@@ -147,9 +147,6 @@ impl RoyalStraightFlushVisual {
                 }
                 spawn_yellow_explosion_burst(target_xy, now);
             }
-            for clone in &self.clones {
-                spawn_penetration_effect_dummy(clone.spawn_center_xy, now);
-            }
         }
 
         if next_phase == RoyalStraightFlushPhase::Returning {
@@ -267,5 +264,3 @@ fn lerp_xy(a: (f32, f32), b: (f32, f32), t: f32) -> (f32, f32) {
 fn ease_out_cubic(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(3)
 }
-
-fn spawn_penetration_effect_dummy(_xy: (f32, f32), _now: Instant) {}
