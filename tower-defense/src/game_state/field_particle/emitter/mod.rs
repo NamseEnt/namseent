@@ -1,3 +1,4 @@
+mod black_smoke;
 mod burning_trail;
 mod card_burst;
 mod heart_burst;
@@ -11,6 +12,7 @@ mod tower_status_effect;
 mod trash_bounce;
 mod wind_curve_trail;
 
+pub use black_smoke::*;
 pub use burning_trail::*;
 pub use card_burst::*;
 pub use heart_burst::*;

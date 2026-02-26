@@ -56,6 +56,11 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     monster::move_monsters(game_state, dt);
 
+    field_particle::emitter::tick_black_smoke_emitters(
+        &mut game_state.black_smoke_sources,
+        now,
+        dt,
+    );
     field_particle::tick_all_emitters(now, dt);
 
     projectile::move_projectiles(game_state, dt, now);

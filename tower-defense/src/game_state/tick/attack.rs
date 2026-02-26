@@ -20,6 +20,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
         let upgrade_state = &game_state.upgrade_state;
         let stage_modifiers = &game_state.stage_modifiers;
         let monsters = &game_state.monsters;
+        let black_smoke_sources = &mut game_state.black_smoke_sources;
 
         for tower in towers.iter_mut() {
             if tower.in_cooltime() {
@@ -120,7 +121,12 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 }
                 AttackType::RoyalStraightFlush { target_xy } => {
                     let target_monster_id = monsters[target_idx].id();
-                    tower.spawn_royal_straight_flush_visual(target_xy, target_monster_id, now);
+                    tower.spawn_royal_straight_flush_visual(
+                        target_xy,
+                        target_monster_id,
+                        now,
+                        black_smoke_sources,
+                    );
                     new_delayed_hits.push(crate::game_state::attack::DelayedHit {
                         target_monster_id,
                         damage: instant_damage,

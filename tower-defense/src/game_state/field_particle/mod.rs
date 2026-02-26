@@ -5,10 +5,10 @@ pub mod particle;
 use namui::{Duration, Instant};
 
 pub use particle::{
-    BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle, EaseMode,
-    EmberSparkParticle, HeartParticle, IconParticle, LaserLineParticle, LightningBoltParticle,
-    MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle, SparkleParticle, TrashParticle,
-    WindCurveTrailParticle,
+    BlackSmokeParticle, BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle,
+    EaseMode, EmberSparkParticle, HeartParticle, IconParticle, LaserLineParticle,
+    LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
+    SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
 #[derive(Clone)]
@@ -88,6 +88,10 @@ pub fn spawn_wind_curve_trail_particle(particle: WindCurveTrailParticle) {
     ATTACK_PARTICLES.spawn(AttackParticle::WindCurveTrail(particle));
 }
 
+pub fn spawn_black_smoke_particle(particle: BlackSmokeParticle) {
+    BLACK_SMOKES.spawn(particle);
+}
+
 pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
     namui::particle::Emitter::new();
 pub static TRASHES: namui::particle::Emitter<TrashParticle> = namui::particle::Emitter::new();
@@ -102,6 +106,8 @@ pub static DAMAGE_TEXTS: namui::particle::Emitter<DamageTextParticle> =
 pub static ATTACK_PARTICLES: namui::particle::Emitter<AttackParticle> =
     namui::particle::Emitter::new();
 pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
+pub static BLACK_SMOKES: namui::particle::Emitter<BlackSmokeParticle> =
+    namui::particle::Emitter::new();
 
 pub fn tick_all_emitters(now: Instant, dt: Duration) {
     ATTACK_PARTICLES.tick(now, dt);
@@ -113,4 +119,5 @@ pub fn tick_all_emitters(now: Instant, dt: Duration) {
     ICONS.tick(now, dt);
     DAMAGE_TEXTS.tick(now, dt);
     HEARTS.tick(now, dt);
+    BLACK_SMOKES.tick(now, dt);
 }

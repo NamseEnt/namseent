@@ -358,4 +358,10 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::BLACK_SMOKES,
+        image: attack,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
 }

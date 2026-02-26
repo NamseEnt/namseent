@@ -1,3 +1,4 @@
+mod black_smoke;
 mod blue_spark;
 mod burning_trail;
 mod card;
@@ -14,6 +15,7 @@ mod sparkle;
 mod trash;
 mod wind_curve_trail;
 
+pub use black_smoke::*;
 pub use blue_spark::*;
 pub use burning_trail::*;
 pub use card::*;
