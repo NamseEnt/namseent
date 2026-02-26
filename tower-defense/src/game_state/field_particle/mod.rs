@@ -8,7 +8,7 @@ pub use particle::{
     BlackSmokeParticle, BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle,
     EaseMode, EmberSparkParticle, HeartParticle, IconParticle, LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
-    SparkleParticle, TrashParticle, WindCurveTrailParticle,
+    RedSlashParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
 };
 
 #[derive(Clone)]
@@ -20,6 +20,7 @@ pub enum AttackParticle {
     BlueDotSpark(BlueSparkParticle),
     Sparkle(SparkleParticle),
     WindCurveTrail(WindCurveTrailParticle),
+    RedSlash(RedSlashParticle),
 }
 
 impl namui::particle::Particle for AttackParticle {
@@ -32,6 +33,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::BlueDotSpark(p) => p.tick(now, dt),
             AttackParticle::Sparkle(p) => p.tick(now, dt),
             AttackParticle::WindCurveTrail(p) => p.tick(now, dt),
+            AttackParticle::RedSlash(p) => p.tick(now, dt),
         }
     }
 
@@ -44,6 +46,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::BlueDotSpark(p) => p.render(),
             AttackParticle::Sparkle(p) => p.render(),
             AttackParticle::WindCurveTrail(p) => p.render(),
+            AttackParticle::RedSlash(p) => p.render(),
         }
     }
 
@@ -56,6 +59,7 @@ impl namui::particle::Particle for AttackParticle {
             AttackParticle::BlueDotSpark(p) => p.is_done(now),
             AttackParticle::Sparkle(p) => p.is_done(now),
             AttackParticle::WindCurveTrail(p) => p.is_done(now),
+            AttackParticle::RedSlash(p) => p.is_done(now),
         }
     }
 }
@@ -86,6 +90,10 @@ pub fn spawn_sparkle(particle: SparkleParticle) {
 
 pub fn spawn_wind_curve_trail_particle(particle: WindCurveTrailParticle) {
     ATTACK_PARTICLES.spawn(AttackParticle::WindCurveTrail(particle));
+}
+
+pub fn spawn_red_slash(particle: RedSlashParticle) {
+    ATTACK_PARTICLES.spawn(AttackParticle::RedSlash(particle));
 }
 
 pub fn spawn_black_smoke_particle(particle: BlackSmokeParticle) {
