@@ -199,7 +199,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
 
         // Culling check
         if (screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y)
-            && !tower.has_royal_straight_flush_visual()
+            && tower.royal_straight_flush_visual().is_none()
         {
             continue;
         }

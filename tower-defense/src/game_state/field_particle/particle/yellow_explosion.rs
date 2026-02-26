@@ -3,7 +3,6 @@ use crate::game_state::field_particle::atlas;
 use namui::*;
 
 const YELLOW_EXPLOSION_LIFETIME_MS: i64 = 150;
-const YELLOW_EXPLOSION_SIZE_MAX_TILE: f32 = 2.0;
 
 #[derive(Clone)]
 pub struct YellowExplosionParticle {
@@ -12,18 +11,18 @@ pub struct YellowExplosionParticle {
     pub lifetime: Duration,
     pub alpha: f32,
     pub scale_ratio: f32,
-    pub size_max_tile: f32,
+    size_max_tile: f32,
 }
 
 impl YellowExplosionParticle {
-    pub fn new(xy: (f32, f32), now: Instant) -> Self {
+    pub fn new(xy: (f32, f32), now: Instant, size_max_tile: f32) -> Self {
         Self {
             xy,
             created_at: now,
             lifetime: Duration::from_millis(YELLOW_EXPLOSION_LIFETIME_MS),
             alpha: 1.0,
             scale_ratio: 0.0,
-            size_max_tile: YELLOW_EXPLOSION_SIZE_MAX_TILE,
+            size_max_tile,
         }
     }
 

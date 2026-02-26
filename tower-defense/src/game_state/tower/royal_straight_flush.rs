@@ -127,26 +127,18 @@ impl RoyalStraightFlushVisual {
             return;
         }
 
-        if next_phase == RoyalStraightFlushPhase::Dashing {
-            if let Some(monster) = monsters.iter().find(|m| m.id() == self.target_monster_id) {
-                let target = monster.center_xy_tile();
-                let target_xy = (target.x, target.y);
-                for clone in &mut self.clones {
-                    let dx = target_xy.0 - clone.spawn_center_xy.0;
-                    let dy = target_xy.1 - clone.spawn_center_xy.1;
-                    let length = (dx * dx + dy * dy).sqrt().max(0.001);
-                    clone.end_center_xy = (
-                        target_xy.0
-                            + (dx / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
-                        target_xy.1
-                            + (dy / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
-                    );
+        if next_phase == RoyalStraightFlushPhase::Dashing
+            && let Some(monster) = monsters.iter().find(|m| m.id() == self.target_monster_id)
+        {
+            let target = monster.center_xy_tile();
+            let target_xy = (target.x, target.y);
+            for clone in &mut self.clones {
+                clone.end_center_xy = compute_pass_through_xy(clone.spawn_center_xy, target_xy);
 
-                    spawn_black_smoke_dash_trail(clone.spawn_center_xy, clone.end_center_xy, now);
-                    spawn_red_slash_marks(clone.spawn_center_xy, target_xy, now);
-                }
-                spawn_yellow_explosion_burst(target_xy, now);
+                spawn_black_smoke_dash_trail(clone.spawn_center_xy, clone.end_center_xy, now);
+                spawn_red_slash_marks(clone.spawn_center_xy, target_xy, now);
             }
+            spawn_yellow_explosion_burst(target_xy, now);
         }
 
         if next_phase == RoyalStraightFlushPhase::Returning {
@@ -199,24 +191,21 @@ impl Tower {
     pub fn royal_straight_flush_visual(&self) -> Option<&RoyalStraightFlushVisual> {
         self.royal_straight_flush_visual.as_ref()
     }
-
-    pub fn has_royal_straight_flush_visual(&self) -> bool {
-        self.royal_straight_flush_visual.is_some()
-    }
 }
 
 pub fn tick_royal_straight_flush_visuals(game_state: &mut GameState, now: Instant) {
     let monsters = &game_state.monsters;
     let black_smoke_sources = &mut game_state.black_smoke_sources;
     for tower in game_state.towers.iter_mut() {
+        if tower.royal_straight_flush_visual.is_none() {
+            continue;
+        }
         let tower_center = tower.center_xy_f32();
         let tower_center_xy = (tower_center.x, tower_center.y);
-
-        if let Some(visual) = tower.royal_straight_flush_visual.as_mut() {
-            visual.tick(now, tower_center_xy, monsters, black_smoke_sources);
-            if visual.is_finished(now) {
-                tower.royal_straight_flush_visual = None;
-            }
+        let visual = tower.royal_straight_flush_visual.as_mut().unwrap();
+        visual.tick(now, tower_center_xy, monsters, black_smoke_sources);
+        if visual.is_finished(now) {
+            tower.royal_straight_flush_visual = None;
         }
     }
 }
@@ -240,14 +229,7 @@ fn generate_royal_straight_flush_clones(target_xy: (f32, f32)) -> Vec<RoyalStrai
                 target_xy.0 + angle.cos() * radius,
                 target_xy.1 + angle.sin() * radius,
             );
-
-            let dx = target_xy.0 - spawn_center_xy.0;
-            let dy = target_xy.1 - spawn_center_xy.1;
-            let length = (dx * dx + dy * dy).sqrt().max(0.001);
-            let end_center_xy = (
-                target_xy.0 + (dx / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
-                target_xy.1 + (dy / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
-            );
+            let end_center_xy = compute_pass_through_xy(spawn_center_xy, target_xy);
 
             RoyalStraightFlushClone {
                 spawn_center_xy,
@@ -259,6 +241,16 @@ fn generate_royal_straight_flush_clones(target_xy: (f32, f32)) -> Vec<RoyalStrai
 
 fn lerp_xy(a: (f32, f32), b: (f32, f32), t: f32) -> (f32, f32) {
     (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t)
+}
+
+fn compute_pass_through_xy(from: (f32, f32), target: (f32, f32)) -> (f32, f32) {
+    let dx = target.0 - from.0;
+    let dy = target.1 - from.1;
+    let length = (dx * dx + dy * dy).sqrt().max(0.001);
+    (
+        target.0 + (dx / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
+        target.1 + (dy / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
+    )
 }
 
 fn ease_out_cubic(t: f32) -> f32 {
