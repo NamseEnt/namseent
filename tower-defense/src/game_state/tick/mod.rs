@@ -37,6 +37,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     monster_spawn::tick(game_state, now);
     tower::tower_cooldown_tick(game_state, dt);
     tower::tower_animation_tick(game_state, now);
+    tower::tick_royal_straight_flush_visuals(game_state, now);
     monster::monster_animation_tick(game_state, dt);
 
     game_state.ui_state.tick(now);
@@ -55,6 +56,11 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     monster::move_monsters(game_state, dt);
 
+    field_particle::emitter::tick_black_smoke_emitters(
+        &mut game_state.black_smoke_sources,
+        now,
+        dt,
+    );
     field_particle::tick_all_emitters(now, dt);
 
     projectile::move_projectiles(game_state, dt, now);

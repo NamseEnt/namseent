@@ -1,4 +1,5 @@
 pub mod render;
+mod royal_straight_flush;
 mod skill;
 
 use super::{upgrade::TowerUpgradeState, *};
@@ -8,6 +9,9 @@ use crate::l10n::tower::TowerKindText;
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
+use royal_straight_flush::RoyalStraightFlushVisual;
+pub use royal_straight_flush::royal_straight_flush_hit_delay;
+pub use royal_straight_flush::tick_royal_straight_flush_visuals;
 pub use skill::*;
 use std::{
     ops::Deref,
@@ -26,6 +30,7 @@ pub struct Tower {
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
     pub(self) animation: Animation,
+    pub(self) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
 pub struct ShootProjectileParams<'a> {
@@ -64,6 +69,7 @@ impl Tower {
             status_effects: vec![],
             skills: vec![],
             animation: Animation::new(now),
+            royal_straight_flush_visual: None,
         }
     }
     pub fn in_cooltime(&self) -> bool {
@@ -153,7 +159,23 @@ impl Tower {
                 },
                 0.0,
             ),
-            TowerKind::Straight | TowerKind::RoyalFlush => (AttackType::Laser, 0.0),
+            TowerKind::Straight => (AttackType::Laser, 0.0),
+            TowerKind::RoyalFlush => {
+                self.cooldown = self.shoot_interval;
+                self.animation.transition(AnimationKind::Attack, params.now);
+
+                let damage = self.calculate_projectile_damage(
+                    params.tower_upgrade_states,
+                    params.contract_multiplier,
+                );
+
+                (
+                    AttackType::RoyalStraightFlush {
+                        target_xy: params.target_xy,
+                    },
+                    damage,
+                )
+            }
             TowerKind::StraightFlush => (
                 AttackType::Projectile {
                     speed: FAST_PROJECTILE_SPEED,
@@ -219,6 +241,7 @@ impl Tower {
     pub fn id(&self) -> usize {
         self.id
     }
+
     pub fn rank(&self) -> Rank {
         self.template.rank
     }
@@ -357,7 +380,7 @@ impl TowerKind {
             Self::FullHouse => 1.sec(),
             Self::FourOfAKind => 1.sec(),
             Self::StraightFlush => 0.5.sec(),
-            Self::RoyalFlush => (1.0 / 3.0).sec(),
+            Self::RoyalFlush => 1.sec(),
         }
     }
     pub fn default_attack_range_radius(&self) -> f32 {
@@ -387,7 +410,7 @@ impl TowerKind {
             Self::FullHouse => 50.0,
             Self::FourOfAKind => 100.0,
             Self::StraightFlush => 250.0,
-            Self::RoyalFlush => 400.0,
+            Self::RoyalFlush => 1200.0,
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {

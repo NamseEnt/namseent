@@ -9,9 +9,6 @@ fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
     }
 }
 
-const LINE_SPRITE_W: f32 = 1024.0;
-const LINE_SPRITE_H: f32 = 16.0;
-
 pub fn centered_sprite(
     src_rect: Rect<Px>,
     cx: Px,
@@ -59,7 +56,8 @@ pub fn centered_rotated_sprite(
     }
 }
 
-pub fn line_sprite(
+pub fn line_sprite_from_rect(
+    src_base_rect: Rect<Px>,
     start_x: Px,
     start_y: Px,
     end_x: Px,
@@ -70,23 +68,25 @@ pub fn line_sprite(
     let dx = (end_x - start_x).as_f32();
     let dy = (end_y - start_y).as_f32();
     let length = (dx * dx + dy * dy).sqrt();
+    let base_h = src_base_rect.height().as_f32();
+    let base_w = src_base_rect.width().as_f32();
     if length < 0.001 || thickness < 0.001 {
         return None;
     }
     let angle = dy.atan2(dx);
-    let scale = thickness / LINE_SPRITE_H;
-    let src_w = (length / scale).min(LINE_SPRITE_W);
+    let scale = thickness / base_h;
+    let src_w = (length / scale).min(base_w);
     let cos_a = angle.cos();
     let sin_a = angle.sin();
     let scos = scale * cos_a;
     let ssin = scale * sin_a;
-    let half_h = LINE_SPRITE_H / 2.0;
+    let half_h = base_h / 2.0;
     Some(ImageSprite {
         src_rect: Rect::Xywh {
-            x: px(0.0),
-            y: px(0.0),
+            x: src_base_rect.left(),
+            y: src_base_rect.top(),
             width: px(src_w),
-            height: px(LINE_SPRITE_H),
+            height: px(base_h),
         },
         xform: RSXform {
             scos,
@@ -98,64 +98,41 @@ pub fn line_sprite(
     })
 }
 
-pub fn glow_circle() -> Rect<Px> {
+pub fn laser_line_rect() -> Rect<Px> {
+    rect(384.0, 0.0, 256.0, 64.0)
+}
+pub fn burning_tail() -> Rect<Px> {
     rect(0.0, 0.0, 128.0, 128.0)
 }
-pub fn star_burst() -> Rect<Px> {
+pub fn ember_spark() -> Rect<Px> {
     rect(128.0, 0.0, 128.0, 128.0)
 }
-pub fn cross() -> Rect<Px> {
+pub fn blue_spark() -> Rect<Px> {
     rect(256.0, 0.0, 128.0, 128.0)
 }
-pub fn ring() -> Rect<Px> {
-    rect(384.0, 0.0, 128.0, 128.0)
+pub fn lightning_bolt_rect() -> Rect<Px> {
+    rect(640.0, 0.0, 256.0, 64.0)
+}
+pub fn sparkle() -> Rect<Px> {
+    rect(896.0, 0.0, 128.0, 128.0)
+}
+pub fn wind_curve_trail() -> Rect<Px> {
+    rect(1024.0, 0.0, 256.0, 64.0)
+}
+pub fn black_smoke_00() -> Rect<Px> {
+    rect(1280.0, 0.0, 128.0, 128.0)
+}
+pub fn black_smoke_01() -> Rect<Px> {
+    rect(1408.0, 0.0, 128.0, 128.0)
+}
+pub fn red_slash() -> Rect<Px> {
+    rect(1536.0, 0.0, 128.0, 128.0)
+}
+pub fn yellow_explosion() -> Rect<Px> {
+    rect(1664.0, 0.0, 128.0, 128.0)
 }
 pub fn monster_soul() -> Rect<Px> {
     rect(1280.0, 128.0, 128.0, 192.0)
-}
-
-pub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> Rect<Px> {
-    use crate::game_state::projectile::ProjectileKind;
-    match kind {
-        ProjectileKind::Trash01 => rect(0.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Trash02 => rect(128.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Trash03 => rect(256.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Trash04 => rect(384.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Girl00 => rect(512.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Girl01 => rect(640.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Girl02 => rect(768.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Girl03 => rect(896.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Girl04 => rect(1024.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Cards00 => rect(1152.0, 0.0, 128.0, 128.0),
-        ProjectileKind::Heart00 => rect(1280.0, 0.0, 128.0, 128.0),
-    }
-}
-
-pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::CardKind) -> Rect<Px> {
-    use crate::game_state::field_particle::particle::CardKind;
-    match kind {
-        CardKind::Card00 => rect(1408.0, 0.0, 128.0, 128.0),
-        CardKind::Card01 => rect(1536.0, 0.0, 128.0, 128.0),
-        CardKind::Card02 => rect(1664.0, 0.0, 128.0, 128.0),
-        CardKind::Card03 => rect(1792.0, 0.0, 128.0, 128.0),
-    }
-}
-
-pub fn heart_particle_rect(
-    kind: crate::game_state::field_particle::particle::HeartParticleKind,
-) -> Rect<Px> {
-    use crate::game_state::field_particle::particle::HeartParticleKind;
-    match kind {
-        HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
-        HeartParticleKind::Heart01 => rect(0.0, 128.0, 128.0, 128.0),
-        HeartParticleKind::Heart02 => rect(128.0, 128.0, 128.0, 128.0),
-        HeartParticleKind::RisingHeart { .. } => rect(1280.0, 0.0, 128.0, 128.0),
-        _ => rect(256.0, 128.0, 128.0, 128.0),
-    }
-}
-
-pub fn projectile_glow_circle() -> Rect<Px> {
-    rect(256.0, 128.0, 128.0, 128.0)
 }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
@@ -223,6 +200,50 @@ pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
         MonsterKind::Boss10 => rect(1024.0, 128.0, 128.0, 128.0),
         MonsterKind::Boss11 => rect(1152.0, 128.0, 128.0, 128.0),
     }
+}
+
+pub fn projectile_rect(kind: crate::game_state::projectile::ProjectileKind) -> Rect<Px> {
+    use crate::game_state::projectile::ProjectileKind;
+    match kind {
+        ProjectileKind::Trash01 => rect(0.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Trash02 => rect(128.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Trash03 => rect(256.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Trash04 => rect(384.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl00 => rect(512.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl01 => rect(640.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl02 => rect(768.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl03 => rect(896.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Girl04 => rect(1024.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Cards00 => rect(1152.0, 0.0, 128.0, 128.0),
+        ProjectileKind::Heart00 => rect(1280.0, 0.0, 128.0, 128.0),
+    }
+}
+
+pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::CardKind) -> Rect<Px> {
+    use crate::game_state::field_particle::particle::CardKind;
+    match kind {
+        CardKind::Card00 => rect(1408.0, 0.0, 128.0, 128.0),
+        CardKind::Card01 => rect(1536.0, 0.0, 128.0, 128.0),
+        CardKind::Card02 => rect(1664.0, 0.0, 128.0, 128.0),
+        CardKind::Card03 => rect(1792.0, 0.0, 128.0, 128.0),
+    }
+}
+
+pub fn heart_particle_rect(
+    kind: crate::game_state::field_particle::particle::HeartParticleKind,
+) -> Rect<Px> {
+    use crate::game_state::field_particle::particle::HeartParticleKind;
+    match kind {
+        HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
+        HeartParticleKind::Heart01 => rect(0.0, 128.0, 128.0, 128.0),
+        HeartParticleKind::Heart02 => rect(128.0, 128.0, 128.0, 128.0),
+        HeartParticleKind::RisingHeart { .. } => rect(1280.0, 0.0, 128.0, 128.0),
+        _ => rect(384.0, 128.0, 128.0, 128.0),
+    }
+}
+
+pub fn projectile_pink_smoke() -> Rect<Px> {
+    rect(256.0, 128.0, 128.0, 128.0)
 }
 
 pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {

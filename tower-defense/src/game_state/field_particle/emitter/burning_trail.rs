@@ -1,6 +1,7 @@
 use crate::MapCoordF32;
 use crate::game_state::field_particle::{
-    BURNING_TRAILS, BurningTrailParticle, EMBER_SPARKS, EmberSparkParticle,
+    BurningTrailParticle, EmberSparkParticle, spawn_burning_trail as spawn_burning_trail_particle,
+    spawn_ember_spark,
 };
 use namui::*;
 use rand::Rng;
@@ -33,10 +34,10 @@ pub fn spawn_burning_trail(
         let particle_xy = from_xy + (to_xy - from_xy) * progress;
         let px = (particle_xy.x, particle_xy.y);
 
-        BURNING_TRAILS.spawn(BurningTrailParticle::new_with_random(px, now, &mut rng));
+        spawn_burning_trail_particle(BurningTrailParticle::new_with_random(px, now, &mut rng));
 
         if rng.gen_range(0.0..1.0) < EMBER_SPARK_SPAWN_CHANCE {
-            EMBER_SPARKS.spawn(EmberSparkParticle::new_with_random(
+            spawn_ember_spark(EmberSparkParticle::new_with_random(
                 px,
                 movement_dir,
                 now,
