@@ -3,6 +3,7 @@ use crate::game_state::GameState;
 use crate::game_state::Monster;
 use crate::game_state::field_particle::emitter::{
     BlackSmokeSource, spawn_black_smoke_burst, spawn_black_smoke_burst_reversed,
+    spawn_black_smoke_dash_trail,
 };
 use namui::*;
 use rand::Rng;
@@ -139,6 +140,8 @@ impl RoyalStraightFlushVisual {
                         target_xy.1
                             + (dy / length) * ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE,
                     );
+
+                    spawn_black_smoke_dash_trail(clone.spawn_center_xy, clone.end_center_xy, now);
                 }
             }
             for clone in &self.clones {

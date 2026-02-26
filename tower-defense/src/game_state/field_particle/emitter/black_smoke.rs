@@ -5,6 +5,10 @@ use rand::Rng;
 const BLACK_SMOKE_EMIT_DURATION_MS: i64 = 120;
 const BLACK_SMOKE_EMIT_RATE_PER_SEC: f32 = 512.0;
 const BLACK_SMOKE_PHASE_SPREAD_RAD: f32 = std::f32::consts::PI * 0.6;
+const BLACK_SMOKE_DASH_TRAIL_DENSITY_PER_TILE: f32 = 16.0;
+const BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE: f32 = 0.15;
+const BLACK_SMOKE_DASH_TRAIL_DIRECTION_JITTER_DEG: f32 = 15.0;
+const BLACK_SMOKE_DASH_TRAIL_MAX_SPEED_TILE_PER_SEC: f32 = 1.0;
 
 #[derive(Clone, Copy, State)]
 pub struct BlackSmokeSource {
@@ -42,6 +46,57 @@ fn spawn_black_smoke_burst_impl(
         base_phase_rad: rng.gen_range(0.0..std::f32::consts::TAU),
         reverse_progress,
     });
+}
+
+pub fn spawn_black_smoke_dash_trail(from_xy: (f32, f32), to_xy: (f32, f32), now: Instant) {
+    let mut rng = rand::thread_rng();
+    let dx = to_xy.0 - from_xy.0;
+    let dy = to_xy.1 - from_xy.1;
+    let distance = (dx * dx + dy * dy).sqrt();
+    if distance <= 1e-6 {
+        return;
+    }
+
+    let base_angle = dy.atan2(dx);
+    let spawn_count = (distance * BLACK_SMOKE_DASH_TRAIL_DENSITY_PER_TILE)
+        .round()
+        .max(1.0) as usize;
+
+    for _ in 0..spawn_count {
+        let t = rng.gen_range(0.0..1.0);
+        let path_xy = (from_xy.0 + dx * t, from_xy.1 + dy * t);
+        let jitter_xy = (
+            rng.gen_range(
+                -BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE
+                    ..=BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE,
+            ),
+            rng.gen_range(
+                -BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE
+                    ..=BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE,
+            ),
+        );
+        let spawn_xy = (path_xy.0 + jitter_xy.0, path_xy.1 + jitter_xy.1);
+
+        let angle_jitter_rad = rng
+            .gen_range(
+                -BLACK_SMOKE_DASH_TRAIL_DIRECTION_JITTER_DEG
+                    ..=BLACK_SMOKE_DASH_TRAIL_DIRECTION_JITTER_DEG,
+            )
+            .to_radians();
+        let move_angle = base_angle + angle_jitter_rad;
+        let speed_tile_per_sec = rng.gen_range(0.0..=BLACK_SMOKE_DASH_TRAIL_MAX_SPEED_TILE_PER_SEC);
+        let velocity_xy = (
+            move_angle.cos() * speed_tile_per_sec,
+            move_angle.sin() * speed_tile_per_sec,
+        );
+
+        spawn_black_smoke_particle(BlackSmokeParticle::new_dash_trail(
+            spawn_xy,
+            velocity_xy,
+            now,
+            &mut rng,
+        ));
+    }
 }
 
 pub fn tick_black_smoke_emitters(sources: &mut Vec<BlackSmokeSource>, now: Instant, dt: Duration) {

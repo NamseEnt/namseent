@@ -17,6 +17,13 @@ const BLACK_SMOKE_X_COS_NARROW_POW: f32 = 0.85;
 const BLACK_SMOKE_SCALE_GROW_END_PROGRESS: f32 = 0.6;
 const BLACK_SMOKE_SCALE_START_RATIO: f32 = 0.45;
 const BLACK_SMOKE_SCALE_END_RATIO: f32 = 0.72;
+const BLACK_SMOKE_DASH_TRAIL_LIFETIME_MIN_MS: i64 = 160;
+const BLACK_SMOKE_DASH_TRAIL_LIFETIME_MAX_MS: i64 = 500;
+const BLACK_SMOKE_DASH_TRAIL_SIZE_MIN_TILE: f32 = 0.1;
+const BLACK_SMOKE_DASH_TRAIL_SIZE_MAX_TILE: f32 = 0.8;
+const BLACK_SMOKE_DASH_TRAIL_ALPHA_MAX: f32 = 0.125;
+const BLACK_SMOKE_DASH_TRAIL_SCALE_START_RATIO: f32 = 0.1;
+const BLACK_SMOKE_DASH_TRAIL_SCALE_END_RATIO: f32 = 0.8;
 
 #[inline]
 fn ease_in_cubic(t: f32) -> f32 {
@@ -42,6 +49,14 @@ pub struct BlackSmokeParticle {
     pub rotation_rad: f32,
     pub cos_phase_offset_rad: f32,
     pub reverse_progress: bool,
+    pub velocity_xy: (f32, f32),
+    pub sprite_kind: BlackSmokeSpriteKind,
+}
+
+#[derive(Clone, Copy)]
+pub enum BlackSmokeSpriteKind {
+    Smoke00,
+    Smoke01,
 }
 
 impl BlackSmokeParticle {
@@ -76,10 +91,57 @@ impl BlackSmokeParticle {
             rotation_rad: 0.0,
             cos_phase_offset_rad: phase_offset_rad,
             reverse_progress,
+            velocity_xy: (0.0, 0.0),
+            sprite_kind: BlackSmokeSpriteKind::Smoke00,
+        }
+    }
+
+    pub fn new_dash_trail<R: Rng + ?Sized>(
+        xy: (f32, f32),
+        velocity_xy: (f32, f32),
+        now: Instant,
+        rng: &mut R,
+    ) -> Self {
+        let lifetime_ms = rng.gen_range(
+            BLACK_SMOKE_DASH_TRAIL_LIFETIME_MIN_MS..=BLACK_SMOKE_DASH_TRAIL_LIFETIME_MAX_MS,
+        );
+        let lifetime = Duration::from_millis(lifetime_ms);
+
+        let radius_tile = rng
+            .gen_range(BLACK_SMOKE_DASH_TRAIL_SIZE_MIN_TILE..=BLACK_SMOKE_DASH_TRAIL_SIZE_MAX_TILE);
+        let radius_px = TILE_PX_SIZE.width * radius_tile;
+
+        let dir_len_sq = velocity_xy.0 * velocity_xy.0 + velocity_xy.1 * velocity_xy.1;
+        let rotation_rad = if dir_len_sq > 1e-8 {
+            velocity_xy.1.atan2(velocity_xy.0)
+        } else {
+            0.0
+        };
+
+        Self {
+            base_xy: xy,
+            prev_xy: xy,
+            xy,
+            created_at: now,
+            lifetime,
+            alpha: 0.0,
+            initial_alpha: BLACK_SMOKE_DASH_TRAIL_ALPHA_MAX,
+            radius_px,
+            scale_ratio: BLACK_SMOKE_DASH_TRAIL_SCALE_START_RATIO,
+            rotation_rad,
+            cos_phase_offset_rad: 0.0,
+            reverse_progress: false,
+            velocity_xy,
+            sprite_kind: BlackSmokeSpriteKind::Smoke01,
         }
     }
 
     pub fn tick_impl(&mut self, now: Instant, _dt: Duration) {
+        if matches!(self.sprite_kind, BlackSmokeSpriteKind::Smoke01) {
+            self.tick_dash_trail_impl(now);
+            return;
+        }
+
         let progress = self.progress(now);
         let motion_progress = if self.reverse_progress {
             1.0 - progress
@@ -117,6 +179,27 @@ impl BlackSmokeParticle {
         }
     }
 
+    fn tick_dash_trail_impl(&mut self, now: Instant) {
+        let progress = self.progress(now);
+        let elapsed_secs = (now - self.created_at).as_secs_f32();
+
+        self.prev_xy = self.xy;
+        self.xy.0 = self.base_xy.0 + self.velocity_xy.0 * elapsed_secs;
+        self.xy.1 = self.base_xy.1 + self.velocity_xy.1 * elapsed_secs;
+
+        let triangle = if progress <= 0.5 {
+            progress / 0.5
+        } else {
+            (1.0 - progress) / 0.5
+        }
+        .clamp(0.0, 1.0);
+        self.alpha = BLACK_SMOKE_DASH_TRAIL_ALPHA_MAX * triangle;
+
+        self.scale_ratio = BLACK_SMOKE_DASH_TRAIL_SCALE_START_RATIO
+            + (BLACK_SMOKE_DASH_TRAIL_SCALE_END_RATIO - BLACK_SMOKE_DASH_TRAIL_SCALE_START_RATIO)
+                * ease_out_cubic(progress);
+    }
+
     pub fn render(&self) -> namui::particle::ParticleSprites {
         let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 {
@@ -126,9 +209,13 @@ impl BlackSmokeParticle {
         let px_xy = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
         let scale = (self.radius_px.as_f32() * 2.0 * self.scale_ratio) / 128.0;
         let color = Color::WHITE.with_alpha((self.alpha * 255.0) as u8);
+        let src_rect = match self.sprite_kind {
+            BlackSmokeSpriteKind::Smoke00 => atlas::black_smoke_00(),
+            BlackSmokeSpriteKind::Smoke01 => atlas::black_smoke_01(),
+        };
 
         sprites.push(atlas::centered_rotated_sprite(
-            atlas::black_smoke(),
+            src_rect,
             px_xy.x,
             px_xy.y,
             scale,

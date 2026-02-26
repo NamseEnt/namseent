@@ -6,7 +6,7 @@ import { drawGlowCircle, drawImage, drawImageRect } from "./draw.ts";
 import type { Atlas } from "./types.ts";
 
 export async function createAttackAtlas(): Promise<Atlas> {
-    const attack = createAtlas("attack", CELL * 11, CELL);
+    const attack = createAtlas("attack", CELL * 12, CELL);
     await drawImage(
         attack,
         "BURNING_TAIL",
@@ -50,8 +50,13 @@ export async function createAttackAtlas(): Promise<Atlas> {
     );
     await drawImage(
         attack,
-        "BLACK_SMOKE",
-        path.join(ASSET_DIR, "attack", "particle", "black_smoke.png"),
+        "BLACK_SMOKE_00",
+        path.join(ASSET_DIR, "attack", "particle", "black_smoke_00.png"),
+    );
+    await drawImage(
+        attack,
+        "BLACK_SMOKE_01",
+        path.join(ASSET_DIR, "attack", "particle", "black_smoke_01.png"),
     );
     return attack;
 }

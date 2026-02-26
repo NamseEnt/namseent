@@ -100,7 +100,8 @@ pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
 pub fn lightning_bolt_rect() -> Rect<Px> { rect(640.0, 0.0, 256.0, 64.0) }
 pub fn sparkle() -> Rect<Px> { rect(896.0, 0.0, 128.0, 128.0) }
 pub fn wind_curve_trail() -> Rect<Px> { rect(1024.0, 0.0, 256.0, 64.0) }
-pub fn black_smoke() -> Rect<Px> { rect(1280.0, 0.0, 128.0, 128.0) }
+pub fn black_smoke_00() -> Rect<Px> { rect(1280.0, 0.0, 128.0, 128.0) }
+pub fn black_smoke_01() -> Rect<Px> { rect(1408.0, 0.0, 128.0, 128.0) }
 pub fn monster_soul() -> Rect<Px> { rect(1280.0, 128.0, 128.0, 192.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
