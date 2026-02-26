@@ -3,7 +3,7 @@ use crate::game_state::GameState;
 use crate::game_state::Monster;
 use crate::game_state::field_particle::emitter::{
     BlackSmokeSource, spawn_black_smoke_burst, spawn_black_smoke_burst_reversed,
-    spawn_black_smoke_dash_trail,
+    spawn_black_smoke_dash_trail, spawn_black_smoke_puff_burst,
 };
 use namui::*;
 use rand::Rng;
@@ -151,8 +151,10 @@ impl RoyalStraightFlushVisual {
 
         if next_phase == RoyalStraightFlushPhase::Returning {
             spawn_black_smoke_burst(black_smoke_sources, tower_center_xy, now);
+            spawn_black_smoke_puff_burst(tower_center_xy, now);
             for clone in &self.clones {
                 spawn_black_smoke_burst_reversed(black_smoke_sources, clone.end_center_xy, now);
+                spawn_black_smoke_puff_burst(clone.end_center_xy, now);
             }
         }
 
@@ -181,8 +183,10 @@ impl Tower {
         let clones = generate_royal_straight_flush_clones(target_xy);
 
         spawn_black_smoke_burst_reversed(black_smoke_sources, tower_center_xy, now);
+        spawn_black_smoke_puff_burst(tower_center_xy, now);
         for clone in &clones {
             spawn_black_smoke_burst(black_smoke_sources, clone.spawn_center_xy, now);
+            spawn_black_smoke_puff_burst(clone.spawn_center_xy, now);
         }
 
         self.royal_straight_flush_visual = Some(RoyalStraightFlushVisual::new(

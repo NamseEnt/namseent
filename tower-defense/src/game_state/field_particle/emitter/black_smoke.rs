@@ -9,6 +9,9 @@ const BLACK_SMOKE_DASH_TRAIL_DENSITY_PER_TILE: f32 = 16.0;
 const BLACK_SMOKE_DASH_TRAIL_POSITION_JITTER_TILE: f32 = 0.15;
 const BLACK_SMOKE_DASH_TRAIL_DIRECTION_JITTER_DEG: f32 = 15.0;
 const BLACK_SMOKE_DASH_TRAIL_MAX_SPEED_TILE_PER_SEC: f32 = 1.0;
+const BLACK_SMOKE_PUFF_COUNT: usize = 32;
+const BLACK_SMOKE_PUFF_POSITION_JITTER_TILE: f32 = 0.5;
+const BLACK_SMOKE_PUFF_MAX_SPEED_TILE_PER_SEC: f32 = 1.5;
 
 #[derive(Clone, Copy, State)]
 pub struct BlackSmokeSource {
@@ -91,6 +94,31 @@ pub fn spawn_black_smoke_dash_trail(from_xy: (f32, f32), to_xy: (f32, f32), now:
         );
 
         spawn_black_smoke_particle(BlackSmokeParticle::new_dash_trail(
+            spawn_xy,
+            velocity_xy,
+            now,
+            &mut rng,
+        ));
+    }
+}
+
+pub fn spawn_black_smoke_puff_burst(xy: (f32, f32), now: Instant) {
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..BLACK_SMOKE_PUFF_COUNT {
+        let spawn_xy = (
+            xy.0 + rng.gen_range(
+                -BLACK_SMOKE_PUFF_POSITION_JITTER_TILE..=BLACK_SMOKE_PUFF_POSITION_JITTER_TILE,
+            ),
+            xy.1 + rng.gen_range(
+                -BLACK_SMOKE_PUFF_POSITION_JITTER_TILE..=BLACK_SMOKE_PUFF_POSITION_JITTER_TILE,
+            ),
+        );
+        let angle = rng.gen_range(0.0..std::f32::consts::TAU);
+        let speed = rng.gen_range(0.0..=BLACK_SMOKE_PUFF_MAX_SPEED_TILE_PER_SEC);
+        let velocity_xy = (angle.cos() * speed, angle.sin() * speed);
+
+        spawn_black_smoke_particle(BlackSmokeParticle::new_puff(
             spawn_xy,
             velocity_xy,
             now,
