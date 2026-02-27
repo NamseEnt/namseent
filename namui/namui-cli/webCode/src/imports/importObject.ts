@@ -2,6 +2,7 @@ import { envGl } from "./envGl";
 import { textInputImports } from "./textInput";
 import { type DrawerExports, type Exports } from "@/exports";
 import { storageImports } from "@/storage/imports";
+import { createAudioImports } from "@/audio";
 import { ThreadStartSupplies } from "@/thread/startThread";
 
 export function createImportObject({
@@ -55,6 +56,9 @@ export function createImportObject({
             ...storageImports({
                 memory,
                 storageProtocolBuffer,
+            }),
+            ...createAudioImports({
+                memory,
             }),
             _initial_window_wh: () => supplies.initialWindowWh,
             _hardware_concurrency: () => navigator.hardwareConcurrency,

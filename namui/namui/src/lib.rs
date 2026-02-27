@@ -98,6 +98,8 @@ fn on_event(event: RawEvent) -> u64 {
         LOOPER.with_borrow_mut(|looper| {
             let rendering_tree = looper.as_mut().unwrap().tick(event);
 
+            system::audio::flush_audio();
+
             if !RENDERING_TREE_CHANGED.load(Ordering::Relaxed) {
                 RENDERING_TREE_CHANGED.store(
                     RENDERING_TREE

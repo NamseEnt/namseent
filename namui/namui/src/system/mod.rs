@@ -1,7 +1,12 @@
+pub mod audio;
 pub mod keyboard;
 pub mod mouse;
 pub mod screen;
 pub mod time;
+
+pub use audio::AudioAsset;
+pub use audio::AudioGroup;
+pub use audio::{Audio, AudioListener};
 
 use crate::*;
 use std::sync::atomic::AtomicBool;
