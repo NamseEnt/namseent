@@ -5,8 +5,8 @@ pub mod screen;
 pub mod time;
 
 pub use audio::AudioAsset;
-pub use audio::{Audio, AudioListener};
 pub use audio::AudioGroup;
+pub use audio::{Audio, AudioListener};
 
 use crate::*;
 use std::sync::atomic::AtomicBool;

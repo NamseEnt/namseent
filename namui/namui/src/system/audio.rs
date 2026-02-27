@@ -242,7 +242,11 @@ impl Component for Audio {
             }
         });
 
-        let current_id = if restored_id != 0 { restored_id } else { *playback_id };
+        let current_id = if restored_id != 0 {
+            restored_id
+        } else {
+            *playback_id
+        };
         if current_id != 0 {
             let (group_volume, group_z) = accumulated_audio_group();
 
