@@ -2,11 +2,12 @@ use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::field_particle::atlas;
 use namui::*;
 use rand::Rng;
+use std::f32::consts::TAU;
 
 const BURNING_TRAIL_LIFETIME_MIN_MS: i64 = 120;
 const BURNING_TRAIL_LIFETIME_MAX_MS: i64 = 240;
-const OUTER_RADIUS_MIN_TILE: f32 = 0.2;
-const OUTER_RADIUS_MAX_TILE: f32 = 0.35;
+const OUTER_RADIUS_MIN_TILE: f32 = 0.3;
+const OUTER_RADIUS_MAX_TILE: f32 = 0.6;
 const OFFSET_RANGE: f32 = 0.06;
 
 const ALPHA_RISE_END_PROGRESS: f32 = 0.2;
@@ -21,6 +22,7 @@ const IMAGE_SIZE: f32 = 128.0;
 #[derive(Clone)]
 pub struct BurningTrailParticle {
     pub xy: (f32, f32),
+    pub angle_rad: f32,
     pub created_at: Instant,
     pub lifetime: Duration,
     pub initial_radius: Px,
@@ -44,9 +46,11 @@ impl BurningTrailParticle {
 
         let initial_radius =
             TILE_PX_SIZE.width * rng.gen_range(OUTER_RADIUS_MIN_TILE..=OUTER_RADIUS_MAX_TILE);
+        let angle_rad = rng.gen_range(0.0..TAU);
 
         Self {
             xy: final_xy,
+            angle_rad,
             created_at,
             lifetime,
             initial_radius,
@@ -80,30 +84,27 @@ impl BurningTrailParticle {
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
-        let src_rect = Rect::Xywh {
-            x: px(0.0),
-            y: px(0.0),
-            width: px(IMAGE_SIZE),
-            height: px(IMAGE_SIZE),
-        };
+        let src_rect = atlas::burning_tail();
 
         let outer_scale = (self.radius.as_f32() * 2.0) / IMAGE_SIZE;
         let outer_color = Color::from_f01(1.0, 0.35, 0.05, self.alpha * 0.7);
-        sprites.push(atlas::centered_sprite(
+        sprites.push(atlas::centered_rotated_sprite(
             src_rect,
             xy_px.x,
             xy_px.y,
             outer_scale,
+            self.angle_rad,
             Some(outer_color),
         ));
 
         let inner_scale = (self.radius.as_f32() * 2.0 * 0.5) / IMAGE_SIZE;
         let inner_color = Color::from_f01(1.0, 0.85, 0.2, self.alpha);
-        sprites.push(atlas::centered_sprite(
+        sprites.push(atlas::centered_rotated_sprite(
             src_rect,
             xy_px.x,
             xy_px.y,
             inner_scale,
+            self.angle_rad,
             Some(inner_color),
         ));
 

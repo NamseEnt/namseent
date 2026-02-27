@@ -15,12 +15,16 @@ const TRAIL_ANGLE_RANGE_DEG: f32 = 22.5;
 
 const MUSHROOM_EXPLOSION_SPEED_MIN: f32 = 0.3;
 const MUSHROOM_EXPLOSION_SPEED_MAX: f32 = 0.6;
+const MUSHROOM_EXPLOSION_SPEED_MULT_MIN: f32 = 1.0;
+const MUSHROOM_EXPLOSION_SPEED_MULT_MAX: f32 = 2.5;
 const MUSHROOM_EXPLOSION_LIFETIME_MIN_MS: i64 = 300;
 const MUSHROOM_EXPLOSION_LIFETIME_MAX_MS: i64 = 800;
 const MUSHROOM_EXPLOSION_ALPHA_MIN: f32 = 0.2;
 const MUSHROOM_EXPLOSION_ALPHA_MAX: f32 = 0.4;
 
-const MUSHROOM_COLUMN_WOBBLE_RANGE: f32 = 0.1;
+const MUSHROOM_COLUMN_WOBBLE_RANGE: f32 = 0.2;
+const MUSHROOM_COLUMN_SPEED_MULT_MIN: f32 = 1.0;
+const MUSHROOM_COLUMN_SPEED_MULT_MAX: f32 = 3.5;
 const MUSHROOM_COLUMN_LIFETIME_MIN_MS: i64 = 400;
 const MUSHROOM_COLUMN_LIFETIME_MAX_MS: i64 = 800;
 const MUSHROOM_COLUMN_ALPHA_MIN: f32 = 0.2;
@@ -28,26 +32,29 @@ const MUSHROOM_COLUMN_ALPHA_MAX: f32 = 0.4;
 
 const RISING_HEART_LIFETIME_MIN_MS: i64 = 1000;
 const RISING_HEART_LIFETIME_MAX_MS: i64 = 1500;
-const RISING_HEART_INITIAL_ALPHA: f32 = 0.75;
+const RISING_HEART_INITIAL_ALPHA: f32 = 0.7;
 const RISING_HEART_START_SCALE: f32 = 0.0;
-const RISING_HEART_FINAL_SCALE_MIN: f32 = 2.70;
-const RISING_HEART_FINAL_SCALE_MAX: f32 = 3.45;
+const RISING_HEART_FINAL_SCALE_MIN: f32 = 2.0;
+const RISING_HEART_FINAL_SCALE_MAX: f32 = 3.0;
 const RISING_HEART_INITIAL_ANGLE_DEG: f32 = 5.0;
 const RISING_HEART_MAX_OPACITY: f32 = 0.75;
 const RISING_HEART_RISE_DISTANCE_TILE: f32 = 0.6;
 const RISING_HEART_ROTATION_DEG_PER_SEC_MAX: f32 = 10.0;
 
-const MUSHROOM_EXPLOSION_RADIUS_MIN_TILE: f32 = 0.15;
-const MUSHROOM_EXPLOSION_RADIUS_MAX_TILE: f32 = 0.25;
-const MUSHROOM_COLUMN_RADIUS_MIN_TILE: f32 = 0.1;
-const MUSHROOM_COLUMN_RADIUS_MAX_TILE: f32 = 0.15;
-const MUSHROOM_SPHERE_INNER_RADIUS_RATIO: f32 = 0.4;
-const MUSHROOM_OUTER_ALPHA_MULT: f32 = 0.6;
+const MUSHROOM_EXPLOSION_RADIUS_MIN_TILE: f32 = 0.2;
+const MUSHROOM_EXPLOSION_RADIUS_MAX_TILE: f32 = 0.5;
+const MUSHROOM_COLUMN_RADIUS_MIN_TILE: f32 = 0.15;
+const MUSHROOM_COLUMN_RADIUS_MAX_TILE: f32 = 0.3;
+const MUSHROOM_OUTER_ALPHA_MULT: f32 = 0.2;
+const MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN: f32 = -8.0;
+const MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX: f32 = 8.0;
 
 #[derive(Clone)]
 pub struct HeartParticle {
     pub xy: (f32, f32),
     pub velocity: (f32, f32),
+    pub smoke_rotation_rad: f32,
+    pub smoke_rotation_rad_per_sec: f32,
     pub created_at: Instant,
     pub lifetime: Duration,
     pub initial_opacity: f32,
@@ -114,6 +121,8 @@ impl HeartParticle {
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: 0.0,
+            smoke_rotation_rad_per_sec: 0.0,
             created_at,
             lifetime,
             initial_opacity: 1.0,
@@ -133,7 +142,10 @@ impl HeartParticle {
         let final_xy = (xy.0 + offset_x, xy.1 + offset_y);
 
         let angle = rng.gen_range(0.0..2.0 * PI);
-        let speed = rng.gen_range(MUSHROOM_EXPLOSION_SPEED_MIN..=MUSHROOM_EXPLOSION_SPEED_MAX);
+        let base_speed = rng.gen_range(MUSHROOM_EXPLOSION_SPEED_MIN..=MUSHROOM_EXPLOSION_SPEED_MAX);
+        let speed_mult =
+            rng.gen_range(MUSHROOM_EXPLOSION_SPEED_MULT_MIN..=MUSHROOM_EXPLOSION_SPEED_MULT_MAX);
+        let speed = base_speed * speed_mult;
         let velocity_x = angle.cos() * speed;
         let velocity_y = angle.sin() * speed;
 
@@ -147,10 +159,16 @@ impl HeartParticle {
 
         let initial_opacity =
             rng.gen_range(MUSHROOM_EXPLOSION_ALPHA_MIN..=MUSHROOM_EXPLOSION_ALPHA_MAX);
+        let smoke_rotation_deg_per_sec = rng.gen_range(
+            MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN..=MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX,
+        );
+        let smoke_rotation_rad_per_sec = smoke_rotation_deg_per_sec * PI / 180.0;
 
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: rng.gen_range(0.0..2.0 * PI),
+            smoke_rotation_rad_per_sec,
             created_at,
             lifetime,
             initial_opacity,
@@ -176,7 +194,10 @@ impl HeartParticle {
         let lifetime_ms =
             rng.gen_range(MUSHROOM_COLUMN_LIFETIME_MIN_MS..=MUSHROOM_COLUMN_LIFETIME_MAX_MS);
         let lifetime = Duration::from_millis(lifetime_ms);
-        let target_speed = vertical_distance.abs() / lifetime.as_secs_f32();
+        let base_target_speed = vertical_distance.abs() / lifetime.as_secs_f32();
+        let speed_mult =
+            rng.gen_range(MUSHROOM_COLUMN_SPEED_MULT_MIN..=MUSHROOM_COLUMN_SPEED_MULT_MAX);
+        let target_speed = base_target_speed * speed_mult;
 
         let velocity_x = rng.gen_range(-0.2..=0.2);
         let velocity_y = -target_speed;
@@ -186,10 +207,16 @@ impl HeartParticle {
         let radius_px = TILE_PX_SIZE.width * radius_tile;
 
         let initial_opacity = rng.gen_range(MUSHROOM_COLUMN_ALPHA_MIN..=MUSHROOM_COLUMN_ALPHA_MAX);
+        let smoke_rotation_deg_per_sec = rng.gen_range(
+            MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MIN..=MUSHROOM_SMOKE_ROTATION_DEG_PER_SEC_MAX,
+        );
+        let smoke_rotation_rad_per_sec = smoke_rotation_deg_per_sec * PI / 180.0;
 
         Self {
             xy: final_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: rng.gen_range(0.0..2.0 * PI),
+            smoke_rotation_rad_per_sec,
             created_at,
             lifetime,
             initial_opacity,
@@ -236,6 +263,8 @@ impl HeartParticle {
         Self {
             xy: start_xy,
             velocity: (velocity_x, velocity_y),
+            smoke_rotation_rad: 0.0,
+            smoke_rotation_rad_per_sec: 0.0,
             created_at,
             lifetime,
             initial_opacity,
@@ -294,6 +323,13 @@ impl HeartParticle {
 
         self.xy.0 += self.velocity.0 * dt_secs * movement_speed_mul;
         self.xy.1 += self.velocity.1 * dt_secs * movement_speed_mul;
+
+        if matches!(
+            self.kind,
+            HeartParticleKind::MushroomExplosion { .. } | HeartParticleKind::MushroomColumn { .. }
+        ) {
+            self.smoke_rotation_rad += self.smoke_rotation_rad_per_sec * dt_secs;
+        }
     }
 
     pub fn is_done(&self, now: Instant) -> bool {
@@ -315,24 +351,14 @@ impl HeartParticle {
                 let radius = radius_px.as_f32().max(1.0);
                 let outer_scale = (radius * 2.0) / 128.0;
                 let outer_color =
-                    Color::from_f01(1.0, 0.6, 0.75, self.alpha * MUSHROOM_OUTER_ALPHA_MULT);
-                sprites.push(atlas::centered_sprite(
-                    atlas::projectile_glow_circle(),
+                    Color::WHITE.with_alpha((self.alpha * MUSHROOM_OUTER_ALPHA_MULT * 255.0) as u8);
+                sprites.push(atlas::centered_rotated_sprite(
+                    atlas::projectile_pink_smoke(),
                     px_xy.x,
                     px_xy.y,
                     outer_scale,
+                    self.smoke_rotation_rad,
                     Some(outer_color),
-                ));
-
-                let inner_radius = (radius * MUSHROOM_SPHERE_INNER_RADIUS_RATIO).max(0.5);
-                let inner_scale = (inner_radius * 2.0) / 128.0;
-                let inner_color = Color::from_f01(1.0, 0.8, 0.9, self.alpha);
-                sprites.push(atlas::centered_sprite(
-                    atlas::projectile_glow_circle(),
-                    px_xy.x,
-                    px_xy.y,
-                    inner_scale,
-                    Some(inner_color),
                 ));
             }
             HeartParticleKind::Heart00

@@ -1,12 +1,8 @@
 use crate::MapCoordF32;
-use crate::game_state::field_particle::{
-    BLUE_DOT_SPARKS, BlueDotSparkParticle, WIND_CURVE_TRAILS, WindCurveTrailParticle,
-};
+use crate::game_state::field_particle::{WindCurveTrailParticle, spawn_wind_curve_trail_particle};
 use namui::*;
-use rand::Rng;
 
 pub const WIND_CURVE_SPAWN_DISTANCE: f32 = 0.12;
-const BLUE_DOT_SPAWN_CHANCE: f32 = 0.22;
 
 pub fn spawn_wind_curve_trail(
     from_xy: MapCoordF32,
@@ -33,20 +29,11 @@ pub fn spawn_wind_curve_trail(
         let particle_xy = from_xy + (to_xy - from_xy) * progress;
         let px = (particle_xy.x, particle_xy.y);
 
-        WIND_CURVE_TRAILS.spawn(WindCurveTrailParticle::new_with_random(
+        spawn_wind_curve_trail_particle(WindCurveTrailParticle::new_with_random(
             px,
             movement_direction,
             now,
             &mut rng,
         ));
-
-        if rng.gen_range(0.0..1.0) < BLUE_DOT_SPAWN_CHANCE {
-            BLUE_DOT_SPARKS.spawn(BlueDotSparkParticle::new_with_random(
-                px,
-                movement_direction,
-                now,
-                &mut rng,
-            ));
-        }
     }
 }

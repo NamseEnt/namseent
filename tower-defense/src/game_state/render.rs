@@ -19,8 +19,8 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_field_particles, self.game_state));
                 ctx.add((render_projectiles, self.game_state));
                 ctx.add((render_monsters, self.game_state));
-                ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_towers, self.game_state));
+                ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_grid, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
             });
@@ -198,15 +198,18 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         let tower_xy = tower.left_top.map(|t| t.as_f32());
 
         // Culling check
-        if screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y {
+        if (screen_rect.right() < tower_xy.x || screen_rect.bottom() < tower_xy.y)
+            && tower.royal_straight_flush_visual().is_none()
+        {
             continue;
         }
 
         let px_xy = TILE_PX_SIZE.to_xy() * tower_xy;
+        let now = game_state.now();
         ctx.translate(px_xy).compose(move |ctx| {
             // For now, just render the tower without hover functionality
             // We'll need to modify this once we can access mutable game state
-            ctx.add(tower);
+            ctx.add(crate::game_state::tower::render::RenderTower { tower, now });
 
             // Render hover area
             let tower_size = 128.0; // TILE_PX_SIZE
@@ -294,8 +297,7 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
-    let shapes = crate::asset::image::PARTICLE_SHAPES;
-    let line = crate::asset::image::PARTICLE_LINE;
+    let attack = crate::asset::image::PARTICLE_ATTACK;
     let projectiles = crate::asset::image::PARTICLE_PROJECTILES;
     let monsters = crate::asset::image::PARTICLE_MONSTERS;
     let icons = crate::asset::image::PARTICLE_ICONS;
@@ -303,32 +305,8 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
 
     ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::BURNING_TRAILS,
-        image: crate::asset::image::PARTICLE_BURNING_TRAIL,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::EMBER_SPARKS,
-        image: shapes,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::LASER_LINES,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::LIGHTNING_BOLTS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::BLUE_DOT_SPARKS,
-        image: shapes,
+        emitter: &field_particle::ATTACK_PARTICLES,
+        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: screen_paint.clone(),
     });
@@ -347,18 +325,6 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::TRASHES,
         image: projectiles,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::INSTANT_EMITS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: None,
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::INSTANT_HITS,
-        image: shapes,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });
@@ -393,15 +359,9 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         paint: None,
     });
     ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::SPARKLES,
-        image: shapes,
+        emitter: &field_particle::BLACK_SMOKES,
+        image: attack,
         sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
-    });
-    ctx.add(namui::particle::RenderEmitter {
-        emitter: &field_particle::WIND_CURVE_TRAILS,
-        image: line,
-        sprite_colors_blend_mode: BlendMode::Modulate,
-        paint: screen_paint.clone(),
+        paint: None,
     });
 }

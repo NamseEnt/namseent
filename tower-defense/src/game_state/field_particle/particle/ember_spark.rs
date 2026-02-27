@@ -12,11 +12,13 @@ const EMBER_SPARK_SPEED_MAX: f32 = 8.0;
 const EMBER_SPARK_GRAVITY: f32 = 1.0;
 const EMBER_SPARK_FADE_START: f32 = 0.5;
 const EMBER_SPARK_INNER_RADIUS_RATIO: f32 = 0.4;
+const MIN_DIRECTION_SPEED_SQ: f32 = 0.000001;
 
 #[derive(Clone)]
 pub struct EmberSparkParticle {
     pub xy: (f32, f32),
     pub velocity: (f32, f32), // 맵 좌표 단위/초
+    pub angle_rad: f32,
     pub created_at: Instant,
     pub lifetime: Duration,
     pub radius: Px,
@@ -48,10 +50,12 @@ impl EmberSparkParticle {
 
         let speed = rng.gen_range(EMBER_SPARK_SPEED_MIN..=EMBER_SPARK_SPEED_MAX);
         let velocity = (rotated_dir.0 * speed, rotated_dir.1 * speed);
+        let angle_rad = velocity.1.atan2(velocity.0);
 
         Self {
             xy,
             velocity,
+            angle_rad,
             created_at,
             lifetime,
             radius,
@@ -66,6 +70,11 @@ impl EmberSparkParticle {
 
         self.xy.0 += self.velocity.0 * dt_sec;
         self.xy.1 += self.velocity.1 * dt_sec;
+
+        let speed_sq = self.velocity.0 * self.velocity.0 + self.velocity.1 * self.velocity.1;
+        if speed_sq > MIN_DIRECTION_SPEED_SQ {
+            self.angle_rad = self.velocity.1.atan2(self.velocity.0);
+        }
 
         let progress = self.progress(now);
         if progress >= EMBER_SPARK_FADE_START {
@@ -84,26 +93,29 @@ impl EmberSparkParticle {
         }
 
         let xy_px = TILE_PX_SIZE.to_xy() * Xy::new(self.xy.0, self.xy.1);
+        let angle_rad = self.angle_rad;
 
         let outer_radius = self.radius;
         let outer_scale = (outer_radius.as_f32() * 2.0) / 128.0;
         let outer_color = Color::from_f01(1.0, 0.5, 0.1, self.alpha * 0.8);
-        sprites.push(atlas::centered_sprite(
-            atlas::glow_circle(),
+        sprites.push(atlas::centered_rotated_sprite(
+            atlas::ember_spark(),
             xy_px.x,
             xy_px.y,
             outer_scale,
+            angle_rad,
             Some(outer_color),
         ));
 
         let inner_radius = px(self.radius.as_f32() * EMBER_SPARK_INNER_RADIUS_RATIO);
         let inner_scale = (inner_radius.as_f32() * 2.0) / 128.0;
         let inner_color = Color::from_f01(1.0, 0.9, 0.4, self.alpha);
-        sprites.push(atlas::centered_sprite(
-            atlas::glow_circle(),
+        sprites.push(atlas::centered_rotated_sprite(
+            atlas::ember_spark(),
             xy_px.x,
             xy_px.y,
             inner_scale,
+            angle_rad,
             Some(inner_color),
         ));
 

@@ -1,13 +1,13 @@
 use crate::game_state::field_particle::{
-    BLUE_DOT_SPARKS, BlueDotSparkParticle, LASER_LINES, LIGHTNING_BOLTS, LaserLineParticle,
-    LightningBoltParticle,
+    BlueSparkParticle, LaserLineParticle, LightningBoltParticle, spawn_blue_dot_spark,
+    spawn_laser_line, spawn_lightning_bolt,
 };
 use namui::*;
 use rand::Rng;
 
 const LASER_LINE_COUNT: usize = 8;
-const LINE_THICKNESS_MIN: f32 = 0.1;
-const LINE_THICKNESS_MAX: f32 = 0.25;
+const LINE_THICKNESS_MIN: f32 = 0.2;
+const LINE_THICKNESS_MAX: f32 = 0.5;
 const LASER_LIFETIME_MS: i64 = 120;
 const START_OFFSET_RANGE: f32 = 0.9;
 const END_OFFSET_RANGE: f32 = 0.9;
@@ -28,7 +28,7 @@ pub fn spawn_laser_beam(start_xy: (f32, f32), end_xy: (f32, f32), now: Instant) 
 
     for _ in 0..LIGHTNING_BOLT_COUNT {
         let lightning = create_lightning_bolt(start_xy, now, dx, dy, laser_length, &mut rng);
-        LIGHTNING_BOLTS.spawn(lightning);
+        spawn_lightning_bolt(lightning);
     }
 
     emit_blue_dot_sparks(end_xy, dx, dy, &mut rng, now);
@@ -65,7 +65,7 @@ fn emit_laser_lines(
             MOVEMENT_SPEED,
         );
 
-        LASER_LINES.spawn(particle);
+        spawn_laser_line(particle);
     }
 }
 
@@ -125,13 +125,9 @@ fn emit_blue_dot_sparks(
         let movement_dir_x = base_dir_x * cos_a - base_dir_y * sin_a;
         let movement_dir_y = base_dir_x * sin_a + base_dir_y * cos_a;
 
-        let particle = BlueDotSparkParticle::new_with_random(
-            end_xy,
-            (movement_dir_x, movement_dir_y),
-            now,
-            rng,
-        );
+        let particle =
+            BlueSparkParticle::new_with_random(end_xy, (movement_dir_x, movement_dir_y), now, rng);
 
-        BLUE_DOT_SPARKS.spawn(particle);
+        spawn_blue_dot_spark(particle);
     }
 }

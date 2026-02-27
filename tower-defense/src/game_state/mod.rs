@@ -84,6 +84,7 @@ pub struct GameState {
     pub left_reroll_chance: usize,
     pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
+    pub delayed_hits: Vec<attack::DelayedHit>,
     pub items: Vec<item::Item>,
     pub gold: usize,
     pub cursor_preview: CursorPreview,
@@ -105,6 +106,7 @@ pub struct GameState {
     pub ui_state: UIState,
     pub just_cleared_boss_stage: bool,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
+    pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -201,6 +203,7 @@ fn create_initial_game_state() -> GameState {
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
+        delayed_hits: Default::default(),
         items: vec![
             Item {
                 effect: Effect::ExtraReroll,
@@ -253,6 +256,7 @@ fn create_initial_game_state() -> GameState {
         ui_state: UIState::new(),
         just_cleared_boss_stage: false,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
+        black_smoke_sources: Default::default(),
     };
 
     game_state.goto_next_stage();
@@ -300,6 +304,7 @@ impl GameState {
             left_reroll_chance: self.left_reroll_chance,
             monster_spawn_state: self.monster_spawn_state.clone(),
             projectiles: self.projectiles.clone(),
+            delayed_hits: self.delayed_hits.clone(),
             items: self.items.clone(),
             gold: self.gold,
             cursor_preview: self.cursor_preview.clone(),
@@ -321,6 +326,7 @@ impl GameState {
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
+            black_smoke_sources: Default::default(),
         }
     }
 
