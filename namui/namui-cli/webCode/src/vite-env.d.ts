@@ -16,3 +16,11 @@ declare module "virtual:font-asset" {
     }
     export const fontAsset: FontInfo[];
 }
+
+declare module "virtual:audio-asset-list" {
+    export interface AudioAssetInfo {
+        id: number;
+        path: string;
+    }
+    export const audioAssetList: AudioAssetInfo[];
+}

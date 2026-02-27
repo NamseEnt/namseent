@@ -1,0 +1,8 @@
+[package]
+name = "spatial-audio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+namui = { path = "../../namui" }
+namui-prebuilt = { path = "../../namui-prebuilt" }

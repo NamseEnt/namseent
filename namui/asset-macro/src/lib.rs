@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 struct ModuleNode {
     children: BTreeMap<String, ModuleNode>,
     images: Vec<(String, usize)>,
+    audios: Vec<(String, usize)>,
 }
 
 impl ModuleNode {
@@ -15,16 +16,30 @@ impl ModuleNode {
         Self {
             children: BTreeMap::new(),
             images: Vec::new(),
+            audios: Vec::new(),
         }
     }
     fn add_image(&mut self, path_parts: &[String], file_name: String, id: usize) {
         if path_parts.is_empty() {
             self.images.push((file_name, id));
         } else {
-            let module_name = &path_parts[0];
-            let child = self.children.entry(module_name.clone()).or_default();
+            let child = self.children.entry(path_parts[0].clone()).or_default();
             child.add_image(&path_parts[1..], file_name, id);
         }
+    }
+    fn add_audio(&mut self, path_parts: &[String], file_name: String, id: usize) {
+        if path_parts.is_empty() {
+            self.audios.push((file_name, id));
+        } else {
+            let child = self.children.entry(path_parts[0].clone()).or_default();
+            child.add_audio(&path_parts[1..], file_name, id);
+        }
+    }
+    fn has_images(&self) -> bool {
+        !self.images.is_empty() || self.children.values().any(|c| c.has_images())
+    }
+    fn has_audios(&self) -> bool {
+        !self.audios.is_empty() || self.children.values().any(|c| c.has_audios())
     }
     fn to_tokens(&self) -> proc_macro2::TokenStream {
         let mut modules = Vec::new();
@@ -32,9 +47,20 @@ impl ModuleNode {
         for (name, child) in &self.children {
             let mod_ident = quote::format_ident!("{}", name);
             let child_tokens = child.to_tokens();
+            let image_use = if child.has_images() {
+                quote! { use super::Image; }
+            } else {
+                quote! {}
+            };
+            let audio_use = if child.has_audios() {
+                quote! { use super::AudioAsset; }
+            } else {
+                quote! {}
+            };
             modules.push(quote! {
                 pub mod #mod_ident {
-                    use super::Image;
+                    #image_use
+                    #audio_use
                     #child_tokens
                 }
             });
@@ -48,9 +74,18 @@ impl ModuleNode {
             });
         }
 
+        let mut audios = Vec::new();
+        for (name, id) in &self.audios {
+            let const_name = quote::format_ident!("{}", name);
+            audios.push(quote! {
+                pub static #const_name: AudioAsset = AudioAsset::new(#id);
+            });
+        }
+
         quote! {
             #(#modules)*
             #(#images)*
+            #(#audios)*
         }
     }
 }
@@ -66,23 +101,32 @@ fn file_stem_to_const_name(file_stem: &str) -> String {
         })
         .collect()
 }
-fn collect_asset_files(asset_dir: &Path) -> Vec<PathBuf> {
+
+fn collect_image_files(asset_dir: &Path) -> Vec<PathBuf> {
+    collect_files_by_extensions(asset_dir, &["jpg", "jpeg", "png"])
+}
+
+fn collect_audio_files(asset_dir: &Path) -> Vec<PathBuf> {
+    collect_files_by_extensions(asset_dir, &["mp3", "wav", "ogg", "opus"])
+}
+
+fn collect_files_by_extensions(asset_dir: &Path, extensions: &[&str]) -> Vec<PathBuf> {
     let mut files = Vec::new();
 
     if !asset_dir.exists() {
         return files;
     }
 
-    fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>) {
+    fn visit_dirs(dir: &Path, files: &mut Vec<PathBuf>, extensions: &[&str]) {
         if let Ok(entries) = fs::read_dir(dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    visit_dirs(&path, files);
+                    visit_dirs(&path, files, extensions);
                 } else if path.is_file() {
                     if let Some(ext) = path.extension() {
                         let ext_str = ext.to_string_lossy().to_lowercase();
-                        if ext_str == "jpg" || ext_str == "jpeg" || ext_str == "png" {
+                        if extensions.contains(&ext_str.as_str()) {
                             files.push(path);
                         }
                     }
@@ -91,8 +135,32 @@ fn collect_asset_files(asset_dir: &Path) -> Vec<PathBuf> {
         }
     }
 
-    visit_dirs(asset_dir, &mut files);
+    visit_dirs(asset_dir, &mut files, extensions);
     files
+}
+
+fn path_to_parts(asset_dir: &Path, file_path: &Path) -> (Vec<String>, String) {
+    let relative_path = file_path
+        .strip_prefix(asset_dir)
+        .expect("Failed to strip asset directory prefix");
+
+    let components: Vec<String> = relative_path
+        .parent()
+        .map(|p| {
+            p.components()
+                .filter_map(|c| c.as_os_str().to_str())
+                .map(|s| s.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let file_stem = relative_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .expect("Failed to get file stem");
+    let const_name = file_stem_to_const_name(file_stem);
+
+    (components, const_name)
 }
 
 #[proc_macro]
@@ -101,40 +169,39 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
         .expect("CARGO_MANIFEST_DIR environment variable not set");
     let asset_dir = PathBuf::from(&manifest_dir).join("asset");
 
-    let mut asset_files = collect_asset_files(&asset_dir);
-
-    asset_files.sort();
     let mut root = ModuleNode::new();
 
-    for (id, file_path) in asset_files.iter().enumerate() {
-        let relative_path = file_path
-            .strip_prefix(&asset_dir)
-            .expect("Failed to strip asset directory prefix");
-
-        let components: Vec<String> = relative_path
-            .parent()
-            .map(|p| {
-                p.components()
-                    .filter_map(|c| c.as_os_str().to_str())
-                    .map(|s| s.to_string())
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        let file_stem = relative_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .expect("Failed to get file stem");
-        let const_name = file_stem_to_const_name(file_stem);
-
+    let mut image_files = collect_image_files(&asset_dir);
+    image_files.sort();
+    for (id, file_path) in image_files.iter().enumerate() {
+        let (components, const_name) = path_to_parts(&asset_dir, file_path);
         root.add_image(&components, const_name, id);
+    }
+
+    let mut audio_files = collect_audio_files(&asset_dir);
+    audio_files.sort();
+    for (id, file_path) in audio_files.iter().enumerate() {
+        let (components, const_name) = path_to_parts(&asset_dir, file_path);
+        root.add_audio(&components, const_name, id);
     }
 
     let module_tree = root.to_tokens();
 
+    let image_use = if root.has_images() {
+        quote! { use super::Image; }
+    } else {
+        quote! {}
+    };
+    let audio_use = if root.has_audios() {
+        quote! { use super::AudioAsset; }
+    } else {
+        quote! {}
+    };
+
     let expanded = quote! {
         pub mod asset {
-            use super::Image;
+            #image_use
+            #audio_use
             #module_tree
         }
     };

@@ -25,7 +25,17 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
 
     console.log(`Collected ${imageInfos.length} image files from ${assetDir}`);
 
-    // Collect font assets
+    const audioFiles = collectAudioFiles(assetDir);
+    audioFiles.sort();
+
+    const audioInfos: AudioInfo[] = audioFiles.map((file, id) => ({
+        path: file,
+        relativePath: path.relative(assetDir, file),
+        id,
+    }));
+
+    console.log(`Collected ${audioInfos.length} audio files from ${assetDir}`);
+
     const fontInfos: FontInfo[] = collectFontFiles(systemBundleDir);
     console.log(`Collected ${fontInfos.length} font files from system_bundle`);
 
@@ -33,6 +43,8 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
     const resolvedVirtualModuleId = "\0" + virtualModuleId;
     const virtualFontModuleId = "virtual:font-asset";
     const resolvedVirtualFontModuleId = "\0" + virtualFontModuleId;
+    const virtualAudioModuleId = "virtual:audio-asset-list";
+    const resolvedVirtualAudioModuleId = "\0" + virtualAudioModuleId;
 
     return {
         name: "asset-collector-plugin",
@@ -42,6 +54,9 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
             }
             if (id === virtualFontModuleId) {
                 return resolvedVirtualFontModuleId;
+            }
+            if (id === virtualAudioModuleId) {
+                return resolvedVirtualAudioModuleId;
             }
         },
         load(id) {
@@ -67,11 +82,28 @@ export function assetCollectorPlugin(assetDir: string): Plugin {
                     2,
                 )};`;
             }
+            if (id === resolvedVirtualAudioModuleId) {
+                const audioAssetList = audioInfos.map((info) => ({
+                    id: info.id,
+                    path: `/@fs${info.path}`,
+                }));
+                return `export const audioAssetList = ${JSON.stringify(
+                    audioAssetList,
+                    null,
+                    2,
+                )};`;
+            }
         },
     };
 }
 
 interface ImageInfo {
+    path: string;
+    relativePath: string;
+    id: number;
+}
+
+interface AudioInfo {
     path: string;
     relativePath: string;
     id: number;
@@ -107,6 +139,17 @@ function collectFontFiles(systemBundleDir: string): FontInfo[] {
 }
 
 function collectImageFiles(assetDir: string): string[] {
+    return collectFilesByExtensions(assetDir, [".jpg", ".jpeg", ".png"]);
+}
+
+function collectAudioFiles(assetDir: string): string[] {
+    return collectFilesByExtensions(assetDir, [".mp3", ".wav", ".ogg", ".opus"]);
+}
+
+function collectFilesByExtensions(
+    assetDir: string,
+    extensions: string[],
+): string[] {
     const files: string[] = [];
 
     if (!fs.existsSync(assetDir)) {
@@ -121,7 +164,7 @@ function collectImageFiles(assetDir: string): string[] {
                 visitDirs(fullPath);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                if (ext === ".jpg" || ext === ".jpeg" || ext === ".png") {
+                if (extensions.includes(ext)) {
                     files.push(fullPath);
                 }
             }

@@ -1,5 +1,8 @@
 use namui::*;
 use namui_prebuilt::button::TextButton;
+use std::cell::RefCell;
+
+register_assets!();
 
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {
@@ -7,77 +10,15 @@ pub fn main() {
     })
 }
 
+thread_local! {
+    static PLAY_HANDLE: RefCell<Option<system::audio::PlayHandle>> = const { RefCell::new(None) };
+}
+
 struct MediaExample;
 
 impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) {
-        // let (audio_mp3, set_audio_mp3) = ctx.state::<Option<MediaHandle>>(|| None);
-        let (audio_opus, set_audio_opus) = ctx.state::<Option<Audio>>(|| None);
-        // let (video_mp4, set_video_mp4) = ctx.state::<Option<MediaHandle>>(|| None);
-        // let (media_handle_for_toggle, set_media_handle_for_toggle) =
-        //     ctx.state::<Option<MediaHandle>>(|| None);
-        // let (sliced_audio, set_sliced_audio) = ctx.state::<Option<FullLoadOnceAudio>>(|| None);
-
-        ctx.async_effect("load media", (), move |_| async move {
-            // let mp3 = namui::system::media::new_media(
-            //     namui::system::file::bundle::read("resources/audio.mp3")
-            //         .await
-            //         .unwrap(),
-            // )
-            // .unwrap();
-            // println!("mp3 loaded");
-            // set_audio_mp3.set(Some(mp3.clone_independent().unwrap()));
-            // set_media_handle_for_toggle.set(Some(mp3));
-
-            println!("loading opus bytes");
-            let opus_bytes = namui::system::file::bundle::read("resources/audio.opus")
-                .await
-                .unwrap();
-            println!("opus bytes loaded, len: {}", opus_bytes.len());
-
-            let opus = namui::Audio::from_ogg_opus_bytes(opus_bytes).unwrap();
-            println!("opus loaded");
-            set_audio_opus.set(Some(opus));
-
-            // let opus = namui::Audio::from_ogg_opus_bytes(
-            //     namui::system::file::bundle::read("resources/audio.opus")
-            //         .await
-            //         .unwrap(),
-            // )
-            // .unwrap();
-            // println!("full load once audio loaded");
-            // set_sliced_audio.set(Some(
-            //     opus.slice(Duration::from_secs(1)..Duration::from_secs(2))
-            //         .unwrap(),
-            // ));
-
-            // let mp4 = namui::system::media::new_media(
-            //     namui::system::file::bundle::read("resources/video.mp4")
-            //         .await
-            //         .unwrap(),
-            // )
-            // .unwrap();
-            // println!("mp4 loaded");
-            // set_video_mp4.set(Some(mp4));
-        });
-
-        // let seek_to = |media_handle: MediaHandle, to: Duration| {
-        //     namui::spawn(async move {
-        //         let was_playing = media_handle.is_playing();
-
-        //         if was_playing {
-        //             media_handle.pause().unwrap();
-        //         }
-
-        //         media_handle.seek_to(to).unwrap();
-
-        //         media_handle.wait_for_preload().await.unwrap();
-
-        //         if was_playing {
-        //             media_handle.play().unwrap();
-        //         }
-        //     })
-        // };
+        let (is_playing, set_is_playing) = ctx.state(|| false);
 
         ctx.add(TextButton {
             rect: Rect::Xywh {
@@ -86,234 +27,63 @@ impl Component for MediaExample {
                 width: 200.px(),
                 height: 20.px(),
             },
-            text: "play audio (Fire & Forget)",
+            text: "play (one-shot)",
             text_color: Color::BLACK,
             stroke_color: Color::BLACK,
             stroke_width: 1.px(),
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: |_| {
-                if let Some(audio) = audio_opus.as_ref() {
-                    audio.play_and_forget();
+                PLAY_HANDLE.with(|h| *h.borrow_mut() = Some(asset::AUDIO.play()));
+            },
+        });
+
+        ctx.add(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 60.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: if *is_playing {
+                "stop (drop PlayHandle)"
+            } else {
+                "play (with PlayHandle)"
+            },
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: |_| {
+                if *is_playing {
+                    PLAY_HANDLE.with(|h| h.borrow_mut().take());
+                    set_is_playing.set(false);
+                } else {
+                    PLAY_HANDLE.with(|h| *h.borrow_mut() = Some(asset::AUDIO.play()));
+                    set_is_playing.set(true);
                 }
             },
         });
 
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 10.px(),
-        //         y: 60.px(),
-        //         width: 200.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: &format!(
-        //         "[Toggle] {}",
-        //         if let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() {
-        //             if media_handle_for_toggle.is_playing() {
-        //                 "stop audio"
-        //             } else {
-        //                 "play audio"
-        //             }
-        //         } else {
-        //             "play audio"
-        //         }
-        //     ),
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
-        //             return;
-        //         };
-
-        //         if media_handle_for_toggle.is_playing() {
-        //             media_handle_for_toggle.stop().unwrap();
-        //         } else {
-        //             media_handle_for_toggle.play().unwrap();
-        //         }
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 10.px(),
-        //         y: 100.px(),
-        //         width: 200.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: "Pause",
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         let Some(media_handle_for_toggle) = media_handle_for_toggle.as_ref() else {
-        //             return;
-        //         };
-        //         media_handle_for_toggle.pause().unwrap();
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 10.px(),
-        //         y: 140.px(),
-        //         width: 200.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: "opus (Fire & Forget)",
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         if let Some(media) = audio_opus.as_ref() {
-        //             media.clone_independent().unwrap().play().unwrap();
-        //         }
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 10.px(),
-        //         y: 180.px(),
-        //         width: 200.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: if sliced_audio.is_some() {
-        //         "slice (Fire & Forget)"
-        //     } else {
-        //         "Loading..."
-        //     },
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         if let Some(audio) = sliced_audio.as_ref() {
-        //             audio.clone().play().unwrap();
-        //         }
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 300.px(),
-        //         y: 20.px(),
-        //         width: 100.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: if let Some(video_mp4) = video_mp4.as_ref() {
-        //         if video_mp4.is_playing() {
-        //             "Pause Video"
-        //         } else {
-        //             "Play Video"
-        //         }
-        //     } else {
-        //         "Loading..."
-        //     },
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         if let Some(video_mp4) = video_mp4.as_ref() {
-        //             if video_mp4.is_playing() {
-        //                 video_mp4.pause().unwrap();
-        //             } else {
-        //                 video_mp4.play().unwrap();
-        //             }
-        //         }
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 300.px(),
-        //         y: 60.px(),
-        //         width: 30.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: "-5sec",
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         if let Some(video_mp4) = video_mp4.as_ref() {
-        //             println!(
-        //                 "video_mp4.playback_duration(): {:?}",
-        //                 video_mp4.playback_duration()
-        //             );
-        //             println!(
-        //                 "video_mp4.playback_duration() - Duration::from_secs(5): {:?}",
-        //                 video_mp4.playback_duration() - Duration::from_secs(5)
-        //             );
-        //             seek_to(
-        //                 video_mp4.clone(),
-        //                 video_mp4.playback_duration() - Duration::from_secs(5),
-        //             );
-        //         }
-        //     },
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 300.px(),
-        //         y: 40.px(),
-        //         width: 100.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: &if let Some(video_mp4) = video_mp4.as_ref() {
-        //         format!("{:.1?}", video_mp4.playback_duration().as_secs_f32())
-        //     } else {
-        //         "Loading...".to_string()
-        //     },
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![],
-        //     on_mouse_up_in: |_| {},
-        // });
-
-        // ctx.add(TextButton {
-        //     rect: Rect::Xywh {
-        //         x: 370.px(),
-        //         y: 60.px(),
-        //         width: 30.px(),
-        //         height: 20.px(),
-        //     },
-        //     text: "+5sec",
-        //     text_color: Color::BLACK,
-        //     stroke_color: Color::BLACK,
-        //     stroke_width: 1.px(),
-        //     fill_color: Color::TRANSPARENT,
-        //     mouse_buttons: vec![MouseButton::Left],
-        //     on_mouse_up_in: |_| {
-        //         if let Some(video_mp4) = video_mp4.as_ref() {
-        //             println!(
-        //                 "video_mp4.playback_duration(): {:?}",
-        //                 video_mp4.playback_duration()
-        //             );
-        //             println!(
-        //                 "video_mp4.playback_duration() + Duration::from_secs(5): {:?}",
-        //                 video_mp4.playback_duration() + Duration::from_secs(5)
-        //             );
-        //             seek_to(
-        //                 video_mp4.clone(),
-        //                 video_mp4.playback_duration() + Duration::from_secs(5),
-        //             );
-        //         }
-        //     },
-        // });
+        ctx.add(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 100.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: "play repeat (click above to stop)",
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![MouseButton::Left],
+            on_mouse_up_in: |_| {
+                PLAY_HANDLE.with(|h| *h.borrow_mut() = Some(asset::AUDIO.play_repeat()));
+                set_is_playing.set(true);
+            },
+        });
 
         ctx.add(TextButton {
             rect: Rect::Xywh {
@@ -329,7 +99,7 @@ impl Component for MediaExample {
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: |_| {
-                system::audio::set_volume(system::audio::volume() - 0.05);
+                system::audio::set_volume((system::audio::volume() - 0.05).max(0.0));
             },
         });
 
@@ -363,31 +133,8 @@ impl Component for MediaExample {
             fill_color: Color::TRANSPARENT,
             mouse_buttons: vec![MouseButton::Left],
             on_mouse_up_in: |_| {
-                system::audio::set_volume(system::audio::volume() + 0.05);
+                system::audio::set_volume((system::audio::volume() + 0.05).min(1.0));
             },
         });
-
-        // ctx.compose(|ctx| {
-        //     let Some(mp4) = video_mp4.as_ref() else {
-        //         return;
-        //     };
-        //     let Some(image) = mp4.get_image() else {
-        //         return;
-        //     };
-
-        //     ctx.add(namui::image(ImageParam {
-        //         rect: Rect::Xywh {
-        //             x: 300.px(),
-        //             y: 100.px(),
-        //             width: 400.px(),
-        //             height: 400.px(),
-        //         },
-        //         image,
-        //         style: ImageStyle {
-        //             fit: ImageFit::Fill,
-        //             paint: None,
-        //         },
-        //     }));
-        // });
     }
 }

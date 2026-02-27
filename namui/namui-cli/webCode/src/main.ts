@@ -5,7 +5,9 @@ import "./drawer";
 import { readyDrawer } from "./drawer";
 import { DrawerExports, Exports } from "./exports";
 import { assetList } from "virtual:asset-list";
+import { audioAssetList } from "virtual:audio-asset-list";
 import { loadFonts } from "@/font/loadFont";
+import { loadAudioAssets } from "@/audio";
 
 console.debug("crossOriginIsolated", crossOriginIsolated);
 
@@ -168,11 +170,21 @@ async function startMainThread() {
             }
 
             let now = performance.now();
-            await loadFonts({
-                memory: exports.memory,
-                module,
-            });
-            console.log(`main loadFonts took: ${performance.now() - now}ms`);
+            await Promise.all([
+                (async () => {
+                    const fontStart = performance.now();
+                    await loadFonts({
+                        memory: exports.memory,
+                        module,
+                    });
+                    console.log(`main loadFonts took: ${performance.now() - fontStart}ms`);
+                })(),
+                (async () => {
+                    const audioStart = performance.now();
+                    await loadAudioAssets(audioAssetList);
+                    console.log(`main loadAudioAssets took: ${performance.now() - audioStart}ms`);
+                })(),
+            ]);
 
             now = performance.now();
             exports._init_system();

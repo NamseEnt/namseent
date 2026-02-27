@@ -39,4 +39,28 @@ impl ComposeCtx<'_, '_> {
     pub fn mouse_cursor(&self, cursor: MouseCursor) -> Self {
         self.push(ComposeCommand::MouseCursor { cursor })
     }
+
+    pub fn accumulated_matrix(&self) -> TransformMatrix {
+        let mut matrix = TransformMatrix::identity();
+        for command in self.full_stack.iter() {
+            match command {
+                ComposeCommand::Translate { xy } => {
+                    matrix = matrix * TransformMatrix::from_translate(xy.x.as_f32(), xy.y.as_f32());
+                }
+                ComposeCommand::Absolute { xy } => {
+                    matrix = TransformMatrix::from_translate(xy.x.as_f32(), xy.y.as_f32());
+                }
+                ComposeCommand::Rotate { angle } => {
+                    matrix = matrix * TransformMatrix::from_rotate(*angle);
+                }
+                ComposeCommand::Scale { scale_xy } => {
+                    matrix = matrix * TransformMatrix::from_scale(scale_xy.x, scale_xy.y);
+                }
+                ComposeCommand::Clip { .. }
+                | ComposeCommand::OnTop
+                | ComposeCommand::MouseCursor { .. } => {}
+            }
+        }
+        matrix
+    }
 }
