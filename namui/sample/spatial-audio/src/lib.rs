@@ -3,16 +3,12 @@ use namui_prebuilt::simple_rect;
 
 register_assets!();
 
+static NEXT_SOURCE_ID_ATOM: Atom<usize> = Atom::uninitialized();
+
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {
         ctx.add(SpatialAudioExample {});
     })
-}
-
-static NEXT_SOURCE_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
-
-fn next_source_id() -> usize {
-    NEXT_SOURCE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 struct SpatialAudioExample;
@@ -27,6 +23,7 @@ impl Component for SpatialAudioExample {
         let (cam_y, set_cam_y) = ctx.state(|| 0.0f32);
         let (sources, set_sources) = ctx.state(|| Vec::<(usize, f32, f32)>::new());
         let (zoom, set_zoom) = ctx.state(|| 1.0f32);
+        let (next_source_id, _) = ctx.init_atom(&NEXT_SOURCE_ID_ATOM, || 1usize);
 
         let speed = 3.0f32;
         ctx.on_raw_event(|event| {
@@ -50,6 +47,24 @@ impl Component for SpatialAudioExample {
         let cx = screen_w / 2.0;
         let cy = screen_h / 2.0;
         let z = *zoom;
+        let next_id = *next_source_id;
+
+        ctx.add(namui::text(TextParam {
+            text: "Left click: add source / Right click: remove source / Arrow keys: move".to_string(),
+            x: 10.px(),
+            y: 10.px(),
+            align: TextAlign::Left,
+            baseline: TextBaseline::Top,
+            font: Font {
+                size: 14.int_px(),
+                name: "NotoSansKR-Regular".to_string(),
+            },
+            style: TextStyle {
+                color: Color::BLACK,
+                ..Default::default()
+            },
+            max_width: None,
+        }));
 
         ctx.compose(|ctx| {
             let ctx = ctx
@@ -99,7 +114,8 @@ impl Component for SpatialAudioExample {
                         let ly = local.y.as_f32();
                         match event.button {
                             Some(MouseButton::Left) => {
-                                let id = next_source_id();
+                                let id = next_id;
+                                NEXT_SOURCE_ID_ATOM.set(next_id + 1);
                                 set_sources.mutate(move |s| {
                                     s.push((id, lx, ly));
                                 });

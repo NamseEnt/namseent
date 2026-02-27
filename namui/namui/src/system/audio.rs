@@ -13,6 +13,7 @@ unsafe extern "C" {
 }
 
 static NEXT_PLAYBACK_ID: AtomicUsize = AtomicUsize::new(1);
+static NEXT_PLAYBACK_ID_ATOM: Atom<usize> = Atom::uninitialized();
 static VOLUME: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0x3F800000);
 
 fn next_playback_id() -> usize {
@@ -214,28 +215,46 @@ pub struct Audio {
 impl Component for Audio {
     fn render(self, ctx: &RenderCtx) {
         let (playback_id, set_playback_id) = ctx.state(|| 0usize);
+        let (next_id_sig, _) = ctx.init_atom(&NEXT_PLAYBACK_ID_ATOM, || {
+            NEXT_PLAYBACK_ID.load(Ordering::Relaxed)
+        });
+
+        let atom_val = *next_id_sig;
+        let atomic_val = NEXT_PLAYBACK_ID.load(Ordering::Relaxed);
+        if atom_val > atomic_val {
+            NEXT_PLAYBACK_ID.store(atom_val, Ordering::Relaxed);
+        }
+
+        let restored_id = *playback_id;
 
         ctx.effect("audio", || {
-            let id = next_playback_id();
-            set_playback_id.set(id);
-            push_play(self.asset.id, id, self.repeat, self.spatial);
+            let id = if restored_id != 0 {
+                restored_id
+            } else {
+                let id = next_playback_id();
+                NEXT_PLAYBACK_ID_ATOM.set(NEXT_PLAYBACK_ID.load(Ordering::Relaxed));
+                set_playback_id.set(id);
+                push_play(self.asset.id, id, self.repeat, self.spatial);
+                id
+            };
             move || {
                 push_stop(id);
             }
         });
 
-        if *playback_id != 0 {
+        let current_id = if restored_id != 0 { restored_id } else { *playback_id };
+        if current_id != 0 {
             let (group_volume, group_z) = accumulated_audio_group();
 
             if self.spatial {
                 let matrix = ctx.accumulated_matrix();
                 push_source_update(
-                    *playback_id,
+                    current_id,
                     Some((matrix.x(), matrix.y(), group_z)),
                     group_volume,
                 );
             } else {
-                push_source_update(*playback_id, None, group_volume);
+                push_source_update(current_id, None, group_volume);
             }
         }
     }
