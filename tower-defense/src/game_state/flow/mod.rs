@@ -4,6 +4,7 @@ use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
+    sound,
     shop::Shop,
     *,
 };
@@ -57,6 +58,7 @@ impl SelectingTowerFlow {
                 .get_card_selection_hand_max_slots_penalty(),
         )
         .max(1);
+        sound::play_card_draw_sounds(max_slots);
         SelectingTowerFlow {
             hand: Hand::new((0..max_slots).map(|_| Card::new_random())),
             shop: Shop::new(game_state),

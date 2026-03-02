@@ -30,8 +30,14 @@ impl Component for SoundRenderer {
             volume: volume_settings.master,
             z: 0.0,
             children: move |ctx: ComposeCtx| {
-                render_spatial_sounds(&ctx, game_state.as_ref(), &active_sounds, &volume_settings);
-                render_non_spatial_sounds(&ctx, &active_sounds, &volume_settings);
+                    render_spatial_sounds(
+                        &ctx,
+                        game_state.as_ref(),
+                        &active_sounds,
+                        &volume_settings,
+                        now,
+                    );
+                    render_non_spatial_sounds(&ctx, &active_sounds, &volume_settings, now);
             },
         });
     }
@@ -42,6 +48,7 @@ fn render_spatial_sounds(
     game_state: &crate::game_state::GameState,
     active_sounds: &[super::event::SoundEvent],
     volume_settings: &super::volume::VolumeSettings,
+        now: Instant,
 ) {
     let camera = &game_state.camera;
     let visual_left_top = camera.visual_left_top();
@@ -74,6 +81,10 @@ fn render_spatial_sounds(
                 z: 0.0,
                 children: |ctx: ComposeCtx| {
                     for sound in active_sounds.iter().filter(|sound| sound.group == group) {
+                            if !sound.is_ready(now) {
+                                continue;
+                            }
+
                         let SpatialMode::Spatial { position } = &sound.spatial else {
                             continue;
                         };
@@ -103,6 +114,7 @@ fn render_non_spatial_sounds(
     ctx: &ComposeCtx,
     active_sounds: &[super::event::SoundEvent],
     volume_settings: &super::volume::VolumeSettings,
+        now: Instant,
 ) {
     for group in AUDIO_GROUPS {
         let subgroup_volume = volume_settings.subgroup_volume(group);
@@ -112,6 +124,10 @@ fn render_non_spatial_sounds(
             z: 0.0,
             children: |ctx: ComposeCtx| {
                 for sound in active_sounds.iter().filter(|sound| sound.group == group) {
+                        if !sound.is_ready(now) {
+                            continue;
+                        }
+
                     let SpatialMode::NonSpatial = sound.spatial else {
                         continue;
                     };

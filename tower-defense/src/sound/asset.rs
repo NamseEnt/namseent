@@ -30,12 +30,25 @@ const MURCHUNGA_ASSETS: [AudioAsset; 9] = [
     crate::asset::sound::murchunga::MURCHUNGA_08,
 ];
 
+const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_00,
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_01,
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_02,
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_03,
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_04,
+    crate::asset::sound::pick_up_cards::PICK_UP_CARDS_05,
+];
+
 pub fn random_bubble_pop() -> AudioAsset {
     random_one(&BUBBLE_POP_ASSETS)
 }
 
 pub fn random_murchunga() -> AudioAsset {
     random_one(&MURCHUNGA_ASSETS)
+}
+
+pub fn random_pick_up_cards() -> AudioAsset {
+    random_one(&PICK_UP_CARDS_ASSETS)
 }
 
 fn random_one(assets: &[AudioAsset]) -> AudioAsset {

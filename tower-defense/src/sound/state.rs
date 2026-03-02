@@ -27,7 +27,13 @@ pub fn use_sound_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, SoundState> {
 }
 
 pub fn emit_sound(params: EmitSoundParams) -> SoundId {
+    emit_sound_after(params, Duration::ZERO)
+}
+
+pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
     let sound_id = NEXT_SOUND_ID.fetch_add(1, Ordering::Relaxed);
+    let now = Instant::now();
+    let play_at = now + delay;
     SOUND_EVENTS.lock().unwrap().push(SoundEvent {
         id: sound_id,
         asset: params.asset,
@@ -35,7 +41,8 @@ pub fn emit_sound(params: EmitSoundParams) -> SoundId {
         volume_preset: params.volume_preset,
         spatial: params.spatial,
         repeat: params.repeat,
-        created_at: Instant::now(),
+        play_at,
+        created_at: now,
         max_duration: params.max_duration.or_else(|| {
             if params.repeat {
                 None

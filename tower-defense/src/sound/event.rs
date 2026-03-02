@@ -19,17 +19,26 @@ pub struct SoundEvent {
     pub volume_preset: VolumePreset,
     pub spatial: SpatialMode,
     pub repeat: bool,
+    pub play_at: Instant,
     pub created_at: Instant,
     pub max_duration: Option<Duration>,
 }
 
 impl SoundEvent {
+    pub fn is_ready(&self, now: Instant) -> bool {
+        now >= self.play_at
+    }
+
     pub fn is_expired(&self, now: Instant) -> bool {
         let Some(max_duration) = self.max_duration else {
             return false;
         };
 
-        now - self.created_at >= max_duration
+        if now < self.play_at {
+            return false;
+        }
+
+        now - self.play_at >= max_duration
     }
 }
 
