@@ -38,6 +38,11 @@ const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
     crate::asset::sound::pick_up_cards::PICK_UP_CARDS_04,
     crate::asset::sound::pick_up_cards::PICK_UP_CARDS_05,
 ];
+const PICKAXE_ASSETS: [AudioAsset; 3] = [
+    crate::asset::sound::pickaxe::PICKAXE_00,
+    crate::asset::sound::pickaxe::PICKAXE_01,
+    crate::asset::sound::pickaxe::PICKAXE_02,
+];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -110,6 +115,10 @@ pub fn random_murchunga() -> AudioAsset {
 
 pub fn random_pick_up_cards() -> AudioAsset {
     random_one(&PICK_UP_CARDS_ASSETS)
+}
+
+pub fn random_pickaxe() -> AudioAsset {
+    random_one(&PICKAXE_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {

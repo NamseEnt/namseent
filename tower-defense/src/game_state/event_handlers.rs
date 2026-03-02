@@ -8,6 +8,10 @@ use crate::{
     shop::ShopSlot,
     sound::{self, GameEndKind},
 };
+use rand::Rng;
+
+const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
+const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
 impl GameState {
     pub fn record_game_start(&mut self) {
@@ -80,7 +84,34 @@ impl GameState {
         self.hp -= actual_damage;
 
         // Record event
-        if actual_damage > 0.0 {
+        if damage > 0.0 {
+            let repeat_count = match damage {
+                d if d < 10.0 => 1,
+                d if d < 25.0 => 2,
+                d if d < 50.0 => 3,
+                _ => 4,
+            };
+
+            let mut rng = rand::thread_rng();
+            let mut accumulated_delay_ms = 0i64;
+
+            for index in 0..repeat_count {
+                sound::emit_sound_after(
+                    sound::EmitSoundParams::one_shot(
+                        sound::random_pickaxe(),
+                        sound::SoundGroup::Sfx,
+                        sound::VolumePreset::High,
+                        sound::SpatialMode::NonSpatial,
+                    ),
+                    Duration::from_millis(accumulated_delay_ms),
+                );
+
+                if index + 1 < repeat_count {
+                    accumulated_delay_ms +=
+                        rng.gen_range(DAMAGE_SOUND_DELAY_MIN_MS..=DAMAGE_SOUND_DELAY_MAX_MS);
+                }
+            }
+
             self.record_event(HistoryEventType::DamageTaken {
                 amount: actual_damage,
             });
