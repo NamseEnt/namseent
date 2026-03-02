@@ -50,6 +50,7 @@ impl GameState {
         let suit = tower.suit;
         let hand = tower.kind;
         let left_top = tower.left_top;
+        let tower_count_before = self.towers.iter().count();
 
         self.towers.place_tower(tower);
         self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
@@ -60,6 +61,16 @@ impl GameState {
             suit,
             left_top,
         });
+
+        let tower_placed = self.towers.iter().count() > tower_count_before;
+        if tower_placed {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_luggage_drop(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::High,
+                sound::SpatialMode::NonSpatial,
+            ));
+        }
     }
 
     pub fn take_damage(&mut self, damage: f32) {

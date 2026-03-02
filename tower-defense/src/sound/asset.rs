@@ -54,6 +54,19 @@ const CLOTH_FOOTSTEP_ASSETS: [AudioAsset; 9] = [
     crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_07,
     crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_08,
 ];
+const PAPER_CRUMPLING_ASSETS: [AudioAsset; 6] = [
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_00,
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_01,
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_02,
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_03,
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_04,
+    crate::asset::sound::paper_crumpling::PAPER_CRUMPLING_05,
+];
+const LUGGAGE_DROP_ASSETS: [AudioAsset; 3] = [
+    crate::asset::sound::luggage_drop::LUGGAGE_DROP_00,
+    crate::asset::sound::luggage_drop::LUGGAGE_DROP_01,
+    crate::asset::sound::luggage_drop::LUGGAGE_DROP_02,
+];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -134,6 +147,14 @@ pub fn random_pickaxe() -> AudioAsset {
 
 pub fn random_cloth_footstep() -> AudioAsset {
     random_one(&CLOTH_FOOTSTEP_ASSETS)
+}
+
+pub fn random_paper_crumpling() -> AudioAsset {
+    random_one(&PAPER_CRUMPLING_ASSETS)
+}
+
+pub fn random_luggage_drop() -> AudioAsset {
+    random_one(&LUGGAGE_DROP_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {
