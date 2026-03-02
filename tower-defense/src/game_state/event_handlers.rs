@@ -6,6 +6,7 @@ use crate::{
         tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
+    sound::{self, GameEndKind},
 };
 
 impl GameState {
@@ -81,6 +82,7 @@ impl GameState {
 
         // Check game over
         if self.hp <= 0.0 {
+            sound::play_game_end_sound(GameEndKind::Defeat);
             self.goto_result();
         }
     }

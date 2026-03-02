@@ -40,6 +40,8 @@ const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
 ];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
+const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
+const FAIL_ASSETS: [AudioAsset; 1] = [crate::asset::sound::fail::FAIL_00];
 
 pub fn random_bubble_pop() -> AudioAsset {
     random_one(&BUBBLE_POP_ASSETS)
@@ -55,6 +57,14 @@ pub fn random_pick_up_cards() -> AudioAsset {
 
 pub fn random_level_up() -> AudioAsset {
     random_one(&LEVEL_UP_ASSETS)
+}
+
+pub fn random_orch_hit() -> AudioAsset {
+    random_one(&ORCH_HIT_ASSETS)
+}
+
+pub fn random_fail() -> AudioAsset {
+    random_one(&FAIL_ASSETS)
 }
 
 fn random_one(assets: &[AudioAsset]) -> AudioAsset {

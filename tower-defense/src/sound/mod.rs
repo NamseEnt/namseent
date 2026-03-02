@@ -1,13 +1,18 @@
 mod asset;
 mod card;
 mod event;
+mod game_end;
 mod render;
 mod state;
 mod volume;
 
-pub use asset::{random_bubble_pop, random_level_up, random_murchunga, random_pick_up_cards};
+pub use asset::{
+    random_bubble_pop, random_fail, random_level_up, random_murchunga, random_orch_hit,
+    random_pick_up_cards,
+};
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
 pub use event::{EmitSoundParams, SoundEvent, SoundId, SpatialMode};
+pub use game_end::{GameEndKind, play_game_end_sound};
 pub use render::SoundRenderer;
 pub use state::{
     adjust_group_volume, adjust_master_volume, cleanup_expired_sounds, emit_sound,
