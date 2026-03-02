@@ -17,6 +17,8 @@ pub struct Projectile {
     pub trail_distance_remainder: f32,
     pub behavior: ProjectileBehavior,
     pub hit_effect: attack::ProjectileHitEffect,
+    pub whoosh_cooldown_secs: f32,
+    pub current_whoosh_sound_id: u64,
 }
 impl Projectile {
     pub fn new(
@@ -42,6 +44,8 @@ impl Projectile {
             trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Direct,
             hit_effect,
+            whoosh_cooldown_secs: 0.0,
+            current_whoosh_sound_id: 0,
         }
     }
 
@@ -75,6 +79,8 @@ impl Projectile {
                 max_speed: HOMING_MAX_SPEED_TILE,
             },
             hit_effect,
+            whoosh_cooldown_secs: 0.0,
+            current_whoosh_sound_id: 0,
         }
     }
 

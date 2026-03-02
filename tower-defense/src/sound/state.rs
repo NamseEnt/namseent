@@ -2,7 +2,7 @@ use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
 
-use super::event::{EmitSoundParams, SoundEvent, SoundId};
+use super::event::{EmitSoundParams, SoundEvent, SoundId, SpatialMode};
 use super::volume::{SoundGroup, VolumeSettings, clamp01};
 
 static SOUND_STATE_ATOM: Atom<SoundState> = Atom::uninitialized();
@@ -60,6 +60,15 @@ pub fn stop_sound(sound_id: SoundId) {
         .lock()
         .unwrap()
         .retain(|sound| sound.id != sound_id);
+}
+
+pub fn update_sound_position(sound_id: SoundId, position: crate::MapCoordF32) {
+    let mut events = SOUND_EVENTS.lock().unwrap();
+    let Some(sound) = events.iter_mut().find(|sound| sound.id == sound_id) else {
+        return;
+    };
+
+    sound.spatial = SpatialMode::Spatial { position };
 }
 
 pub fn cleanup_expired_sounds(now: Instant) {

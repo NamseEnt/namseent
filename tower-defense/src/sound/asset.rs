@@ -67,6 +67,13 @@ const LUGGAGE_DROP_ASSETS: [AudioAsset; 3] = [
     crate::asset::sound::luggage_drop::LUGGAGE_DROP_01,
     crate::asset::sound::luggage_drop::LUGGAGE_DROP_02,
 ];
+const WHOOSH_ASSETS: [AudioAsset; 5] = [
+    crate::asset::sound::whoosh::WHOOSH_00,
+    crate::asset::sound::whoosh::WHOOSH_01,
+    crate::asset::sound::whoosh::WHOOSH_02,
+    crate::asset::sound::whoosh::WHOOSH_03,
+    crate::asset::sound::whoosh::WHOOSH_04,
+];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -155,6 +162,10 @@ pub fn random_paper_crumpling() -> AudioAsset {
 
 pub fn random_luggage_drop() -> AudioAsset {
     random_one(&LUGGAGE_DROP_ASSETS)
+}
+
+pub fn random_whoosh() -> AudioAsset {
+    random_one(&WHOOSH_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {
