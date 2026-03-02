@@ -8,9 +8,10 @@ mod state;
 mod volume;
 
 pub use asset::{
-    random_bubble_pop, random_cloth_footstep, random_coin_sounds, random_fail, random_level_up,
-    random_luggage_drop, random_murchunga, random_orch_hit, random_paper_crumpling,
-    random_pick_up_cards, random_pickaxe, random_trumpet_fanfares, random_whoosh,
+    random_bubble_pop, random_cloth_footstep, random_coin_sounds, random_crackling_fire,
+    random_fail, random_level_up, random_luggage_drop, random_murchunga, random_orch_hit,
+    random_paper_crumpling, random_pick_up_cards, random_pickaxe, random_trumpet_fanfares,
+    random_whoosh,
 };
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
 pub use coin::play_coin_sound_for_gold;

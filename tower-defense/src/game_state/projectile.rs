@@ -19,6 +19,7 @@ pub struct Projectile {
     pub hit_effect: attack::ProjectileHitEffect,
     pub whoosh_cooldown_secs: f32,
     pub current_whoosh_sound_id: u64,
+    pub current_crackling_sound_id: u64,
 }
 impl Projectile {
     pub fn new(
@@ -46,6 +47,7 @@ impl Projectile {
             hit_effect,
             whoosh_cooldown_secs: 0.0,
             current_whoosh_sound_id: 0,
+            current_crackling_sound_id: 0,
         }
     }
 
@@ -81,6 +83,7 @@ impl Projectile {
             hit_effect,
             whoosh_cooldown_secs: 0.0,
             current_whoosh_sound_id: 0,
+            current_crackling_sound_id: 0,
         }
     }
 
