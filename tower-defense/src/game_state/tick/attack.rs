@@ -86,6 +86,23 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     });
 
+                    crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
+                        crate::sound::random_red_laser_shot(),
+                        crate::sound::SoundGroup::Sfx,
+                        crate::sound::VolumePreset::Minimum,
+                        crate::sound::SpatialMode::Spatial {
+                            position: crate::MapCoordF32::new(laser.start_xy.0, laser.start_xy.1),
+                        },
+                    ));
+                    crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
+                        crate::sound::random_red_laser_shot(),
+                        crate::sound::SoundGroup::Sfx,
+                        crate::sound::VolumePreset::Minimum,
+                        crate::sound::SpatialMode::Spatial {
+                            position: crate::MapCoordF32::new(laser.end_xy.0, laser.end_xy.1),
+                        },
+                    ));
+
                     field_particle::emitter::spawn_laser_beam(
                         laser.start_xy,
                         laser.end_xy,

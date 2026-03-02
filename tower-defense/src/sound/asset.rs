@@ -77,6 +77,13 @@ const WHOOSH_ASSETS: [AudioAsset; 5] = [
 const CRACKLING_FIRE_ASSETS: [AudioAsset; 1] =
     [crate::asset::sound::crackling_fire::CRACKLING_FIRE_00];
 const FLAMETHROWER_ASSETS: [AudioAsset; 1] = [crate::asset::sound::flamethrower::FLAMETHROWER_00];
+const RED_LASER_SHOT_ASSETS: [AudioAsset; 5] = [
+    crate::asset::sound::red_laser_shot::RED_LASER_SHOT_00,
+    crate::asset::sound::red_laser_shot::RED_LASER_SHOT_01,
+    crate::asset::sound::red_laser_shot::RED_LASER_SHOT_02,
+    crate::asset::sound::red_laser_shot::RED_LASER_SHOT_03,
+    crate::asset::sound::red_laser_shot::RED_LASER_SHOT_04,
+];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -177,6 +184,10 @@ pub fn random_crackling_fire() -> AudioAsset {
 
 pub fn random_flamethrower() -> AudioAsset {
     random_one(&FLAMETHROWER_ASSETS)
+}
+
+pub fn random_red_laser_shot() -> AudioAsset {
+    random_one(&RED_LASER_SHOT_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {
