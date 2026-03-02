@@ -3,6 +3,7 @@ use crate::{
     game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     palette,
+    sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset},
     theme::typography::{self, memoized_text},
 };
 use namui::*;
@@ -32,6 +33,13 @@ impl Component for LevelIndicator {
                 game_state.level = game_state.level.checked_add(1).expect("Level overflow");
                 game_state.spend_gold(level_up_cost);
             });
+
+            sound::emit_sound(EmitSoundParams::one_shot(
+                sound::random_level_up(),
+                SoundGroup::Sfx,
+                VolumePreset::Medium,
+                SpatialMode::NonSpatial,
+            ));
         };
         ctx.compose(|ctx| {
             table::horizontal([

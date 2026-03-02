@@ -5,7 +5,7 @@ mod render;
 mod state;
 mod volume;
 
-pub use asset::{random_bubble_pop, random_murchunga, random_pick_up_cards};
+pub use asset::{random_bubble_pop, random_level_up, random_murchunga, random_pick_up_cards};
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
 pub use event::{EmitSoundParams, SoundEvent, SoundId, SpatialMode};
 pub use render::SoundRenderer;

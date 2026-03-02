@@ -39,6 +39,8 @@ const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
     crate::asset::sound::pick_up_cards::PICK_UP_CARDS_05,
 ];
 
+const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
+
 pub fn random_bubble_pop() -> AudioAsset {
     random_one(&BUBBLE_POP_ASSETS)
 }
@@ -49,6 +51,10 @@ pub fn random_murchunga() -> AudioAsset {
 
 pub fn random_pick_up_cards() -> AudioAsset {
     random_one(&PICK_UP_CARDS_ASSETS)
+}
+
+pub fn random_level_up() -> AudioAsset {
+    random_one(&LEVEL_UP_ASSETS)
 }
 
 fn random_one(assets: &[AudioAsset]) -> AudioAsset {
