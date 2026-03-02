@@ -43,6 +43,17 @@ const PICKAXE_ASSETS: [AudioAsset; 3] = [
     crate::asset::sound::pickaxe::PICKAXE_01,
     crate::asset::sound::pickaxe::PICKAXE_02,
 ];
+const CLOTH_FOOTSTEP_ASSETS: [AudioAsset; 9] = [
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_00,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_01,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_02,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_03,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_04,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_05,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_06,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_07,
+    crate::asset::sound::cloth_footstep::CLOTH_FOOTSTEP_08,
+];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -119,6 +130,10 @@ pub fn random_pick_up_cards() -> AudioAsset {
 
 pub fn random_pickaxe() -> AudioAsset {
     random_one(&PICKAXE_ASSETS)
+}
+
+pub fn random_cloth_footstep() -> AudioAsset {
+    random_one(&CLOTH_FOOTSTEP_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {

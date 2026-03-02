@@ -2,6 +2,7 @@ use crate::game_state::{
     GameState, MonsterKind, TILE_PX_SIZE,
     monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
 };
+use crate::sound;
 use namui::*;
 
 impl Component for &Monster {
@@ -85,6 +86,12 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
 
         if monster.animation.y_offset >= 0.0 {
             monster.animation.y_offset = 0.0;
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_cloth_footstep(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::NonSpatial,
+            ));
             let movement_speed =
                 monster.move_on_route.velocity() * 1.sec() * monster.get_speed_multiplier();
 
