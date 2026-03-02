@@ -84,4 +84,9 @@ impl EmitSoundParams {
             max_duration: None,
         }
     }
+
+    pub fn with_max_duration(mut self, max_duration: Duration) -> Self {
+        self.max_duration = Some(max_duration);
+        self
+    }
 }

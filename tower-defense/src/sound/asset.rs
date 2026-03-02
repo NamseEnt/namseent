@@ -42,6 +42,21 @@ const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
 const FAIL_ASSETS: [AudioAsset; 1] = [crate::asset::sound::fail::FAIL_00];
+const TRUMPET_FANFARES_CLEAN_ASSETS: [AudioAsset; 4] = [
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_00,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_01,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_02,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_03,
+];
+const TRUMPET_FANFARES_SILLY_ASSETS: [AudioAsset; 6] = [
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_04,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_05,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_06,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_07,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_08,
+    crate::asset::sound::trumpet_fanfares::TRUMPET_FANFARES_09,
+];
+const TRUMPET_FANFARES_SILLY_PROBABILITY: f64 = 0.1;
 const COIN_SOUNDS_ASSETS: [AudioAsset; 40] = [
     crate::asset::sound::coin_sounds::COIN_SOUNDS_00,
     crate::asset::sound::coin_sounds::COIN_SOUNDS_01,
@@ -107,6 +122,15 @@ pub fn random_orch_hit() -> AudioAsset {
 
 pub fn random_fail() -> AudioAsset {
     random_one(&FAIL_ASSETS)
+}
+
+pub fn random_trumpet_fanfares() -> AudioAsset {
+    let mut rng = rand::thread_rng();
+    if rng.gen_bool(TRUMPET_FANFARES_SILLY_PROBABILITY) {
+        random_one(&TRUMPET_FANFARES_SILLY_ASSETS)
+    } else {
+        random_one(&TRUMPET_FANFARES_CLEAN_ASSETS)
+    }
 }
 
 pub fn random_coin_sounds() -> AudioAsset {

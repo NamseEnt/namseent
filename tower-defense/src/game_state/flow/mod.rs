@@ -4,9 +4,8 @@ use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
-    sound,
     shop::Shop,
-    *,
+    sound, *,
 };
 
 #[cfg(feature = "debug-tools")]
@@ -136,6 +135,15 @@ impl GameState {
 
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense(DefenseFlow::new(self));
+        sound::emit_sound(
+            sound::EmitSoundParams::one_shot(
+                sound::random_trumpet_fanfares(),
+                sound::SoundGroup::Ui,
+                sound::VolumePreset::High,
+                sound::SpatialMode::NonSpatial,
+            )
+            .with_max_duration(Duration::from_secs(6)),
+        );
         start_spawn(self);
     }
 
