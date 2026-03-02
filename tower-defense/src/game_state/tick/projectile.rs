@@ -30,6 +30,10 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 sound::stop_sound(projectile.current_crackling_sound_id);
                 projectile.current_crackling_sound_id = 0;
             }
+            if projectile.current_shining_sound_id != 0 {
+                sound::stop_sound(projectile.current_shining_sound_id);
+                projectile.current_shining_sound_id = 0;
+            }
             field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
                 projectile.xy,
                 projectile.kind,
@@ -179,6 +183,28 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 projectile.current_crackling_sound_id = 0;
             }
 
+            if matches!(projectile.trail, ProjectileTrail::Sparkle) {
+                if projectile.current_shining_sound_id == 0 {
+                    projectile.current_shining_sound_id =
+                        sound::emit_sound(sound::EmitSoundParams::looping(
+                            sound::random_shining_ringing(),
+                            sound::SoundGroup::Sfx,
+                            sound::VolumePreset::Minimum,
+                            sound::SpatialMode::Spatial {
+                                position: projectile.xy,
+                            },
+                        ));
+                } else {
+                    sound::update_sound_position(
+                        projectile.current_shining_sound_id,
+                        projectile.xy,
+                    );
+                }
+            } else if projectile.current_shining_sound_id != 0 {
+                sound::stop_sound(projectile.current_shining_sound_id);
+                projectile.current_shining_sound_id = 0;
+            }
+
             return true;
         }
 
@@ -189,6 +215,10 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         if projectile.current_crackling_sound_id != 0 {
             sound::stop_sound(projectile.current_crackling_sound_id);
             projectile.current_crackling_sound_id = 0;
+        }
+        if projectile.current_shining_sound_id != 0 {
+            sound::stop_sound(projectile.current_shining_sound_id);
+            projectile.current_shining_sound_id = 0;
         }
 
         let damage = projectile.damage;
