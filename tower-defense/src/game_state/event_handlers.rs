@@ -24,10 +24,16 @@ impl GameState {
 
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
+        if gold > 0 {
+            sound::play_coin_sound_for_gold();
+        }
     }
     /// WARNING: `gold` must be less than or equal to self.gold
     pub fn spend_gold(&mut self, gold: usize) {
         self.gold -= gold;
+        if gold > 0 {
+            sound::play_coin_sound_for_gold();
+        }
     }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {

@@ -42,6 +42,48 @@ const PICK_UP_CARDS_ASSETS: [AudioAsset; 6] = [
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
 const FAIL_ASSETS: [AudioAsset; 1] = [crate::asset::sound::fail::FAIL_00];
+const COIN_SOUNDS_ASSETS: [AudioAsset; 40] = [
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_00,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_01,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_02,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_03,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_04,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_05,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_06,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_07,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_08,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_09,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_10,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_11,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_12,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_13,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_14,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_15,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_16,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_17,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_18,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_19,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_20,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_21,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_22,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_23,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_24,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_25,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_26,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_27,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_28,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_29,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_30,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_31,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_32,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_33,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_34,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_35,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_36,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_37,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_38,
+    crate::asset::sound::coin_sounds::COIN_SOUNDS_39,
+];
 
 pub fn random_bubble_pop() -> AudioAsset {
     random_one(&BUBBLE_POP_ASSETS)
@@ -65,6 +107,10 @@ pub fn random_orch_hit() -> AudioAsset {
 
 pub fn random_fail() -> AudioAsset {
     random_one(&FAIL_ASSETS)
+}
+
+pub fn random_coin_sounds() -> AudioAsset {
+    random_one(&COIN_SOUNDS_ASSETS)
 }
 
 fn random_one(assets: &[AudioAsset]) -> AudioAsset {

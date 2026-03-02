@@ -1,5 +1,6 @@
 mod asset;
 mod card;
+mod coin;
 mod event;
 mod game_end;
 mod render;
@@ -7,10 +8,11 @@ mod state;
 mod volume;
 
 pub use asset::{
-    random_bubble_pop, random_fail, random_level_up, random_murchunga, random_orch_hit,
-    random_pick_up_cards,
+    random_bubble_pop, random_coin_sounds, random_fail, random_level_up, random_murchunga,
+    random_orch_hit, random_pick_up_cards,
 };
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
+pub use coin::play_coin_sound_for_gold;
 pub use event::{EmitSoundParams, SoundEvent, SoundId, SpatialMode};
 pub use game_end::{GameEndKind, play_game_end_sound};
 pub use render::SoundRenderer;
