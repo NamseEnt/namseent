@@ -74,6 +74,10 @@ const WHOOSH_ASSETS: [AudioAsset; 5] = [
     crate::asset::sound::whoosh::WHOOSH_03,
     crate::asset::sound::whoosh::WHOOSH_04,
 ];
+const WHOOP_ASSETS: [AudioAsset; 2] = [
+    crate::asset::sound::whoop::WHOOP_00,
+    crate::asset::sound::whoop::WHOOP_01,
+];
 const CRACKLING_FIRE_ASSETS: [AudioAsset; 1] =
     [crate::asset::sound::crackling_fire::CRACKLING_FIRE_00];
 const FLAMETHROWER_ASSETS: [AudioAsset; 1] = [crate::asset::sound::flamethrower::FLAMETHROWER_00];
@@ -186,6 +190,10 @@ pub fn random_luggage_drop() -> AudioAsset {
 
 pub fn random_whoosh() -> AudioAsset {
     random_one(&WHOOSH_ASSETS)
+}
+
+pub fn random_whoop() -> AudioAsset {
+    random_one(&WHOOP_ASSETS)
 }
 
 pub fn random_crackling_fire() -> AudioAsset {

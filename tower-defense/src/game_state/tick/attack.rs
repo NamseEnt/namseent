@@ -233,6 +233,17 @@ fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f3
 
             game_state.monsters[target_idx].get_damage(damage);
 
+            if damage > 0.0 {
+                crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
+                    crate::sound::random_whoop(),
+                    crate::sound::SoundGroup::Sfx,
+                    crate::sound::VolumePreset::Minimum,
+                    crate::sound::SpatialMode::Spatial {
+                        position: target_xy,
+                    },
+                ));
+            }
+
             if game_state.monsters[target_idx].dead() {
                 Some((target_idx, target_xy))
             } else {

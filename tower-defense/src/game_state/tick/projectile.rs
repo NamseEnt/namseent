@@ -250,6 +250,16 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
         let damage = projectile.damage;
         monster.get_damage(damage);
+        if damage > 0.0 {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_whoop(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::Spatial {
+                    position: monster_xy,
+                },
+            ));
+        }
         if matches!(projectile.trail, ProjectileTrail::Burning) {
             sound::emit_sound(sound::EmitSoundParams::one_shot(
                 sound::random_flamethrower(),
