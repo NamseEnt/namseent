@@ -12,6 +12,7 @@ pub mod l10n;
 mod rarity; // private; re-export Rarity only
 mod route;
 mod shop;
+pub mod sound;
 mod theme;
 mod thumbnail;
 mod top_bar;
@@ -49,6 +50,7 @@ impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
+        let _sound_state = sound::init_sound_state(ctx);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
 
         ctx.compose(|ctx| {
@@ -82,6 +84,8 @@ impl Component for Game {
         ctx.add(Inventory { screen_wh });
 
         ctx.add(TopBar { screen_wh });
+
+        ctx.add(sound::SoundRenderer);
 
         ctx.add(game_state::RenderGameState {
             game_state: game_state.as_ref(),

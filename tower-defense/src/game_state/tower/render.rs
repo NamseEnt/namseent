@@ -1,5 +1,8 @@
 use super::{Tower, TowerKind};
 use crate::game_state::{GameState, TILE_PX_SIZE};
+use crate::sound::{
+    self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset, random_murchunga,
+};
 use namui::*;
 
 pub trait TowerImage {
@@ -166,6 +169,15 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
                 },
                 now,
             );
+
+            sound::emit_sound(EmitSoundParams::one_shot(
+                random_murchunga(),
+                SoundGroup::Sfx,
+                VolumePreset::Minimum,
+                SpatialMode::Spatial {
+                    position: tower.left_top.map(|coord| coord as f32) + Xy::new(1.0, 1.0),
+                },
+            ));
         }
 
         let transit_force_expired = animation

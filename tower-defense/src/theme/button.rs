@@ -1,4 +1,5 @@
 use super::palette;
+use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use namui::*;
 
 /// Long press 상태를 관리하는 구조체
@@ -165,6 +166,10 @@ impl Component for Button<'_> {
         });
 
         let (long_press_state, set_long_press_state) = ctx.state(LongPressState::new);
+        let (long_press_sound_started_at, set_long_press_sound_started_at) =
+            ctx.state(|| None::<Instant>);
+        let (last_long_press_sound_elapsed, set_last_long_press_sound_elapsed) =
+            ctx.state(|| None::<f32>);
 
         let current_state = if disabled {
             ButtonState::Disabled
@@ -268,9 +273,12 @@ impl Component for Button<'_> {
                                 set_button_state.set(ButtonState::Pressed);
 
                                 if long_press_time.is_some() {
+                                    play_random_button_click_sound();
                                     let mut state = *long_press_state;
                                     state.on_press_start();
                                     set_long_press_state.set(state);
+                                    set_long_press_sound_started_at.set(Some(Instant::now()));
+                                    set_last_long_press_sound_elapsed.set(None);
                                 }
                             }
                         }
@@ -298,8 +306,11 @@ impl Component for Button<'_> {
                                     state.on_press_end();
                                 }
                                 set_long_press_state.set(state);
+                                set_long_press_sound_started_at.set(None);
+                                set_last_long_press_sound_elapsed.set(None);
                             } else if is_inside && was_pressed {
                                 // long_press가 아닌 일반 버튼의 경우
+                                play_random_button_click_sound();
                                 on_click();
                             }
                         }
@@ -322,15 +333,36 @@ impl Component for Button<'_> {
         if let Some(long_press_duration) = long_press_time
             && let ButtonState::Pressed = *button_state
         {
+            if let Some(started_at) = *long_press_sound_started_at {
+                let elapsed = (Instant::now() - started_at).as_secs_f32();
+                let interval = long_press_repeat_interval(elapsed);
+                let should_play = match *last_long_press_sound_elapsed {
+                    Some(last_elapsed) => elapsed - last_elapsed >= interval,
+                    None => elapsed >= interval,
+                };
+
+                if should_play {
+                    play_random_button_click_sound();
+                    set_last_long_press_sound_elapsed.set(Some(elapsed));
+                }
+            }
+
             let mut state = *long_press_state;
             let total_progress = state.current_progress();
 
             if total_progress >= long_press_duration {
+                play_random_button_click_sound();
                 on_click();
                 state.reset();
+                set_long_press_sound_started_at.set(Some(Instant::now()));
+                set_last_long_press_sound_elapsed.set(None);
             }
         }
     }
+}
+
+fn long_press_repeat_interval(hold_elapsed_secs: f32) -> f32 {
+    0.25 - 0.2 * hold_elapsed_secs.clamp(0.0, 1.0)
 }
 
 /// easeOutCubic 함수: 1 - (1-t)³
@@ -443,4 +475,15 @@ fn darken_color(color: Color, factor: f32) -> Color {
     let b = ((color.b as f32 / 255.0) - factor).max(0.0);
 
     Color::from_f01(r, g, b, color.a as f32 / 255.0)
+}
+
+fn play_random_button_click_sound() {
+    let asset = sound::random_bubble_pop();
+
+    sound::emit_sound(EmitSoundParams::one_shot(
+        asset,
+        SoundGroup::Ui,
+        VolumePreset::Medium,
+        SpatialMode::NonSpatial,
+    ));
 }
