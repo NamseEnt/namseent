@@ -86,6 +86,7 @@ const RED_LASER_SHOT_ASSETS: [AudioAsset; 5] = [
 ];
 const SHINING_RINGING_ASSETS: [AudioAsset; 1] =
     [crate::asset::sound::shining_ringing::SHINING_RINGING_00];
+const SMOKE_BOMB_ASSETS: [AudioAsset; 1] = [crate::asset::sound::smoke_bomb::SMOKE_BOMB_00];
 const WIND_ASSETS: [AudioAsset; 1] = [crate::asset::sound::wind::WIND_00];
 const KNIFE_SLASH_ASSETS: [AudioAsset; 4] = [
     crate::asset::sound::knife_slash::KNIFE_SLASH_00,
@@ -201,6 +202,10 @@ pub fn random_red_laser_shot() -> AudioAsset {
 
 pub fn random_shining_ringing() -> AudioAsset {
     random_one(&SHINING_RINGING_ASSETS)
+}
+
+pub fn random_smoke_bomb() -> AudioAsset {
+    random_one(&SMOKE_BOMB_ASSETS)
 }
 
 pub fn random_wind() -> AudioAsset {

@@ -260,6 +260,16 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 },
             ));
         }
+        if matches!(projectile.trail, ProjectileTrail::LightningSparkle) {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_smoke_bomb(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::Spatial {
+                    position: monster_xy,
+                },
+            ));
+        }
         if damage > 0.0 {
             field_particle::DAMAGE_TEXTS.spawn(field_particle::DamageTextParticle::new(
                 monster_xy, damage, now,
