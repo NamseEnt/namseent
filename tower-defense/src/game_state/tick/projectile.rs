@@ -1,4 +1,9 @@
 use super::*;
+use crate::sound;
+use rand::Rng;
+
+const WHOOSH_INTERVAL_MIN_SECS: f32 = 0.5;
+const WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 
 pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) {
     let GameState {
@@ -8,6 +13,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
     } = game_state;
 
     let mut total_earn_gold = 0;
+    let mut rng = rand::thread_rng();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -16,6 +22,22 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             .iter()
             .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
         else {
+            if projectile.current_whoosh_sound_id != 0 {
+                sound::stop_sound(projectile.current_whoosh_sound_id);
+                projectile.current_whoosh_sound_id = 0;
+            }
+            if projectile.current_crackling_sound_id != 0 {
+                sound::stop_sound(projectile.current_crackling_sound_id);
+                projectile.current_crackling_sound_id = 0;
+            }
+            if projectile.current_shining_sound_id != 0 {
+                sound::stop_sound(projectile.current_shining_sound_id);
+                projectile.current_shining_sound_id = 0;
+            }
+            if projectile.current_wind_sound_id != 0 {
+                sound::stop_sound(projectile.current_wind_sound_id);
+                projectile.current_wind_sound_id = 0;
+            }
             field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
                 projectile.xy,
                 projectile.kind,
@@ -117,11 +139,147 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 }
             }
 
+            projectile.whoosh_cooldown_secs -= dt.as_secs_f32();
+
+            if projectile.whoosh_cooldown_secs <= 0.0 {
+                if projectile.current_whoosh_sound_id != 0 {
+                    sound::stop_sound(projectile.current_whoosh_sound_id);
+                }
+
+                projectile.current_whoosh_sound_id =
+                    sound::emit_sound(sound::EmitSoundParams::one_shot(
+                        sound::random_whoosh(),
+                        sound::SoundGroup::Sfx,
+                        sound::VolumePreset::Minimum,
+                        sound::SpatialMode::Spatial {
+                            position: projectile.xy,
+                        },
+                    ));
+                projectile.whoosh_cooldown_secs =
+                    rng.gen_range(WHOOSH_INTERVAL_MIN_SECS..=WHOOSH_INTERVAL_MAX_SECS);
+            }
+
+            if projectile.current_whoosh_sound_id != 0 {
+                sound::update_sound_position(projectile.current_whoosh_sound_id, projectile.xy);
+            }
+
+            if matches!(projectile.trail, ProjectileTrail::Burning) {
+                if projectile.current_crackling_sound_id == 0 {
+                    projectile.current_crackling_sound_id = sound::emit_sound(
+                        sound::EmitSoundParams::looping(
+                            sound::random_crackling_fire(),
+                            sound::SoundGroup::Sfx,
+                            sound::VolumePreset::Minimum,
+                            sound::SpatialMode::Spatial {
+                                position: projectile.xy,
+                            },
+                        )
+                        .with_max_duration(Duration::from_secs(32)),
+                    );
+                } else {
+                    sound::update_sound_position(
+                        projectile.current_crackling_sound_id,
+                        projectile.xy,
+                    );
+                }
+            } else if projectile.current_crackling_sound_id != 0 {
+                sound::stop_sound(projectile.current_crackling_sound_id);
+                projectile.current_crackling_sound_id = 0;
+            }
+
+            if matches!(projectile.trail, ProjectileTrail::Sparkle) {
+                if projectile.current_shining_sound_id == 0 {
+                    projectile.current_shining_sound_id =
+                        sound::emit_sound(sound::EmitSoundParams::looping(
+                            sound::random_shining_ringing(),
+                            sound::SoundGroup::Sfx,
+                            sound::VolumePreset::Minimum,
+                            sound::SpatialMode::Spatial {
+                                position: projectile.xy,
+                            },
+                        ));
+                } else {
+                    sound::update_sound_position(
+                        projectile.current_shining_sound_id,
+                        projectile.xy,
+                    );
+                }
+            } else if projectile.current_shining_sound_id != 0 {
+                sound::stop_sound(projectile.current_shining_sound_id);
+                projectile.current_shining_sound_id = 0;
+            }
+
+            if matches!(projectile.trail, ProjectileTrail::WindCurve) {
+                if projectile.current_wind_sound_id == 0 {
+                    projectile.current_wind_sound_id =
+                        sound::emit_sound(sound::EmitSoundParams::looping(
+                            sound::random_wind(),
+                            sound::SoundGroup::Sfx,
+                            sound::VolumePreset::Minimum,
+                            sound::SpatialMode::Spatial {
+                                position: projectile.xy,
+                            },
+                        ));
+                } else {
+                    sound::update_sound_position(projectile.current_wind_sound_id, projectile.xy);
+                }
+            } else if projectile.current_wind_sound_id != 0 {
+                sound::stop_sound(projectile.current_wind_sound_id);
+                projectile.current_wind_sound_id = 0;
+            }
+
             return true;
+        }
+
+        if projectile.current_whoosh_sound_id != 0 {
+            sound::stop_sound(projectile.current_whoosh_sound_id);
+            projectile.current_whoosh_sound_id = 0;
+        }
+        if projectile.current_crackling_sound_id != 0 {
+            sound::stop_sound(projectile.current_crackling_sound_id);
+            projectile.current_crackling_sound_id = 0;
+        }
+        if projectile.current_shining_sound_id != 0 {
+            sound::stop_sound(projectile.current_shining_sound_id);
+            projectile.current_shining_sound_id = 0;
+        }
+        if projectile.current_wind_sound_id != 0 {
+            sound::stop_sound(projectile.current_wind_sound_id);
+            projectile.current_wind_sound_id = 0;
         }
 
         let damage = projectile.damage;
         monster.get_damage(damage);
+        if damage > 0.0 {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_whoop(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::Spatial {
+                    position: monster_xy,
+                },
+            ));
+        }
+        if matches!(projectile.trail, ProjectileTrail::Burning) {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_flamethrower(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::Spatial {
+                    position: monster_xy,
+                },
+            ));
+        }
+        if matches!(projectile.trail, ProjectileTrail::LightningSparkle) {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_smoke_bomb(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::Minimum,
+                sound::SpatialMode::Spatial {
+                    position: monster_xy,
+                },
+            ));
+        }
         if damage > 0.0 {
             field_particle::DAMAGE_TEXTS.spawn(field_particle::DamageTextParticle::new(
                 monster_xy, damage, now,

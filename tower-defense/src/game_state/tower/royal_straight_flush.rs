@@ -6,6 +6,7 @@ use crate::game_state::field_particle::emitter::{
     spawn_black_smoke_dash_trail, spawn_black_smoke_puff_burst, spawn_red_slash_marks,
     spawn_yellow_explosion_burst,
 };
+use crate::sound;
 use namui::*;
 use rand::Rng;
 
@@ -147,7 +148,9 @@ impl RoyalStraightFlushVisual {
             for clone in &self.clones {
                 spawn_black_smoke_burst_reversed(black_smoke_sources, clone.end_center_xy, now);
                 spawn_black_smoke_puff_burst(clone.end_center_xy, now);
+                emit_wind_at(clone.end_center_xy);
             }
+            emit_wind_at(tower_center_xy);
         }
 
         self.phase = next_phase;
@@ -176,9 +179,11 @@ impl Tower {
 
         spawn_black_smoke_burst_reversed(black_smoke_sources, tower_center_xy, now);
         spawn_black_smoke_puff_burst(tower_center_xy, now);
+        emit_wind_at(tower_center_xy);
         for clone in &clones {
             spawn_black_smoke_burst(black_smoke_sources, clone.spawn_center_xy, now);
             spawn_black_smoke_puff_burst(clone.spawn_center_xy, now);
+            emit_wind_at(clone.spawn_center_xy);
         }
 
         self.royal_straight_flush_visual = Some(RoyalStraightFlushVisual::new(
@@ -255,4 +260,15 @@ fn compute_pass_through_xy(from: (f32, f32), target: (f32, f32)) -> (f32, f32) {
 
 fn ease_out_cubic(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(3)
+}
+
+fn emit_wind_at(position: (f32, f32)) {
+    sound::emit_sound(sound::EmitSoundParams::one_shot(
+        sound::random_wind(),
+        sound::SoundGroup::Sfx,
+        sound::VolumePreset::Minimum,
+        sound::SpatialMode::Spatial {
+            position: crate::MapCoordF32::new(position.0, position.1),
+        },
+    ));
 }

@@ -6,7 +6,12 @@ use crate::{
         tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
+    sound::{self, GameEndKind},
 };
+use rand::Rng;
+
+const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
+const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
 impl GameState {
     pub fn record_game_start(&mut self) {
@@ -23,10 +28,16 @@ impl GameState {
 
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
+        if gold > 0 {
+            sound::play_coin_sound_for_gold();
+        }
     }
     /// WARNING: `gold` must be less than or equal to self.gold
     pub fn spend_gold(&mut self, gold: usize) {
         self.gold -= gold;
+        if gold > 0 {
+            sound::play_coin_sound_for_gold();
+        }
     }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {
@@ -39,6 +50,7 @@ impl GameState {
         let suit = tower.suit;
         let hand = tower.kind;
         let left_top = tower.left_top;
+        let tower_count_before = self.towers.iter().count();
 
         self.towers.place_tower(tower);
         self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
@@ -49,6 +61,16 @@ impl GameState {
             suit,
             left_top,
         });
+
+        let tower_placed = self.towers.iter().count() > tower_count_before;
+        if tower_placed {
+            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                sound::random_luggage_drop(),
+                sound::SoundGroup::Sfx,
+                sound::VolumePreset::High,
+                sound::SpatialMode::NonSpatial,
+            ));
+        }
     }
 
     pub fn take_damage(&mut self, damage: f32) {
@@ -73,7 +95,34 @@ impl GameState {
         self.hp -= actual_damage;
 
         // Record event
-        if actual_damage > 0.0 {
+        if damage > 0.0 {
+            let repeat_count = match damage {
+                d if d < 10.0 => 1,
+                d if d < 25.0 => 2,
+                d if d < 50.0 => 3,
+                _ => 4,
+            };
+
+            let mut rng = rand::thread_rng();
+            let mut accumulated_delay_ms = 0i64;
+
+            for index in 0..repeat_count {
+                sound::emit_sound_after(
+                    sound::EmitSoundParams::one_shot(
+                        sound::random_pickaxe(),
+                        sound::SoundGroup::Sfx,
+                        sound::VolumePreset::High,
+                        sound::SpatialMode::NonSpatial,
+                    ),
+                    Duration::from_millis(accumulated_delay_ms),
+                );
+
+                if index + 1 < repeat_count {
+                    accumulated_delay_ms +=
+                        rng.gen_range(DAMAGE_SOUND_DELAY_MIN_MS..=DAMAGE_SOUND_DELAY_MAX_MS);
+                }
+            }
+
             self.record_event(HistoryEventType::DamageTaken {
                 amount: actual_damage,
             });
@@ -81,6 +130,7 @@ impl GameState {
 
         // Check game over
         if self.hp <= 0.0 {
+            sound::play_game_end_sound(GameEndKind::Defeat);
             self.goto_result();
         }
     }

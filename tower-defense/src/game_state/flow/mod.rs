@@ -5,7 +5,7 @@ use crate::{
     card::Card,
     game_state::{flow::contract::ContractFlow, hand::Hand},
     shop::Shop,
-    *,
+    sound, *,
 };
 
 #[cfg(feature = "debug-tools")]
@@ -57,6 +57,7 @@ impl SelectingTowerFlow {
                 .get_card_selection_hand_max_slots_penalty(),
         )
         .max(1);
+        sound::play_card_draw_sounds(max_slots);
         SelectingTowerFlow {
             hand: Hand::new((0..max_slots).map(|_| Card::new_random())),
             shop: Shop::new(game_state),
@@ -134,6 +135,15 @@ impl GameState {
 
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense(DefenseFlow::new(self));
+        sound::emit_sound(
+            sound::EmitSoundParams::one_shot(
+                sound::random_trumpet_fanfares(),
+                sound::SoundGroup::Ui,
+                sound::VolumePreset::High,
+                sound::SpatialMode::NonSpatial,
+            )
+            .with_max_duration(Duration::from_secs(6)),
+        );
         start_spawn(self);
     }
 

@@ -1,6 +1,7 @@
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     hand::{HAND_WH, HandComponent, HandSlotId},
+    sound,
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         palette,
@@ -43,6 +44,7 @@ impl Component for TowerPlacingHand {
                     &mut game_state.flow
                 {
                     hand.select_slot(slot_id);
+                    sound::play_card_selected_sound();
                 }
             });
         };

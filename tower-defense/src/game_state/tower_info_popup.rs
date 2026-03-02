@@ -1,5 +1,6 @@
 use super::{Tower, mutate_game_state};
 use crate::flow_ui::TowerPreviewContent;
+use crate::sound;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     palette,
@@ -40,7 +41,22 @@ impl Component for TowerInfoPopup<'_> {
                                         wh,
                                         &move || {
                                             mutate_game_state(move |game_state| {
+                                                let tower_count_before =
+                                                    game_state.towers.iter().count();
                                                 game_state.towers.remove_tower(tower_id);
+                                                let tower_removed =
+                                                    game_state.towers.iter().count()
+                                                        < tower_count_before;
+                                                if tower_removed {
+                                                    sound::emit_sound(
+                                                        sound::EmitSoundParams::one_shot(
+                                                            sound::random_paper_crumpling(),
+                                                            sound::SoundGroup::Sfx,
+                                                            sound::VolumePreset::High,
+                                                            sound::SpatialMode::NonSpatial,
+                                                        ),
+                                                    );
+                                                }
                                             });
                                         },
                                         &|wh, text_color, ctx| {

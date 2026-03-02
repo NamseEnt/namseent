@@ -7,6 +7,7 @@ use crate::game_state::mutate_game_state;
 use crate::hand::{HAND_WH, Hand, HandComponent, HandSlotId};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
+use crate::sound;
 use crate::theme::{button::Button, typography::memoized_text};
 use get_highest_tower::get_highest_tower_template;
 use namui::*;
@@ -67,6 +68,7 @@ impl<'a> Component for TowerSelectingHand<'a> {
                     (0..select_count).for_each(|_| {
                         flow.hand.push(Card::new_random());
                     });
+                    sound::play_card_draw_sounds(select_count);
                 }
 
                 game_state.left_reroll_chance -= 1;
@@ -82,8 +84,10 @@ impl<'a> Component for TowerSelectingHand<'a> {
                 };
                 if flow.hand.selected_slot_ids().contains(&id) {
                     flow.hand.deselect_slot(id);
+                    sound::play_card_deselected_sound();
                 } else {
                     flow.hand.select_slot(id);
+                    sound::play_card_selected_sound();
                 }
             });
         };

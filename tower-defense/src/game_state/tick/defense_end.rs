@@ -1,4 +1,5 @@
 use super::*;
+use crate::sound::{self, GameEndKind};
 
 pub fn check_defense_end(game_state: &mut GameState) {
     let GameFlow::Defense(_) = game_state.flow else {
@@ -23,6 +24,7 @@ pub fn check_defense_end(game_state: &mut GameState) {
     game_state.stage += 1;
     if game_state.stage > 50 {
         game_state.stage -= 1;
+        sound::play_game_end_sound(GameEndKind::Victory);
         game_state.goto_result();
         return;
     }
