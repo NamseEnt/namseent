@@ -86,6 +86,7 @@ const RED_LASER_SHOT_ASSETS: [AudioAsset; 5] = [
 ];
 const SHINING_RINGING_ASSETS: [AudioAsset; 1] =
     [crate::asset::sound::shining_ringing::SHINING_RINGING_00];
+const WIND_ASSETS: [AudioAsset; 1] = [crate::asset::sound::wind::WIND_00];
 
 const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
@@ -194,6 +195,10 @@ pub fn random_red_laser_shot() -> AudioAsset {
 
 pub fn random_shining_ringing() -> AudioAsset {
     random_one(&SHINING_RINGING_ASSETS)
+}
+
+pub fn random_wind() -> AudioAsset {
+    random_one(&WIND_ASSETS)
 }
 
 pub fn random_level_up() -> AudioAsset {
