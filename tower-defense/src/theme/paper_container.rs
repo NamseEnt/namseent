@@ -9,8 +9,8 @@ const TOP_BOTTOM_DISPLACEMENT: Px = px(2.0);
 const SIDE_EDGE_STEP_TORN: Px = px(8.0);
 const SIDE_EDGE_STEP_SUBTLE: Px = px(96.0);
 const TOP_BOTTOM_STEP: Px = px(96.0);
-const SHADOW_OFFSET_Y: Px = px(4.0);
-const SHADOW_ALPHA: u8 = 32;
+const SHADOW_OFFSET_Y: Px = px(2.0);
+const SHADOW_ALPHA: u8 = 192;
 const RANDOM_AMPLITUDE_MIN_SCALE: f32 = 0.25;
 const RANDOM_AMPLITUDE_MAX_SCALE: f32 = 1.0;
 const RANDOM_STEP_MIN_SCALE: f32 = 0.7;
@@ -80,8 +80,12 @@ impl Component for PaperContainerBackground {
 
         if shadow {
             let shadow_path = path.as_ref().clone().translate(px(0.0), SHADOW_OFFSET_Y);
-            let shadow_paint =
-                Paint::new(Color::BLACK.with_alpha(SHADOW_ALPHA)).set_style(PaintStyle::Fill);
+            let shadow_paint = Paint::new(Color::BLACK.with_alpha(SHADOW_ALPHA))
+                .set_style(PaintStyle::Fill)
+                .set_mask_filter(MaskFilter::Blur {
+                    blur_style: BlurStyle::Normal,
+                    sigma: 2.5,
+                });
             ctx.add(namui::path(shadow_path, shadow_paint));
         }
     }
