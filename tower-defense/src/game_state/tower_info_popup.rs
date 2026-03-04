@@ -1,11 +1,11 @@
 use super::{Tower, mutate_game_state};
 use crate::flow_ui::TowerPreviewContent;
-use crate::sound;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
-    palette,
+    paper_container::{PaperContainerBackground, PaperTexture, TearSide},
     typography::{FontSize, memoized_text},
 };
+use crate::{sound, theme};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -81,23 +81,14 @@ impl Component for TowerInfoPopup<'_> {
                     })(Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT), ctx);
                 });
 
-                // 배경 및 테두리
-                ctx.add(rect(RectParam {
-                    rect: Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT).to_rect(),
-                    style: RectStyle {
-                        fill: Some(RectFill {
-                            color: palette::SURFACE_CONTAINER_HIGHEST,
-                        }),
-                        stroke: Some(RectStroke {
-                            color: palette::OUTLINE,
-                            width: 1.px(),
-                            border_position: BorderPosition::Inside,
-                        }),
-                        round: Some(RectRound {
-                            radius: palette::ROUND,
-                        }),
-                    },
-                }));
+                ctx.add(PaperContainerBackground {
+                    width: BUBBLE_WIDTH,
+                    height: BUBBLE_HEIGHT,
+                    texture: PaperTexture::Rough,
+                    tear_side: TearSide::Subtle,
+                    color: theme::palette::SURFACE_CONTAINER_HIGHEST,
+                    shadow: true,
+                });
             })
             .attach_event(|event| {
                 if let Event::MouseDown { event } = event
