@@ -1,7 +1,10 @@
 use namui::*;
 use rand::Rng;
 
-const SIDE_EDGE_DISPLACEMENT: Px = px(8.0);
+const SIDE_EDGE_DISPLACEMENT_MIN_HEIGHT: Px = px(32.0);
+const SIDE_EDGE_DISPLACEMENT_MAX_HEIGHT: Px = px(128.0);
+const SIDE_EDGE_DISPLACEMENT_AT_MIN_HEIGHT: Px = px(2.0);
+const SIDE_EDGE_DISPLACEMENT_AT_MAX_HEIGHT: Px = px(8.0);
 const TOP_BOTTOM_DISPLACEMENT: Px = px(2.0);
 const SIDE_EDGE_STEP_TORN: Px = px(8.0);
 const SIDE_EDGE_STEP_SUBTLE: Px = px(96.0);
@@ -86,8 +89,9 @@ impl Component for PaperContainerBackground {
 
 fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
     let mut rng = rand::thread_rng();
+    let torn_side_displacement = side_edge_displacement_for_height(height);
     let (side_displacement, side_step) = match tear_side {
-        TearSide::Torn => (SIDE_EDGE_DISPLACEMENT, SIDE_EDGE_STEP_TORN),
+        TearSide::Torn => (torn_side_displacement, SIDE_EDGE_STEP_TORN),
         TearSide::Subtle => (TOP_BOTTOM_DISPLACEMENT, SIDE_EDGE_STEP_SUBTLE),
     };
     let top_points = edge_points(
@@ -173,4 +177,22 @@ fn zigzag_offset(index: usize, displacement: Px, rng: &mut impl Rng) -> Px {
 fn randomized_step(step: Px, rng: &mut impl Rng) -> Px {
     let step_scale = rng.gen_range(RANDOM_STEP_MIN_SCALE..=RANDOM_STEP_MAX_SCALE);
     step * step_scale
+}
+
+fn side_edge_displacement_for_height(height: Px) -> Px {
+    let height = height.as_f32();
+    let min_height = SIDE_EDGE_DISPLACEMENT_MIN_HEIGHT.as_f32();
+    let max_height = SIDE_EDGE_DISPLACEMENT_MAX_HEIGHT.as_f32();
+    let min_displacement = SIDE_EDGE_DISPLACEMENT_AT_MIN_HEIGHT.as_f32();
+    let max_displacement = SIDE_EDGE_DISPLACEMENT_AT_MAX_HEIGHT.as_f32();
+
+    if height <= min_height {
+        return SIDE_EDGE_DISPLACEMENT_AT_MIN_HEIGHT;
+    }
+    if height >= max_height {
+        return SIDE_EDGE_DISPLACEMENT_AT_MAX_HEIGHT;
+    }
+
+    let t = (height - min_height) / (max_height - min_height);
+    px(min_displacement + (max_displacement - min_displacement) * t)
 }
