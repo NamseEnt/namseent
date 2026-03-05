@@ -389,30 +389,18 @@ export function envGl({
             throw new Error("not implemented");
             // return webgl!.texImage2D();
         },
-        emscripten_glStencilOpSeparate: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilOpSeparate();
-        },
-        emscripten_glStencilOp: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilOp();
-        },
-        emscripten_glStencilMaskSeparate: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilMaskSeparate();
-        },
-        emscripten_glStencilMask: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilMask();
-        },
-        emscripten_glStencilFuncSeparate: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilFuncSeparate();
-        },
-        emscripten_glStencilFunc: () => {
-            throw new Error("not implemented");
-            // return webgl!.stencilFunc();
-        },
+        emscripten_glStencilOpSeparate:
+            webgl?.stencilOpSeparate.bind(webgl) || (() => {}),
+        emscripten_glStencilOp:
+            webgl?.stencilOp.bind(webgl) || (() => {}),
+        emscripten_glStencilMaskSeparate:
+            webgl?.stencilMaskSeparate.bind(webgl) || (() => {}),
+        emscripten_glStencilMask:
+            webgl?.stencilMask.bind(webgl) || (() => {}),
+        emscripten_glStencilFuncSeparate:
+            webgl?.stencilFuncSeparate.bind(webgl) || (() => {}),
+        emscripten_glStencilFunc:
+            webgl?.stencilFunc.bind(webgl) || (() => {}),
         /**
          * void glShaderSource(
          *   GLuint shader,
@@ -2099,9 +2087,20 @@ export function envGl({
                 level,
             );
         },
-        emscripten_glFramebufferRenderbuffer: () => {
-            throw new Error("not implemented");
-            // return webgl!.framebufferRenderbuffer();
+        emscripten_glFramebufferRenderbuffer: (
+            target: number,
+            attachment: number,
+            renderbuffertarget: number,
+            renderbufferId: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            const renderbuffer = renderbufferId === 0 ? null : webglRenderbufferMap.get(renderbufferId);
+            if (renderbufferId !== 0 && !renderbuffer) {
+                throw new Error("renderbuffer not found");
+            }
+            webgl.framebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer ?? null);
         },
         emscripten_glDeleteRenderbuffers: (
             n: number,
@@ -2145,9 +2144,21 @@ export function envGl({
         },
         emscripten_glCheckFramebufferStatus:
             webgl?.checkFramebufferStatus.bind(webgl) || (() => {}),
-        emscripten_glBindRenderbuffer: () => {
-            throw new Error("not implemented");
-            // return webgl!.bindRenderbuffer();
+        emscripten_glBindRenderbuffer: (
+            target: number,
+            renderbufferId: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            if (renderbufferId === 0) {
+                return webgl.bindRenderbuffer(target, null);
+            }
+            const renderbuffer = webglRenderbufferMap.get(renderbufferId);
+            if (!renderbuffer) {
+                throw new Error("renderbuffer not found");
+            }
+            webgl.bindRenderbuffer(target, renderbuffer);
         },
         emscripten_glBindFramebuffer: (
             target: number,
@@ -2167,9 +2178,16 @@ export function envGl({
         },
         emscripten_glRenderbufferStorage:
             webgl?.renderbufferStorage.bind(webgl) || (() => {}),
-        emscripten_glGetRenderbufferParameteriv: () => {
-            throw new Error("not implemented");
-            // return webgl!.getRenderbufferParameteriv();
+        emscripten_glGetRenderbufferParameteriv: (
+            target: number,
+            pname: number,
+            paramsPtr: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            const value = webgl.getRenderbufferParameter(target, pname);
+            memoryView().setInt32(paramsPtr, value, true);
         },
         emscripten_glGetFramebufferAttachmentParameteriv: () => {
             throw new Error("not implemented");
@@ -2178,7 +2196,7 @@ export function envGl({
         emscripten_glGenerateMipmap:
             webgl?.generateMipmap.bind(webgl) || (() => {}),
         emscripten_glRenderbufferStorageMultisample:
-            webgl?.renderbufferStorageMultisample || (() => {}),
+            webgl?.renderbufferStorageMultisample.bind(webgl) || (() => {}),
         emscripten_glBlitFramebuffer:
             webgl?.blitFramebuffer.bind(webgl) || (() => {}),
         emscripten_glDeleteSync: () => {
