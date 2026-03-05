@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 struct ModuleNode {
     children: BTreeMap<String, ModuleNode>,
     images: Vec<(String, usize)>,
-    audios: Vec<(String, usize)>,
+    audios: Vec<(String, usize, i64)>,
 }
 
 impl ModuleNode {
@@ -27,12 +27,12 @@ impl ModuleNode {
             child.add_image(&path_parts[1..], file_name, id);
         }
     }
-    fn add_audio(&mut self, path_parts: &[String], file_name: String, id: usize) {
+    fn add_audio(&mut self, path_parts: &[String], file_name: String, id: usize, duration_millis: i64) {
         if path_parts.is_empty() {
-            self.audios.push((file_name, id));
+            self.audios.push((file_name, id, duration_millis));
         } else {
             let child = self.children.entry(path_parts[0].clone()).or_default();
-            child.add_audio(&path_parts[1..], file_name, id);
+            child.add_audio(&path_parts[1..], file_name, id, duration_millis);
         }
     }
     fn has_images(&self) -> bool {
@@ -53,7 +53,7 @@ impl ModuleNode {
                 quote! {}
             };
             let audio_use = if child.has_audios() {
-                quote! { use super::AudioAsset; }
+                quote! { use super::AudioAsset; use super::Duration; }
             } else {
                 quote! {}
             };
@@ -75,10 +75,10 @@ impl ModuleNode {
         }
 
         let mut audios = Vec::new();
-        for (name, id) in &self.audios {
+        for (name, id, duration_millis) in &self.audios {
             let const_name = quote::format_ident!("{}", name);
             audios.push(quote! {
-                pub static #const_name: AudioAsset = AudioAsset::new(#id);
+                pub static #const_name: AudioAsset = AudioAsset::new(#id, Duration::from_millis(#duration_millis));
             });
         }
 
@@ -163,6 +163,43 @@ fn path_to_parts(asset_dir: &Path, file_path: &Path) -> (Vec<String>, String) {
     (components, const_name)
 }
 
+fn get_audio_duration_millis(path: &Path) -> i64 {
+    use symphonia::core::io::MediaSourceStream;
+    use symphonia::core::probe::Hint;
+
+    let file = std::fs::File::open(path)
+        .unwrap_or_else(|e| panic!("Failed to open audio file {:?}: {}", path, e));
+    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+    let mut hint = Hint::new();
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        hint.with_extension(ext);
+    }
+
+    let probed = symphonia::default::get_probe()
+        .format(&hint, mss, &Default::default(), &Default::default())
+        .unwrap_or_else(|e| panic!("Failed to probe audio file {:?}: {}", path, e));
+
+    let track = probed
+        .format
+        .default_track()
+        .unwrap_or_else(|| panic!("No default track found in {:?}", path));
+
+    let params = &track.codec_params;
+
+    if let (Some(n_frames), Some(time_base)) = (params.n_frames, params.time_base) {
+        let time = time_base.calc_time(n_frames);
+        (time.seconds as f64 * 1000.0 + time.frac * 1000.0) as i64
+    } else if let (Some(n_frames), Some(sample_rate)) = (params.n_frames, params.sample_rate) {
+        (n_frames as f64 / sample_rate as f64 * 1000.0) as i64
+    } else {
+        panic!(
+            "Cannot determine duration for {:?}: n_frames={:?}, time_base={:?}, sample_rate={:?}",
+            path, params.n_frames, params.time_base, params.sample_rate
+        );
+    }
+}
+
 #[proc_macro]
 pub fn register_assets(_input: TokenStream) -> TokenStream {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
@@ -182,7 +219,8 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
     audio_files.sort();
     for (id, file_path) in audio_files.iter().enumerate() {
         let (components, const_name) = path_to_parts(&asset_dir, file_path);
-        root.add_audio(&components, const_name, id);
+        let duration_millis = get_audio_duration_millis(file_path);
+        root.add_audio(&components, const_name, id, duration_millis);
     }
 
     let module_tree = root.to_tokens();
@@ -193,7 +231,7 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
         quote! {}
     };
     let audio_use = if root.has_audios() {
-        quote! { use super::AudioAsset; }
+        quote! { use super::AudioAsset; use super::Duration; }
     } else {
         quote! {}
     };
