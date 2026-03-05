@@ -27,20 +27,22 @@ impl Component for SpatialAudioExample {
 
         let speed = 3.0f32;
         ctx.on_raw_event(|event| {
-            if !matches!(event, RawEvent::ScreenRedraw) {
-                return;
-            }
-            if system::keyboard::any_code_press([Code::ArrowLeft]) {
-                set_cam_x.mutate(move |x| *x -= speed);
-            }
-            if system::keyboard::any_code_press([Code::ArrowRight]) {
-                set_cam_x.mutate(move |x| *x += speed);
-            }
-            if system::keyboard::any_code_press([Code::ArrowUp]) {
-                set_cam_y.mutate(move |y| *y -= speed);
-            }
-            if system::keyboard::any_code_press([Code::ArrowDown]) {
-                set_cam_y.mutate(move |y| *y += speed);
+            match event {
+                RawEvent::ScreenRedraw => {
+                    if system::keyboard::any_code_press([Code::ArrowLeft]) {
+                        set_cam_x.mutate(move |x| *x -= speed);
+                    }
+                    if system::keyboard::any_code_press([Code::ArrowRight]) {
+                        set_cam_x.mutate(move |x| *x += speed);
+                    }
+                    if system::keyboard::any_code_press([Code::ArrowUp]) {
+                        set_cam_y.mutate(move |y| *y -= speed);
+                    }
+                    if system::keyboard::any_code_press([Code::ArrowDown]) {
+                        set_cam_y.mutate(move |y| *y += speed);
+                    }
+                }
+                _ => {}
             }
         });
 
@@ -49,8 +51,26 @@ impl Component for SpatialAudioExample {
         let z = *zoom;
         let next_id = *next_source_id;
 
+        let listener_pos = (*cam_x, *cam_y, -200.0f32);
+        let source_positions: Vec<_> = sources.iter().map(|&(id, x, y)| (id, x, y, 200.0f32)).collect();
+
+        let mut debug_text = format!(
+            "Listener: ({:.0}, {:.0}, {:.0})",
+            listener_pos.0, listener_pos.1, listener_pos.2
+        );
+        for (id, x, y, sz) in &source_positions {
+            debug_text += &format!("\nSrc {}: ({:.0}, {:.0}, {:.0})", id, x, y, sz);
+
+            let dx = listener_pos.0 - x;
+            let dy = listener_pos.1 - y;
+            let dz = listener_pos.2 - sz;
+            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
+            let azimuth_rad = dx.atan2(dz);
+            debug_text += &format!("  dist={:.0} az={:.1}°", dist, azimuth_rad.to_degrees());
+        }
+
         ctx.add(namui::text(TextParam {
-            text: "Left click: add source / Right click: remove source / Arrow keys: move".to_string(),
+            text: debug_text,
             x: 10.px(),
             y: 10.px(),
             align: TextAlign::Left,
@@ -76,7 +96,7 @@ impl Component for SpatialAudioExample {
                 ctx.translate((px(*cam_x), px(*cam_y)))
                     .add(AudioGroup {
                         volume: 1.0,
-                        z: (1.0 / z - 1.0) * 100.0,
+                        z: -200.0,
                         children: |ctx: ComposeCtx| {
                             ctx.add(AudioListener);
                         },
@@ -87,10 +107,16 @@ impl Component for SpatialAudioExample {
             for &(id, x, y) in sources.iter() {
                 ctx.compose_with_key(id as u128, |ctx| {
                     ctx.translate((px(x), px(y)))
-                        .add(Audio {
-                            asset: asset::SOUND,
-                            repeat: true,
-                            spatial: true,
+                        .add(AudioGroup {
+                            volume: 1.0,
+                            z: 200.0,
+                            children: |ctx: ComposeCtx| {
+                                ctx.add(Audio {
+                                    asset: asset::SOUND,
+                                    repeat: true,
+                                    spatial: true,
+                                });
+                            },
                         })
                         .add(filled_circle(10.0, Color::RED));
                 });
