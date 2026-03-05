@@ -1,20 +1,21 @@
 use namui::*;
 use rand::Rng;
 
-const SIDE_EDGE_DISPLACEMENT_MIN_HEIGHT: Px = px(32.0);
-const SIDE_EDGE_DISPLACEMENT_MAX_HEIGHT: Px = px(128.0);
+const SIDE_EDGE_DYNAMIC_MIN_HEIGHT: Px = px(32.0);
+const SIDE_EDGE_DYNAMIC_MAX_HEIGHT: Px = px(128.0);
 const SIDE_EDGE_DISPLACEMENT_AT_MIN_HEIGHT: Px = px(2.0);
 const SIDE_EDGE_DISPLACEMENT_AT_MAX_HEIGHT: Px = px(8.0);
-const TOP_BOTTOM_DISPLACEMENT: Px = px(2.0);
-const SIDE_EDGE_STEP_TORN: Px = px(8.0);
-const SIDE_EDGE_STEP_SUBTLE: Px = px(96.0);
-const TOP_BOTTOM_STEP: Px = px(96.0);
+const HORIZONTAL_EDGE_DISPLACEMENT: Px = px(2.0);
+const SIDE_EDGE_STEP_AT_MIN_HEIGHT: Px = px(4.0);
+const SIDE_EDGE_STEP_AT_MAX_HEIGHT: Px = px(8.0);
+const SIDE_EDGE_SUBTLE_STEP: Px = px(96.0);
+const HORIZONTAL_EDGE_STEP: Px = px(96.0);
 const SHADOW_OFFSET_Y: Px = px(2.0);
 const SHADOW_ALPHA: u8 = 192;
-const RANDOM_AMPLITUDE_MIN_SCALE: f32 = 0.25;
-const RANDOM_AMPLITUDE_MAX_SCALE: f32 = 1.0;
-const RANDOM_STEP_MIN_SCALE: f32 = 0.7;
-const RANDOM_STEP_MAX_SCALE: f32 = 1.3;
+const OFFSET_AMPLITUDE_MIN_SCALE: f32 = 0.25;
+const OFFSET_AMPLITUDE_MAX_SCALE: f32 = 1.0;
+const STEP_JITTER_MIN_SCALE: f32 = 0.7;
+const STEP_JITTER_MAX_SCALE: f32 = 1.3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
 pub enum PaperTexture {
@@ -56,12 +57,12 @@ impl Component for PaperContainerBackground {
             color,
             shadow,
         } = self;
-        let size_and_tear_side = ctx.track_eq(&(width, height, tear_side));
+        let tracked_path_inputs = ctx.track_eq(&(width, height, tear_side));
         let path = ctx.memo(|| {
             torn_paper_path(
-                size_and_tear_side.0,
-                size_and_tear_side.1,
-                size_and_tear_side.2,
+                tracked_path_inputs.0,
+                tracked_path_inputs.1,
+                tracked_path_inputs.2,
             )
         });
 
@@ -93,41 +94,42 @@ impl Component for PaperContainerBackground {
 
 fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
     let mut rng = rand::thread_rng();
-    let torn_side_displacement = side_edge_displacement_for_height(height);
-    let (side_displacement, side_step) = match tear_side {
-        TearSide::Torn => (torn_side_displacement, SIDE_EDGE_STEP_TORN),
-        TearSide::Subtle => (TOP_BOTTOM_DISPLACEMENT, SIDE_EDGE_STEP_SUBTLE),
+    let torn_displacement = side_edge_displacement_for_height(height);
+    let torn_step = side_edge_step_for_height(height);
+    let (vertical_edge_displacement, vertical_edge_step) = match tear_side {
+        TearSide::Torn => (torn_displacement, torn_step),
+        TearSide::Subtle => (HORIZONTAL_EDGE_DISPLACEMENT, SIDE_EDGE_SUBTLE_STEP),
     };
     let top_points = edge_points(
         px(0.0),
         width,
-        TOP_BOTTOM_STEP,
+        HORIZONTAL_EDGE_STEP,
         Xy::new,
-        TOP_BOTTOM_DISPLACEMENT,
+        HORIZONTAL_EDGE_DISPLACEMENT,
         &mut rng,
     );
     let right_points = edge_points(
         px(0.0),
         height,
-        side_step,
+        vertical_edge_step,
         |y, offset| Xy::new(width + offset, y),
-        side_displacement,
+        vertical_edge_displacement,
         &mut rng,
     );
     let bottom_points = edge_points(
         width,
         px(0.0),
-        TOP_BOTTOM_STEP,
+        HORIZONTAL_EDGE_STEP,
         |x, offset| Xy::new(x, height + offset),
-        TOP_BOTTOM_DISPLACEMENT,
+        HORIZONTAL_EDGE_DISPLACEMENT,
         &mut rng,
     );
     let left_points = edge_points(
         height,
         px(0.0),
-        side_step,
+        vertical_edge_step,
         |y, offset| Xy::new(offset, y),
-        side_displacement,
+        vertical_edge_displacement,
         &mut rng,
     );
 
@@ -141,32 +143,44 @@ fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
 }
 
 fn edge_points(
-    start: Px,
-    end: Px,
+    start_value: Px,
+    end_value: Px,
     step: Px,
-    mut to_point: impl FnMut(Px, Px) -> Xy<Px>,
+    mut point_from_position: impl FnMut(Px, Px) -> Xy<Px>,
     displacement: Px,
     rng: &mut impl Rng,
 ) -> Vec<Xy<Px>> {
     let mut points = Vec::new();
     let mut index = 0;
 
-    if start <= end {
-        let mut value = start;
-        while value < end {
-            points.push(to_point(value, zigzag_offset(index, displacement, rng)));
-            value += randomized_step(step, rng);
+    if start_value <= end_value {
+        let mut edge_value = start_value;
+        while edge_value < end_value {
+            points.push(point_from_position(
+                edge_value,
+                zigzag_offset(index, displacement, rng),
+            ));
+            edge_value += randomized_step(step, rng);
             index += 1;
         }
-        points.push(to_point(end, zigzag_offset(index, displacement, rng)));
+        points.push(point_from_position(
+            end_value,
+            zigzag_offset(index, displacement, rng),
+        ));
     } else {
-        let mut value = start;
-        while value > end {
-            points.push(to_point(value, zigzag_offset(index, displacement, rng)));
-            value -= randomized_step(step, rng);
+        let mut edge_value = start_value;
+        while edge_value > end_value {
+            points.push(point_from_position(
+                edge_value,
+                zigzag_offset(index, displacement, rng),
+            ));
+            edge_value -= randomized_step(step, rng);
             index += 1;
         }
-        points.push(to_point(end, zigzag_offset(index, displacement, rng)));
+        points.push(point_from_position(
+            end_value,
+            zigzag_offset(index, displacement, rng),
+        ));
     }
 
     points
@@ -174,19 +188,19 @@ fn edge_points(
 
 fn zigzag_offset(index: usize, displacement: Px, rng: &mut impl Rng) -> Px {
     let sign = if index.is_multiple_of(2) { 1.0 } else { -1.0 };
-    let amplitude_scale = rng.gen_range(RANDOM_AMPLITUDE_MIN_SCALE..=RANDOM_AMPLITUDE_MAX_SCALE);
+    let amplitude_scale = rng.gen_range(OFFSET_AMPLITUDE_MIN_SCALE..=OFFSET_AMPLITUDE_MAX_SCALE);
     displacement * sign * amplitude_scale
 }
 
 fn randomized_step(step: Px, rng: &mut impl Rng) -> Px {
-    let step_scale = rng.gen_range(RANDOM_STEP_MIN_SCALE..=RANDOM_STEP_MAX_SCALE);
+    let step_scale = rng.gen_range(STEP_JITTER_MIN_SCALE..=STEP_JITTER_MAX_SCALE);
     step * step_scale
 }
 
 fn side_edge_displacement_for_height(height: Px) -> Px {
     let height = height.as_f32();
-    let min_height = SIDE_EDGE_DISPLACEMENT_MIN_HEIGHT.as_f32();
-    let max_height = SIDE_EDGE_DISPLACEMENT_MAX_HEIGHT.as_f32();
+    let min_height = SIDE_EDGE_DYNAMIC_MIN_HEIGHT.as_f32();
+    let max_height = SIDE_EDGE_DYNAMIC_MAX_HEIGHT.as_f32();
     let min_displacement = SIDE_EDGE_DISPLACEMENT_AT_MIN_HEIGHT.as_f32();
     let max_displacement = SIDE_EDGE_DISPLACEMENT_AT_MAX_HEIGHT.as_f32();
 
@@ -199,4 +213,22 @@ fn side_edge_displacement_for_height(height: Px) -> Px {
 
     let t = (height - min_height) / (max_height - min_height);
     px(min_displacement + (max_displacement - min_displacement) * t)
+}
+
+fn side_edge_step_for_height(height: Px) -> Px {
+    let height = height.as_f32();
+    let min_height = SIDE_EDGE_DYNAMIC_MIN_HEIGHT.as_f32();
+    let max_height = SIDE_EDGE_DYNAMIC_MAX_HEIGHT.as_f32();
+    let min_step = SIDE_EDGE_STEP_AT_MIN_HEIGHT.as_f32();
+    let max_step = SIDE_EDGE_STEP_AT_MAX_HEIGHT.as_f32();
+
+    if height <= min_height {
+        return SIDE_EDGE_STEP_AT_MIN_HEIGHT;
+    }
+    if height >= max_height {
+        return SIDE_EDGE_STEP_AT_MAX_HEIGHT;
+    }
+
+    let t = (height - min_height) / (max_height - min_height);
+    px(min_step + (max_step - min_step) * t)
 }
