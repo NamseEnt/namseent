@@ -27,7 +27,13 @@ impl ModuleNode {
             child.add_image(&path_parts[1..], file_name, id);
         }
     }
-    fn add_audio(&mut self, path_parts: &[String], file_name: String, id: usize, duration_millis: i64) {
+    fn add_audio(
+        &mut self,
+        path_parts: &[String],
+        file_name: String,
+        id: usize,
+        duration_millis: i64,
+    ) {
         if path_parts.is_empty() {
             self.audios.push((file_name, id, duration_millis));
         } else {
