@@ -14,12 +14,27 @@ const playbackMap = new Map<
 >();
 
 let gainNode: GainNode | null = null;
+let limiterNode: DynamicsCompressorNode | null = null;
+
+function getLimiterNode(): DynamicsCompressorNode {
+    if (!limiterNode) {
+        const ctx = getAudioContext();
+        limiterNode = ctx.createDynamicsCompressor();
+        limiterNode.threshold.value = -3;
+        limiterNode.knee.value = 0;
+        limiterNode.ratio.value = 20;
+        limiterNode.attack.value = 0.001;
+        limiterNode.release.value = 0.01;
+        limiterNode.connect(ctx.destination);
+    }
+    return limiterNode;
+}
 
 function getGainNode(): GainNode {
     if (!gainNode) {
         const ctx = getAudioContext();
         gainNode = ctx.createGain();
-        gainNode.connect(ctx.destination);
+        gainNode.connect(getLimiterNode());
     }
     return gainNode;
 }
@@ -203,12 +218,19 @@ export function createAudioImports({}: { memory: WebAssembly.Memory }) {
         _audio_playback_drop(playbackId: number) {
             const entry = playbackMap.get(playbackId);
             if (entry) {
-                entry.source.stop();
-                entry.source.disconnect();
-                entry.gain.disconnect();
-                if (entry.panner) {
-                    entry.panner.disconnect();
-                }
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                entry.gain.gain.cancelScheduledValues(now);
+                entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
+                entry.gain.gain.linearRampToValueAtTime(0, now + 0.01);
+                setTimeout(() => {
+                    entry.source.stop();
+                    entry.source.disconnect();
+                    entry.gain.disconnect();
+                    if (entry.panner) {
+                        entry.panner.disconnect();
+                    }
+                }, 15);
                 playbackMap.delete(playbackId);
             }
         },
@@ -216,7 +238,8 @@ export function createAudioImports({}: { memory: WebAssembly.Memory }) {
         _audio_playback_set_volume(playbackId: number, volume: number) {
             const entry = playbackMap.get(playbackId);
             if (entry) {
-                entry.gain.gain.value = volume;
+                const ctx = getAudioContext();
+                entry.gain.gain.setTargetAtTime(volume, ctx.currentTime, 0.005);
             }
         },
 
@@ -271,6 +294,7 @@ function playAudioBuffer(
     source.loop = loop;
     source.connect(gain);
     gain.connect(getGainNode());
+    gain.gain.value = 0;
     source.onended = () => {
         playbackMap.delete(playbackId);
         source.disconnect();
@@ -301,6 +325,7 @@ function playAudioBufferSpatial(
     source.connect(gain);
     gain.connect(panner);
     panner.connect(getGainNode());
+    gain.gain.value = 0;
 
     source.onended = () => {
         playbackMap.delete(playbackId);
