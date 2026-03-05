@@ -9,3 +9,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
+symphonia = { version = "0.5", features = ["mp3", "wav", "ogg", "vorbis", "pcm"] }

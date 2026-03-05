@@ -20,10 +20,27 @@ impl Component for MediaExample {
     fn render(self, ctx: &RenderCtx) {
         let (is_playing, set_is_playing) = ctx.state(|| false);
 
+        let duration_text = format!("duration: {:.2}s", asset::AUDIO.duration().as_secs_f32());
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
                 y: 20.px(),
+                width: 200.px(),
+                height: 20.px(),
+            },
+            text: &duration_text,
+            text_color: Color::BLACK,
+            stroke_color: Color::BLACK,
+            stroke_width: 1.px(),
+            fill_color: Color::TRANSPARENT,
+            mouse_buttons: vec![],
+            on_mouse_up_in: |_| {},
+        });
+
+        ctx.add(TextButton {
+            rect: Rect::Xywh {
+                x: 10.px(),
+                y: 50.px(),
                 width: 200.px(),
                 height: 20.px(),
             },
@@ -41,7 +58,7 @@ impl Component for MediaExample {
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
-                y: 60.px(),
+                y: 90.px(),
                 width: 200.px(),
                 height: 20.px(),
             },
@@ -69,7 +86,7 @@ impl Component for MediaExample {
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 10.px(),
-                y: 100.px(),
+                y: 130.px(),
                 width: 200.px(),
                 height: 20.px(),
             },
@@ -88,7 +105,7 @@ impl Component for MediaExample {
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 20.px(),
-                y: 220.px(),
+                y: 250.px(),
                 width: 40.px(),
                 height: 20.px(),
             },
@@ -106,7 +123,7 @@ impl Component for MediaExample {
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 60.px(),
-                y: 220.px(),
+                y: 250.px(),
                 width: 40.px(),
                 height: 20.px(),
             },
@@ -122,7 +139,7 @@ impl Component for MediaExample {
         ctx.add(TextButton {
             rect: Rect::Xywh {
                 x: 100.px(),
-                y: 220.px(),
+                y: 250.px(),
                 width: 40.px(),
                 height: 20.px(),
             },
