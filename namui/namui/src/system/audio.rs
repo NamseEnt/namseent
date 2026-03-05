@@ -23,11 +23,16 @@ fn next_playback_id() -> usize {
 #[derive(Clone, Copy)]
 pub struct AudioAsset {
     id: usize,
+    duration: Duration,
 }
 
 impl AudioAsset {
-    pub const fn new(id: usize) -> Self {
-        Self { id }
+    pub const fn new(id: usize, duration: Duration) -> Self {
+        Self { id, duration }
+    }
+
+    pub const fn duration(&self) -> Duration {
+        self.duration
     }
 
     pub fn play(&self) -> PlayHandle {
