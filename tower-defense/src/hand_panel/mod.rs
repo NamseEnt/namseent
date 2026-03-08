@@ -32,10 +32,8 @@ impl Component for HandPanel {
 
         let (forced_open, set_forced_open) = ctx.state(|| true);
 
-        // remember whether the previous render was in a flow that could open the hand
         let (last_can_open, set_last_can_open) = ctx.state(|| can_open_hand);
 
-        // transitioning from a closed/non-hand-flow into a hand-flow should reopen
         if can_open_hand && !*forced_open && !*last_can_open {
             set_forced_open.set(true);
         }
@@ -44,7 +42,6 @@ impl Component for HandPanel {
             set_forced_open.set(false);
         }
 
-        // update the remembered flag for next frame
         if can_open_hand != *last_can_open {
             set_last_can_open.set(can_open_hand);
         }
