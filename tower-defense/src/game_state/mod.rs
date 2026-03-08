@@ -30,7 +30,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::game_state::stage_modifiers::StageModifiers;
-use crate::hand::HandSlotId;
+use crate::hand::{Hand, HandItem, HandSlotId};
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
@@ -79,6 +79,7 @@ pub struct GameState {
     pub backgrounds: Vec<Background>,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
+    pub hand: Hand<HandItem>,
     /// one-based
     pub stage: usize,
     pub left_reroll_chance: usize,
@@ -199,6 +200,7 @@ fn create_initial_game_state() -> GameState {
         backgrounds: generate_backgrounds(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
+        hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
@@ -300,6 +302,7 @@ impl GameState {
             backgrounds: self.backgrounds.clone(),
             upgrade_state: self.upgrade_state.clone(),
             flow: self.flow.clone(),
+            hand: self.hand.clone(),
             stage: self.stage,
             left_reroll_chance: self.left_reroll_chance,
             monster_spawn_state: self.monster_spawn_state.clone(),
@@ -389,16 +392,17 @@ pub fn is_boss_stage(stage: usize) -> bool {
 pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
         game_state.place_tower(tower);
-        let GameFlow::PlacingTower { hand } = &mut game_state.flow else {
-            unreachable!()
-        };
-        hand.delete_slots(&[placing_tower_slot_id]);
+        game_state.hand.delete_slots(&[placing_tower_slot_id]);
 
         // Auto-select the first card (tower or barricade) if available
-        if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
-            && hand.get_item(first_slot_id).is_some()
+        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
+            && game_state
+                .hand
+                .get_item(first_slot_id)
+                .and_then(|item| item.as_tower())
+                .is_some()
         {
-            hand.select_slot(first_slot_id);
+            game_state.hand.select_slot(first_slot_id);
         }
     });
 }

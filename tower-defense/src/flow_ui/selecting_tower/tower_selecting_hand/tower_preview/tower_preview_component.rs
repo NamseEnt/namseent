@@ -11,7 +11,6 @@ use crate::{
         upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
     },
     icon::{Icon, IconKind, IconSize},
-    palette,
     theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
@@ -153,36 +152,6 @@ impl Component for TowerPreviewContent<'_> {
                 ])(wh, ctx);
             })(wh, ctx);
         });
-    }
-}
-
-pub struct TowerPreview<'a> {
-    pub wh: Wh<Px>,
-    pub tower_template: &'a TowerTemplate,
-}
-
-impl Component for TowerPreview<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self { wh, tower_template } = self;
-
-        ctx.add(TowerPreviewContent { wh, tower_template });
-
-        ctx.add(rect(RectParam {
-            rect: wh.to_rect(),
-            style: RectStyle {
-                stroke: Some(RectStroke {
-                    color: palette::OUTLINE,
-                    width: 1.px(),
-                    border_position: BorderPosition::Inside,
-                }),
-                fill: Some(RectFill {
-                    color: palette::SURFACE,
-                }),
-                round: Some(RectRound {
-                    radius: palette::ROUND,
-                }),
-            },
-        }));
     }
 }
 

@@ -53,10 +53,10 @@ impl Component for TowerCursorPreview<'_> {
 
         let cancel_placing_tower_selection = move || {
             mutate_game_state(move |game_state| {
-                let GameFlow::PlacingTower { hand } = &mut game_state.flow else {
+                if !matches!(game_state.flow, GameFlow::PlacingTower) {
                     unreachable!()
-                };
-                hand.deselect_slot(placing_tower_slot_id);
+                }
+                game_state.hand.deselect_slot(placing_tower_slot_id);
             });
         };
 

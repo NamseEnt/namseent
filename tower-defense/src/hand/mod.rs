@@ -4,6 +4,7 @@ mod render_tower;
 pub mod shared;
 
 pub use crate::animation::xy_with_spring;
+use crate::{card::Card, game_state::tower::TowerTemplate};
 use hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;
@@ -17,6 +18,28 @@ pub const HAND_WH: Wh<Px> = Wh::new(px(600.), px(160.));
 
 // 레이아웃 관련 상수들
 const DEFAULT_SLOT_GAP: Px = px(8.0);
+
+#[derive(Clone, Debug, PartialEq, PartialOrd, State)]
+pub enum HandItem {
+    Card(Card),
+    Tower(TowerTemplate),
+}
+
+impl HandItem {
+    pub fn as_card(&self) -> Option<&Card> {
+        match self {
+            HandItem::Card(card) => Some(card),
+            HandItem::Tower(_) => None,
+        }
+    }
+
+    pub fn as_tower(&self) -> Option<&TowerTemplate> {
+        match self {
+            HandItem::Card(_) => None,
+            HandItem::Tower(tower) => Some(tower),
+        }
+    }
+}
 
 #[derive(Default, Clone, Debug, State)]
 pub struct Hand<Item: State + Debug> {

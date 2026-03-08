@@ -1,5 +1,5 @@
 use super::*;
-use crate::{card::Card, game_state::tower::TowerTemplate};
+use crate::{card::Card, game_state::tower::TowerTemplate, hand::HandItem};
 use namui::*;
 use std::{any::Any, sync::atomic::AtomicUsize};
 
@@ -107,7 +107,22 @@ where
             .scale(animated_scale)
             .translate(-half_slot_xy);
 
-        if let Some(card) = (&self.item as &dyn Any).downcast_ref::<Card>() {
+        if let Some(hand_item) = (&self.item as &dyn Any).downcast_ref::<HandItem>() {
+            match hand_item {
+                HandItem::Card(card) => {
+                    ctx.add(RenderCard {
+                        wh: HAND_SLOT_WH,
+                        card,
+                    });
+                }
+                HandItem::Tower(tower_template) => {
+                    ctx.add(RenderTower {
+                        wh: HAND_SLOT_WH,
+                        tower_template,
+                    });
+                }
+            }
+        } else if let Some(card) = (&self.item as &dyn Any).downcast_ref::<Card>() {
             ctx.add(RenderCard {
                 wh: HAND_SLOT_WH,
                 card,

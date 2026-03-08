@@ -6,6 +6,7 @@ mod flow_ui;
 mod game_speed_indicator;
 mod game_state; // now private; selective re-exports below
 mod hand;
+mod hand_panel;
 mod icon;
 mod inventory;
 pub mod l10n;
@@ -79,6 +80,7 @@ impl Component for Game {
             .add(GameSpeedIndicator);
 
         ctx.add(flow_ui::FlowUi);
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(Contracts { screen_wh });
         ctx.add(Inventory { screen_wh });
@@ -171,7 +173,7 @@ impl Component for Game {
                     if game_state.cursor_preview.should_update_position()
                         || matches!(
                             game_state.flow,
-                            crate::game_state::flow::GameFlow::PlacingTower { hand: _ }
+                            crate::game_state::flow::GameFlow::PlacingTower
                         )
                     {
                         let local_xy_tile =

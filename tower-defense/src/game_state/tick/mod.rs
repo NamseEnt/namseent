@@ -30,6 +30,7 @@ impl Component for Ticker {
 
 fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     game_state.flow.update();
+    game_state.hand.update();
     flow::contract::update_contract_flow(game_state);
 
     game_state.update_camera_shake(dt);
