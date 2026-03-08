@@ -10,89 +10,18 @@ const SIDE_EDGE_STEP_AT_MIN_HEIGHT: Px = px(4.0);
 const SIDE_EDGE_STEP_AT_MAX_HEIGHT: Px = px(8.0);
 const SIDE_EDGE_SUBTLE_STEP: Px = px(96.0);
 const HORIZONTAL_EDGE_STEP: Px = px(96.0);
-const SHADOW_OFFSET_Y: Px = px(2.0);
-const SHADOW_ALPHA: u8 = 192;
 const OFFSET_AMPLITUDE_MIN_SCALE: f32 = 0.25;
 const OFFSET_AMPLITUDE_MAX_SCALE: f32 = 1.0;
 const STEP_JITTER_MIN_SCALE: f32 = 0.7;
 const STEP_JITTER_MAX_SCALE: f32 = 1.3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
-pub enum PaperTexture {
-    Rough,
-    Crumpled,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
-pub enum TearSide {
+pub(super) enum TearSide {
     Torn,
     Subtle,
 }
 
-impl PaperTexture {
-    fn image(self) -> Image {
-        match self {
-            PaperTexture::Rough => crate::asset::image::ui::paper::PAPER_00,
-            PaperTexture::Crumpled => crate::asset::image::ui::paper::PAPER_01,
-        }
-    }
-}
-
-pub struct PaperContainerBackground {
-    pub width: Px,
-    pub height: Px,
-    pub texture: PaperTexture,
-    pub tear_side: TearSide,
-    pub color: Color,
-    pub shadow: bool,
-}
-
-impl Component for PaperContainerBackground {
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            width,
-            height,
-            texture,
-            tear_side,
-            color,
-            shadow,
-        } = self;
-        let tracked_path_inputs = ctx.track_eq(&(width, height, tear_side));
-        let path = ctx.memo(|| {
-            torn_paper_path(
-                tracked_path_inputs.0,
-                tracked_path_inputs.1,
-                tracked_path_inputs.2,
-            )
-        });
-
-        let paint = Paint::new(Color::WHITE)
-            .set_style(PaintStyle::Fill)
-            .set_shader(Shader::Image {
-                src: texture.image(),
-                tile_mode: Xy::single(TileMode::Repeat),
-            })
-            .set_color_filter(ColorFilter::Blend {
-                color,
-                blend_mode: BlendMode::Modulate,
-            });
-
-        ctx.add(namui::path(path.as_ref().clone(), paint));
-
-        if shadow {
-            let shadow_path = path.as_ref().clone().translate(px(0.0), SHADOW_OFFSET_Y);
-            let shadow_paint = Paint::new(Color::BLACK.with_alpha(SHADOW_ALPHA))
-                .set_style(PaintStyle::Fill)
-                .set_mask_filter(MaskFilter::Blur {
-                    blur_style: BlurStyle::Normal,
-                    sigma: 2.5,
-                });
-            ctx.add(namui::path(shadow_path, shadow_paint));
-        }
-    }
-}
-
-fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
+pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
     let mut rng = rand::thread_rng();
     let torn_displacement = side_edge_displacement_for_height(height);
     let torn_step = side_edge_step_for_height(height);

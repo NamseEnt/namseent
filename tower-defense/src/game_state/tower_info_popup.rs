@@ -2,7 +2,7 @@ use super::{Tower, mutate_game_state};
 use crate::flow_ui::TowerPreviewContent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
-    paper_container::{PaperContainerBackground, PaperTexture, TearSide},
+    paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
     typography::{FontSize, memoized_text},
 };
 use crate::{sound, theme};
@@ -26,14 +26,12 @@ impl Component for TowerInfoPopup<'_> {
                 ctx.compose(|ctx| {
                     table::padding(BUBBLE_PADDING, |wh, ctx| {
                         table::vertical([
-                            // 타워 스탯 표시 영역
                             table::ratio(1.0, |wh, ctx| {
                                 ctx.add(TowerPreviewContent {
                                     wh,
                                     tower_template: tower,
                                 });
                             }),
-                            // 철거 버튼
                             table::fixed(36.px(), |wh, ctx| {
                                 let tower_id = tower.id();
                                 ctx.add(
@@ -85,7 +83,7 @@ impl Component for TowerInfoPopup<'_> {
                     width: BUBBLE_WIDTH,
                     height: BUBBLE_HEIGHT,
                     texture: PaperTexture::Rough,
-                    tear_side: TearSide::Subtle,
+                    variant: PaperVariant::Sticky,
                     color: theme::palette::SURFACE_CONTAINER_HIGHEST,
                     shadow: true,
                 });

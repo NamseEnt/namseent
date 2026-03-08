@@ -1,6 +1,6 @@
 use super::{
     palette,
-    paper_container::{PaperContainerBackground, PaperTexture, TearSide},
+    paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use namui::*;
@@ -247,7 +247,7 @@ impl Component for Button<'_> {
                 width: wh.width,
                 height: wh.height,
                 texture: PaperTexture::Rough,
-                tear_side: TearSide::Torn,
+                variant: PaperVariant::Tape,
                 color: if fill_color.a > 0 {
                     fill_color
                 } else {
