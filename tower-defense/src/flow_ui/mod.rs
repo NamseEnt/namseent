@@ -14,10 +14,8 @@ impl Component for FlowUi {
         match &game_state.flow {
             GameFlow::Initializing => {}
             GameFlow::Contract(..) => {}
-            GameFlow::SelectingTower(selecting_tower_flow) => {
-                ctx.add(selecting_tower::SelectingTowerUi {
-                    selecting_tower_flow,
-                });
+            GameFlow::SelectingTower(_selecting_tower_flow) => {
+                ctx.add(selecting_tower::SelectingTowerUi);
             }
             GameFlow::PlacingTower => {}
             GameFlow::Defense(..) => {}

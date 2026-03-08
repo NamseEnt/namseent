@@ -1,0 +1,136 @@
+use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
+use crate::shop::ShopSlotId;
+use crate::shop_panel::constants::*;
+use crate::shop_panel::slot_layout_calculator::SlotLayoutCalculator;
+use crate::shop_panel::slot_renderer::ShopSlotView;
+use crate::shop_panel::slot_rendering_data::SlotRenderingData;
+use namui::*;
+use namui_prebuilt::table;
+
+pub(super) struct ShopPaperContent {
+    pub wh: Wh<Px>,
+}
+
+impl Component for ShopPaperContent {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { wh } = self;
+        let game_state = use_game_state(ctx);
+
+        if let GameFlow::SelectingTower(flow) = &game_state.flow {
+            // purchase callbacks
+            let purchase_item = |slot_id: ShopSlotId| {
+                mutate_game_state(move |game_state| {
+                    game_state.purchase_shop_item(slot_id);
+                });
+            };
+            let can_purchase_item =
+                |slot_id: ShopSlotId| game_state.can_purchase_shop_item(slot_id);
+
+            // declare states outside inner closures because ComposeCtx doesn't provide `state`
+            let (exiting_slot_positions, set_exiting_slot_positions) =
+                ctx.state::<std::collections::HashMap<ShopSlotId, Xy<Px>>>(Default::default);
+            let (hovered_slot_id, set_hovered_slot_id) = ctx.state::<Option<ShopSlotId>>(|| None);
+
+            ctx.compose(|ctx| {
+                table::padding_no_clip(
+                    PANEL_PADDING,
+                    table::vertical([table::ratio_no_clip(1, |wh, ctx| {
+                        // slot rendering logic adapted from shop_modal/layout.rs
+                        let content_wh = Wh {
+                            width: wh.width - PADDING * 2.0,
+                            height: wh.height - PADDING * 2.0,
+                        };
+                        let items_area_wh = Wh {
+                            width: content_wh.width,
+                            height: content_wh.height,
+                        };
+
+                        // layout calculation for slots (ignore exiting for layout)
+                        let calculator = SlotLayoutCalculator::new(items_area_wh);
+                        let (slot_positions, slot_wh) = calculator.calculate_positions(&flow.shop);
+
+                        let rendering_data =
+                            SlotRenderingData::from_shop(&flow.shop, slot_positions.clone());
+
+                        // update exiting positions
+                        let slot_positions_clone = slot_positions.clone();
+                        set_exiting_slot_positions.mutate(
+                            move |positions: &mut std::collections::HashMap<ShopSlotId, Xy<Px>>| {
+                                for (id, xy) in &slot_positions_clone {
+                                    positions.insert(*id, *xy);
+                                }
+                            },
+                        );
+
+                        ctx.compose(|ctx| {
+                            // render hovered slot first
+                            if let Some(hovered_id) = *hovered_slot_id
+                                && let Some(slot_data) = rendering_data
+                                    .active_slots
+                                    .iter()
+                                    .find(|s| s.id == hovered_id)
+                                && let Some(target_xy) = rendering_data.get_position(hovered_id)
+                            {
+                                ctx.translate((PADDING, PADDING)).add_with_key(
+                                    hovered_id,
+                                    ShopSlotView {
+                                        wh: slot_wh,
+                                        slot_data,
+                                        purchase_item: &purchase_item,
+                                        can_purchase_item: can_purchase_item(hovered_id),
+                                        target_xy,
+                                        hovered_slot_id: *hovered_slot_id,
+                                        set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                    },
+                                );
+                            }
+
+                            // render active slots
+                            for slot_data in &rendering_data.active_slots {
+                                let slot_id = slot_data.id;
+                                if *hovered_slot_id == Some(slot_id) {
+                                    continue;
+                                }
+                                if let Some(target_xy) = rendering_data.get_position(slot_id) {
+                                    ctx.translate((PADDING, PADDING)).add_with_key(
+                                        slot_id,
+                                        ShopSlotView {
+                                            wh: slot_wh,
+                                            slot_data,
+                                            purchase_item: &purchase_item,
+                                            can_purchase_item: can_purchase_item(slot_id),
+                                            target_xy,
+                                            hovered_slot_id: *hovered_slot_id,
+                                            set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                        },
+                                    );
+                                }
+                            }
+
+                            // exiting slots
+                            for slot_data in &rendering_data.exiting_slots {
+                                let slot_id = slot_data.id;
+                                let target_xy = exiting_slot_positions
+                                    .get(&slot_id)
+                                    .copied()
+                                    .unwrap_or(Xy::zero());
+                                ctx.translate((PADDING, PADDING)).add_with_key(
+                                    slot_id,
+                                    ShopSlotView {
+                                        wh: slot_wh,
+                                        slot_data,
+                                        purchase_item: &purchase_item,
+                                        can_purchase_item: can_purchase_item(slot_id),
+                                        target_xy,
+                                        hovered_slot_id: *hovered_slot_id,
+                                        set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                    },
+                                );
+                            }
+                        });
+                    })]),
+                )(wh, ctx);
+            });
+        }
+    }
+}

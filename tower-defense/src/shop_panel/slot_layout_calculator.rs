@@ -1,4 +1,4 @@
-use crate::flow_ui::selecting_tower::shop_modal::constants::{PADDING, SHOP_SLOT_WIDTH};
+use crate::shop_panel::constants::{PADDING, SHOP_SLOT_WIDTH};
 use crate::shop::{Shop, ShopSlotId};
 use namui::*;
 use std::collections::HashMap;

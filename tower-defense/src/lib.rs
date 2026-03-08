@@ -7,6 +7,7 @@ mod game_speed_indicator;
 mod game_state; // now private; selective re-exports below
 mod hand;
 mod hand_panel;
+mod shop_panel;
 mod icon;
 mod inventory;
 pub mod l10n;
@@ -80,6 +81,7 @@ impl Component for Game {
             .add(GameSpeedIndicator);
 
         ctx.add(flow_ui::FlowUi);
+        ctx.add(shop_panel::ShopPanel);
         ctx.add(hand_panel::HandPanel);
 
         ctx.add(Contracts { screen_wh });
