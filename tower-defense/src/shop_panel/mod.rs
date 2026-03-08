@@ -23,6 +23,54 @@ use sticky_bar::StickyBar;
 
 pub struct ShopPanel;
 
+struct ShopPanelLayout {
+    pub panel_wh: Wh<Px>,
+    pub paper_y: Px,
+    pub bg_y: Px,
+    pub action_wh: Wh<Px>,
+    pub action_xy: Xy<Px>,
+    pub sticky_xy: Xy<Px>,
+    pub closed_xy: Xy<Px>,
+    pub target_xy: Xy<Px>,
+}
+
+impl ShopPanelLayout {
+    fn compute(can_open: bool, screen_wh: Wh<Px>) -> Self {
+        let panel_wh = shop_panel_wh();
+        let paper_y = px(0.0);
+        let bg_y = paper_y + (PAPER_HEIGHT - BG_HEIGHT);
+        let action_wh = Wh::new(action_area_width(), ACTION_HEIGHT + ACTION_MARGIN_Y);
+        let action_xy = Xy::new(
+            (panel_wh.width - action_wh.width) / 2.0,
+            bg_y + BG_HEIGHT - (action_wh.height * 0.5) + ACTION_MARGIN_Y,
+        );
+        let sticky_x = (panel_wh.width - STICKY_WIDTH) / 2.0;
+        let sticky_y = action_xy.y + action_wh.height - STICKY_VISIBLE_HEIGHT + ACTION_MARGIN_Y;
+        let sticky_xy = Xy::new(sticky_x, sticky_y);
+
+        let closed_xy = Xy::new(
+            (screen_wh.width - panel_wh.width) / 2.0,
+            TOP_BAR_HEIGHT - STICKY_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y,
+        );
+        let open_xy = Xy::new(
+            (screen_wh.width - panel_wh.width) / 2.0,
+            (screen_wh.height - panel_wh.height) / 2.0,
+        );
+        let target_xy = if can_open { open_xy } else { closed_xy };
+
+        ShopPanelLayout {
+            panel_wh,
+            paper_y,
+            bg_y,
+            action_wh,
+            action_xy,
+            sticky_xy,
+            closed_xy,
+            target_xy,
+        }
+    }
+}
+
 impl Component for ShopPanel {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
@@ -44,38 +92,18 @@ impl Component for ShopPanel {
         }
 
         let panel_open = can_open_shop && *forced_open;
-        let panel_wh = shop_panel_wh();
-
-        // unified internal layout coordinates for panel children
-        let paper_y = px(0.0);
-        let bg_y = paper_y + (PAPER_HEIGHT - BG_HEIGHT);
-        let action_wh = Wh::new(action_area_width(), ACTION_HEIGHT + ACTION_MARGIN_Y);
-        let action_xy = Xy::new(
-            (panel_wh.width - action_wh.width) / 2.0,
-            bg_y + BG_HEIGHT - (action_wh.height * 0.5) + ACTION_MARGIN_Y,
-        );
-        let sticky_x = (panel_wh.width - STICKY_WIDTH) / 2.0;
-        let sticky_y = action_xy.y + action_wh.height - STICKY_VISIBLE_HEIGHT + ACTION_MARGIN_Y;
-
-        let open_xy = Xy::new(
-            (screen_wh.width - panel_wh.width) / 2.0,
-            (screen_wh.height - panel_wh.height) / 2.0,
-        );
-        let closed_xy = Xy::new(
-            (screen_wh.width - panel_wh.width) / 2.0,
-            TOP_BAR_HEIGHT - STICKY_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y,
-        );
-        let target_xy = if panel_open { open_xy } else { closed_xy };
-        let animated_xy = xy_with_spring(ctx, target_xy, closed_xy);
+        let layout = ShopPanelLayout::compute(panel_open, screen_wh);
+        let animated_xy = xy_with_spring(ctx, layout.target_xy, layout.closed_xy);
         let panel_xy = animated_xy;
 
         ctx.absolute(panel_xy).compose(|ctx| {
-            ctx.translate((0.px(), paper_y)).add(ShopPaperContent {
-                wh: Wh::new(panel_wh.width, PAPER_HEIGHT),
-            });
+            ctx.translate((0.px(), layout.paper_y))
+                .add(ShopPaperContent {
+                    wh: Wh::new(layout.panel_wh.width, PAPER_HEIGHT),
+                });
 
             let sticky_center = Wh::new(STICKY_WIDTH, STICKY_HEIGHT).to_xy() * 0.5;
-            ctx.translate((sticky_x, sticky_y))
+            ctx.translate(layout.sticky_xy)
                 .translate(sticky_center)
                 .rotate((-5.0).deg())
                 .translate(-sticky_center)
@@ -91,17 +119,19 @@ impl Component for ShopPanel {
                     },
                 });
 
-            ctx.translate(action_xy)
-                .add(ShopActionArea { wh: action_wh });
-
-            ctx.translate((0.px(), bg_y)).add(PaperContainerBackground {
-                width: panel_wh.width,
-                height: BG_HEIGHT,
-                texture: PaperTexture::Rough,
-                variant: PaperVariant::Paper,
-                color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
-                shadow: true,
+            ctx.translate(layout.action_xy).add(ShopActionArea {
+                wh: layout.action_wh,
             });
+
+            ctx.translate((0.px(), layout.bg_y))
+                .add(PaperContainerBackground {
+                    width: layout.panel_wh.width,
+                    height: BG_HEIGHT,
+                    texture: PaperTexture::Rough,
+                    variant: PaperVariant::Paper,
+                    color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
+                    shadow: true,
+                });
         });
     }
 }

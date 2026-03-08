@@ -2,7 +2,6 @@ use crate::shop::{Shop, ShopSlotId};
 use namui::*;
 use std::collections::HashMap;
 
-/// 슬롯 렌더링에 필요한 모든 데이터를 담은 구조체
 pub struct SlotRenderingData<'a> {
     pub active_slots: Vec<&'a crate::shop::ShopSlotData>,
     pub exiting_slots: Vec<&'a crate::shop::ShopSlotData>,

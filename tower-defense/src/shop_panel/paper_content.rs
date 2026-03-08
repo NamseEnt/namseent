@@ -17,7 +17,6 @@ impl Component for ShopPaperContent {
         let game_state = use_game_state(ctx);
 
         if let GameFlow::SelectingTower(flow) = &game_state.flow {
-            // purchase callbacks
             let purchase_item = |slot_id: ShopSlotId| {
                 mutate_game_state(move |game_state| {
                     game_state.purchase_shop_item(slot_id);
@@ -26,7 +25,6 @@ impl Component for ShopPaperContent {
             let can_purchase_item =
                 |slot_id: ShopSlotId| game_state.can_purchase_shop_item(slot_id);
 
-            // declare states outside inner closures because ComposeCtx doesn't provide `state`
             let (exiting_slot_positions, set_exiting_slot_positions) =
                 ctx.state::<std::collections::HashMap<ShopSlotId, Xy<Px>>>(Default::default);
             let (hovered_slot_id, set_hovered_slot_id) = ctx.state::<Option<ShopSlotId>>(|| None);
@@ -35,7 +33,6 @@ impl Component for ShopPaperContent {
                 table::padding_no_clip(
                     PANEL_PADDING,
                     table::vertical([table::ratio_no_clip(1, |wh, ctx| {
-                        // slot rendering logic adapted from shop_modal/layout.rs
                         let content_wh = Wh {
                             width: wh.width - PADDING * 2.0,
                             height: wh.height - PADDING * 2.0,
@@ -45,14 +42,12 @@ impl Component for ShopPaperContent {
                             height: content_wh.height,
                         };
 
-                        // layout calculation for slots (ignore exiting for layout)
                         let calculator = SlotLayoutCalculator::new(items_area_wh);
                         let (slot_positions, slot_wh) = calculator.calculate_positions(&flow.shop);
 
                         let rendering_data =
                             SlotRenderingData::from_shop(&flow.shop, slot_positions.clone());
 
-                        // update exiting positions
                         let slot_positions_clone = slot_positions.clone();
                         set_exiting_slot_positions.mutate(
                             move |positions: &mut std::collections::HashMap<ShopSlotId, Xy<Px>>| {
@@ -63,7 +58,6 @@ impl Component for ShopPaperContent {
                         );
 
                         ctx.compose(|ctx| {
-                            // render hovered slot first
                             if let Some(hovered_id) = *hovered_slot_id
                                 && let Some(slot_data) = rendering_data
                                     .active_slots
@@ -85,7 +79,6 @@ impl Component for ShopPaperContent {
                                 );
                             }
 
-                            // render active slots
                             for slot_data in &rendering_data.active_slots {
                                 let slot_id = slot_data.id;
                                 if *hovered_slot_id == Some(slot_id) {
@@ -107,7 +100,6 @@ impl Component for ShopPaperContent {
                                 }
                             }
 
-                            // exiting slots
                             for slot_data in &rendering_data.exiting_slots {
                                 let slot_id = slot_data.id;
                                 let target_xy = exiting_slot_positions

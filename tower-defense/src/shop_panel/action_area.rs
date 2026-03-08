@@ -19,11 +19,9 @@ impl Component for ShopActionArea {
         let game_state = use_game_state(ctx);
 
         ctx.compose(|ctx| {
-            // add extra vertical/horizontal padding inside action area
             table::padding_no_clip(
                 INNER_PADDING + ACTION_MARGIN_Y * 0.5,
                 table::horizontal([
-                    // left: level-up button (flexible)
                     table::ratio_no_clip(1, |wh, ctx| {
                         let level = game_state.level.get();
                         let level_up_cost = game_state.level_up_cost();
@@ -68,9 +66,7 @@ impl Component for ShopActionArea {
                             .disabled(!can_upgrade),
                         );
                     }),
-                    // spacing between buttons
                     table::fixed_no_clip(BUTTON_SPACING, |_, _| {}),
-                    // right: reroll button (flexible)
                     table::ratio_no_clip(1, |wh, ctx| {
                         ctx.add(super::refresh_button::RefreshButton::new(wh));
                     }),

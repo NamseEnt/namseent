@@ -7,13 +7,13 @@ mod game_speed_indicator;
 mod game_state; // now private; selective re-exports below
 mod hand;
 mod hand_panel;
-mod shop_panel;
 mod icon;
 mod inventory;
 pub mod l10n;
 mod rarity; // private; re-export Rarity only
 mod route;
 mod shop;
+mod shop_panel;
 pub mod sound;
 mod theme;
 mod thumbnail;

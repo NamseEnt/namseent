@@ -17,13 +17,11 @@ pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
     );
     let game_state_route = ctx.track_eq(&game_state.route);
     let towers = ctx.track_eq(&game_state.towers);
-    let is_tower_placing = ctx.track_eq(
-        &if matches!(game_state.flow, GameFlow::PlacingTower) {
-            !game_state.hand.selected_slot_ids().is_empty()
-        } else {
-            false
-        },
-    );
+    let is_tower_placing = ctx.track_eq(&if matches!(game_state.flow, GameFlow::PlacingTower) {
+        !game_state.hand.selected_slot_ids().is_empty()
+    } else {
+        false
+    });
 
     let route = ctx.memo(|| {
         'placing_tower: {
