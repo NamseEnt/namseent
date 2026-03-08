@@ -31,3 +31,10 @@ Before committing UI changes that use `ctx.add`, verify:
 - Use `table::ratio_no_clip` instead of `table::ratio`.
 - Use `table::fixed_no_clip` instead of `table::fixed`.
 - Use `table::padding_no_clip` instead of `table::padding` where applicable.
+
+## Text and Localization Rule
+
+- When adding or changing user-facing text in Tower Defense, follow the API structure under `src/l10n/` so multilingual support is straightforward.
+- Avoid hardcoding display text directly in UI components when a localization path exists via the `l10n` APIs.
+- When rendering text in Tower Defense UI, use `memoized_text()`.
+- Keep text rendering consistent with existing usage patterns where `memoized_text()` receives stable memoization keys and renders through the typography builder.
