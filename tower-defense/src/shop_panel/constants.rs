@@ -15,6 +15,7 @@ pub(super) const ACTION_MARGIN_Y: Px = px(24.0);
 
 pub(super) const BUTTON_SPACING: Px = px(16.0);
 
+#[inline]
 pub(super) fn action_area_width() -> Px {
     ACTION_WIDTH * 2.0 + INNER_PADDING * 2.0
 }
@@ -28,16 +29,28 @@ pub(super) const PANEL_PADDING: Px = px(24.0);
 pub(super) const INNER_PADDING: Px = px(8.0);
 
 pub const PADDING: Px = px(4.0);
-pub const SOLD_OUT_HEIGHT: Px = px(36.0);
 pub const SHOP_SLOT_WIDTH: Px = px(240.0);
 
+#[inline]
 pub(super) fn panel_width() -> Px {
     PAPER_WIDTH
 }
 
+#[inline]
 pub(super) fn shop_panel_wh() -> Wh<Px> {
     Wh::new(
         panel_width(),
         STICKY_HEIGHT + PAPER_HEIGHT + TOP_OUTSIDE_HEIGHT,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn action_area_width_doc() {
+        let w = action_area_width();
+        assert!(w >= ACTION_WIDTH * 2.0);
+    }
 }

@@ -1,3 +1,4 @@
+use crate::palette;
 use namui::*;
 
 mod smooth_path;
@@ -7,7 +8,7 @@ const SHADOW_OFFSET_Y: Px = px(2.0);
 const SHADOW_ALPHA: u8 = 192;
 const TORN_BORDER_OUTER_BRIGHTER_VALUE: f32 = 0.275;
 
-use smooth_path::dual_layer_torn_paper_paths;
+use smooth_path::{dual_layer_torn_paper_paths, single_layer_reduced_paper_path};
 use zigzag_path::{TearSide, torn_paper_path};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
@@ -21,6 +22,8 @@ pub enum PaperVariant {
     Tape,
     Sticky,
     Paper,
+    Card,
+    PaperSingleLayer,
 }
 
 impl PaperTexture {
@@ -58,6 +61,12 @@ impl Component for PaperContainerBackground {
             }
             PaperVariant::Paper => {
                 render_paper(ctx, width, height, texture, color, shadow);
+            }
+            PaperVariant::Card => {
+                render_card(ctx, width, height, texture, color, shadow);
+            }
+            PaperVariant::PaperSingleLayer => {
+                render_single_layer_paper(ctx, width, height, texture, color, shadow);
             }
         }
     }
@@ -112,6 +121,59 @@ fn render_paper(
 
     if shadow {
         add_shadow(ctx, outer_path.clone());
+    }
+}
+
+fn render_card(
+    ctx: &RenderCtx,
+    width: Px,
+    height: Px,
+    texture: PaperTexture,
+    color: Color,
+    shadow: bool,
+) {
+    // simple rounded rectangle path without torn edges or dual layers
+    let tracked = ctx.track_eq(&(width, height));
+    let path_sig = ctx.memo(|| {
+        let r = Rect::Xywh {
+            x: px(0.0),
+            y: px(0.0),
+            width: tracked.0,
+            height: tracked.1,
+        };
+        Path::new().add_rrect(r, palette::ROUND, palette::ROUND)
+    });
+
+    ctx.add(namui::path(
+        path_sig.as_ref().clone(),
+        textured_paint(texture, color),
+    ));
+
+    if shadow {
+        add_shadow(ctx, path_sig.as_ref().clone());
+    }
+}
+
+fn render_single_layer_paper(
+    ctx: &RenderCtx,
+    width: Px,
+    height: Px,
+    texture: PaperTexture,
+    color: Color,
+    shadow: bool,
+) {
+    // use a dedicated path generator with reduced noise amplitude so that
+    // the background for the info/cost area appears smoother
+    let tracked = ctx.track_eq(&(width, height));
+    let path_sig = ctx.memo(|| single_layer_reduced_paper_path(tracked.0, tracked.1));
+
+    ctx.add(namui::path(
+        path_sig.as_ref().clone(),
+        textured_paint(texture, color),
+    ));
+
+    if shadow {
+        add_shadow(ctx, path_sig.as_ref().clone());
     }
 }
 

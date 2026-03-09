@@ -212,3 +212,55 @@ fn build_smooth_path_from_edges(edges: [Vec<Xy<f32>>; 4]) -> Path {
         .collect();
     Path::new().add_poly(&points, true)
 }
+/// Single-layer torn paper path with reduced noise amplitude. Used by the
+/// `PaperSingleLayer` variant for the shop item info background so the
+/// irregularity is much less pronounced than the normal `Paper` variant.
+pub(super) fn single_layer_reduced_paper_path(width: Px, height: Px) -> Path {
+    let mut inner_rng = StdRng::seed_from_u64(TORN_INNER_NOISE_SEED);
+
+    let w = width.as_f32();
+    let h = height.as_f32();
+    let _ring = TORN_BORDER_RING_WIDTH;
+    // scale down the base amplitude to 40% of the usual value
+    let base_amplitude = SMOOTH_LARGE_WAVE_AMPLITUDE * 1.5 * 0.4;
+
+    let top_positions = axis_positions(w, false);
+    let right_positions = axis_positions(h, false);
+    let bottom_positions = axis_positions(w, true);
+    let left_positions = axis_positions(h, true);
+
+    let top_inner_offsets =
+        smooth_noise_offsets(w, base_amplitude, TORN_INNER_NOISE_SEED, &mut inner_rng);
+    let right_inner_offsets = smooth_noise_offsets(
+        h,
+        base_amplitude,
+        TORN_INNER_NOISE_SEED.wrapping_add(1),
+        &mut inner_rng,
+    );
+    let bottom_inner_offsets = smooth_noise_offsets(
+        w,
+        base_amplitude,
+        TORN_INNER_NOISE_SEED.wrapping_add(2),
+        &mut inner_rng,
+    );
+    let left_inner_offsets = smooth_noise_offsets(
+        h,
+        base_amplitude,
+        TORN_INNER_NOISE_SEED.wrapping_add(3),
+        &mut inner_rng,
+    );
+
+    let top_inner = edge_points_from_offsets(&top_positions, &top_inner_offsets, Xy::new);
+    let right_inner = edge_points_from_offsets(&right_positions, &right_inner_offsets, |y, off| {
+        Xy::new(w + off, y)
+    });
+    let bottom_inner =
+        edge_points_from_offsets(&bottom_positions, &bottom_inner_offsets, |x, off| {
+            Xy::new(x, h + off)
+        });
+    let left_inner = edge_points_from_offsets(&left_positions, &left_inner_offsets, |y, off| {
+        Xy::new(off, y)
+    });
+
+    build_smooth_path_from_edges([top_inner, right_inner, bottom_inner, left_inner])
+}

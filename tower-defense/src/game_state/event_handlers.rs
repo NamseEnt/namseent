@@ -149,7 +149,6 @@ impl GameState {
         }
 
         match &slot_data.slot {
-            ShopSlot::Locked => {}
             ShopSlot::Item { item, cost } => {
                 if self.gold < *cost {
                     return;
@@ -250,7 +249,6 @@ impl GameState {
         }
 
         match &slot_data.slot {
-            ShopSlot::Locked => false,
             ShopSlot::Item { cost, .. } => {
                 self.gold >= *cost
                     && !self

@@ -21,6 +21,8 @@ use namui::*;
 use paper_content::ShopPaperContent;
 use sticky_bar::StickyBar;
 
+/// Top‑level component representing the in‑game shop panel.  Handles all
+/// layout and sub‑components (paper, sticky bar, action area).
 pub struct ShopPanel;
 
 struct ShopPanelLayout {
@@ -35,6 +37,10 @@ struct ShopPanelLayout {
 }
 
 impl ShopPanelLayout {
+    /// Compute all layout coordinates based on whether the panel may be open and
+    /// the current screen size.  This function is `#[inline]` since it runs each
+    /// frame during animation.
+    #[inline]
     fn compute(can_open: bool, screen_wh: Wh<Px>) -> Self {
         let panel_wh = shop_panel_wh();
         let paper_y = px(0.0);

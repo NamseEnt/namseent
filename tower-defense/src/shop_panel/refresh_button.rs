@@ -5,6 +5,8 @@ use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::memoized_text;
 use namui::*;
 
+/// Floating action button used to reroll the shop.  Displays remaining
+/// refresh chance and any health cost.
 pub struct RefreshButton {
     pub wh: Wh<Px>,
 }

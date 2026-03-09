@@ -11,7 +11,6 @@ pub enum TopBarText {
     Use,
     Settings,
     Shop,
-    SoldOut,
     UseTower,
 }
 
@@ -44,7 +43,6 @@ impl TopBarText {
             TopBarText::Use => "사용",
             TopBarText::Settings => "설정",
             TopBarText::Shop => "상점",
-            TopBarText::SoldOut => "품절",
             TopBarText::UseTower => "타워 사용",
         }
     }
@@ -58,7 +56,6 @@ impl TopBarText {
             TopBarText::Use => "Use",
             TopBarText::Settings => "Settings",
             TopBarText::Shop => "Shop",
-            TopBarText::SoldOut => "Sold Out",
             TopBarText::UseTower => "Use Tower",
         }
     }

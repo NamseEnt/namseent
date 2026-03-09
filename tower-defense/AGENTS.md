@@ -32,6 +32,16 @@ Before committing UI changes that use `ctx.add`, verify:
 - Use `table::fixed_no_clip` instead of `table::fixed`.
 - Use `table::padding_no_clip` instead of `table::padding` where applicable.
 
+## Namui Ctx Ownership Rule
+
+- Treat `ctx` as move-only inside render closures.
+- If a helper like `table::padding_no_clip(...)(wh, ctx)` consumes `ctx`, do not call `ctx.add(...)` after it in the same closure.
+- When both layout rendering and extra drawing are needed in one area, split them into separate phases:
+  - Phase 1: `ctx.compose(|ctx| { ...table/layout call... });`
+  - Phase 2: `ctx.add(...)` for additional overlays/backgrounds.
+- Avoid passing `ctx` into nested calls and then reusing the same `ctx` variable unless ownership is clearly preserved.
+- Before committing, verify there is no `E0382` (`borrow of moved value`) around `ctx` in changed UI code.
+
 ## Text and Localization Rule
 
 - When adding or changing user-facing text in Tower Defense, follow the API structure under `src/l10n/` so multilingual support is straightforward.

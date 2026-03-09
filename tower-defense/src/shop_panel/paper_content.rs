@@ -48,12 +48,9 @@ impl Component for ShopPaperContent {
                         let rendering_data =
                             SlotRenderingData::from_shop(&flow.shop, slot_positions.clone());
 
-                        let slot_positions_clone = slot_positions.clone();
                         set_exiting_slot_positions.mutate(
                             move |positions: &mut std::collections::HashMap<ShopSlotId, Xy<Px>>| {
-                                for (id, xy) in &slot_positions_clone {
-                                    positions.insert(*id, *xy);
-                                }
+                                *positions = slot_positions.clone();
                             },
                         );
 

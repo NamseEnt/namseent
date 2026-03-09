@@ -18,19 +18,19 @@ impl Component for ShopActionArea {
         let Self { wh } = self;
         let game_state = use_game_state(ctx);
 
+        let level = game_state.level.get();
+        let level_up_cost = game_state.level_up_cost();
+        let can_upgrade = level < 10 && game_state.gold >= level_up_cost;
+
         ctx.compose(|ctx| {
             table::padding_no_clip(
                 INNER_PADDING + ACTION_MARGIN_Y * 0.5,
                 table::horizontal([
                     table::ratio_no_clip(1, |wh, ctx| {
-                        let level = game_state.level.get();
-                        let level_up_cost = game_state.level_up_cost();
-                        let can_upgrade = level < 10 && game_state.gold >= level_up_cost;
-
                         ctx.add(
                             Button::new(
                                 wh,
-                                &|| {
+                                &move || {
                                     if !can_upgrade {
                                         return;
                                     }
@@ -45,7 +45,7 @@ impl Component for ShopActionArea {
                                         SpatialMode::NonSpatial,
                                     ));
                                 },
-                                &|wh, color, ctx| {
+                                &move |wh, color, ctx| {
                                     ctx.add(memoized_text(
                                         (&color, &level_up_cost),
                                         |mut builder| {

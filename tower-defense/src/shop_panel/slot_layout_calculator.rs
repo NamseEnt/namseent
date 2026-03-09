@@ -8,6 +8,7 @@ pub struct SlotLayoutCalculator {
 }
 
 impl SlotLayoutCalculator {
+    #[inline]
     pub fn new(items_area_wh: Wh<Px>) -> Self {
         Self { items_area_wh }
     }
@@ -38,6 +39,7 @@ impl SlotLayoutCalculator {
         (positions, slot_wh)
     }
 
+    #[inline]
     fn calculate_layout_params(&self, slot_count: usize) -> (Px, Px, Px) {
         let n = slot_count as f32;
         let slot_w = SHOP_SLOT_WIDTH.min(self.items_area_wh.width);
@@ -58,5 +60,50 @@ impl SlotLayoutCalculator {
         let start_x = (self.items_area_wh.width - total_width) / 2.0;
 
         (slot_w, gap, start_x)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game_state::effect::Effect;
+    use crate::game_state::item::Item;
+    use crate::rarity::Rarity;
+    use crate::shop::{Shop, ShopSlot, ShopSlotData};
+    use namui::{OneZero, Wh, px};
+
+    fn make_dummy_slot() -> ShopSlotData {
+        let item = Item {
+            effect: Effect::Heal { amount: 0.0 },
+            rarity: Rarity::Common,
+            value: OneZero::default(),
+        };
+        ShopSlotData::new(ShopSlot::Item { item, cost: 0 })
+    }
+
+    #[test]
+    fn calculator_handles_various_counts() {
+        let calculator = SlotLayoutCalculator::new(Wh::new(px(300.0), px(100.0)));
+
+        // zero slots
+        let shop = Shop { slots: vec![] };
+        let (positions, wh) = calculator.calculate_positions(&shop);
+        assert!(positions.is_empty());
+        assert_eq!(wh, Wh::zero());
+
+        // one slot should take full width
+        let slot = make_dummy_slot();
+        let mut shop = Shop {
+            slots: vec![slot.clone()],
+        };
+        let (positions, wh) = calculator.calculate_positions(&shop);
+        assert_eq!(positions.len(), 1);
+        assert!(wh.width <= SHOP_SLOT_WIDTH);
+
+        // many slots should still fit within items_area_wh by shrinking gap
+        shop.slots = (0..5).map(|_| make_dummy_slot()).collect();
+        let (positions, wh2) = calculator.calculate_positions(&shop);
+        assert_eq!(positions.len(), 5);
+        assert!(wh2.width <= SHOP_SLOT_WIDTH);
     }
 }
