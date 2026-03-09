@@ -77,6 +77,7 @@ impl Component for ShopItem<'_> {
                     variant: PaperVariant::Card,
                     color: palette::SURFACE_CONTAINER_HIGH,
                     shadow: true,
+                    arrow: None,
                 });
             })(wh, ctx);
         });

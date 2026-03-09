@@ -110,6 +110,7 @@ impl Component for HandPanel {
                     variant: PaperVariant::Paper,
                     color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
                     shadow: true,
+                    arrow: None,
                 });
         });
     }

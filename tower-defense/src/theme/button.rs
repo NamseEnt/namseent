@@ -254,6 +254,7 @@ impl Component for Button<'_> {
                     Color::TRANSPARENT
                 },
                 shadow: variant != ButtonVariant::Text,
+                arrow: None,
             })
             .attach_event({
                 move |event| {

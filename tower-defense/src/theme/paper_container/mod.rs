@@ -35,6 +35,22 @@ impl PaperTexture {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
+pub struct PaperArrow {
+    pub side: ArrowSide,
+    pub width: Px,
+    pub height: Px,
+    pub offset: Px,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
+pub enum ArrowSide {
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
 pub struct PaperContainerBackground {
     pub width: Px,
     pub height: Px,
@@ -42,6 +58,7 @@ pub struct PaperContainerBackground {
     pub variant: PaperVariant,
     pub color: Color,
     pub shadow: bool,
+    pub arrow: Option<PaperArrow>,
 }
 
 impl Component for PaperContainerBackground {
@@ -53,25 +70,27 @@ impl Component for PaperContainerBackground {
             variant,
             color,
             shadow,
+            arrow,
         } = self;
 
         match variant {
             PaperVariant::Tape | PaperVariant::Sticky => {
-                render_tape_or_sticky(ctx, width, height, variant, texture, color, shadow);
+                render_tape_or_sticky(ctx, width, height, variant, texture, color, shadow, arrow);
             }
             PaperVariant::Paper => {
-                render_paper(ctx, width, height, texture, color, shadow);
+                render_paper(ctx, width, height, texture, color, shadow, arrow);
             }
             PaperVariant::Card => {
-                render_card(ctx, width, height, texture, color, shadow);
+                render_card(ctx, width, height, texture, color, shadow, arrow);
             }
             PaperVariant::PaperSingleLayer => {
-                render_single_layer_paper(ctx, width, height, texture, color, shadow);
+                render_single_layer_paper(ctx, width, height, texture, color, shadow, arrow);
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_tape_or_sticky(
     ctx: &RenderCtx,
     width: Px,
@@ -80,21 +99,21 @@ fn render_tape_or_sticky(
     texture: PaperTexture,
     color: Color,
     shadow: bool,
+    arrow: Option<PaperArrow>,
 ) {
     let tear_side = match variant {
         PaperVariant::Tape => TearSide::Torn,
         _ => TearSide::Subtle,
     };
-    let tracked = ctx.track_eq(&(width, height, tear_side));
-    let path = ctx.memo(|| torn_paper_path(tracked.0, tracked.1, tracked.2));
+    let tracked = ctx.track_eq(&(width, height, tear_side, arrow));
+    let path = ctx
+        .memo(|| torn_paper_path(tracked.0, tracked.1, tracked.2, tracked.3))
+        .as_ref()
+        .clone();
 
-    ctx.add(namui::path(
-        path.as_ref().clone(),
-        textured_paint(texture, color),
-    ));
-
+    ctx.add(namui::path(path.clone(), textured_paint(texture, color)));
     if shadow {
-        add_shadow(ctx, path.as_ref().clone());
+        add_shadow(ctx, path);
     }
 }
 
@@ -105,10 +124,23 @@ fn render_paper(
     texture: PaperTexture,
     color: Color,
     shadow: bool,
+    arrow: Option<PaperArrow>,
 ) {
-    let tracked = ctx.track_eq(&(width, height));
-    let paths = ctx.memo(|| dual_layer_torn_paper_paths(tracked.0, tracked.1));
-    let (inner_path, outer_path) = paths.as_ref();
+    let tracked = ctx.track_eq(&(width, height, arrow));
+    let (inner_path, outer_path) = ctx
+        .memo(|| {
+            let (i, o) = dual_layer_torn_paper_paths(tracked.0, tracked.1);
+            if let Some(a) = arrow {
+                (
+                    with_arrow(i, width, height, Some(a)),
+                    with_arrow(o, width, height, Some(a)),
+                )
+            } else {
+                (i, o)
+            }
+        })
+        .as_ref()
+        .clone();
 
     ctx.add(namui::path(
         inner_path.clone(),
@@ -120,7 +152,7 @@ fn render_paper(
     ));
 
     if shadow {
-        add_shadow(ctx, outer_path.clone());
+        add_shadow(ctx, outer_path);
     }
 }
 
@@ -131,26 +163,31 @@ fn render_card(
     texture: PaperTexture,
     color: Color,
     shadow: bool,
+    arrow: Option<PaperArrow>,
 ) {
-    // simple rounded rectangle path without torn edges or dual layers
-    let tracked = ctx.track_eq(&(width, height));
-    let path_sig = ctx.memo(|| {
-        let r = Rect::Xywh {
-            x: px(0.0),
-            y: px(0.0),
-            width: tracked.0,
-            height: tracked.1,
-        };
-        Path::new().add_rrect(r, palette::ROUND, palette::ROUND)
-    });
+    let tracked = ctx.track_eq(&(width, height, arrow));
+    let path = ctx
+        .memo(|| {
+            let r = Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: tracked.0,
+                height: tracked.1,
+            };
+            let base = Path::new().add_rrect(r, palette::ROUND, palette::ROUND);
+            if let Some(a) = arrow {
+                with_arrow(base, width, height, Some(a))
+            } else {
+                base
+            }
+        })
+        .as_ref()
+        .clone();
 
-    ctx.add(namui::path(
-        path_sig.as_ref().clone(),
-        textured_paint(texture, color),
-    ));
+    ctx.add(namui::path(path.clone(), textured_paint(texture, color)));
 
     if shadow {
-        add_shadow(ctx, path_sig.as_ref().clone());
+        add_shadow(ctx, path);
     }
 }
 
@@ -161,19 +198,25 @@ fn render_single_layer_paper(
     texture: PaperTexture,
     color: Color,
     shadow: bool,
+    arrow: Option<PaperArrow>,
 ) {
-    // use a dedicated path generator with reduced noise amplitude so that
-    // the background for the info/cost area appears smoother
-    let tracked = ctx.track_eq(&(width, height));
-    let path_sig = ctx.memo(|| single_layer_reduced_paper_path(tracked.0, tracked.1));
+    let tracked = ctx.track_eq(&(width, height, arrow));
+    let path = ctx
+        .memo(|| {
+            let base = single_layer_reduced_paper_path(tracked.0, tracked.1);
+            if let Some(a) = arrow {
+                with_arrow(base, width, height, Some(a))
+            } else {
+                base
+            }
+        })
+        .as_ref()
+        .clone();
 
-    ctx.add(namui::path(
-        path_sig.as_ref().clone(),
-        textured_paint(texture, color),
-    ));
+    ctx.add(namui::path(path.clone(), textured_paint(texture, color)));
 
     if shadow {
-        add_shadow(ctx, path_sig.as_ref().clone());
+        add_shadow(ctx, path);
     }
 }
 
@@ -199,4 +242,41 @@ fn add_shadow(ctx: &RenderCtx, path: Path) {
             sigma: 2.5,
         });
     ctx.add(namui::path(shadow_path, shadow_paint));
+}
+
+fn with_arrow(path: Path, width: Px, height: Px, arrow: Option<PaperArrow>) -> Path {
+    let Some(arrow) = arrow else {
+        return path;
+    };
+
+    match arrow.side {
+        ArrowSide::Right => {
+            let half = arrow.height / 2.0;
+            path.move_to(width, arrow.offset - half)
+                .line_to(width + arrow.width, arrow.offset)
+                .line_to(width, arrow.offset + half)
+                .close()
+        }
+        ArrowSide::Left => {
+            let half = arrow.height / 2.0;
+            path.move_to(0.px(), arrow.offset - half)
+                .line_to(-arrow.width, arrow.offset)
+                .line_to(0.px(), arrow.offset + half)
+                .close()
+        }
+        ArrowSide::Top => {
+            let half = arrow.width / 2.0;
+            path.move_to(arrow.offset - half, 0.px())
+                .line_to(arrow.offset, -arrow.height)
+                .line_to(arrow.offset + half, 0.px())
+                .close()
+        }
+        ArrowSide::Bottom => {
+            let half = arrow.width / 2.0;
+            path.move_to(arrow.offset - half, height)
+                .line_to(arrow.offset, height + arrow.height)
+                .line_to(arrow.offset + half, height)
+                .close()
+        }
+    }
 }

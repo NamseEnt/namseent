@@ -1,5 +1,5 @@
-use namui::*;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+use namui::*;
 
 pub struct ShopItemInfoBackground {
     pub wh: Wh<Px>,
@@ -16,6 +16,7 @@ impl Component for ShopItemInfoBackground {
             variant: PaperVariant::PaperSingleLayer,
             color,
             shadow: false,
+            arrow: None,
         });
     }
 }

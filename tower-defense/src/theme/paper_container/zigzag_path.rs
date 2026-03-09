@@ -1,3 +1,4 @@
+use super::{ArrowSide, PaperArrow};
 use namui::*;
 use rand::Rng;
 
@@ -21,7 +22,12 @@ pub(super) enum TearSide {
     Subtle,
 }
 
-pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Path {
+pub(super) fn torn_paper_path(
+    width: Px,
+    height: Px,
+    tear_side: TearSide,
+    arrow: Option<PaperArrow>,
+) -> Path {
     let mut rng = rand::thread_rng();
     let torn_displacement = side_edge_displacement_for_height(height);
     let torn_step = side_edge_step_for_height(height);
@@ -37,6 +43,8 @@ pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Pat
         HORIZONTAL_EDGE_DISPLACEMENT,
         &mut rng,
     );
+    let top_points = inject_top_arrow(top_points, width, height, arrow);
+
     let right_points = edge_points(
         px(0.0),
         height,
@@ -45,6 +53,8 @@ pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Pat
         vertical_edge_displacement,
         &mut rng,
     );
+    let right_points = inject_right_arrow(right_points, width, height, arrow);
+
     let bottom_points = edge_points(
         width,
         px(0.0),
@@ -53,6 +63,15 @@ pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Pat
         HORIZONTAL_EDGE_DISPLACEMENT,
         &mut rng,
     );
+    // bottom edge is generated in decreasing-x order; reverse for injection then restore
+    let bottom_points = {
+        let mut pts = bottom_points;
+        pts.reverse();
+        pts = inject_bottom_arrow(pts, width, height, arrow);
+        pts.reverse();
+        pts
+    };
+
     let left_points = edge_points(
         height,
         px(0.0),
@@ -61,6 +80,14 @@ pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Pat
         vertical_edge_displacement,
         &mut rng,
     );
+    // left edge comes top-to-bottom decreasing; do same reversal trick
+    let left_points = {
+        let mut pts = left_points;
+        pts.reverse();
+        pts = inject_left_arrow(pts, width, height, arrow);
+        pts.reverse();
+        pts
+    };
 
     let mut points = Vec::new();
     points.extend(top_points);
@@ -69,6 +96,194 @@ pub(super) fn torn_paper_path(width: Px, height: Px, tear_side: TearSide) -> Pat
     points.extend(left_points.into_iter().skip(1));
 
     Path::new().add_poly(&points, true)
+}
+
+fn inject_right_arrow(
+    right_points: Vec<Xy<Px>>,
+    width: Px,
+    height: Px,
+    arrow: Option<PaperArrow>,
+) -> Vec<Xy<Px>> {
+    let Some(arrow) = arrow else {
+        return right_points;
+    };
+    if !matches!(arrow.side, ArrowSide::Right) {
+        return right_points;
+    }
+
+    let half = arrow.height / 2.0;
+    let start_y = (arrow.offset - half).max(0.px()).min(height);
+    let tip_y = arrow.offset.max(0.px()).min(height);
+    let end_y = (arrow.offset + half).max(0.px()).min(height);
+
+    let mut out = Vec::with_capacity(right_points.len() + 3);
+    let mut inserted = false;
+
+    for point in right_points {
+        if point.y < start_y {
+            out.push(point);
+            continue;
+        }
+
+        if point.y > end_y {
+            if !inserted {
+                out.push(Xy::new(width, start_y));
+                out.push(Xy::new(width + arrow.width, tip_y));
+                out.push(Xy::new(width, end_y));
+                inserted = true;
+            }
+            out.push(point);
+        }
+    }
+
+    if !inserted {
+        out.push(Xy::new(width, start_y));
+        out.push(Xy::new(width + arrow.width, tip_y));
+        out.push(Xy::new(width, end_y));
+    }
+
+    out
+}
+
+fn inject_left_arrow(
+    left_points: Vec<Xy<Px>>,
+    _width: Px,
+    height: Px,
+    arrow: Option<PaperArrow>,
+) -> Vec<Xy<Px>> {
+    let Some(arrow) = arrow else {
+        return left_points;
+    };
+    if !matches!(arrow.side, ArrowSide::Left) {
+        return left_points;
+    }
+
+    let half = arrow.height / 2.0;
+    let start_y = (arrow.offset - half).max(0.px()).min(height);
+    let tip_y = arrow.offset.max(0.px()).min(height);
+    let end_y = (arrow.offset + half).max(0.px()).min(height);
+
+    let mut out = Vec::with_capacity(left_points.len() + 3);
+    let mut inserted = false;
+
+    for point in left_points {
+        if point.y < start_y {
+            out.push(point);
+            continue;
+        }
+
+        if point.y > end_y {
+            if !inserted {
+                out.push(Xy::new(0.px(), start_y));
+                out.push(Xy::new(-arrow.width, tip_y));
+                out.push(Xy::new(0.px(), end_y));
+                inserted = true;
+            }
+            out.push(point);
+        }
+    }
+
+    if !inserted {
+        out.push(Xy::new(0.px(), start_y));
+        out.push(Xy::new(-arrow.width, tip_y));
+        out.push(Xy::new(0.px(), end_y));
+    }
+
+    out
+}
+
+fn inject_top_arrow(
+    top_points: Vec<Xy<Px>>,
+    width: Px,
+    _height: Px,
+    arrow: Option<PaperArrow>,
+) -> Vec<Xy<Px>> {
+    let Some(arrow) = arrow else {
+        return top_points;
+    };
+    if !matches!(arrow.side, ArrowSide::Top) {
+        return top_points;
+    }
+
+    let half = arrow.width / 2.0;
+    let start_x = (arrow.offset - half).max(0.px()).min(width);
+    let tip_x = arrow.offset.max(0.px()).min(width);
+    let end_x = (arrow.offset + half).max(0.px()).min(width);
+
+    let mut out = Vec::with_capacity(top_points.len() + 3);
+    let mut inserted = false;
+
+    for point in top_points {
+        if point.x < start_x {
+            out.push(point);
+            continue;
+        }
+
+        if point.x > end_x {
+            if !inserted {
+                out.push(Xy::new(start_x, 0.px()));
+                out.push(Xy::new(tip_x, -arrow.height));
+                out.push(Xy::new(end_x, 0.px()));
+                inserted = true;
+            }
+            out.push(point);
+        }
+    }
+
+    if !inserted {
+        out.push(Xy::new(start_x, 0.px()));
+        out.push(Xy::new(tip_x, -arrow.height));
+        out.push(Xy::new(end_x, 0.px()));
+    }
+
+    out
+}
+
+fn inject_bottom_arrow(
+    bottom_points: Vec<Xy<Px>>,
+    width: Px,
+    height: Px,
+    arrow: Option<PaperArrow>,
+) -> Vec<Xy<Px>> {
+    let Some(arrow) = arrow else {
+        return bottom_points;
+    };
+    if !matches!(arrow.side, ArrowSide::Bottom) {
+        return bottom_points;
+    }
+
+    let half = arrow.width / 2.0;
+    let start_x = (arrow.offset - half).max(0.px()).min(width);
+    let tip_x = arrow.offset.max(0.px()).min(width);
+    let end_x = (arrow.offset + half).max(0.px()).min(width);
+
+    let mut out = Vec::with_capacity(bottom_points.len() + 3);
+    let mut inserted = false;
+
+    for point in bottom_points {
+        if point.x < start_x {
+            out.push(point);
+            continue;
+        }
+
+        if point.x > end_x {
+            if !inserted {
+                out.push(Xy::new(start_x, height));
+                out.push(Xy::new(tip_x, height + arrow.height));
+                out.push(Xy::new(end_x, height));
+                inserted = true;
+            }
+            out.push(point);
+        }
+    }
+
+    if !inserted {
+        out.push(Xy::new(start_x, height));
+        out.push(Xy::new(tip_x, height + arrow.height));
+        out.push(Xy::new(end_x, height));
+    }
+
+    out
 }
 
 fn edge_points(

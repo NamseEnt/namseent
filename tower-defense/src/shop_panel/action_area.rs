@@ -81,6 +81,7 @@ impl Component for ShopActionArea {
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER_LOW,
             shadow: true,
+            arrow: None,
         });
     }
 }

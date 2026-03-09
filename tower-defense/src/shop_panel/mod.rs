@@ -140,6 +140,7 @@ impl Component for ShopPanel {
                     variant: PaperVariant::Paper,
                     color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
                     shadow: true,
+                    arrow: None,
                 });
 
             ctx.add(Voyager);

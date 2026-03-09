@@ -191,6 +191,7 @@ impl Component for HandActionArea {
             variant: PaperVariant::Sticky,
             color: crate::theme::palette::SURFACE_CONTAINER_LOW,
             shadow: true,
+            arrow: None,
         });
     }
 }

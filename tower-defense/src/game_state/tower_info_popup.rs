@@ -2,7 +2,9 @@ use super::{Tower, mutate_game_state};
 use crate::flow_ui::TowerPreviewContent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
-    paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
+    paper_container::{
+        ArrowSide, PaperArrow, PaperContainerBackground, PaperTexture, PaperVariant,
+    },
     typography::{FontSize, memoized_text},
 };
 use crate::{sound, theme};
@@ -86,6 +88,12 @@ impl Component for TowerInfoPopup<'_> {
                     variant: PaperVariant::Sticky,
                     color: theme::palette::SURFACE_CONTAINER_HIGHEST,
                     shadow: true,
+                    arrow: Some(PaperArrow {
+                        side: ArrowSide::Bottom,
+                        width: px(16.0),
+                        height: px(16.0),
+                        offset: BUBBLE_WIDTH * 0.5,
+                    }),
                 });
             })
             .attach_event(|event| {
