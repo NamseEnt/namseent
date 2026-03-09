@@ -7,6 +7,7 @@ use crate::{
     game_state::{flow::GameFlow, use_game_state},
     hand::xy_with_spring,
     theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
+    mutate_game_state,
 };
 use namui::*;
 
@@ -30,23 +31,29 @@ impl Component for HandPanel {
         );
         let can_open_hand = in_hand_flow;
 
-        let (forced_open, set_forced_open) = ctx.state(|| true);
+        // sync forced-open flag stored in game state
+        let forced_open = game_state.hand_panel_forced_open;
 
         let (last_can_open, set_last_can_open) = ctx.state(|| can_open_hand);
 
-        if can_open_hand && !*forced_open && !*last_can_open {
-            set_forced_open.set(true);
+        // when availability changes, automatically open/close as before
+        if can_open_hand && !forced_open && !*last_can_open {
+            mutate_game_state(|gs| {
+                gs.hand_panel_forced_open = true;
+            });
         }
 
-        if !can_open_hand && *forced_open {
-            set_forced_open.set(false);
+        if !can_open_hand && forced_open {
+            mutate_game_state(|gs| {
+                gs.hand_panel_forced_open = false;
+            });
         }
 
         if can_open_hand != *last_can_open {
             set_last_can_open.set(can_open_hand);
         }
 
-        let panel_open = can_open_hand && *forced_open;
+        let panel_open = can_open_hand && forced_open;
         let target_offset = if panel_open {
             Xy::zero()
         } else {
@@ -90,7 +97,9 @@ impl Component for HandPanel {
                         if !can_open_hand {
                             return;
                         }
-                        set_forced_open.set(!*forced_open);
+                        mutate_game_state(|gs| {
+                            gs.hand_panel_forced_open = !gs.hand_panel_forced_open;
+                        });
                     },
                 });
 

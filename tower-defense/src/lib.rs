@@ -151,6 +151,11 @@ impl Component for Game {
                                 game_state.fast_forward_multiplier.next();
                         });
                     }
+                    Code::Space => {
+                        mutate_game_state(|game_state| {
+                            game_state.toggle_panels();
+                        });
+                    }
                     #[cfg(feature = "debug-tools")]
                     Code::F8 => {
                         mutate_game_state(|game_state| {

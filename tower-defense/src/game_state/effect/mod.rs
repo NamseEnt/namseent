@@ -509,7 +509,10 @@ pub mod tests_support {
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
                     Instant::now(),
                 ),
-            black_smoke_sources: Default::default()
+            black_smoke_sources: Default::default(),
+
+            hand_panel_forced_open: true,
+            shop_panel_forced_open: true,
         }
     }
 }

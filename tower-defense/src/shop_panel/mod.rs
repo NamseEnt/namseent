@@ -13,6 +13,7 @@ use crate::game_state::{flow::GameFlow, use_game_state};
 use crate::hand::xy_with_spring;
 use crate::shop_panel::action_area::ShopActionArea;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+use crate::mutate_game_state;
 
 use constants::{
     ACTION_HEIGHT, ACTION_MARGIN_Y, BG_HEIGHT, PAPER_HEIGHT, STICKY_HEIGHT, STICKY_VISIBLE_HEIGHT,
@@ -80,20 +81,25 @@ impl Component for ShopPanel {
         let in_shop_flow = matches!(game_state.flow, GameFlow::SelectingTower(_));
         let can_open_shop = in_shop_flow;
 
-        let (forced_open, set_forced_open) = ctx.state(|| true);
+        // use shared flag instead of local state
+        let forced_open = game_state.shop_panel_forced_open;
         let (last_can_open, set_last_can_open) = ctx.state(|| can_open_shop);
 
-        if can_open_shop && !*forced_open && !*last_can_open {
-            set_forced_open.set(true);
+        if can_open_shop && !forced_open && !*last_can_open {
+            mutate_game_state(|gs| {
+                gs.shop_panel_forced_open = true;
+            });
         }
-        if !can_open_shop && *forced_open {
-            set_forced_open.set(false);
+        if !can_open_shop && forced_open {
+            mutate_game_state(|gs| {
+                gs.shop_panel_forced_open = false;
+            });
         }
         if can_open_shop != *last_can_open {
             set_last_can_open.set(can_open_shop);
         }
 
-        let panel_open = can_open_shop && *forced_open;
+        let panel_open = can_open_shop && forced_open;
         let layout = ShopPanelLayout::compute(panel_open, screen_wh);
         let animated_xy = xy_with_spring(ctx, layout.target_xy, layout.closed_xy);
 
@@ -116,7 +122,9 @@ impl Component for ShopPanel {
                         if !can_open_shop {
                             return;
                         }
-                        set_forced_open.set(!*forced_open);
+                        mutate_game_state(|gs| {
+                            gs.shop_panel_forced_open = !gs.shop_panel_forced_open;
+                        });
                     },
                 });
 
