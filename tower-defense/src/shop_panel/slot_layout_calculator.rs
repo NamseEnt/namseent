@@ -85,13 +85,11 @@ mod tests {
     fn calculator_handles_various_counts() {
         let calculator = SlotLayoutCalculator::new(Wh::new(px(300.0), px(100.0)));
 
-        // zero slots
         let shop = Shop { slots: vec![] };
         let (positions, wh) = calculator.calculate_positions(&shop);
         assert!(positions.is_empty());
         assert_eq!(wh, Wh::zero());
 
-        // one slot should take full width
         let slot = make_dummy_slot();
         let mut shop = Shop {
             slots: vec![slot.clone()],
@@ -100,7 +98,6 @@ mod tests {
         assert_eq!(positions.len(), 1);
         assert!(wh.width <= SHOP_SLOT_WIDTH);
 
-        // many slots should still fit within items_area_wh by shrinking gap
         shop.slots = (0..5).map(|_| make_dummy_slot()).collect();
         let (positions, wh2) = calculator.calculate_positions(&shop);
         assert_eq!(positions.len(), 5);

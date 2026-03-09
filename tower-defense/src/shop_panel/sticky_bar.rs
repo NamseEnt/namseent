@@ -4,8 +4,6 @@ use crate::theme::{
 };
 use namui::*;
 
-/// The small bar that remains visible when the shop panel is closed.  Tapping
-/// toggles the panel open/closed.
 pub(super) struct StickyBar<'a> {
     pub wh: Wh<Px>,
     pub panel_open: bool,

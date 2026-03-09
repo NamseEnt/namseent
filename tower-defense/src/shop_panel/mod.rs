@@ -24,8 +24,6 @@ use paper_content::ShopPaperContent;
 use sticky_bar::StickyBar;
 use voyager::Voyager;
 
-/// Top‑level component representing the in‑game shop panel.  Handles all
-/// layout and sub‑components (paper, sticky bar, action area).
 pub struct ShopPanel;
 
 struct ShopPanelLayout {
@@ -40,9 +38,6 @@ struct ShopPanelLayout {
 }
 
 impl ShopPanelLayout {
-    /// Compute all layout coordinates based on whether the panel may be open and
-    /// the current screen size.  This function is `#[inline]` since it runs each
-    /// frame during animation.
     #[inline]
     fn compute(can_open: bool, screen_wh: Wh<Px>) -> Self {
         let panel_wh = shop_panel_wh();
@@ -57,14 +52,12 @@ impl ShopPanelLayout {
         let sticky_y = action_xy.y + action_wh.height - STICKY_VISIBLE_HEIGHT + ACTION_MARGIN_Y;
         let sticky_xy = Xy::new(sticky_x, sticky_y);
 
+        let center_x = (screen_wh.width - panel_wh.width) / 2.0;
         let closed_xy = Xy::new(
-            (screen_wh.width - panel_wh.width) / 2.0,
-            TOP_BAR_HEIGHT - STICKY_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y,
+            center_x,
+            TOP_BAR_HEIGHT - STICKY_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y + ACTION_MARGIN_Y,
         );
-        let open_xy = Xy::new(
-            (screen_wh.width - panel_wh.width) / 2.0,
-            (screen_wh.height - panel_wh.height) / 2.0,
-        );
+        let open_xy = Xy::new(center_x, (screen_wh.height - panel_wh.height) / 2.0);
         let target_xy = if can_open { open_xy } else { closed_xy };
 
         ShopPanelLayout {
@@ -103,9 +96,8 @@ impl Component for ShopPanel {
         let panel_open = can_open_shop && *forced_open;
         let layout = ShopPanelLayout::compute(panel_open, screen_wh);
         let animated_xy = xy_with_spring(ctx, layout.target_xy, layout.closed_xy);
-        let panel_xy = animated_xy;
 
-        ctx.absolute(panel_xy).compose(|ctx| {
+        ctx.absolute(animated_xy).compose(|ctx| {
             ctx.translate((0.px(), layout.paper_y))
                 .add(ShopPaperContent {
                     wh: Wh::new(layout.panel_wh.width, PAPER_HEIGHT),

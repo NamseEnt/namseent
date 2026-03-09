@@ -39,7 +39,6 @@ use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{Effect, Item};
-pub use level_rarity_weight::level_rarity_weight;
 pub use modal::Modal;
 pub use monster::*;
 use monster_spawn::*;

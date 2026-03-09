@@ -17,8 +17,6 @@ const ITEM_GAP: Px = px(12.);
 // half the gap becomes margin around each button
 const ITEM_MARGIN: Px = px(6.);
 const PADDING: Px = px(8.);
-/// width of the whole panel, including padding and horizontal margins
-const INVENTORY_WIDTH: Px = px(92.); // 64 + 16 + 6*2
 
 mod tooltip {
     use namui::*;
@@ -30,11 +28,12 @@ mod tooltip {
 }
 
 pub struct Inventory {
-    pub screen_wh: Wh<Px>,
+    pub wh: Wh<Px>,
 }
 
 impl Component for Inventory {
     fn render(self, render_ctx: &RenderCtx) {
+        let wh = self.wh;
         let game_state = use_game_state(render_ctx);
         let locale = game_state.text().locale();
 
@@ -58,12 +57,9 @@ impl Component for Inventory {
 
         render_ctx.compose(|ctx| {
             table::horizontal([
-                table::ratio_no_clip(1, |_, _| {}),
-                table::fixed_no_clip(
-                    INVENTORY_WIDTH,
-                    table::padding_no_clip(PADDING, scroll_view),
-                ),
-            ])(self.screen_wh, ctx);
+                // since wh is already the fixed panel width, we render directly
+                table::fixed_no_clip(wh.width, table::padding_no_clip(PADDING, scroll_view)),
+            ])(wh, ctx);
         });
     }
 }

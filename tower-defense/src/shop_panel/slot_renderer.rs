@@ -73,7 +73,6 @@ impl Component for ShopSlotView<'_> {
     }
 }
 
-// apply position+scale transforms for a slot before rendering its contents
 fn apply_slot_transform<'a>(
     ctx: &'a RenderCtx<'a, 'a>,
     wh: Wh<Px>,
