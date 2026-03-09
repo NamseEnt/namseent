@@ -429,6 +429,29 @@ impl GameState {
     }
 }
 
+pub fn is_boss_stage(stage: usize) -> bool {
+    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
+}
+
+/// Make sure that the tower can be placed at the given coord.
+pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
+    crate::game_state::mutate_game_state(move |game_state| {
+        game_state.place_tower(tower);
+        game_state.hand.delete_slots(&[placing_tower_slot_id]);
+
+        // Auto-select the first card (tower or barricade) if available
+        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
+            && game_state
+                .hand
+                .get_item(first_slot_id)
+                .and_then(|item| item.as_tower())
+                .is_some()
+        {
+            game_state.hand.select_slot(first_slot_id);
+        }
+    });
+}
+
 // Unit tests that exercise panel toggle behavior.
 #[cfg(test)]
 mod tests {
@@ -493,27 +516,4 @@ mod tests {
         assert!(gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
     }
-}
-
-pub fn is_boss_stage(stage: usize) -> bool {
-    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
-}
-
-/// Make sure that the tower can be placed at the given coord.
-pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
-    crate::game_state::mutate_game_state(move |game_state| {
-        game_state.place_tower(tower);
-        game_state.hand.delete_slots(&[placing_tower_slot_id]);
-
-        // Auto-select the first card (tower or barricade) if available
-        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
-            && game_state
-                .hand
-                .get_item(first_slot_id)
-                .and_then(|item| item.as_tower())
-                .is_some()
-        {
-            game_state.hand.select_slot(first_slot_id);
-        }
-    });
 }
