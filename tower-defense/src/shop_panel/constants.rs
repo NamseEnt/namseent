@@ -31,6 +31,10 @@ pub(super) const INNER_PADDING: Px = px(8.0);
 pub const PADDING: Px = px(4.0);
 pub const SHOP_SLOT_WIDTH: Px = px(240.0);
 
+pub(super) const VOYAGER_WIDTH: Px = px(320.0);
+pub(super) const VOYAGER_HEIGHT: Px = px(320.0);
+pub(super) const VOYAGER_ANIM_PERIOD: std::time::Duration = std::time::Duration::from_millis(660);
+
 #[inline]
 pub(super) fn panel_width() -> Px {
     PAPER_WIDTH

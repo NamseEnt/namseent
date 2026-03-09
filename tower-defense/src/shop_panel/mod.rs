@@ -7,11 +7,13 @@ mod slot_layout_calculator;
 mod slot_renderer;
 mod slot_rendering_data;
 mod sticky_bar;
+mod voyager;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
 use crate::hand::xy_with_spring;
 use crate::shop_panel::action_area::ShopActionArea;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+
 use constants::{
     ACTION_HEIGHT, ACTION_MARGIN_Y, BG_HEIGHT, PAPER_HEIGHT, STICKY_HEIGHT, STICKY_VISIBLE_HEIGHT,
     STICKY_WIDTH, TOP_BAR_HEIGHT, action_area_width, shop_panel_wh,
@@ -20,6 +22,7 @@ use namui::*;
 
 use paper_content::ShopPaperContent;
 use sticky_bar::StickyBar;
+use voyager::Voyager;
 
 /// Top‑level component representing the in‑game shop panel.  Handles all
 /// layout and sub‑components (paper, sticky bar, action area).
@@ -138,6 +141,8 @@ impl Component for ShopPanel {
                     color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
                     shadow: true,
                 });
+
+            ctx.add(Voyager);
         });
     }
 }
