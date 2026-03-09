@@ -19,12 +19,7 @@ mod theme;
 mod thumbnail;
 mod top_bar;
 
-use crate::{
-    camera_controller::CameraController,
-    game_state::{Modal, set_modal},
-    icon::{Icon, IconKind, IconSize},
-    theme::button::{Button, ButtonVariant},
-};
+use crate::{camera_controller::CameraController, game_state::Modal};
 use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
@@ -64,19 +59,6 @@ impl Component for Game {
 
             ctx.add(modal);
         });
-
-        ctx.translate((8.px(), screen_wh.height - 48.px())).add(
-            Button::new(
-                Wh::new(36.px(), 36.px()),
-                &|| {
-                    set_modal(Some(Modal::Settings));
-                },
-                &|wh, _text_color, ctx| {
-                    ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
-                },
-            )
-            .variant(ButtonVariant::Text),
-        );
 
         // Game speed indicator in bottom-right corner
         ctx.translate((screen_wh.width - 116.px(), screen_wh.height - 88.px()))

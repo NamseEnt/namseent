@@ -1,11 +1,12 @@
 mod level;
 mod stage;
 
-use crate::game_state::use_game_state;
+use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
+    theme::button::{Button, ButtonVariant},
     theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
@@ -14,6 +15,8 @@ use namui_prebuilt::table;
 const TOP_BAR_HEIGHT: Px = px(48.);
 const ITEM_WIDTH: Px = px(128.);
 const PADDING: Px = px(8.);
+
+const SETTINGS_BUTTON_SIZE: Px = px(36.);
 
 const BG_OVERSIZE_H: Px = px(4.);
 const BG_OVERSIZE_V: Px = px(4.);
@@ -80,6 +83,21 @@ impl Component for TopBar {
                         wh,
                         stage: game_state.stage,
                     });
+                }),
+                table::fixed_no_clip(SETTINGS_BUTTON_SIZE + PADDING * 2.0, |wh, ctx| {
+                    ctx.translate((PADDING, (wh.height - SETTINGS_BUTTON_SIZE) / 2.0))
+                        .add(
+                            Button::new(
+                                Wh::new(SETTINGS_BUTTON_SIZE, SETTINGS_BUTTON_SIZE),
+                                &|| set_modal(Some(Modal::Settings)),
+                                &|wh, _text_color, ctx| {
+                                    ctx.add(
+                                        Icon::new(IconKind::Config).size(IconSize::Large).wh(wh),
+                                    );
+                                },
+                            )
+                            .variant(ButtonVariant::Text),
+                        );
                 }),
             ])(Wh::new(wh.width, TOP_BAR_HEIGHT), ctx);
         });
