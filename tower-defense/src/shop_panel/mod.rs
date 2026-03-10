@@ -11,9 +11,9 @@ mod voyager;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
 use crate::hand::xy_with_spring;
+use crate::mutate_game_state;
 use crate::shop_panel::action_area::ShopActionArea;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
-use crate::mutate_game_state;
 
 use constants::{
     ACTION_HEIGHT, ACTION_MARGIN_Y, BG_HEIGHT, PAPER_HEIGHT, STICKY_HEIGHT, STICKY_VISIBLE_HEIGHT,

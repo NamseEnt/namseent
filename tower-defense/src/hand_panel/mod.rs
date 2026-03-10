@@ -6,8 +6,8 @@ mod sticky_bar;
 use crate::{
     game_state::{flow::GameFlow, use_game_state},
     hand::xy_with_spring,
-    theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
     mutate_game_state,
+    theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
 use namui::*;
 
