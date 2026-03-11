@@ -280,10 +280,13 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
     ctx.add(game_state.cursor_preview.render());
 
     // Render tower preview if in PlacingTower flow and hand has selected tower
-    if let crate::game_state::GameFlow::PlacingTower { hand } = &game_state.flow {
-        let selected_slot_ids = hand.selected_slot_ids();
+    if matches!(game_state.flow, crate::game_state::GameFlow::PlacingTower) {
+        let selected_slot_ids = game_state.hand.selected_slot_ids();
         if let Some(&selected_slot_id) = selected_slot_ids.first()
-            && let Some(tower_template) = hand.get_item(selected_slot_id)
+            && let Some(tower_template) = game_state
+                .hand
+                .get_item(selected_slot_id)
+                .and_then(|item| item.as_tower())
         {
             ctx.add(
                 crate::game_state::cursor_preview::tower::TowerCursorPreview {

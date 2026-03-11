@@ -1,6 +1,5 @@
-mod placing_tower;
 mod result;
-mod selecting_tower;
+pub(crate) mod selecting_tower;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
 use namui::*;
@@ -15,14 +14,10 @@ impl Component for FlowUi {
         match &game_state.flow {
             GameFlow::Initializing => {}
             GameFlow::Contract(..) => {}
-            GameFlow::SelectingTower(selecting_tower_flow) => {
-                ctx.add(selecting_tower::SelectingTowerUi {
-                    selecting_tower_flow,
-                });
+            GameFlow::SelectingTower(_selecting_tower_flow) => {
+                ctx.add(selecting_tower::SelectingTowerUi);
             }
-            GameFlow::PlacingTower { hand: _ } => {
-                ctx.add(placing_tower::PlacingTowerUi);
-            }
+            GameFlow::PlacingTower => {}
             GameFlow::Defense(..) => {}
             GameFlow::Result { .. } => {
                 ctx.add(result::ResultModal);

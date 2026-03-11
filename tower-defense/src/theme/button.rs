@@ -1,4 +1,7 @@
-use super::palette;
+use super::{
+    palette,
+    paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
+};
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use namui::*;
 
@@ -177,8 +180,7 @@ impl Component for Button<'_> {
             *button_state
         };
 
-        let (fill_color, stroke_color, stroke_width) =
-            get_button_style(variant, color, current_state);
+        let fill_color = get_button_fill_color(variant, color, current_state);
 
         let base_colors = get_base_colors(color);
         let text_color = if disabled {
@@ -241,25 +243,19 @@ impl Component for Button<'_> {
         }
 
         ctx.mouse_cursor(cursor)
-            .add(rect(RectParam {
-                rect: Rect::Xywh {
-                    x: px(0.0),
-                    y: px(0.0),
-                    width: wh.width,
-                    height: wh.height,
+            .add(PaperContainerBackground {
+                width: wh.width,
+                height: wh.height,
+                texture: PaperTexture::Rough,
+                variant: PaperVariant::Tape,
+                color: if fill_color.a > 0 {
+                    fill_color
+                } else {
+                    Color::TRANSPARENT
                 },
-                style: RectStyle {
-                    stroke: Some(RectStroke {
-                        color: stroke_color,
-                        width: stroke_width,
-                        border_position: BorderPosition::Inside,
-                    }),
-                    fill: Some(RectFill { color: fill_color }),
-                    round: Some(RectRound {
-                        radius: palette::ROUND,
-                    }),
-                },
-            }))
+                shadow: variant != ButtonVariant::Text,
+                arrow: None,
+            })
             .attach_event({
                 move |event| {
                     if disabled {
@@ -286,7 +282,6 @@ impl Component for Button<'_> {
                             let was_pressed = *button_state == ButtonState::Pressed;
                             let is_inside = event.is_local_xy_in();
 
-                            // 버튼 상태 업데이트
                             set_button_state.set(if is_inside {
                                 ButtonState::Hovered
                             } else {
@@ -297,19 +292,16 @@ impl Component for Button<'_> {
                                 let mut state = *long_press_state;
                                 let total_progress = state.current_progress();
 
-                                // 버튼 안에서 뗐고, 눌린 상태였으며, 충분한 시간이 지났으면 트리거
                                 if is_inside && was_pressed && total_progress >= long_press_duration
                                 {
                                     state.reset();
                                 } else {
-                                    // 그 외의 경우 감소 시작
                                     state.on_press_end();
                                 }
                                 set_long_press_state.set(state);
                                 set_long_press_sound_started_at.set(None);
                                 set_last_long_press_sound_elapsed.set(None);
                             } else if is_inside && was_pressed {
-                                // long_press가 아닌 일반 버튼의 경우
                                 play_random_button_click_sound();
                                 on_click();
                             }
@@ -371,83 +363,29 @@ fn apply_ease_out_cubic(t: f32) -> f32 {
     1.0 - (inverse * inverse * inverse)
 }
 
-fn get_button_style(
-    variant: ButtonVariant,
-    color: ButtonColor,
-    state: ButtonState,
-) -> (Color, Color, Px) {
+fn get_button_fill_color(variant: ButtonVariant, color: ButtonColor, state: ButtonState) -> Color {
     let base_colors = get_base_colors(color);
 
     match (variant, state) {
-        (ButtonVariant::Text, ButtonState::Normal) => {
-            (Color::TRANSPARENT, Color::TRANSPARENT, 0.px())
-        }
-        (ButtonVariant::Text, ButtonState::Hovered) => (
-            lighten_color(base_colors.0, 0.1),
-            Color::TRANSPARENT,
-            0.px(),
-        ),
-        (ButtonVariant::Text, ButtonState::Pressed) => (
-            lighten_color(base_colors.0, 0.2),
-            Color::TRANSPARENT,
-            0.px(),
-        ),
-        (ButtonVariant::Text, ButtonState::Disabled) => {
-            (Color::TRANSPARENT, Color::TRANSPARENT, 0.px())
-        }
+        (ButtonVariant::Text, ButtonState::Normal) => Color::TRANSPARENT,
+        (ButtonVariant::Text, ButtonState::Hovered) => lighten_color(base_colors.0, 0.1),
+        (ButtonVariant::Text, ButtonState::Pressed) => lighten_color(base_colors.0, 0.2),
+        (ButtonVariant::Text, ButtonState::Disabled) => Color::TRANSPARENT,
 
-        (ButtonVariant::Contained, ButtonState::Normal) => (base_colors.0, base_colors.0, 0.px()),
-        (ButtonVariant::Contained, ButtonState::Hovered) => (
-            lighten_color(base_colors.0, 0.1),
-            lighten_color(base_colors.0, 0.1),
-            0.px(),
-        ),
-        (ButtonVariant::Contained, ButtonState::Pressed) => (
-            lighten_color(base_colors.0, 0.2),
-            lighten_color(base_colors.0, 0.2),
-            0.px(),
-        ),
-        (ButtonVariant::Contained, ButtonState::Disabled) => (
-            palette::DISABLED_CONTAINER,
-            palette::DISABLED_CONTAINER,
-            0.px(),
-        ),
+        (ButtonVariant::Contained, ButtonState::Normal) => base_colors.0,
+        (ButtonVariant::Contained, ButtonState::Hovered) => lighten_color(base_colors.0, 0.1),
+        (ButtonVariant::Contained, ButtonState::Pressed) => lighten_color(base_colors.0, 0.2),
+        (ButtonVariant::Contained, ButtonState::Disabled) => palette::DISABLED_CONTAINER,
 
-        (ButtonVariant::Outlined, ButtonState::Normal) => {
-            (Color::TRANSPARENT, base_colors.0, 1.px())
-        }
-        (ButtonVariant::Outlined, ButtonState::Hovered) => (
-            lighten_color(base_colors.0, 0.1),
-            lighten_color(base_colors.0, 0.1),
-            1.px(),
-        ),
-        (ButtonVariant::Outlined, ButtonState::Pressed) => (
-            lighten_color(base_colors.0, 0.2),
-            lighten_color(base_colors.0, 0.2),
-            1.px(),
-        ),
-        (ButtonVariant::Outlined, ButtonState::Disabled) => {
-            (Color::TRANSPARENT, palette::OUTLINE, 1.px())
-        }
+        (ButtonVariant::Outlined, ButtonState::Normal) => Color::TRANSPARENT,
+        (ButtonVariant::Outlined, ButtonState::Hovered) => lighten_color(base_colors.0, 0.1),
+        (ButtonVariant::Outlined, ButtonState::Pressed) => lighten_color(base_colors.0, 0.2),
+        (ButtonVariant::Outlined, ButtonState::Disabled) => Color::TRANSPARENT,
 
-        (ButtonVariant::Fab, ButtonState::Normal) => {
-            (base_colors.0, darken_color(base_colors.0, 0.3), 5.px())
-        }
-        (ButtonVariant::Fab, ButtonState::Hovered) => (
-            lighten_color(base_colors.0, 0.1),
-            darken_color(base_colors.0, 0.3),
-            5.px(),
-        ),
-        (ButtonVariant::Fab, ButtonState::Pressed) => (
-            lighten_color(base_colors.0, 0.2),
-            darken_color(base_colors.0, 0.3),
-            5.px(),
-        ),
-        (ButtonVariant::Fab, ButtonState::Disabled) => (
-            palette::DISABLED_CONTAINER,
-            darken_color(palette::DISABLED_CONTAINER, 0.2),
-            5.px(),
-        ),
+        (ButtonVariant::Fab, ButtonState::Normal) => base_colors.0,
+        (ButtonVariant::Fab, ButtonState::Hovered) => lighten_color(base_colors.0, 0.1),
+        (ButtonVariant::Fab, ButtonState::Pressed) => lighten_color(base_colors.0, 0.2),
+        (ButtonVariant::Fab, ButtonState::Disabled) => palette::DISABLED_CONTAINER,
     }
 }
 

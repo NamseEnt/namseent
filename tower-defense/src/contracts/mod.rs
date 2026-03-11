@@ -15,16 +15,16 @@ use contract_item::ContractItemContent;
 use namui::*;
 use namui_prebuilt::table;
 
-const PANEL_WIDTH: Px = px(260.);
 const PADDING: Px = px(4.);
 const TITLE_HEIGHT: Px = px(36.);
 
 pub struct ContractsPanel {
-    pub screen_wh: Wh<Px>,
+    pub wh: Wh<Px>,
 }
 
 impl Component for ContractsPanel {
     fn render(self, render_ctx: &RenderCtx) {
+        let wh = self.wh;
         let game_state = use_game_state(render_ctx);
         let text_manager: TextManager = game_state.text();
         let evaluating_contract_id = get_evaluating_contract_id(&game_state);
@@ -52,7 +52,7 @@ impl Component for ContractsPanel {
         render_ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed_no_clip(
-                    PANEL_WIDTH,
+                    wh.width,
                     table::padding(
                         PADDING,
                         table::vertical([
@@ -87,19 +87,17 @@ impl Component for ContractsPanel {
                     ),
                 ),
                 table::ratio_no_clip(1, |_, _| {}),
-            ])(self.screen_wh, ctx);
+            ])(wh, ctx);
         });
     }
 }
 
 pub struct Contracts {
-    pub screen_wh: Wh<Px>,
+    pub wh: Wh<Px>,
 }
 impl Component for Contracts {
     fn render(self, ctx: &RenderCtx) {
-        ctx.add(ContractsPanel {
-            screen_wh: self.screen_wh,
-        });
+        ctx.add(ContractsPanel { wh: self.wh });
     }
 }
 

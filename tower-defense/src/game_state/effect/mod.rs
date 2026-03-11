@@ -5,6 +5,7 @@ use crate::game_state::{
     tower::{TowerKind, TowerTemplate},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
+use crate::hand::HandItem;
 use crate::rarity::Rarity;
 use namui::*;
 
@@ -374,8 +375,12 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             count,
         } => {
             for _ in 0..*count {
-                if let GameFlow::PlacingTower { hand } = &mut game_state.flow {
-                    hand.push(TowerTemplate::new(*tower_kind, *suit, *rank));
+                if matches!(game_state.flow, GameFlow::PlacingTower) {
+                    game_state.hand.push(HandItem::Tower(TowerTemplate::new(
+                        *tower_kind,
+                        *suit,
+                        *rank,
+                    )));
                 } else {
                     game_state
                         .stage_modifiers
@@ -457,6 +462,7 @@ pub mod tests_support {
     use crate::game_state::{
         GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
     };
+    use crate::hand::{Hand, HandItem};
     use namui::Instant;
     use std::num::NonZeroUsize; // use the same Instant type as production code
 
@@ -473,6 +479,7 @@ pub mod tests_support {
             backgrounds: crate::game_state::generate_backgrounds(),
             upgrade_state: Default::default(),
             flow: GameFlow::Initializing,
+            hand: Hand::new(std::iter::empty::<HandItem>()),
             stage: 1,
             left_reroll_chance: 1,
             monster_spawn_state: MonsterSpawnState::idle(),
@@ -502,7 +509,10 @@ pub mod tests_support {
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
                     Instant::now(),
                 ),
-            black_smoke_sources: Default::default()
+            black_smoke_sources: Default::default(),
+
+            hand_panel_forced_open: true,
+            shop_panel_forced_open: true,
         }
     }
 }

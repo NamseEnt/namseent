@@ -267,12 +267,15 @@ export function envGl({
         "emscripten_glGetQueryObjectuivEXT",
         "emscripten_glGetQueryObjecti64vEXT",
         "emscripten_glGetQueryObjectui64vEXT",
-    ].reduce((acc, x) => {
-        acc[x] = () => {
-            throw new Error("not implemented");
-        };
-        return acc;
-    }, {} as Record<string, () => void>);
+    ].reduce(
+        (acc, x) => {
+            acc[x] = () => {
+                throw new Error("not implemented");
+            };
+            return acc;
+        },
+        {} as Record<string, () => void>,
+    );
 
     return {
         ...notImplementeds,
@@ -389,18 +392,56 @@ export function envGl({
             throw new Error("not implemented");
             // return webgl!.texImage2D();
         },
-        emscripten_glStencilOpSeparate:
-            webgl?.stencilOpSeparate.bind(webgl) || (() => {}),
-        emscripten_glStencilOp:
-            webgl?.stencilOp.bind(webgl) || (() => {}),
-        emscripten_glStencilMaskSeparate:
-            webgl?.stencilMaskSeparate.bind(webgl) || (() => {}),
-        emscripten_glStencilMask:
-            webgl?.stencilMask.bind(webgl) || (() => {}),
-        emscripten_glStencilFuncSeparate:
-            webgl?.stencilFuncSeparate.bind(webgl) || (() => {}),
-        emscripten_glStencilFunc:
-            webgl?.stencilFunc.bind(webgl) || (() => {}),
+        emscripten_glStencilOpSeparate: (
+            face: number,
+            sfail: number,
+            dpfail: number,
+            dppass: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilOpSeparate(face, sfail, dpfail, dppass);
+        },
+        emscripten_glStencilOp: (
+            fail: number,
+            zfail: number,
+            zpass: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilOp(fail, zfail, zpass);
+        },
+        emscripten_glStencilMaskSeparate: (face: number, mask: number) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilMaskSeparate(face, mask);
+        },
+        emscripten_glStencilMask: (mask: number) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilMask(mask);
+        },
+        emscripten_glStencilFuncSeparate: (
+            face: number,
+            func: number,
+            ref: number,
+            mask: number,
+        ) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilFuncSeparate(face, func, ref, mask);
+        },
+        emscripten_glStencilFunc: (func: number, ref: number, mask: number) => {
+            if (!webgl) {
+                throw new Error("webgl is not set");
+            }
+            return webgl.stencilFunc(func, ref, mask);
+        },
         /**
          * void glShaderSource(
          *   GLuint shader,
@@ -2096,11 +2137,19 @@ export function envGl({
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
-            const renderbuffer = renderbufferId === 0 ? null : webglRenderbufferMap.get(renderbufferId);
+            const renderbuffer =
+                renderbufferId === 0
+                    ? null
+                    : webglRenderbufferMap.get(renderbufferId);
             if (renderbufferId !== 0 && !renderbuffer) {
                 throw new Error("renderbuffer not found");
             }
-            webgl.framebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer ?? null);
+            webgl.framebufferRenderbuffer(
+                target,
+                attachment,
+                renderbuffertarget,
+                renderbuffer ?? null,
+            );
         },
         emscripten_glDeleteRenderbuffers: (
             n: number,

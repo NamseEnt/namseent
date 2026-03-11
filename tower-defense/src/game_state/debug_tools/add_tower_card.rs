@@ -1,6 +1,7 @@
 use crate::card::{REVERSED_RANKS, Rank, SUITS, Suit};
 use crate::game_state::tower::{TowerKind, TowerTemplate};
 use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
+use crate::hand::HandItem;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::palette;
@@ -122,8 +123,9 @@ impl Component for AddTowerCardTool {
                 *selected_rank
             };
             mutate_game_state(move |gs| {
-                if let GameFlow::PlacingTower { hand } = &mut gs.flow {
-                    hand.push(TowerTemplate::new(kind, suit, rank));
+                if matches!(gs.flow, GameFlow::PlacingTower) {
+                    gs.hand
+                        .push(HandItem::Tower(TowerTemplate::new(kind, suit, rank)));
                 } else {
                     gs.stage_modifiers
                         .enqueue_extra_tower_card(kind, suit, rank);

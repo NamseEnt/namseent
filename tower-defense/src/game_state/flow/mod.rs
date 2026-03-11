@@ -2,10 +2,7 @@ pub mod contract;
 
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{
-    card::Card,
-    game_state::{flow::contract::ContractFlow, hand::Hand},
-    shop::Shop,
-    sound, *,
+    card::Card, game_state::flow::contract::ContractFlow, hand::HandItem, shop::Shop, sound, *,
 };
 
 #[cfg(feature = "debug-tools")]
@@ -22,50 +19,31 @@ pub enum GameFlow {
     Initializing,
     Contract(ContractFlow),
     SelectingTower(SelectingTowerFlow),
-    PlacingTower { hand: Hand<TowerTemplate> },
+    PlacingTower,
     Defense(DefenseFlow),
     Result { clear_rate: f32 },
 }
 impl GameFlow {
     pub(crate) fn update(&mut self) {
-        match self {
-            GameFlow::SelectingTower(selecting_tower) => {
-                selecting_tower.update();
-            }
-            GameFlow::PlacingTower { hand } => {
-                hand.update();
-            }
-            _ => {}
+        if let GameFlow::SelectingTower(selecting_tower) = self {
+            selecting_tower.update();
         }
     }
 }
 
 #[derive(Clone, Debug, State)]
 pub struct SelectingTowerFlow {
-    pub hand: Hand<Card>,
     pub shop: Shop,
 }
 
 impl SelectingTowerFlow {
     pub fn new(game_state: &GameState) -> Self {
-        let max_slots = (5 + game_state
-            .stage_modifiers
-            .get_card_selection_hand_max_slots_bonus())
-        .saturating_sub(
-            game_state
-                .stage_modifiers
-                .get_card_selection_hand_max_slots_penalty(),
-        )
-        .max(1);
-        sound::play_card_draw_sounds(max_slots);
         SelectingTowerFlow {
-            hand: Hand::new((0..max_slots).map(|_| Card::new_random())),
             shop: Shop::new(game_state),
         }
     }
 
     fn update(&mut self) {
-        self.hand.update();
         self.shop.update();
     }
 }
@@ -112,6 +90,24 @@ impl GameState {
     }
 
     pub fn goto_selecting_tower(&mut self) {
+        let max_slots = (5 + self
+            .stage_modifiers
+            .get_card_selection_hand_max_slots_bonus())
+        .saturating_sub(
+            self.stage_modifiers
+                .get_card_selection_hand_max_slots_penalty(),
+        )
+        .max(1);
+        sound::play_card_draw_sounds(max_slots);
+
+        let removing_ids = self.hand.active_slot_ids();
+        if !removing_ids.is_empty() {
+            self.hand.delete_slots(&removing_ids);
+        }
+        for _ in 0..max_slots {
+            self.hand.push(HandItem::Card(Card::new_random()));
+        }
+
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
         self.just_cleared_boss_stage = false;
     }
@@ -124,13 +120,26 @@ impl GameState {
             hand_items.push(TowerTemplate::new(tower_kind, suit, rank));
         }
 
-        let mut hand = Hand::new(hand_items);
+        let removing_ids = self.hand.active_slot_ids();
+        if !removing_ids.is_empty() {
+            self.hand.delete_slots(&removing_ids);
+        }
 
-        // Auto-select the first card (tower or barricade)
-        let first_slot_id = hand.get_slot_id_by_index(0).unwrap();
-        hand.select_slot(first_slot_id);
+        for tower in hand_items {
+            self.hand.push(HandItem::Tower(tower));
+        }
 
-        self.flow = GameFlow::PlacingTower { hand };
+        if let Some(first_slot_id) = self.hand.get_slot_id_by_index(0)
+            && self
+                .hand
+                .get_item(first_slot_id)
+                .and_then(|item| item.as_tower())
+                .is_some()
+        {
+            self.hand.select_slot(first_slot_id);
+        }
+
+        self.flow = GameFlow::PlacingTower;
     }
 
     pub fn goto_defense(&mut self) {

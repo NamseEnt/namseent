@@ -3,7 +3,7 @@ mod tower_preview_component;
 mod tower_skill;
 mod upgrade_helpers;
 
-pub use tower_preview_component::{TowerPreview, TowerPreviewContent};
+pub use tower_preview_component::TowerPreviewContent;
 
 /// Format a number with suffixes like k, m, b keeping one decimal place.
 /// Examples: 950.0 -> "950.0", 1500.0 -> "1.5k", 2_300_000.0 -> "2.3m"

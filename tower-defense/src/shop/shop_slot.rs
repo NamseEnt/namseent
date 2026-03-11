@@ -72,20 +72,9 @@ impl ShopSlotData {
     }
 }
 
-#[derive(Debug, Default, Clone, State)]
+#[derive(Debug, Clone, State)]
 pub enum ShopSlot {
-    #[default]
-    Locked,
-    Item {
-        item: Item,
-        cost: usize,
-    },
-    Upgrade {
-        upgrade: Upgrade,
-        cost: usize,
-    },
-    Contract {
-        contract: Contract,
-        cost: usize,
-    },
+    Item { item: Item, cost: usize },
+    Upgrade { upgrade: Upgrade, cost: usize },
+    Contract { contract: Contract, cost: usize },
 }

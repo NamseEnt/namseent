@@ -6,31 +6,30 @@ mod flow_ui;
 mod game_speed_indicator;
 mod game_state; // now private; selective re-exports below
 mod hand;
+mod hand_panel;
 mod icon;
 mod inventory;
 pub mod l10n;
 mod rarity; // private; re-export Rarity only
 mod route;
 mod shop;
+mod shop_panel;
 pub mod sound;
 mod theme;
 mod thumbnail;
 mod top_bar;
 
-use crate::{
-    camera_controller::CameraController,
-    game_state::{Modal, set_modal},
-    icon::{Icon, IconKind, IconSize},
-    theme::button::{Button, ButtonVariant},
-};
+use crate::{camera_controller::CameraController, game_state::Modal};
 use contracts::Contracts;
 use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
-use namui_prebuilt::simple_rect;
+use namui_prebuilt::{simple_rect, table};
 use theme::palette;
 use top_bar::TopBar;
+
+const TOP_BAR_HEIGHT: Px = px(48.);
 
 register_assets!();
 
@@ -61,29 +60,39 @@ impl Component for Game {
             ctx.add(modal);
         });
 
-        ctx.translate((8.px(), screen_wh.height - 48.px())).add(
-            Button::new(
-                Wh::new(36.px(), 36.px()),
-                &|| {
-                    set_modal(Some(Modal::Settings));
-                },
-                &|wh, _text_color, ctx| {
-                    ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
-                },
-            )
-            .variant(ButtonVariant::Text),
-        );
-
         // Game speed indicator in bottom-right corner
         ctx.translate((screen_wh.width - 116.px(), screen_wh.height - 88.px()))
             .add(GameSpeedIndicator);
 
         ctx.add(flow_ui::FlowUi);
 
-        ctx.add(Contracts { screen_wh });
-        ctx.add(Inventory { screen_wh });
+        ctx.add(hand_panel::HandPanel);
 
-        ctx.add(TopBar { screen_wh });
+        ctx.compose(|ctx| {
+            table::vertical([
+                table::fixed_no_clip(TOP_BAR_HEIGHT, |wh, ctx| {
+                    ctx.add(TopBar { wh });
+                }),
+                table::ratio_no_clip(
+                    1,
+                    table::padding(
+                        8.px(),
+                        table::horizontal([
+                            table::fixed_no_clip(px(260.), |wh, ctx| {
+                                ctx.add(Contracts { wh });
+                            }),
+                            table::ratio_no_clip(1, |_, _| {}),
+                            table::fixed_no_clip(px(92.), |wh, ctx| {
+                                ctx.add(Inventory { wh });
+                            }),
+                        ]),
+                    ),
+                ),
+                table::fixed(128.px(), |_, _| {}),
+            ])(screen_wh, ctx);
+        });
+
+        ctx.add(shop_panel::ShopPanel);
 
         ctx.add(sound::SoundRenderer);
 
@@ -122,6 +131,11 @@ impl Component for Game {
                         mutate_game_state(|game_state| {
                             game_state.fast_forward_multiplier =
                                 game_state.fast_forward_multiplier.next();
+                        });
+                    }
+                    Code::Space => {
+                        mutate_game_state(|game_state| {
+                            game_state.toggle_panels();
                         });
                     }
                     #[cfg(feature = "debug-tools")]
@@ -171,7 +185,7 @@ impl Component for Game {
                     if game_state.cursor_preview.should_update_position()
                         || matches!(
                             game_state.flow,
-                            crate::game_state::flow::GameFlow::PlacingTower { hand: _ }
+                            crate::game_state::flow::GameFlow::PlacingTower
                         )
                     {
                         let local_xy_tile =

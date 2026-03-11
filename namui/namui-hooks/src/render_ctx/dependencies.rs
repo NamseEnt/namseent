@@ -98,7 +98,7 @@ macro_rules! track_eq_tuple_impl {
                     $(
                         let $T = $T.track_eq(ctx);
                     )*
-                    $($T &&)* true
+                    $($T ||)* false
                 }
             }
         )*

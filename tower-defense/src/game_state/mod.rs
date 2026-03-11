@@ -30,7 +30,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::game_state::stage_modifiers::StageModifiers;
-use crate::hand::HandSlotId;
+use crate::hand::{Hand, HandItem, HandSlotId};
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
@@ -39,7 +39,6 @@ use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{Effect, Item};
-pub use level_rarity_weight::level_rarity_weight;
 pub use modal::Modal;
 pub use monster::*;
 use monster_spawn::*;
@@ -79,6 +78,7 @@ pub struct GameState {
     pub backgrounds: Vec<Background>,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
+    pub hand: Hand<HandItem>,
     /// one-based
     pub stage: usize,
     pub left_reroll_chance: usize,
@@ -107,6 +107,10 @@ pub struct GameState {
     pub just_cleared_boss_stage: bool,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
+
+    // panel open states controlled by input/flow
+    pub hand_panel_forced_open: bool,
+    pub shop_panel_forced_open: bool,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -133,6 +137,41 @@ impl GameState {
             self.stage_modifiers
                 .get_card_selection_hand_max_rerolls_penalty(),
         )
+    }
+
+    /// Returns whether the hand panel is allowed to be opened based on current flow.
+    pub fn can_open_hand_panel(&self) -> bool {
+        matches!(
+            self.flow,
+            GameFlow::SelectingTower(_) | GameFlow::PlacingTower
+        )
+    }
+
+    /// Returns whether the shop panel is allowed to be opened based on current flow.
+    pub fn can_open_shop_panel(&self) -> bool {
+        matches!(self.flow, GameFlow::SelectingTower(_))
+    }
+
+    /// Toggle panels according to rules described in UI feature request.
+    ///
+    /// * If any panel that is allowed is currently open, close both.
+    /// * Otherwise open all allowed panels (disallowed ones stay closed).
+    pub fn toggle_panels(&mut self) {
+        let hand_allowed = self.can_open_hand_panel();
+        let shop_allowed = self.can_open_shop_panel();
+        let hand_open = hand_allowed && self.hand_panel_forced_open;
+        let shop_open = shop_allowed && self.shop_panel_forced_open;
+        if hand_open || shop_open {
+            self.hand_panel_forced_open = false;
+            self.shop_panel_forced_open = false;
+        } else {
+            if hand_allowed {
+                self.hand_panel_forced_open = true;
+            }
+            if shop_allowed {
+                self.shop_panel_forced_open = true;
+            }
+        }
     }
 
     pub fn now(&self) -> Instant {
@@ -199,6 +238,7 @@ fn create_initial_game_state() -> GameState {
         backgrounds: generate_backgrounds(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
+        hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
         left_reroll_chance: 1,
         monster_spawn_state: MonsterSpawnState::idle(),
@@ -257,6 +297,10 @@ fn create_initial_game_state() -> GameState {
         just_cleared_boss_stage: false,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
+
+        // start panels in opened state by default (if flow allows later)
+        hand_panel_forced_open: true,
+        shop_panel_forced_open: true,
     };
 
     game_state.goto_next_stage();
@@ -300,6 +344,7 @@ impl GameState {
             backgrounds: self.backgrounds.clone(),
             upgrade_state: self.upgrade_state.clone(),
             flow: self.flow.clone(),
+            hand: self.hand.clone(),
             stage: self.stage,
             left_reroll_chance: self.left_reroll_chance,
             monster_spawn_state: self.monster_spawn_state.clone(),
@@ -327,6 +372,9 @@ impl GameState {
             just_cleared_boss_stage: self.just_cleared_boss_stage,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
             black_smoke_sources: Default::default(),
+
+            hand_panel_forced_open: self.hand_panel_forced_open,
+            shop_panel_forced_open: self.shop_panel_forced_open,
         }
     }
 
@@ -389,16 +437,83 @@ pub fn is_boss_stage(stage: usize) -> bool {
 pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
         game_state.place_tower(tower);
-        let GameFlow::PlacingTower { hand } = &mut game_state.flow else {
-            unreachable!()
-        };
-        hand.delete_slots(&[placing_tower_slot_id]);
+        game_state.hand.delete_slots(&[placing_tower_slot_id]);
 
         // Auto-select the first card (tower or barricade) if available
-        if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
-            && hand.get_item(first_slot_id).is_some()
+        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
+            && game_state
+                .hand
+                .get_item(first_slot_id)
+                .and_then(|item| item.as_tower())
+                .is_some()
         {
-            hand.select_slot(first_slot_id);
+            game_state.hand.select_slot(first_slot_id);
         }
     });
+}
+
+// Unit tests that exercise panel toggle behavior.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn toggle_panels_basic_scenarios() {
+        let mut gs = create_initial_game_state();
+
+        // initially flow is Initializing; neither panel can open
+        assert!(!gs.can_open_hand_panel());
+        assert!(!gs.can_open_shop_panel());
+
+        // flags start true, but open status is false due to cannot open
+        assert!(gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        gs.toggle_panels();
+        // toggling when nothing allowed shouldn't change flags
+        assert!(gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        // enter selecting tower flow - both panels allowed
+        gs.goto_selecting_tower();
+        assert!(gs.can_open_hand_panel());
+        assert!(gs.can_open_shop_panel());
+        // forced flags were true already; panels open
+        assert!(gs.hand_panel_forced_open && gs.can_open_hand_panel());
+        assert!(gs.shop_panel_forced_open && gs.can_open_shop_panel());
+
+        // space should close both
+        gs.toggle_panels();
+        assert!(!gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
+
+        // closing again should reopen since none are open
+        gs.toggle_panels();
+        assert!(gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        // go to placing tower flow: hand allowed, shop not
+        gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::Barricade,
+            crate::card::Suit::Spades,
+            crate::card::Rank::Ace,
+        ));
+        assert!(gs.can_open_hand_panel());
+        assert!(!gs.can_open_shop_panel());
+
+        // forced flags remain whatever they were; toggle logic should respect permissions
+        // start with both forced open from previous step
+        assert!(gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        // space when hand is open should close both (shop will be closed but can't open anyway)
+        gs.toggle_panels();
+        assert!(!gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
+
+        // toggle again should reopen only the hand panel since shop is not allowed
+        gs.toggle_panels();
+        assert!(gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
+    }
 }

@@ -1,46 +1,18 @@
-use crate::theme::button::Button;
 use crate::{
-    game_state::{mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
-    palette,
-    sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset},
-    theme::typography::{self, memoized_text},
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
-use namui_prebuilt::{simple_rect, table};
-
-const PADDING: Px = px(8.);
+use namui_prebuilt::table;
 
 pub struct LevelIndicator {
     pub wh: Wh<Px>,
     pub level: usize,
-    pub level_up_cost: usize,
-    pub gold: usize,
 }
 impl Component for LevelIndicator {
     fn render(self, ctx: &RenderCtx) {
-        let Self {
-            wh,
-            level,
-            level_up_cost,
-            gold,
-        } = self;
-        let _game_state = use_game_state(ctx);
-        let (mouse_hovering, set_mouse_hovering) = ctx.state(|| false);
-        let can_upgrade = level < 10 && gold >= level_up_cost;
-        let level_up = || {
-            mutate_game_state(move |game_state| {
-                game_state.level = game_state.level.checked_add(1).expect("Level overflow");
-                game_state.spend_gold(level_up_cost);
-            });
+        let Self { wh, level } = self;
 
-            sound::emit_sound(EmitSoundParams::one_shot(
-                sound::random_level_up(),
-                SoundGroup::Sfx,
-                VolumePreset::Medium,
-                SpatialMode::NonSpatial,
-            ));
-        };
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed(48.px(), |wh, ctx| {
@@ -50,72 +22,13 @@ impl Component for LevelIndicator {
                     ctx.add(memoized_text(&level, |mut builder| {
                         builder
                             .headline()
-                            .size(typography::FontSize::Medium)
+                            .size(FontSize::Medium)
                             .text(format!("{level}"))
                             .render_center(wh)
                     }));
                 }),
                 table::ratio(1, |_, _| {}),
-                table::fixed(
-                    128.px(),
-                    table::padding(PADDING, |wh, ctx| {
-                        ctx.add(
-                            Button::new(
-                                wh,
-                                &|| {
-                                    if !can_upgrade {
-                                        return;
-                                    }
-                                    level_up();
-                                },
-                                &|wh, text_color, ctx| {
-                                    ctx.add(memoized_text(
-                                        (&level_up_cost, &text_color),
-                                        |mut builder| {
-                                            builder
-                                                .icon(IconKind::Level)
-                                                .space()
-                                                .icon(IconKind::Gold)
-                                                .color(text_color)
-                                                .text(format!("{level_up_cost}"))
-                                                .render_center(wh)
-                                        },
-                                    ));
-                                },
-                            )
-                            .variant(crate::theme::button::ButtonVariant::Contained)
-                            .color(crate::theme::button::ButtonColor::Primary)
-                            .disabled(!can_upgrade),
-                        );
-                    }),
-                ),
             ])(wh, ctx);
-        })
-        .attach_event(|event| {
-            let Event::MouseMove { event } = event else {
-                return;
-            };
-            let mouse_move_is_local_xy_in = event.is_local_xy_in();
-            if *mouse_hovering != mouse_move_is_local_xy_in {
-                set_mouse_hovering.set(mouse_move_is_local_xy_in);
-            }
         });
-        ctx.compose(|ctx| {
-            if !*mouse_hovering {
-                return;
-            }
-            ctx.translate((0.px(), wh.height)).on_top().add(
-                crate::top_bar::level_up_details::LevelUpDetails {
-                    width: wh.width,
-                    current_level: level,
-                },
-            );
-        });
-        ctx.add(simple_rect(
-            wh,
-            Color::TRANSPARENT,
-            0.px(),
-            palette::SURFACE_CONTAINER,
-        ));
     }
 }

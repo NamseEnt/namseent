@@ -101,14 +101,19 @@ pub struct PlaceSelectedTowerInSpiralButton {
 
 pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
     let (slot_id, template) = {
-        let GameFlow::PlacingTower { hand } = &mut gs.flow else {
+        if !matches!(gs.flow, GameFlow::PlacingTower) {
             return;
-        };
+        }
 
-        let Some(&slot_id) = hand.selected_slot_ids().first() else {
+        let Some(&slot_id) = gs.hand.selected_slot_ids().first() else {
             return;
         };
-        let Some(template) = hand.get_item(slot_id).cloned() else {
+        let Some(template) = gs
+            .hand
+            .get_item(slot_id)
+            .and_then(|item| item.as_tower())
+            .cloned()
+        else {
             return;
         };
         (slot_id, template)
@@ -158,18 +163,20 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
     }
 
     if placed_at.is_some() {
-        if let GameFlow::PlacingTower { hand } = &mut gs.flow {
-            hand.delete_slots(&[slot_id]);
+        gs.hand.delete_slots(&[slot_id]);
 
-            if let Some(first_slot_id) = hand.get_slot_id_by_index(0)
-                && hand.get_item(first_slot_id).is_some()
-            {
-                hand.select_slot(first_slot_id);
-            }
+        if let Some(first_slot_id) = gs.hand.get_slot_id_by_index(0)
+            && gs
+                .hand
+                .get_item(first_slot_id)
+                .and_then(|item| item.as_tower())
+                .is_some()
+        {
+            gs.hand.select_slot(first_slot_id);
+        }
 
-            if hand.is_empty() {
-                gs.goto_defense();
-            }
+        if gs.hand.is_empty() {
+            gs.goto_defense();
         }
     } else {
         println!("[Spiral Place] No placement available for this plan iteration.");
