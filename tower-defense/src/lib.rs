@@ -66,8 +66,6 @@ impl Component for Game {
 
         ctx.add(flow_ui::FlowUi);
 
-        ctx.add(hand_panel::HandPanel);
-
         ctx.compose(|ctx| {
             table::vertical([
                 table::fixed_no_clip(TOP_BAR_HEIGHT, |wh, ctx| {
@@ -93,6 +91,8 @@ impl Component for Game {
         });
 
         ctx.add(shop_panel::ShopPanel);
+
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(sound::SoundRenderer);
 

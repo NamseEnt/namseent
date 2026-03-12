@@ -1,7 +1,6 @@
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::{
     card::Card,
-    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{flow::GameFlow, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
     sound,
@@ -17,44 +16,32 @@ use super::constants::INNER_PADDING;
 
 pub(super) struct HandActionArea {
     pub wh: Wh<Px>,
+    pub selected_slot_ids: Vec<crate::hand::HandSlotId>,
+    pub tower_template: Option<crate::game_state::tower::TowerTemplate>,
 }
 
 impl Component for HandActionArea {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
+        let Self {
+            wh,
+            selected_slot_ids: _,
+            tower_template: _,
+        } = self;
         let game_state = use_game_state(ctx);
         let action_padding = INNER_PADDING * 2.0;
 
         match &game_state.flow {
             GameFlow::SelectingTower(_) => {
-                let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
-                let some_selected = ctx.memo(|| !selected_slot_ids.is_empty());
+                let selected_slot_ids = self.selected_slot_ids.clone();
+                let some_selected = !selected_slot_ids.is_empty();
 
-                let using_cards = ctx.memo(|| {
-                    let slot_ids = if !selected_slot_ids.is_empty() {
-                        selected_slot_ids.clone_inner()
-                    } else {
-                        game_state.hand.active_slot_ids()
-                    };
-
-                    game_state
-                        .hand
-                        .get_items(&slot_ids)
-                        .filter_map(|item| item.as_card().copied())
-                        .collect::<Vec<Card>>()
-                });
-
-                let tower_template = ctx.memo({
-                    let upgrade_state = &game_state.upgrade_state;
-                    let rerolled_count = game_state.rerolled_count;
-                    move || get_highest_tower_template(&using_cards, upgrade_state, rerolled_count)
-                });
+                let tower_template = self.tower_template.clone();
 
                 let reroll_selected = || {
                     if game_state.left_reroll_chance == 0 || selected_slot_ids.is_empty() {
                         return;
                     }
-                    let selected_slot_ids = selected_slot_ids.clone_inner();
+                    let selected_slot_ids = selected_slot_ids.clone();
                     mutate_game_state(move |game_state| {
                         if game_state.left_reroll_chance == 0 || selected_slot_ids.is_empty() {
                             return;
@@ -82,10 +69,11 @@ impl Component for HandActionArea {
                 };
 
                 let use_tower = || {
-                    let tower_template = tower_template.clone_inner();
-                    mutate_game_state(move |state| {
-                        state.goto_placing_tower(tower_template);
-                    });
+                    if let Some(template) = tower_template.clone() {
+                        mutate_game_state(move |state| {
+                            state.goto_placing_tower(template);
+                        });
+                    }
                 };
 
                 ctx.compose(|ctx| {
@@ -131,7 +119,7 @@ impl Component for HandActionArea {
                                         ));
                                     })
                                     .disabled(
-                                        !*some_selected || game_state.left_reroll_chance == 0 || {
+                                        !some_selected || game_state.left_reroll_chance == 0 || {
                                             (game_state.hp - health_cost as f32) < 1.0
                                         },
                                     ),
@@ -139,11 +127,16 @@ impl Component for HandActionArea {
                             }),
                             table::ratio_no_clip(1, |_, _| {}),
                             table::fixed_no_clip(48.px(), |wh, ctx| {
-                                ctx.add(Button::new(wh, &use_tower, &|wh, _text_color, ctx| {
-                                    ctx.add(
-                                        Icon::new(IconKind::Accept).size(IconSize::Large).wh(wh),
-                                    );
-                                }));
+                                ctx.add(
+                                    Button::new(wh, &use_tower, &|wh, _text_color, ctx| {
+                                        ctx.add(
+                                            Icon::new(IconKind::Accept)
+                                                .size(IconSize::Large)
+                                                .wh(wh),
+                                        );
+                                    })
+                                    .disabled(tower_template.is_none()),
+                                );
                             }),
                         ]),
                     )(wh, ctx);

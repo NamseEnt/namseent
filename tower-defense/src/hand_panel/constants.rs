@@ -15,6 +15,11 @@ pub(super) const STICKY_SHIFT: Px = px(64.0);
 pub(super) const PAPER_HEIGHT: Px = px(176.0);
 pub(super) const ACTION_WIDTH: Px = px(160.0);
 
+// tower preview dimensions and spacing
+pub(super) const PREVIEW_WIDTH: Px = px(560.0);
+pub(super) const PREVIEW_HEIGHT: Px = px(128.0);
+pub(super) const PREVIEW_GAP: Px = px(24.0);
+
 pub(super) fn interaction_width() -> Px {
     ACTION_WIDTH + INTERACTION_CONTAINER_PADDING * 2.0
 }
