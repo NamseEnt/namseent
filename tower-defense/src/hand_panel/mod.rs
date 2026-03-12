@@ -2,8 +2,11 @@ mod action_area;
 mod constants;
 mod paper_content;
 mod sticky_bar;
+mod tower_preview;
 
 use crate::{
+    card::Card,
+    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{flow::GameFlow, use_game_state},
     hand::xy_with_spring,
     mutate_game_state,
@@ -13,8 +16,9 @@ use namui::*;
 
 use action_area::HandActionArea;
 use constants::{
-    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, STICKY_HEIGHT, STICKY_SHIFT,
-    STICKY_VISIBLE_HEIGHT, STICKY_WIDTH, interaction_width, panel_width,
+    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, PREVIEW_GAP, PREVIEW_HEIGHT, PREVIEW_WIDTH,
+    STICKY_HEIGHT, STICKY_SHIFT, STICKY_VISIBLE_HEIGHT, STICKY_WIDTH, interaction_width,
+    panel_width,
 };
 use paper_content::PaperContent;
 use sticky_bar::StickyBar;
@@ -52,6 +56,36 @@ impl Component for HandPanel {
         if can_open_hand != *last_can_open {
             set_last_can_open.set(can_open_hand);
         }
+
+        let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
+        let using_cards = ctx.memo(|| {
+            let slot_ids = if !selected_slot_ids.is_empty() {
+                selected_slot_ids.clone_inner()
+            } else {
+                game_state.hand.active_slot_ids()
+            };
+
+            game_state
+                .hand
+                .get_items(&slot_ids)
+                .filter_map(|item| item.as_card().copied())
+                .collect::<Vec<Card>>()
+        });
+        let tower_template = ctx.memo({
+            let upgrade_state = &game_state.upgrade_state;
+            let rerolled_count = game_state.rerolled_count;
+            move || {
+                if using_cards.is_empty() {
+                    None
+                } else {
+                    Some(get_highest_tower_template(
+                        &using_cards,
+                        upgrade_state,
+                        rerolled_count,
+                    ))
+                }
+            }
+        });
 
         let panel_open = can_open_hand && forced_open;
         let target_offset = if panel_open {
@@ -109,7 +143,17 @@ impl Component for HandPanel {
 
             ctx.translate((action_x, paper_y)).add(HandActionArea {
                 wh: Wh::new(interaction_width(), PAPER_HEIGHT),
+                selected_slot_ids: selected_slot_ids.clone_inner(),
+                tower_template: tower_template.clone_inner(),
             });
+
+            let preview_x = (content_width - PREVIEW_WIDTH) / 2.0;
+            ctx.translate((preview_x, -PREVIEW_GAP - PREVIEW_HEIGHT))
+                .add(crate::hand_panel::tower_preview::HandTowerPreview {
+                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
+                    tower_template: tower_template.clone_inner(),
+                    panel_open,
+                });
 
             ctx.translate((content_x, paper_y))
                 .add(PaperContainerBackground {
