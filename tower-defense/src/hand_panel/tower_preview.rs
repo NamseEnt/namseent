@@ -1,3 +1,4 @@
+use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::TowerImage;
 use crate::game_state::tower::{AnimationKind, TowerTemplate};
 use crate::icon::IconKind;
@@ -178,6 +179,7 @@ pub struct HandTowerPreview {
 impl Component for HandTowerPreview {
     fn render(self, ctx: &RenderCtx) {
         let now = Instant::now();
+        let game_state = crate::game_state::use_game_state(ctx);
         let (entries_sig, set_entries) = ctx.state(Vec::<PreviewEntry>::new);
         let (next_id_sig, set_next_id) = ctx.state(|| 0_usize);
 
@@ -209,7 +211,8 @@ impl Component for HandTowerPreview {
                 .is_none_or(|exit_animation| !exit_animation.is_complete(now))
         });
 
-        let active_id = if self.panel_open {
+        let active_id = if self.panel_open && matches!(game_state.flow, GameFlow::SelectingTower(_))
+        {
             entries
                 .iter()
                 .rev()
