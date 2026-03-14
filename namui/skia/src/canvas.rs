@@ -136,7 +136,10 @@ impl SkCanvas for skia_safe::Canvas {
             &skia_tex_rects,
             skia_colors.as_deref(),
             sprite_colors_blend_mode.into(),
-            skia_safe::SamplingOptions::default(),
+            skia_safe::SamplingOptions::new(
+                skia_safe::FilterMode::Linear,
+                skia_safe::MipmapMode::Linear,
+            ),
             None,
             skia_paint.as_ref(),
         );
