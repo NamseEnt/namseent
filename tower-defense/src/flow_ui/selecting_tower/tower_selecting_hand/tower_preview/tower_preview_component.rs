@@ -124,7 +124,7 @@ impl Component for TowerPreviewContent<'_> {
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {
-                            stat_icon_kind: IconKind::AttackDamage,
+                            stat_icon_kind: IconKind::Damage,
                             default_stat: damage,
                             plus_stat: damage_plus,
                             multiplier: damage_multiplier,

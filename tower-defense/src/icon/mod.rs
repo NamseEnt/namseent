@@ -7,9 +7,7 @@ use namui::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum IconKind {
     Accept,
-    AttackDamage,
-    AttackRange,
-    AttackSpeed,
+    Damage,
     Config,
     EnemyBoss,
     EnemyNamed,
@@ -41,9 +39,7 @@ impl IconKind {
     pub fn image(self) -> Image {
         match self {
             IconKind::Accept => crate::asset::image::icon::ACCEPT,
-            IconKind::AttackDamage => crate::asset::image::icon::ATTACK_DAMAGE,
-            IconKind::AttackRange => crate::asset::image::icon::ATTACK_RANGE,
-            IconKind::AttackSpeed => crate::asset::image::icon::ATTACK_SPEED,
+            IconKind::Damage => crate::asset::image::icon::DAMAGE,
             IconKind::Config => crate::asset::image::icon::CONFIG,
             IconKind::EnemyBoss => crate::asset::image::icon::ENEMY_BOSS,
             IconKind::EnemyNamed => crate::asset::image::icon::ENEMY_NAMED,
@@ -86,9 +82,7 @@ impl IconKind {
     pub fn asset_id(&self) -> &'static str {
         match self {
             IconKind::Accept => "accept",
-            IconKind::AttackDamage => "attack_damage",
-            IconKind::AttackRange => "attack_range",
-            IconKind::AttackSpeed => "attack_speed",
+            IconKind::Damage => "damage",
             IconKind::Config => "config",
             IconKind::EnemyBoss => "enemy_boss",
             IconKind::EnemyNamed => "enemy_named",
@@ -131,9 +125,7 @@ impl IconKind {
     pub fn from_asset_id(asset_id: &str) -> Option<Self> {
         match asset_id {
             "accept" => Some(IconKind::Accept),
-            "attack_damage" => Some(IconKind::AttackDamage),
-            "attack_range" => Some(IconKind::AttackRange),
-            "attack_speed" => Some(IconKind::AttackSpeed),
+            "damage" => Some(IconKind::Damage),
             "config" => Some(IconKind::Config),
             "enemy_boss" => Some(IconKind::EnemyBoss),
             "enemy_named" => Some(IconKind::EnemyNamed),

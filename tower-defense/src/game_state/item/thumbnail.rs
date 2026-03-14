@@ -39,10 +39,10 @@ impl Effect {
                 .with_icon_base(IconKind::Gold)
                 .build(),
             Effect::DamageReduction { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::UserDamageReduction { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::LoseHealth { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
@@ -69,22 +69,22 @@ impl Effect {
                 .with_icon_base(IconKind::Item)
                 .build(),
             Effect::AddChallengeMonster => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::IncreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::DecreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::IncreaseAllTowersAttackSpeed { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackSpeed)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::IncreaseAllTowersRange { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackRange)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
                 ThumbnailComposer::new(width_height)
@@ -106,7 +106,7 @@ impl Effect {
                 .with_icon_base(IconKind::Gold)
                 .build(),
             Effect::IncreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::AttackDamage)
+                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::DisableItemAndUpgradePurchases => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Item)
@@ -144,7 +144,7 @@ impl Effect {
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
-            Effect::RankTowerDisable { .. } => Icon::new(IconKind::AttackDamage)
+            Effect::RankTowerDisable { .. } => Icon::new(IconKind::Damage)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,

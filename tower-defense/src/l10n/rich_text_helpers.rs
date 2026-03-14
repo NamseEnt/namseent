@@ -70,7 +70,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     }
 
     fn with_attack_damage_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackDamage);
+        self.icon(IconKind::Damage);
         self.with_style(|b| {
             b.color(palette::RED).text(value.into());
         });
@@ -112,7 +112,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     }
 
     fn with_attack_speed_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackSpeed);
+        self.icon(IconKind::Damage);
         self.with_style(|b| {
             b.color(palette::YELLOW).text(value.into());
         });
@@ -120,7 +120,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     }
 
     fn with_attack_range_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackRange);
+        self.icon(IconKind::Damage);
         self.with_style(|b| {
             b.color(palette::BLUE).text(value.into());
         });

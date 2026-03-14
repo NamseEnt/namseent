@@ -148,9 +148,9 @@ enum StatType {
 impl StatType {
     fn to_icon_kind(self) -> IconKind {
         match self {
-            StatType::Damage => IconKind::AttackDamage,
-            StatType::Speed => IconKind::AttackSpeed,
-            StatType::Range => IconKind::AttackRange,
+            StatType::Damage => IconKind::Damage,
+            StatType::Speed => IconKind::Damage,
+            StatType::Range => IconKind::Damage,
         }
     }
 }

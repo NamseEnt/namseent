@@ -63,7 +63,7 @@ impl Component for TowerSkillTemplateIcon<'_> {
 fn compose_skill_thumbnail(wh: Wh<Px>, kind: &TowerSkillKind) -> RenderingTree {
     match *kind {
         TowerSkillKind::NearbyTowerDamageMul { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackDamage)
+            .with_icon_base(IconKind::Damage)
             .add_icon_overlay(
                 IconKind::Multiply,
                 OverlayPosition::BottomRight,
@@ -71,15 +71,15 @@ fn compose_skill_thumbnail(wh: Wh<Px>, kind: &TowerSkillKind) -> RenderingTree {
             )
             .build(),
         TowerSkillKind::NearbyTowerDamageAdd { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackDamage)
+            .with_icon_base(IconKind::Damage)
             .add_plus_overlay()
             .build(),
         TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackSpeed)
+            .with_icon_base(IconKind::Damage)
             .add_plus_overlay()
             .build(),
         TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackSpeed)
+            .with_icon_base(IconKind::Damage)
             .add_icon_overlay(
                 IconKind::Multiply,
                 OverlayPosition::BottomRight,
@@ -87,7 +87,7 @@ fn compose_skill_thumbnail(wh: Wh<Px>, kind: &TowerSkillKind) -> RenderingTree {
             )
             .build(),
         TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackRange)
+            .with_icon_base(IconKind::Damage)
             .add_plus_overlay()
             .build(),
         TowerSkillKind::NearbyMonsterSpeedMul { mul, .. } => {
@@ -106,7 +106,7 @@ fn compose_skill_thumbnail(wh: Wh<Px>, kind: &TowerSkillKind) -> RenderingTree {
             .add_plus_overlay()
             .build(),
         TowerSkillKind::TopCardBonus { rank, .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::AttackDamage)
+            .with_icon_base(IconKind::Damage)
             .add_rank_overlay(rank)
             .add_plus_overlay()
             .build(),

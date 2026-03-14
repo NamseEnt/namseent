@@ -58,11 +58,11 @@ pub fn spawn_tower_status_effect_icons(
 fn create_tower_buff_icon(buff_kind: TowerStatusEffectKind) -> Icon {
     let (icon_kind, attribute_icon) = match buff_kind {
         TowerStatusEffectKind::DamageAdd { .. } | TowerStatusEffectKind::DamageMul { .. } => {
-            (IconKind::AttackDamage, IconKind::Up)
+            (IconKind::Damage, IconKind::Up)
         }
         TowerStatusEffectKind::AttackSpeedAdd { .. }
-        | TowerStatusEffectKind::AttackSpeedMul { .. } => (IconKind::AttackSpeed, IconKind::Up),
-        TowerStatusEffectKind::AttackRangeAdd { .. } => (IconKind::AttackRange, IconKind::Up),
+        | TowerStatusEffectKind::AttackSpeedMul { .. } => (IconKind::Damage, IconKind::Up),
+        TowerStatusEffectKind::AttackRangeAdd { .. } => (IconKind::Damage, IconKind::Up),
     };
 
     Icon {
