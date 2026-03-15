@@ -60,9 +60,6 @@ fn create_tower_buff_icon(buff_kind: TowerStatusEffectKind) -> Icon {
         TowerStatusEffectKind::DamageAdd { .. } | TowerStatusEffectKind::DamageMul { .. } => {
             (IconKind::Damage, IconKind::Up)
         }
-        TowerStatusEffectKind::AttackSpeedAdd { .. }
-        | TowerStatusEffectKind::AttackSpeedMul { .. } => (IconKind::Damage, IconKind::Up),
-        TowerStatusEffectKind::AttackRangeAdd { .. } => (IconKind::Damage, IconKind::Up),
     };
 
     Icon {

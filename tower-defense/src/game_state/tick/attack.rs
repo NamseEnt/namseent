@@ -38,8 +38,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let tower_upgrades = upgrade_state.tower_upgrades(tower);
 
-            let attack_range_radius =
-                tower.attack_range_radius(&tower_upgrades, stage_modifiers.get_range_multiplier());
+            let attack_range_radius = tower.attack_range_radius(&tower_upgrades, 1.0);
 
             let tower_center = tower.center_xy_f32();
             let target_idx = monsters.iter().position(|monster| {

@@ -22,9 +22,6 @@ pub enum UpgradeBoardText {
     TowerUpgradeFaceNumber { name: String },
     DamagePlus { amount: f32 },
     DamageMultiplier { amount: f32 },
-    SpeedPlus { amount: f32 },
-    SpeedMultiplier { amount: f32 },
-    RangePlus { amount: f32 },
 }
 
 impl LocalizedText for UpgradeBoardText {
@@ -100,18 +97,6 @@ impl UpgradeBoardText {
                 builder.with_attack_damage_icon(format!("x{amount:.1}"));
                 builder.text(" 증가합니다");
             }
-            UpgradeBoardText::SpeedPlus { amount } => {
-                builder.with_attack_speed_icon(format!("+{amount:.1}"));
-                builder.text(" 증가합니다");
-            }
-            UpgradeBoardText::SpeedMultiplier { amount } => {
-                builder.with_attack_speed_icon(format!("x{amount:.1}"));
-                builder.text(" 증가합니다");
-            }
-            UpgradeBoardText::RangePlus { amount } => {
-                builder.with_attack_range_icon(format!("+{amount:.1}"));
-                builder.text(" 증가합니다");
-            }
         }
     }
 
@@ -178,18 +163,6 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::DamageMultiplier { amount } => {
                 builder.with_attack_damage_icon(format!("x{amount:.1}"));
-                builder.text(" increases");
-            }
-            UpgradeBoardText::SpeedPlus { amount } => {
-                builder.with_attack_speed_icon(format!("+{amount:.1}"));
-                builder.text(" increases");
-            }
-            UpgradeBoardText::SpeedMultiplier { amount } => {
-                builder.with_attack_speed_icon(format!("x{amount:.1}"));
-                builder.text(" increases");
-            }
-            UpgradeBoardText::RangePlus { amount } => {
-                builder.with_attack_range_icon(format!("+{amount:.1}"));
                 builder.text(" increases");
             }
         }

@@ -25,14 +25,7 @@ pub fn inject_skills(tower: &mut TowerTemplate) {
         }),
         TowerKind::Straight => None,
         TowerKind::Flush => None,
-        TowerKind::FullHouse => Some(TowerSkillTemplate {
-            kind: TowerSkillKind::NearbyTowerAttackSpeedMul {
-                mul: 2.0,
-                range_radius: 2.0,
-            },
-            cooldown: 1.sec(),
-            duration: 1.sec(),
-        }),
+        TowerKind::FullHouse => None,
         TowerKind::FourOfAKind => Some(TowerSkillTemplate {
             kind: TowerSkillKind::NearbyMonsterSpeedMul {
                 mul: 0.75,

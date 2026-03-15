@@ -74,22 +74,6 @@ fn compose_skill_thumbnail(wh: Wh<Px>, kind: &TowerSkillKind) -> RenderingTree {
             .with_icon_base(IconKind::Damage)
             .add_plus_overlay()
             .build(),
-        TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::Damage)
-            .add_plus_overlay()
-            .build(),
-        TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::Damage)
-            .add_icon_overlay(
-                IconKind::Multiply,
-                OverlayPosition::BottomRight,
-                OVERLAY_SIZE_RATIO,
-            )
-            .build(),
-        TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => ThumbnailComposer::new(wh)
-            .with_icon_base(IconKind::Damage)
-            .add_plus_overlay()
-            .build(),
         TowerSkillKind::NearbyMonsterSpeedMul { mul, .. } => {
             let dir_icon = if mul < 1.0 {
                 IconKind::Down
@@ -133,15 +117,6 @@ impl Component for TowerEffectDescription<'_> {
                             TowerSkillKind::NearbyTowerDamageAdd { .. } => {
                                 TowerSkillText::NearbyTowerDamageAddTitle
                             }
-                            TowerSkillKind::NearbyTowerAttackSpeedAdd { .. } => {
-                                TowerSkillText::NearbyTowerAttackSpeedAddTitle
-                            }
-                            TowerSkillKind::NearbyTowerAttackSpeedMul { .. } => {
-                                TowerSkillText::NearbyTowerAttackSpeedMulTitle
-                            }
-                            TowerSkillKind::NearbyTowerAttackRangeAdd { .. } => {
-                                TowerSkillText::NearbyTowerAttackRangeAddTitle
-                            }
                             TowerSkillKind::NearbyMonsterSpeedMul { .. } => {
                                 TowerSkillText::NearbyMonsterSpeedMulTitle
                             }
@@ -172,24 +147,6 @@ impl Component for TowerEffectDescription<'_> {
                             }
                             TowerSkillKind::NearbyTowerDamageAdd { add, range_radius } => {
                                 TowerSkillText::NearbyTowerDamageAddDesc {
-                                    add,
-                                    range_radius: range_radius as usize,
-                                }
-                            }
-                            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
-                                TowerSkillText::NearbyTowerAttackSpeedAddDesc {
-                                    add,
-                                    range_radius: range_radius as usize,
-                                }
-                            }
-                            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
-                                TowerSkillText::NearbyTowerAttackSpeedMulDesc {
-                                    mul,
-                                    range_radius: range_radius as usize,
-                                }
-                            }
-                            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
-                                TowerSkillText::NearbyTowerAttackRangeAddDesc {
                                     add,
                                     range_radius: range_radius as usize,
                                 }

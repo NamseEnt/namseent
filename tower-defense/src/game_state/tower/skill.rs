@@ -44,9 +44,6 @@ impl Deref for TowerSkill {
 pub enum TowerSkillKind {
     NearbyTowerDamageMul { mul: f32, range_radius: f32 },
     NearbyTowerDamageAdd { add: f32, range_radius: f32 },
-    NearbyTowerAttackSpeedAdd { add: f32, range_radius: f32 },
-    NearbyTowerAttackSpeedMul { mul: f32, range_radius: f32 },
-    NearbyTowerAttackRangeAdd { add: f32, range_radius: f32 },
     NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
     MoneyIncomeAdd { add: u32 },
     TopCardBonus { rank: Rank, bonus_damage: usize },
@@ -62,9 +59,6 @@ pub struct TowerStatusEffect {
 pub enum TowerStatusEffectKind {
     DamageMul { mul: f32 },
     DamageAdd { add: f32 },
-    AttackSpeedMul { mul: f32 },
-    AttackSpeedAdd { add: f32 },
-    AttackRangeAdd { add: f32 },
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -136,39 +130,6 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd { add },
-                        end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
-                        },
-                    },
-                );
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedAdd { add, range_radius } => {
-                on_nearby_towers(
-                    range_radius,
-                    TowerStatusEffect {
-                        kind: TowerStatusEffectKind::AttackSpeedAdd { add },
-                        end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
-                        },
-                    },
-                );
-            }
-            TowerSkillKind::NearbyTowerAttackSpeedMul { mul, range_radius } => {
-                on_nearby_towers(
-                    range_radius,
-                    TowerStatusEffect {
-                        kind: TowerStatusEffectKind::AttackSpeedMul { mul },
-                        end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
-                        },
-                    },
-                );
-            }
-            TowerSkillKind::NearbyTowerAttackRangeAdd { add, range_radius } => {
-                on_nearby_towers(
-                    range_radius,
-                    TowerStatusEffect {
-                        kind: TowerStatusEffectKind::AttackRangeAdd { add },
                         end_at: TowerStatusEffectEnd::Time {
                             end_at: now + skill.duration,
                         },

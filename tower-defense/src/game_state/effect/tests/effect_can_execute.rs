@@ -65,8 +65,6 @@ fn test_all_other_effects_always_allowed() {
         Effect::IncreaseAllTowersDamage { multiplier: 1.5 },
         Effect::DecreaseAllTowersDamage { multiplier: 0.8 },
         Effect::IncreaseIncomingDamage { multiplier: 1.2 },
-        Effect::IncreaseAllTowersAttackSpeed { multiplier: 1.3 },
-        Effect::IncreaseAllTowersRange { multiplier: 1.1 },
         Effect::DecreaseIncomingDamage { multiplier: 0.9 },
         Effect::IncreaseGoldGain { multiplier: 1.5 },
         Effect::RankTowerDisable { rank: Rank::Ace },

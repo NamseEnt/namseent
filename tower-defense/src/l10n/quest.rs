@@ -46,12 +46,6 @@ pub enum QuestText {
     EarnGold {
         gold: usize,
     },
-    IncreaseAttackSpeed {
-        speed: usize,
-    },
-    IncreaseAttackRange {
-        range: usize,
-    },
 }
 
 impl QuestText {
@@ -116,14 +110,6 @@ impl QuestText {
                 builder.with_gold_icon(format!("{gold}"));
                 builder.text(" 획득하기");
             }
-            QuestText::IncreaseAttackSpeed { speed } => {
-                builder.with_attack_speed_icon(format!("{speed}"));
-                builder.text(" 증가시키기");
-            }
-            QuestText::IncreaseAttackRange { range } => {
-                builder.with_attack_range_icon(format!("{range}"));
-                builder.text(" 증가시키기");
-            }
         }
     }
 
@@ -187,14 +173,6 @@ impl QuestText {
             QuestText::EarnGold { gold } => {
                 builder.text("Gain ");
                 builder.with_gold_icon(format!("{gold}"));
-            }
-            QuestText::IncreaseAttackSpeed { speed } => {
-                builder.text("Increase attack speed by ");
-                builder.with_attack_speed_icon(format!("{speed}"));
-            }
-            QuestText::IncreaseAttackRange { range } => {
-                builder.text("Increase attack range by ");
-                builder.with_attack_range_icon(format!("{range}"));
             }
         }
     }

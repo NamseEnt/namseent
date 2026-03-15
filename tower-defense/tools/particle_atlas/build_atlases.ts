@@ -157,8 +157,6 @@ export async function createIconsAtlas(): Promise<Atlas> {
         "accept",
         "add",
         "attack_damage",
-        "attack_range",
-        "attack_speed",
         "card",
         "config",
         "down",

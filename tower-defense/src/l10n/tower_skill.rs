@@ -6,17 +6,11 @@ use crate::*;
 pub enum TowerSkillText {
     NearbyTowerDamageMulTitle,
     NearbyTowerDamageAddTitle,
-    NearbyTowerAttackSpeedAddTitle,
-    NearbyTowerAttackSpeedMulTitle,
-    NearbyTowerAttackRangeAddTitle,
     NearbyMonsterSpeedMulTitle,
     MoneyIncomeAddTitle,
     TopCardBonusTitle,
     NearbyTowerDamageMulDesc { mul: f32, range_radius: usize },
     NearbyTowerDamageAddDesc { add: f32, range_radius: usize },
-    NearbyTowerAttackSpeedAddDesc { add: f32, range_radius: usize },
-    NearbyTowerAttackSpeedMulDesc { mul: f32, range_radius: usize },
-    NearbyTowerAttackRangeAddDesc { add: f32, range_radius: usize },
     NearbyMonsterSpeedMulDesc { mul: f32, range_radius: usize },
     MoneyIncomeAddDesc { add: u32 },
     TopCardBonusDesc { rank: String, bonus_damage: usize },
@@ -39,15 +33,6 @@ impl TowerSkillText {
             }
             TowerSkillText::NearbyTowerDamageAddTitle => {
                 builder.static_text("주변 타워 공격력 추가");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
-                builder.static_text("주변 타워 공격 속도 추가");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
-                builder.static_text("주변 타워 공격 속도 증가");
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
-                builder.static_text("주변 타워 공격 범위 추가");
             }
             TowerSkillText::NearbyMonsterSpeedMulTitle => {
                 builder.static_text("주변 몬스터 속도 감소");
@@ -75,36 +60,6 @@ impl TowerSkillText {
                     .static_text("를 ")
                     .with_value_increase(format!("{add:.0}"))
                     .static_text("만큼 증가시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
-                    .static_text(")");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => {
-                builder
-                    .static_text("주변 타워의 ")
-                    .with_attack_speed_icon("공격 속도")
-                    .static_text("를 ")
-                    .with_percentage_increase(format!("{:.0}", add * 100.0))
-                    .static_text(" 증가시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
-                    .static_text(")");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => {
-                builder
-                    .static_text("주변 타워의 ")
-                    .with_attack_speed_icon("공격 속도")
-                    .static_text("를 ")
-                    .with_multiplier(format!("{mul:.1}"))
-                    .static_text("배 증가시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
-                    .static_text(")");
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => {
-                builder
-                    .static_text("주변 타워의 ")
-                    .with_attack_range_icon("공격 범위")
-                    .static_text("를 ")
-                    .with_value_increase(format!("{add:.0}"))
-                    .static_text(" 타일 증가시킵니다 (반경 ")
                     .with_range(format!("{range_radius} 타일"))
                     .static_text(")");
             }
@@ -141,15 +96,6 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageAddTitle => {
                 builder.static_text("Nearby Tower Damage Addition");
             }
-            TowerSkillText::NearbyTowerAttackSpeedAddTitle => {
-                builder.static_text("Nearby Tower Attack Speed Addition");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulTitle => {
-                builder.static_text("Nearby Tower Attack Speed Multiplier");
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddTitle => {
-                builder.static_text("Nearby Tower Attack Range Addition");
-            }
             TowerSkillText::NearbyMonsterSpeedMulTitle => {
                 builder.static_text("Nearby Monster Speed Multiplier");
             }
@@ -176,36 +122,6 @@ impl TowerSkillText {
                     .static_text(" by ")
                     .with_value_increase(format!("{add:.0}"))
                     .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
-                    .static_text(" tiles)");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedAddDesc { add, range_radius } => {
-                builder
-                    .static_text("Increases nearby towers' ")
-                    .with_attack_speed_icon("attack speed")
-                    .static_text(" by ")
-                    .with_percentage_increase(format!("{:.0}", add * 100.0))
-                    .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
-                    .static_text(" tiles)");
-            }
-            TowerSkillText::NearbyTowerAttackSpeedMulDesc { mul, range_radius } => {
-                builder
-                    .static_text("Increases nearby towers' ")
-                    .with_attack_speed_icon("attack speed")
-                    .static_text(" by ")
-                    .with_multiplier(format!("{mul:.1}"))
-                    .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
-                    .static_text(" tiles)");
-            }
-            TowerSkillText::NearbyTowerAttackRangeAddDesc { add, range_radius } => {
-                builder
-                    .static_text("Increases nearby towers' ")
-                    .with_attack_range_icon("attack range")
-                    .static_text(" by ")
-                    .with_value_increase(format!("{add:.0}"))
-                    .static_text(" tiles (within ")
                     .with_range(format!("{range_radius}"))
                     .static_text(" tiles)");
             }

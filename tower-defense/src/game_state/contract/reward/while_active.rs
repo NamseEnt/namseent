@@ -7,12 +7,6 @@ pub(crate) fn list() -> &'static [RewardGeneratorFn] {
         |rng, rarity, _| Effect::IncreaseAllTowersDamage {
             multiplier: rarity_table_random(rng, rarity, &REWARD_INCREASE_TOWER_DAMAGE),
         },
-        |rng, rarity, _| Effect::IncreaseAllTowersAttackSpeed {
-            multiplier: rarity_table_random(rng, rarity, &REWARD_INCREASE_TOWER_DAMAGE),
-        },
-        |rng, rarity, _| Effect::IncreaseAllTowersRange {
-            multiplier: rarity_table_random(rng, rarity, &REWARD_INCREASE_TOWER_RANGE),
-        },
         |rng, rarity, _| Effect::DecreaseIncomingDamage {
             multiplier: rarity_table_random(rng, rarity, &REWARD_DECREASE_INCOMING_DAMAGE),
         },
