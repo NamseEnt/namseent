@@ -1,8 +1,10 @@
+mod game_speed_indicator;
 mod level;
 mod stage;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+use crate::top_bar::game_speed_indicator::GameSpeedIndicator;
 use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
@@ -17,6 +19,7 @@ const ITEM_WIDTH: Px = px(128.);
 const PADDING: Px = px(8.);
 
 const SETTINGS_BUTTON_SIZE: Px = px(36.);
+const SPEED_INDICATOR_WIDTH: Px = px(192.);
 
 const BG_OVERSIZE_H: Px = px(4.);
 const BG_OVERSIZE_V: Px = px(4.);
@@ -84,6 +87,12 @@ impl Component for TopBar {
                         stage: game_state.stage,
                     });
                 }),
+                table::fixed_no_clip(
+                    SPEED_INDICATOR_WIDTH,
+                    table::padding_no_clip(PADDING, |wh, ctx| {
+                        ctx.add(GameSpeedIndicator { wh });
+                    }),
+                ),
                 table::fixed_no_clip(SETTINGS_BUTTON_SIZE + PADDING * 2.0, |wh, ctx| {
                     ctx.translate((PADDING, (wh.height - SETTINGS_BUTTON_SIZE) / 2.0))
                         .add(

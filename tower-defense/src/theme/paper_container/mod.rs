@@ -24,6 +24,7 @@ pub enum PaperVariant {
     Paper,
     Card,
     PaperSingleLayer,
+    Pill,
 }
 
 impl PaperTexture {
@@ -83,10 +84,48 @@ impl Component for PaperContainerBackground {
             PaperVariant::Card => {
                 render_card(ctx, width, height, texture, color, shadow, arrow);
             }
+            PaperVariant::Pill => {
+                render_pill(ctx, width, height, texture, color, shadow, arrow);
+            }
             PaperVariant::PaperSingleLayer => {
                 render_single_layer_paper(ctx, width, height, texture, color, shadow, arrow);
             }
         }
+    }
+}
+
+fn render_pill(
+    ctx: &RenderCtx,
+    width: Px,
+    height: Px,
+    texture: PaperTexture,
+    color: Color,
+    shadow: bool,
+    arrow: Option<PaperArrow>,
+) {
+    let tracked = ctx.track_eq(&(width, height, arrow));
+    let radius = height / 2.0;
+    let path = ctx
+        .memo(|| {
+            let r = Rect::Xywh {
+                x: px(0.0),
+                y: px(0.0),
+                width: tracked.0,
+                height: tracked.1,
+            };
+            let base = Path::new().add_rrect(r, radius, radius);
+            if let Some(a) = arrow {
+                with_arrow(base, width, height, Some(a))
+            } else {
+                base
+            }
+        })
+        .as_ref()
+        .clone();
+
+    ctx.add(namui::path(path.clone(), textured_paint(texture, color)));
+    if shadow {
+        add_shadow(ctx, path);
     }
 }
 

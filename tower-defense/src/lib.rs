@@ -3,7 +3,6 @@ mod camera_controller;
 mod card;
 mod contracts;
 mod flow_ui;
-mod game_speed_indicator;
 mod game_state; // now private; selective re-exports below
 mod hand;
 mod hand_panel;
@@ -21,7 +20,6 @@ mod top_bar;
 
 use crate::{camera_controller::CameraController, game_state::Modal};
 use contracts::Contracts;
-use game_speed_indicator::GameSpeedIndicator;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -59,10 +57,6 @@ impl Component for Game {
 
             ctx.add(modal);
         });
-
-        // Game speed indicator in bottom-right corner
-        ctx.translate((screen_wh.width - 116.px(), screen_wh.height - 88.px()))
-            .add(GameSpeedIndicator);
 
         ctx.add(flow_ui::FlowUi);
 

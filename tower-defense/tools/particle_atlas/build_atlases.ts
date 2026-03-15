@@ -190,6 +190,7 @@ export async function createIconsAtlas(): Promise<Atlas> {
         "suit_hearts",
         "suit_spades",
         "up",
+        "play",
     ];
     const icons = createAtlas("icons", ROW_W, CELL * 3);
     for (const name of iconFiles) {
