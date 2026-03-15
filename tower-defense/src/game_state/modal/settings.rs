@@ -1,10 +1,12 @@
 use crate::game_state::set_modal;
 use crate::icon::{Icon, IconKind, IconSize};
-use crate::l10n::ui::TopBarText;
+use crate::l10n::ui::{SettingsText, TopBarText};
 use crate::sound::{self, SoundGroup};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
+    paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
+    slider::Slider,
     typography::{self, memoized_text},
 };
 use namui::*;
@@ -12,10 +14,10 @@ use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(8.);
-const VOLUME_STEP: f32 = 0.05;
 const VOLUME_ROW_HEIGHT: Px = px(40.);
 const VOLUME_ROW_GAP: Px = px(8.);
-const VOLUME_BUTTON_WIDTH: Px = px(32.);
+const VOLUME_SLIDER_WIDTH: Px = px(200.);
+const VOLUME_SLIDER_HEIGHT: Px = px(24.);
 const VOLUME_VALUE_WIDTH: Px = px(56.);
 
 pub struct SettingsModal;
@@ -78,75 +80,41 @@ impl Component for SettingsModal {
                                         &ctx,
                                         content_width,
                                         0.px(),
-                                        "Master",
+                                        game_state.text().settings(SettingsText::MasterVolume),
                                         volume_settings.master,
-                                        &|| sound::adjust_master_volume(-VOLUME_STEP),
-                                        &|| sound::adjust_master_volume(VOLUME_STEP),
+                                        &|v| sound::set_master_volume(v),
                                     );
                                     render_volume_row(
                                         &ctx,
                                         content_width,
                                         VOLUME_ROW_HEIGHT + VOLUME_ROW_GAP,
-                                        "Effects",
+                                        game_state.text().settings(SettingsText::EffectsVolume),
                                         volume_settings.sfx,
-                                        &|| {
-                                            sound::adjust_group_volume(
-                                                SoundGroup::Sfx,
-                                                -VOLUME_STEP,
-                                            )
-                                        },
-                                        &|| {
-                                            sound::adjust_group_volume(SoundGroup::Sfx, VOLUME_STEP)
-                                        },
+                                        &|v| sound::set_group_volume(SoundGroup::Sfx, v),
                                     );
                                     render_volume_row(
                                         &ctx,
                                         content_width,
                                         (VOLUME_ROW_HEIGHT + VOLUME_ROW_GAP) * 2.0,
-                                        "UI",
+                                        game_state.text().settings(SettingsText::UiVolume),
                                         volume_settings.ui,
-                                        &|| {
-                                            sound::adjust_group_volume(SoundGroup::Ui, -VOLUME_STEP)
-                                        },
-                                        &|| sound::adjust_group_volume(SoundGroup::Ui, VOLUME_STEP),
+                                        &|v| sound::set_group_volume(SoundGroup::Ui, v),
                                     );
                                     render_volume_row(
                                         &ctx,
                                         content_width,
                                         (VOLUME_ROW_HEIGHT + VOLUME_ROW_GAP) * 3.0,
-                                        "Ambient",
+                                        game_state.text().settings(SettingsText::AmbientVolume),
                                         volume_settings.ambient,
-                                        &|| {
-                                            sound::adjust_group_volume(
-                                                SoundGroup::Ambient,
-                                                -VOLUME_STEP,
-                                            )
-                                        },
-                                        &|| {
-                                            sound::adjust_group_volume(
-                                                SoundGroup::Ambient,
-                                                VOLUME_STEP,
-                                            )
-                                        },
+                                        &|v| sound::set_group_volume(SoundGroup::Ambient, v),
                                     );
                                     render_volume_row(
                                         &ctx,
                                         content_width,
                                         (VOLUME_ROW_HEIGHT + VOLUME_ROW_GAP) * 4.0,
-                                        "Music",
+                                        game_state.text().settings(SettingsText::MusicVolume),
                                         volume_settings.music,
-                                        &|| {
-                                            sound::adjust_group_volume(
-                                                SoundGroup::Music,
-                                                -VOLUME_STEP,
-                                            )
-                                        },
-                                        &|| {
-                                            sound::adjust_group_volume(
-                                                SoundGroup::Music,
-                                                VOLUME_STEP,
-                                            )
-                                        },
+                                        &|v| sound::set_group_volume(SoundGroup::Music, v),
                                     );
                                 },
                             });
@@ -155,15 +123,25 @@ impl Component for SettingsModal {
                 ])(modal_wh, ctx);
             });
 
-            ctx.add(rect(RectParam {
-                rect: Wh::new(modal_wh.width, TITLE_HEIGHT).to_rect(),
-                style: palette::title_background_style(),
-            }));
+            ctx.add(PaperContainerBackground {
+                width: modal_wh.width,
+                height: TITLE_HEIGHT,
+                texture: PaperTexture::Rough,
+                variant: PaperVariant::Sticky,
+                color: palette::SURFACE_CONTAINER_HIGH,
+                shadow: false,
+                arrow: None,
+            });
 
-            ctx.add(rect(RectParam {
-                rect: modal_wh.to_rect(),
-                style: palette::modal_box_style(),
-            }));
+            ctx.add(PaperContainerBackground {
+                width: modal_wh.width,
+                height: modal_wh.height,
+                texture: PaperTexture::Rough,
+                variant: PaperVariant::Sticky,
+                color: palette::SURFACE_CONTAINER,
+                shadow: true,
+                arrow: None,
+            });
         })
         .attach_event(|event| {
             match event {
@@ -192,12 +170,15 @@ impl Component for SettingsModal {
                 0.px(),
                 Color::from_u8(0, 0, 0, 128),
             )
-            .attach_event(|event| {
-                let Event::MouseDown { event } = event else {
-                    return;
-                };
-                set_modal(None);
-                event.stop_propagation();
+            .attach_event(|event| match event {
+                Event::MouseDown { event } => {
+                    set_modal(None);
+                    event.stop_propagation();
+                }
+                Event::MouseMove { event } | Event::MouseUp { event } => {
+                    event.stop_propagation();
+                }
+                _ => {}
             }),
         );
     }
@@ -209,43 +190,32 @@ fn render_volume_row(
     y: Px,
     label: &'static str,
     volume: f32,
-    on_minus: &dyn Fn(),
-    on_plus: &dyn Fn(),
+    on_change: &dyn Fn(f32),
 ) {
     let value_percent = (volume * 100.0).round() as i32;
-    let controls_width = VOLUME_BUTTON_WIDTH * 2.0 + VOLUME_VALUE_WIDTH + VOLUME_ROW_GAP * 2.0;
+    let controls_width = VOLUME_SLIDER_WIDTH + VOLUME_VALUE_WIDTH + VOLUME_ROW_GAP;
     let label_width = (width - controls_width).max(80.px());
 
     ctx.translate((0.px(), y)).compose(|ctx| {
         ctx.translate((0.px(), 0.px()))
             .add(memoized_text((), |mut builder| {
                 builder
-                    .paragraph()
-                    .size(typography::FontSize::Medium)
+                    .headline()
+                    .size(typography::FontSize::Small)
                     .text(label)
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));
 
         let controls_x = label_width;
 
-        ctx.translate((controls_x, 0.px())).add(
-            Button::new(
-                Wh::new(VOLUME_BUTTON_WIDTH, VOLUME_ROW_HEIGHT),
-                on_minus,
-                &|wh, _text_color, ctx| {
-                    ctx.add(memoized_text((), |mut builder| {
-                        builder
-                            .headline()
-                            .size(typography::FontSize::Medium)
-                            .text("-")
-                            .render_center(wh)
-                    }));
-                },
-            )
-            .variant(ButtonVariant::Outlined),
-        );
+        ctx.translate((controls_x, (VOLUME_ROW_HEIGHT - VOLUME_SLIDER_HEIGHT) * 0.5))
+            .add(Slider::new(
+                Wh::new(VOLUME_SLIDER_WIDTH, VOLUME_SLIDER_HEIGHT),
+                volume,
+                on_change,
+            ));
 
-        ctx.translate((controls_x + VOLUME_BUTTON_WIDTH + VOLUME_ROW_GAP, 0.px()))
+        ctx.translate((controls_x + VOLUME_SLIDER_WIDTH + VOLUME_ROW_GAP, 0.px()))
             .add(memoized_text(&value_percent, |mut builder| {
                 builder
                     .paragraph()
@@ -253,26 +223,5 @@ fn render_volume_row(
                     .text(format!("{}%", value_percent))
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));
-
-        ctx.translate((
-            controls_x + VOLUME_BUTTON_WIDTH + VOLUME_ROW_GAP + VOLUME_VALUE_WIDTH + VOLUME_ROW_GAP,
-            0.px(),
-        ))
-        .add(
-            Button::new(
-                Wh::new(VOLUME_BUTTON_WIDTH, VOLUME_ROW_HEIGHT),
-                on_plus,
-                &|wh, _text_color, ctx| {
-                    ctx.add(memoized_text((), |mut builder| {
-                        builder
-                            .headline()
-                            .size(typography::FontSize::Medium)
-                            .text("+")
-                            .render_center(wh)
-                    }));
-                },
-            )
-            .variant(ButtonVariant::Outlined),
-        );
     });
 }

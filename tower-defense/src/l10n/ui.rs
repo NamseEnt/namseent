@@ -89,3 +89,47 @@ impl ResultModalText {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum SettingsText {
+    MasterVolume,
+    EffectsVolume,
+    UiVolume,
+    AmbientVolume,
+    MusicVolume,
+}
+
+impl LocalizedText for SettingsText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
+        }
+    }
+}
+
+impl SettingsText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            SettingsText::MasterVolume => "전체 볼륨",
+            SettingsText::EffectsVolume => "효과음",
+            SettingsText::UiVolume => "UI",
+            SettingsText::AmbientVolume => "환경음",
+            SettingsText::MusicVolume => "음악",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            SettingsText::MasterVolume => "Master",
+            SettingsText::EffectsVolume => "Effects",
+            SettingsText::UiVolume => "UI",
+            SettingsText::AmbientVolume => "Ambient",
+            SettingsText::MusicVolume => "Music",
+        }
+    }
+}
