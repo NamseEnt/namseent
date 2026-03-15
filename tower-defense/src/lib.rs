@@ -28,6 +28,7 @@ use theme::palette;
 use top_bar::TopBar;
 
 const TOP_BAR_HEIGHT: Px = px(48.);
+const CONTRACTS_ENABLED: bool = false;
 
 register_assets!();
 
@@ -70,9 +71,14 @@ impl Component for Game {
                     table::padding(
                         8.px(),
                         table::horizontal([
-                            table::fixed_no_clip(px(260.), |wh, ctx| {
-                                ctx.add(Contracts { wh });
-                            }),
+                            table::fixed_no_clip(
+                                if CONTRACTS_ENABLED { px(260.) } else { px(0.) },
+                                |wh, ctx| {
+                                    if CONTRACTS_ENABLED {
+                                        ctx.add(Contracts { wh });
+                                    }
+                                },
+                            ),
                             table::ratio_no_clip(1, |_, _| {}),
                             table::fixed_no_clip(px(92.), |wh, ctx| {
                                 ctx.add(Inventory { wh });
