@@ -1,3 +1,4 @@
+use crate::game_state::tower::render::TowerAttackRange;
 use crate::{
     MapCoordF32,
     game_state::{
@@ -28,21 +29,22 @@ impl Component for TowerCursorPreview<'_> {
 
         let game_state = use_game_state(ctx);
 
-        let rounded_center_xy = ctx.track_eq(&map_coord.map(|f| f.round() as usize));
+        let rounded_left_top_xy =
+            ctx.track_eq(&map_coord.map(|f| (f.round() as usize).saturating_sub(1)));
         let placed_tower_coords = ctx.track_eq(&game_state.towers.coords());
         let route_coords = &game_state.route.iter_coords();
 
         let can_place_tower = ctx.memo(|| {
-            let out_of_map = rounded_center_xy.x < 1
-                || rounded_center_xy.y < 1
-                || rounded_center_xy.x >= MAP_SIZE.width
-                || rounded_center_xy.y >= MAP_SIZE.height;
+            let out_of_map = rounded_left_top_xy.x < 1
+                || rounded_left_top_xy.y < 1
+                || rounded_left_top_xy.x >= MAP_SIZE.width
+                || rounded_left_top_xy.y >= MAP_SIZE.height;
 
             if out_of_map {
                 return false;
             }
             can_place_tower(
-                *rounded_center_xy - Xy::single(1),
+                *rounded_left_top_xy,
                 Wh::single(2),
                 &TRAVEL_POINTS,
                 &placed_tower_coords,
@@ -60,15 +62,15 @@ impl Component for TowerCursorPreview<'_> {
             });
         };
 
+        let left_top = *rounded_left_top_xy;
         let place_tower = || {
-            let left_top = *rounded_center_xy - Xy::single(1);
             place_tower(
                 Tower::new(tower_template, left_top, game_state.now()),
                 placing_tower_slot_id,
             );
         };
 
-        let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * *rounded_center_xy);
+        let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * left_top);
 
         ctx.add(TowerImage { tower_template });
         ctx.add(TowerAttackRange { tower_template });
@@ -113,54 +115,16 @@ impl Component for TowerImage<'_> {
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 
         let image_wh = tower_image.info().wh();
-        let rect = Rect::from_xy_wh(image_wh.to_xy() / -2.0, image_wh);
         let paint = Paint::new(Color::grayscale_alpha_f01(0.0, 0.5));
+
         ctx.add(namui::image(ImageParam {
-            rect,
+            rect: Rect::from_xy_wh(Xy::zero(), image_wh),
             image: tower_image,
             style: ImageStyle {
                 fit: ImageFit::None,
                 paint: Some(paint),
             },
         }));
-    }
-}
-
-struct TowerAttackRange<'a> {
-    tower_template: &'a TowerTemplate,
-}
-impl Component for TowerAttackRange<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self { tower_template } = self;
-
-        let game_state = use_game_state(ctx);
-
-        let range_radius_px = TILE_PX_SIZE.width * tower_template.default_attack_range_radius;
-
-        const ROTATION_SPEED_PX_PER_SEC: f32 = 120.0;
-        const DASH_ON_PX: f32 = 40.0;
-        const DASH_OFF_PX: f32 = 24.0;
-
-        let elapsed_secs = (game_state.now() - Instant::new(Duration::ZERO)).as_secs_f32();
-        let phase_px = (elapsed_secs * ROTATION_SPEED_PX_PER_SEC) % (DASH_ON_PX + DASH_OFF_PX);
-
-        let oval = Rect::Ltrb {
-            left: -range_radius_px,
-            top: -range_radius_px,
-            right: range_radius_px,
-            bottom: range_radius_px,
-        };
-        let path = Path::new().add_oval(oval);
-        let paint = Paint::new(palette::PRIMARY)
-            .set_style(PaintStyle::Stroke)
-            .set_stroke_width(4.px())
-            .set_stroke_cap(StrokeCap::Round)
-            .set_path_effect(PathEffect::Dash {
-                on: DASH_ON_PX,
-                off: DASH_OFF_PX,
-                phase: phase_px,
-            });
-        ctx.add(namui::path(path, paint));
     }
 }
 
@@ -177,7 +141,7 @@ impl Component for TowerArea {
         }
         .with_alpha(127);
         ctx.add(rect(RectParam {
-            rect: Rect::from_xy_wh(Xy::single(-TILE_PX_SIZE.width), TILE_PX_SIZE * 2.0),
+            rect: Rect::from_xy_wh(Xy::zero(), TILE_PX_SIZE * 2.0),
             style: RectStyle {
                 stroke: Some(RectStroke {
                     color,

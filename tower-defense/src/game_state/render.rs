@@ -211,6 +211,13 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
             // We'll need to modify this once we can access mutable game state
             ctx.add(crate::game_state::tower::render::RenderTower { tower, now });
 
+            // Show attack range when the tower is selected
+            if game_state.ui_state.selected_tower_id == Some(tower.id()) {
+                ctx.add(crate::game_state::tower::render::TowerAttackRange {
+                    tower_template: tower,
+                });
+            }
+
             // Render hover area
             let tower_size = 128.0; // TILE_PX_SIZE
             ctx.add(namui::rect(RectParam {
