@@ -2,6 +2,7 @@ use crate::*;
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[cfg(target_os = "wasi")]
 unsafe extern "C" {
     fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool);
     fn _audio_play_spatial(audio_id: usize, playback_id: usize, repeat: bool);
@@ -11,6 +12,22 @@ unsafe extern "C" {
     fn _audio_set_listener_position(x: f32, y: f32, z: f32);
     fn _audio_set_volume(volume: f32);
 }
+
+// --- No-op stubs for non-WASI targets ---
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_play(_audio_id: usize, _playback_id: usize, _repeat: bool) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_play_spatial(_audio_id: usize, _playback_id: usize, _repeat: bool) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_playback_drop(_playback_id: usize) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_playback_set_volume(_playback_id: usize, _volume: f32) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_playback_set_position(_playback_id: usize, _x: f32, _y: f32, _z: f32) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_set_listener_position(_x: f32, _y: f32, _z: f32) {}
+#[cfg(not(target_os = "wasi"))]
+unsafe fn _audio_set_volume(_volume: f32) {}
 
 static NEXT_PLAYBACK_ID: AtomicUsize = AtomicUsize::new(1);
 static NEXT_PLAYBACK_ID_ATOM: Atom<usize> = Atom::uninitialized();

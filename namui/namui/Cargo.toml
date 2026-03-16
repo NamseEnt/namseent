@@ -34,5 +34,8 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "fs",
 ] }
 
+[target.'cfg(not(target_os="wasi"))'.dependencies]
+bincode = "2.0.0-rc.3"
+
 [dev-dependencies]
 float-cmp = "0.9"

@@ -1,6 +1,6 @@
 use anyhow::*;
 use clap::CommandFactory;
-use clap_complete::{generate_to, shells::Bash};
+use clap_complete::{generate_to, shells::Bash, shells::Zsh};
 use std::env;
 use std::fs::create_dir_all;
 use tokio::process::Command;
@@ -73,7 +73,28 @@ fn generate_completions() -> Result<()> {
     create_dir_all(&outdir)?;
 
     let mut cmd = Cli::command();
-    generate_to(Bash, &mut cmd, "namui", outdir)?;
+    generate_to(Bash, &mut cmd, "namui", &outdir)?;
+    generate_to(Zsh, &mut cmd, "namui", &outdir)?;
+
+    // Install zsh completion
+    if let Some(home) = env::var_os("HOME") {
+        let home = PathBuf::from(home);
+
+        // Copy completion to ~/.zfunc/
+        let zfunc = home.join(".zfunc");
+        let _ = create_dir_all(&zfunc);
+        let _ = std::fs::copy(outdir.join("_namui"), zfunc.join("_namui"));
+
+        // Add fpath + compinit to ~/.zshrc if not already present
+        let zshrc = home.join(".zshrc");
+        let content = std::fs::read_to_string(&zshrc).unwrap_or_default();
+        if !content.contains(".zfunc") {
+            use std::io::Write;
+            if let std::result::Result::Ok(mut f) = std::fs::OpenOptions::new().append(true).open(&zshrc) {
+                let _ = writeln!(f, "\n# namui completions\nfpath=(~/.zfunc $fpath)\nautoload -U compinit && compinit");
+            }
+        }
+    }
 
     Ok(())
 }

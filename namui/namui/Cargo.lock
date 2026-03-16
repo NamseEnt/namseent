@@ -781,6 +781,7 @@ name = "namui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "dashmap 5.5.3",
  "float-cmp",
  "futures",

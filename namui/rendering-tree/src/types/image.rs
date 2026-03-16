@@ -2,7 +2,6 @@ use super::*;
 use crate::*;
 use bytes::*;
 use std::{
-    collections::BTreeMap,
     fmt::Debug,
     hash::Hash,
     sync::{Arc, OnceLock},
@@ -25,12 +24,13 @@ impl Image {
             tile_mode: Xy::single(TileMode::Clamp),
         }
     }
+    #[cfg(target_os = "wasi")]
     pub fn info(&self) -> ImageInfo {
         IMAGE_INFOS.with(|image_infos| {
             image_infos
                 .get_or_init(|| {
                     let image_count = unsafe { _get_image_count() };
-                    let mut image_infos = BTreeMap::new();
+                    let mut image_infos = std::collections::BTreeMap::new();
                     let image_info_size = 14;
                     let mut buffer = vec![0u8; image_count * image_info_size];
                     unsafe { _get_image_infos(buffer.as_mut_ptr()) };
@@ -60,15 +60,32 @@ impl Image {
         })
     }
 
+    #[cfg(not(target_os = "wasi"))]
+    pub fn info(&self) -> ImageInfo {
+        let images = IMAGES.get().expect("IMAGES not initialized");
+        let image = images
+            .get(&self.id)
+            .unwrap_or_else(|| panic!("Image {} not found", self.id));
+        let skia_info = image.image_info();
+        ImageInfo {
+            alpha_type: skia_info.alpha_type().into(),
+            color_type: skia_info.color_type().into(),
+            width: px(skia_info.width() as f32),
+            height: px(skia_info.height() as f32),
+        }
+    }
+
     pub fn skia_image(&self) -> Arc<skia_safe::Image> {
         IMAGES.get().unwrap().get(&self.id).unwrap().clone()
     }
 }
 
+#[cfg(target_os = "wasi")]
 thread_local! {
-    static IMAGE_INFOS: OnceLock<BTreeMap<usize, ImageInfo>> = const { OnceLock::new() };
+    static IMAGE_INFOS: OnceLock<std::collections::BTreeMap<usize, ImageInfo>> = const { OnceLock::new() };
 }
 
+#[cfg(target_os = "wasi")]
 unsafe extern "C" {
     fn _get_image_count() -> usize;
     /**

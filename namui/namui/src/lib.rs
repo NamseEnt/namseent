@@ -4,6 +4,9 @@ mod render;
 pub mod system;
 pub mod utils;
 
+#[cfg(not(target_os = "wasi"))]
+mod ffi;
+
 pub use self::random::*;
 pub use anyhow::{Result, anyhow};
 pub use auto_ops;
@@ -18,7 +21,7 @@ pub use rand;
 pub use render::*;
 pub use shader_macro::shader;
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
 };
 pub use system::*;
@@ -39,16 +42,19 @@ thread_local! {
     static FROZEN_STATES: RefCell<Box<[u8]>> = Default::default();
 }
 
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 extern "C" fn _init_system() {
     system::init_system().unwrap();
 }
 
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 extern "C" fn _shutdown() {
     TOKIO_RUNTIME.take().unwrap().shutdown_background();
 }
 
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 extern "C" fn _freeze_world() -> u64 {
     let looper = LOOPER.with_borrow_mut(|looper| looper.take().unwrap());
@@ -59,6 +65,7 @@ extern "C" fn _freeze_world() -> u64 {
     })
 }
 
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 extern "C" fn _set_freeze_states(ptr: *const u8, len: usize) {
     LOOPER.with_borrow_mut(|looper| {
@@ -74,11 +81,15 @@ pub fn start(root_component: RootComponent) {
     LOOPER.set(Some(Looper::new(root_component)));
 }
 
-/// Return values
-///
-/// - 0: No rendering tree changed
-/// - u64::MAX: Redraw with previous rendering tree
-/// - Other: Rendering tree changed. ptr 32bit, len 32bit
+// Return values from on_event:
+// - 0: No rendering tree changed
+// - 1: Rendering tree changed (read ptr/len via LAST_EVENT_RESULT_PTR/LEN)
+// - 2: Redraw with previous rendering tree (mouse position changed)
+thread_local! {
+    pub(crate) static LAST_EVENT_RESULT_PTR: Cell<usize> = const { Cell::new(0) };
+    pub(crate) static LAST_EVENT_RESULT_LEN: Cell<usize> = const { Cell::new(0) };
+}
+
 fn on_event(event: RawEvent) -> u64 {
     thread_local! {
         static RENDERING_TREE: RefCell<RenderingTree> = Default::default();
@@ -89,11 +100,13 @@ fn on_event(event: RawEvent) -> u64 {
 
     let is_screen_redraw = matches!(event, RawEvent::ScreenRedraw);
 
-    let mut out_ptr = 0;
-    let mut out_len_ptr = 0;
+    let mut result: u64 = 0;
 
     TOKIO_RUNTIME.with(|tokio_runtime| {
-        let _guard = tokio_runtime.borrow().as_ref().unwrap().enter();
+        let Some(ref runtime) = *tokio_runtime.borrow() else {
+            return; // Already shut down
+        };
+        let _guard = runtime.enter();
 
         LOOPER.with_borrow_mut(|looper| {
             let rendering_tree = looper.as_mut().unwrap().tick(event);
@@ -129,19 +142,21 @@ fn on_event(event: RawEvent) -> u64 {
 
                 RENDERING_TREE_BYTES.replace(bytes);
 
-                out_ptr = RENDERING_TREE_BYTES.with_borrow(|bytes| bytes.as_ptr() as usize);
-                out_len_ptr = len;
+                let ptr = RENDERING_TREE_BYTES.with_borrow(|bytes| bytes.as_ptr() as usize);
+                LAST_EVENT_RESULT_PTR.set(ptr);
+                LAST_EVENT_RESULT_LEN.set(len);
+                result = 1;
             } else if mouse_position_changed {
-                out_ptr = usize::MAX;
-                out_len_ptr = usize::MAX;
+                result = 2;
             }
 
+            RENDERING_TREE_CHANGED.store(false, Ordering::Relaxed);
             MOUSE_POSITION_ON_LAST_REDRAW
                 .store(system::mouse::mouse_position_u32(), Ordering::Relaxed);
         })
     });
 
-    (out_ptr as u64) << 32 | out_len_ptr as u64
+    result
 }
 
 #[macro_export]
@@ -178,3 +193,4 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
 pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
     func().unwrap_or(RenderingTree::Empty)
 }
+

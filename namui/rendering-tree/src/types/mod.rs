@@ -212,9 +212,7 @@ impl Color {
 
 impl From<Color> for skia_safe::Color4f {
     fn from(color: Color) -> Self {
-        skia_safe::Color4f::from_bytes_rgba(u32::from_le_bytes([
-            color.r, color.g, color.b, color.a,
-        ]))
+        skia_safe::Color::from_argb(color.a, color.r, color.g, color.b).into()
     }
 }
 

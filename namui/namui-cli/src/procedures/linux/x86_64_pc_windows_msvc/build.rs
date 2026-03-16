@@ -22,6 +22,7 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
         strip_debug_info: true,
+        mode: services::runtime_project::RuntimeProjectMode::Binary,
     })?;
 
     let build_status_service = BuildStatusService::new();

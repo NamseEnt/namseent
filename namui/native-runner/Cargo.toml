@@ -1,0 +1,24 @@
+[package]
+name = "native-runner"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "native_runner"
+
+[[bin]]
+name = "native-runner"
+
+[dependencies]
+namui-skia = { path = "../skia" }
+namui-drawer = { path = "../namui-drawer" }
+namui-rendering-tree = { path = "../rendering-tree" }
+namui-type = { path = "../namui-type" }
+winit = "0.30.2"
+libloading = "0.8"
+notify = "6"
+bincode = "2.0.0-rc.3"
+objc2 = "0.5"
+mimalloc = "0.1.39"
+anyhow = "1.0"
+libc = "0.2"

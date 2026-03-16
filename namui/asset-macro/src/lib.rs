@@ -242,11 +242,44 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
         quote! {}
     };
 
+    // Generate native asset initialization function
+    let native_init = {
+        let mut init_calls = Vec::new();
+        for (id, file_path) in image_files.iter().enumerate() {
+            let relative_path = file_path
+                .strip_prefix(&asset_dir)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            init_calls.push(quote! {
+                register_image(#id, #relative_path);
+            });
+        }
+        quote! {
+            #[cfg(not(target_os = "wasi"))]
+            pub fn init_native_assets() {
+                unsafe extern "C" {
+                    fn _register_image(image_id: usize, buffer_ptr: *const u8, buffer_len: usize);
+                }
+                fn register_image(id: usize, relative_path: &str) {
+                    let path = format!("{}/asset/{}", env!("CARGO_MANIFEST_DIR"), relative_path);
+                    let data = std::fs::read(&path)
+                        .unwrap_or_else(|e| panic!("Failed to read asset {path}: {e}"));
+                    let leaked = Box::leak(data.into_boxed_slice());
+                    unsafe { _register_image(id, leaked.as_ptr(), leaked.len()); }
+                }
+                #(#init_calls)*
+            }
+        }
+    };
+
     let expanded = quote! {
         pub mod asset {
             #image_use
             #audio_use
             #module_tree
+            #native_init
         }
     };
 

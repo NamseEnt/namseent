@@ -30,6 +30,48 @@ pub fn alt_press() -> bool {
     any_code_press([Code::AltLeft, Code::AltRight])
 }
 
+pub(crate) fn record_key_down(code: Code) {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.insert(code);
+}
+
+pub(crate) fn record_key_up(code: Code) {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.remove(&code);
+}
+
+pub(crate) fn pressing_code_set() -> HashSet<Code> {
+    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
+    pressing_code_set.iter().map(|code| *code).collect()
+}
+
+// --- Primitive-type based key event functions (no winit dependency) ---
+
+pub(crate) fn key_down(code: u8) -> RawEvent {
+    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
+    record_key_down(code);
+    RawEvent::KeyDown {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    }
+}
+
+pub(crate) fn key_up(code: u8) -> RawEvent {
+    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
+    record_key_up(code);
+    RawEvent::KeyUp {
+        event: RawKeyboardEvent {
+            code,
+            pressing_codes: pressing_code_set(),
+        },
+    }
+}
+
+// --- WASI-only FFI exports ---
+
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 pub extern "C" fn _on_key_down(code: u8) -> u64 {
     let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
@@ -43,6 +85,7 @@ pub extern "C" fn _on_key_down(code: u8) -> u64 {
     })
 }
 
+#[cfg(target_os = "wasi")]
 #[unsafe(no_mangle)]
 pub extern "C" fn _on_key_up(code: u8) -> u64 {
     let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
@@ -56,17 +99,3 @@ pub extern "C" fn _on_key_up(code: u8) -> u64 {
     })
 }
 
-fn record_key_down(code: Code) {
-    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
-    pressing_code_set.insert(code);
-}
-
-fn record_key_up(code: Code) {
-    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
-    pressing_code_set.remove(&code);
-}
-
-fn pressing_code_set() -> HashSet<Code> {
-    let pressing_code_set = PRESSING_CODE_SET.get().unwrap();
-    pressing_code_set.iter().map(|code| *code).collect()
-}

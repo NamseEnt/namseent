@@ -29,8 +29,8 @@ pub fn init_skia(_screen_id: usize, _window_wh: Wh<IntPx>) -> Result<NativeSkia>
     unimplemented!()
 }
 #[cfg(target_os = "macos")]
-pub fn init_skia(_screen_id: usize, _window_wh: Wh<IntPx>) -> Result<NativeSkia> {
-    unimplemented!()
+pub fn init_skia(window: &winit::window::Window, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
+    NativeSkia::new(window, window_wh)
 }
 #[cfg(target_os = "wasi")]
 pub fn init_skia(_screen_id: usize, window_wh: Wh<IntPx>) -> Result<NativeSkia> {
