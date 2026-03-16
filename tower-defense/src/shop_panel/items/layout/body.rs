@@ -1,9 +1,20 @@
 use crate::icon::{Icon, IconKind, IconSize};
+use crate::rarity::Rarity;
+use crate::theme::halo::Halo;
 use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::table;
 
 use crate::shop_panel::constants::PADDING;
+
+fn halo_config_for_rarity(rarity: Rarity) -> Option<(Color, f32)> {
+    match rarity {
+        Rarity::Common => None,
+        Rarity::Rare => Some((rarity.color(), 0.1)),
+        Rarity::Epic => Some((rarity.color(), 0.2)),
+        Rarity::Legendary => Some((rarity.color(), 0.4)),
+    }
+}
 
 pub(crate) mod bottom;
 
@@ -36,23 +47,37 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                             table::horizontal([
                                 table::ratio_no_clip(1, |_, _| {}),
                                 table::fixed_no_clip(wh.height, |wh, ctx| {
-                                    if let Some(kind) = item_kind {
-                                        ctx.add(kind.thumbnail(wh));
-                                    } else if let Some(upgrade) = upgrade_kind {
-                                        ctx.add(upgrade.thumbnail(wh));
-                                    } else if contract_kind.is_some() {
-                                        ctx.add(
-                                            ThumbnailComposer::new(wh)
-                                                .with_icon_base(IconKind::Contract)
-                                                .build(),
-                                        );
-                                    } else {
-                                        ctx.add(
-                                            Icon::new(IconKind::Config)
-                                                .size(IconSize::Large)
-                                                .wh(wh),
-                                        );
-                                    }
+                                    let halo_config = halo_config_for_rarity(rarity);
+
+                                    ctx.compose(|ctx| {
+                                        if let Some(kind) = item_kind {
+                                            ctx.add(kind.thumbnail(wh));
+                                        } else if let Some(upgrade) = upgrade_kind {
+                                            ctx.add(upgrade.thumbnail(wh));
+                                        } else if contract_kind.is_some() {
+                                            ctx.add(
+                                                ThumbnailComposer::new(wh)
+                                                    .with_icon_base(IconKind::Contract)
+                                                    .build(),
+                                            );
+                                        } else {
+                                            ctx.add(
+                                                Icon::new(IconKind::Config)
+                                                    .size(IconSize::Large)
+                                                    .wh(wh),
+                                            );
+                                        }
+
+                                        if let Some((color, strength)) = halo_config {
+                                            ctx.add(Halo {
+                                                wh,
+                                                radius: 64.px(),
+                                                color,
+                                                strength,
+                                                rotation_deg_per_sec: 45.0,
+                                            });
+                                        }
+                                    });
                                 }),
                                 table::ratio_no_clip(1, |_, _| {}),
                             ]),
