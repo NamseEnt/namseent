@@ -1,9 +1,11 @@
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::TowerImage;
-use crate::game_state::tower::{AnimationKind, TowerTemplate};
+use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
 use crate::icon::IconKind;
+use crate::rarity::Rarity;
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::theme::{
+    halo::Halo,
     palette,
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
@@ -13,6 +15,20 @@ use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, table};
 use crate::animation::with_spring;
 
 const EXIT_ANIMATION_DURATION: f32 = 0.5;
+
+const PLACEHOLDER_FLAVOR_TEXT: &str = "대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트";
+
+fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
+    match kind {
+        TowerKind::Barricade | TowerKind::High | TowerKind::OnePair => None,
+        TowerKind::TwoPair => Some((Rarity::Common.color(), 0.05)),
+        TowerKind::ThreeOfAKind => Some((Rarity::Rare.color(), 0.1)),
+        TowerKind::Straight | TowerKind::Flush => Some((Rarity::Epic.color(), 0.15)),
+        TowerKind::FullHouse => Some((Rarity::Epic.color(), 0.2)),
+        TowerKind::FourOfAKind | TowerKind::StraightFlush => Some((Rarity::Legendary.color(), 0.3)),
+        TowerKind::RoyalFlush => Some((Rarity::Legendary.color(), 0.4)),
+    }
+}
 
 #[derive(Debug, Clone, Copy, State)]
 struct ExitAnimation {
@@ -52,9 +68,7 @@ impl Component for PreviewEntryComponent {
         let this_wh = self.wh;
         let template = self.template.clone();
         let tower_name = game_state.text().tower(template.kind.to_text());
-        let flavor = String::from(
-            "대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트",
-        );
+        let flavor = PLACEHOLDER_FLAVOR_TEXT.to_string();
 
         ctx.compose(|ctx| {
             let anchor = Xy::new(this_wh.width / 2.0, this_wh.height);
@@ -64,21 +78,34 @@ impl Component for PreviewEntryComponent {
                 .translate(-anchor);
 
             let img_wh = Wh::new(this_wh.height * 2.0, this_wh.height * 2.0);
+            let img_offset = Xy::new(0.px(), -this_wh.height);
+            let halo_config = halo_config_for_tower_kind(template.kind);
+
             ctx.compose(|ctx| {
-                ctx.translate(Xy::new(0.px(), -this_wh.height))
-                    .add(image(ImageParam {
-                        rect: Rect::Xywh {
-                            x: px(0.0),
-                            y: px(0.0),
-                            width: img_wh.width,
-                            height: img_wh.height,
-                        },
-                        image: (template.kind, AnimationKind::Idle1).image(),
-                        style: ImageStyle {
-                            fit: ImageFit::Contain,
-                            paint: None,
-                        },
-                    }));
+                let ctx = ctx.translate(img_offset);
+                let ctx = ctx.add(image(ImageParam {
+                    rect: Rect::Xywh {
+                        x: px(0.0),
+                        y: px(0.0),
+                        width: img_wh.width,
+                        height: img_wh.height,
+                    },
+                    image: (template.kind, AnimationKind::Idle1).image(),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: None,
+                    },
+                }));
+
+                if let Some((color, strength)) = halo_config {
+                    ctx.add(Halo {
+                        wh: img_wh,
+                        radius: 96.px(),
+                        color,
+                        strength,
+                        rotation_deg_per_sec: 45.0,
+                    });
+                }
             });
 
             let divider_x = img_wh.width + px(8.0);
@@ -143,7 +170,7 @@ impl Component for PreviewEntryComponent {
                                                 .paragraph()
                                                 .size(FontSize::Medium)
                                                 .max_width(wh.width - 8.px())
-                                                .text(&flavor)
+                                                .text(flavor.clone())
                                                 .render_left_top()
                                         },
                                     ));
