@@ -6,12 +6,15 @@ pub fn main() {
 }
 
 fn render(ctx: &RenderCtx) {
-    let (value, set_value) = ctx.state(|| None);
+    let (value, set_value) = ctx.state(|| None::<Vec<u8>>);
 
     const KEY: &str = "abc";
 
     ctx.effect("load data", || {
-        set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
+        spawn(async move {
+            let data = namui::system::kv_store::get(KEY).await;
+            set_value.set(data);
+        });
     });
 
     ctx.add(typography::body::left_top(
@@ -40,7 +43,10 @@ fn render(ctx: &RenderCtx) {
                         *value = Some(vec![1]);
                     }
                 }
-                namui::system::file::kv_store::set(KEY, value.as_ref().unwrap()).unwrap();
+                let data = value.clone();
+                spawn(async move {
+                    namui::system::kv_store::put(KEY, data.as_deref()).await;
+                });
             });
         },
     });
@@ -54,8 +60,10 @@ fn render(ctx: &RenderCtx) {
         fill_color: Color::WHITE,
         mouse_buttons: vec![MouseButton::Left],
         on_mouse_up_in: |_| {
-            namui::system::file::kv_store::delete(KEY).unwrap();
-            set_value.set(namui::system::file::kv_store::get(KEY).unwrap());
+            spawn(async move {
+                namui::system::kv_store::put(KEY, None).await;
+                set_value.set(None);
+            });
         },
     });
 }

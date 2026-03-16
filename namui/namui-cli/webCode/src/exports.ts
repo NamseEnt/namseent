@@ -55,6 +55,13 @@ export type Exports = CommonExports & {
     ) => bigint;
     _freeze_world: () => bigint;
     _set_freeze_states(ptr: number, len: number): void;
+    _on_kv_store_get_response(
+        requestId: number,
+        hasData: number,
+        ptr: number,
+        len: number,
+    ): void;
+    _on_kv_store_put_response(requestId: number): void;
 };
 
 export type DrawerExports = CommonExports & {

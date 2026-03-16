@@ -21,6 +21,7 @@ export type ThreadStartSupplies = {
           imageInfoBytes: Uint8Array;
           imageCount: number;
           spawnPort: MessagePort;
+          storageWorker: Worker;
       }
     | {
           type: "sub";
@@ -29,6 +30,7 @@ export type ThreadStartSupplies = {
           imageInfoBytes: Uint8Array;
           imageCount: number;
           spawnPort: MessagePort;
+          kvStorePort: MessagePort;
       }
     | {
           type: "drawer";
@@ -58,13 +60,18 @@ export async function startThread(supplies: ThreadStartSupplies) {
     const wasi = new WASI([], env, fd);
     patchWasi(wasi);
 
-    const storageProtocolBuffer = new SharedArrayBuffer(32);
+    const kvStoreTarget: Worker | MessagePort | null =
+        supplies.type === "main"
+            ? supplies.storageWorker
+            : supplies.type === "sub"
+              ? supplies.kvStorePort
+              : null;
 
     const importObject = createImportObject({
         supplies,
         wasiImport: wasi.wasiImport,
         exports: () => exports,
-        storageProtocolBuffer,
+        kvStoreTarget,
     });
 
     const instance = await WebAssembly.instantiate(module, importObject);
