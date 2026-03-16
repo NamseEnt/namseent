@@ -130,6 +130,8 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                         "_on_text_input_selection_change",
                         "_freeze_world",
                         "_set_freeze_states",
+                        "_on_kv_store_get_response",
+                        "_on_kv_store_put_response",
                     ]
                     .iter(),
                     WasiType::Drawer => [
