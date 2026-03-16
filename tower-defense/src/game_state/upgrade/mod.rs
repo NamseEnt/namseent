@@ -1,3 +1,4 @@
+mod data_conversion;
 mod display;
 mod generation;
 mod thumbnail;
@@ -9,6 +10,7 @@ use crate::{
     rarity::Rarity,
     *,
 };
+pub use data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub use generation::*;
 use std::collections::BTreeMap;
 

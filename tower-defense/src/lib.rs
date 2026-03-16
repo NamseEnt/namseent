@@ -1,7 +1,6 @@
 mod animation;
 mod camera_controller;
 mod card;
-mod contracts;
 mod flow_ui;
 mod game_state; // now private; selective re-exports below
 mod hand;
@@ -17,18 +16,18 @@ pub mod sound;
 mod theme;
 mod thumbnail;
 mod top_bar;
+mod upgrades;
 
 use crate::{camera_controller::CameraController, game_state::Modal};
-use contracts::Contracts;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 use theme::palette;
 use top_bar::TopBar;
+use upgrades::Upgrades;
 
 const TOP_BAR_HEIGHT: Px = px(48.);
-const CONTRACTS_ENABLED: bool = false;
 
 register_assets!();
 
@@ -68,17 +67,12 @@ impl Component for Game {
                 }),
                 table::ratio_no_clip(
                     1,
-                    table::padding(
+                    table::padding_no_clip(
                         8.px(),
                         table::horizontal([
-                            table::fixed_no_clip(
-                                if CONTRACTS_ENABLED { px(260.) } else { px(0.) },
-                                |wh, ctx| {
-                                    if CONTRACTS_ENABLED {
-                                        ctx.add(Contracts { wh });
-                                    }
-                                },
-                            ),
+                            table::fixed_no_clip(px(92.), |wh, ctx| {
+                                ctx.add(Upgrades { wh });
+                            }),
                             table::ratio_no_clip(1, |_, _| {}),
                             table::fixed_no_clip(px(92.), |wh, ctx| {
                                 ctx.add(Inventory { wh });
@@ -112,15 +106,6 @@ impl Component for Game {
         ctx.attach_event(move |event| {
             match event {
                 Event::KeyDown { event } => match event.code {
-                    Code::Tab => {
-                        mutate_game_state(|game_state| {
-                            if matches!(game_state.opened_modal, Some(Modal::UpgradeBoard)) {
-                                game_state.opened_modal = None;
-                            } else {
-                                game_state.opened_modal = Some(Modal::UpgradeBoard);
-                            }
-                        });
-                    }
                     Code::KeyQ => {
                         mutate_game_state(|game_state| {
                             game_state.fast_forward_multiplier =

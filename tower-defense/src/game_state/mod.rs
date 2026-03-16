@@ -14,6 +14,7 @@ pub mod flow;
 pub mod item;
 mod level_rarity_weight;
 mod modal;
+pub use upgrade::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub mod monster;
 mod monster_spawn;
 mod placed_towers;
