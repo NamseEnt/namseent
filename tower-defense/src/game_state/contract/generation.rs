@@ -5,6 +5,7 @@ use crate::{
 };
 use rand::{RngCore, distributions::WeightedIndex, prelude::*, thread_rng};
 
+#[allow(dead_code)]
 pub fn generate_contract(rarity: Rarity) -> Contract {
     let mut rng = thread_rng();
     generate_contract_with_rng(&mut rng, rarity)

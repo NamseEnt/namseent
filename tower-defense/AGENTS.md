@@ -12,7 +12,7 @@
 
 - For panel containers:
   - Add `StickyBar` / `PaperContent` first.
-  - Add `PaperContainerBackground` (`Sticky`, `Paper`) after content.
+  - Add `PaperContainerBackground` (`Sticky`, `Paper`) after content **and after any interactive overlays** (e.g., tooltips/hover regions) so the background renders behind them.
 - For action areas:
   - Add buttons/text first.
   - Add sticky paper background last.

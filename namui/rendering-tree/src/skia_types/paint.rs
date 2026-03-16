@@ -35,6 +35,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
         ref shader,
         mask_filter,
         ref image_filter,
+        ref path_effect,
         ..
     } = paint;
     if let Some(style) = paint_style {
@@ -76,6 +77,13 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     }
     if let Some(image_filter) = image_filter {
         skia_paint.set_image_filter(Some(image_filter.as_ref().into()));
+    }
+    if let Some(path_effect) = path_effect {
+        match path_effect {
+            PathEffect::Dash { on, off, phase } => {
+                skia_paint.set_path_effect(skia_safe::PathEffect::dash(&[*on, *off], *phase));
+            }
+        }
     }
 
     skia_paint

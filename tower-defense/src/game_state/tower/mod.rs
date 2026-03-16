@@ -289,16 +289,7 @@ impl Tower {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        self.status_effects.iter().fold(
-            self.default_attack_range_radius,
-            |attack_range_radius, status_effect| {
-                if let TowerStatusEffectKind::AttackRangeAdd { add } = status_effect.kind {
-                    attack_range_radius + add
-                } else {
-                    attack_range_radius
-                }
-            },
-        ) * contract_range_multiplier
+        self.default_attack_range_radius * contract_range_multiplier
     }
 }
 impl Deref for Tower {
@@ -431,12 +422,7 @@ impl TowerKind {
             )],
             Self::Straight => vec![],
             Self::Flush => vec![],
-            Self::FullHouse => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyTowerAttackSpeedMul {
-                    mul: 2.0,
-                    range_radius: 2.0,
-                },
-            )],
+            Self::FullHouse => vec![],
             Self::FourOfAKind => vec![TowerSkillTemplate::new_passive(
                 TowerSkillKind::NearbyMonsterSpeedMul {
                     mul: 0.75,
@@ -474,38 +460,15 @@ impl TowerKind {
 }
 
 pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
-    let attack_speed_multiplier = game_state.stage_modifiers.get_attack_speed_multiplier();
-
     game_state.towers.iter_mut().for_each(|tower| {
         if tower.cooldown == Duration::from_secs(0) {
             return;
         }
 
-        let mut time_multiple = 1.0;
-
-        tower.status_effects.iter().for_each(|status_effect| {
-            if let TowerStatusEffectKind::AttackSpeedAdd { add } = status_effect.kind {
-                time_multiple += add;
-            }
-        });
-        if time_multiple == 0.0 {
-            return;
-        }
-
-        tower.status_effects.iter().for_each(|status_effect| {
-            if let TowerStatusEffectKind::AttackSpeedMul { mul } = status_effect.kind {
-                time_multiple *= mul;
-            }
-        });
-
-        time_multiple *= attack_speed_multiplier;
-
-        let cooldown_sub = dt * time_multiple;
-
-        if tower.cooldown < cooldown_sub {
+        if tower.cooldown < dt {
             tower.cooldown = Duration::from_secs(0);
         } else {
-            tower.cooldown -= cooldown_sub;
+            tower.cooldown -= dt;
         }
     });
 }

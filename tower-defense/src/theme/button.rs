@@ -242,8 +242,90 @@ impl Component for Button<'_> {
             }
         }
 
-        ctx.mouse_cursor(cursor)
-            .add(PaperContainerBackground {
+        let handle_button_event = move |event: Event<'_>| {
+            if disabled {
+                return;
+            }
+
+            match event {
+                Event::MouseDown { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                        set_button_state.set(ButtonState::Pressed);
+
+                        if long_press_time.is_some() {
+                            play_random_button_click_sound();
+                            let mut state = *long_press_state;
+                            state.on_press_start();
+                            set_long_press_state.set(state);
+                            set_long_press_sound_started_at.set(Some(Instant::now()));
+                            set_last_long_press_sound_elapsed.set(None);
+                        }
+                    }
+                }
+                Event::MouseUp { event } => {
+                    let was_pressed = *button_state == ButtonState::Pressed;
+                    let is_inside = event.is_local_xy_in();
+
+                    set_button_state.set(if is_inside {
+                        ButtonState::Hovered
+                    } else {
+                        ButtonState::Normal
+                    });
+
+                    if let Some(long_press_duration) = long_press_time {
+                        let mut state = *long_press_state;
+                        let total_progress = state.current_progress();
+
+                        if is_inside && was_pressed && total_progress >= long_press_duration {
+                            state.reset();
+                        } else {
+                            state.on_press_end();
+                        }
+                        set_long_press_state.set(state);
+                        set_long_press_sound_started_at.set(None);
+                        set_last_long_press_sound_elapsed.set(None);
+                    } else if is_inside && was_pressed {
+                        play_random_button_click_sound();
+                        on_click();
+                    }
+                }
+                Event::MouseMove { event } => {
+                    let is_hovering = event.is_local_xy_in();
+                    let new_state = match (*button_state, is_hovering) {
+                        (ButtonState::Pressed, _) => ButtonState::Pressed,
+                        (_, true) => ButtonState::Hovered,
+                        (_, false) => ButtonState::Normal,
+                    };
+                    if new_state != *button_state {
+                        set_button_state.set(new_state);
+                    }
+                }
+                _ => {}
+            }
+        };
+
+        let ctx = ctx.mouse_cursor(cursor);
+        let ctx = if variant == ButtonVariant::Text {
+            ctx.add(rect(RectParam {
+                rect: Rect::Xywh {
+                    x: px(0.0),
+                    y: px(0.0),
+                    width: wh.width,
+                    height: wh.height,
+                },
+                style: RectStyle {
+                    stroke: None,
+                    fill: Some(RectFill {
+                        color: Color::TRANSPARENT,
+                    }),
+                    round: Some(RectRound {
+                        radius: palette::ROUND,
+                    }),
+                },
+            }))
+        } else {
+            ctx.add(PaperContainerBackground {
                 width: wh.width,
                 height: wh.height,
                 texture: PaperTexture::Rough,
@@ -256,71 +338,9 @@ impl Component for Button<'_> {
                 shadow: variant != ButtonVariant::Text,
                 arrow: None,
             })
-            .attach_event({
-                move |event| {
-                    if disabled {
-                        return;
-                    }
+        };
 
-                    match event {
-                        Event::MouseDown { event } => {
-                            if event.is_local_xy_in() {
-                                event.stop_propagation();
-                                set_button_state.set(ButtonState::Pressed);
-
-                                if long_press_time.is_some() {
-                                    play_random_button_click_sound();
-                                    let mut state = *long_press_state;
-                                    state.on_press_start();
-                                    set_long_press_state.set(state);
-                                    set_long_press_sound_started_at.set(Some(Instant::now()));
-                                    set_last_long_press_sound_elapsed.set(None);
-                                }
-                            }
-                        }
-                        Event::MouseUp { event } => {
-                            let was_pressed = *button_state == ButtonState::Pressed;
-                            let is_inside = event.is_local_xy_in();
-
-                            set_button_state.set(if is_inside {
-                                ButtonState::Hovered
-                            } else {
-                                ButtonState::Normal
-                            });
-
-                            if let Some(long_press_duration) = long_press_time {
-                                let mut state = *long_press_state;
-                                let total_progress = state.current_progress();
-
-                                if is_inside && was_pressed && total_progress >= long_press_duration
-                                {
-                                    state.reset();
-                                } else {
-                                    state.on_press_end();
-                                }
-                                set_long_press_state.set(state);
-                                set_long_press_sound_started_at.set(None);
-                                set_last_long_press_sound_elapsed.set(None);
-                            } else if is_inside && was_pressed {
-                                play_random_button_click_sound();
-                                on_click();
-                            }
-                        }
-                        Event::MouseMove { event } => {
-                            let is_hovering = event.is_local_xy_in();
-                            let new_state = match (*button_state, is_hovering) {
-                                (ButtonState::Pressed, _) => ButtonState::Pressed,
-                                (_, true) => ButtonState::Hovered,
-                                (_, false) => ButtonState::Normal,
-                            };
-                            if new_state != *button_state {
-                                set_button_state.set(new_state);
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            });
+        ctx.attach_event(handle_button_event);
 
         if let Some(long_press_duration) = long_press_time
             && let ButtonState::Pressed = *button_state

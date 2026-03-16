@@ -250,9 +250,7 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
     use crate::icon::IconKind;
     match kind {
         IconKind::Accept => rect(0.0, 0.0, 128.0, 128.0),
-        IconKind::AttackDamage => rect(256.0, 0.0, 128.0, 128.0),
-        IconKind::AttackRange => rect(384.0, 0.0, 128.0, 128.0),
-        IconKind::AttackSpeed => rect(512.0, 0.0, 128.0, 128.0),
+        IconKind::Damage => rect(256.0, 0.0, 128.0, 128.0),
         IconKind::Config => rect(768.0, 0.0, 128.0, 128.0),
         IconKind::EnemyBoss => rect(1024.0, 0.0, 128.0, 128.0),
         IconKind::EnemyNamed => rect(1152.0, 0.0, 128.0, 128.0),
@@ -272,6 +270,7 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
         IconKind::Speaker => rect(1792.0, 128.0, 128.0, 128.0),
         IconKind::Up => rect(384.0, 256.0, 128.0, 128.0),
         IconKind::Down => rect(896.0, 0.0, 128.0, 128.0),
+        IconKind::Play => rect(0.0, 0.0, 128.0, 128.0),
         IconKind::Card => rect(640.0, 0.0, 128.0, 128.0),
         IconKind::New => rect(384.0, 128.0, 128.0, 128.0),
         IconKind::Add => rect(128.0, 0.0, 128.0, 128.0),

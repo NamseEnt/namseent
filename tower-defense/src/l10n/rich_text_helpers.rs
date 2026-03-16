@@ -12,8 +12,6 @@ pub trait RichTextHelpers<'a> {
     -> &mut TypographyBuilder<'a>;
     fn with_value_increase<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
-    fn with_attack_speed_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
-    fn with_attack_range_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_gold_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_card_rank<S: Into<String>>(&mut self, rank: S) -> &mut TypographyBuilder<'a>;
     fn with_heal_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
@@ -32,14 +30,6 @@ pub trait RichTextHelpers<'a> {
         suit: crate::card::Suit,
     ) -> &mut TypographyBuilder<'a>;
     fn with_attack_damage_stat<S: Into<String>>(
-        &mut self,
-        stat_name: S,
-    ) -> &mut TypographyBuilder<'a>;
-    fn with_attack_speed_stat<S: Into<String>>(
-        &mut self,
-        stat_name: S,
-    ) -> &mut TypographyBuilder<'a>;
-    fn with_attack_range_stat<S: Into<String>>(
         &mut self,
         stat_name: S,
     ) -> &mut TypographyBuilder<'a>;
@@ -70,7 +60,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     }
 
     fn with_attack_damage_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackDamage);
+        self.icon(IconKind::Damage);
         self.with_style(|b| {
             b.color(palette::RED).text(value.into());
         });
@@ -107,22 +97,6 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::BLUE).text(format!("x{}", value.into()));
-        });
-        self
-    }
-
-    fn with_attack_speed_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackSpeed);
-        self.with_style(|b| {
-            b.color(palette::YELLOW).text(value.into());
-        });
-        self
-    }
-
-    fn with_attack_range_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::AttackRange);
-        self.with_style(|b| {
-            b.color(palette::BLUE).text(value.into());
         });
         self
     }
@@ -186,26 +160,6 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::RED).text(stat_name.into());
-        });
-        self
-    }
-
-    fn with_attack_speed_stat<S: Into<String>>(
-        &mut self,
-        stat_name: S,
-    ) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::YELLOW).text(stat_name.into());
-        });
-        self
-    }
-
-    fn with_attack_range_stat<S: Into<String>>(
-        &mut self,
-        stat_name: S,
-    ) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::BLUE).text(stat_name.into());
         });
         self
     }

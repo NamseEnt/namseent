@@ -7,6 +7,7 @@ mod image_filter;
 mod mask_filter;
 mod paint;
 mod path;
+mod path_effect;
 mod shader;
 
 use crate::*;
@@ -19,6 +20,7 @@ pub use image_filter::*;
 pub use mask_filter::*;
 pub use paint::*;
 pub use path::*;
+pub use path_effect::*;
 pub use shader::*;
 use std::{
     collections::hash_map::DefaultHasher,

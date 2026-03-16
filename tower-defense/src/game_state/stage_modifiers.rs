@@ -28,8 +28,6 @@ use crate::*;
 #[derive(Clone, Debug, Default, State)]
 pub struct Multipliers {
     pub damage: f32,
-    pub attack_speed: f32,
-    pub range: f32,
     pub damage_reduction: f32,
     pub incoming_damage: f32,
     pub gold_gain: f32,
@@ -79,8 +77,6 @@ impl StageModifiers {
         Self {
             multipliers: Multipliers {
                 damage: 1.0,
-                attack_speed: 1.0,
-                range: 1.0,
                 damage_reduction: 1.0,
                 incoming_damage: 1.0,
                 gold_gain: 1.0,
@@ -96,8 +92,6 @@ impl StageModifiers {
     pub fn reset_stage_state(&mut self) {
         self.multipliers = Multipliers {
             damage: 1.0,
-            attack_speed: 1.0,
-            range: 1.0,
             damage_reduction: 1.0,
             incoming_damage: 1.0,
             gold_gain: 1.0,
@@ -111,12 +105,6 @@ impl StageModifiers {
     // ----- Getters -----
     pub fn get_damage_multiplier(&self) -> f32 {
         self.multipliers.damage
-    }
-    pub fn get_attack_speed_multiplier(&self) -> f32 {
-        self.multipliers.attack_speed
-    }
-    pub fn get_range_multiplier(&self) -> f32 {
-        self.multipliers.range
     }
     pub fn get_damage_reduction_multiplier(&self) -> f32 {
         self.multipliers.damage_reduction
@@ -195,12 +183,6 @@ impl StageModifiers {
     // ----- Mutators -----
     pub fn apply_damage_multiplier(&mut self, m: f32) {
         self.multipliers.damage *= m;
-    }
-    pub fn apply_attack_speed_multiplier(&mut self, m: f32) {
-        self.multipliers.attack_speed *= m;
-    }
-    pub fn apply_range_multiplier(&mut self, m: f32) {
-        self.multipliers.range *= m;
     }
     pub fn apply_damage_reduction_multiplier(&mut self, m: f32) {
         self.multipliers.damage_reduction *= m;

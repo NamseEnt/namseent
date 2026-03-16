@@ -254,8 +254,6 @@ mod property_tests {
                     use crate::game_state::effect::Effect::*;
                     match eff {
                         IncreaseAllTowersDamage { multiplier }
-                        | IncreaseAllTowersAttackSpeed { multiplier }
-                        | IncreaseAllTowersRange { multiplier }
                         | IncreaseGoldGain { multiplier } => {
                             assert!(*multiplier >= 1.0 && *multiplier < 3.0);
                         }
@@ -369,7 +367,7 @@ mod property_tests {
     #[test]
     fn rarity_scaling_monotonic_for_core_tables() {
         // 특정 rarity 테이블들이 상위 rarity 로 갈수록 min/max 혹은 평균 기대값이 증가(또는 감소)하는지 검증
-        // 증가 기대: REWARD_EARN_GOLD, REWARD_HEAL_ON_SIGN, REWARD_INCREASE_TOWER_DAMAGE, REWARD_INCREASE_TOWER_RANGE, REWARD_INCREASE_GOLD_GAIN
+        // 증가 기대: REWARD_EARN_GOLD, REWARD_HEAL_ON_SIGN, REWARD_INCREASE_TOWER_DAMAGE, REWARD_INCREASE_GOLD_GAIN
         // 감소 기대: REWARD_DECREASE_INCOMING_DAMAGE (값 자체는 데미지 감소 비율이므로 rarity 올라가면 더 작은 multiplier)
         use crate::game_state::contract::constants::*;
         // helper: (min,max) 배열이 rarity 순서(Common..Legendary)에 대해 단조성 충족하는지
@@ -397,7 +395,6 @@ mod property_tests {
             &REWARD_INCREASE_TOWER_DAMAGE,
             "REWARD_INCREASE_TOWER_DAMAGE",
         );
-        assert_increasing(&REWARD_INCREASE_TOWER_RANGE, "REWARD_INCREASE_TOWER_RANGE");
         assert_increasing(&REWARD_INCREASE_GOLD_GAIN, "REWARD_INCREASE_GOLD_GAIN");
         assert_decreasing(
             &REWARD_DECREASE_INCOMING_DAMAGE,

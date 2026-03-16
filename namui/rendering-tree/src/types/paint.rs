@@ -14,6 +14,7 @@ pub struct Paint {
     pub shader: Option<Box<Shader>>,
     pub mask_filter: Option<MaskFilter>,
     pub image_filter: Option<Box<ImageFilter>>,
+    pub path_effect: Option<PathEffect>,
 }
 
 impl Paint {
@@ -65,6 +66,10 @@ impl Paint {
     }
     pub fn set_image_filter(mut self, image_filter: ImageFilter) -> Self {
         self.image_filter = Some(Box::new(image_filter));
+        self
+    }
+    pub fn set_path_effect(mut self, path_effect: PathEffect) -> Self {
+        self.path_effect = Some(path_effect);
         self
     }
 }

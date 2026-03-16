@@ -80,12 +80,6 @@ impl EffectText {
                 Effect::DecreaseAllTowersDamage { .. } => {
                     builder.text("모든 타워 공격력 감소");
                 }
-                Effect::IncreaseAllTowersAttackSpeed { .. } => {
-                    builder.text("모든 타워 공격속도 증가");
-                }
-                Effect::IncreaseAllTowersRange { .. } => {
-                    builder.text("모든 타워 사정거리 증가");
-                }
                 Effect::DecreaseIncomingDamage { .. } => {
                     builder.text("받는 피해 감소");
                 }
@@ -330,22 +324,6 @@ impl EffectText {
                         .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0))
                         .static_text(" 감소합니다");
                 }
-                Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
-                    builder
-                        .static_text("모든 타워의 ")
-                        .with_attack_speed_stat("공격속도")
-                        .static_text("가 ")
-                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
-                        .static_text(" 증가합니다");
-                }
-                Effect::IncreaseAllTowersRange { multiplier } => {
-                    builder
-                        .static_text("모든 타워의 ")
-                        .with_attack_range_stat("사정거리")
-                        .static_text("가 ")
-                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
-                        .static_text(" 증가합니다");
-                }
                 Effect::DecreaseIncomingDamage { multiplier } => {
                     builder
                         .static_text("받는 피해가 ")
@@ -559,12 +537,6 @@ impl EffectText {
                 }
                 Effect::DecreaseAllTowersDamage { .. } => {
                     builder.text("Decrease All Towers Damage");
-                }
-                Effect::IncreaseAllTowersAttackSpeed { .. } => {
-                    builder.text("Increase All Towers Attack Speed");
-                }
-                Effect::IncreaseAllTowersRange { .. } => {
-                    builder.text("Increase All Towers Range");
                 }
                 Effect::DecreaseIncomingDamage { .. } => {
                     builder.text("Decrease Incoming Damage");
@@ -808,20 +780,6 @@ impl EffectText {
                         .with_attack_damage_stat("damage")
                         .static_text(" by ")
                         .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0));
-                }
-                Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
-                    builder
-                        .static_text("Increase all towers' ")
-                        .with_attack_speed_stat("attack speed")
-                        .static_text(" by ")
-                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
-                }
-                Effect::IncreaseAllTowersRange { multiplier } => {
-                    builder
-                        .static_text("Increase all towers' ")
-                        .with_attack_range_stat("range")
-                        .static_text(" by ")
-                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
                 Effect::DecreaseIncomingDamage { multiplier } => {
                     builder

@@ -2,8 +2,7 @@ mod shop_slot;
 
 use crate::{
     game_state::{
-        GameState, contract::generation::generate_contract, flow::GameFlow,
-        item::generation::generate_item, upgrade::generate_upgrade,
+        GameState, flow::GameFlow, item::generation::generate_item, upgrade::generate_upgrade,
     },
     rarity::Rarity,
     *,
@@ -122,10 +121,14 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             ShopSlot::Upgrade { upgrade, cost }
         }
         8..=9 => {
-            // Contract (2/10)
-            let contract = generate_contract(rarity);
-            let cost = 0;
-            ShopSlot::Contract { contract, cost }
+            // Contracts are temporarily disabled; treat these slots as upgrades instead.
+            let upgrade = generate_upgrade(game_state, rarity);
+            let cost = item_cost(
+                rarity,
+                upgrade.value,
+                game_state.upgrade_state.shop_item_price_minus,
+            );
+            ShopSlot::Upgrade { upgrade, cost }
         }
         _ => unreachable!(),
     }

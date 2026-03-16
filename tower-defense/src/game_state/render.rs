@@ -207,39 +207,39 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         let px_xy = TILE_PX_SIZE.to_xy() * tower_xy;
         let now = game_state.now();
         ctx.translate(px_xy).compose(move |ctx| {
-            // For now, just render the tower without hover functionality
-            // We'll need to modify this once we can access mutable game state
-            ctx.add(crate::game_state::tower::render::RenderTower { tower, now });
+            if game_state.ui_state.selected_tower_id == Some(tower.id()) {
+                ctx.add(crate::game_state::tower::render::TowerAttackRange {
+                    tower_template: tower,
+                });
+            }
 
-            // Render hover area
-            let tower_size = 128.0; // TILE_PX_SIZE
-            ctx.add(namui::rect(RectParam {
-                rect: Rect::from_xy_wh(Xy::zero(), Wh::new(tower_size.px(), tower_size.px())),
-                style: RectStyle {
-                    fill: Some(RectFill {
-                        color: Color::TRANSPARENT,
+            ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
+                .add(
+                    crate::game_state::tower::render::RenderTower { tower, now }.attach_event({
+                        let tower_id = tower.id();
+                        move |event| {
+                            let Event::MouseDown { event } = event else {
+                                return;
+                            };
+                            if event.button != Some(MouseButton::Left) {
+                                return;
+                            }
+                            if !event.is_local_xy_in() {
+                                return;
+                            }
+                            event.stop_propagation();
+                            mutate_game_state(move |game_state| {
+                                let next_selected =
+                                    if game_state.ui_state.selected_tower_id == Some(tower_id) {
+                                        None
+                                    } else {
+                                        Some(tower_id)
+                                    };
+                                game_state.set_selected_tower(next_selected);
+                            });
+                        }
                     }),
-                    ..Default::default()
-                },
-            }))
-            .attach_event({
-                let tower_id = tower.id();
-                move |event| {
-                    let Event::MouseDown { event } = event else {
-                        return;
-                    };
-                    if event.button != Some(MouseButton::Left) {
-                        return;
-                    }
-                    if !event.is_local_xy_in() {
-                        return;
-                    }
-                    event.stop_propagation();
-                    mutate_game_state(move |game_state| {
-                        game_state.set_selected_tower(Some(tower_id));
-                    });
-                }
-            });
+                );
         });
     }
 }

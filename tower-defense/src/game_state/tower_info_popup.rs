@@ -26,15 +26,15 @@ impl Component for TowerInfoPopup<'_> {
         ctx.translate((-BUBBLE_WIDTH * 0.5, -BUBBLE_HEIGHT))
             .compose(|ctx| {
                 ctx.compose(|ctx| {
-                    table::padding(BUBBLE_PADDING, |wh, ctx| {
+                    table::padding_no_clip(BUBBLE_PADDING, |wh, ctx| {
                         table::vertical([
-                            table::ratio(1.0, |wh, ctx| {
+                            table::ratio_no_clip(1.0, |wh, ctx| {
                                 ctx.add(TowerPreviewContent {
                                     wh,
                                     tower_template: tower,
                                 });
                             }),
-                            table::fixed(36.px(), |wh, ctx| {
+                            table::fixed_no_clip(36.px(), |wh, ctx| {
                                 let tower_id = tower.id();
                                 ctx.add(
                                     Button::new(

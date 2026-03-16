@@ -1,6 +1,9 @@
-use crate::theme::{
-    button::{Button, ButtonColor, ButtonVariant},
-    typography::memoized_text,
+use crate::{
+    icon::IconKind,
+    theme::{
+        button::{Button, ButtonColor, ButtonVariant},
+        typography::memoized_text,
+    },
 };
 use namui::*;
 
@@ -22,16 +25,11 @@ impl Component for StickyBar<'_> {
 
         ctx.add(
             Button::new(wh, on_toggle, &|wh, text_color, ctx| {
-                let label = if panel_open {
-                    "닫기".to_string()
-                } else {
-                    "꺼내기".to_string()
-                };
-                ctx.add(memoized_text((&label, &text_color), |mut builder| {
+                ctx.add(memoized_text((&text_color, &panel_open), |mut builder| {
                     builder
                         .headline()
-                        .color(text_color)
-                        .text(label.clone())
+                        .size(crate::theme::typography::FontSize::Custom { size: wh.height })
+                        .icon(IconKind::Card)
                         .render_center(wh)
                 }));
             })

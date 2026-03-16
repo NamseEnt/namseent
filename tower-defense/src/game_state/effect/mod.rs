@@ -56,12 +56,6 @@ pub enum Effect {
     IncreaseIncomingDamage {
         multiplier: f32,
     },
-    IncreaseAllTowersAttackSpeed {
-        multiplier: f32,
-    },
-    IncreaseAllTowersRange {
-        multiplier: f32,
-    },
     DecreaseIncomingDamage {
         multiplier: f32,
     },
@@ -280,16 +274,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             game_state
                 .stage_modifiers
                 .apply_incoming_damage_multiplier(*multiplier);
-        }
-        Effect::IncreaseAllTowersAttackSpeed { multiplier } => {
-            game_state
-                .stage_modifiers
-                .apply_attack_speed_multiplier(*multiplier);
-        }
-        Effect::IncreaseAllTowersRange { multiplier } => {
-            game_state
-                .stage_modifiers
-                .apply_range_multiplier(*multiplier);
         }
         Effect::DecreaseIncomingDamage { multiplier } => {
             game_state

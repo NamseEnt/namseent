@@ -16,8 +16,6 @@ pub const REWARD_EARN_GOLD: [(f32, f32); 4] = [
 ];
 pub const REWARD_INCREASE_TOWER_DAMAGE: [(f32, f32); 4] =
     [(1.01, 1.06), (1.05, 1.11), (1.10, 1.26), (1.25, 1.76)];
-pub const REWARD_INCREASE_TOWER_RANGE: [(f32, f32); 4] =
-    [(1.01, 1.06), (1.05, 1.11), (1.10, 1.26), (1.25, 1.51)];
 pub const REWARD_DECREASE_INCOMING_DAMAGE: [(f32, f32); 4] =
     [(0.9, 0.95), (0.8, 0.9), (0.65, 0.8), (0.5, 0.65)];
 pub const REWARD_INCREASE_GOLD_GAIN: [(f32, f32); 4] =
