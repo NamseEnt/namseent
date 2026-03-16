@@ -55,10 +55,12 @@ if (import.meta.hot) {
     });
 }
 
-function listenSpawnPort(
-    port: MessagePort,
-    baseSupplies: Omit<ThreadStartSupplies & { type: "main" }, "type">,
-) {
+type BaseSupplies = Omit<
+    ThreadStartSupplies & { type: "main" },
+    "type" | "storageWorker"
+>;
+
+function listenSpawnPort(port: MessagePort, baseSupplies: BaseSupplies) {
     port.onmessage = (e: MessageEvent<{ startArgPtr: number; tid: number }>) => {
         const { startArgPtr, tid } = e.data;
         spawnWorker(startArgPtr, tid, baseSupplies);
@@ -68,7 +70,7 @@ function listenSpawnPort(
 function spawnWorker(
     startArgPtr: number,
     tid: number,
-    baseSupplies: Omit<ThreadStartSupplies & { type: "main" }, "type">,
+    baseSupplies: BaseSupplies,
 ) {
     const worker = new Worker(
         new URL("./thread/SubThreadWorker.ts?worker_file&type=module", import.meta.url),
@@ -78,17 +80,23 @@ function spawnWorker(
         console.error("[spawnWorker] worker error tid:", tid, e);
     };
 
-    const channel = new MessageChannel();
-    listenSpawnPort(channel.port1, baseSupplies);
+    const spawnChannel = new MessageChannel();
+    listenSpawnPort(spawnChannel.port1, baseSupplies);
+
+    const kvChannel = new MessageChannel();
+    kvChannel.port1.onmessage = (e) => {
+        storageWorker!.postMessage(e.data);
+    };
 
     const supplies: ThreadStartSupplies = {
         ...baseSupplies,
         type: "sub",
         startArgPtr,
         tid,
-        spawnPort: channel.port2,
+        spawnPort: spawnChannel.port2,
+        kvStorePort: kvChannel.port2,
     };
-    worker.postMessage(supplies, [channel.port2]);
+    worker.postMessage(supplies, [spawnChannel.port2, kvChannel.port2]);
 }
 
 let terminate = () => {};
@@ -96,6 +104,7 @@ let requestedDuringStart = false;
 let starting = false;
 let exports: Exports | undefined;
 let frozenWorldBytes: Uint8Array | undefined;
+let storageWorker: Worker | undefined;
 
 async function startMainThread() {
     if (starting) {
@@ -119,6 +128,20 @@ async function startMainThread() {
                 );
             }
 
+            if (storageWorker) {
+                storageWorker.terminate();
+            }
+            storageWorker = new Worker(
+                new URL(
+                    "./storage/StorageWorker.ts?worker_file&type=module",
+                    import.meta.url,
+                ),
+                { type: "module" },
+            );
+            storageWorker.onerror = (e) => {
+                console.error("[StorageWorker] failed to load:", e);
+            };
+
             const memory = new WebAssembly.Memory({
                 initial: 128,
                 maximum: 16384,
@@ -134,7 +157,7 @@ async function startMainThread() {
             ]);
 
             const spawnChannel = new MessageChannel();
-            const baseSupplies = {
+            const baseSupplies: BaseSupplies = {
                 memory,
                 module,
                 nextTid,
@@ -148,8 +171,40 @@ async function startMainThread() {
             const instance = await startThread({
                 ...baseSupplies,
                 type: "main",
+                storageWorker,
             });
             exports = instance.exports as Exports;
+
+            const currentExports = exports;
+            const currentMemory = memory;
+            storageWorker.onmessage = (e: MessageEvent) => {
+                const { requestId, op, hasData, data } = e.data;
+                if (op === "get") {
+                    if (hasData && data) {
+                        const bytes =
+                            data instanceof Uint8Array
+                                ? data
+                                : new Uint8Array(data);
+                        const ptr = currentExports.malloc(bytes.length);
+                        new Uint8Array(
+                            currentMemory.buffer,
+                            ptr,
+                            bytes.length,
+                        ).set(bytes);
+                        currentExports._on_kv_store_get_response(
+                            requestId,
+                            1,
+                            ptr,
+                            bytes.length,
+                        );
+                        currentExports.free(ptr);
+                    } else {
+                        currentExports._on_kv_store_get_response(requestId, 0, 0, 0);
+                    }
+                } else {
+                    currentExports._on_kv_store_put_response(requestId);
+                }
+            };
 
             if (frozenWorldBytes) {
                 const ptr = exports.malloc(frozenWorldBytes.byteLength);

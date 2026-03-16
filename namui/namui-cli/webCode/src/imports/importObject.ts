@@ -1,7 +1,7 @@
 import { envGl } from "./envGl";
 import { textInputImports } from "./textInput";
 import { type DrawerExports, type Exports } from "@/exports";
-import { storageImports } from "@/storage/imports";
+import { kvStoreImports } from "@/storage/imports";
 import { createAudioImports } from "@/audio";
 import { ThreadStartSupplies } from "@/thread/startThread";
 
@@ -9,12 +9,12 @@ export function createImportObject({
     supplies,
     wasiImport,
     exports,
-    storageProtocolBuffer,
+    kvStoreTarget,
 }: {
     supplies: ThreadStartSupplies;
     wasiImport: Record<string, any>;
     exports: () => DrawerExports | Exports;
-    storageProtocolBuffer: SharedArrayBuffer;
+    kvStoreTarget: Worker | MessagePort | null;
 }) {
     const { memory } = supplies;
     const glFunctions = envGl({
@@ -53,9 +53,9 @@ export function createImportObject({
             ...textInputImports({
                 memory,
             }),
-            ...storageImports({
+            ...kvStoreImports({
                 memory,
-                storageProtocolBuffer,
+                kvStoreTarget,
             }),
             ...createAudioImports({
                 memory,

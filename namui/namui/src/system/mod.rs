@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod keyboard;
+pub mod kv_store;
 pub mod mouse;
 pub mod screen;
 pub mod time;
