@@ -481,11 +481,11 @@ export function envGl({
             source += decoder.decode();
             webgl.shaderSource(shader, source);
         },
-        emscripten_glScissor: () => {
+        emscripten_glScissor: (x: number, y: number, width: number, height: number) => {
             if (!webgl) {
                 throw new Error("webgl is not set");
             }
-            return webgl.scissor;
+            return webgl.scissor(x, y, width, height);
         },
         emscripten_glReadPixels: () => {
             throw new Error("not implemented");
