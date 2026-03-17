@@ -1,22 +1,41 @@
 use super::{Tower, TowerKind, TowerTemplate};
 use crate::card::{Rank, Suit};
 use crate::game_state::{GameState, TILE_PX_SIZE, use_game_state};
-use crate::hand::shared::get_suit_color;
-use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
 use crate::sound::{
     self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset, random_murchunga,
 };
-use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
 
 // ----- Tower suit/rank overlay tuning (adjust for your tower sprite)
-pub const TOWER_OVERLAY_SUIT_X_RATIO: f32 = 0.21;
-pub const TOWER_OVERLAY_RANK_X_RATIO: f32 = 0.6;
-pub const TOWER_OVERLAY_SIDE_Y_RATIO: f32 = 0.62;
+pub const TOWER_OVERLAY_SUIT_X_RATIO: f32 = 0.3;
+pub const TOWER_OVERLAY_RANK_X_RATIO: f32 = 0.7;
+pub const TOWER_OVERLAY_SIDE_Y_RATIO: f32 = 0.75;
 pub const TOWER_OVERLAY_ICON_SCALE: f32 = 0.85;
 pub const TOWER_OVERLAY_ROTATION_DEG: f32 = -12.0;
 pub const TOWER_OVERLAY_ICON_SIZE_PX: f32 = 64.0;
+
+fn tower_overlay_suit_image(suit: Suit) -> Image {
+    match suit {
+        Suit::Spades => crate::asset::image::tower::suit_rank::SUIT_SPADE,
+        Suit::Hearts => crate::asset::image::tower::suit_rank::SUIT_HEART,
+        Suit::Diamonds => crate::asset::image::tower::suit_rank::SUIT_DIAMOND,
+        Suit::Clubs => crate::asset::image::tower::suit_rank::SUIT_CLUB,
+    }
+}
+
+fn tower_overlay_rank_image(rank: Rank) -> Image {
+    match rank {
+        Rank::Seven => crate::asset::image::tower::suit_rank::RANK_7,
+        Rank::Eight => crate::asset::image::tower::suit_rank::RANK_8,
+        Rank::Nine => crate::asset::image::tower::suit_rank::RANK_9,
+        Rank::Ten => crate::asset::image::tower::suit_rank::RANK_10,
+        Rank::Jack => crate::asset::image::tower::suit_rank::RANK_J,
+        Rank::Queen => crate::asset::image::tower::suit_rank::RANK_Q,
+        Rank::King => crate::asset::image::tower::suit_rank::RANK_K,
+        Rank::Ace => crate::asset::image::tower::suit_rank::RANK_A,
+    }
+}
 
 pub trait TowerImage {
     fn image(self) -> Image;
@@ -96,7 +115,6 @@ pub struct TowerSuitRankOverlay {
     ///   `Xy::new(-image_wh.width * 0.5, -image_wh.height)`.
     /// - For previews (top-left origin), use `Xy::zero()`.
     pub origin: Xy<Px>,
-    pub alpha: f32,
 }
 
 impl Component for TowerSuitRankOverlay {
@@ -106,12 +124,7 @@ impl Component for TowerSuitRankOverlay {
             rank,
             image_wh,
             origin,
-            alpha,
         } = self;
-
-        let alpha = alpha.clamp(0.0, 1.0);
-        let mut text_color = get_suit_color(suit);
-        text_color.a = (alpha * 255.0).round() as u8;
 
         // Position the suit/rank markers relative to the tower image bounds.
         let center_y = image_wh.height * TOWER_OVERLAY_SIDE_Y_RATIO;
@@ -124,19 +137,35 @@ impl Component for TowerSuitRankOverlay {
         let rotation = TOWER_OVERLAY_ROTATION_DEG.deg();
         let icon_scale = TOWER_OVERLAY_ICON_SCALE;
 
+        // Apply a tint to suit/rank icons; match the suit's color when the suit is red.
+        let overlay_color = match suit {
+            Suit::Hearts | Suit::Diamonds => Color::from_u8(220, 50, 45, 255),
+            _ => Color::from_u8(37, 26, 31, 255),
+        };
+
+        let paint = Some(
+            Paint::new(Color::WHITE).set_color_filter(ColorFilter::Blend {
+                color: overlay_color,
+                blend_mode: BlendMode::SrcIn,
+            }),
+        );
+
         // Suit (left side)
         ctx.compose(|ctx| {
-            let mut icon = Icon::new(IconKind::Suit { suit })
-                .wh(icon_wh)
-                .size(IconSize::Custom {
-                    size: icon_wh.height,
-                });
-            icon.opacity = alpha;
-
             ctx.translate(Xy::new(origin.x + left_x, origin.y + center_y))
                 .rotate(-rotation)
                 .scale(Xy::new(icon_scale, icon_scale))
-                .add(icon);
+                .add(namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(
+                        Xy::new(-icon_wh.width * 0.5, -icon_wh.height * 0.5),
+                        icon_wh,
+                    ),
+                    image: tower_overlay_suit_image(suit),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint: paint.clone(),
+                    },
+                }));
         });
 
         // Rank (right side)
@@ -144,15 +173,16 @@ impl Component for TowerSuitRankOverlay {
             ctx.translate(Xy::new(origin.x + right_x, origin.y + center_y))
                 .rotate(rotation)
                 .scale(Xy::new(icon_scale, icon_scale))
-                .add(memoized_text((&rank, &text_color), |mut builder| {
-                    builder
-                        .headline()
-                        .size(FontSize::Custom {
-                            size: icon_wh.height,
-                        })
-                        .color(text_color)
-                        .text(rank.to_string())
-                        .render_left_top()
+                .add(namui::image(ImageParam {
+                    rect: Rect::from_xy_wh(
+                        Xy::new(-icon_wh.width * 0.5, -icon_wh.height * 0.5),
+                        icon_wh,
+                    ),
+                    image: tower_overlay_rank_image(rank),
+                    style: ImageStyle {
+                        fit: ImageFit::Contain,
+                        paint,
+                    },
                 }));
         });
     }
@@ -215,7 +245,6 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
             rank: tower.rank,
             image_wh,
             origin: Xy::new(-image_wh.width * 0.5, -image_wh.height),
-            alpha,
         })
         .add(namui::image(ImageParam {
             rect: Rect::from_xy_wh(

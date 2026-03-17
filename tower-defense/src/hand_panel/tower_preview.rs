@@ -88,7 +88,6 @@ impl Component for PreviewEntryComponent {
                     rank: template.rank,
                     image_wh: img_wh,
                     origin: Xy::zero(),
-                    alpha: 1.0,
                 });
                 let ctx = ctx.add(image(ImageParam {
                     rect: Rect::Xywh {
