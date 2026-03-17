@@ -19,3 +19,19 @@ fn test_four_of_a_kind() {
     assert_eq!(template.kind, TowerKind::FourOfAKind);
     assert_eq!(template.rank, Rank::Ace);
 }
+
+#[test]
+fn test_five_of_a_kind_is_treated_as_four_of_a_kind() {
+    let cards = vec![
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Hearts, Rank::Ace),
+        make_card(Suit::Clubs, Rank::Ace),
+        make_card(Suit::Diamonds, Rank::Ace),
+        make_card(Suit::Spades, Rank::Ace),
+    ];
+    let upgrade_state = UpgradeState::default();
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::FourOfAKind);
+    assert_eq!(template.rank, Rank::Ace);
+}
