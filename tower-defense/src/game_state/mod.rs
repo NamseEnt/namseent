@@ -140,6 +140,13 @@ impl GameState {
         )
     }
 
+    /// Rarity spawn weights for the given level.
+    ///
+    /// This is based on the same table used by `generate_rarity`.
+    pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
+        level_rarity_weight::level_rarity_weight(level)
+    }
+
     /// Returns whether the hand panel is allowed to be opened based on current flow.
     pub fn can_open_hand_panel(&self) -> bool {
         matches!(
@@ -432,6 +439,13 @@ impl GameState {
 
 pub fn is_boss_stage(stage: usize) -> bool {
     matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
+}
+
+/// Rarity spawn weights for the given level.
+///
+/// This is based on the same table used by [`GameState::generate_rarity`].
+pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
+    level_rarity_weight::level_rarity_weight(level)
 }
 
 /// Make sure that the tower can be placed at the given coord.
