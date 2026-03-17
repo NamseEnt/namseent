@@ -1,5 +1,5 @@
 use crate::game_state::flow::GameFlow;
-use crate::game_state::tower::render::{TowerImage, TowerSuitRankOverlay};
+use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
 use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
@@ -83,25 +83,15 @@ impl Component for PreviewEntryComponent {
 
             ctx.compose(|ctx| {
                 let ctx = ctx.translate(img_offset);
-                let ctx = ctx.add(TowerSuitRankOverlay {
-                    suit: template.suit,
-                    rank: template.rank,
-                    image_wh: img_wh,
-                    origin: Xy::zero(),
+                let tower_image = (template.kind, AnimationKind::Idle1).image();
+
+                ctx.add(TowerSpriteWithOverlay {
+                    image: tower_image,
+                    wh: img_wh,
+                    suit: Some(template.suit),
+                    rank: Some(template.rank),
+                    alpha: 1.0,
                 });
-                let ctx = ctx.add(image(ImageParam {
-                    rect: Rect::Xywh {
-                        x: px(0.0),
-                        y: px(0.0),
-                        width: img_wh.width,
-                        height: img_wh.height,
-                    },
-                    image: (template.kind, AnimationKind::Idle1).image(),
-                    style: ImageStyle {
-                        fit: ImageFit::Contain,
-                        paint: None,
-                    },
-                }));
 
                 if let Some((color, strength)) = halo_config {
                     ctx.add(Halo {
