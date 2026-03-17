@@ -256,6 +256,14 @@ impl<'a> TypographyBuilder<'a> {
         let offset_x = width - rendered.width;
         PositionedRichText::new(rendered, Xy::new(offset_x, px(0.0)))
     }
+
+    /// Render and position at right-center
+    pub fn render_right_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
+        let rendered = self.render();
+        let offset_x = wh.width - rendered.width;
+        let offset_y = (wh.height - rendered.height) / 2.0;
+        PositionedRichText::new(rendered, Xy::new(offset_x, offset_y))
+    }
 }
 
 #[derive(Debug, Clone)]

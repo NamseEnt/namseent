@@ -1,6 +1,7 @@
 mod action_area;
 mod constants;
 mod items;
+mod level_tooltip;
 mod paper_content;
 mod refresh_button;
 mod slot_layout_calculator;

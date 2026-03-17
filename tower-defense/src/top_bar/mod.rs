@@ -1,5 +1,4 @@
 mod game_speed_indicator;
-mod level;
 mod stage;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
@@ -34,13 +33,6 @@ impl Component for TopBar {
 
         ctx.compose(|ctx| {
             table::horizontal([
-                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
-                    ctx.add(crate::top_bar::level::LevelIndicator {
-                        wh,
-                        level: game_state.level.get(),
-                    });
-                }),
-                table::fixed_no_clip(PADDING, |_, _| {}),
                 table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
                     ctx.compose(|ctx| {
                         let hp_pct = (game_state.hp / 100.0).clamp(0.0, 1.0);
