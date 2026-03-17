@@ -53,7 +53,7 @@ pub fn get_highest_tower_template(
         let Some(cards_of_rank) = rank_map.get(&rank) else {
             continue;
         };
-        if cards_of_rank.len() == 4 {
+        if cards_of_rank.len() >= 4 {
             let mut sorted_cards = cards_of_rank.clone();
             sorted_cards.sort();
             let top_card = sorted_cards.last().unwrap();
