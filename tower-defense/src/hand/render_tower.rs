@@ -1,6 +1,7 @@
 use super::*;
 use crate::game_state::tower::{
-    AnimationKind, TowerKind, TowerTemplate, render::TowerImage as TowerImageTrait,
+    AnimationKind, TowerTemplate,
+    render::{TowerImage, TowerSpriteWithOverlay},
 };
 use namui::*;
 
@@ -14,20 +15,13 @@ impl Component for RenderTower<'_> {
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 
-        // 바리케이드가 아닐 때만 좌상단에 rank와 suit 수직 배치
-        if tower_template.kind != TowerKind::Barricade {
-            render_top_left_rank_and_suit(ctx, tower_template.rank, tower_template.suit);
-        }
-
-        // 타워 이미지 렌더링
-        ctx.add(image(ImageParam {
-            rect: wh.to_rect(),
+        ctx.add(TowerSpriteWithOverlay {
             image: tower_image,
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+            wh,
+            suit: Some(tower_template.suit),
+            rank: Some(tower_template.rank),
+            alpha: 1.0,
+        });
 
         render_background_rect(ctx, wh);
     }

@@ -1,4 +1,4 @@
-use crate::game_state::tower::render::TowerAttackRange;
+use crate::game_state::tower::render::{TowerAttackRange, TowerImage, TowerSpriteWithOverlay};
 use crate::{
     MapCoordF32,
     game_state::{
@@ -7,7 +7,7 @@ use crate::{
         flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state, place_tower,
-        tower::{AnimationKind, Tower, TowerTemplate, render::TowerImage as TowerImageTrait},
+        tower::{AnimationKind, Tower, TowerTemplate},
         use_game_state,
     },
     palette,
@@ -70,9 +70,17 @@ impl Component for TowerCursorPreview<'_> {
             );
         };
 
+        let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
+
         let ctx = ctx.translate(TILE_PX_SIZE.to_xy() * left_top);
 
-        ctx.add(TowerImage { tower_template });
+        ctx.add(TowerSpriteWithOverlay {
+            image: tower_image,
+            wh: tower_image.info().wh(),
+            suit: Some(tower_template.suit),
+            rank: Some(tower_template.rank),
+            alpha: 0.5,
+        });
         ctx.add(TowerAttackRange { tower_template });
         // TODO: Add TowerSkillRange
         // ctx.add(TowerSkillRange { tower_template });
@@ -102,29 +110,6 @@ impl Component for TowerCursorPreview<'_> {
             }
             _ => {}
         });
-    }
-}
-
-struct TowerImage<'a> {
-    tower_template: &'a TowerTemplate,
-}
-impl Component for TowerImage<'_> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self { tower_template } = self;
-
-        let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
-
-        let image_wh = tower_image.info().wh();
-        let paint = Paint::new(Color::grayscale_alpha_f01(0.0, 0.5));
-
-        ctx.add(namui::image(ImageParam {
-            rect: Rect::from_xy_wh(Xy::zero(), image_wh),
-            image: tower_image,
-            style: ImageStyle {
-                fit: ImageFit::None,
-                paint: Some(paint),
-            },
-        }));
     }
 }
 
