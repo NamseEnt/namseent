@@ -1,10 +1,22 @@
 use super::{Tower, TowerKind, TowerTemplate};
+use crate::card::{Rank, Suit};
 use crate::game_state::{GameState, TILE_PX_SIZE, use_game_state};
+use crate::hand::shared::get_suit_color;
+use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
 use crate::sound::{
     self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset, random_murchunga,
 };
+use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
+
+// ----- Tower suit/rank overlay tuning (adjust for your tower sprite)
+pub const TOWER_OVERLAY_SUIT_X_RATIO: f32 = 0.21;
+pub const TOWER_OVERLAY_RANK_X_RATIO: f32 = 0.6;
+pub const TOWER_OVERLAY_SIDE_Y_RATIO: f32 = 0.62;
+pub const TOWER_OVERLAY_ICON_SCALE: f32 = 0.85;
+pub const TOWER_OVERLAY_ROTATION_DEG: f32 = -12.0;
+pub const TOWER_OVERLAY_ICON_SIZE_PX: f32 = 64.0;
 
 pub trait TowerImage {
     fn image(self) -> Image;
@@ -73,6 +85,79 @@ impl TowerImage for (TowerKind, AnimationKind) {
     }
 }
 
+pub struct TowerSuitRankOverlay {
+    pub suit: Suit,
+    pub rank: Rank,
+    pub image_wh: Wh<Px>,
+    /// The coordinate of the image's top-left corner in the current coordinate system.
+    ///
+    /// - For tower placement rendering, the coordinate system is already moved so that the
+    ///   origin is the bottom-center of the tower sprite, so this should be
+    ///   `Xy::new(-image_wh.width * 0.5, -image_wh.height)`.
+    /// - For previews (top-left origin), use `Xy::zero()`.
+    pub origin: Xy<Px>,
+    pub alpha: f32,
+}
+
+impl Component for TowerSuitRankOverlay {
+    fn render(self, ctx: &RenderCtx) {
+        let TowerSuitRankOverlay {
+            suit,
+            rank,
+            image_wh,
+            origin,
+            alpha,
+        } = self;
+
+        let alpha = alpha.clamp(0.0, 1.0);
+        let mut text_color = get_suit_color(suit);
+        text_color.a = (alpha * 255.0).round() as u8;
+
+        // Position the suit/rank markers relative to the tower image bounds.
+        let center_y = image_wh.height * TOWER_OVERLAY_SIDE_Y_RATIO;
+        let left_x = image_wh.width * TOWER_OVERLAY_SUIT_X_RATIO;
+        let right_x = image_wh.width * TOWER_OVERLAY_RANK_X_RATIO;
+        let icon_wh = Wh::new(
+            TOWER_OVERLAY_ICON_SIZE_PX.px(),
+            TOWER_OVERLAY_ICON_SIZE_PX.px(),
+        );
+        let rotation = TOWER_OVERLAY_ROTATION_DEG.deg();
+        let icon_scale = TOWER_OVERLAY_ICON_SCALE;
+
+        // Suit (left side)
+        ctx.compose(|ctx| {
+            let mut icon = Icon::new(IconKind::Suit { suit })
+                .wh(icon_wh)
+                .size(IconSize::Custom {
+                    size: icon_wh.height,
+                });
+            icon.opacity = alpha;
+
+            ctx.translate(Xy::new(origin.x + left_x, origin.y + center_y))
+                .rotate(-rotation)
+                .scale(Xy::new(icon_scale, icon_scale))
+                .add(icon);
+        });
+
+        // Rank (right side)
+        ctx.compose(|ctx| {
+            ctx.translate(Xy::new(origin.x + right_x, origin.y + center_y))
+                .rotate(rotation)
+                .scale(Xy::new(icon_scale, icon_scale))
+                .add(memoized_text((&rank, &text_color), |mut builder| {
+                    builder
+                        .headline()
+                        .size(FontSize::Custom {
+                            size: icon_wh.height,
+                        })
+                        .color(text_color)
+                        .text(rank.to_string())
+                        .render_left_top()
+                }));
+        });
+    }
+}
+
 pub struct RenderTower<'a> {
     pub tower: &'a Tower,
     pub now: Instant,
@@ -125,6 +210,13 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
     ctx.translate(TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1))
         .translate((image_wh.width * 0.5, image_wh.height))
         .scale(scale)
+        .add(TowerSuitRankOverlay {
+            suit: tower.suit,
+            rank: tower.rank,
+            image_wh,
+            origin: Xy::new(-image_wh.width * 0.5, -image_wh.height),
+            alpha,
+        })
         .add(namui::image(ImageParam {
             rect: Rect::from_xy_wh(
                 Xy::new(-image_wh.width * 0.5, -image_wh.height),

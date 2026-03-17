@@ -1,5 +1,5 @@
 use crate::game_state::flow::GameFlow;
-use crate::game_state::tower::render::TowerImage;
+use crate::game_state::tower::render::{TowerImage, TowerSuitRankOverlay};
 use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
@@ -66,9 +66,9 @@ impl Component for PreviewEntryComponent {
         let position: f32 = with_spring(ctx, target, 0.0f32, |v| v * v, || 0.0f32);
         let scale = position.max(0.0001);
         let this_wh = self.wh;
-        let template = self.template.clone();
+        let template = self.template;
         let tower_name = game_state.text().tower(template.kind.to_text());
-        let flavor = PLACEHOLDER_FLAVOR_TEXT.to_string();
+        let flavor = PLACEHOLDER_FLAVOR_TEXT;
 
         ctx.compose(|ctx| {
             let anchor = Xy::new(this_wh.width / 2.0, this_wh.height);
@@ -83,6 +83,13 @@ impl Component for PreviewEntryComponent {
 
             ctx.compose(|ctx| {
                 let ctx = ctx.translate(img_offset);
+                let ctx = ctx.add(TowerSuitRankOverlay {
+                    suit: template.suit,
+                    rank: template.rank,
+                    image_wh: img_wh,
+                    origin: Xy::zero(),
+                    alpha: 1.0,
+                });
                 let ctx = ctx.add(image(ImageParam {
                     rect: Rect::Xywh {
                         x: px(0.0),
@@ -136,9 +143,8 @@ impl Component for PreviewEntryComponent {
                     table::vertical([
                         table::fixed_no_clip(24.px(), move |wh, ctx| {
                             ctx.add(memoized_text(
-                                (&wh.width, &template.kind, &template.suit),
+                                (&wh.width, &template.kind, &template.suit, &template.rank),
                                 |mut builder| {
-                                    let rank_text = template.rank.to_string();
                                     let mut builder = builder
                                         .headline()
                                         .size(FontSize::Medium)
@@ -151,7 +157,7 @@ impl Component for PreviewEntryComponent {
                                             .icon(IconKind::Suit {
                                                 suit: template.suit,
                                             })
-                                            .text(&rank_text)
+                                            .text(template.rank.to_string())
                                             .space();
                                     }
                                     builder.text(tower_name).render_left_center(wh.height * 0.4)
@@ -163,17 +169,14 @@ impl Component for PreviewEntryComponent {
                                 wh,
                                 scroll_bar_width: 8.px(),
                                 content: |scroll_ctx| {
-                                    scroll_ctx.add(memoized_text(
-                                        (&flavor, &wh.width),
-                                        |mut builder| {
-                                            builder
-                                                .paragraph()
-                                                .size(FontSize::Medium)
-                                                .max_width(wh.width - 8.px())
-                                                .text(flavor.clone())
-                                                .render_left_top()
-                                        },
-                                    ));
+                                    scroll_ctx.add(memoized_text((&wh.width,), |mut builder| {
+                                        builder
+                                            .paragraph()
+                                            .size(FontSize::Medium)
+                                            .max_width(wh.width - 8.px())
+                                            .text(flavor)
+                                            .render_left_top()
+                                    }));
                                 },
                             });
                         }),
