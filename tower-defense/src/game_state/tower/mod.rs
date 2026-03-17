@@ -29,7 +29,7 @@ pub struct Tower {
     template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
-    pub(self) animation: Animation,
+    pub(in crate::game_state::tower) animation: Animation,
     pub(self) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
