@@ -18,6 +18,10 @@ impl NativeTypeface {
             .get(&name.as_ref().to_string())
             .map(|v| v.value().clone())
     }
+    pub fn debug_list_loaded() -> Vec<String> {
+        typeface_map().iter().map(|e| e.key().clone()).collect()
+    }
+
     pub fn load(name: impl AsRef<str>, bytes: &[u8]) -> anyhow::Result<()> {
         let skia_typeface = skia_safe::FontMgr::default()
             .new_from_data(bytes, None)

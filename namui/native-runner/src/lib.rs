@@ -11,18 +11,40 @@ use winit::{
 
 unsafe extern "C" {
     fn namui_main();
-    fn namui_init_system();
-    fn namui_set_screen_size(width: u16, height: u16);
-    fn namui_on_screen_redraw(out_ptr: *mut *const u8, out_len: *mut usize) -> u64;
-    fn namui_on_screen_resize(width: u16, height: u16) -> u64;
-    fn namui_on_mouse_move(x: f32, y: f32) -> u64;
-    fn namui_on_mouse_down(button: u8, x: f32, y: f32) -> u64;
-    fn namui_on_mouse_up(button: u8, x: f32, y: f32) -> u64;
-    fn namui_on_mouse_wheel(delta_x: f32, delta_y: f32, mouse_x: f32, mouse_y: f32) -> u64;
-    fn namui_on_key_down(code: u8) -> u64;
-    fn namui_on_key_up(code: u8) -> u64;
-    fn namui_on_blur() -> u64;
-    fn namui_shutdown();
+    fn _init_system();
+    fn _set_screen_size(width: u16, height: u16);
+    fn _shutdown();
+    fn _on_animation_frame() -> *const u8;
+    fn _on_screen_resize(width: u16, height: u16) -> *const u8;
+    fn _on_mouse_down(x: f32, y: f32, button: u8, buttons: u8) -> *const u8;
+    fn _on_mouse_move(x: f32, y: f32, button: u8, buttons: u8) -> *const u8;
+    fn _on_mouse_up(x: f32, y: f32, button: u8, buttons: u8) -> *const u8;
+    fn _on_mouse_wheel(delta_x: f32, delta_y: f32, x: f32, y: f32) -> *const u8;
+    fn _on_key_down(code: u8) -> *const u8;
+    fn _on_key_up(code: u8) -> *const u8;
+    fn _on_blur() -> *const u8;
+    fn _dylib_image_buffer_list(out: *mut usize, max_count: usize) -> usize;
+    fn _dylib_register_font(
+        name_ptr: *const u8,
+        name_len: usize,
+        buffer_ptr: *const u8,
+        buffer_len: usize,
+    );
+}
+
+/// Decode response from namui FFI: `[len: u32 LE][data...]`
+/// Returns None if ptr is null (no change).
+/// Returns Some(slice) where slice is the data portion.
+/// An empty slice means "redraw with previous rendering tree".
+unsafe fn decode_response(ptr: *const u8) -> Option<&'static [u8]> {
+    if ptr.is_null() {
+        return None;
+    }
+    let len = unsafe { (ptr as *const u32).read_unaligned() } as usize;
+    if len == 0 {
+        return Some(&[]);
+    }
+    Some(unsafe { std::slice::from_raw_parts(ptr.add(4), len) })
 }
 
 struct NamuiApp {
@@ -31,7 +53,46 @@ struct NamuiApp {
 }
 
 std::thread_local! {
-    static MOUSE_POS: std::cell::RefCell<(usize, usize)> = const { std::cell::RefCell::new((0, 0)) };
+    static MOUSE_STATE: std::cell::RefCell<MouseState> = const { std::cell::RefCell::new(MouseState::new()) };
+}
+
+struct MouseState {
+    x: f32,
+    y: f32,
+    /// DOM-convention bitmask: bit0=left, bit1=right, bit2=middle
+    buttons: u8,
+}
+
+impl MouseState {
+    const fn new() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            buttons: 0,
+        }
+    }
+}
+
+/// Convert winit MouseButton to DOM convention button value.
+/// DOM: 0=left, 1=middle, 2=right
+fn winit_button_to_dom(button: winit::event::MouseButton) -> Option<u8> {
+    match button {
+        winit::event::MouseButton::Left => Some(0),
+        winit::event::MouseButton::Middle => Some(1),
+        winit::event::MouseButton::Right => Some(2),
+        _ => None,
+    }
+}
+
+/// Convert DOM button value to bitmask bit.
+/// DOM buttons bitmask: bit0=left, bit1=right, bit2=middle
+fn dom_button_to_bitmask(button: u8) -> u8 {
+    match button {
+        0 => 1 << 0, // left
+        1 => 1 << 2, // middle
+        2 => 1 << 1, // right
+        _ => 0,
+    }
 }
 
 impl ApplicationHandler for NamuiApp {
@@ -40,7 +101,6 @@ impl ApplicationHandler for NamuiApp {
             return;
         }
 
-        eprintln!("[runner] resumed: creating window");
         let size = LogicalSize::new(1280, 720);
         let mut window_attributes = WindowAttributes::default();
         window_attributes.inner_size = Some(winit::dpi::Size::new(size));
@@ -51,35 +111,37 @@ impl ApplicationHandler for NamuiApp {
             .expect("Failed to create window");
 
         let inner_size = window.inner_size();
-        eprintln!("[runner] resumed: window created {}x{}", inner_size.width, inner_size.height);
 
         let window_wh = Wh::new(
             int_px(inner_size.width as i32),
             int_px(inner_size.height as i32),
         );
 
-        eprintln!("[runner] resumed: init skia");
         let skia = namui_skia::init_skia(&window, window_wh)
             .expect("Failed to initialize Skia Metal backend");
-        eprintln!("[runner] resumed: skia initialized");
 
         unsafe {
-            eprintln!("[runner] resumed: calling namui_init_system");
-            namui_init_system();
-            eprintln!("[runner] resumed: calling namui_main");
+            _init_system();
             namui_main();
-            eprintln!("[runner] resumed: calling namui_set_screen_size");
-            namui_set_screen_size(inner_size.width as u16, inner_size.height as u16);
-            eprintln!("[runner] resumed: calling namui_on_screen_resize");
-            namui_on_screen_resize(inner_size.width as u16, inner_size.height as u16);
-            eprintln!("[runner] resumed: FFI calls done");
+
+            // Re-register images from dylib into runner's IMAGES map
+            let mut buf = vec![0usize; 1000 * 3];
+            let count = _dylib_image_buffer_list(buf.as_mut_ptr(), 1000);
+            for i in 0..count {
+                let id = buf[i * 3];
+                let ptr = buf[i * 3 + 1] as *const u8;
+                let len = buf[i * 3 + 2];
+                register_image(id, ptr, len);
+            }
+
+            _set_screen_size(inner_size.width as u16, inner_size.height as u16);
+            _on_screen_resize(inner_size.width as u16, inner_size.height as u16);
         }
 
         self.window = Some(window);
         self.skia = Some(skia);
 
         self.window.as_ref().unwrap().request_redraw();
-        eprintln!("[runner] resumed: done");
     }
 
     fn window_event(
@@ -94,35 +156,39 @@ impl ApplicationHandler for NamuiApp {
 
         match event {
             WindowEvent::CloseRequested => {
-                unsafe { namui_shutdown(); }
+                unsafe {
+                    _shutdown();
+                }
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
                 let wh = Wh::new(int_px(size.width as i32), int_px(size.height as i32));
                 skia.on_resize(wh);
                 unsafe {
-                    namui_on_screen_resize(size.width as u16, size.height as u16);
+                    _on_screen_resize(size.width as u16, size.height as u16);
                 }
                 self.window.as_ref().unwrap().request_redraw();
             }
             WindowEvent::RedrawRequested => {
-                // on_event returns: 0 = no change, 1 = tree changed, 2 = mouse moved
-                let mut ptr: *const u8 = std::ptr::null();
-                let mut len: usize = 0;
-                let result = unsafe { namui_on_screen_redraw(&mut ptr, &mut len) };
+                let response = unsafe { decode_response(_on_animation_frame()) };
 
-                let (mx, my) = MOUSE_POS.with(|pos| *pos.borrow());
+                let (mx, my) = MOUSE_STATE.with(|s| {
+                    let s = s.borrow();
+                    (s.x as usize, s.y as usize)
+                });
 
                 skia.move_to_next_frame();
                 skia.surface().canvas().clear(Color::WHITE);
 
-                if result == 1 {
-                    let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-                    let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
-                        bincode::decode_from_slice(slice, bincode::config::standard()).unwrap();
-                    namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my);
-                } else {
-                    namui_drawer::redraw(skia, mx, my);
+                match response {
+                    Some(data) if !data.is_empty() => {
+                        let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
+                            bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
+                        namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my);
+                    }
+                    _ => {
+                        namui_drawer::redraw(skia, mx, my);
+                    }
                 }
 
                 skia.surface().flush();
@@ -130,76 +196,128 @@ impl ApplicationHandler for NamuiApp {
                 self.window.as_ref().unwrap().request_redraw();
             }
             WindowEvent::MouseInput { state, button, .. } => {
-                let btn = match button {
-                    winit::event::MouseButton::Left => 0u8,
-                    winit::event::MouseButton::Right => 1u8,
-                    winit::event::MouseButton::Middle => 2u8,
-                    _ => return,
+                let Some(dom_button) = winit_button_to_dom(button) else {
+                    return;
                 };
-                let (mx, my) = MOUSE_POS.with(|pos| {
-                    let pos = pos.borrow();
-                    (pos.0 as f32, pos.1 as f32)
+                let bit = dom_button_to_bitmask(dom_button);
+
+                MOUSE_STATE.with(|s| {
+                    let mut s = s.borrow_mut();
+                    if state.is_pressed() {
+                        s.buttons |= bit;
+                        unsafe {
+                            _on_mouse_down(s.x, s.y, dom_button, s.buttons);
+                        }
+                    } else {
+                        s.buttons &= !bit;
+                        unsafe {
+                            _on_mouse_up(s.x, s.y, dom_button, s.buttons);
+                        }
+                    }
                 });
-                if state.is_pressed() {
-                    unsafe { namui_on_mouse_down(btn, mx, my) };
-                } else {
-                    unsafe { namui_on_mouse_up(btn, mx, my) };
-                }
                 self.window.as_ref().unwrap().request_redraw();
             }
             WindowEvent::CursorMoved { position, .. } => {
-                MOUSE_POS.with(|pos| {
-                    *pos.borrow_mut() = (position.x as usize, position.y as usize);
+                MOUSE_STATE.with(|s| {
+                    let mut s = s.borrow_mut();
+                    s.x = position.x as f32;
+                    s.y = position.y as f32;
+                    unsafe {
+                        _on_mouse_move(s.x, s.y, 0, s.buttons);
+                    }
                 });
-                unsafe { namui_on_mouse_move(position.x as f32, position.y as f32) };
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let (dx, dy) = match delta {
                     winit::event::MouseScrollDelta::LineDelta(x, y) => (x, y),
                     winit::event::MouseScrollDelta::PixelDelta(d) => (d.x as f32, d.y as f32),
                 };
-                let (mx, my) = MOUSE_POS.with(|pos| {
-                    let pos = pos.borrow();
-                    (pos.0 as f32, pos.1 as f32)
+                let (mx, my) = MOUSE_STATE.with(|s| {
+                    let s = s.borrow();
+                    (s.x, s.y)
                 });
-                unsafe { namui_on_mouse_wheel(dx, dy, mx, my) };
+                unsafe {
+                    _on_mouse_wheel(dx, dy, mx, my);
+                }
                 self.window.as_ref().unwrap().request_redraw();
             }
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(key_code) = event.physical_key {
                     if let Some(code) = winit_key_to_code(key_code) {
                         if event.state.is_pressed() {
-                            unsafe { namui_on_key_down(code) };
+                            unsafe {
+                                _on_key_down(code);
+                            }
                         } else {
-                            unsafe { namui_on_key_up(code) };
+                            unsafe {
+                                _on_key_up(code);
+                            }
                         }
                         self.window.as_ref().unwrap().request_redraw();
                     }
                 }
             }
             WindowEvent::Focused(false) => {
-                unsafe { namui_on_blur() };
+                unsafe {
+                    _on_blur();
+                }
             }
             _ => {}
         }
     }
 }
 
-pub fn run() {
-    eprintln!("[runner] run(): creating event loop");
+pub fn run(font_dir: &std::path::Path) {
+    load_fonts(font_dir);
+
     let event_loop = EventLoop::new().expect("Failed to create event loop");
-    eprintln!("[runner] run(): event loop created");
 
     let mut app = NamuiApp {
         window: None,
         skia: None,
     };
 
-    eprintln!("[runner] run(): entering autoreleasepool + run_app");
     objc2::rc::autoreleasepool(|_| {
         event_loop.run_app(&mut app).expect("Event loop failed");
     });
-    eprintln!("[runner] run(): done");
+}
+
+fn load_fonts(font_dir: &std::path::Path) {
+    let map_path = font_dir.join("map.json");
+    let map_str = std::fs::read_to_string(&map_path)
+        .unwrap_or_else(|e| panic!("Failed to read {:?}: {e}", map_path));
+
+    // map.json format: { "Lang": { "weight": "bundle:__system__/font/Lang/File.woff2", ... }, ... }
+    // Extract all font file paths from the values.
+    for line in map_str.lines() {
+        let line = line.trim();
+        if !line.contains("bundle:__system__/") {
+            continue;
+        }
+        // Extract path after "bundle:__system__/"
+        let Some(start) = line.find("bundle:__system__/") else {
+            continue;
+        };
+        let rest = &line[start + "bundle:__system__/".len()..];
+        let end = rest.find('"').unwrap_or(rest.len());
+        let rel_path = &rest[..end];
+
+        let font_path = font_dir.parent().unwrap().join(rel_path);
+        let name = font_path
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
+        let data = std::fs::read(&font_path)
+            .unwrap_or_else(|e| panic!("Failed to read font {:?}: {e}", font_path));
+        // Register in runner's own TYPEFACE_MAP (for namui_drawer rendering)
+        NativeTypeface::load(&name, &data)
+            .unwrap_or_else(|e| panic!("Failed to load font {name}: {e}"));
+        // Register in dylib's TYPEFACE_MAP (for text measurement in app code)
+        unsafe {
+            _dylib_register_font(name.as_ptr(), name.len(), data.as_ptr(), data.len());
+        }
+    }
 }
 
 /// Convert winit KeyCode to namui Code u8 value.
@@ -405,4 +523,167 @@ fn winit_key_to_code(key_code: winit::keyboard::KeyCode) -> Option<u8> {
         _ => return None,
     };
     Some(code)
+}
+
+#[cfg(test)]
+mod tests {
+    use namui_rendering_tree::*;
+    use namui_type::*;
+    use std::sync::Once;
+
+    static INIT: Once = Once::new();
+
+    fn init_font() {
+        INIT.call_once(|| {
+            let font_path = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../namui-cli/system_bundle/font/Ko/NotoSansKR-Regular.woff2"
+            );
+            let data = std::fs::read(font_path)
+                .unwrap_or_else(|e| panic!("Failed to read font file: {e}"));
+            NativeTypeface::load("NotoSansKR-Regular", &data)
+                .unwrap_or_else(|e| panic!("Failed to load font: {e}"));
+        });
+    }
+
+    fn make_font(size: i32) -> Font {
+        Font {
+            name: "NotoSansKR-Regular".to_string(),
+            size: int_px(size),
+        }
+    }
+
+    fn default_paint() -> Paint {
+        Paint::new(Color::BLACK)
+    }
+
+    #[test]
+    fn font_metrics_are_valid() {
+        init_font();
+        let font = make_font(16);
+        let metrics = font.font_metrics();
+        assert!(
+            metrics.ascent.as_f32() < 0.0,
+            "ascent should be negative, got {}",
+            metrics.ascent.as_f32()
+        );
+        assert!(
+            metrics.descent.as_f32() > 0.0,
+            "descent should be positive, got {}",
+            metrics.descent.as_f32()
+        );
+        assert!(
+            metrics.height().as_f32() > 0.0,
+            "height should be positive, got {}",
+            metrics.height().as_f32()
+        );
+    }
+
+    #[test]
+    fn text_width_is_positive() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let width = font.width("안녕하세요", &paint);
+        assert!(
+            width.as_f32() > 0.0,
+            "width of non-empty text should be positive, got {}",
+            width.as_f32()
+        );
+    }
+
+    #[test]
+    fn empty_text_width_is_zero() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let width = font.width("", &paint);
+        assert!(
+            width.as_f32() == 0.0,
+            "width of empty text should be zero, got {}",
+            width.as_f32()
+        );
+    }
+
+    #[test]
+    fn text_width_scales_with_font_size() {
+        init_font();
+        let paint = default_paint();
+        let text = "Hello";
+        let width_16 = make_font(16).width(text, &paint);
+        let width_32 = make_font(32).width(text, &paint);
+        assert!(
+            width_32.as_f32() > width_16.as_f32(),
+            "32px font width ({}) should be greater than 16px font width ({})",
+            width_32.as_f32(),
+            width_16.as_f32()
+        );
+    }
+
+    #[test]
+    fn per_glyph_widths_count_matches() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let text = "안녕하세요";
+        let widths = font.widths(text, &paint);
+        let glyph_count = text.chars().count();
+        assert_eq!(
+            widths.len(),
+            glyph_count,
+            "widths count ({}) should match glyph count ({})",
+            widths.len(),
+            glyph_count
+        );
+    }
+
+    #[test]
+    fn text_bound_has_positive_dimensions() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let bound = font.bound("안녕하세요", &paint);
+        assert!(
+            bound.width().as_f32() > 0.0,
+            "bound width should be positive, got {}",
+            bound.width().as_f32()
+        );
+        assert!(
+            bound.height().as_f32() > 0.0,
+            "bound height should be positive, got {}",
+            bound.height().as_f32()
+        );
+    }
+
+    #[test]
+    fn per_glyph_bounds_count_matches() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let text = "안녕하세요";
+        let bounds = font.bounds(text, &paint);
+        let glyph_count = text.chars().count();
+        assert_eq!(
+            bounds.len(),
+            glyph_count,
+            "bounds count ({}) should match glyph count ({})",
+            bounds.len(),
+            glyph_count
+        );
+    }
+
+    #[test]
+    fn ascii_and_korean_have_different_widths() {
+        init_font();
+        let font = make_font(16);
+        let paint = default_paint();
+        let width_a = font.width("A", &paint);
+        let width_ga = font.width("가", &paint);
+        assert!(
+            (width_a.as_f32() - width_ga.as_f32()).abs() > f32::EPSILON,
+            "ASCII 'A' width ({}) and Korean '가' width ({}) should differ",
+            width_a.as_f32(),
+            width_ga.as_f32()
+        );
+    }
 }

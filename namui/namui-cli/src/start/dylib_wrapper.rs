@@ -52,6 +52,61 @@ pub extern "C" fn namui_main() {{
     {project_name_underscored}::asset::init_native_assets();
     {project_name_underscored}::main();
 }}
+
+/// Write image buffer info from the dylib's registry into a flat array.
+/// Each entry is 3 usizes: [id, ptr, len].
+/// Returns the number of images written.
+#[unsafe(no_mangle)]
+pub extern "C" fn _dylib_image_buffer_list(out: *mut usize, max_count: usize) -> usize {{
+    let list = namui::image_buffer_list();
+    let count = list.len().min(max_count);
+    let out = unsafe {{ std::slice::from_raw_parts_mut(out, count * 3) }};
+    for (i, [id, ptr, len]) in list.iter().enumerate().take(count) {{
+        out[i * 3] = *id;
+        out[i * 3 + 1] = *ptr;
+        out[i * 3 + 2] = *len;
+    }}
+    count
+}}
+
+/// Register a font into the dylib's NativeTypeface map.
+/// The runner binary has its own separate static map, so it must call
+/// this function to also populate the dylib's map.
+#[unsafe(no_mangle)]
+pub extern "C" fn _dylib_register_font(
+    name_ptr: *const u8,
+    name_len: usize,
+    buffer_ptr: *const u8,
+    buffer_len: usize,
+) {{
+    let name = unsafe {{ std::str::from_utf8_unchecked(std::slice::from_raw_parts(name_ptr, name_len)) }};
+    let bytes = unsafe {{ std::slice::from_raw_parts(buffer_ptr, buffer_len) }};
+    namui::NativeTypeface::load(name, bytes)
+        .unwrap_or_else(|e| panic!("Failed to load font {{name}}: {{e}}"));
+}}
+
+/// No-op audio FFI stubs.
+/// These must live in the dylib (not the runner binary) because macOS
+/// executables do not export their symbols to dlopen'd libraries.
+/// The namui crate declares these as `extern "C"` imports and the
+/// dylib was built with `-undefined dynamic_lookup`, so they resolve
+/// here at link time.
+mod audio_stubs {{
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_play(_audio_id: usize, _playback_id: usize, _repeat: bool) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_play_spatial(_audio_id: usize, _playback_id: usize, _repeat: bool) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_playback_drop(_playback_id: usize) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_playback_set_volume(_playback_id: usize, _volume: f32) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_playback_set_position(_playback_id: usize, _x: f32, _y: f32, _z: f32) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_set_listener_position(_x: f32, _y: f32, _z: f32) {{}}
+    #[unsafe(no_mangle)]
+    pub extern "C" fn _audio_set_volume(_volume: f32) {{}}
+}}
 "#,
         ),
     )?;
