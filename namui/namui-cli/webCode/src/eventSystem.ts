@@ -19,18 +19,21 @@ export function startEventSystem({
 
     const memory = exports.memory;
 
-    function onEventHandlerReturn(renderingTreePtrLen: bigint) {
-        if (renderingTreePtrLen === 0xffffffffffffffffn) {
+    function onEventHandlerReturn(responsePtr: number) {
+        if (responsePtr === 0) {
+            return;
+        }
+
+        const view = new DataView(memory.buffer);
+        const len = view.getUint32(responsePtr, true);
+
+        if (len === 0) {
             drawer.exports._redraw(mouseX, mouseY);
             return;
         }
 
-        if (!renderingTreePtrLen) {
-            return;
-        }
-
-        const renderingTreePtr = Number(renderingTreePtrLen >> 32n);
-        const renderingTreeLen = Number(renderingTreePtrLen & 0xffffffffn);
+        const renderingTreePtr = responsePtr + 4;
+        const renderingTreeLen = len;
 
         const renderingTreePtrOnDrawer =
             drawer.exports.malloc(renderingTreeLen);

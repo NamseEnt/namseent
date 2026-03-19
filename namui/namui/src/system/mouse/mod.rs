@@ -1,5 +1,6 @@
 use super::InitResult;
 use crate::*;
+use std::collections::HashSet;
 use std::sync::atomic::AtomicU32;
 
 pub(crate) fn init() -> InitResult {
@@ -10,23 +11,7 @@ pub fn set_mouse_cursor(_cursor: &MouseCursor) {
     // TODO: implement native cursor support
 }
 
-#[cfg(target_os = "wasi")]
-mod wasi_ffi;
-#[cfg(not(target_os = "wasi"))]
-pub(crate) mod non_wasm;
-
-/// Convert a u8 button code to a MouseButton (for FFI use)
-#[cfg(not(target_os = "wasi"))]
-pub(crate) fn button_from_u8(button: u8) -> Option<MouseButton> {
-    match button {
-        0 => Some(MouseButton::Left),
-        1 => Some(MouseButton::Right),
-        2 => Some(MouseButton::Middle),
-        _ => None,
-    }
-}
-
-// --- Shared position tracking (used by both wasi and native) ---
+// --- Shared position tracking ---
 
 /// 16 bit x, 16 bit y
 static MOUSE_POSITION: AtomicU32 = AtomicU32::new(0);
@@ -43,29 +28,81 @@ pub(crate) fn mouse_position_u32() -> u32 {
     MOUSE_POSITION.load(std::sync::atomic::Ordering::SeqCst)
 }
 
-fn update_mouse_position_atomic(x: u16, y: u16) {
+fn update_mouse_position(x: f32, y: f32) {
     MOUSE_POSITION.store(
-        (x as u32) << 16 | y as u32,
+        (x as u16 as u32) << 16 | y as u16 as u32,
         std::sync::atomic::Ordering::SeqCst,
     );
 }
 
-// --- Non-WASI: shared state for winit mouse ---
+// --- Unified mouse event helpers ---
 
-#[cfg(not(target_os = "wasi"))]
-use std::sync::RwLock;
-#[cfg(not(target_os = "wasi"))]
-use std::collections::HashSet;
-
-#[cfg(not(target_os = "wasi"))]
-pub(crate) struct MouseSystem {
-    pub mouse_position: RwLock<Xy<Px>>,
-    pub pressing_buttons: RwLock<HashSet<MouseButton>>,
+pub(crate) fn on_mouse_down(x: f32, y: f32, button: u8, buttons: u8) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::MouseDown {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: Some(button_from_u8(button)),
+        },
+    }
 }
 
-#[cfg(not(target_os = "wasi"))]
-pub(crate) static MOUSE_SYSTEM: std::sync::LazyLock<MouseSystem> =
-    std::sync::LazyLock::new(|| MouseSystem {
-        mouse_position: RwLock::new(Xy::new(px(0.0), px(0.0))),
-        pressing_buttons: RwLock::new(HashSet::new()),
-    });
+pub(crate) fn on_mouse_move(x: f32, y: f32, buttons: u8) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::MouseMove {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: None,
+        },
+    }
+}
+
+pub(crate) fn on_mouse_up(x: f32, y: f32, button: u8, buttons: u8) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::MouseUp {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: Some(button_from_u8(button)),
+        },
+    }
+}
+
+pub(crate) fn on_mouse_wheel(delta_x: f32, delta_y: f32, x: f32, y: f32) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::Wheel {
+        event: RawWheelEvent {
+            delta_xy: Xy::new(delta_x, delta_y),
+            mouse_xy: Xy::new(px(x), px(y)),
+        },
+    }
+}
+
+/// Convert DOM MouseEvent.button to MouseButton.
+/// 0=Left, 1=Middle, 2=Right
+fn button_from_u8(button: u8) -> MouseButton {
+    match button {
+        0 => MouseButton::Left,
+        1 => MouseButton::Middle,
+        2 => MouseButton::Right,
+        _ => MouseButton::Left,
+    }
+}
+
+/// Convert DOM MouseEvent.buttons bitmask to HashSet<MouseButton>.
+/// bit0=Left, bit1=Right, bit2=Middle
+fn buttons_from_bitmask(buttons: u8) -> HashSet<MouseButton> {
+    let mut set = HashSet::new();
+    if buttons & (1 << 0) != 0 {
+        set.insert(MouseButton::Left);
+    }
+    if buttons & (1 << 1) != 0 {
+        set.insert(MouseButton::Right);
+    }
+    if buttons & (1 << 2) != 0 {
+        set.insert(MouseButton::Middle);
+    }
+    set
+}

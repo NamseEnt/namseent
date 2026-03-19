@@ -257,7 +257,6 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
             });
         }
         quote! {
-            #[cfg(not(target_os = "wasi"))]
             pub fn init_native_assets() {
                 unsafe extern "C" {
                     fn _register_image(image_id: usize, buffer_ptr: *const u8, buffer_len: usize);

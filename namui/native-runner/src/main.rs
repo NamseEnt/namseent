@@ -27,58 +27,35 @@ fn install_signal_handlers() {
 
 fn main() {
     install_signal_handlers();
-    let dylib_path = std::env::args()
-        .nth(1)
-        .expect("Usage: native-runner <dylib-path>");
+    let args: Vec<String> = std::env::args().collect();
+    let dylib_path = args
+        .get(1)
+        .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");
+    let font_dir = args
+        .get(3)
+        .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");
+    let font_dir = std::path::Path::new(font_dir);
 
-    eprintln!("[runner] dylib path: {dylib_path}");
-    eprintln!("[runner] dylib exists: {}", std::path::Path::new(&dylib_path).exists());
-
-    // Load the dylib with RTLD_GLOBAL so that its symbols are visible to
-    // the dynamic linker for -undefined dynamic_lookup resolution.
-    // RTLD_LOCAL (the default) would keep symbols private, leaving extern "C"
-    // declarations as null pointers.
     let _lib = match unsafe {
         libloading::os::unix::Library::open(
-            Some(&dylib_path),
+            Some(dylib_path.as_str()),
             libc::RTLD_LAZY | libc::RTLD_GLOBAL,
         )
     } {
-        Ok(lib) => {
-            eprintln!("[runner] dylib loaded successfully (RTLD_GLOBAL)");
-            lib
-        }
+        Ok(lib) => lib,
         Err(e) => {
             eprintln!("[runner] Failed to load dylib: {e}");
             std::process::exit(1);
         }
     };
 
-    // Verify key symbols are available in the loaded dylib
-    unsafe {
-        let check_sym = |name: &[u8]| {
-            let name_str = std::str::from_utf8(name).unwrap();
-            match _lib.get::<*const ()>(name) {
-                Ok(_) => eprintln!("[runner] symbol '{name_str}' found"),
-                Err(e) => eprintln!("[runner] symbol '{name_str}' MISSING: {e}"),
-            }
-        };
-        check_sym(b"namui_init_system");
-        check_sym(b"namui_set_screen_size");
-        check_sym(b"namui_on_screen_redraw");
-        check_sym(b"namui_on_screen_resize");
-        check_sym(b"namui_on_mouse_move");
-    }
-
-    eprintln!("[runner] calling native_runner::run()");
     std::panic::set_hook(Box::new(|info| {
         eprintln!("[runner] PANIC: {info}");
     }));
     let result = std::panic::catch_unwind(|| {
-        native_runner::run();
+        native_runner::run(font_dir);
     });
-    match result {
-        Ok(()) => eprintln!("[runner] run() returned normally"),
-        Err(e) => eprintln!("[runner] run() panicked: {e:?}"),
+    if let Err(e) = result {
+        eprintln!("[runner] run() panicked: {e:?}");
     }
 }

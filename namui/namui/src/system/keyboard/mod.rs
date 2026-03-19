@@ -45,8 +45,6 @@ pub(crate) fn pressing_code_set() -> HashSet<Code> {
     pressing_code_set.iter().map(|code| *code).collect()
 }
 
-// --- Primitive-type based key event functions (no winit dependency) ---
-
 pub(crate) fn key_down(code: u8) -> RawEvent {
     let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
     record_key_down(code);
@@ -68,34 +66,3 @@ pub(crate) fn key_up(code: u8) -> RawEvent {
         },
     }
 }
-
-// --- WASI-only FFI exports ---
-
-#[cfg(target_os = "wasi")]
-#[unsafe(no_mangle)]
-pub extern "C" fn _on_key_down(code: u8) -> u64 {
-    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
-    record_key_down(code);
-
-    crate::on_event(RawEvent::KeyDown {
-        event: RawKeyboardEvent {
-            code,
-            pressing_codes: pressing_code_set(),
-        },
-    })
-}
-
-#[cfg(target_os = "wasi")]
-#[unsafe(no_mangle)]
-pub extern "C" fn _on_key_up(code: u8) -> u64 {
-    let code = Code::try_from(code).unwrap_or_else(|_| panic!("invalid code {code}"));
-    record_key_up(code);
-
-    crate::on_event(RawEvent::KeyUp {
-        event: RawKeyboardEvent {
-            code,
-            pressing_codes: pressing_code_set(),
-        },
-    })
-}
-

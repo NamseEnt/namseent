@@ -85,6 +85,14 @@ pub extern "C" fn _dylib_register_font(
         .unwrap_or_else(|e| panic!("Failed to load font {{name}}: {{e}}"));
 }}
 
+/// Register image infos into the dylib's IMAGE_INFOS map.
+/// The runner has its own separate IMAGE_INFOS, so it must forward
+/// the info to the dylib so app code can call Image::info().
+#[unsafe(no_mangle)]
+pub extern "C" fn _dylib_set_image_infos(ptr: *const u8, count: usize) {{
+    unsafe {{ namui::_set_image_infos(ptr, count) }};
+}}
+
 /// No-op audio FFI stubs.
 /// These must live in the dylib (not the runner binary) because macOS
 /// executables do not export their symbols to dlopen'd libraries.

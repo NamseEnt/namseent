@@ -60,33 +60,7 @@ export function createImportObject({
             ...createAudioImports({
                 memory,
             }),
-            _initial_window_wh: () => supplies.initialWindowWh,
             _hardware_concurrency: () => navigator.hardwareConcurrency,
-            _get_image_count: () => {
-                switch (supplies.type) {
-                    case "main":
-                    case "sub":
-                    case "drawer":
-                        return supplies.imageCount;
-                    case "font-load":
-                        throw new Error(`unreachable on ${supplies.type}`);
-                }
-            },
-            _get_image_infos: (ptr: number) => {
-                switch (supplies.type) {
-                    case "main":
-                    case "sub":
-                        return new Uint8Array(
-                            memory.buffer,
-                            ptr,
-                            supplies.imageInfoBytes.length,
-                        ).set(supplies.imageInfoBytes);
-                    case "drawer":
-                        return (exports() as DrawerExports)._image_infos(ptr);
-                    case "font-load":
-                        throw new Error(`unreachable on ${supplies.type}`);
-                }
-            },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {

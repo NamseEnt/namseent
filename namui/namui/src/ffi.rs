@@ -23,41 +23,30 @@ macro_rules! ffi_catch {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_init_system() {
+pub extern "C" fn _init_system() {
     ffi_catch!(crate::system::init_system().unwrap());
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_set_screen_size(width: u16, height: u16) {
+pub extern "C" fn _set_screen_size(width: u16, height: u16) {
     ffi_catch!(crate::system::screen::set_size(width, height));
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_shutdown() {
+pub extern "C" fn _shutdown() {
     ffi_catch!({
-        // Drop LOOPER first while TOKIO_RUNTIME is still alive,
-        // to avoid TLS destruction order issues.
         crate::LOOPER.take();
         crate::TOKIO_RUNTIME.take().unwrap().shutdown_background();
     });
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_screen_redraw(out_ptr: *mut *const u8, out_len: *mut usize) -> u64 {
-    ffi_catch!({
-        let result = crate::on_event(RawEvent::ScreenRedraw);
-        if result == 1 {
-            unsafe {
-                *out_ptr = crate::LAST_EVENT_RESULT_PTR.get() as *const u8;
-                *out_len = crate::LAST_EVENT_RESULT_LEN.get();
-            }
-        }
-        result
-    })
+pub extern "C" fn _on_animation_frame() -> *const u8 {
+    ffi_catch!(crate::on_event(RawEvent::ScreenRedraw))
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_screen_resize(width: u16, height: u16) -> u64 {
+pub extern "C" fn _on_screen_resize(width: u16, height: u16) -> *const u8 {
     ffi_catch!({
         crate::system::screen::set_size(width, height);
         crate::on_event(RawEvent::ScreenResize {
@@ -67,48 +56,59 @@ pub extern "C" fn namui_on_screen_resize(width: u16, height: u16) -> u64 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_mouse_move(x: f32, y: f32) -> u64 {
+pub extern "C" fn _on_mouse_down(
+    x: f32,
+    y: f32,
+    button: u8,
+    buttons: u8,
+) -> *const u8 {
     ffi_catch!({
-        let raw_event = crate::system::mouse::non_wasm::on_mouse_move(x, y);
+        let raw_event = crate::system::mouse::on_mouse_down(x, y, button, buttons);
         crate::on_event(raw_event)
     })
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_mouse_down(button: u8, x: f32, y: f32) -> u64 {
+pub extern "C" fn _on_mouse_move(
+    x: f32,
+    y: f32,
+    _button: u8,
+    buttons: u8,
+) -> *const u8 {
     ffi_catch!({
-        let Some(btn) = crate::system::mouse::button_from_u8(button) else {
-            return 0;
-        };
-        crate::system::mouse::non_wasm::on_mouse_move(x, y);
-        let raw_event = crate::system::mouse::non_wasm::on_mouse_input(true, btn);
+        let raw_event = crate::system::mouse::on_mouse_move(x, y, buttons);
         crate::on_event(raw_event)
     })
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_mouse_up(button: u8, x: f32, y: f32) -> u64 {
+pub extern "C" fn _on_mouse_up(
+    x: f32,
+    y: f32,
+    button: u8,
+    buttons: u8,
+) -> *const u8 {
     ffi_catch!({
-        let Some(btn) = crate::system::mouse::button_from_u8(button) else {
-            return 0;
-        };
-        crate::system::mouse::non_wasm::on_mouse_move(x, y);
-        let raw_event = crate::system::mouse::non_wasm::on_mouse_input(false, btn);
+        let raw_event = crate::system::mouse::on_mouse_up(x, y, button, buttons);
         crate::on_event(raw_event)
     })
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_mouse_wheel(delta_x: f32, delta_y: f32, mouse_x: f32, mouse_y: f32) -> u64 {
+pub extern "C" fn _on_mouse_wheel(
+    delta_x: f32,
+    delta_y: f32,
+    x: f32,
+    y: f32,
+) -> *const u8 {
     ffi_catch!({
-        crate::system::mouse::non_wasm::on_mouse_move(mouse_x, mouse_y);
-        let raw_event = crate::system::mouse::non_wasm::on_mouse_wheel(delta_x, delta_y);
+        let raw_event = crate::system::mouse::on_mouse_wheel(delta_x, delta_y, x, y);
         crate::on_event(raw_event)
     })
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_key_down(code: u8) -> u64 {
+pub extern "C" fn _on_key_down(code: u8) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::keyboard::key_down(code);
         crate::on_event(raw_event)
@@ -116,7 +116,7 @@ pub extern "C" fn namui_on_key_down(code: u8) -> u64 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_key_up(code: u8) -> u64 {
+pub extern "C" fn _on_key_up(code: u8) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::keyboard::key_up(code);
         crate::on_event(raw_event)
@@ -124,43 +124,26 @@ pub extern "C" fn namui_on_key_up(code: u8) -> u64 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_on_blur() -> u64 {
+pub extern "C" fn _on_blur() -> *const u8 {
     ffi_catch!(crate::on_event(RawEvent::Blur))
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_get_result_ptr() -> usize {
-    ffi_catch!(crate::LAST_EVENT_RESULT_PTR.get())
+pub extern "C" fn _on_visibility_change() -> *const u8 {
+    ffi_catch!(crate::on_event(RawEvent::VisibilityChange))
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_get_result_len() -> usize {
-    ffi_catch!(crate::LAST_EVENT_RESULT_LEN.get())
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn namui_freeze_world() {
+pub extern "C" fn _freeze_world() -> *const u8 {
     ffi_catch!({
         let looper = crate::LOOPER.with_borrow_mut(|looper| looper.take().unwrap());
         let frozen_states = looper.world.freeze_states();
-        crate::FROZEN_STATES.with_borrow_mut(|bytes| {
-            *bytes = frozen_states.into_boxed_slice();
-        });
-    });
+        crate::write_response(&frozen_states)
+    })
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn namui_get_frozen_ptr() -> usize {
-    ffi_catch!(crate::FROZEN_STATES.with_borrow(|bytes| bytes.as_ptr() as usize))
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn namui_get_frozen_len() -> usize {
-    ffi_catch!(crate::FROZEN_STATES.with_borrow(|bytes| bytes.len()))
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn namui_set_freeze_states(ptr: *const u8, len: usize) {
+pub extern "C" fn _set_freeze_states(ptr: *const u8, len: usize) {
     ffi_catch!({
         crate::LOOPER.with_borrow_mut(|looper| {
             looper

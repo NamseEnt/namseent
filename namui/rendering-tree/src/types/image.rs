@@ -4,7 +4,7 @@ use bytes::*;
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::{Arc, OnceLock},
+    sync::{Arc, LazyLock},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, State)]
@@ -24,79 +24,30 @@ impl Image {
             tile_mode: Xy::single(TileMode::Clamp),
         }
     }
-    #[cfg(target_os = "wasi")]
-    pub fn info(&self) -> ImageInfo {
-        IMAGE_INFOS.with(|image_infos| {
-            image_infos
-                .get_or_init(|| {
-                    let image_count = unsafe { _get_image_count() };
-                    let mut image_infos = std::collections::BTreeMap::new();
-                    let image_info_size = 14;
-                    let mut buffer = vec![0u8; image_count * image_info_size];
-                    unsafe { _get_image_infos(buffer.as_mut_ptr()) };
 
-                    let mut buffer_reader: &[u8] = buffer.as_ref();
-                    for _ in 0..image_count {
-                        let id = buffer_reader.get_u32_le() as usize;
-                        let alpha_type = AlphaType::from(buffer_reader.get_u8());
-                        let color_type = ColorType::from(buffer_reader.get_u8());
-                        let width = px(buffer_reader.get_u32_le() as f32);
-                        let height = px(buffer_reader.get_u32_le() as f32);
-                        image_infos.insert(
-                            id,
-                            ImageInfo {
-                                alpha_type,
-                                color_type,
-                                width,
-                                height,
-                            },
-                        );
-                    }
-                    image_infos
-                })
+    pub fn info(&self) -> ImageInfo {
+        if let Some(image) = IMAGES.get(&self.id) {
+            let skia_info = image.image_info();
+            ImageInfo {
+                alpha_type: skia_info.alpha_type().into(),
+                color_type: skia_info.color_type().into(),
+                width: px(skia_info.width() as f32),
+                height: px(skia_info.height() as f32),
+            }
+        } else {
+            IMAGE_INFOS
                 .get(&self.id)
-                .cloned()
-                .unwrap_or_else(|| panic!("Image {} not found", self.id))
-        })
-    }
-
-    #[cfg(not(target_os = "wasi"))]
-    pub fn info(&self) -> ImageInfo {
-        let images = IMAGES.get().expect("IMAGES not initialized");
-        let image = images
-            .get(&self.id)
-            .unwrap_or_else(|| panic!("Image {} not found", self.id));
-        let skia_info = image.image_info();
-        ImageInfo {
-            alpha_type: skia_info.alpha_type().into(),
-            color_type: skia_info.color_type().into(),
-            width: px(skia_info.width() as f32),
-            height: px(skia_info.height() as f32),
+                .map(|info| *info)
+                .unwrap_or_else(|| panic!("Image {} not registered", self.id))
         }
     }
 
     pub fn skia_image(&self) -> Arc<skia_safe::Image> {
-        IMAGES.get().unwrap().get(&self.id).unwrap().clone()
+        IMAGES
+            .get(&self.id)
+            .unwrap_or_else(|| panic!("Image {} not registered", self.id))
+            .clone()
     }
-}
-
-#[cfg(target_os = "wasi")]
-thread_local! {
-    static IMAGE_INFOS: OnceLock<std::collections::BTreeMap<usize, ImageInfo>> = const { OnceLock::new() };
-}
-
-#[cfg(target_os = "wasi")]
-unsafe extern "C" {
-    fn _get_image_count() -> usize;
-    /**
-     * image info layout
-     * - id: u32
-     * - alpha_type: u8
-     * - color_type: u8
-     * - width: u32
-     * - height: u32
-     */
-    fn _get_image_infos(buffer: *mut u8);
 }
 
 #[derive(Debug, Clone, Copy, Hash, namui_type::State)]
@@ -130,8 +81,30 @@ impl From<ImageInfo> for skia_safe::ImageInfo {
     }
 }
 
-static IMAGES: OnceLock<dashmap::DashMap<usize, Arc<skia_safe::image::Image>>> = OnceLock::new();
-static IMAGE_BUFFER_PTR: OnceLock<dashmap::DashMap<usize, usize>> = OnceLock::new();
+static IMAGES: LazyLock<dashmap::DashMap<usize, Arc<skia_safe::image::Image>>> =
+    LazyLock::new(dashmap::DashMap::new);
+/// Stores (buffer_ptr as usize, buffer_len) for each registered image.
+/// Pointer stored as usize to satisfy Send+Sync for DashMap.
+static IMAGE_BUFFER_PTR: LazyLock<dashmap::DashMap<usize, (usize, usize)>> =
+    LazyLock::new(dashmap::DashMap::new);
+static IMAGE_INFOS: LazyLock<dashmap::DashMap<usize, ImageInfo>> =
+    LazyLock::new(dashmap::DashMap::new);
+
+/// Register an image from raw encoded bytes. Uses a mangled Rust symbol,
+/// so callers always resolve to their own statically-linked copy (no
+/// dynamic symbol interposition from RTLD_GLOBAL).
+///
+/// # Safety
+/// `buffer_ptr` must point to valid encoded image data of `buffer_len` bytes.
+pub unsafe fn register_image(image_id: usize, buffer_ptr: *const u8, buffer_len: usize) {
+    IMAGE_BUFFER_PTR.insert(image_id, (buffer_ptr as usize, buffer_len));
+
+    let data =
+        unsafe { skia_safe::Data::new_bytes(std::slice::from_raw_parts(buffer_ptr, buffer_len)) };
+    let image = skia_safe::image::Image::from_encoded(data)
+        .unwrap_or_else(|| panic!("Failed to decode image {image_id}"));
+    IMAGES.insert(image_id, Arc::new(image));
+}
 
 #[unsafe(no_mangle)]
 #[allow(clippy::missing_safety_doc)]
@@ -140,16 +113,44 @@ pub unsafe extern "C" fn _register_image(
     buffer_ptr: *const u8,
     buffer_len: usize,
 ) {
-    IMAGE_BUFFER_PTR
-        .get_or_init(dashmap::DashMap::new)
-        .insert(image_id, buffer_ptr as usize);
+    unsafe { register_image(image_id, buffer_ptr, buffer_len) };
+}
 
-    let data =
-        unsafe { skia_safe::Data::new_bytes(std::slice::from_raw_parts(buffer_ptr, buffer_len)) };
-    let image = skia_safe::image::Image::from_encoded(data).unwrap();
-    IMAGES
-        .get_or_init(dashmap::DashMap::new)
-        .insert(image_id, Arc::new(image));
+/// Returns `[id, ptr_as_usize, len]` for each registered image buffer.
+pub fn image_buffer_list() -> Vec<[usize; 3]> {
+    IMAGE_BUFFER_PTR
+        .iter()
+        .map(|e| {
+            let (&id, &(ptr, len)) = (e.key(), e.value());
+            [id, ptr, len]
+        })
+        .collect()
+}
+
+/// Bulk-register image info from a packed buffer.
+/// Buffer layout per image (14 bytes): id(u32 LE), alpha_type(u8), color_type(u8), width(u32 LE), height(u32 LE)
+#[unsafe(no_mangle)]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn _set_image_infos(ptr: *const u8, count: usize) {
+    let image_info_size = 14;
+    let mut reader: &[u8] =
+        unsafe { std::slice::from_raw_parts(ptr, count * image_info_size) };
+    for _ in 0..count {
+        let id = reader.get_u32_le() as usize;
+        let alpha_type = AlphaType::from(reader.get_u8());
+        let color_type = ColorType::from(reader.get_u8());
+        let width = px(reader.get_u32_le() as f32);
+        let height = px(reader.get_u32_le() as f32);
+        IMAGE_INFOS.insert(
+            id,
+            ImageInfo {
+                alpha_type,
+                color_type,
+                width,
+                height,
+            },
+        );
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -162,13 +163,17 @@ pub unsafe extern "C" fn _register_image(
  * - width: u32
  * - height: u32
  */
-pub unsafe extern "C" fn _image_infos(ptr: *mut u8) {
-    let images = IMAGES.get().unwrap();
-    let count = images.len();
+pub unsafe extern "C" fn _image_infos(ptr: *mut u8, max_count: usize) -> usize {
+    let images = &*IMAGES;
+    let count = images.len().min(max_count);
 
     let image_info_size = 14;
     let mut bytes = unsafe { std::slice::from_raw_parts_mut(ptr, count * image_info_size) };
+    let mut written = 0;
     for image in images.iter() {
+        if written >= count {
+            break;
+        }
         let info = image.image_info();
         let id = image.key();
         bytes.put_u32_le(*id as u32);
@@ -185,5 +190,7 @@ pub unsafe extern "C" fn _image_infos(ptr: *mut u8) {
         let height = info.height();
         bytes.put_u32_le(width as u32);
         bytes.put_u32_le(height as u32);
+        written += 1;
     }
+    written
 }

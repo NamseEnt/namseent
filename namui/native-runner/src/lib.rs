@@ -23,6 +23,7 @@ unsafe extern "C" {
     fn _on_key_down(code: u8) -> *const u8;
     fn _on_key_up(code: u8) -> *const u8;
     fn _on_blur() -> *const u8;
+    fn _on_visibility_change() -> *const u8;
     fn _dylib_image_buffer_list(out: *mut usize, max_count: usize) -> usize;
     fn _dylib_register_font(
         name_ptr: *const u8,
@@ -30,6 +31,7 @@ unsafe extern "C" {
         buffer_ptr: *const u8,
         buffer_len: usize,
     );
+    fn _dylib_set_image_infos(ptr: *const u8, count: usize);
 }
 
 /// Decode response from namui FFI: `[len: u32 LE][data...]`
@@ -132,6 +134,15 @@ impl ApplicationHandler for NamuiApp {
                 let ptr = buf[i * 3 + 1] as *const u8;
                 let len = buf[i * 3 + 2];
                 register_image(id, ptr, len);
+            }
+
+            // Forward image infos to dylib's IMAGE_INFOS map (like web's _set_image_infos)
+            let image_info_size = 14; // id(4) + alpha_type(1) + color_type(1) + width(4) + height(4)
+            let max_images = 1000;
+            let mut info_buf = vec![0u8; max_images * image_info_size];
+            let info_count = _image_infos(info_buf.as_mut_ptr(), max_images);
+            if info_count > 0 {
+                _dylib_set_image_infos(info_buf.as_ptr(), info_count);
             }
 
             _set_screen_size(inner_size.width as u16, inner_size.height as u16);
@@ -260,6 +271,11 @@ impl ApplicationHandler for NamuiApp {
             WindowEvent::Focused(false) => {
                 unsafe {
                     _on_blur();
+                }
+            }
+            WindowEvent::Occluded(_) => {
+                unsafe {
+                    _on_visibility_change();
                 }
             }
             _ => {}

@@ -79,6 +79,10 @@ fn build_dylib_step(project_path: &Path) -> Result<()> {
         let status = Command::new("cargo")
             .args(["build"])
             .current_dir(project_path.join("target/namui-native"))
+            .env(
+                "RUSTFLAGS",
+                "-Clink-arg=-Wl,-undefined,dynamic_lookup",
+            )
             .status()?;
 
         println!(

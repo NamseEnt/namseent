@@ -1,58 +1,4 @@
 use namui::*;
-use std::sync::Once;
-
-fn log_text_metrics_once() {
-    static LOG_ONCE: Once = Once::new();
-    LOG_ONCE.call_once(|| {
-        let font_name = "NotoSansKR-Regular";
-        let paint = Paint::new(Color::BLACK);
-
-        println!("===== TEXT METRICS DIAGNOSTIC =====");
-
-        let loaded = NativeTypeface::debug_list_loaded();
-        println!("[typeface_map] count={}, names={:?}", loaded.len(), loaded);
-
-        for &size in &[14, 16, 20] {
-            let font = Font {
-                name: font_name.to_string(),
-                size: int_px(size),
-            };
-            let metrics = font.font_metrics();
-            println!(
-                "[font size={size}] ascent={}, descent={}, height={}",
-                metrics.ascent.as_f32(),
-                metrics.descent.as_f32(),
-                metrics.height().as_f32(),
-            );
-
-            for text in &["추가 리롤", "안녕하세요", "Hello", "A", "가"] {
-                let width = font.width(text, &paint);
-                let widths = font.widths(text, &paint);
-                let bound = font.bound(text, &paint);
-                println!(
-                    "[font size={size}] text={:?} width={} widths={:?} bound_wh=({}, {})",
-                    text,
-                    width.as_f32(),
-                    widths.iter().map(|w| w.as_f32()).collect::<Vec<_>>(),
-                    bound.width().as_f32(),
-                    bound.height().as_f32(),
-                );
-            }
-        }
-
-        // Space width - important for layout wrapping
-        for &size in &[14, 16, 20] {
-            let font = Font {
-                name: font_name.to_string(),
-                size: int_px(size),
-            };
-            let space_width = font.width(" ", &paint);
-            println!("[font size={size}] space width={}", space_width.as_f32());
-        }
-
-        println!("===== END DIAGNOSTIC =====");
-    });
-}
 
 /// Measured text with typographic metrics
 #[derive(Debug, Clone)]
@@ -75,8 +21,6 @@ impl ShapedText {
         style: TextStyle,
         vertical_align: super::style::VerticalAlign,
     ) -> Self {
-        log_text_metrics_once();
-
         let rendering_tree = namui::text(TextParam {
             text: text.clone(),
             x: 0.px(),
