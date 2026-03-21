@@ -231,7 +231,10 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
 
     fn with_health_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.color(palette::RED).bold().text(value.into());
+            b.color(palette::RED)
+                .bold()
+                .icon(IconKind::Health)
+                .text(value.into());
         });
         self
     }

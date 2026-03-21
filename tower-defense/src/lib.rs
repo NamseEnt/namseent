@@ -1,3 +1,4 @@
+mod tooltip;
 mod animation;
 mod camera_controller;
 mod card;

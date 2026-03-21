@@ -8,6 +8,7 @@ use namui::*;
 pub enum IconKind {
     Accept,
     Damage,
+    Warning,
     Config,
     EnemyBoss,
     EnemyNamed,
@@ -58,6 +59,7 @@ impl IconKind {
             IconKind::Shield => crate::asset::image::icon::SHIELD,
             IconKind::Shop => crate::asset::image::icon::SHOP,
             IconKind::Speaker => crate::asset::image::icon::SPEAKER,
+            IconKind::Warning => crate::asset::image::icon::WARNING,
             IconKind::Suit { suit } => match suit {
                 Suit::Spades => crate::asset::image::icon::SUIT_SPADES,
                 Suit::Hearts => crate::asset::image::icon::SUIT_HEARTS,
@@ -122,6 +124,7 @@ impl IconKind {
                 Rarity::Legendary => "rarity_legendary",
             },
             IconKind::Rating => "rating",
+            IconKind::Warning => "warning",
         }
     }
 
@@ -172,6 +175,7 @@ impl IconKind {
                 rarity: Rarity::Legendary,
             }),
             "rating" => Some(IconKind::Rating),
+            "warning" => Some(IconKind::Warning),
             _ => None,
         }
     }
