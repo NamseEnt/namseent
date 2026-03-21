@@ -29,11 +29,8 @@ impl EffectText {
                 Effect::Lottery { .. } => {
                     builder.text("복권");
                 }
-                Effect::ExtraReroll => {
-                    builder.text("추가 리롤");
-                }
-                Effect::ExtraShopReroll => {
-                    builder.text("상점 추가 리롤");
+                Effect::ExtraDice => {
+                    builder.text("추가 주사위");
                 }
                 Effect::Shield { .. } => {
                     builder.text("방어막");
@@ -86,14 +83,11 @@ impl EffectText {
                 Effect::IncreaseIncomingDamage { .. } => {
                     builder.text("받는 피해 증가");
                 }
-                Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
+                Effect::IncreaseMaxHandSlots { .. } => {
                     builder.text("카드 선택 최대 슬롯 증가");
                 }
-                Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
-                    builder.text("카드 선택 최대 리롤 증가");
-                }
-                Effect::IncreaseShopMaxRerolls { .. } => {
-                    builder.text("상점 최대 리롤 증가");
+                Effect::IncreaseMaxRerolls { .. } => {
+                    builder.text("최대 리롤 증가");
                 }
                 Effect::IncreaseGoldGain { .. } => {
                     builder.text("골드 획득량 증가");
@@ -107,20 +101,17 @@ impl EffectText {
                 Effect::DisableItemUse => {
                     builder.text("아이템 사용 불가");
                 }
-                Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
+                Effect::DecreaseMaxHandSlots { .. } => {
                     builder.text("카드 선택 최대 슬롯 감소");
                 }
-                Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
-                    builder.text("카드 선택 최대 리롤 감소");
+                Effect::DecreaseMaxRerolls { .. } => {
+                    builder.text("최대 리롤 감소");
                 }
-                Effect::DecreaseShopMaxRerolls { .. } => {
-                    builder.text("상점 최대 리롤 감소");
-                }
-                Effect::AddCardSelectionHandRerollHealthCost { .. } => {
+                Effect::AddRerollHealthCost { .. } => {
                     builder.text("카드 선택 리롤 체력 비용");
                 }
-                Effect::AddShopRerollHealthCost { .. } => {
-                    builder.text("상점 리롤 체력 비용");
+                Effect::AddRerollHealthCost { .. } => {
+                    builder.text("리롤 체력 비용");
                 }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
                     builder.text(format!("적 체력 {}% 증가", percentage));
@@ -197,11 +188,8 @@ impl EffectText {
                         .with_shield_value(format!("{amount:.0}"))
                         .static_text(" 피해를 흡수하는 방어막을 획득합니다");
                 }
-                Effect::ExtraReroll => {
-                    builder.text("추가 리롤을 획득합니다");
-                }
-                Effect::ExtraShopReroll => {
-                    builder.text("상점 추가 리롤을 획득합니다");
+                Effect::ExtraDice => {
+                    builder.text("추가 주사위를 획득합니다");
                 }
                 Effect::EarnGold { amount } => {
                     builder
@@ -336,21 +324,15 @@ impl EffectText {
                         .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
                         .static_text(" 증가합니다");
                 }
-                Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
+                Effect::IncreaseMaxHandSlots { bonus } => {
                     builder.text(format!(
                         "카드 선택 시 최대 {}장의 카드를 받을 수 있습니다",
                         5 + bonus
                     ));
                 }
-                Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
+                Effect::IncreaseMaxRerolls { bonus } => {
                     builder.text(format!(
-                        "카드 선택 시 최대 {}번 리롤할 수 있습니다",
-                        1 + bonus
-                    ));
-                }
-                Effect::IncreaseShopMaxRerolls { bonus } => {
-                    builder.text(format!(
-                        "상점 리롤 시 최대 {}번 리롤할 수 있습니다",
+                        "리롤 시 최대 {}번 리롤할 수 있습니다",
                         1 + bonus
                     ));
                 }
@@ -374,27 +356,15 @@ impl EffectText {
                 Effect::DisableItemUse => {
                     builder.text("아이템을 사용할 수 없습니다");
                 }
-                Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+                Effect::DecreaseMaxHandSlots { penalty } => {
                     builder.text(format!("카드 선택 시 최대 슬롯이 {}개 감소합니다", penalty));
                 }
-                Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
-                    builder.text(format!(
-                        "카드 선택 시 최대 리롤 횟수가 {}회 감소합니다",
-                        penalty
-                    ));
+                Effect::DecreaseMaxRerolls { penalty } => {
+                    builder.text(format!("리롤 시 최대 횟수가 {}회 감소합니다", penalty));
                 }
-                Effect::DecreaseShopMaxRerolls { penalty } => {
-                    builder.text(format!("상점 리롤 시 최대 횟수가 {}회 감소합니다", penalty));
-                }
-                Effect::AddCardSelectionHandRerollHealthCost { cost } => {
+                Effect::AddRerollHealthCost { cost } => {
                     builder
-                        .static_text("카드 선택 리롤 시 체력을 ")
-                        .with_health_loss(format!("{cost}"))
-                        .static_text(" 잃습니다");
-                }
-                Effect::AddShopRerollHealthCost { cost } => {
-                    builder
-                        .static_text("상점 리롤 시 체력을 ")
+                        .static_text("리롤 시 체력을 ")
                         .with_health_loss(format!("{cost}"))
                         .static_text(" 잃습니다");
                 }
@@ -487,11 +457,8 @@ impl EffectText {
                 Effect::Lottery { .. } => {
                     builder.text("Lottery");
                 }
-                Effect::ExtraReroll => {
-                    builder.text("Extra Reroll");
-                }
-                Effect::ExtraShopReroll => {
-                    builder.text("Extra Shop Reroll");
+                Effect::ExtraDice => {
+                    builder.text("Extra Dice");
                 }
                 Effect::Shield { .. } => {
                     builder.text("Shield");
@@ -544,14 +511,11 @@ impl EffectText {
                 Effect::IncreaseIncomingDamage { .. } => {
                     builder.text("Increase Incoming Damage");
                 }
-                Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
+                Effect::IncreaseMaxHandSlots { .. } => {
                     builder.text("Increase Card Selection Max Slots");
                 }
-                Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
-                    builder.text("Increase Card Selection Max Rerolls");
-                }
-                Effect::IncreaseShopMaxRerolls { .. } => {
-                    builder.text("Increase Shop Max Rerolls");
+                Effect::IncreaseMaxRerolls { .. } => {
+                    builder.text("Increase Max Rerolls");
                 }
                 Effect::IncreaseGoldGain { .. } => {
                     builder.text("Increase Gold Gain");
@@ -565,20 +529,14 @@ impl EffectText {
                 Effect::DisableItemUse => {
                     builder.text("Disable Item Use");
                 }
-                Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
+                Effect::DecreaseMaxHandSlots { .. } => {
                     builder.text("Decrease Card Selection Max Slots");
                 }
-                Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
-                    builder.text("Decrease Card Selection Max Rerolls");
+                Effect::DecreaseMaxRerolls { .. } => {
+                    builder.text("Decrease Max Rerolls");
                 }
-                Effect::DecreaseShopMaxRerolls { .. } => {
-                    builder.text("Decrease Shop Max Rerolls");
-                }
-                Effect::AddCardSelectionHandRerollHealthCost { .. } => {
-                    builder.text("Card Selection Reroll Health Cost");
-                }
-                Effect::AddShopRerollHealthCost { .. } => {
-                    builder.text("Shop Reroll Health Cost");
+                Effect::AddRerollHealthCost { .. } => {
+                    builder.text("Reroll Health Cost");
                 }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
                     builder.text(format!("Enemy Health +{}%", percentage));
@@ -657,11 +615,8 @@ impl EffectText {
                         .with_shield_value(format!("{amount:.0}"))
                         .static_text(" damage");
                 }
-                Effect::ExtraReroll => {
-                    builder.text("Gain an extra reroll");
-                }
-                Effect::ExtraShopReroll => {
-                    builder.text("Gain an extra shop reroll");
+                Effect::ExtraDice => {
+                    builder.text("Gain an extra dice");
                 }
                 Effect::EarnGold { amount } => {
                     builder
@@ -791,20 +746,17 @@ impl EffectText {
                         .static_text("Increase incoming damage by ")
                         .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0));
                 }
-                Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
+                Effect::IncreaseMaxHandSlots { bonus } => {
                     builder.text(format!(
                         "Can receive up to {} cards when selecting cards",
                         5 + bonus
                     ));
                 }
-                Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
+                Effect::IncreaseMaxRerolls { bonus } => {
                     builder.text(format!(
-                        "Can reroll up to {} times when selecting cards",
+                        "Can reroll up to {} times",
                         1 + bonus
                     ));
-                }
-                Effect::IncreaseShopMaxRerolls { bonus } => {
-                    builder.text(format!("Can reroll shop up to {} times", 1 + bonus));
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
                     builder
@@ -824,32 +776,29 @@ impl EffectText {
                 Effect::DisableItemUse => {
                     builder.text("Cannot use items");
                 }
-                Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+                Effect::DecreaseMaxHandSlots { penalty } => {
                     builder.text(format!(
                         "Reduce maximum card selection slots by {}",
                         penalty
                     ));
                 }
-                Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
+                Effect::DecreaseMaxRerolls { penalty } => {
                     builder.text(format!(
-                        "Reduce maximum card selection rerolls by {}",
+                        "Reduce maximum rerolls by {}",
                         penalty
                     ));
                 }
-                Effect::DecreaseShopMaxRerolls { penalty } => {
-                    builder.text(format!("Reduce maximum shop rerolls by {}", penalty));
-                }
-                Effect::AddCardSelectionHandRerollHealthCost { cost } => {
+                Effect::AddRerollHealthCost { cost } => {
                     builder
                         .static_text("Lose ")
                         .with_health_loss(format!("{cost}"))
                         .static_text(" health when rerolling card selection");
                 }
-                Effect::AddShopRerollHealthCost { cost } => {
+                Effect::AddRerollHealthCost { cost } => {
                     builder
                         .static_text("Lose ")
                         .with_health_loss(format!("{cost}"))
-                        .static_text(" health when rerolling shop");
+                        .static_text(" health when rerolling");
                 }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
                     builder

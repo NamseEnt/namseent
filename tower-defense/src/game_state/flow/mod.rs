@@ -80,8 +80,7 @@ impl GameState {
         self.flow = GameFlow::Contract(contract::ContractFlow::new(contract_events));
 
         self.stage_modifiers.reset_stage_state();
-        self.left_reroll_chance = self.max_reroll_chance();
-        self.left_shop_refresh_chance = self.max_shop_refresh_chance();
+        self.left_dice = self.max_dice_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
@@ -90,14 +89,9 @@ impl GameState {
     }
 
     pub fn goto_selecting_tower(&mut self) {
-        let max_slots = (5 + self
-            .stage_modifiers
-            .get_card_selection_hand_max_slots_bonus())
-        .saturating_sub(
-            self.stage_modifiers
-                .get_card_selection_hand_max_slots_penalty(),
-        )
-        .max(1);
+        let max_slots = (5 + self.stage_modifiers.get_max_hand_slots_bonus())
+            .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
+            .max(1);
         sound::play_card_draw_sounds(max_slots);
 
         let removing_ids = self.hand.active_slot_ids();

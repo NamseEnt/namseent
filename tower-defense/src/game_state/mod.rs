@@ -70,6 +70,8 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 ];
 pub const MAX_HP: f32 = 100.0;
 
+pub const BASE_DICE_CHANCE: usize = 1;
+
 #[derive(State)]
 pub struct GameState {
     pub monsters: Vec<Monster>,
@@ -82,7 +84,7 @@ pub struct GameState {
     pub hand: Hand<HandItem>,
     /// one-based
     pub stage: usize,
-    pub left_reroll_chance: usize,
+    pub left_dice: usize,
     pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub delayed_hits: Vec<attack::DelayedHit>,
@@ -92,7 +94,6 @@ pub struct GameState {
     pub hp: f32,
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
-    pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
     pub level: NonZeroUsize,
@@ -122,22 +123,11 @@ impl GameState {
     pub fn max_shop_slot(&self) -> usize {
         self.upgrade_state.shop_slot_expand + 2
     }
-    pub fn max_shop_refresh_chance(&self) -> usize {
-        (self.upgrade_state.shop_refresh_chance_plus
-            + 1
-            + self.stage_modifiers.get_shop_max_rerolls_bonus())
-        .saturating_sub(self.stage_modifiers.get_shop_max_rerolls_penalty())
-    }
-    pub fn max_reroll_chance(&self) -> usize {
-        (self.upgrade_state.reroll_chance_plus
-            + 1
-            + self
-                .stage_modifiers
-                .get_card_selection_hand_max_rerolls_bonus())
-        .saturating_sub(
-            self.stage_modifiers
-                .get_card_selection_hand_max_rerolls_penalty(),
-        )
+    pub fn max_dice_chance(&self) -> usize {
+        (self.upgrade_state.dice_chance_plus
+            + BASE_DICE_CHANCE
+            + self.stage_modifiers.get_max_rerolls_bonus())
+        .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
     /// Rarity spawn weights for the given level.
@@ -248,18 +238,18 @@ fn create_initial_game_state() -> GameState {
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
-        left_reroll_chance: 1,
+        left_dice: 0,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         delayed_hits: Default::default(),
         items: vec![
             Item {
-                effect: Effect::ExtraReroll,
+                effect: Effect::ExtraDice,
                 rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
-                effect: Effect::ExtraReroll,
+                effect: Effect::ExtraDice,
                 rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
@@ -289,7 +279,6 @@ fn create_initial_game_state() -> GameState {
         hp: 100.0,
         shield: 0.0,
         user_status_effects: Default::default(),
-        left_shop_refresh_chance: 0,
         left_quest_board_refresh_chance: 0,
         item_used: false,
         level: NonZeroUsize::new(1).unwrap(),
@@ -354,7 +343,7 @@ impl GameState {
             flow: self.flow.clone(),
             hand: self.hand.clone(),
             stage: self.stage,
-            left_reroll_chance: self.left_reroll_chance,
+            left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
             projectiles: self.projectiles.clone(),
             delayed_hits: self.delayed_hits.clone(),
@@ -364,7 +353,6 @@ impl GameState {
             hp: self.hp,
             shield: self.shield,
             user_status_effects: self.user_status_effects.clone(),
-            left_shop_refresh_chance: self.left_shop_refresh_chance,
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
             level: self.level,

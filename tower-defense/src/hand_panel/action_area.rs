@@ -38,17 +38,15 @@ impl Component for HandActionArea {
                 let tower_template = self.tower_template.clone();
 
                 let reroll_selected = || {
-                    if game_state.left_reroll_chance == 0 || selected_slot_ids.is_empty() {
+                    if game_state.left_dice == 0 || selected_slot_ids.is_empty() {
                         return;
                     }
                     let selected_slot_ids = selected_slot_ids.clone();
                     mutate_game_state(move |game_state| {
-                        if game_state.left_reroll_chance == 0 || selected_slot_ids.is_empty() {
+                        if game_state.left_dice == 0 || selected_slot_ids.is_empty() {
                             return;
                         }
-                        let health_cost = game_state
-                            .stage_modifiers
-                            .get_card_selection_hand_reroll_health_cost();
+                        let health_cost = game_state.stage_modifiers.get_reroll_health_cost();
                         if (game_state.hp - health_cost as f32) < 1.0 {
                             return;
                         }
@@ -62,7 +60,7 @@ impl Component for HandActionArea {
                         });
                         sound::play_card_draw_sounds(select_count);
 
-                        game_state.left_reroll_chance -= 1;
+                        game_state.left_dice -= 1;
                         game_state.rerolled_count += 1;
                         game_state.take_damage(health_cost as f32);
                     });
@@ -81,33 +79,20 @@ impl Component for HandActionArea {
                         action_padding,
                         table::vertical([
                             table::fixed_no_clip(48.px(), |wh, ctx| {
-                                let health_cost = game_state
-                                    .stage_modifiers
-                                    .get_card_selection_hand_reroll_health_cost();
+                                let health_cost =
+                                    game_state.stage_modifiers.get_reroll_health_cost();
                                 ctx.add(
                                     Button::new(wh, &reroll_selected, &|wh, color, ctx| {
-                                        let reroll_count = (
-                                            game_state.rerolled_count,
-                                            game_state.left_reroll_chance,
-                                        );
+                                        let max_dice = game_state.max_dice_chance();
+                                        let used_dice =
+                                            max_dice.saturating_sub(game_state.left_dice);
                                         ctx.add(memoized_text(
-                                            (
-                                                &color,
-                                                &reroll_count.0,
-                                                &reroll_count.1,
-                                                &health_cost,
-                                            ),
+                                            (&color, &used_dice, &max_dice, &health_cost),
                                             |mut builder| {
-                                                let reroll_text = format!(
-                                                    "{}/{}",
-                                                    reroll_count.0,
-                                                    reroll_count.0 + reroll_count.1,
-                                                );
                                                 let mut builder = builder
                                                     .headline()
-                                                    .icon(IconKind::Refresh)
-                                                    .space()
-                                                    .text(reroll_text);
+                                                    .size(crate::theme::typography::FontSize::Large)
+                                                    .icon(IconKind::Refresh);
 
                                                 if health_cost > 0 {
                                                     builder =
@@ -119,7 +104,7 @@ impl Component for HandActionArea {
                                         ));
                                     })
                                     .disabled(
-                                        !some_selected || game_state.left_reroll_chance == 0 || {
+                                        !some_selected || game_state.left_dice == 0 || {
                                             (game_state.hp - health_cost as f32) < 1.0
                                         },
                                     ),

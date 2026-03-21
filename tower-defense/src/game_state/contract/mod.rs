@@ -307,8 +307,7 @@ mod property_tests {
                             assert!(*min_amount <= *max_amount);
                             assert!(*min_amount >= 0.0);
                         }
-                        AddCardSelectionHandRerollHealthCost { cost }
-                        | AddShopRerollHealthCost { cost } => {
+                        AddRerollHealthCost { cost } => {
                             assert!(*cost >= 1 && *cost <= 10);
                         }
                         DecreaseEnemyHealthPercent { percentage } => {
@@ -325,18 +324,18 @@ mod property_tests {
     fn adjustments_delta_consistency() {
         let mut cs = StageModifiers::new();
         assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 0);
-        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 0);
-        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
-        cs.apply_card_selection_hand_max_slots_bonus(3);
-        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 3);
-        cs.apply_card_selection_hand_max_slots_penalty(1);
-        assert_eq!(cs.get_card_selection_hand_max_slots_delta(), 2);
-        cs.apply_card_selection_hand_max_rerolls_bonus(5);
-        cs.apply_card_selection_hand_max_rerolls_penalty(2);
-        assert_eq!(cs.get_card_selection_hand_max_rerolls_delta(), 3);
-        cs.apply_shop_max_rerolls_bonus(4);
-        cs.apply_shop_max_rerolls_penalty(4);
-        assert_eq!(cs.get_shop_max_rerolls_delta(), 0);
+        assert_eq!(cs.get_max_rerolls_delta(), 0);
+        assert_eq!(cs.get_max_rerolls_delta(), 0);
+        cs.apply_max_hand_slots_bonus(3);
+        assert_eq!(cs.get_max_hand_slots_delta(), 3);
+        cs.apply_max_hand_slots_penalty(1);
+        assert_eq!(cs.get_max_hand_slots_delta(), 2);
+        cs.apply_max_rerolls_bonus(5);
+        cs.apply_max_rerolls_penalty(2);
+        assert_eq!(cs.get_max_rerolls_delta(), 3);
+        cs.apply_max_rerolls_bonus(4);
+        cs.apply_max_rerolls_penalty(4);
+        assert_eq!(cs.get_max_rerolls_delta(), 3);
     }
 
     #[test]

@@ -21,13 +21,10 @@ pub(crate) fn list() -> &'static [RiskGeneratorFn] {
         },
         |_, _, _| Effect::DisableItemAndUpgradePurchases,
         |_, _, _| Effect::DisableItemUse,
-        |_, _, _| Effect::DecreaseCardSelectionHandMaxSlots { penalty: 1 },
-        |_, _, _| Effect::DecreaseCardSelectionHandMaxRerolls { penalty: 1 },
-        |_, _, _| Effect::DecreaseShopMaxRerolls { penalty: 1 },
-        |rng, _, _| Effect::AddCardSelectionHandRerollHealthCost {
-            cost: rng.gen_range(RISK_REROLL_HEALTH_COST.0..=RISK_REROLL_HEALTH_COST.1) as usize,
-        },
-        |rng, _, _| Effect::AddShopRerollHealthCost {
+        |_, _, _| Effect::DecreaseMaxHandSlots { penalty: 1 },
+        |_, _, _| Effect::DecreaseMaxRerolls { penalty: 1 },
+        |_, _, _| Effect::DecreaseMaxRerolls { penalty: 1 },
+        |rng, _, _| Effect::AddRerollHealthCost {
             cost: rng.gen_range(RISK_REROLL_HEALTH_COST.0..=RISK_REROLL_HEALTH_COST.1) as usize,
         },
         |_, _, _| Effect::DecreaseEnemyHealthPercent {
@@ -75,15 +72,9 @@ mod tests {
                 | crate::game_state::effect::Effect::DecreaseGoldGainPercent { .. }
                 | crate::game_state::effect::Effect::DisableItemAndUpgradePurchases
                 | crate::game_state::effect::Effect::DisableItemUse
-                | crate::game_state::effect::Effect::DecreaseCardSelectionHandMaxSlots { .. }
-                | crate::game_state::effect::Effect::DecreaseCardSelectionHandMaxRerolls {
-                    ..
-                }
-                | crate::game_state::effect::Effect::DecreaseShopMaxRerolls { .. }
-                | crate::game_state::effect::Effect::AddCardSelectionHandRerollHealthCost {
-                    ..
-                }
-                | crate::game_state::effect::Effect::AddShopRerollHealthCost { .. }
+                | crate::game_state::effect::Effect::DecreaseMaxHandSlots { .. }
+                | crate::game_state::effect::Effect::DecreaseMaxRerolls { .. }
+                | crate::game_state::effect::Effect::AddRerollHealthCost { .. }
                 | crate::game_state::effect::Effect::DecreaseEnemyHealthPercent { .. }
                 | crate::game_state::effect::Effect::RankTowerDisable { .. }
                 | crate::game_state::effect::Effect::SuitTowerDisable { .. } => {}

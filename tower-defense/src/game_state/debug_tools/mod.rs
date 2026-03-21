@@ -132,7 +132,7 @@ impl Component for DebugToolsModal {
                                                         &|| {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
-                                                                    effect: Effect::ExtraShopReroll,
+                                                                    effect: Effect::ExtraDice,
                                                                     rarity: Rarity::Common,
                                                                     value: 0.0.into(),
                                                                 });
@@ -164,7 +164,7 @@ impl Component for DebugToolsModal {
                                                         &|| {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
-                                                                    effect: Effect::ExtraReroll,
+                                                                    effect: Effect::ExtraDice,
                                                                     rarity: Rarity::Common,
                                                                     value: 0.0.into(),
                                                                 });

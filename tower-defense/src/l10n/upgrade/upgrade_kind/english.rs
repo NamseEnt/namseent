@@ -34,8 +34,8 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
                     builder.static_text("Shop Slot Expansion");
                 },
-                crate::game_state::upgrade::UpgradeKind::RerollCountPlus => {
-                    builder.static_text("Reroll Count Increase");
+                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
+                    builder.static_text("Extra Dice");
                 },
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => {
                     builder
@@ -45,9 +45,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
                     builder.static_text("Shop Item Price Discount");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => {
-                    builder.static_text("Shop Refresh Count Increase");
                 },
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
                     builder
@@ -128,9 +125,9 @@ impl UpgradeKindText<'_> {
                         .with_positive_effect("1 slot")
                         .static_text(" available for purchase in the shop.");
                 },
-                crate::game_state::upgrade::UpgradeKind::RerollCountPlus => {
+                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
                     builder
-                        .static_text("Increases the number of rerolls available each round by ")
+                        .static_text("Increases the number of dice available each round by ")
                         .with_positive_effect("1")
                         .static_text(".");
                 },
@@ -143,12 +140,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
                     builder.static_text("Shop item prices are discounted.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => {
-                    builder
-                        .static_text("Shop refresh count increases by ")
-                        .with_positive_effect("1")
-                        .static_text(".");
                 },
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
                     builder

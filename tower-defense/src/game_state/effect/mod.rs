@@ -17,8 +17,7 @@ pub enum Effect {
     Shield {
         amount: f32,
     },
-    ExtraReroll,
-    ExtraShopReroll,
+    ExtraDice,
     EarnGold {
         amount: usize,
     },
@@ -67,28 +66,19 @@ pub enum Effect {
     },
     DisableItemAndUpgradePurchases,
     DisableItemUse,
-    IncreaseCardSelectionHandMaxSlots {
+    IncreaseMaxHandSlots {
         bonus: usize,
     },
-    DecreaseCardSelectionHandMaxSlots {
+    DecreaseMaxHandSlots {
         penalty: usize,
     },
-    IncreaseCardSelectionHandMaxRerolls {
+    IncreaseMaxRerolls {
         bonus: usize,
     },
-    DecreaseCardSelectionHandMaxRerolls {
+    DecreaseMaxRerolls {
         penalty: usize,
     },
-    IncreaseShopMaxRerolls {
-        bonus: usize,
-    },
-    DecreaseShopMaxRerolls {
-        penalty: usize,
-    },
-    AddCardSelectionHandRerollHealthCost {
-        cost: usize,
-    },
-    AddShopRerollHealthCost {
+    AddRerollHealthCost {
         cost: usize,
     },
     DecreaseEnemyHealthPercent {
@@ -156,11 +146,8 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::Shield { amount } => {
             game_state.shield += amount;
         }
-        Effect::ExtraReroll => {
-            game_state.left_reroll_chance += 1;
-        }
-        Effect::ExtraShopReroll => {
-            game_state.left_shop_refresh_chance += 1;
+        Effect::ExtraDice => {
+            game_state.left_dice += 1;
         }
         Effect::EarnGold { amount } => {
             game_state.gold = game_state.gold.saturating_add(*amount);
@@ -300,45 +287,26 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::DisableItemUse => {
             game_state.stage_modifiers.disable_item_use();
         }
-        Effect::DecreaseCardSelectionHandMaxSlots { penalty } => {
+        Effect::DecreaseMaxHandSlots { penalty } => {
             game_state
                 .stage_modifiers
-                .apply_card_selection_hand_max_slots_penalty(*penalty);
+                .apply_max_hand_slots_penalty(*penalty);
         }
-        Effect::IncreaseCardSelectionHandMaxSlots { bonus } => {
+        Effect::IncreaseMaxHandSlots { bonus } => {
             game_state
                 .stage_modifiers
-                .apply_card_selection_hand_max_slots_bonus(*bonus);
+                .apply_max_hand_slots_bonus(*bonus);
         }
-        Effect::IncreaseCardSelectionHandMaxRerolls { bonus } => {
-            game_state
-                .stage_modifiers
-                .apply_card_selection_hand_max_rerolls_bonus(*bonus);
+        Effect::IncreaseMaxRerolls { bonus } => {
+            game_state.stage_modifiers.apply_max_rerolls_bonus(*bonus);
         }
-        Effect::DecreaseCardSelectionHandMaxRerolls { penalty } => {
+        Effect::DecreaseMaxRerolls { penalty } => {
             game_state
                 .stage_modifiers
-                .apply_card_selection_hand_max_rerolls_penalty(*penalty);
+                .apply_max_rerolls_penalty(*penalty);
         }
-        Effect::IncreaseShopMaxRerolls { bonus } => {
-            game_state
-                .stage_modifiers
-                .apply_shop_max_rerolls_bonus(*bonus);
-        }
-        Effect::DecreaseShopMaxRerolls { penalty } => {
-            game_state
-                .stage_modifiers
-                .apply_shop_max_rerolls_penalty(*penalty);
-        }
-        Effect::AddCardSelectionHandRerollHealthCost { cost } => {
-            game_state
-                .stage_modifiers
-                .apply_card_selection_hand_reroll_health_cost(*cost);
-        }
-        Effect::AddShopRerollHealthCost { cost } => {
-            game_state
-                .stage_modifiers
-                .apply_shop_reroll_health_cost(*cost);
+        Effect::AddRerollHealthCost { cost } => {
+            game_state.stage_modifiers.apply_reroll_health_cost(*cost);
         }
         Effect::DecreaseEnemyHealthPercent { percentage } => {
             let multiplier = 1.0 + percentage / 100.0;
@@ -410,7 +378,7 @@ impl Effect {
             return Err(EffectExecutionError::ItemUseDisabled);
         }
 
-        if self == &Effect::ExtraReroll && !matches!(game_state.flow, GameFlow::SelectingTower(_)) {
+        if self == &Effect::ExtraDice && !matches!(game_state.flow, GameFlow::SelectingTower(_)) {
             return Err(EffectExecutionError::InvalidFlow {
                 required: "SelectingTower".to_string(),
             });
@@ -465,7 +433,7 @@ pub mod tests_support {
             flow: GameFlow::Initializing,
             hand: Hand::new(std::iter::empty::<HandItem>()),
             stage: 1,
-            left_reroll_chance: 1,
+            left_dice: 1,
             monster_spawn_state: MonsterSpawnState::idle(),
             projectiles: Default::default(),
             delayed_hits: Default::default(),
@@ -475,7 +443,6 @@ pub mod tests_support {
             hp: 100.0,
             shield: 0.0,
             user_status_effects: Default::default(),
-            left_shop_refresh_chance: 0,
             left_quest_board_refresh_chance: 0,
             item_used: false,
             level: NonZeroUsize::new(1).unwrap(),
