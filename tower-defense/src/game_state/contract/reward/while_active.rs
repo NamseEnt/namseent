@@ -13,9 +13,9 @@ pub(crate) fn list() -> &'static [RewardGeneratorFn] {
         |rng, rarity, _| Effect::IncreaseGoldGain {
             multiplier: rarity_table_random(rng, rarity, &REWARD_INCREASE_GOLD_GAIN),
         },
-        |_, _, _| Effect::IncreaseCardSelectionHandMaxSlots { bonus: 1 },
-        |_, _, _| Effect::IncreaseCardSelectionHandMaxRerolls { bonus: 1 },
-        |_, _, _| Effect::IncreaseShopMaxRerolls { bonus: 1 },
+        |_, _, _| Effect::IncreaseMaxHandSlots { bonus: 1 },
+        |_, _, _| Effect::IncreaseMaxRerolls { bonus: 1 },
+        |_, _, _| Effect::IncreaseMaxRerolls { bonus: 1 },
     ];
     FNS
 }

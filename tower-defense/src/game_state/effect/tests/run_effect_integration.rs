@@ -6,22 +6,22 @@ use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_sta
 #[test]
 fn increase_shop_reroll_via_run_effect() {
     let mut gs = make_test_state();
-    assert_eq!(gs.max_shop_refresh_chance(), 1);
-    run_effect(&mut gs, &Effect::IncreaseShopMaxRerolls { bonus: 1 });
-    assert_eq!(gs.max_shop_refresh_chance(), 2, "run_effect 경로로 +1 반영");
+    assert_eq!(gs.max_dice_chance(), 1);
+    run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 1 });
+    assert_eq!(gs.max_dice_chance(), 2, "run_effect 경로로 +1 반영");
 }
 
 #[test]
 fn shop_reroll_penalty_then_bonus_via_run_effect() {
     let mut gs = make_test_state();
     for _ in 0..4 {
-        run_effect(&mut gs, &Effect::DecreaseShopMaxRerolls { penalty: 1 });
+        run_effect(&mut gs, &Effect::DecreaseMaxRerolls { penalty: 1 });
     }
-    assert_eq!(gs.max_shop_refresh_chance(), 0, "패널티 4회 후 0 포화");
+    assert_eq!(gs.max_dice_chance(), 0, "패널티 4회 후 0 포화");
     for _ in 0..6 {
-        run_effect(&mut gs, &Effect::IncreaseShopMaxRerolls { bonus: 1 });
+        run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 1 });
     }
-    assert_eq!(gs.max_shop_refresh_chance(), 3, "-4 +6 => +2 (기본 1 → 3)");
+    assert_eq!(gs.max_dice_chance(), 3, "-4 +6 => +2 (기본 1 → 3)");
 }
 
 #[test]

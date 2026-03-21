@@ -57,8 +57,8 @@ pub fn generate_upgrade_candidate_table(
             (10, 50, 50, 100),
         ),
         (
-            |_rarity| UpgradeKind::RerollCountPlus,
-            Some((upgrade_state.reroll_chance_plus, MAX_REROLL_CHANCE_PLUS)),
+            |_rarity| UpgradeKind::ExtraDice,
+            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
             (5, 10, 50, 100),
         ),
         (
@@ -77,11 +77,8 @@ pub fn generate_upgrade_candidate_table(
             (10, 10, 10, 10),
         ),
         (
-            |_rarity| UpgradeKind::ShopRefreshPlus,
-            Some((
-                upgrade_state.shop_refresh_chance_plus,
-                MAX_SHOP_REFRESH_CHANCE_PLUS,
-            )),
+            |_rarity| UpgradeKind::ExtraDice,
+            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS,)),
             (10, 50, 50, 10),
         ),
         (

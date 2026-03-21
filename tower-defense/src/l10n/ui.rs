@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -87,6 +87,40 @@ impl ResultModalText {
             ResultModalText::Title => "Game Result",
             ResultModalText::RestartButton => "Restart",
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum RerollHealthCostDetailText {
+    Damage(usize),
+}
+
+impl LocalizedText for RerollHealthCostDetailText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
+        }
+    }
+}
+
+impl RerollHealthCostDetailText {
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            RerollHealthCostDetailText::Damage(amount) => builder
+                .text("체력을 ")
+                .with_health_loss(format!("{}", amount))
+                .text(" 잃습니다"),
+        };
+    }
+
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            RerollHealthCostDetailText::Damage(amount) => builder
+                .text("Lose ")
+                .with_health_loss(format!("{}", amount))
+                .text(" health"),
+        };
     }
 }
 

@@ -14,16 +14,7 @@ impl Effect {
             Effect::Lottery { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
-            Effect::ExtraReroll => Icon::new(IconKind::Refresh)
-                .wh(width_height)
-                .size(IconSize::Custom {
-                    size: width_height.width,
-                })
-                .attributes(vec![
-                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
-                ])
-                .to_rendering_tree(),
-            Effect::ExtraShopReroll => Icon::new(IconKind::Refresh)
+            Effect::ExtraDice => Icon::new(IconKind::Refresh)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
@@ -80,17 +71,10 @@ impl Effect {
             Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Damage)
                 .build(),
-            Effect::IncreaseCardSelectionHandMaxSlots { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Card)
-                    .build()
-            }
-            Effect::IncreaseCardSelectionHandMaxRerolls { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Refresh)
-                    .build()
-            }
-            Effect::IncreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+            Effect::IncreaseMaxHandSlots { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
+                .build(),
+            Effect::IncreaseMaxRerolls { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Refresh)
                 .build(),
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
@@ -108,25 +92,13 @@ impl Effect {
             Effect::DisableItemUse => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Reject)
                 .build(),
-            Effect::DecreaseCardSelectionHandMaxSlots { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Card)
-                    .build()
-            }
-            Effect::DecreaseCardSelectionHandMaxRerolls { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Refresh)
-                    .build()
-            }
-            Effect::DecreaseShopMaxRerolls { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Shop)
+            Effect::DecreaseMaxHandSlots { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
                 .build(),
-            Effect::AddCardSelectionHandRerollHealthCost { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Health)
-                    .build()
-            }
-            Effect::AddShopRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
+            Effect::DecreaseMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
+            Effect::AddRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
             Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)

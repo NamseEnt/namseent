@@ -15,6 +15,7 @@ mod shop_panel;
 pub mod sound;
 mod theme;
 mod thumbnail;
+mod tooltip;
 mod top_bar;
 mod upgrades;
 

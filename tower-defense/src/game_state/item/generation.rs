@@ -55,7 +55,7 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rarity: Rarity, rng: &mut R) -> I
                 probability,
             }
         }
-        ItemCandidate::ExtraReroll => Effect::ExtraReroll,
+        ItemCandidate::ExtraReroll => Effect::ExtraDice,
         ItemCandidate::Shield => {
             let range = match rarity {
                 Rarity::Common => 10.0..15.0,
