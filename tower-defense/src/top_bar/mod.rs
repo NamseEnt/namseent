@@ -81,13 +81,16 @@ impl Component for TopBar {
                             }),
                             table::fixed_no_clip(32.px(), |wh, ctx| {
                                 let this_max = game_state.max_dice_chance();
-                                ctx.add(memoized_text(&(game_state.left_dice, this_max), |mut builder| {
-                                    builder
-                                        .headline()
-                                        .size(FontSize::Medium)
-                                        .text(format!("{}/{}", game_state.left_dice, this_max))
-                                        .render_center(wh)
-                                }));
+                                ctx.add(memoized_text(
+                                    &(game_state.left_dice, this_max),
+                                    |mut builder| {
+                                        builder
+                                            .headline()
+                                            .size(FontSize::Medium)
+                                            .text(format!("{}/{}", game_state.left_dice, this_max))
+                                            .render_center(wh)
+                                    },
+                                ));
                             }),
                             table::ratio(1, |_, _| {}),
                         ])(wh, ctx);
