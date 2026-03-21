@@ -71,16 +71,12 @@ impl Effect {
             Effect::DecreaseIncomingDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Damage)
                 .build(),
-            Effect::IncreaseMaxHandSlots { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Card)
-                    .build()
-            }
-            Effect::IncreaseMaxRerolls { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Refresh)
-                    .build()
-            }
+            Effect::IncreaseMaxHandSlots { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
+                .build(),
+            Effect::IncreaseMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
             Effect::IncreaseGoldGain { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
@@ -96,16 +92,12 @@ impl Effect {
             Effect::DisableItemUse => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Reject)
                 .build(),
-            Effect::DecreaseMaxHandSlots { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Card)
-                    .build()
-            }
-            Effect::DecreaseMaxRerolls { .. } => {
-                ThumbnailComposer::new(width_height)
-                    .with_icon_base(IconKind::Refresh)
-                    .build()
-            }
+            Effect::DecreaseMaxHandSlots { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
+                .build(),
+            Effect::DecreaseMaxRerolls { .. } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Refresh)
+                .build(),
             Effect::AddRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),

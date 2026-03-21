@@ -331,10 +331,7 @@ impl EffectText {
                     ));
                 }
                 Effect::IncreaseMaxRerolls { bonus } => {
-                    builder.text(format!(
-                        "리롤 시 최대 {}번 리롤할 수 있습니다",
-                        1 + bonus
-                    ));
+                    builder.text(format!("리롤 시 최대 {}번 리롤할 수 있습니다", 1 + bonus));
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
                     builder
@@ -753,10 +750,7 @@ impl EffectText {
                     ));
                 }
                 Effect::IncreaseMaxRerolls { bonus } => {
-                    builder.text(format!(
-                        "Can reroll up to {} times",
-                        1 + bonus
-                    ));
+                    builder.text(format!("Can reroll up to {} times", 1 + bonus));
                 }
                 Effect::IncreaseGoldGain { multiplier } => {
                     builder
@@ -783,10 +777,7 @@ impl EffectText {
                     ));
                 }
                 Effect::DecreaseMaxRerolls { penalty } => {
-                    builder.text(format!(
-                        "Reduce maximum rerolls by {}",
-                        penalty
-                    ));
+                    builder.text(format!("Reduce maximum rerolls by {}", penalty));
                 }
                 Effect::AddRerollHealthCost { cost } => {
                     builder
