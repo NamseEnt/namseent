@@ -1,4 +1,5 @@
 use crate::game_state::effect::Effect;
+use crate::l10n::Locale;
 use namui::*;
 use rand::{Rng, seq::SliceRandom};
 
@@ -9,6 +10,45 @@ pub enum DifficultyGroup {
     Normal,
     Peace,
     BigPeace,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, State)]
+pub enum OperationKind {
+    StrongTaunt,
+    Taunt,
+    TeaTime,
+    FlowerWatering,
+    Tribute,
+    PeaceGift,
+    Plead,
+    HandstandApology,
+}
+
+impl OperationKind {
+    pub fn to_text(self, locale: &Locale) -> &'static str {
+        match locale.language {
+            crate::l10n::Language::Korean => match self {
+                OperationKind::StrongTaunt => "심한 욕하기",
+                OperationKind::Taunt => "바보라고 놀리기",
+                OperationKind::TeaTime => "티타임을 즐기기",
+                OperationKind::FlowerWatering => "꽃에 물주기",
+                OperationKind::Tribute => "상납금을 바치기",
+                OperationKind::PeaceGift => "화해의 선물 주기",
+                OperationKind::Plead => "울면서 봐달라고 빌기",
+                OperationKind::HandstandApology => "물구나무서서 미안하다하기",
+            },
+            crate::l10n::Language::English => match self {
+                OperationKind::StrongTaunt => "Strong Taunt",
+                OperationKind::Taunt => "Taunt",
+                OperationKind::TeaTime => "Enjoy Tea Time",
+                OperationKind::FlowerWatering => "Water the Flowers",
+                OperationKind::Tribute => "Pay Tribute",
+                OperationKind::PeaceGift => "Give Peace Gift",
+                OperationKind::Plead => "Plead for Mercy",
+                OperationKind::HandstandApology => "Handstand Apology",
+            },
+        }
+    }
 }
 
 impl DifficultyGroup {
@@ -42,13 +82,13 @@ impl DifficultyGroup {
         }
     }
 
-    pub fn flavor_names(&self) -> &'static [&'static str] {
+    pub fn operation_kinds(&self) -> &'static [OperationKind] {
         match self {
-            DifficultyGroup::StrongTaunt => &["심한 욕하기"],
-            DifficultyGroup::Taunt => &["바보라고 놀리기"],
-            DifficultyGroup::Normal => &["티타임을 즐기기", "꽃에 물주기"],
-            DifficultyGroup::Peace => &["상납금을 바치기", "화해의 선물 주기"],
-            DifficultyGroup::BigPeace => &["울면서 봐달라고 빌기", "물구나무서서 미안하다하기"],
+            DifficultyGroup::StrongTaunt => &[OperationKind::StrongTaunt],
+            DifficultyGroup::Taunt => &[OperationKind::Taunt],
+            DifficultyGroup::Normal => &[OperationKind::TeaTime, OperationKind::FlowerWatering],
+            DifficultyGroup::Peace => &[OperationKind::Tribute, OperationKind::PeaceGift],
+            DifficultyGroup::BigPeace => &[OperationKind::Plead, OperationKind::HandstandApology],
         }
     }
 
@@ -226,14 +266,14 @@ impl DifficultyGroup {
             }
         }
 
-        let name = {
-            let flavor_options = self.flavor_names();
-            flavor_options.choose(rng).unwrap().to_string()
+        let operation = {
+            let op_options = self.operation_kinds();
+            *op_options.choose(rng).unwrap()
         };
 
         super::DifficultyOption {
             group: self,
-            name,
+            operation,
             effects,
         }
     }

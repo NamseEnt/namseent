@@ -304,7 +304,7 @@ fn render_card_layout(
     card_wh: Wh<Px>,
     text: crate::l10n::TextManager,
 ) {
-    let name = option.name.clone();
+    let name = option.operation.to_text(&text.locale()).to_string();
     let effects: Vec<crate::game_state::effect::Effect> = option.effects.clone();
 
     ctx.compose(|ctx| {

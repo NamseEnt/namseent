@@ -6,7 +6,7 @@ use rand::{seq::SliceRandom, thread_rng};
 #[derive(Clone, Debug, State)]
 pub struct DifficultyOption {
     pub group: super::DifficultyGroup,
-    pub name: String,
+    pub operation: super::OperationKind,
     pub effects: Vec<Effect>,
 }
 
@@ -29,7 +29,7 @@ impl Default for DifficultyOption {
     fn default() -> Self {
         DifficultyOption {
             group: super::DifficultyGroup::Normal,
-            name: "기본 작전".into(),
+            operation: super::OperationKind::TeaTime,
             effects: vec![],
         }
     }
@@ -62,7 +62,7 @@ pub fn generate_difficulty_choices(stage: usize) -> DifficultyChoices {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::difficulty::DifficultyGroup;
+    use crate::game_state::difficulty::{DifficultyGroup, OperationKind};
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
@@ -85,17 +85,17 @@ mod tests {
         assert!(choices.low.group.difficulty_rank() <= choices.high.group.difficulty_rank());
         assert!(
             matches!(
-                choices.low.name.as_str(),
-                "티타임을 즐기기"
-                    | "꽃에 물주기"
-                    | "상납금을 바치기"
-                    | "화해의 선물 주기"
-                    | "울면서 봐달라고 빌기"
-                    | "물구나무서서 미안하다하기"
-                    | "심한 욕하기"
-                    | "바보라고 놀리기"
+                choices.low.operation,
+                OperationKind::StrongTaunt
+                    | OperationKind::Taunt
+                    | OperationKind::TeaTime
+                    | OperationKind::FlowerWatering
+                    | OperationKind::Tribute
+                    | OperationKind::PeaceGift
+                    | OperationKind::Plead
+                    | OperationKind::HandstandApology
             ),
-            "low name wrong"
+            "low operation wrong"
         );
 
         assert!(choices.low.effects.len() <= 3);
