@@ -101,13 +101,40 @@ impl Effect {
             Effect::AddRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
+            Effect::IncreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
                 })
                 .attributes(vec![
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Down).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::IncreaseEnemySpeed { .. } => Icon::new(IconKind::MoveSpeed)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::DecreaseEnemySpeed { .. } => Icon::new(IconKind::MoveSpeed)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Down).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
             Effect::RankTowerDisable { .. } => Icon::new(IconKind::Damage)

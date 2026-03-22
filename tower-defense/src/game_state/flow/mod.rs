@@ -80,6 +80,7 @@ impl GameState {
         self.flow = GameFlow::Contract(contract::ContractFlow::new(contract_events));
 
         self.stage_modifiers.reset_stage_state();
+        self.stage_difficulty_choices = super::difficulty::generate_difficulty_choices(self.stage);
         self.left_dice = self.max_dice_chance();
         self.shield = 0.0;
         self.item_used = false;

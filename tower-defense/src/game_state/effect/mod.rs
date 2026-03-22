@@ -2,9 +2,11 @@ use crate::card::{Rank, Suit};
 use crate::game_state::flow::GameFlow;
 use crate::game_state::{
     GameState,
+    stage_modifiers::StageModifiers,
     tower::{TowerKind, TowerTemplate},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
+
 use crate::hand::HandItem;
 use crate::rarity::Rarity;
 use namui::*;
@@ -81,8 +83,17 @@ pub enum Effect {
     AddRerollHealthCost {
         cost: usize,
     },
+    IncreaseEnemyHealthPercent {
+        percentage: f32,
+    },
     DecreaseEnemyHealthPercent {
         percentage: f32,
+    },
+    IncreaseEnemySpeed {
+        multiplier: f32,
+    },
+    DecreaseEnemySpeed {
+        multiplier: f32,
     },
     RankTowerDisable {
         rank: Rank,
@@ -308,11 +319,27 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::AddRerollHealthCost { cost } => {
             game_state.stage_modifiers.apply_reroll_health_cost(*cost);
         }
-        Effect::DecreaseEnemyHealthPercent { percentage } => {
+        Effect::IncreaseEnemyHealthPercent { percentage } => {
             let multiplier = 1.0 + percentage / 100.0;
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
+        }
+        Effect::DecreaseEnemyHealthPercent { percentage } => {
+            let multiplier = 1.0 - percentage / 100.0;
+            game_state
+                .stage_modifiers
+                .apply_enemy_health_multiplier(multiplier);
+        }
+        Effect::IncreaseEnemySpeed { multiplier } => {
+            game_state
+                .stage_modifiers
+                .apply_enemy_speed_multiplier(*multiplier);
+        }
+        Effect::DecreaseEnemySpeed { multiplier } => {
+            game_state
+                .stage_modifiers
+                .apply_enemy_speed_multiplier(*multiplier);
         }
         Effect::RankTowerDisable { rank } => {
             game_state.stage_modifiers.disable_rank(*rank);
@@ -371,6 +398,55 @@ impl Effect {
 
     pub fn description_text(&self) -> crate::l10n::effect::EffectText {
         crate::l10n::effect::EffectText::Description(self.clone())
+    }
+
+    pub fn apply_to_stage_modifiers(&self, modifiers: &mut StageModifiers) {
+        match self {
+            Effect::DecreaseEnemyHealthPercent { percentage } => {
+                let multiplier = 1.0 + percentage / 100.0;
+                modifiers.apply_enemy_health_multiplier(multiplier);
+            }
+            Effect::IncreaseIncomingDamage { multiplier } => {
+                modifiers.apply_incoming_damage_multiplier(*multiplier);
+            }
+            Effect::DecreaseIncomingDamage { multiplier } => {
+                modifiers.apply_damage_reduction_multiplier(*multiplier);
+            }
+            Effect::IncreaseGoldGain { multiplier } => {
+                modifiers.apply_gold_gain_multiplier(*multiplier);
+            }
+            Effect::DecreaseGoldGainPercent {
+                reduction_percentage,
+            } => {
+                modifiers.apply_gold_gain_multiplier(1.0 - *reduction_percentage);
+            }
+            Effect::DecreaseAllTowersDamage { multiplier }
+            | Effect::IncreaseAllTowersDamage { multiplier } => {
+                modifiers.apply_damage_multiplier(*multiplier);
+            }
+            Effect::DecreaseMaxHandSlots { penalty } => {
+                modifiers.apply_max_hand_slots_penalty(*penalty);
+            }
+            Effect::IncreaseMaxHandSlots { bonus } => {
+                modifiers.apply_max_hand_slots_bonus(*bonus);
+            }
+            Effect::DecreaseMaxRerolls { penalty } => {
+                modifiers.apply_max_rerolls_penalty(*penalty);
+            }
+            Effect::IncreaseMaxRerolls { bonus } => {
+                modifiers.apply_max_rerolls_bonus(*bonus);
+            }
+            Effect::AddRerollHealthCost { cost } => {
+                modifiers.apply_reroll_health_cost(*cost);
+            }
+            Effect::DisableItemAndUpgradePurchases => {
+                modifiers.disable_item_and_upgrade_purchases();
+            }
+            Effect::DisableItemUse => {
+                modifiers.disable_item_use();
+            }
+            _ => {}
+        }
     }
 
     pub fn can_execute(&self, game_state: &GameState) -> Result<(), EffectExecutionError> {
@@ -455,6 +531,7 @@ pub mod tests_support {
             contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
+            stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
             just_cleared_boss_stage: false,
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(

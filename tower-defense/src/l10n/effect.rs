@@ -95,6 +95,18 @@ impl EffectText {
                 Effect::DecreaseGoldGainPercent { .. } => {
                     builder.text("골드 획득량 감소");
                 }
+                Effect::IncreaseEnemyHealthPercent { .. } => {
+                    builder.text("적 체력 증가");
+                }
+                Effect::DecreaseEnemyHealthPercent { .. } => {
+                    builder.text("적 체력 감소");
+                }
+                Effect::IncreaseEnemySpeed { .. } => {
+                    builder.text("적 이동속도 증가");
+                }
+                Effect::DecreaseEnemySpeed { .. } => {
+                    builder.text("적 이동속도 감소");
+                }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("아이템/업그레이드 구매 불가");
                 }
@@ -108,13 +120,19 @@ impl EffectText {
                     builder.text("최대 리롤 감소");
                 }
                 Effect::AddRerollHealthCost { .. } => {
-                    builder.text("카드 선택 리롤 체력 비용");
-                }
-                Effect::AddRerollHealthCost { .. } => {
                     builder.text("리롤 체력 비용");
                 }
+                Effect::IncreaseEnemyHealthPercent { percentage } => {
+                    builder.text(format!("적 체력 +{:.0}%", percentage));
+                }
                 Effect::DecreaseEnemyHealthPercent { percentage } => {
-                    builder.text(format!("적 체력 {}% 증가", percentage));
+                    builder.text(format!("적 체력 -{:.0}%", percentage));
+                }
+                Effect::IncreaseEnemySpeed { multiplier } => {
+                    builder.text(format!("적 이동속도 +{:.0}%", (multiplier - 1.0) * 100.0));
+                }
+                Effect::DecreaseEnemySpeed { multiplier } => {
+                    builder.text(format!("적 이동속도 -{:.0}%", (1.0 - multiplier) * 100.0));
                 }
                 Effect::RankTowerDisable { rank } => {
                     builder.text(format!("{} 랭크 타워 비활성화", rank));
@@ -347,6 +365,30 @@ impl EffectText {
                         .with_percentage_decrease(format!("{:.0}", reduction_percentage * 100.0))
                         .static_text(" 감소합니다");
                 }
+                Effect::IncreaseEnemyHealthPercent { percentage } => {
+                    builder
+                        .static_text("적 체력이 ")
+                        .with_percentage_increase(format!("{:.0}", percentage))
+                        .static_text(" 증가합니다");
+                }
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
+                    builder
+                        .static_text("적 체력이 ")
+                        .with_percentage_decrease(format!("{:.0}", percentage))
+                        .static_text(" 감소합니다");
+                }
+                Effect::IncreaseEnemySpeed { multiplier } => {
+                    builder
+                        .static_text("적 이동속도가 ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text(" 증가합니다");
+                }
+                Effect::DecreaseEnemySpeed { multiplier } => {
+                    builder
+                        .static_text("적 이동속도가 ")
+                        .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0))
+                        .static_text(" 감소합니다");
+                }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("아이템과 업그레이드를 구매할 수 없습니다");
                 }
@@ -520,6 +562,18 @@ impl EffectText {
                 Effect::DecreaseGoldGainPercent { .. } => {
                     builder.text("Decrease Gold Gain");
                 }
+                Effect::IncreaseEnemyHealthPercent { .. } => {
+                    builder.text("Increase Enemy HP");
+                }
+                Effect::DecreaseEnemyHealthPercent { .. } => {
+                    builder.text("Decrease Enemy HP");
+                }
+                Effect::IncreaseEnemySpeed { .. } => {
+                    builder.text("Increase Enemy Speed");
+                }
+                Effect::DecreaseEnemySpeed { .. } => {
+                    builder.text("Decrease Enemy Speed");
+                }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("Disable Item/Upgrade Purchases");
                 }
@@ -534,9 +588,6 @@ impl EffectText {
                 }
                 Effect::AddRerollHealthCost { .. } => {
                     builder.text("Reroll Health Cost");
-                }
-                Effect::DecreaseEnemyHealthPercent { percentage } => {
-                    builder.text(format!("Enemy Health +{}%", percentage));
                 }
                 Effect::RankTowerDisable { rank } => {
                     builder.text(format!("Disable {} Rank Towers", rank));
@@ -764,6 +815,30 @@ impl EffectText {
                         .static_text("Decrease gold gain by ")
                         .with_percentage_decrease(format!("{:.0}", reduction_percentage * 100.0));
                 }
+                Effect::IncreaseEnemyHealthPercent { percentage } => {
+                    builder
+                        .static_text("Increase enemy health by ")
+                        .with_percentage_increase(format!("{:.0}", percentage))
+                        .static_text("%");
+                }
+                Effect::DecreaseEnemyHealthPercent { percentage } => {
+                    builder
+                        .static_text("Decrease enemy health by ")
+                        .with_percentage_decrease(format!("{:.0}", percentage))
+                        .static_text("%");
+                }
+                Effect::IncreaseEnemySpeed { multiplier } => {
+                    builder
+                        .static_text("Increase enemy speed by ")
+                        .with_percentage_increase(format!("{:.0}", (multiplier - 1.0) * 100.0))
+                        .static_text("%");
+                }
+                Effect::DecreaseEnemySpeed { multiplier } => {
+                    builder
+                        .static_text("Decrease enemy speed by ")
+                        .with_percentage_decrease(format!("{:.0}", (1.0 - multiplier) * 100.0))
+                        .static_text("%");
+                }
                 Effect::DisableItemAndUpgradePurchases => {
                     builder.text("Cannot purchase items and upgrades");
                 }
@@ -783,18 +858,7 @@ impl EffectText {
                     builder
                         .static_text("Lose ")
                         .with_health_loss(format!("{cost}"))
-                        .static_text(" health when rerolling card selection");
-                }
-                Effect::AddRerollHealthCost { cost } => {
-                    builder
-                        .static_text("Lose ")
-                        .with_health_loss(format!("{cost}"))
                         .static_text(" health when rerolling");
-                }
-                Effect::DecreaseEnemyHealthPercent { percentage } => {
-                    builder
-                        .static_text("Increase enemy health by ")
-                        .with_percentage_increase(format!("{percentage}"));
                 }
                 Effect::RankTowerDisable { rank } => {
                     builder.text(format!("Cannot use {} rank towers during contract", rank));
