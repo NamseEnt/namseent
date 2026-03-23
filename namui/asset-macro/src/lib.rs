@@ -244,7 +244,7 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
 
     // Generate native asset initialization function
     let native_init = {
-        let mut init_calls = Vec::new();
+        let mut image_init_calls = Vec::new();
         for (id, file_path) in image_files.iter().enumerate() {
             let relative_path = file_path
                 .strip_prefix(&asset_dir)
@@ -252,14 +252,29 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
                 .to_str()
                 .unwrap()
                 .to_string();
-            init_calls.push(quote! {
+            image_init_calls.push(quote! {
                 register_image(#id, #relative_path);
             });
         }
+
+        let mut audio_init_calls = Vec::new();
+        for (id, file_path) in audio_files.iter().enumerate() {
+            let relative_path = file_path
+                .strip_prefix(&asset_dir)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            audio_init_calls.push(quote! {
+                register_audio(#id, #relative_path);
+            });
+        }
+
         quote! {
             pub fn init_native_assets() {
                 unsafe extern "C" {
                     fn _register_image(image_id: usize, buffer_ptr: *const u8, buffer_len: usize);
+                    fn _register_audio(audio_id: usize, buffer_ptr: *const u8, buffer_len: usize);
                 }
                 fn register_image(id: usize, relative_path: &str) {
                     let path = format!("{}/asset/{}", env!("CARGO_MANIFEST_DIR"), relative_path);
@@ -268,7 +283,15 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
                     let leaked = Box::leak(data.into_boxed_slice());
                     unsafe { _register_image(id, leaked.as_ptr(), leaked.len()); }
                 }
-                #(#init_calls)*
+                fn register_audio(id: usize, relative_path: &str) {
+                    let path = format!("{}/asset/{}", env!("CARGO_MANIFEST_DIR"), relative_path);
+                    let data = std::fs::read(&path)
+                        .unwrap_or_else(|e| panic!("Failed to read audio asset {path}: {e}"));
+                    let leaked = Box::leak(data.into_boxed_slice());
+                    unsafe { _register_audio(id, leaked.as_ptr(), leaked.len()); }
+                }
+                #(#image_init_calls)*
+                #(#audio_init_calls)*
             }
         }
     };

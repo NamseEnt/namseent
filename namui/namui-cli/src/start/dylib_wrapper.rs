@@ -32,6 +32,7 @@ crate-type = ["cdylib"]
 [dependencies]
 {app_name} = {{ path = "{app_dep_path}" }}
 namui = {{ path = "{namui_dep_path}" }}
+namui-audio-native = {{ path = "{namui_dep_path}/audio-native" }}
 
 [profile.dev]
 opt-level = 1
@@ -93,28 +94,9 @@ pub extern "C" fn _dylib_set_image_infos(ptr: *const u8, count: usize) {{
     unsafe {{ namui::_set_image_infos(ptr, count) }};
 }}
 
-/// No-op audio FFI stubs.
-/// These must live in the dylib (not the runner binary) because macOS
-/// executables do not export their symbols to dlopen'd libraries.
-/// The namui crate declares these as `extern "C"` imports and the
-/// dylib was built with `-undefined dynamic_lookup`, so they resolve
-/// here at link time.
-mod audio_stubs {{
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_play(_audio_id: usize, _playback_id: usize, _repeat: bool) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_play_spatial(_audio_id: usize, _playback_id: usize, _repeat: bool) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_playback_drop(_playback_id: usize) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_playback_set_volume(_playback_id: usize, _volume: f32) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_playback_set_position(_playback_id: usize, _x: f32, _y: f32, _z: f32) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_set_listener_position(_x: f32, _y: f32, _z: f32) {{}}
-    #[unsafe(no_mangle)]
-    pub extern "C" fn _audio_set_volume(_volume: f32) {{}}
-}}
+/// Pull in namui-audio-native so its `#[no_mangle]` audio FFI symbols
+/// (_audio_play, _register_audio, etc.) are included in the cdylib.
+extern crate namui_audio_native;
 "#,
         ),
     )?;

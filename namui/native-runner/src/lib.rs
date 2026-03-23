@@ -240,7 +240,7 @@ impl ApplicationHandler for NamuiApp {
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let (dx, dy) = match delta {
-                    winit::event::MouseScrollDelta::LineDelta(x, y) => (x, y),
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => (x * 100.0, y * 100.0),
                     winit::event::MouseScrollDelta::PixelDelta(d) => (d.x as f32, d.y as f32),
                 };
                 let (mx, my) = MOUSE_STATE.with(|s| {
