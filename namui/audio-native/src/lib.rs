@@ -8,6 +8,7 @@ use kira::{
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::{LazyLock, Mutex};
+use std::time::Duration;
 
 /// Identity quaternion (no rotation): w=1, x=0, y=0, z=0.
 fn identity_quat() -> mint::Quaternion<f32> {
@@ -49,6 +50,21 @@ fn linear_to_decibels(volume: f32) -> Decibels {
     }
 }
 
+/// ~10ms fade-out on drop, matching web's linearRampToValueAtTime(0, now + 0.01).
+const FADE_OUT_TWEEN: Tween = Tween {
+    duration: Duration::from_millis(10),
+    start_time: kira::StartTime::Immediate,
+    easing: kira::Easing::Linear,
+};
+
+/// ~15ms volume smoothing, approximating web's setTargetAtTime(v, now, 0.005).
+/// (time constant 5ms ≈ 95% reached in ~15ms)
+const VOLUME_TWEEN: Tween = Tween {
+    duration: Duration::from_millis(15),
+    start_time: kira::StartTime::Immediate,
+    easing: kira::Easing::Linear,
+};
+
 #[unsafe(no_mangle)]
 pub extern "C" fn _register_audio(audio_id: usize, buffer_ptr: *const u8, buffer_len: usize) {
     let bytes = unsafe { std::slice::from_raw_parts(buffer_ptr, buffer_len) };
@@ -64,7 +80,7 @@ pub extern "C" fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool)
         eprintln!("audio_play: unknown audio_id {audio_id}");
         return;
     };
-    let mut sound_data = data.clone();
+    let mut sound_data = data.clone().volume(Decibels::SILENCE);
     if repeat {
         sound_data = sound_data.loop_region(..);
     }
@@ -93,7 +109,7 @@ pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repea
         eprintln!("audio_play_spatial: unknown audio_id {audio_id}");
         return;
     };
-    let mut sound_data = data.clone();
+    let mut sound_data = data.clone().volume(Decibels::SILENCE);
     if repeat {
         sound_data = sound_data.loop_region(..);
     }
@@ -130,7 +146,7 @@ pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repea
             y: 0.0,
             z: 0.0,
         },
-        SpatialTrackBuilder::new(),
+        SpatialTrackBuilder::new().distances(100.0..=10000.0),
     );
 
     match spatial_track {
@@ -158,7 +174,7 @@ pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repea
 pub extern "C" fn _audio_playback_drop(playback_id: usize) {
     let mut playbacks = PLAYBACKS.lock().unwrap();
     if let Some(mut entry) = playbacks.remove(&playback_id) {
-        entry.sound_handle.stop(Tween::default());
+        entry.sound_handle.stop(FADE_OUT_TWEEN);
     }
 }
 
@@ -168,7 +184,7 @@ pub extern "C" fn _audio_playback_set_volume(playback_id: usize, volume: f32) {
     if let Some(entry) = playbacks.get_mut(&playback_id) {
         entry
             .sound_handle
-            .set_volume(linear_to_decibels(volume), Tween::default());
+            .set_volume(linear_to_decibels(volume), VOLUME_TWEEN);
     }
 }
 
