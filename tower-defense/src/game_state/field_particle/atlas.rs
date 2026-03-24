@@ -262,7 +262,6 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
         IconKind::Level => rect(1920.0, 0.0, 128.0, 128.0),
         IconKind::Lock => rect(0.0, 128.0, 128.0, 128.0),
         IconKind::MoveSpeed => rect(128.0, 128.0, 128.0, 128.0),
-        IconKind::Contract => rect(512.0, 128.0, 128.0, 128.0),
         IconKind::Refresh => rect(1280.0, 128.0, 128.0, 128.0),
         IconKind::Reject => rect(1408.0, 128.0, 128.0, 128.0),
         IconKind::Shield => rect(1536.0, 128.0, 128.0, 128.0),

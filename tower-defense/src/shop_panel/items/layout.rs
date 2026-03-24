@@ -1,8 +1,5 @@
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
-use crate::game_state::{
-    contract::Contract,
-    item::{Effect, Item},
-};
+use crate::game_state::item::{Effect, Item};
 
 use namui::{Px, Wh};
 
@@ -16,7 +13,6 @@ pub(crate) mod render;
 pub(crate) enum ShopSlotVariant<'a> {
     Item { item: &'a Item, cost: usize },
     Upgrade { upgrade: &'a Upgrade, cost: usize },
-    Contract { contract: &'a Contract, cost: usize },
 }
 
 pub(crate) struct ShopItemLayoutParams<'a> {
@@ -27,7 +23,6 @@ pub(crate) struct ShopItemLayoutParams<'a> {
     pub available: bool,
     pub item_kind: Option<&'a Effect>,
     pub upgrade_kind: Option<&'a UpgradeKind>,
-    pub contract_kind: Option<&'a Contract>,
     pub rarity: crate::rarity::Rarity,
 }
 
@@ -46,9 +41,6 @@ pub(crate) fn layout_params_for_slot<'a>(
         ShopSlotVariant::Item { item, cost } => make_item_params(wh, item, cost, available, locale),
         ShopSlotVariant::Upgrade { upgrade, cost } => {
             make_upgrade_params(wh, upgrade, cost, available, locale)
-        }
-        ShopSlotVariant::Contract { contract, cost } => {
-            make_contract_params(wh, contract, cost, available, locale, game_state)
         }
     }
 }
@@ -75,7 +67,6 @@ fn make_item_params<'a>(
         available,
         item_kind: Some(&item.effect),
         upgrade_kind: None,
-        contract_kind: None,
         rarity: item.rarity,
     }
 }
@@ -102,42 +93,7 @@ fn make_upgrade_params<'a>(
         available,
         item_kind: None,
         upgrade_kind: Some(&upgrade.kind),
-        contract_kind: None,
         rarity: upgrade.rarity,
-    }
-}
-
-#[inline]
-fn make_contract_params<'a>(
-    wh: Wh<Px>,
-    contract: &'a Contract,
-    cost: usize,
-    available: bool,
-    locale: crate::l10n::Locale,
-    game_state: &crate::game_state::GameState,
-) -> ShopItemLayoutParams<'a> {
-    ShopItemLayoutParams {
-        wh,
-        name: ShopItemTitle::Plain(
-            game_state
-                .text()
-                .contract_name(crate::l10n::contract::ContractNameText::Rarity(
-                    contract.rarity,
-                ))
-                .to_string(),
-        ),
-        description: ShopItemDescription::Contract {
-            locale,
-            status: &contract.status,
-            risk: &contract.risk,
-            reward: &contract.reward,
-        },
-        cost,
-        available,
-        item_kind: None,
-        upgrade_kind: None,
-        contract_kind: Some(contract),
-        rarity: contract.rarity,
     }
 }
 

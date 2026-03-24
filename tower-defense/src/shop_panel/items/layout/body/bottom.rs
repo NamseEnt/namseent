@@ -11,8 +11,6 @@ use crate::shop_panel::items::description::ShopItemDescription;
 use crate::shop_panel::items::title::ShopItemTitle;
 
 fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescription<'_>) {
-    use crate::game_state::contract::ContractStatus;
-
     ctx.add(AutoScrollViewWithCtx {
         wh,
         scroll_bar_width: PADDING,
@@ -32,23 +30,6 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                                 l10n::effect::EffectText::Description(effect.clone()),
                                 locale,
                             );
-                        }
-                        ShopItemDescription::Contract {
-                            locale,
-                            status,
-                            risk,
-                            reward,
-                        } => {
-                            if let ContractStatus::Pending { .. } = status {
-                                builder.l10n(
-                                    l10n::contract::ContractDurationText::Status(status),
-                                    locale,
-                                );
-                                builder.line_break();
-                            };
-                            builder.l10n(l10n::contract::ContractText::Risk(risk), locale);
-                            builder.line_break();
-                            builder.l10n(l10n::contract::ContractText::Reward(reward), locale);
                         }
                         ShopItemDescription::Upgrade {
                             upgrade_kind,
@@ -104,9 +85,6 @@ pub(crate) fn make_renderer<'a>(
                         ctx.add(memoized_text((&name_key, &wh.width), |mut builder| {
                             builder.headline().size(FontSize::Small).max_width(wh.width);
                             match &name {
-                                ShopItemTitle::Plain(text) => {
-                                    builder.text(text);
-                                }
                                 ShopItemTitle::Effect { effect, locale } => {
                                     builder.l10n(
                                         l10n::effect::EffectText::Name(effect.clone()),

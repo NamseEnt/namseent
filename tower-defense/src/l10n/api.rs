@@ -1,6 +1,6 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Language, Locale, LocalizedText, contract, effect, tower, ui};
+use super::{Language, Locale, LocalizedText, effect, tower, ui};
 use crate::*;
 
 /// 통합 다국어 텍스트 관리자
@@ -109,26 +109,6 @@ impl TextManager {
         let text = effect::EffectExecutionErrorText(error.clone());
         text.apply_to_builder(&mut builder, &self.locale);
         builder
-    }
-}
-
-/// 계약 텍스트 처리
-impl TextManager {
-    pub fn contract_name(&self, text: contract::ContractNameText) -> &'static str {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
-    }
-
-    pub fn contract_duration(
-        &self,
-        status: &crate::game_state::contract::ContractStatus,
-    ) -> String {
-        match self.locale.language {
-            Language::Korean => contract::duration_korean(status),
-            Language::English => contract::duration_english(status),
-        }
     }
 }
 

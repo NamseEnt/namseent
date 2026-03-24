@@ -47,7 +47,6 @@ pub enum Effect {
     GrantItem {
         rarity: Rarity,
     },
-    AddChallengeMonster,
     IncreaseAllTowersDamage {
         multiplier: f32,
     },
@@ -79,9 +78,6 @@ pub enum Effect {
     },
     DecreaseMaxRerolls {
         penalty: usize,
-    },
-    AddRerollHealthCost {
-        cost: usize,
     },
     IncreaseEnemyHealthPercent {
         percentage: f32,
@@ -116,22 +112,6 @@ pub enum Effect {
         max_amount: f32,
     },
     GainGold {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseHealthRange {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseGoldRange {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseHealthExpire {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseGoldExpire {
         min_amount: f32,
         max_amount: f32,
     },
@@ -195,48 +175,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::LoseHealth { amount } => {
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
-        Effect::LoseHealthRange {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp - amount).max(1.0);
-        }
-        Effect::LoseGoldRange {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
-            if game_state.gold >= amount {
-                game_state.gold -= amount;
-            } else {
-                let remaining = amount - game_state.gold;
-                game_state.gold = 0;
-                let health_penalty = (remaining as f32 / 10.0).max(1.0);
-                game_state.hp = (game_state.hp - health_penalty).max(1.0);
-            }
-        }
-        Effect::LoseHealthExpire {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp - amount).max(1.0);
-        }
-        Effect::LoseGoldExpire {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
-            if game_state.gold >= amount {
-                game_state.gold -= amount;
-            } else {
-                let remaining = amount - game_state.gold;
-                game_state.gold = 0;
-                let health_penalty = (remaining as f32 / 10.0).max(1.0);
-                game_state.hp = (game_state.hp - health_penalty).max(1.0);
-            }
-        }
         Effect::LoseGold { amount } => {
             if game_state.gold >= *amount {
                 game_state.gold -= *amount;
@@ -255,11 +193,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             let item = crate::game_state::item::generation::generate_item_with_rng(*rarity, rng);
             game_state.items.push(item);
         }
-        Effect::AddChallengeMonster => {
-            unimplemented!("AddChallengeMonster effect is not implemented yet");
-        }
-        Effect::IncreaseAllTowersDamage { multiplier } => {
-            game_state
+        Effect::IncreaseAllTowersDamage { multiplier } => {            game_state
                 .stage_modifiers
                 .apply_damage_multiplier(*multiplier);
         }
@@ -316,11 +250,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
                 .stage_modifiers
                 .apply_max_rerolls_penalty(*penalty);
         }
-        Effect::AddRerollHealthCost { cost } => {
-            game_state.stage_modifiers.apply_reroll_health_cost(*cost);
-        }
-        Effect::IncreaseEnemyHealthPercent { percentage } => {
-            let multiplier = 1.0 + percentage / 100.0;
+        Effect::IncreaseEnemyHealthPercent { percentage } => {            let multiplier = 1.0 + percentage / 100.0;
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
@@ -436,9 +366,6 @@ impl Effect {
             Effect::IncreaseMaxRerolls { bonus } => {
                 modifiers.apply_max_rerolls_bonus(*bonus);
             }
-            Effect::AddRerollHealthCost { cost } => {
-                modifiers.apply_reroll_health_cost(*cost);
-            }
             Effect::DisableItemAndUpgradePurchases => {
                 modifiers.disable_item_and_upgrade_purchases();
             }
@@ -528,7 +455,6 @@ pub mod tests_support {
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
             stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
