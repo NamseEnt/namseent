@@ -1,5 +1,7 @@
 use crate::animation::xy_with_spring;
-use crate::game_state::difficulty::{DifficultyChoices, DifficultyOption};
+use crate::game_state::difficulty::{
+    DifficultyChoices, DifficultyGroup, DifficultyOption, OperationKind,
+};
 use crate::game_state::{mutate_game_state, set_modal, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::OperationPlanText;
@@ -12,7 +14,7 @@ use namui_prebuilt::{simple_rect, table};
 
 const MODAL_WIDTH: Px = px(960.);
 const MODAL_HEIGHT: Px = px(520.);
-const TITLE_HEIGHT: Px = px(44.);
+const TITLE_HEIGHT: Px = px(64.);
 const PANEL_PADDING: Px = px(16.);
 const CARD_GAP: Px = px(24.);
 const CARD_PADDING: Px = px(16.);
@@ -306,11 +308,26 @@ fn render_card_layout(
 ) {
     let name = option.operation.to_text(&text.locale()).to_string();
     let effects: Vec<crate::game_state::effect::Effect> = option.effects.clone();
+    let op_image = operation_kind_image(option.operation);
+    let diff_image = difficulty_group_image(option.group);
+    let group_color = difficulty_group_color(option.group);
 
+    // top: difficulty icon (최상단)
+    let icon_wh = Wh::new(card_wh.width * 0.22, card_wh.height * 0.22);
+    let icon_xy = Xy::new(card_wh.width - icon_wh.width - 8.px(), 8.px());
+    ctx.add(namui::image(ImageParam {
+        rect: Rect::from_xy_wh(icon_xy, icon_wh),
+        image: diff_image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: Some(Paint::new(Color::WHITE.with_alpha(128))),
+        },
+    }));
+
+    // middle: text content
     ctx.compose(|ctx| {
         let mut rows: Vec<table::TableCell> = Vec::new();
 
-        // Card name
         rows.push(table::fixed_no_clip(CARD_NAME_HEIGHT, move |wh, ctx| {
             let name = name.clone();
             ctx.add(memoized_text((), move |mut builder| {
@@ -322,7 +339,6 @@ fn render_card_layout(
             }));
         }));
 
-        // Divider
         rows.push(table::fixed_no_clip(CARD_DIVIDER_HEIGHT, |wh, ctx| {
             ctx.add(simple_rect(
                 Wh::new(wh.width, CARD_DIVIDER_HEIGHT),
@@ -332,29 +348,104 @@ fn render_card_layout(
             ));
         }));
 
-        // Spacer
         rows.push(table::fixed_no_clip(8.px(), |_, _| {}));
 
-        // Effect rows
         for effect in effects {
             rows.push(table::fixed_no_clip(
                 CARD_EFFECT_ROW_HEIGHT,
                 move |wh, ctx| {
                     let effect = effect.clone();
-                    let text = text;
-                    ctx.add(memoized_text((), move |builder| {
-                        text.difficulty_effect_description(&effect, builder)
-                            .paragraph()
+                    let effect_text = crate::l10n::effect::EffectText::Description(effect.clone());
+                    let locale = text.locale();
+                    ctx.add(memoized_text((), move |mut builder| {
+                        builder
+                            .headline()
                             .size(typography::FontSize::Small)
+                            .color(effect_text_color(&effect))
+                            .l10n(effect_text.clone(), &locale)
                             .render_left_center(wh.height)
                     }));
                 },
             ));
         }
 
-        // Fill remaining
         rows.push(table::ratio_no_clip(1, |_, _| {}));
 
         table::padding_no_clip(CARD_PADDING, table::vertical(rows))(card_wh, ctx);
     });
+
+    // bottom: operation background (backmost)
+    ctx.add(namui::image(ImageParam {
+        rect: Rect::from_xy_wh(Xy::zero(), card_wh),
+        image: op_image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: Some(Paint::new(Color::WHITE.with_alpha(128)).set_color_filter(
+                ColorFilter::Blend {
+                    color: group_color.with_alpha(128),
+                    blend_mode: BlendMode::Modulate,
+                },
+            )),
+        },
+    }));
+}
+
+fn difficulty_group_image(group: DifficultyGroup) -> Image {
+    match group {
+        DifficultyGroup::StrongTaunt => crate::asset::image::difficulty::difficulty::STRONG_TAUNT,
+        DifficultyGroup::Taunt => crate::asset::image::difficulty::difficulty::TAUNT,
+        DifficultyGroup::Normal => crate::asset::image::difficulty::difficulty::NORMAL,
+        DifficultyGroup::Peace => crate::asset::image::difficulty::difficulty::PEACE,
+        DifficultyGroup::BigPeace => crate::asset::image::difficulty::difficulty::BIG_PEACE,
+    }
+}
+
+fn operation_kind_image(operation: OperationKind) -> Image {
+    match operation {
+        OperationKind::StrongTaunt => crate::asset::image::difficulty::operation::STRONG_TAUNT,
+        OperationKind::Taunt => crate::asset::image::difficulty::operation::TAUNT,
+        OperationKind::TeaTime => crate::asset::image::difficulty::operation::TEA_TIME,
+        OperationKind::FlowerWatering => {
+            crate::asset::image::difficulty::operation::FLOWER_WATERING
+        }
+        OperationKind::Tribute => crate::asset::image::difficulty::operation::TRIBUTE,
+        OperationKind::PeaceGift => crate::asset::image::difficulty::operation::PEACE_GIFT,
+        OperationKind::Plead => crate::asset::image::difficulty::operation::PLEAD,
+        OperationKind::HandstandApology => {
+            crate::asset::image::difficulty::operation::HANDSTAND_APOLOGY
+        }
+    }
+}
+
+fn difficulty_group_color(group: DifficultyGroup) -> Color {
+    let base = match group {
+        DifficultyGroup::StrongTaunt | DifficultyGroup::Taunt => palette::RED,
+        DifficultyGroup::Normal => Color::from_u8(142, 142, 147, 255),
+        DifficultyGroup::Peace | DifficultyGroup::BigPeace => palette::BLUE,
+    };
+    base.with_alpha(128)
+}
+
+fn effect_text_color(effect: &crate::game_state::effect::Effect) -> Color {
+    match effect {
+        crate::game_state::effect::Effect::LoseHealth { .. }
+        | crate::game_state::effect::Effect::LoseGold { .. }
+        | crate::game_state::effect::Effect::LoseHealthRange { .. }
+        | crate::game_state::effect::Effect::LoseGoldRange { .. }
+        | crate::game_state::effect::Effect::LoseHealthExpire { .. }
+        | crate::game_state::effect::Effect::LoseGoldExpire { .. }
+        | crate::game_state::effect::Effect::IncreaseIncomingDamage { .. }
+        | crate::game_state::effect::Effect::IncreaseEnemyHealthPercent { .. }
+        | crate::game_state::effect::Effect::IncreaseEnemySpeed { .. }
+        | crate::game_state::effect::Effect::DecreaseGoldGainPercent { .. }
+        | crate::game_state::effect::Effect::DisableItemAndUpgradePurchases
+        | crate::game_state::effect::Effect::DisableItemUse
+        | crate::game_state::effect::Effect::AddChallengeMonster
+        | crate::game_state::effect::Effect::RankTowerDisable { .. }
+        | crate::game_state::effect::Effect::SuitTowerDisable { .. }
+        | crate::game_state::effect::Effect::DecreaseMaxHandSlots { .. }
+        | crate::game_state::effect::Effect::DecreaseMaxRerolls { .. }
+        | crate::game_state::effect::Effect::AddRerollHealthCost { .. } => palette::RED,
+        _ => palette::BLUE,
+    }
 }
