@@ -193,7 +193,8 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             let item = crate::game_state::item::generation::generate_item_with_rng(*rarity, rng);
             game_state.items.push(item);
         }
-        Effect::IncreaseAllTowersDamage { multiplier } => {            game_state
+        Effect::IncreaseAllTowersDamage { multiplier } => {
+            game_state
                 .stage_modifiers
                 .apply_damage_multiplier(*multiplier);
         }
@@ -250,7 +251,8 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
                 .stage_modifiers
                 .apply_max_rerolls_penalty(*penalty);
         }
-        Effect::IncreaseEnemyHealthPercent { percentage } => {            let multiplier = 1.0 + percentage / 100.0;
+        Effect::IncreaseEnemyHealthPercent { percentage } => {
+            let multiplier = 1.0 + percentage / 100.0;
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
@@ -328,6 +330,44 @@ impl Effect {
 
     pub fn description_text(&self) -> crate::l10n::effect::EffectText {
         crate::l10n::effect::EffectText::Description(self.clone())
+    }
+
+    pub fn is_positive(&self) -> bool {
+        match self {
+            Effect::Heal { .. }
+            | Effect::Shield { .. }
+            | Effect::EarnGold { .. }
+            | Effect::Lottery { .. }
+            | Effect::DamageReduction { .. }
+            | Effect::UserDamageReduction { .. }
+            | Effect::GrantUpgrade { .. }
+            | Effect::GrantItem { .. }
+            | Effect::IncreaseAllTowersDamage { .. }
+            | Effect::DecreaseIncomingDamage { .. }
+            | Effect::IncreaseGoldGain { .. }
+            | Effect::IncreaseMaxHandSlots { .. }
+            | Effect::IncreaseMaxRerolls { .. }
+            | Effect::DecreaseEnemyHealthPercent { .. }
+            | Effect::DecreaseEnemySpeed { .. }
+            | Effect::AddTowerCardToPlacementHand { .. }
+            | Effect::GainShield { .. }
+            | Effect::HealHealth { .. }
+            | Effect::GainGold { .. } => true,
+            Effect::ExtraDice
+            | Effect::LoseHealth { .. }
+            | Effect::LoseGold { .. }
+            | Effect::DecreaseAllTowersDamage { .. }
+            | Effect::IncreaseIncomingDamage { .. }
+            | Effect::DecreaseGoldGainPercent { .. }
+            | Effect::DisableItemAndUpgradePurchases
+            | Effect::DisableItemUse
+            | Effect::DecreaseMaxHandSlots { .. }
+            | Effect::DecreaseMaxRerolls { .. }
+            | Effect::IncreaseEnemyHealthPercent { .. }
+            | Effect::IncreaseEnemySpeed { .. }
+            | Effect::RankTowerDisable { .. }
+            | Effect::SuitTowerDisable { .. } => false,
+        }
     }
 
     pub fn apply_to_stage_modifiers(&self, modifiers: &mut StageModifiers) {

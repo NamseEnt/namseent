@@ -427,19 +427,9 @@ fn difficulty_group_color(group: DifficultyGroup) -> Color {
 }
 
 fn effect_text_color(effect: &crate::game_state::effect::Effect) -> Color {
-    match effect {
-        crate::game_state::effect::Effect::LoseHealth { .. }
-        | crate::game_state::effect::Effect::LoseGold { .. }
-        | crate::game_state::effect::Effect::IncreaseIncomingDamage { .. }
-        | crate::game_state::effect::Effect::IncreaseEnemyHealthPercent { .. }
-        | crate::game_state::effect::Effect::IncreaseEnemySpeed { .. }
-        | crate::game_state::effect::Effect::DecreaseGoldGainPercent { .. }
-        | crate::game_state::effect::Effect::DisableItemAndUpgradePurchases
-        | crate::game_state::effect::Effect::DisableItemUse
-        | crate::game_state::effect::Effect::RankTowerDisable { .. }
-        | crate::game_state::effect::Effect::SuitTowerDisable { .. }
-        | crate::game_state::effect::Effect::DecreaseMaxHandSlots { .. }
-        | crate::game_state::effect::Effect::DecreaseMaxRerolls { .. } => palette::RED,
-        _ => palette::BLUE,
+    if effect.is_positive() {
+        palette::BLUE
+    } else {
+        palette::RED
     }
 }
