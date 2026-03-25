@@ -4,7 +4,7 @@ use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, Pape
 use crate::tooltip::reroll_health_cost_warning_tooltip::RerollHealthCostWarningTooltip;
 use crate::{
     card::Card,
-    game_state::{flow::GameFlow, mutate_game_state, use_game_state},
+    game_state::{Modal, flow::GameFlow, mutate_game_state, set_modal, use_game_state},
     icon::{Icon, IconKind, IconSize},
     sound,
     theme::{
@@ -216,9 +216,7 @@ impl Component for HandActionArea {
             }
             GameFlow::PlacingTower => {
                 let start_defense = || {
-                    mutate_game_state(|game_state| {
-                        game_state.goto_defense();
-                    });
+                    set_modal(Some(Modal::OperationPlan));
                 };
 
                 ctx.compose(|ctx| {
@@ -237,7 +235,6 @@ impl Component for HandActionArea {
                                                 .render_center(wh)
                                         }));
                                     })
-                                    .long_press_time(1.sec())
                                     .variant(ButtonVariant::Contained)
                                     .color(ButtonColor::Primary),
                                 );

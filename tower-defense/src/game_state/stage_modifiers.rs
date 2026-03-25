@@ -32,6 +32,7 @@ pub struct Multipliers {
     pub incoming_damage: f32,
     pub gold_gain: f32,
     pub enemy_health: f32,
+    pub enemy_speed: f32,
 }
 
 #[derive(Clone, Debug, Default, State)]
@@ -78,6 +79,7 @@ impl StageModifiers {
                 incoming_damage: 1.0,
                 gold_gain: 1.0,
                 enemy_health: 1.0,
+                enemy_speed: 1.0,
             },
             adjustments: Adjustments::default(),
             reroll_costs: RerollCosts::default(),
@@ -93,6 +95,7 @@ impl StageModifiers {
             incoming_damage: 1.0,
             gold_gain: 1.0,
             enemy_health: 1.0,
+            enemy_speed: 1.0,
         };
         self.adjustments = Adjustments::default();
         self.reroll_costs = RerollCosts::default();
@@ -114,6 +117,9 @@ impl StageModifiers {
     }
     pub fn get_enemy_health_multiplier(&self) -> f32 {
         self.multipliers.enemy_health
+    }
+    pub fn get_enemy_speed_multiplier(&self) -> f32 {
+        self.multipliers.enemy_speed
     }
     pub fn get_max_hand_slots_bonus(&self) -> usize {
         self.adjustments.card_selection_hand_max_slots_bonus
@@ -182,6 +188,10 @@ impl StageModifiers {
     }
     pub fn apply_enemy_health_multiplier(&mut self, m: f32) {
         self.multipliers.enemy_health *= m;
+    }
+
+    pub fn apply_enemy_speed_multiplier(&mut self, m: f32) {
+        self.multipliers.enemy_speed *= m;
     }
 
     pub fn apply_max_hand_slots_bonus(&mut self, v: usize) {

@@ -2,9 +2,11 @@ use crate::card::{Rank, Suit};
 use crate::game_state::flow::GameFlow;
 use crate::game_state::{
     GameState,
+    stage_modifiers::StageModifiers,
     tower::{TowerKind, TowerTemplate},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
+
 use crate::hand::HandItem;
 use crate::rarity::Rarity;
 use namui::*;
@@ -45,7 +47,6 @@ pub enum Effect {
     GrantItem {
         rarity: Rarity,
     },
-    AddChallengeMonster,
     IncreaseAllTowersDamage {
         multiplier: f32,
     },
@@ -78,11 +79,17 @@ pub enum Effect {
     DecreaseMaxRerolls {
         penalty: usize,
     },
-    AddRerollHealthCost {
-        cost: usize,
+    IncreaseEnemyHealthPercent {
+        percentage: f32,
     },
     DecreaseEnemyHealthPercent {
         percentage: f32,
+    },
+    IncreaseEnemySpeed {
+        multiplier: f32,
+    },
+    DecreaseEnemySpeed {
+        multiplier: f32,
     },
     RankTowerDisable {
         rank: Rank,
@@ -105,22 +112,6 @@ pub enum Effect {
         max_amount: f32,
     },
     GainGold {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseHealthRange {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseGoldRange {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseHealthExpire {
-        min_amount: f32,
-        max_amount: f32,
-    },
-    LoseGoldExpire {
         min_amount: f32,
         max_amount: f32,
     },
@@ -184,48 +175,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::LoseHealth { amount } => {
             game_state.hp = (game_state.hp - amount).max(1.0);
         }
-        Effect::LoseHealthRange {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp - amount).max(1.0);
-        }
-        Effect::LoseGoldRange {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
-            if game_state.gold >= amount {
-                game_state.gold -= amount;
-            } else {
-                let remaining = amount - game_state.gold;
-                game_state.gold = 0;
-                let health_penalty = (remaining as f32 / 10.0).max(1.0);
-                game_state.hp = (game_state.hp - health_penalty).max(1.0);
-            }
-        }
-        Effect::LoseHealthExpire {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp - amount).max(1.0);
-        }
-        Effect::LoseGoldExpire {
-            min_amount,
-            max_amount,
-        } => {
-            let amount = rng.gen_range(*min_amount..=*max_amount) as usize;
-            if game_state.gold >= amount {
-                game_state.gold -= amount;
-            } else {
-                let remaining = amount - game_state.gold;
-                game_state.gold = 0;
-                let health_penalty = (remaining as f32 / 10.0).max(1.0);
-                game_state.hp = (game_state.hp - health_penalty).max(1.0);
-            }
-        }
         Effect::LoseGold { amount } => {
             if game_state.gold >= *amount {
                 game_state.gold -= *amount;
@@ -243,9 +192,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::GrantItem { rarity } => {
             let item = crate::game_state::item::generation::generate_item_with_rng(*rarity, rng);
             game_state.items.push(item);
-        }
-        Effect::AddChallengeMonster => {
-            unimplemented!("AddChallengeMonster effect is not implemented yet");
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
             game_state
@@ -305,14 +251,27 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
                 .stage_modifiers
                 .apply_max_rerolls_penalty(*penalty);
         }
-        Effect::AddRerollHealthCost { cost } => {
-            game_state.stage_modifiers.apply_reroll_health_cost(*cost);
-        }
-        Effect::DecreaseEnemyHealthPercent { percentage } => {
+        Effect::IncreaseEnemyHealthPercent { percentage } => {
             let multiplier = 1.0 + percentage / 100.0;
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
+        }
+        Effect::DecreaseEnemyHealthPercent { percentage } => {
+            let multiplier = 1.0 - percentage / 100.0;
+            game_state
+                .stage_modifiers
+                .apply_enemy_health_multiplier(multiplier);
+        }
+        Effect::IncreaseEnemySpeed { multiplier } => {
+            game_state
+                .stage_modifiers
+                .apply_enemy_speed_multiplier(*multiplier);
+        }
+        Effect::DecreaseEnemySpeed { multiplier } => {
+            game_state
+                .stage_modifiers
+                .apply_enemy_speed_multiplier(*multiplier);
         }
         Effect::RankTowerDisable { rank } => {
             game_state.stage_modifiers.disable_rank(*rank);
@@ -371,6 +330,90 @@ impl Effect {
 
     pub fn description_text(&self) -> crate::l10n::effect::EffectText {
         crate::l10n::effect::EffectText::Description(self.clone())
+    }
+
+    pub fn is_positive(&self) -> bool {
+        match self {
+            Effect::Heal { .. }
+            | Effect::Shield { .. }
+            | Effect::EarnGold { .. }
+            | Effect::Lottery { .. }
+            | Effect::DamageReduction { .. }
+            | Effect::UserDamageReduction { .. }
+            | Effect::GrantUpgrade { .. }
+            | Effect::GrantItem { .. }
+            | Effect::IncreaseAllTowersDamage { .. }
+            | Effect::DecreaseIncomingDamage { .. }
+            | Effect::IncreaseGoldGain { .. }
+            | Effect::IncreaseMaxHandSlots { .. }
+            | Effect::IncreaseMaxRerolls { .. }
+            | Effect::DecreaseEnemyHealthPercent { .. }
+            | Effect::DecreaseEnemySpeed { .. }
+            | Effect::AddTowerCardToPlacementHand { .. }
+            | Effect::GainShield { .. }
+            | Effect::HealHealth { .. }
+            | Effect::GainGold { .. } => true,
+            Effect::ExtraDice
+            | Effect::LoseHealth { .. }
+            | Effect::LoseGold { .. }
+            | Effect::DecreaseAllTowersDamage { .. }
+            | Effect::IncreaseIncomingDamage { .. }
+            | Effect::DecreaseGoldGainPercent { .. }
+            | Effect::DisableItemAndUpgradePurchases
+            | Effect::DisableItemUse
+            | Effect::DecreaseMaxHandSlots { .. }
+            | Effect::DecreaseMaxRerolls { .. }
+            | Effect::IncreaseEnemyHealthPercent { .. }
+            | Effect::IncreaseEnemySpeed { .. }
+            | Effect::RankTowerDisable { .. }
+            | Effect::SuitTowerDisable { .. } => false,
+        }
+    }
+
+    pub fn apply_to_stage_modifiers(&self, modifiers: &mut StageModifiers) {
+        match self {
+            Effect::DecreaseEnemyHealthPercent { percentage } => {
+                let multiplier = 1.0 + percentage / 100.0;
+                modifiers.apply_enemy_health_multiplier(multiplier);
+            }
+            Effect::IncreaseIncomingDamage { multiplier } => {
+                modifiers.apply_incoming_damage_multiplier(*multiplier);
+            }
+            Effect::DecreaseIncomingDamage { multiplier } => {
+                modifiers.apply_damage_reduction_multiplier(*multiplier);
+            }
+            Effect::IncreaseGoldGain { multiplier } => {
+                modifiers.apply_gold_gain_multiplier(*multiplier);
+            }
+            Effect::DecreaseGoldGainPercent {
+                reduction_percentage,
+            } => {
+                modifiers.apply_gold_gain_multiplier(1.0 - *reduction_percentage);
+            }
+            Effect::DecreaseAllTowersDamage { multiplier }
+            | Effect::IncreaseAllTowersDamage { multiplier } => {
+                modifiers.apply_damage_multiplier(*multiplier);
+            }
+            Effect::DecreaseMaxHandSlots { penalty } => {
+                modifiers.apply_max_hand_slots_penalty(*penalty);
+            }
+            Effect::IncreaseMaxHandSlots { bonus } => {
+                modifiers.apply_max_hand_slots_bonus(*bonus);
+            }
+            Effect::DecreaseMaxRerolls { penalty } => {
+                modifiers.apply_max_rerolls_penalty(*penalty);
+            }
+            Effect::IncreaseMaxRerolls { bonus } => {
+                modifiers.apply_max_rerolls_bonus(*bonus);
+            }
+            Effect::DisableItemAndUpgradePurchases => {
+                modifiers.disable_item_and_upgrade_purchases();
+            }
+            Effect::DisableItemUse => {
+                modifiers.disable_item_use();
+            }
+            _ => {}
+        }
     }
 
     pub fn can_execute(&self, game_state: &GameState) -> Result<(), EffectExecutionError> {
@@ -452,9 +495,9 @@ pub mod tests_support {
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,
-            contracts: vec![],
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
+            stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
             just_cleared_boss_stage: false,
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(

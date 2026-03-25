@@ -38,18 +38,7 @@ impl Effect {
             Effect::LoseHealth { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Health)
                 .build(),
-            Effect::LoseHealthRange { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Health)
-                .build(),
-            Effect::LoseGoldRange { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Gold)
-                .build(),
-            Effect::LoseHealthExpire { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Health)
-                .build(),
-            Effect::LoseGoldExpire { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Gold)
-                .build(),
+
             Effect::LoseGold { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .build(),
@@ -58,9 +47,6 @@ impl Effect {
                 .build(),
             Effect::GrantItem { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Item)
-                .build(),
-            Effect::AddChallengeMonster => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Damage)
                 .build(),
             Effect::IncreaseAllTowersDamage { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Damage)
@@ -98,16 +84,40 @@ impl Effect {
             Effect::DecreaseMaxRerolls { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Refresh)
                 .build(),
-            Effect::AddRerollHealthCost { .. } => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Health)
-                .build(),
-            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
+            Effect::IncreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
                 })
                 .attributes(vec![
                     IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::DecreaseEnemyHealthPercent { .. } => Icon::new(IconKind::Health)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Down).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::IncreaseEnemySpeed { .. } => Icon::new(IconKind::MoveSpeed)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Up).position(IconAttributePosition::BottomRight),
+                ])
+                .to_rendering_tree(),
+            Effect::DecreaseEnemySpeed { .. } => Icon::new(IconKind::MoveSpeed)
+                .wh(width_height)
+                .size(IconSize::Custom {
+                    size: width_height.width,
+                })
+                .attributes(vec![
+                    IconAttribute::new(IconKind::Down).position(IconAttributePosition::BottomRight),
                 ])
                 .to_rendering_tree(),
             Effect::RankTowerDisable { .. } => Icon::new(IconKind::Damage)

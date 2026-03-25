@@ -1,9 +1,5 @@
-pub mod contract;
-
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
-use crate::{
-    card::Card, game_state::flow::contract::ContractFlow, hand::HandItem, shop::Shop, sound, *,
-};
+use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
 
 #[cfg(feature = "debug-tools")]
 fn save_stage_snapshot(game_state: &GameState) {
@@ -17,7 +13,6 @@ fn save_stage_snapshot(_game_state: &GameState) {}
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
     Initializing,
-    Contract(ContractFlow),
     SelectingTower(SelectingTowerFlow),
     PlacingTower,
     Defense(DefenseFlow),
@@ -74,18 +69,16 @@ impl DefenseFlow {
 
 impl GameState {
     pub fn goto_next_stage(&mut self) {
-        contract::ContractFlow::step_all_contracts(&mut self.contracts);
-        let contract_events = contract::ContractFlow::drain_all_events(&mut self.contracts);
-        self.contracts.retain(|c| !c.is_expired());
-        self.flow = GameFlow::Contract(contract::ContractFlow::new(contract_events));
-
         self.stage_modifiers.reset_stage_state();
+        self.stage_difficulty_choices = super::difficulty::generate_difficulty_choices(self.stage);
         self.left_dice = self.max_dice_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
         self.record_stage_start();
         save_stage_snapshot(self);
+
+        self.goto_selecting_tower();
     }
 
     pub fn goto_selecting_tower(&mut self) {

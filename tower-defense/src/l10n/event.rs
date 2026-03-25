@@ -1,6 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::game_state::play_history::HistoryEventType;
-use crate::l10n::contract::ContractText;
 use crate::l10n::effect::EffectText;
 use crate::l10n::upgrade::UpgradeKindText;
 use crate::theme::typography::TypographyBuilder;
@@ -80,16 +79,6 @@ impl HistoryEventType {
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");
             }
-            HistoryEventType::ContractPurchased { contract, cost } => {
-                builder
-                    .static_text("계약 구매: ")
-                    .l10n(ContractText::Risk(&contract.risk), _locale)
-                    .static_text(" / ")
-                    .l10n(ContractText::Reward(&contract.reward), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
-            }
             HistoryEventType::GameOver => {
                 builder.static_text("게임 오버");
             }
@@ -148,16 +137,6 @@ impl HistoryEventType {
                 builder
                     .static_text("Upgrade Purchased: ")
                     .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
-            }
-            HistoryEventType::ContractPurchased { contract, cost } => {
-                builder
-                    .static_text("Contract Purchased: ")
-                    .l10n(ContractText::Risk(&contract.risk), _locale)
-                    .static_text(" / ")
-                    .l10n(ContractText::Reward(&contract.reward), _locale)
                     .static_text(" (")
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");

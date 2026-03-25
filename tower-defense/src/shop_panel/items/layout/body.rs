@@ -1,7 +1,6 @@
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::rarity::Rarity;
 use crate::theme::halo::Halo;
-use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -27,7 +26,6 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
         available,
         item_kind,
         upgrade_kind,
-        contract_kind,
         rarity,
     } = params;
 
@@ -54,12 +52,6 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                             ctx.add(kind.thumbnail(wh));
                                         } else if let Some(upgrade) = upgrade_kind {
                                             ctx.add(upgrade.thumbnail(wh));
-                                        } else if contract_kind.is_some() {
-                                            ctx.add(
-                                                ThumbnailComposer::new(wh)
-                                                    .with_icon_base(IconKind::Contract)
-                                                    .build(),
-                                            );
                                         } else {
                                             ctx.add(
                                                 Icon::new(IconKind::Config)

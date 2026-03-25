@@ -81,14 +81,6 @@ fn test_all_other_effects_always_allowed() {
             min_amount: 5.0,
             max_amount: 10.0,
         },
-        Effect::LoseHealthRange {
-            min_amount: 5.0,
-            max_amount: 10.0,
-        },
-        Effect::LoseGoldRange {
-            min_amount: 5.0,
-            max_amount: 10.0,
-        },
     ];
 
     for effect in effects {

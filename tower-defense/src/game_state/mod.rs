@@ -2,10 +2,10 @@ pub mod attack;
 pub mod background;
 mod camera;
 pub mod can_place_tower;
-pub mod contract;
 pub mod cursor_preview;
 #[cfg(feature = "debug-tools")]
 mod debug_tools;
+pub mod difficulty;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
@@ -103,8 +103,8 @@ pub struct GameState {
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
-    pub contracts: Vec<contract::Contract>,
     pub stage_modifiers: StageModifiers,
+    pub stage_difficulty_choices: difficulty::DifficultyChoices,
     pub ui_state: UIState,
     pub just_cleared_boss_stage: bool,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
@@ -288,8 +288,8 @@ fn create_initial_game_state() -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         play_history: PlayHistory::new(),
         opened_modal: None,
-        contracts: vec![],
         stage_modifiers: StageModifiers::new(),
+        stage_difficulty_choices: difficulty::DifficultyChoices::default(),
         ui_state: UIState::new(),
         just_cleared_boss_stage: false,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
@@ -362,8 +362,8 @@ impl GameState {
             locale: self.locale,
             play_history: self.play_history.clone(),
             opened_modal: None,
-            contracts: self.contracts.clone(),
             stage_modifiers: self.stage_modifiers.clone(),
+            stage_difficulty_choices: self.stage_difficulty_choices.clone(),
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
@@ -464,20 +464,25 @@ mod tests {
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is Initializing; neither panel can open
-        assert!(!gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel());
+        // initially flow is SelectingTower; both panels can open
+        assert!(gs.can_open_hand_panel());
+        assert!(gs.can_open_shop_panel());
 
-        // flags start true, but open status is false due to cannot open
+        // flags start true, and open status is true because both allowed
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
         gs.toggle_panels();
-        // toggling when nothing allowed shouldn't change flags
+        // toggling when one or both allowed should close both
+        assert!(!gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
+
+        // reopening when none open should open allowed panels again
+        gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - both panels allowed
+        // enter selecting tower flow - both panels allowed (idempotent)
         gs.goto_selecting_tower();
         assert!(gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());

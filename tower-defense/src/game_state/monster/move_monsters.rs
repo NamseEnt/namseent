@@ -6,6 +6,7 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     for monster in &mut game_state.monsters {
         let mut dt = dt;
         dt *= monster.get_speed_multiplier();
+        dt *= game_state.stage_modifiers.get_enemy_speed_multiplier();
         monster.move_on_route.move_by(dt);
     }
     let mut damage = 0.0;

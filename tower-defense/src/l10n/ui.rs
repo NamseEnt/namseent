@@ -167,3 +167,38 @@ impl SettingsText {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum OperationPlanText {
+    Title,
+    SelectDifficulty,
+}
+
+impl LocalizedText for OperationPlanText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
+        }
+    }
+}
+
+impl OperationPlanText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            OperationPlanText::Title => "작전 계획",
+            OperationPlanText::SelectDifficulty => "난이도를 선택하세요",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            OperationPlanText::Title => "Operation Plan",
+            OperationPlanText::SelectDifficulty => "Select Difficulty",
+        }
+    }
+}

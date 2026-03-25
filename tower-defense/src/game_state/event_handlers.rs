@@ -2,8 +2,7 @@ use super::*;
 use crate::game_state::camera::ShakeIntensity;
 use crate::{
     game_state::{
-        contract::sign_contract, effect::run_effect, item, play_history::HistoryEventType,
-        tower::Tower, upgrade::Upgrade,
+        effect::run_effect, item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
     sound::{self, GameEndKind},
@@ -201,24 +200,6 @@ impl GameState {
                 });
                 self.spend_gold(cost_value);
             }
-            ShopSlot::Contract { contract, cost } => {
-                if self.gold < *cost {
-                    return;
-                }
-
-                // Store values before borrowing self mutably
-                let contract_value = contract.clone();
-                let cost_value = *cost;
-
-                slot_data.purchased = true;
-                slot_data.start_exit_animation(Instant::now());
-                sign_contract(self, contract_value.clone());
-                self.record_event(HistoryEventType::ContractPurchased {
-                    contract: contract_value,
-                    cost: cost_value,
-                });
-                self.spend_gold(cost_value);
-            }
         }
     }
 
@@ -261,7 +242,6 @@ impl GameState {
                         .stage_modifiers
                         .is_item_and_upgrade_purchases_disabled()
             }
-            ShopSlot::Contract { cost, .. } => self.gold >= *cost,
         }
     }
 }

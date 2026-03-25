@@ -406,7 +406,6 @@ impl HistoryEventType {
             HistoryEventType::ItemUsed { .. } => Some(IconKind::Item),
             HistoryEventType::UpgradeSelected { .. } => Some(IconKind::Up),
             HistoryEventType::UpgradePurchased { .. } => Some(IconKind::Shop),
-            HistoryEventType::ContractPurchased { .. } => Some(IconKind::Contract),
             HistoryEventType::GameOver => Some(IconKind::Reject),
         }
     }
