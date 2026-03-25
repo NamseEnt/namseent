@@ -1,5 +1,5 @@
-use crate::game_state::effect::Effect;
-use crate::game_state::stage_modifiers::StageModifiers;
+use crate::game_state::GameState;
+use crate::game_state::effect::{Effect, run_effect};
 use namui::*;
 use rand::{seq::SliceRandom, thread_rng};
 
@@ -11,9 +11,9 @@ pub struct DifficultyOption {
 }
 
 impl DifficultyOption {
-    pub fn apply(&self, modifiers: &mut StageModifiers) {
+    pub fn apply(&self, game_state: &mut GameState) {
         for effect in &self.effects {
-            effect.apply_to_stage_modifiers(modifiers);
+            run_effect(game_state, effect);
         }
     }
 
@@ -62,7 +62,10 @@ pub fn generate_difficulty_choices(stage: usize) -> DifficultyChoices {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::difficulty::{DifficultyGroup, OperationKind};
+    use crate::game_state::{
+        difficulty::{DifficultyGroup, OperationKind},
+        stage_modifiers::StageModifiers,
+    };
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
@@ -134,6 +137,32 @@ mod tests {
         };
         effect2.apply_to_stage_modifiers(&mut modifiers);
         assert!((modifiers.get_gold_gain_multiplier() - 0.9).abs() < 0.0001);
+    }
+
+    #[test]
+    fn applying_option_runs_effects_on_game_state() {
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        game_state.hp = 80.0;
+        game_state.gold = 0;
+
+        let option = DifficultyOption {
+            group: DifficultyGroup::Normal,
+            operation: OperationKind::TeaTime,
+            effects: vec![
+                Effect::Heal { amount: 10.0 },
+                Effect::GainGold {
+                    min_amount: 5.0,
+                    max_amount: 5.0,
+                },
+                Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
+            ],
+        };
+
+        option.apply(&mut game_state);
+
+        assert!((game_state.hp - 90.0).abs() < 0.0001);
+        assert_eq!(game_state.gold, 5);
+        assert!((game_state.stage_modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
     }
 
     #[test]

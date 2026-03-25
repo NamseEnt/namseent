@@ -163,7 +163,7 @@ impl Component for OperationPlanModal {
                                                         event.stop_propagation();
                                                         let option = low_option.clone();
                                                         mutate_game_state(move |gs| {
-                                                            option.apply(&mut gs.stage_modifiers);
+                                                            option.apply(gs);
                                                             gs.stage_difficulty_choices =
                                                                 DifficultyChoices::default();
                                                             gs.goto_defense();
@@ -220,7 +220,7 @@ impl Component for OperationPlanModal {
                                                         event.stop_propagation();
                                                         let option = high_option.clone();
                                                         mutate_game_state(move |gs| {
-                                                            option.apply(&mut gs.stage_modifiers);
+                                                            option.apply(gs);
                                                             gs.stage_difficulty_choices =
                                                                 DifficultyChoices::default();
                                                             gs.goto_defense();
