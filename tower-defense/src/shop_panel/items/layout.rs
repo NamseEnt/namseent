@@ -1,5 +1,5 @@
-use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::item::{Effect, Item};
+use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 
 use namui::{Px, Wh};
 
