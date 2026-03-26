@@ -73,6 +73,7 @@ fn create_tower_buff_icon(buff_kind: TowerStatusEffectKind) -> Icon {
         }],
         wh: Wh::single(px(TOWER_BUFF_ICON_SIZE)),
         opacity: TOWER_BUFF_INITIAL_OPACITY,
+        paper_texture: None,
     }
 }
 

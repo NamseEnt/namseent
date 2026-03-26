@@ -9,6 +9,7 @@ impl Component for Icon {
             attributes,
             wh,
             opacity,
+            paper_texture,
         } = self;
         let icon_size = size.px();
         let icon_wh = Wh {
@@ -22,11 +23,21 @@ impl Component for Icon {
         let rect = Rect::from_xy_wh(icon_xy, icon_wh);
         let image = kind.image();
 
-        // Create paint with opacity
-        let paint = if opacity < 1.0 {
-            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, opacity)))
-        } else {
-            None
+        let paint = {
+            let mut paint = Paint::new(Color::from_f01(1.0, 1.0, 1.0, opacity));
+
+            if let Some(paper_texture) = paper_texture {
+                let paper_image = paper_texture.image();
+
+                let multiply_filter = ImageFilter::Blend {
+                    blender: Blender::BlendMode(BlendMode::Modulate),
+                    background: None,
+                    foreground: Some(Box::new(ImageFilter::Image { src: paper_image })),
+                };
+                paint = paint.set_image_filter(multiply_filter);
+            }
+
+            Some(paint)
         };
 
         for attribute in attributes {
@@ -41,6 +52,7 @@ impl Component for Icon {
                 },
             }));
         }
+
         ctx.add(namui::image(ImageParam {
             rect,
             image,

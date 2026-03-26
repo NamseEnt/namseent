@@ -10,6 +10,7 @@ impl Icon {
             attributes,
             wh,
             opacity,
+            paper_texture,
         } = self;
         let icon_size = size.px();
         let icon_wh = Wh {
@@ -24,38 +25,48 @@ impl Icon {
 
         let mut rendering_trees = Vec::new();
 
+        let mut icon_paint = if *opacity < 1.0 {
+            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
+        } else {
+            None
+        };
+
+        if let Some(paper_texture) = paper_texture {
+            let paper_image = paper_texture.image();
+
+            let multiply_filter = ImageFilter::Blend {
+                blender: Blender::BlendMode(BlendMode::Modulate),
+                background: None,
+                foreground: Some(Box::new(ImageFilter::Image { src: paper_image })),
+            };
+
+            let base_paint =
+                icon_paint.unwrap_or_else(|| Paint::new(Color::from_f01(1.0, 1.0, 1.0, 1.0)));
+            icon_paint = Some(base_paint.set_image_filter(multiply_filter));
+        }
+
         // Add attribute images
         for attribute in attributes {
             let attribute_image = attribute.icon_kind.image();
             let attribute_render_rect = attribute.attribute_render_rect(rect);
-            let paint = if *opacity < 1.0 {
-                Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
-            } else {
-                None
-            };
             rendering_trees.push(namui::image(ImageParam {
                 rect: attribute_render_rect,
                 image: attribute_image,
                 style: ImageStyle {
                     fit: ImageFit::Contain,
-                    paint: paint.clone(),
+                    paint: icon_paint.clone(),
                 },
             }));
         }
 
         // Add main icon image
         let image = kind.image();
-        let paint = if *opacity < 1.0 {
-            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, *opacity)))
-        } else {
-            None
-        };
         rendering_trees.push(namui::image(ImageParam {
             rect,
             image,
             style: ImageStyle {
                 fit: ImageFit::Contain,
-                paint,
+                paint: icon_paint.clone(),
             },
         }));
 

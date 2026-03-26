@@ -17,8 +17,8 @@ pub enum ImageFilter {
     },
     Blend {
         blender: Blender,
-        background: Box<ImageFilter>,
-        foreground: Box<ImageFilter>,
+        background: Option<Box<ImageFilter>>,
+        foreground: Option<Box<ImageFilter>>,
     },
     Offset {
         offset: Xy<Px>,
@@ -40,13 +40,13 @@ impl ImageFilter {
 
     pub fn blend(
         blender: impl Into<Blender>,
-        background: ImageFilter,
-        foreground: ImageFilter,
+        background: impl Into<Option<ImageFilter>>,
+        foreground: impl Into<Option<ImageFilter>>,
     ) -> Self {
         ImageFilter::Blend {
             blender: blender.into(),
-            background: Box::new(background),
-            foreground: Box::new(foreground),
+            background: background.into().map(Box::new),
+            foreground: foreground.into().map(Box::new),
         }
     }
 
@@ -86,8 +86,12 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
                 foreground,
             } => skia_safe::image_filters::blend(
                 skia_safe::Blender::from(blender),
-                skia_safe::ImageFilter::from(background.as_ref()),
-                skia_safe::ImageFilter::from(foreground.as_ref()),
+                background
+                    .as_ref()
+                    .map(|bg| skia_safe::ImageFilter::from(bg.as_ref())),
+                foreground
+                    .as_ref()
+                    .map(|fg| skia_safe::ImageFilter::from(fg.as_ref())),
                 None,
             )
             .unwrap(),

@@ -28,7 +28,7 @@ pub enum PaperVariant {
 }
 
 impl PaperTexture {
-    fn image(self) -> Image {
+    pub fn image(self) -> Image {
         match self {
             PaperTexture::Rough => crate::asset::image::ui::paper::PAPER_00,
             PaperTexture::Crumpled => crate::asset::image::ui::paper::PAPER_01,

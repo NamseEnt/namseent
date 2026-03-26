@@ -323,6 +323,7 @@ pub struct Icon {
     pub attributes: Vec<IconAttribute>,
     pub wh: Wh<Px>,
     pub opacity: f32,
+    pub paper_texture: Option<crate::theme::paper_container::PaperTexture>,
 }
 
 impl Default for Icon {
@@ -336,6 +337,7 @@ impl Default for Icon {
                 height: px(24.0),
             },
             opacity: 1.0,
+            paper_texture: Some(crate::theme::paper_container::PaperTexture::Rough),
         }
     }
 }

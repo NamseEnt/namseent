@@ -76,6 +76,7 @@ fn create_monster_debuff_icon(debuff_kind: MonsterStatusEffectKind) -> Icon {
         },
         wh: Wh::single(px(MONSTER_DEBUFF_ICON_SIZE)),
         opacity: MONSTER_DEBUFF_INITIAL_OPACITY,
+        paper_texture: None,
     }
 }
 
