@@ -120,9 +120,18 @@ pub(crate) fn make_renderer<'a>(
                                         });
                                     }),
                                     table::fixed_no_clip(PADDING, |_, _| {}),
-                                    table::fixed_no_clip(48.0_f32.px(), |wh, ctx| {
-                                        render_cost_bar(wh, ctx, available, cost);
-                                    }),
+                                    table::fixed_no_clip(
+                                        if cost == 0 {
+                                            0.0_f32.px()
+                                        } else {
+                                            48.0_f32.px()
+                                        },
+                                        move |wh, ctx| {
+                                            if cost != 0 {
+                                                render_cost_bar(wh, ctx, available, cost);
+                                            }
+                                        },
+                                    ),
                                 ]),
                             )(wh, ctx);
                         });
