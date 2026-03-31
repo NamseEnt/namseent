@@ -17,18 +17,24 @@ pub fn draw_rendering_tree(
     rendering_tree: RenderingTree,
     mouse_x: usize,
     mouse_y: usize,
-) {
+    sprite_set: Option<&StandardCursorSpriteSet>,
+) -> MouseCursor {
     LAST_RENDERING_TREE.with(|cell| {
         *cell.borrow_mut() = Some(rendering_tree);
     });
-    redraw(skia, mouse_x, mouse_y);
+    redraw(skia, mouse_x, mouse_y, sprite_set)
 }
 
 /// Redraw the last rendering tree (for native targets).
-pub fn redraw(skia: &mut NativeSkia, mouse_x: usize, mouse_y: usize) {
+pub fn redraw(
+    skia: &mut NativeSkia,
+    mouse_x: usize,
+    mouse_y: usize,
+    sprite_set: Option<&StandardCursorSpriteSet>,
+) -> MouseCursor {
     LAST_RENDERING_TREE.with_borrow_mut(|rendering_tree| {
         let Some(rendering_tree) = rendering_tree else {
-            return;
+            return MouseCursor::Standard(StandardCursor::Default);
         };
 
         let mouse_xy = Xy::new(px(mouse_x as f32), px(mouse_y as f32));
@@ -37,9 +43,12 @@ pub fn redraw(skia: &mut NativeSkia, mouse_x: usize, mouse_y: usize) {
 
         rendering_tree.clone().draw(skia);
 
-        // Skip mouse cursor drawing on native for now (no sprite set loaded)
-        let _ = mouse_cursor;
-    });
+        if let Some(sprite_set) = sprite_set {
+            draw::draw_mouse_cursor(skia, mouse_xy, mouse_cursor.clone(), sprite_set);
+        }
+
+        mouse_cursor
+    })
 }
 
 fn calculate_mouse_cursor(rendering_tree: &RenderingTree, mouse_xy: Xy<Px>) -> MouseCursor {

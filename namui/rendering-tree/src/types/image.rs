@@ -17,6 +17,9 @@ impl Image {
     pub const fn new(id: usize) -> Self {
         Self { id }
     }
+    pub const fn id(&self) -> usize {
+        self.id
+    }
     #[allow(dead_code)]
     pub fn get_default_shader(&self) -> Shader {
         Shader::Image {

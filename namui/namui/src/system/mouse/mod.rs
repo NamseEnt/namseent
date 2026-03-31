@@ -7,9 +7,6 @@ pub(crate) fn init() -> InitResult {
     Ok(())
 }
 
-pub fn set_mouse_cursor(_cursor: &MouseCursor) {
-    // TODO: implement native cursor support
-}
 
 // --- Shared position tracking ---
 

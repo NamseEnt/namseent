@@ -52,6 +52,7 @@ unsafe fn decode_response(ptr: *const u8) -> Option<&'static [u8]> {
 struct NamuiApp {
     window: Option<Window>,
     skia: Option<namui_skia::NativeSkia>,
+    cursor_sprite_set: Option<StandardCursorSpriteSet>,
 }
 
 std::thread_local! {
@@ -149,6 +150,8 @@ impl ApplicationHandler for NamuiApp {
             _on_screen_resize(inner_size.width as u16, inner_size.height as u16);
         }
 
+        window.set_cursor_visible(false);
+
         self.window = Some(window);
         self.skia = Some(skia);
 
@@ -191,14 +194,22 @@ impl ApplicationHandler for NamuiApp {
                 skia.move_to_next_frame();
                 skia.surface().canvas().clear(Color::WHITE);
 
+                let sprite_set = self.cursor_sprite_set.as_ref();
+
                 match response {
                     Some(data) if !data.is_empty() => {
                         let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
                             bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
-                        namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my);
+                        namui_drawer::draw_rendering_tree(
+                            skia,
+                            rendering_tree,
+                            mx,
+                            my,
+                            sprite_set,
+                        );
                     }
                     _ => {
-                        namui_drawer::redraw(skia, mx, my);
+                        namui_drawer::redraw(skia, mx, my, sprite_set);
                     }
                 }
 
@@ -253,19 +264,19 @@ impl ApplicationHandler for NamuiApp {
                 self.window.as_ref().unwrap().request_redraw();
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                if let PhysicalKey::Code(key_code) = event.physical_key {
-                    if let Some(code) = winit_key_to_code(key_code) {
-                        if event.state.is_pressed() {
-                            unsafe {
-                                _on_key_down(code);
-                            }
-                        } else {
-                            unsafe {
-                                _on_key_up(code);
-                            }
+                if let PhysicalKey::Code(key_code) = event.physical_key
+                    && let Some(code) = winit_key_to_code(key_code)
+                {
+                    if event.state.is_pressed() {
+                        unsafe {
+                            _on_key_down(code);
                         }
-                        self.window.as_ref().unwrap().request_redraw();
+                    } else {
+                        unsafe {
+                            _on_key_up(code);
+                        }
                     }
+                    self.window.as_ref().unwrap().request_redraw();
                 }
             }
             WindowEvent::Focused(false) => {
@@ -286,16 +297,48 @@ impl ApplicationHandler for NamuiApp {
 pub fn run(font_dir: &std::path::Path) {
     load_fonts(font_dir);
 
+    let system_bundle_dir = font_dir.parent().unwrap();
+    let cursor_sprite_set = load_cursor_sprite_set(system_bundle_dir);
+
     let event_loop = EventLoop::new().expect("Failed to create event loop");
 
     let mut app = NamuiApp {
         window: None,
         skia: None,
+        cursor_sprite_set,
     };
 
     objc2::rc::autoreleasepool(|_| {
         event_loop.run_app(&mut app).expect("Event loop failed");
     });
+}
+
+fn load_cursor_sprite_set(
+    system_bundle_dir: &std::path::Path,
+) -> Option<StandardCursorSpriteSet> {
+    let cursor_dir = system_bundle_dir.join("cursor");
+    let image_path = cursor_dir.join("capitaine_24.png");
+    let metadata_path = cursor_dir.join("capitaine_24.txt");
+
+    let image_data = std::fs::read(&image_path)
+        .unwrap_or_else(|e| panic!("Failed to read cursor sprite sheet {:?}: {e}", image_path));
+    let metadata_text = std::fs::read_to_string(&metadata_path)
+        .unwrap_or_else(|e| panic!("Failed to read cursor metadata {:?}: {e}", metadata_path));
+
+    // Register the cursor sprite sheet as image ID 100000 (Image::STANDARD_CURSOR_SPRITE_SET)
+    let image_data_leaked = Vec::leak(image_data);
+    unsafe {
+        register_image(
+            Image::STANDARD_CURSOR_SPRITE_SET.id(),
+            image_data_leaked.as_ptr(),
+            image_data_leaked.len(),
+        );
+    }
+
+    let sprite_set = StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
+        .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
+
+    Some(sprite_set)
 }
 
 fn load_fonts(font_dir: &std::path::Path) {
