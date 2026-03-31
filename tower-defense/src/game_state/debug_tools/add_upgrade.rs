@@ -256,13 +256,12 @@ impl Component for AddUpgradeTool {
             let rarity = *selected_rarity;
             mutate_game_state(move |gs| {
                 let upgrade = if category == UpgradeCategory::Random {
-                    crate::game_state::upgrade::generate_treasure_upgrade(gs, rarity)
+                    crate::game_state::upgrade::generate_treasure_upgrade(gs)
                 } else {
                     let kind = category.generate_upgrade_kind(rarity);
                     let value = thread_rng().gen_range(0.0..=1.0);
                     Upgrade {
                         kind,
-                        rarity,
                         value: value.into(),
                     }
                 };

@@ -12,7 +12,6 @@ pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
-mod level_rarity_weight;
 mod modal;
 pub mod poker_action;
 pub use upgrade::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
@@ -50,7 +49,6 @@ use play_history::PlayHistory;
 use projectile::*;
 pub use render::*;
 use status_effect_particle_generator::StatusEffectParticleGenerator;
-use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
 pub use ui_state::UIState;
@@ -98,7 +96,6 @@ pub struct GameState {
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
-    pub level: NonZeroUsize,
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
@@ -135,11 +132,26 @@ impl GameState {
         .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
-    /// Rarity spawn weights for the given level.
-    ///
-    /// This is based on the same table used by `generate_rarity`.
-    pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
-        level_rarity_weight::level_rarity_weight(level)
+    pub fn generate_rarity(&self) -> crate::rarity::Rarity {
+        const WEIGHTS: [usize; 4] = [90, 10, 1, 0];
+        const RARITIES: [crate::rarity::Rarity; 4] = [
+            crate::rarity::Rarity::Common,
+            crate::rarity::Rarity::Rare,
+            crate::rarity::Rarity::Epic,
+            crate::rarity::Rarity::Legendary,
+        ];
+
+        let total_weight: usize = WEIGHTS.iter().sum();
+        let random_value = rand::random::<usize>() % total_weight;
+
+        let mut cumulative_weight = 0;
+        for (i, &weight) in WEIGHTS.iter().enumerate() {
+            cumulative_weight += weight;
+            if random_value < cumulative_weight {
+                return RARITIES[i];
+            }
+        }
+        unreachable!()
     }
 
     /// Returns whether the hand panel is allowed to be opened based on current flow.
@@ -209,22 +221,6 @@ impl GameState {
         true
     }
 
-    pub fn level_up_cost(&self) -> usize {
-        match self.level.get() {
-            1 => 25,
-            2 => 50,
-            3 => 75,
-            4 => 100,
-            5 => 150,
-            6 => 200,
-            7 => 300,
-            8 => 500,
-            9 => 750,
-            10 => 0,
-            _ => unreachable!("Level up cost not defined for level {}", self.level),
-        }
-    }
-
     pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
         self.ui_state.set_selected_tower(tower_id, self.now());
     }
@@ -278,12 +274,10 @@ fn create_initial_game_state() -> GameState {
         items: vec![
             Item {
                 effect: Effect::ExtraDice,
-                rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
                 effect: Effect::ExtraDice,
-                rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
@@ -293,7 +287,6 @@ fn create_initial_game_state() -> GameState {
                     rank: Rank::Ace,
                     count: 5,
                 },
-                rarity: rarity::Rarity::Common,
                 value: 1.0.into(),
             },
             Item {
@@ -303,7 +296,6 @@ fn create_initial_game_state() -> GameState {
                     rank: Rank::Ace,
                     count: 1,
                 },
-                rarity: rarity::Rarity::Common,
                 value: 1.0.into(),
             },
         ],
@@ -314,7 +306,6 @@ fn create_initial_game_state() -> GameState {
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
-        level: NonZeroUsize::new(1).unwrap(),
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
@@ -392,7 +383,6 @@ impl GameState {
             user_status_effects: self.user_status_effects.clone(),
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
-            level: self.level,
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
@@ -468,13 +458,6 @@ impl GameState {
 pub fn is_boss_stage(stage: usize) -> bool {
     // Every 5th stage, plus the last 5 final stages.
     stage.is_multiple_of(5) || (stage >= 46)
-}
-
-/// Rarity spawn weights for the given level.
-///
-/// This is based on the same table used by [`GameState::generate_rarity`].
-pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
-    level_rarity_weight::level_rarity_weight(level)
 }
 
 /// Make sure that the tower can be placed at the given coord.

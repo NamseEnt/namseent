@@ -99,7 +99,6 @@ const KNIFE_SLASH_ASSETS: [AudioAsset; 4] = [
     crate::asset::sound::knife_slash::KNIFE_SLASH_03,
 ];
 
-const LEVEL_UP_ASSETS: [AudioAsset; 1] = [crate::asset::sound::level_up::LEVEL_UP_00];
 const ORCH_HIT_ASSETS: [AudioAsset; 1] = [crate::asset::sound::orch_hit::ORCH_HIT_00];
 const FAIL_ASSETS: [AudioAsset; 1] = [crate::asset::sound::fail::FAIL_00];
 const TRUMPET_FANFARES_CLEAN_ASSETS: [AudioAsset; 4] = [
@@ -222,10 +221,6 @@ pub fn random_wind() -> AudioAsset {
 
 pub fn random_knife_slash() -> AudioAsset {
     random_one(&KNIFE_SLASH_ASSETS)
-}
-
-pub fn random_level_up() -> AudioAsset {
-    random_one(&LEVEL_UP_ASSETS)
 }
 
 pub fn random_orch_hit() -> AudioAsset {

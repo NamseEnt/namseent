@@ -13,8 +13,6 @@ pub(super) const BG_HEIGHT: Px = px(240.0);
 
 pub(super) const ACTION_MARGIN_Y: Px = px(24.0);
 
-pub(super) const BUTTON_SPACING: Px = px(16.0);
-
 #[inline]
 pub(super) fn action_area_width() -> Px {
     ACTION_WIDTH * 2.0 + INNER_PADDING * 2.0

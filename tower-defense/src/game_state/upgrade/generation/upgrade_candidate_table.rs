@@ -2,149 +2,144 @@ use super::*;
 use crate::{
     card::{REVERSED_RANKS, SUITS},
     game_state::{GameState, tower::TowerKind},
-    rarity::Rarity,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-type KindGen = fn(rarity: Rarity) -> UpgradeKind;
+type KindGen = fn() -> UpgradeKind;
 
 pub struct CandidateRow {
     pub weight: f32,
     pub kind_gen: KindGen,
 }
 
-pub fn generate_tower_damage_upgrade_candidate_table(
-    _game_state: &GameState,
-    rarity: Rarity,
-) -> Vec<CandidateRow> {
-    candidate_table![
-        rarity,
-        (
-            |rarity| UpgradeKind::RankAttackDamageMultiply {
+pub fn generate_tower_damage_upgrade_candidate_table(_game_state: &GameState) -> Vec<CandidateRow> {
+    vec![
+        CandidateRow {
+            weight: 38.0,
+            kind_gen: || UpgradeKind::RankAttackDamageMultiply {
                 rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5)),
+                damage_multiplier: thread_rng().gen_range(1.3..1.75),
             },
-            None,
-            (19, 38, 38, 38),
-        ),
-        (
-            |rarity| UpgradeKind::SuitAttackDamageMultiply {
+        },
+        CandidateRow {
+            weight: 13.0,
+            kind_gen: || UpgradeKind::SuitAttackDamageMultiply {
                 suit: *SUITS.choose(&mut thread_rng()).unwrap(),
-                damage_multiplier: rarity_gen(rarity, (1.1..1.25, 1.15..1.5, 1.25..1.75, 1.5..3.5)),
+                damage_multiplier: thread_rng().gen_range(1.15..1.5),
             },
-            None,
-            (6, 13, 13, 13),
-        ),
-        (
-            |rarity| UpgradeKind::HandAttackDamageMultiply {
+        },
+        CandidateRow {
+            weight: 50.0,
+            kind_gen: || UpgradeKind::HandAttackDamageMultiply {
                 tower_kind: get_tower_kind_with_weight(&[
                     11.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0, 6.0, 3.0, 2.0,
                 ]),
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
+                damage_multiplier: thread_rng().gen_range(1.3..1.75),
             },
-            None,
-            (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::LowCardTowerDamageMultiply {
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
+        },
+        CandidateRow {
+            weight: 50.0,
+            kind_gen: || UpgradeKind::LowCardTowerDamageMultiply {
+                damage_multiplier: thread_rng().gen_range(1.3..1.75),
             },
-            None,
-            (25, 50, 50, 25),
-        ),
-        (
-            |rarity| UpgradeKind::EvenOddTowerAttackDamageMultiply {
+        },
+        CandidateRow {
+            weight: 20.0,
+            kind_gen: || UpgradeKind::EvenOddTowerAttackDamageMultiply {
                 even: thread_rng().gen_bool(0.5),
-                damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
+                damage_multiplier: thread_rng().gen_range(1.2..1.4),
             },
-            None,
-            (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
+        },
+        CandidateRow {
+            weight: 20.0,
+            kind_gen: || UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
                 face: thread_rng().gen_bool(0.5),
-                damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
+                damage_multiplier: thread_rng().gen_range(1.2..1.4),
             },
-            None,
-            (15, 20, 25, 50),
-        ),
-        (
-            |rarity| UpgradeKind::RerollTowerAttackDamageMultiply {
-                damage_multiplier: rarity_gen(
-                    rarity,
-                    (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5)
-                ),
+        },
+        CandidateRow {
+            weight: 20.0,
+            kind_gen: || UpgradeKind::RerollTowerAttackDamageMultiply {
+                damage_multiplier: thread_rng().gen_range(1.15..1.25),
             },
-            None,
-            (15, 20, 25, 50),
-        )
+        },
     ]
 }
 
-pub fn generate_treasure_upgrade_candidate_table(
-    game_state: &GameState,
-    rarity: Rarity,
-) -> Vec<CandidateRow> {
+pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
     let upgrade_state = &game_state.upgrade_state;
 
-    candidate_table![
-        rarity,
-        (
-            |_rarity| UpgradeKind::GoldEarnPlus,
-            Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
-            (10, 50, 50, 100),
-        ),
-        (
-            |_rarity| UpgradeKind::ShopSlotExpansion,
-            Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
-            (10, 50, 50, 100),
-        ),
-        (
-            |_rarity| UpgradeKind::ExtraDice,
-            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
-            (5, 10, 50, 100),
-        ),
-        (
-            |_rarity| UpgradeKind::ShopItemPriceMinus,
-            Some((
-                upgrade_state.shop_item_price_minus,
-                MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
-            )),
-            (10, 10, 10, 10),
-        ),
-        (
-            |_rarity| UpgradeKind::NoRerollTowerAttackDamageMultiply {
-                damage_multiplier: rarity_gen(_rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
-            },
-            None,
-            (20, 25, 50, 50),
-        ),
-        (
-            |_rarity| UpgradeKind::RerollTowerAttackDamageMultiply {
-                damage_multiplier: rarity_gen(
-                    _rarity,
-                    (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5)
-                ),
-            },
-            None,
-            (15, 20, 25, 50),
-        ),
-        (
-            |_rarity| UpgradeKind::ShortenStraightFlushTo4Cards,
-            Some((upgrade_state.shorten_straight_flush_to_4_cards as usize, 1)),
-            (5, 10, 20, 25),
-        ),
-        (
-            |_rarity| UpgradeKind::SkipRankForStraight,
-            Some((upgrade_state.skip_rank_for_straight as usize, 1)),
-            (5, 10, 20, 25),
-        ),
-        (
-            |_rarity| UpgradeKind::TreatSuitsAsSame,
-            Some((upgrade_state.treat_suits_as_same as usize, 1)),
-            (5, 10, 20, 25),
-        )
-    ]
+    let mut rows = Vec::with_capacity(16);
+    let mut push_row = |kind_gen: KindGen, current_and_max: Option<(usize, usize)>, weight: f32| {
+        let actual_weight = if let Some((current, max)) = current_and_max {
+            if current >= max {
+                0.0
+            } else {
+                weight
+            }
+        } else {
+            weight
+        };
+        rows.push(CandidateRow {
+            weight: actual_weight,
+            kind_gen,
+        });
+    };
+
+    push_row(
+        || UpgradeKind::GoldEarnPlus,
+        Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
+        50.0,
+    );
+    push_row(
+        || UpgradeKind::ShopSlotExpansion,
+        Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
+        50.0,
+    );
+    push_row(
+        || UpgradeKind::ExtraDice,
+        Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
+        10.0,
+    );
+    push_row(
+        || UpgradeKind::ShopItemPriceMinus,
+        Some((
+            upgrade_state.shop_item_price_minus,
+            MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
+        )),
+        10.0,
+    );
+    push_row(
+        || UpgradeKind::NoRerollTowerAttackDamageMultiply {
+            damage_multiplier: thread_rng().gen_range(1.3..1.75),
+        },
+        None,
+        25.0,
+    );
+    push_row(
+        || UpgradeKind::RerollTowerAttackDamageMultiply {
+            damage_multiplier: thread_rng().gen_range(1.15..1.25),
+        },
+        None,
+        20.0,
+    );
+    push_row(
+        || UpgradeKind::ShortenStraightFlushTo4Cards,
+        Some((upgrade_state.shorten_straight_flush_to_4_cards as usize, 1)),
+        10.0,
+    );
+    push_row(
+        || UpgradeKind::SkipRankForStraight,
+        Some((upgrade_state.skip_rank_for_straight as usize, 1)),
+        10.0,
+    );
+    push_row(
+        || UpgradeKind::TreatSuitsAsSame,
+        Some((upgrade_state.treat_suits_as_same as usize, 1)),
+        10.0,
+    );
+
+    rows
 }
 
 fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
@@ -169,54 +164,3 @@ fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
         .unwrap()
         .0
 }
-
-fn rarity_gen(
-    rarity: Rarity,
-    ranges: (
-        std::ops::Range<f32>,
-        std::ops::Range<f32>,
-        std::ops::Range<f32>,
-        std::ops::Range<f32>,
-    ),
-) -> f32 {
-    thread_rng().gen_range(match rarity {
-        Rarity::Common => ranges.0,
-        Rarity::Rare => ranges.1,
-        Rarity::Epic => ranges.2,
-        Rarity::Legendary => ranges.3,
-    })
-}
-
-macro_rules! candidate_table {
-    ($rarity:expr, $(($kind_gen:expr, $current_and_max:expr, $weights:expr,)),*) => {
-        {
-            let mut upgrade_candidate_table = Vec::with_capacity(64);
-            let mut candidate_table_push =
-            |kind_gen: KindGen,
-             current_and_max: Option<(usize, usize)>,
-             weights: (usize, usize, usize, usize)| {
-                let weight = {
-                    if let Some((current, max)) = current_and_max
-                        && current >= max
-                    {
-                        0.0
-                    } else {
-                        match $rarity {
-                            Rarity::Common => weights.0 as f32,
-                            Rarity::Rare => weights.1 as f32,
-                            Rarity::Epic => weights.2 as f32,
-                            Rarity::Legendary => weights.3 as f32,
-                        }
-                    }
-                };
-                upgrade_candidate_table.push(CandidateRow { weight, kind_gen })
-            };
-            $(
-                candidate_table_push($kind_gen, $current_and_max, $weights);
-            )*
-            upgrade_candidate_table
-        }
-    };
-}
-
-use candidate_table;

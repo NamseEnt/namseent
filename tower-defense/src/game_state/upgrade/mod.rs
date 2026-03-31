@@ -7,7 +7,6 @@ use super::tower::TowerKind;
 use crate::{
     card::{Rank, Suit},
     game_state::tower::Tower,
-    rarity::Rarity,
     *,
 };
 pub use data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
@@ -54,7 +53,6 @@ impl Default for UpgradeState {
 #[derive(Debug, Clone, Copy, State)]
 pub struct Upgrade {
     pub kind: UpgradeKind,
-    pub rarity: Rarity,
     pub value: crate::OneZero,
 }
 

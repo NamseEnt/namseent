@@ -7,7 +7,6 @@ pub mod state_snapshot;
 
 use crate::game_state::{effect::Effect, item::Item, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
-use crate::rarity::Rarity;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
     palette,
@@ -133,7 +132,6 @@ impl Component for DebugToolsModal {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
                                                                     effect: Effect::ExtraDice,
-                                                                    rarity: Rarity::Common,
                                                                     value: 0.0.into(),
                                                                 });
                                                             });
@@ -165,7 +163,6 @@ impl Component for DebugToolsModal {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
                                                                     effect: Effect::ExtraDice,
-                                                                    rarity: Rarity::Common,
                                                                     value: 0.0.into(),
                                                                 });
                                                             });

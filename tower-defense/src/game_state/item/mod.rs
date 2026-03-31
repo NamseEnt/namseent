@@ -3,14 +3,12 @@ mod thumbnail;
 mod usage;
 
 pub use crate::game_state::effect::Effect;
-use crate::rarity::Rarity;
 use namui::*;
 pub use usage::*;
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct Item {
     pub effect: Effect,
-    pub rarity: Rarity,
     pub value: OneZero,
 }
 
