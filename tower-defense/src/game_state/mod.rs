@@ -147,7 +147,10 @@ impl GameState {
 
     /// Returns whether the shop panel is allowed to be opened based on current flow.
     pub fn can_open_shop_panel(&self) -> bool {
-        matches!(self.flow, GameFlow::SelectingTower(_))
+        matches!(
+            self.flow,
+            GameFlow::SelectingTower(_) | GameFlow::SelectingTreasure(_)
+        )
     }
 
     /// Toggle panels according to rules described in UI feature request.
@@ -300,7 +303,8 @@ fn create_initial_game_state() -> GameState {
         shop_panel_forced_open: true,
     };
 
-    game_state.goto_next_stage();
+    // Start at pre-stage treasure selection (round 0 treasure pick), then proceed to round 1 when selected.
+    game_state.goto_selecting_treasure();
     game_state.record_game_start();
     game_state
 }
@@ -426,7 +430,8 @@ impl GameState {
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {
-    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
+    // Every 5th stage, plus the last 5 final stages.
+    stage.is_multiple_of(5) || (stage >= 46)
 }
 
 /// Rarity spawn weights for the given level.
@@ -459,16 +464,17 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game_state::flow::SelectingTreasureFlow;
 
     #[test]
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is SelectingTower; both panels can open
-        assert!(gs.can_open_hand_panel());
+        // initially flow is SelectingTreasure (round 0 treasure pick)
+        assert!(!gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());
 
-        // flags start true, and open status is true because both allowed
+        // treasure selection flow: hand panel is not allowed in can_open, but forced flag stays true for consistency
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
@@ -477,9 +483,9 @@ mod tests {
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // reopening when none open should open allowed panels again
+        // reopening when none open should open allowed panels again (treasure flow: only shop allowed)
         gs.toggle_panels();
-        assert!(gs.hand_panel_forced_open);
+        assert!(!gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
         // enter selecting tower flow - both panels allowed (idempotent)
@@ -523,5 +529,12 @@ mod tests {
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
+    }
+
+    #[test]
+    fn selecting_treasure_allows_shop_panel() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::SelectingTreasure(SelectingTreasureFlow::new(&gs));
+        assert!(gs.can_open_shop_panel());
     }
 }

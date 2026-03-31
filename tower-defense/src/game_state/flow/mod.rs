@@ -14,6 +14,7 @@ fn save_stage_snapshot(_game_state: &GameState) {}
 pub enum GameFlow {
     Initializing,
     SelectingTower(SelectingTowerFlow),
+    SelectingTreasure(SelectingTreasureFlow),
     PlacingTower,
     Defense(DefenseFlow),
     Result { clear_rate: f32 },
@@ -44,6 +45,24 @@ impl SelectingTowerFlow {
 }
 
 #[derive(Clone, Debug, State)]
+pub struct SelectingTreasureFlow {
+    pub shop: Shop,
+}
+
+impl SelectingTreasureFlow {
+    pub fn new(game_state: &GameState) -> Self {
+        SelectingTreasureFlow {
+            shop: Shop::new_treasure(game_state),
+        }
+    }
+
+    #[allow(dead_code)]
+    fn update(&mut self) {
+        self.shop.update();
+    }
+}
+
+#[derive(Clone, Debug, State)]
 pub struct StageProgress {
     pub start_total_hp: f32,
     pub processed_hp: f32,
@@ -68,7 +87,7 @@ impl DefenseFlow {
 }
 
 impl GameState {
-    pub fn goto_next_stage(&mut self) {
+    fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
         self.stage_difficulty_choices = super::difficulty::generate_difficulty_choices(self.stage);
         self.left_dice = self.max_dice_chance();
@@ -77,11 +96,17 @@ impl GameState {
         self.rerolled_count = 0;
         self.record_stage_start();
         save_stage_snapshot(self);
+    }
 
+    pub fn goto_next_stage(&mut self) {
+        self.prepare_next_stage();
         self.goto_selecting_tower();
     }
 
     pub fn goto_selecting_tower(&mut self) {
+        self.hand_panel_forced_open = true;
+        self.shop_panel_forced_open = true;
+
         let max_slots = (5 + self.stage_modifiers.get_max_hand_slots_bonus())
             .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
             .max(1);
@@ -97,6 +122,13 @@ impl GameState {
 
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
         self.just_cleared_boss_stage = false;
+    }
+
+    pub fn goto_selecting_treasure(&mut self) {
+        self.prepare_next_stage();
+        // Keep panel flags as-is for panel toggle state continuity.
+        self.shop_panel_forced_open = true;
+        self.flow = GameFlow::SelectingTreasure(SelectingTreasureFlow::new(self));
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {

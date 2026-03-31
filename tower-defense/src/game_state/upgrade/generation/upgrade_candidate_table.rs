@@ -12,19 +12,13 @@ pub struct CandidateRow {
     pub weight: f32,
     pub kind_gen: KindGen,
 }
-pub fn generate_upgrade_candidate_table(
-    game_state: &GameState,
+
+pub fn generate_tower_damage_upgrade_candidate_table(
+    _game_state: &GameState,
     rarity: Rarity,
 ) -> Vec<CandidateRow> {
-    let upgrade_state = &game_state.upgrade_state;
-
     candidate_table![
         rarity,
-        (
-            |_rarity| UpgradeKind::GoldEarnPlus,
-            Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
-            (10, 50, 50, 100),
-        ),
         (
             |rarity| UpgradeKind::RankAttackDamageMultiply {
                 rank: *REVERSED_RANKS.choose(&mut thread_rng()).unwrap(),
@@ -52,34 +46,11 @@ pub fn generate_upgrade_candidate_table(
             (25, 50, 50, 25),
         ),
         (
-            |_rarity| UpgradeKind::ShopSlotExpansion,
-            Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
-            (10, 50, 50, 100),
-        ),
-        (
-            |_rarity| UpgradeKind::ExtraDice,
-            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
-            (5, 10, 50, 100),
-        ),
-        (
             |rarity| UpgradeKind::LowCardTowerDamageMultiply {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
             None,
             (25, 50, 50, 25),
-        ),
-        (
-            |_rarity| UpgradeKind::ShopItemPriceMinus,
-            Some((
-                upgrade_state.shop_item_price_minus,
-                MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
-            )),
-            (10, 10, 10, 10),
-        ),
-        (
-            |_rarity| UpgradeKind::ExtraDice,
-            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS,)),
-            (10, 50, 50, 10),
         ),
         (
             |rarity| UpgradeKind::NoRerollTowerAttackDamageMultiply {
@@ -105,6 +76,50 @@ pub fn generate_upgrade_candidate_table(
             (15, 20, 25, 50),
         ),
         (
+            |rarity| UpgradeKind::RerollTowerAttackDamageMultiply {
+                damage_multiplier: rarity_gen(
+                    rarity,
+                    (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5)
+                ),
+            },
+            None,
+            (15, 20, 25, 50),
+        )
+    ]
+}
+
+pub fn generate_treasure_upgrade_candidate_table(
+    game_state: &GameState,
+    rarity: Rarity,
+) -> Vec<CandidateRow> {
+    let upgrade_state = &game_state.upgrade_state;
+
+    candidate_table![
+        rarity,
+        (
+            |_rarity| UpgradeKind::GoldEarnPlus,
+            Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
+            (10, 50, 50, 100),
+        ),
+        (
+            |_rarity| UpgradeKind::ShopSlotExpansion,
+            Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
+            (10, 50, 50, 100),
+        ),
+        (
+            |_rarity| UpgradeKind::ExtraDice,
+            Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
+            (5, 10, 50, 100),
+        ),
+        (
+            |_rarity| UpgradeKind::ShopItemPriceMinus,
+            Some((
+                upgrade_state.shop_item_price_minus,
+                MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
+            )),
+            (10, 10, 10, 10),
+        ),
+        (
             |_rarity| UpgradeKind::ShortenStraightFlushTo4Cards,
             Some((upgrade_state.shorten_straight_flush_to_4_cards as usize, 1)),
             (5, 10, 20, 25),
@@ -118,16 +133,6 @@ pub fn generate_upgrade_candidate_table(
             |_rarity| UpgradeKind::TreatSuitsAsSame,
             Some((upgrade_state.treat_suits_as_same as usize, 1)),
             (5, 10, 20, 25),
-        ),
-        (
-            |rarity| UpgradeKind::RerollTowerAttackDamageMultiply {
-                damage_multiplier: rarity_gen(
-                    rarity,
-                    (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5)
-                ),
-            },
-            None,
-            (15, 20, 25, 50),
         )
     ]
 }
@@ -203,4 +208,5 @@ macro_rules! candidate_table {
         }
     };
 }
+
 use candidate_table;

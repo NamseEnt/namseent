@@ -2,7 +2,10 @@ mod shop_slot;
 
 use crate::{
     game_state::{
-        GameState, flow::GameFlow, item::generation::generate_item, upgrade::generate_upgrade,
+        GameState,
+        flow::GameFlow,
+        item::generation::generate_item,
+        upgrade::{generate_tower_damage_upgrade, generate_treasure_upgrade},
     },
     rarity::Rarity,
     *,
@@ -20,6 +23,13 @@ impl Shop {
     pub fn new(game_state: &GameState) -> Self {
         let slots = (0..game_state.max_shop_slot())
             .map(|_| ShopSlotData::new(generate_shop_slot(game_state)))
+            .collect();
+        Self { slots }
+    }
+
+    pub fn new_treasure(game_state: &GameState) -> Self {
+        let slots = (0..3)
+            .map(|_| ShopSlotData::new(generate_treasure_slot(game_state)))
             .collect();
         Self { slots }
     }
@@ -111,8 +121,8 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             ShopSlot::Item { item, cost }
         }
         3..=7 => {
-            // Upgrade (5/10)
-            let upgrade = generate_upgrade(game_state, rarity);
+            // Tower damage upgrades (5/10)
+            let upgrade = generate_tower_damage_upgrade(game_state, rarity);
             let cost = item_cost(
                 rarity,
                 upgrade.value,
@@ -121,8 +131,8 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             ShopSlot::Upgrade { upgrade, cost }
         }
         8..=9 => {
-            // Contracts are temporarily disabled; treat these slots as upgrades instead.
-            let upgrade = generate_upgrade(game_state, rarity);
+            // Contracts are temporarily disabled; treat these slots as tower damage upgrades instead.
+            let upgrade = generate_tower_damage_upgrade(game_state, rarity);
             let cost = item_cost(
                 rarity,
                 upgrade.value,
@@ -132,6 +142,12 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         }
         _ => unreachable!(),
     }
+}
+
+fn generate_treasure_slot(game_state: &GameState) -> ShopSlot {
+    let rarity = game_state.generate_rarity(Default::default());
+    let upgrade = generate_treasure_upgrade(game_state, rarity);
+    ShopSlot::Upgrade { upgrade, cost: 0 }
 }
 
 fn item_cost(rarity: Rarity, value: OneZero, discount: usize) -> usize {

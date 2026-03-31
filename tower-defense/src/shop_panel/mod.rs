@@ -79,7 +79,10 @@ impl Component for ShopPanel {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
         let screen_wh = screen::size().into_type::<Px>();
-        let in_shop_flow = matches!(game_state.flow, GameFlow::SelectingTower(_));
+        let in_shop_flow = matches!(
+            game_state.flow,
+            GameFlow::SelectingTower(_) | GameFlow::SelectingTreasure(_)
+        );
         let can_open_shop = in_shop_flow;
 
         // use shared flag instead of local state

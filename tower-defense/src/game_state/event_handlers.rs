@@ -135,11 +135,15 @@ impl GameState {
     }
 
     pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
-        let GameFlow::SelectingTower(flow) = &mut self.flow else {
-            unreachable!()
+        let is_treasure_flow = matches!(self.flow, GameFlow::SelectingTreasure(_));
+
+        let shop = match &mut self.flow {
+            GameFlow::SelectingTower(flow) => &mut flow.shop,
+            GameFlow::SelectingTreasure(flow) => &mut flow.shop,
+            _ => return,
         };
 
-        let Some(slot_data) = flow.shop.get_slot_by_id_mut(slot_id) else {
+        let Some(slot_data) = shop.get_slot_by_id_mut(slot_id) else {
             return;
         };
 
@@ -153,15 +157,13 @@ impl GameState {
                     return;
                 }
 
-                // 아이템/업그레이드 구매 불가 효과 체크
                 if self
                     .stage_modifiers
                     .is_item_and_upgrade_purchases_disabled()
                 {
-                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                    return;
                 }
 
-                // Store values before borrowing self mutably
                 let item_clone = item.clone();
                 let cost_value = *cost;
 
@@ -175,30 +177,37 @@ impl GameState {
                 self.spend_gold(cost_value);
             }
             ShopSlot::Upgrade { upgrade, cost } => {
-                if self.gold < *cost {
+                if !is_treasure_flow && self.gold < *cost {
                     return;
                 }
 
-                // 아이템/업그레이드 구매 불가 효과 체크
-                if self
-                    .stage_modifiers
-                    .is_item_and_upgrade_purchases_disabled()
+                if !is_treasure_flow
+                    && self
+                        .stage_modifiers
+                        .is_item_and_upgrade_purchases_disabled()
                 {
-                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                    return;
                 }
 
-                // Store values before borrowing self mutably
                 let upgrade_value = *upgrade;
-                let cost_value = *cost;
+                let cost_value = if is_treasure_flow { 0 } else { *cost };
 
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
                 self.upgrade_state.upgrade(upgrade_value);
-                self.record_event(HistoryEventType::UpgradePurchased {
-                    upgrade: upgrade_value,
-                    cost: cost_value,
-                });
-                self.spend_gold(cost_value);
+
+                if is_treasure_flow {
+                    self.record_event(HistoryEventType::UpgradeSelected {
+                        upgrade: upgrade_value,
+                    });
+                    self.goto_selecting_tower();
+                } else {
+                    self.record_event(HistoryEventType::UpgradePurchased {
+                        upgrade: upgrade_value,
+                        cost: cost_value,
+                    });
+                    self.spend_gold(cost_value);
+                }
             }
         }
     }
@@ -217,11 +226,15 @@ impl GameState {
     }
 
     pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
-        let GameFlow::SelectingTower(flow) = &self.flow else {
-            return false;
+        let is_treasure_flow = matches!(self.flow, GameFlow::SelectingTreasure(_));
+
+        let shop = match &self.flow {
+            GameFlow::SelectingTower(flow) => &flow.shop,
+            GameFlow::SelectingTreasure(flow) => &flow.shop,
+            _ => return false,
         };
 
-        let Some(slot_data) = flow.shop.get_slot_by_id(slot_id) else {
+        let Some(slot_data) = shop.get_slot_by_id(slot_id) else {
             return false;
         };
 
@@ -229,18 +242,16 @@ impl GameState {
             return false;
         }
 
-        match &slot_data.slot {
-            ShopSlot::Item { cost, .. } => {
-                self.gold >= *cost
-                    && !self
-                        .stage_modifiers
-                        .is_item_and_upgrade_purchases_disabled()
-            }
-            ShopSlot::Upgrade { cost, .. } => {
-                self.gold >= *cost
-                    && !self
-                        .stage_modifiers
-                        .is_item_and_upgrade_purchases_disabled()
+        if is_treasure_flow {
+            matches!(slot_data.slot, ShopSlot::Upgrade { .. })
+        } else {
+            match &slot_data.slot {
+                ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
+                    self.gold >= *cost
+                        && !self
+                            .stage_modifiers
+                            .is_item_and_upgrade_purchases_disabled()
+                }
             }
         }
     }

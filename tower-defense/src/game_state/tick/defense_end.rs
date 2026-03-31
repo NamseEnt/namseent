@@ -29,8 +29,12 @@ pub fn check_defense_end(game_state: &mut GameState) {
         return;
     }
 
-    // 보스 스테이지를 클리어했다면 플래그 설정
-    game_state.just_cleared_boss_stage = is_boss_stage;
+    if is_boss_stage {
+        game_state.just_cleared_boss_stage = true;
+        game_state.goto_selecting_treasure();
+        return;
+    }
 
+    game_state.just_cleared_boss_stage = false;
     game_state.goto_next_stage();
 }

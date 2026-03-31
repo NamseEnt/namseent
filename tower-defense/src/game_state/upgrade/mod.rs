@@ -242,6 +242,26 @@ pub enum UpgradeKind {
     },
 }
 
+impl UpgradeKind {
+    pub fn is_tower_damage_upgrade(&self) -> bool {
+        matches!(
+            self,
+            UpgradeKind::RankAttackDamageMultiply { .. }
+                | UpgradeKind::SuitAttackDamageMultiply { .. }
+                | UpgradeKind::HandAttackDamageMultiply { .. }
+                | UpgradeKind::LowCardTowerDamageMultiply { .. }
+                | UpgradeKind::NoRerollTowerAttackDamageMultiply { .. }
+                | UpgradeKind::EvenOddTowerAttackDamageMultiply { .. }
+                | UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. }
+                | UpgradeKind::RerollTowerAttackDamageMultiply { .. }
+        )
+    }
+
+    pub fn is_treasure_upgrade(&self) -> bool {
+        !self.is_tower_damage_upgrade()
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
 pub enum TowerUpgradeTarget {
     Rank { rank: Rank },

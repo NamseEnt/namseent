@@ -16,7 +16,13 @@ impl Component for ShopPaperContent {
         let Self { wh } = self;
         let game_state = use_game_state(ctx);
 
-        if let GameFlow::SelectingTower(flow) = &game_state.flow {
+        let shop_context = match &game_state.flow {
+            GameFlow::SelectingTower(flow) => Some(&flow.shop),
+            GameFlow::SelectingTreasure(flow) => Some(&flow.shop),
+            _ => None,
+        };
+
+        if let Some(shop) = shop_context {
             let purchase_item = |slot_id: ShopSlotId| {
                 mutate_game_state(move |game_state| {
                     game_state.purchase_shop_item(slot_id);
@@ -43,10 +49,10 @@ impl Component for ShopPaperContent {
                         };
 
                         let calculator = SlotLayoutCalculator::new(items_area_wh);
-                        let (slot_positions, slot_wh) = calculator.calculate_positions(&flow.shop);
+                        let (slot_positions, slot_wh) = calculator.calculate_positions(shop);
 
                         let rendering_data =
-                            SlotRenderingData::from_shop(&flow.shop, slot_positions.clone());
+                            SlotRenderingData::from_shop(shop, slot_positions.clone());
 
                         set_exiting_slot_positions.mutate(
                             move |positions: &mut std::collections::HashMap<ShopSlotId, Xy<Px>>| {
