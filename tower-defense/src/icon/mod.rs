@@ -25,6 +25,7 @@ pub enum IconKind {
     Shield,
     Shop,
     Speaker,
+    Treasure,
     Suit { suit: Suit },
     Up,
     Down,
@@ -57,6 +58,7 @@ impl IconKind {
             IconKind::Shield => crate::asset::image::icon::SHIELD,
             IconKind::Shop => crate::asset::image::icon::SHOP,
             IconKind::Speaker => crate::asset::image::icon::SPEAKER,
+            IconKind::Treasure => crate::asset::image::icon::TREASURE,
             IconKind::Warning => crate::asset::image::icon::WARNING,
             IconKind::Suit { suit } => match suit {
                 Suit::Spades => crate::asset::image::icon::SUIT_SPADES,
@@ -101,6 +103,7 @@ impl IconKind {
             IconKind::Shield => "shield",
             IconKind::Shop => "shop",
             IconKind::Speaker => "speaker",
+            IconKind::Treasure => "treasure",
             IconKind::Suit { suit } => match suit {
                 Suit::Spades => "suit_spades",
                 Suit::Hearts => "suit_hearts",
@@ -145,6 +148,7 @@ impl IconKind {
             "shield" => Some(IconKind::Shield),
             "shop" => Some(IconKind::Shop),
             "speaker" => Some(IconKind::Speaker),
+            "treasure" => Some(IconKind::Treasure),
             "suit_spades" => Some(IconKind::Suit { suit: Suit::Spades }),
             "suit_hearts" => Some(IconKind::Suit { suit: Suit::Hearts }),
             "suit_diamonds" => Some(IconKind::Suit {

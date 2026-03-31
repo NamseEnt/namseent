@@ -267,6 +267,7 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
         IconKind::Shield => rect(1536.0, 128.0, 128.0, 128.0),
         IconKind::Shop => rect(1664.0, 128.0, 128.0, 128.0),
         IconKind::Speaker => rect(1792.0, 128.0, 128.0, 128.0),
+        IconKind::Treasure => rect(1408.0, 0.0, 128.0, 128.0),
         IconKind::Up => rect(384.0, 256.0, 128.0, 128.0),
         IconKind::Down => rect(896.0, 0.0, 128.0, 128.0),
         IconKind::Play => rect(0.0, 0.0, 128.0, 128.0),

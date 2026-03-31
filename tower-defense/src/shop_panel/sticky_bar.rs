@@ -29,7 +29,7 @@ impl Component for StickyBar<'_> {
             Button::new(wh, on_toggle, &|wh, text_color, ctx| {
                 let icon_kind = match offer {
                     crate::game_state::poker_action::NextStageOffer::TreasureSelection => {
-                        IconKind::Card
+                        IconKind::Treasure
                     }
                     crate::game_state::poker_action::NextStageOffer::Shop => IconKind::Shop,
                     crate::game_state::poker_action::NextStageOffer::None => IconKind::Lock,

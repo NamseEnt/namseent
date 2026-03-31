@@ -22,6 +22,7 @@ export function appendIconAndDigitSection(rs: string, icons: Atlas): string {
         Shield: "ICON_SHIELD",
         Shop: "ICON_SHOP",
         Speaker: "ICON_SPEAKER",
+        Treasure: "ICON_TREASURE",
         Up: "ICON_UP",
         Down: "ICON_DOWN",
         Card: "ICON_CARD",
