@@ -33,6 +33,7 @@ crate-type = ["cdylib"]
 {app_name} = {{ path = "{app_dep_path}" }}
 namui = {{ path = "{namui_dep_path}" }}
 namui-audio-native = {{ path = "{namui_dep_path}/audio-native" }}
+namui-kv-store-native = {{ path = "{namui_dep_path}/kv-store-native" }}
 
 [profile.dev]
 opt-level = 1
@@ -97,6 +98,10 @@ pub extern "C" fn _dylib_set_image_infos(ptr: *const u8, count: usize) {{
 /// Pull in namui-audio-native so its `#[no_mangle]` audio FFI symbols
 /// (_audio_play, _register_audio, etc.) are included in the cdylib.
 extern crate namui_audio_native;
+
+/// Pull in namui-kv-store-native so its `#[no_mangle]` kv_store FFI symbols
+/// (_kv_store_get, _kv_store_put) are included in the cdylib.
+extern crate namui_kv_store_native;
 "#,
         ),
     )?;
