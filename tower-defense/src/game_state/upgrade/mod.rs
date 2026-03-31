@@ -18,18 +18,37 @@ pub const MAX_GOLD_EARN_PLUS: usize = 16;
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
 pub const MAX_DICE_CHANCE_PLUS: usize = 4;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
+pub const DEFAULT_MAX_TREASURE_TOKENS: u8 = 2;
 
-#[derive(Debug, Clone, Default, State)]
+#[derive(Debug, Clone, State)]
 pub struct UpgradeState {
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
+    pub max_treasure_tokens: u8,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
     pub treat_suits_as_same: bool,
+}
+
+impl Default for UpgradeState {
+    fn default() -> Self {
+        Self {
+            gold_earn_plus: 0,
+            shop_slot_expand: 0,
+            dice_chance_plus: 0,
+            max_treasure_tokens: DEFAULT_MAX_TREASURE_TOKENS,
+            tower_upgrade_states: BTreeMap::new(),
+            tower_select_upgrade_states: BTreeMap::new(),
+            shop_item_price_minus: 0,
+            shorten_straight_flush_to_4_cards: false,
+            skip_rank_for_straight: false,
+            treat_suits_as_same: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, State)]

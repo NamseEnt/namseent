@@ -5,6 +5,7 @@ pub mod effect;
 pub mod event;
 pub mod locale;
 pub mod monster_skill;
+pub mod poker_action;
 pub mod quest;
 pub mod rich_text_helpers;
 pub mod tower;

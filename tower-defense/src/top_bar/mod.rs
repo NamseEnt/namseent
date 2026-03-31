@@ -1,5 +1,4 @@
 mod game_speed_indicator;
-mod stage;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
@@ -107,12 +106,32 @@ impl Component for TopBar {
                         ])(wh, ctx);
                     });
                 }),
-                table::ratio(1, |wh, ctx| {
-                    ctx.add(crate::top_bar::stage::StageIndicator {
-                        wh,
-                        stage: game_state.stage,
+                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
+                    ctx.compose(|ctx| {
+                        let is_critical = game_state.is_dopamine_depleted();
+                        table::horizontal([
+                            table::fixed_no_clip(48.px(), |wh, ctx| {
+                                let icon = if is_critical {
+                                    IconKind::Warning
+                                } else {
+                                    IconKind::Damage
+                                };
+                                ctx.add(Icon::new(icon).size(IconSize::Large).wh(wh));
+                            }),
+                            table::fixed_no_clip(64.px(), |wh, ctx| {
+                                ctx.add(memoized_text(&(game_state.dopamine, crate::game_state::MAX_DOPAMINE), |mut builder| {
+                                    builder
+                                        .headline()
+                                        .size(FontSize::Medium)
+                                        .text(format!("{} / {}", game_state.dopamine, crate::game_state::MAX_DOPAMINE))
+                                        .render_center(wh)
+                                }));
+                            }),
+                            table::ratio(1, |_, _| {}),
+                        ])(wh, ctx);
                     });
                 }),
+                table::ratio(1, |_, _| {}),
                 table::fixed_no_clip(
                     SPEED_INDICATOR_WIDTH,
                     table::padding_no_clip(PADDING, |wh, ctx| {

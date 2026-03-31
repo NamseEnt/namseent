@@ -103,7 +103,10 @@ pub fn refresh_shop(game_state: &mut GameState) {
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     let slot_type = thread_rng().gen_range(0..10);
-    let rarity = if game_state.just_cleared_boss_stage {
+    let rarity = if matches!(
+        game_state.pending_next_stage_offer,
+        crate::game_state::poker_action::NextStageOffer::TreasureSelection
+    ) {
         Rarity::Legendary
     } else {
         game_state.generate_rarity(Default::default())

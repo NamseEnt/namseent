@@ -30,11 +30,10 @@ pub fn check_defense_end(game_state: &mut GameState) {
     }
 
     if is_boss_stage {
-        game_state.just_cleared_boss_stage = true;
-        game_state.goto_selecting_treasure();
+        game_state.pending_next_stage_offer = crate::game_state::poker_action::NextStageOffer::TreasureSelection;
+        game_state.goto_next_stage();
         return;
     }
 
-    game_state.just_cleared_boss_stage = false;
     game_state.goto_next_stage();
 }

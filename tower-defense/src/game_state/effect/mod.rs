@@ -186,7 +186,8 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             }
         }
         Effect::GrantUpgrade { rarity } => {
-            let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state, *rarity);
+            let upgrade =
+                crate::game_state::upgrade::generate_treasure_upgrade(game_state, *rarity);
             game_state.upgrade_state.upgrade(upgrade);
         }
         Effect::GrantItem { rarity } => {
@@ -498,7 +499,10 @@ pub mod tests_support {
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
             stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
-            just_cleared_boss_stage: false,
+            dopamine: crate::game_state::MAX_DOPAMINE.div_ceil(2),
+            treasure_tokens: 0,
+            pending_next_stage_offer: crate::game_state::poker_action::NextStageOffer::None,
+            shop_panel_mode: crate::game_state::poker_action::NextStageOffer::Shop,
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
                     Instant::now(),

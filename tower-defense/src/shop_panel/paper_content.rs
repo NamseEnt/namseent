@@ -18,7 +18,6 @@ impl Component for ShopPaperContent {
 
         let shop_context = match &game_state.flow {
             GameFlow::SelectingTower(flow) => Some(&flow.shop),
-            GameFlow::SelectingTreasure(flow) => Some(&flow.shop),
             _ => None,
         };
 

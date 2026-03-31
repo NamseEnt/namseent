@@ -14,7 +14,6 @@ fn save_stage_snapshot(_game_state: &GameState) {}
 pub enum GameFlow {
     Initializing,
     SelectingTower(SelectingTowerFlow),
-    SelectingTreasure(SelectingTreasureFlow),
     PlacingTower,
     Defense(DefenseFlow),
     Result { clear_rate: f32 },
@@ -34,29 +33,16 @@ pub struct SelectingTowerFlow {
 
 impl SelectingTowerFlow {
     pub fn new(game_state: &GameState) -> Self {
-        SelectingTowerFlow {
-            shop: Shop::new(game_state),
-        }
+        let shop = match game_state.shop_panel_mode {
+            crate::game_state::poker_action::NextStageOffer::TreasureSelection => {
+                Shop::new_treasure(game_state)
+            }
+            _ => Shop::new(game_state),
+        };
+
+        SelectingTowerFlow { shop }
     }
 
-    fn update(&mut self) {
-        self.shop.update();
-    }
-}
-
-#[derive(Clone, Debug, State)]
-pub struct SelectingTreasureFlow {
-    pub shop: Shop,
-}
-
-impl SelectingTreasureFlow {
-    pub fn new(game_state: &GameState) -> Self {
-        SelectingTreasureFlow {
-            shop: Shop::new_treasure(game_state),
-        }
-    }
-
-    #[allow(dead_code)]
     fn update(&mut self) {
         self.shop.update();
     }
@@ -99,6 +85,12 @@ impl GameState {
     }
 
     pub fn goto_next_stage(&mut self) {
+        let offer = self.pending_next_stage_offer;
+        self.shop_panel_mode = offer;
+
+        // After consuming the pending offer, reset it to none.
+        self.pending_next_stage_offer = super::poker_action::NextStageOffer::None;
+
         self.prepare_next_stage();
         self.goto_selecting_tower();
     }
@@ -121,14 +113,7 @@ impl GameState {
         }
 
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
-        self.just_cleared_boss_stage = false;
-    }
-
-    pub fn goto_selecting_treasure(&mut self) {
-        self.prepare_next_stage();
-        // Keep panel flags as-is for panel toggle state continuity.
-        self.shop_panel_forced_open = true;
-        self.flow = GameFlow::SelectingTreasure(SelectingTreasureFlow::new(self));
+        self.pending_next_stage_offer = super::poker_action::NextStageOffer::None;
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {

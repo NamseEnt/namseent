@@ -135,11 +135,11 @@ impl GameState {
     }
 
     pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
-        let is_treasure_flow = matches!(self.flow, GameFlow::SelectingTreasure(_));
+        let is_treasure_flow = self.shop_panel_mode
+            == crate::game_state::poker_action::NextStageOffer::TreasureSelection;
 
         let shop = match &mut self.flow {
             GameFlow::SelectingTower(flow) => &mut flow.shop,
-            GameFlow::SelectingTreasure(flow) => &mut flow.shop,
             _ => return,
         };
 
@@ -226,11 +226,11 @@ impl GameState {
     }
 
     pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
-        let is_treasure_flow = matches!(self.flow, GameFlow::SelectingTreasure(_));
+        let is_treasure_flow = self.shop_panel_mode
+            == crate::game_state::poker_action::NextStageOffer::TreasureSelection;
 
         let shop = match &self.flow {
             GameFlow::SelectingTower(flow) => &flow.shop,
-            GameFlow::SelectingTreasure(flow) => &flow.shop,
             _ => return false,
         };
 

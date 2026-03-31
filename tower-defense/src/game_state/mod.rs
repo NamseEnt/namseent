@@ -14,6 +14,7 @@ pub mod flow;
 pub mod item;
 mod level_rarity_weight;
 mod modal;
+pub mod poker_action;
 pub use upgrade::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub mod monster;
 mod monster_spawn;
@@ -71,6 +72,7 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 pub const MAX_HP: f32 = 100.0;
 
 pub const BASE_DICE_CHANCE: usize = 1;
+pub const MAX_DOPAMINE: u8 = 5;
 
 #[derive(State)]
 pub struct GameState {
@@ -106,7 +108,10 @@ pub struct GameState {
     pub stage_modifiers: StageModifiers,
     pub stage_difficulty_choices: difficulty::DifficultyChoices,
     pub ui_state: UIState,
-    pub just_cleared_boss_stage: bool,
+    pub dopamine: u8,
+    pub treasure_tokens: u8,
+    pub pending_next_stage_offer: poker_action::NextStageOffer,
+    pub shop_panel_mode: poker_action::NextStageOffer,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
 
@@ -145,12 +150,10 @@ impl GameState {
         )
     }
 
-    /// Returns whether the shop panel is allowed to be opened based on current flow.
+    /// Returns whether the shop panel is allowed to be opened based on current flow and panel mode.
     pub fn can_open_shop_panel(&self) -> bool {
-        matches!(
-            self.flow,
-            GameFlow::SelectingTower(_) | GameFlow::SelectingTreasure(_)
-        )
+        matches!(self.flow, GameFlow::SelectingTower(_))
+            && self.shop_panel_mode != crate::game_state::poker_action::NextStageOffer::None
     }
 
     /// Toggle panels according to rules described in UI feature request.
@@ -177,6 +180,33 @@ impl GameState {
 
     pub fn now(&self) -> Instant {
         self.game_now
+    }
+
+    pub fn apply_dopamine_delta(&mut self, delta: i8) {
+        if delta >= 0 {
+            self.dopamine = self.dopamine.saturating_add(delta as u8).min(MAX_DOPAMINE);
+        } else {
+            self.dopamine = self.dopamine.saturating_sub((-delta) as u8);
+        }
+    }
+
+    pub fn is_dopamine_depleted(&self) -> bool {
+        self.dopamine == 0
+    }
+
+    pub fn add_treasure_token(&mut self, amount: u8) {
+        self.treasure_tokens = self
+            .treasure_tokens
+            .saturating_add(amount)
+            .min(self.upgrade_state.max_treasure_tokens);
+    }
+
+    pub fn spend_treasure_token(&mut self, amount: u8) -> bool {
+        if self.treasure_tokens < amount {
+            return false;
+        }
+        self.treasure_tokens -= amount;
+        true
     }
 
     pub fn level_up_cost(&self) -> usize {
@@ -292,9 +322,12 @@ fn create_initial_game_state() -> GameState {
         play_history: PlayHistory::new(),
         opened_modal: None,
         stage_modifiers: StageModifiers::new(),
-        stage_difficulty_choices: difficulty::DifficultyChoices::default(),
+        stage_difficulty_choices: difficulty::generate_difficulty_choices(1),
         ui_state: UIState::new(),
-        just_cleared_boss_stage: false,
+        dopamine: MAX_DOPAMINE.div_ceil(2),
+        treasure_tokens: 0,
+        pending_next_stage_offer: poker_action::NextStageOffer::None,
+        shop_panel_mode: poker_action::NextStageOffer::None,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
 
@@ -303,8 +336,8 @@ fn create_initial_game_state() -> GameState {
         shop_panel_forced_open: true,
     };
 
-    // Start at pre-stage treasure selection (round 0 treasure pick), then proceed to round 1 when selected.
-    game_state.goto_selecting_treasure();
+    // Start with selecting tower flow and default shop mode (normal shop).
+    game_state.goto_selecting_tower();
     game_state.record_game_start();
     game_state
 }
@@ -369,7 +402,10 @@ impl GameState {
             stage_modifiers: self.stage_modifiers.clone(),
             stage_difficulty_choices: self.stage_difficulty_choices.clone(),
             ui_state: self.ui_state.clone(),
-            just_cleared_boss_stage: self.just_cleared_boss_stage,
+            dopamine: self.dopamine,
+            treasure_tokens: self.treasure_tokens,
+            pending_next_stage_offer: self.pending_next_stage_offer,
+            shop_panel_mode: self.shop_panel_mode,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
             black_smoke_sources: Default::default(),
 
@@ -464,17 +500,16 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::flow::SelectingTreasureFlow;
 
     #[test]
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is SelectingTreasure (round 0 treasure pick)
-        assert!(!gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel());
+        // initially flow is SelectingTower (round 0 default shop pick)
+        assert!(gs.can_open_hand_panel());
+        assert!(!gs.can_open_shop_panel()); // shop_panel_mode starts as None per new behavior
 
-        // treasure selection flow: hand panel is not allowed in can_open, but forced flag stays true for consistency
+        // selecting tower flow: hand panel is allowed, shop is disabled unless mode set
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
@@ -483,28 +518,28 @@ mod tests {
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // reopening when none open should open allowed panels again (treasure flow: only shop allowed)
+        // reopening when none open should open hand panel again, shop remains disabled
         gs.toggle_panels();
-        assert!(!gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
+        assert!(gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - both panels allowed (idempotent)
+        // enter selecting tower flow - hand is allowed; shop is disabled until offer is set
         gs.goto_selecting_tower();
         assert!(gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel());
-        // forced flags were true already; panels open
+        assert!(!gs.can_open_shop_panel());
+        // forced flags were true already; hand panel open
         assert!(gs.hand_panel_forced_open && gs.can_open_hand_panel());
-        assert!(gs.shop_panel_forced_open && gs.can_open_shop_panel());
+        assert!(gs.shop_panel_forced_open); // still true by state but not open because cannot open
 
-        // space should close both
+        // space should close hand
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // closing again should reopen since none are open
+        // closing again should reopen only hand panel, shop remains disabled (forced state may stay false)
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
 
         // go to placing tower flow: hand allowed, shop not
         gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
@@ -516,9 +551,9 @@ mod tests {
         assert!(!gs.can_open_shop_panel());
 
         // forced flags remain whatever they were; toggle logic should respect permissions
-        // start with both forced open from previous step
+        // shop is not allowed in placing flow, so forced flag can be false
         assert!(gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
 
         // space when hand is open should close both (shop will be closed but can't open anyway)
         gs.toggle_panels();
@@ -532,9 +567,60 @@ mod tests {
     }
 
     #[test]
-    fn selecting_treasure_allows_shop_panel() {
+    fn selecting_tower_allows_shop_panel() {
         let mut gs = create_initial_game_state();
-        gs.flow = GameFlow::SelectingTreasure(SelectingTreasureFlow::new(&gs));
+        gs.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&gs));
+        gs.shop_panel_mode = crate::game_state::poker_action::NextStageOffer::Shop;
         assert!(gs.can_open_shop_panel());
+    }
+
+    #[test]
+    fn shop_panel_mode_none_disables_shop_panel() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&gs));
+        gs.shop_panel_mode = crate::game_state::poker_action::NextStageOffer::None;
+        assert!(!gs.can_open_shop_panel());
+    }
+
+    #[test]
+    fn dopamine_helpers_clamp_and_subtract() {
+        let mut gs = create_initial_game_state();
+
+        // deterministic start
+        gs.dopamine = 0;
+
+        gs.apply_dopamine_delta(2);
+        assert_eq!(gs.dopamine, 2);
+        assert!(!gs.is_dopamine_depleted());
+
+        gs.apply_dopamine_delta(10);
+        assert_eq!(gs.dopamine, MAX_DOPAMINE);
+        assert!(!gs.is_dopamine_depleted());
+
+        gs.apply_dopamine_delta(-3);
+        assert_eq!(gs.dopamine, MAX_DOPAMINE.saturating_sub(3));
+
+        gs.apply_dopamine_delta(-10);
+        assert_eq!(gs.dopamine, 0);
+        assert!(gs.is_dopamine_depleted());
+    }
+
+    #[test]
+    fn treasure_token_helpers_respect_cap_and_spend() {
+        let mut gs = create_initial_game_state();
+
+        assert_eq!(gs.treasure_tokens, 0);
+        gs.add_treasure_token(1);
+        assert_eq!(gs.treasure_tokens, 1);
+
+        gs.add_treasure_token(10);
+        assert_eq!(gs.treasure_tokens, gs.upgrade_state.max_treasure_tokens);
+
+        assert!(gs.spend_treasure_token(1));
+        assert_eq!(gs.treasure_tokens, gs.upgrade_state.max_treasure_tokens - 1);
+
+        let current = gs.treasure_tokens;
+        assert!(!gs.spend_treasure_token(current + 1));
+        assert_eq!(gs.treasure_tokens, current);
     }
 }
