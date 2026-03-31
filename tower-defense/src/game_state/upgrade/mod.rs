@@ -269,10 +269,8 @@ impl UpgradeKind {
                 | UpgradeKind::SuitAttackDamageMultiply { .. }
                 | UpgradeKind::HandAttackDamageMultiply { .. }
                 | UpgradeKind::LowCardTowerDamageMultiply { .. }
-                | UpgradeKind::NoRerollTowerAttackDamageMultiply { .. }
                 | UpgradeKind::EvenOddTowerAttackDamageMultiply { .. }
                 | UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { .. }
-                | UpgradeKind::RerollTowerAttackDamageMultiply { .. }
         )
     }
 

@@ -53,13 +53,6 @@ pub fn generate_tower_damage_upgrade_candidate_table(
             (25, 50, 50, 25),
         ),
         (
-            |rarity| UpgradeKind::NoRerollTowerAttackDamageMultiply {
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
-            },
-            None,
-            (20, 25, 50, 50),
-        ),
-        (
             |rarity| UpgradeKind::EvenOddTowerAttackDamageMultiply {
                 even: thread_rng().gen_bool(0.5),
                 damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
@@ -118,6 +111,23 @@ pub fn generate_treasure_upgrade_candidate_table(
                 MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
             )),
             (10, 10, 10, 10),
+        ),
+        (
+            |_rarity| UpgradeKind::NoRerollTowerAttackDamageMultiply {
+                damage_multiplier: rarity_gen(_rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
+            },
+            None,
+            (20, 25, 50, 50),
+        ),
+        (
+            |_rarity| UpgradeKind::RerollTowerAttackDamageMultiply {
+                damage_multiplier: rarity_gen(
+                    _rarity,
+                    (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5)
+                ),
+            },
+            None,
+            (15, 20, 25, 50),
         ),
         (
             |_rarity| UpgradeKind::ShortenStraightFlushTo4Cards,
