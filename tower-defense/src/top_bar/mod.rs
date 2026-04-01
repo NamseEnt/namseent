@@ -1,8 +1,10 @@
 mod game_speed_indicator;
+mod run;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::top_bar::game_speed_indicator::GameSpeedIndicator;
+use crate::top_bar::run::RunIndicator;
 use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
@@ -32,6 +34,13 @@ impl Component for TopBar {
 
         ctx.compose(|ctx| {
             table::horizontal([
+                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
+                    ctx.add(RunIndicator {
+                        wh,
+                        stage: game_state.stage,
+                    });
+                }),
+                table::fixed_no_clip(PADDING, |_, _| {}),
                 table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
                     ctx.compose(|ctx| {
                         let hp_pct = (game_state.hp / 100.0).clamp(0.0, 1.0);
