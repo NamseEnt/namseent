@@ -164,6 +164,7 @@ impl Component for TopBar {
         });
 
         ctx.translate((-BG_OVERSIZE_H, -BG_OVERSIZE_V))
+            .mouse_cursor(MouseCursor::Standard(StandardCursor::Default))
             .add(PaperContainerBackground {
                 width: wh.width + BG_OVERSIZE_H * 2.0,
                 height: TOP_BAR_HEIGHT + BG_OVERSIZE_V * 2.0,
@@ -172,6 +173,21 @@ impl Component for TopBar {
                 color: palette::SURFACE_CONTAINER,
                 shadow: true,
                 arrow: None,
+            })
+            .attach_event(|event| match event {
+                Event::MouseDown { event }
+                | Event::MouseUp { event }
+                | Event::MouseMove { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                Event::Wheel { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                _ => {}
             });
     }
 }
