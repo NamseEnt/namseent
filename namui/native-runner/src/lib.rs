@@ -294,7 +294,21 @@ impl ApplicationHandler for NamuiApp {
     }
 }
 
-pub fn run(font_dir: &std::path::Path) {
+/// Entry point for Binary mode (standalone exe).
+/// Discovers system bundle from the exe's directory.
+pub fn run() {
+    let exe_dir = std::env::current_exe()
+        .expect("Failed to get current exe path")
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let font_dir = exe_dir.join("__system__/font");
+    run_with_font_dir(&font_dir);
+}
+
+/// Entry point for Cdylib mode (hot-reload runner).
+/// Takes an explicit font directory path.
+pub fn run_with_font_dir(font_dir: &std::path::Path) {
     load_fonts(font_dir);
 
     let system_bundle_dir = font_dir.parent().unwrap();
@@ -308,9 +322,17 @@ pub fn run(font_dir: &std::path::Path) {
         cursor_sprite_set,
     };
 
-    objc2::rc::autoreleasepool(|_| {
+    #[cfg(target_os = "macos")]
+    {
+        objc2::rc::autoreleasepool(|_| {
+            event_loop.run_app(&mut app).expect("Event loop failed");
+        });
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
         event_loop.run_app(&mut app).expect("Event loop failed");
-    });
+    }
 }
 
 fn load_cursor_sprite_set(

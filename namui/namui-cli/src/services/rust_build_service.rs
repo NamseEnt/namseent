@@ -82,7 +82,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                     "--xwin-version",
                     "17",
                     "--cross-compiler",
-                    "clang",
+                    "clang-cl",
                 ]);
             }
 

@@ -1,7 +1,10 @@
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
-use services::runtime_project::{GenerateRuntimeProjectArgs, wasm::generate_runtime_project};
+use services::runtime_project::{
+    GenerateRuntimeProjectArgs, RuntimeProjectMode,
+    x86_64_pc_windows_msvc::generate_runtime_project,
+};
 use services::rust_build_service::{self, BuildOption};
 use services::rust_project_watch_service::RustProjectWatchService;
 
@@ -10,7 +13,7 @@ pub async fn start(
     start_option: StartOption,
 ) -> Result<()> {
     let manifest_path = manifest_path.as_ref();
-    let target = Target::Wasm32WasiWeb;
+    let target = Target::X86_64PcWindowsMsvc;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
     let runtime_target_dir = project_root_path.join("target/namui");
@@ -32,7 +35,7 @@ pub async fn start(
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
         strip_debug_info: start_option.strip_debug_info,
-        mode: services::runtime_project::RuntimeProjectMode::Binary,
+        mode: RuntimeProjectMode::Binary,
     })?;
 
     build_status_service
@@ -42,7 +45,7 @@ pub async fn start(
         target,
         project_root_path: runtime_target_dir.clone(),
         release: start_option.release,
-        watch: true,
+        watch: false,
     })
     .await??;
     let bundle_manifest =
@@ -65,7 +68,7 @@ pub async fn start(
             target,
             project_root_path: runtime_target_dir.clone(),
             release: start_option.release,
-            watch: true,
+            watch: false,
         })
         .await??;
         let bundle_manifest =

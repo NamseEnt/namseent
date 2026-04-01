@@ -18,7 +18,17 @@ winit = "0.30.2"
 libloading = "0.8"
 notify = "6"
 bincode = "2.0.0-rc.3"
-objc2 = "0.5"
 mimalloc = "0.1.39"
 anyhow = "1.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.5"
+
+[target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.1", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+] }

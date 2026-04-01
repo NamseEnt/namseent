@@ -1091,6 +1091,7 @@ dependencies = [
  "namui-type",
  "notify",
  "objc2",
+ "windows",
  "winit",
 ]
 

@@ -55,15 +55,42 @@ fn collect_runtime(
                 PathBuf::from(""),
             ));
         }
-        Target::X86_64PcWindowsMsvc => {}
-        Target::X86_64UnknownLinuxGnu => {}
-        Target::Aarch64AppleDarwin => {}
+        Target::X86_64PcWindowsMsvc
+        | Target::X86_64UnknownLinuxGnu
+        | Target::Aarch64AppleDarwin => {
+            // Copy system bundle files (fonts, cursors) for native targets
+            let system_bundle_path = get_cli_root_path().join("system_bundle");
+            collect_dir_recursive(ops, &system_bundle_path, &PathBuf::from("__system__"))?;
+        }
     }
     if let Some(additional_runtime_path) = additional_runtime_path {
         ops.push(CollectOperation::new(
             additional_runtime_path,
             PathBuf::from(""),
         ));
+    }
+    Ok(())
+}
+
+fn collect_dir_recursive(
+    ops: &mut Vec<CollectOperation>,
+    src_dir: &std::path::Path,
+    dest_prefix: &std::path::Path,
+) -> Result<()> {
+    if !src_dir.exists() {
+        return Ok(());
+    }
+    for entry in std::fs::read_dir(src_dir)
+        .map_err(|e| anyhow!("Failed to read dir {:?}: {e}", src_dir))?
+    {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = entry.file_name();
+        if path.is_dir() {
+            collect_dir_recursive(ops, &path, &dest_prefix.join(&file_name))?;
+        } else {
+            ops.push(CollectOperation::new(&path, dest_prefix.clone()));
+        }
     }
     Ok(())
 }

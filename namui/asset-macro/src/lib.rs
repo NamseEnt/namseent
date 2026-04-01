@@ -276,17 +276,24 @@ pub fn register_assets(_input: TokenStream) -> TokenStream {
                     fn _register_image(image_id: usize, buffer_ptr: *const u8, buffer_len: usize);
                     fn _register_audio(audio_id: usize, buffer_ptr: *const u8, buffer_len: usize);
                 }
+                fn asset_base_dir() -> std::path::PathBuf {
+                    std::env::current_exe()
+                        .expect("Failed to get current exe path")
+                        .parent()
+                        .unwrap()
+                        .join("asset")
+                }
                 fn register_image(id: usize, relative_path: &str) {
-                    let path = format!("{}/asset/{}", env!("CARGO_MANIFEST_DIR"), relative_path);
+                    let path = asset_base_dir().join(relative_path);
                     let data = std::fs::read(&path)
-                        .unwrap_or_else(|e| panic!("Failed to read asset {path}: {e}"));
+                        .unwrap_or_else(|e| panic!("Failed to read asset {}: {e}", path.display()));
                     let leaked = Box::leak(data.into_boxed_slice());
                     unsafe { _register_image(id, leaked.as_ptr(), leaked.len()); }
                 }
                 fn register_audio(id: usize, relative_path: &str) {
-                    let path = format!("{}/asset/{}", env!("CARGO_MANIFEST_DIR"), relative_path);
+                    let path = asset_base_dir().join(relative_path);
                     let data = std::fs::read(&path)
-                        .unwrap_or_else(|e| panic!("Failed to read audio asset {path}: {e}"));
+                        .unwrap_or_else(|e| panic!("Failed to read audio asset {}: {e}", path.display()));
                     let leaked = Box::leak(data.into_boxed_slice());
                     unsafe { _register_audio(id, leaked.as_ptr(), leaked.len()); }
                 }
