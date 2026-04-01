@@ -114,18 +114,25 @@ impl Component for TopBar {
                                 let icon = if is_critical {
                                     IconKind::Warning
                                 } else {
-                                    IconKind::Damage
+                                    IconKind::Dopamine
                                 };
                                 ctx.add(Icon::new(icon).size(IconSize::Large).wh(wh));
                             }),
                             table::fixed_no_clip(64.px(), |wh, ctx| {
-                                ctx.add(memoized_text(&(game_state.dopamine, crate::game_state::MAX_DOPAMINE), |mut builder| {
-                                    builder
-                                        .headline()
-                                        .size(FontSize::Medium)
-                                        .text(format!("{} / {}", game_state.dopamine, crate::game_state::MAX_DOPAMINE))
-                                        .render_center(wh)
-                                }));
+                                ctx.add(memoized_text(
+                                    &(game_state.dopamine, crate::game_state::MAX_DOPAMINE),
+                                    |mut builder| {
+                                        builder
+                                            .headline()
+                                            .size(FontSize::Medium)
+                                            .text(format!(
+                                                "{} / {}",
+                                                game_state.dopamine,
+                                                crate::game_state::MAX_DOPAMINE
+                                            ))
+                                            .render_center(wh)
+                                    },
+                                ));
                             }),
                             table::ratio(1, |_, _| {}),
                         ])(wh, ctx);

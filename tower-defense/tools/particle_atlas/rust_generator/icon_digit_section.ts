@@ -5,6 +5,7 @@ export function appendIconAndDigitSection(rs: string, icons: Atlas): string {
     const iconMapping = {
         Accept: "ICON_ACCEPT",
         AttackDamage: "ICON_ATTACK_DAMAGE",
+        Dopamine: "ICON_DOPAMINE",
         Config: "ICON_CONFIG",
         EnemyBoss: "ICON_ENEMY_BOSS",
         EnemyNamed: "ICON_ENEMY_NAMED",
