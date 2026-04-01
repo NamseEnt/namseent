@@ -136,8 +136,7 @@ pub fn image_buffer_list() -> Vec<[usize; 3]> {
 #[allow(clippy::missing_safety_doc)]
 pub unsafe extern "C" fn _set_image_infos(ptr: *const u8, count: usize) {
     let image_info_size = 14;
-    let mut reader: &[u8] =
-        unsafe { std::slice::from_raw_parts(ptr, count * image_info_size) };
+    let mut reader: &[u8] = unsafe { std::slice::from_raw_parts(ptr, count * image_info_size) };
     for _ in 0..count {
         let id = reader.get_u32_le() as usize;
         let alpha_type = AlphaType::from(reader.get_u8());

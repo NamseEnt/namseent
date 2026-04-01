@@ -56,12 +56,7 @@ pub extern "C" fn _on_screen_resize(width: u16, height: u16) -> *const u8 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_mouse_down(
-    x: f32,
-    y: f32,
-    button: u8,
-    buttons: u8,
-) -> *const u8 {
+pub extern "C" fn _on_mouse_down(x: f32, y: f32, button: u8, buttons: u8) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::mouse::on_mouse_down(x, y, button, buttons);
         crate::on_event(raw_event)
@@ -69,12 +64,7 @@ pub extern "C" fn _on_mouse_down(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_mouse_move(
-    x: f32,
-    y: f32,
-    _button: u8,
-    buttons: u8,
-) -> *const u8 {
+pub extern "C" fn _on_mouse_move(x: f32, y: f32, _button: u8, buttons: u8) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::mouse::on_mouse_move(x, y, buttons);
         crate::on_event(raw_event)
@@ -82,12 +72,7 @@ pub extern "C" fn _on_mouse_move(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_mouse_up(
-    x: f32,
-    y: f32,
-    button: u8,
-    buttons: u8,
-) -> *const u8 {
+pub extern "C" fn _on_mouse_up(x: f32, y: f32, button: u8, buttons: u8) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::mouse::on_mouse_up(x, y, button, buttons);
         crate::on_event(raw_event)
@@ -95,12 +80,7 @@ pub extern "C" fn _on_mouse_up(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _on_mouse_wheel(
-    delta_x: f32,
-    delta_y: f32,
-    x: f32,
-    y: f32,
-) -> *const u8 {
+pub extern "C" fn _on_mouse_wheel(delta_x: f32, delta_y: f32, x: f32, y: f32) -> *const u8 {
     ffi_catch!({
         let raw_event = crate::system::mouse::on_mouse_wheel(delta_x, delta_y, x, y);
         crate::on_event(raw_event)

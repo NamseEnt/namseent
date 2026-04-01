@@ -7,7 +7,6 @@ pub(crate) fn init() -> InitResult {
     Ok(())
 }
 
-
 // --- Shared position tracking ---
 
 /// 16 bit x, 16 bit y

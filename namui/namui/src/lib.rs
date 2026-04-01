@@ -108,8 +108,7 @@ fn on_event(event: RawEvent) -> *const u8 {
 
             if rendering_tree_changed {
                 let bytes = RENDERING_TREE.with_borrow(|rendering_tree| {
-                    bincode::encode_to_vec(rendering_tree, bincode::config::standard())
-                        .unwrap()
+                    bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap()
                 });
                 result = write_response(&bytes);
             } else if mouse_position_changed {
