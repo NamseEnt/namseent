@@ -17,11 +17,9 @@ impl Component for ShopActionArea {
         ctx.compose(|ctx| {
             table::padding_no_clip(
                 INNER_PADDING + ACTION_MARGIN_Y * 0.5,
-                table::horizontal([
-                    table::ratio_no_clip(1, |wh, ctx| {
-                        ctx.add(super::refresh_button::RefreshButton::new(wh));
-                    }),
-                ]),
+                table::horizontal([table::ratio_no_clip(1, |wh, ctx| {
+                    ctx.add(super::refresh_button::RefreshButton::new(wh));
+                })]),
             )(wh, ctx);
         });
 

@@ -9,6 +9,7 @@ mod slot_rendering_data;
 mod sticky_bar;
 mod voyager;
 
+use crate::game_state::poker_action::NextStageOffer;
 use crate::game_state::use_game_state;
 use crate::hand::xy_with_spring;
 use crate::mutate_game_state;
@@ -36,11 +37,12 @@ struct ShopPanelLayout {
     pub sticky_xy: Xy<Px>,
     pub closed_xy: Xy<Px>,
     pub target_xy: Xy<Px>,
+    pub show_action_area: bool,
 }
 
 impl ShopPanelLayout {
     #[inline]
-    fn compute(can_open: bool, panel_open: bool, screen_wh: Wh<Px>) -> Self {
+    fn compute(can_open: bool, panel_open: bool, screen_wh: Wh<Px>, offer: NextStageOffer) -> Self {
         let panel_wh = shop_panel_wh();
         let paper_y = px(0.0);
         let bg_y = paper_y + (PAPER_HEIGHT - BG_HEIGHT);
@@ -49,8 +51,13 @@ impl ShopPanelLayout {
             (panel_wh.width - action_wh.width) / 2.0,
             bg_y + BG_HEIGHT - (action_wh.height * 0.5) + ACTION_MARGIN_Y,
         );
+        let show_action_area = !matches!(offer, NextStageOffer::TreasureSelection);
         let sticky_x = (panel_wh.width - STICKY_WIDTH) / 2.0;
-        let sticky_y = action_xy.y + action_wh.height - STICKY_VISIBLE_HEIGHT + ACTION_MARGIN_Y;
+        let sticky_y = if show_action_area {
+            action_xy.y + action_wh.height - STICKY_VISIBLE_HEIGHT + ACTION_MARGIN_Y
+        } else {
+            PAPER_HEIGHT - STICKY_VISIBLE_HEIGHT
+        };
         let sticky_xy = Xy::new(sticky_x, sticky_y);
 
         let center_x = (screen_wh.width - panel_wh.width) / 2.0;
@@ -76,6 +83,7 @@ impl ShopPanelLayout {
             sticky_xy,
             closed_xy,
             target_xy,
+            show_action_area,
         }
     }
 }
@@ -105,7 +113,8 @@ impl Component for ShopPanel {
         }
 
         let panel_open = can_open_shop && forced_open;
-        let layout = ShopPanelLayout::compute(can_open_shop, panel_open, screen_wh);
+        let offer = game_state.shop_panel_mode;
+        let layout = ShopPanelLayout::compute(can_open_shop, panel_open, screen_wh, offer);
         let animated_xy = xy_with_spring(ctx, layout.target_xy, layout.closed_xy);
 
         ctx.absolute(animated_xy).compose(|ctx| {
@@ -134,9 +143,11 @@ impl Component for ShopPanel {
                     },
                 });
 
-            ctx.translate(layout.action_xy).add(ShopActionArea {
-                wh: layout.action_wh,
-            });
+            if layout.show_action_area {
+                ctx.translate(layout.action_xy).add(ShopActionArea {
+                    wh: layout.action_wh,
+                });
+            }
 
             ctx.translate((0.px(), layout.bg_y))
                 .add(PaperContainerBackground {
@@ -161,7 +172,7 @@ mod tests {
     #[test]
     fn shop_panel_disabled_closed_is_completely_hidden_above_top_bar() {
         let screen_wh = Wh::new(px(1920.0), px(1080.0));
-        let layout = ShopPanelLayout::compute(false, false, screen_wh);
+        let layout = ShopPanelLayout::compute(false, false, screen_wh, NextStageOffer::Shop);
 
         // panel top is above screen, sticky bar is also fully above top-bar region
         assert!(layout.closed_xy.y < -layout.panel_wh.height + TOP_BAR_HEIGHT);
@@ -170,7 +181,7 @@ mod tests {
     #[test]
     fn shop_panel_enabled_closed_shows_sticky_under_top_bar() {
         let screen_wh = Wh::new(px(1920.0), px(1080.0));
-        let layout = ShopPanelLayout::compute(true, false, screen_wh);
+        let layout = ShopPanelLayout::compute(true, false, screen_wh, NextStageOffer::Shop);
 
         assert!(layout.closed_xy.y > -layout.panel_wh.height);
     }
@@ -178,10 +189,28 @@ mod tests {
     #[test]
     fn shop_panel_enabled_open_should_center_panel() {
         let screen_wh = Wh::new(px(1920.0), px(1080.0));
-        let layout = ShopPanelLayout::compute(true, true, screen_wh);
+        let layout = ShopPanelLayout::compute(true, true, screen_wh, NextStageOffer::Shop);
 
         let panel_center_y = layout.target_xy.y + (layout.panel_wh.height / 2.0);
         let screen_center_y = screen_wh.height / 2.0;
         assert!((panel_center_y - screen_center_y).abs() < px(0.1));
+    }
+
+    #[test]
+    fn shop_panel_treasure_closed_shows_sticky_under_top_bar() {
+        let screen_wh = Wh::new(px(1920.0), px(1080.0));
+        let layout =
+            ShopPanelLayout::compute(true, false, screen_wh, NextStageOffer::TreasureSelection);
+
+        assert!(layout.closed_xy.y > -layout.panel_wh.height);
+    }
+
+    #[test]
+    fn shop_panel_treasure_does_not_show_action_area() {
+        let screen_wh = Wh::new(px(1920.0), px(1080.0));
+        let layout =
+            ShopPanelLayout::compute(true, true, screen_wh, NextStageOffer::TreasureSelection);
+
+        assert!(!layout.show_action_area);
     }
 }
