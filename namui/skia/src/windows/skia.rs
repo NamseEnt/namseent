@@ -1,7 +1,4 @@
 use crate::*;
-use anyhow::Result;
-use namui_type::*;
-use winit::raw_window_handle::HasWindowHandle;
 use ::windows::Win32::{
     Foundation::HWND,
     Graphics::{
@@ -16,6 +13,9 @@ use ::windows::Win32::{
         },
     },
 };
+use anyhow::Result;
+use namui_type::*;
+use winit::raw_window_handle::HasWindowHandle;
 
 pub struct NativeSkia {
     surface: NativeSurface,

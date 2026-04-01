@@ -3,7 +3,7 @@ use core_graphics_types::geometry::CGSize;
 use foreign_types_shared::ForeignTypeRef;
 use metal_rs::{CommandQueue, MetalDrawable, MetalLayer};
 use namui_type::*;
-use skia_safe::gpu::{self, backend_render_targets, mtl, DirectContext, SurfaceOrigin};
+use skia_safe::gpu::{self, DirectContext, SurfaceOrigin, backend_render_targets, mtl};
 use std::borrow::ToOwned;
 
 pub struct NativeSurface {

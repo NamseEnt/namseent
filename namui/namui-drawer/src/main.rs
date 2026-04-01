@@ -107,10 +107,7 @@ mod wasi_ffi {
         });
     }
 
-    fn calculate_mouse_cursor(
-        rendering_tree: &RenderingTree,
-        mouse_xy: Xy<Px>,
-    ) -> MouseCursor {
+    fn calculate_mouse_cursor(rendering_tree: &RenderingTree, mouse_xy: Xy<Px>) -> MouseCursor {
         let mut mouse_cursor = MouseCursor::Standard(StandardCursor::Default);
 
         let _ = rendering_tree.visit_rln(

@@ -1,7 +1,4 @@
 use crate::*;
-use anyhow::Result;
-use namui_type::*;
-use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 use ::windows::{
     Win32::{
         Foundation::{HANDLE, HWND},
@@ -22,6 +19,9 @@ use ::windows::{
     },
     core::*,
 };
+use anyhow::Result;
+use namui_type::*;
+use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 
 const FRAME_COUNT: u32 = 2;
 
