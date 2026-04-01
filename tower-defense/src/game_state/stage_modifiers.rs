@@ -32,22 +32,20 @@ pub struct Multipliers {
     pub incoming_damage: f32,
     pub gold_gain: f32,
     pub enemy_health: f32,
+    pub enemy_speed: f32,
 }
 
 #[derive(Clone, Debug, Default, State)]
 pub struct Adjustments {
     pub card_selection_hand_max_slots_bonus: usize,
     pub card_selection_hand_max_slots_penalty: usize,
-    pub card_selection_hand_max_rerolls_bonus: usize,
-    pub card_selection_hand_max_rerolls_penalty: usize,
-    pub shop_max_rerolls_bonus: usize,
-    pub shop_max_rerolls_penalty: usize,
+    pub max_dice_rerolls_bonus: usize,
+    pub max_dice_rerolls_penalty: usize,
 }
 
 #[derive(Clone, Debug, Default, State)]
 pub struct RerollCosts {
-    pub card_selection_hand_reroll_health_cost: usize,
-    pub shop_reroll_health_cost: usize,
+    pub reroll_health_cost: usize,
 }
 
 #[derive(Clone, Debug, Default, State)]
@@ -81,6 +79,7 @@ impl StageModifiers {
                 incoming_damage: 1.0,
                 gold_gain: 1.0,
                 enemy_health: 1.0,
+                enemy_speed: 1.0,
             },
             adjustments: Adjustments::default(),
             reroll_costs: RerollCosts::default(),
@@ -96,6 +95,7 @@ impl StageModifiers {
             incoming_damage: 1.0,
             gold_gain: 1.0,
             enemy_health: 1.0,
+            enemy_speed: 1.0,
         };
         self.adjustments = Adjustments::default();
         self.reroll_costs = RerollCosts::default();
@@ -118,23 +118,29 @@ impl StageModifiers {
     pub fn get_enemy_health_multiplier(&self) -> f32 {
         self.multipliers.enemy_health
     }
-    pub fn get_card_selection_hand_max_slots_bonus(&self) -> usize {
+    pub fn get_enemy_speed_multiplier(&self) -> f32 {
+        self.multipliers.enemy_speed
+    }
+    pub fn get_max_hand_slots_bonus(&self) -> usize {
         self.adjustments.card_selection_hand_max_slots_bonus
     }
-    pub fn get_card_selection_hand_max_slots_penalty(&self) -> usize {
+    pub fn get_max_hand_slots_penalty(&self) -> usize {
         self.adjustments.card_selection_hand_max_slots_penalty
     }
-    pub fn get_card_selection_hand_max_rerolls_bonus(&self) -> usize {
-        self.adjustments.card_selection_hand_max_rerolls_bonus
+    pub fn get_max_hand_slots_delta(&self) -> isize {
+        self.adjustments.card_selection_hand_max_slots_bonus as isize
+            - self.adjustments.card_selection_hand_max_slots_penalty as isize
     }
-    pub fn get_card_selection_hand_max_rerolls_penalty(&self) -> usize {
-        self.adjustments.card_selection_hand_max_rerolls_penalty
+
+    pub fn get_max_rerolls_bonus(&self) -> usize {
+        self.adjustments.max_dice_rerolls_bonus
     }
-    pub fn get_shop_max_rerolls_bonus(&self) -> usize {
-        self.adjustments.shop_max_rerolls_bonus
+    pub fn get_max_rerolls_penalty(&self) -> usize {
+        self.adjustments.max_dice_rerolls_penalty
     }
-    pub fn get_shop_max_rerolls_penalty(&self) -> usize {
-        self.adjustments.shop_max_rerolls_penalty
+    pub fn get_max_rerolls_delta(&self) -> isize {
+        self.adjustments.max_dice_rerolls_bonus as isize
+            - self.adjustments.max_dice_rerolls_penalty as isize
     }
     pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
         self.restrictions.disable_item_and_upgrade_purchases
@@ -142,11 +148,8 @@ impl StageModifiers {
     pub fn is_item_use_disabled(&self) -> bool {
         self.restrictions.disable_item_use
     }
-    pub fn get_card_selection_hand_reroll_health_cost(&self) -> usize {
-        self.reroll_costs.card_selection_hand_reroll_health_cost
-    }
-    pub fn get_shop_reroll_health_cost(&self) -> usize {
-        self.reroll_costs.shop_reroll_health_cost
+    pub fn get_reroll_health_cost(&self) -> usize {
+        self.reroll_costs.reroll_health_cost
     }
     pub fn get_disabled_ranks(&self) -> &Vec<Rank> {
         &self.restrictions.disabled_ranks
@@ -163,16 +166,6 @@ impl StageModifiers {
     pub fn get_card_selection_hand_max_slots_delta(&self) -> isize {
         self.adjustments.card_selection_hand_max_slots_bonus as isize
             - self.adjustments.card_selection_hand_max_slots_penalty as isize
-    }
-    #[cfg(test)]
-    pub fn get_card_selection_hand_max_rerolls_delta(&self) -> isize {
-        self.adjustments.card_selection_hand_max_rerolls_bonus as isize
-            - self.adjustments.card_selection_hand_max_rerolls_penalty as isize
-    }
-    #[cfg(test)]
-    pub fn get_shop_max_rerolls_delta(&self) -> isize {
-        self.adjustments.shop_max_rerolls_bonus as isize
-            - self.adjustments.shop_max_rerolls_penalty as isize
     }
 
     #[cfg(test)]
@@ -197,23 +190,21 @@ impl StageModifiers {
         self.multipliers.enemy_health *= m;
     }
 
-    pub fn apply_card_selection_hand_max_slots_bonus(&mut self, v: usize) {
+    pub fn apply_enemy_speed_multiplier(&mut self, m: f32) {
+        self.multipliers.enemy_speed *= m;
+    }
+
+    pub fn apply_max_hand_slots_bonus(&mut self, v: usize) {
         self.adjustments.card_selection_hand_max_slots_bonus += v;
     }
-    pub fn apply_card_selection_hand_max_slots_penalty(&mut self, v: usize) {
+    pub fn apply_max_hand_slots_penalty(&mut self, v: usize) {
         self.adjustments.card_selection_hand_max_slots_penalty += v;
     }
-    pub fn apply_card_selection_hand_max_rerolls_bonus(&mut self, v: usize) {
-        self.adjustments.card_selection_hand_max_rerolls_bonus += v;
+    pub fn apply_max_rerolls_bonus(&mut self, v: usize) {
+        self.adjustments.max_dice_rerolls_bonus += v;
     }
-    pub fn apply_card_selection_hand_max_rerolls_penalty(&mut self, v: usize) {
-        self.adjustments.card_selection_hand_max_rerolls_penalty += v;
-    }
-    pub fn apply_shop_max_rerolls_bonus(&mut self, v: usize) {
-        self.adjustments.shop_max_rerolls_bonus += v;
-    }
-    pub fn apply_shop_max_rerolls_penalty(&mut self, v: usize) {
-        self.adjustments.shop_max_rerolls_penalty += v;
+    pub fn apply_max_rerolls_penalty(&mut self, v: usize) {
+        self.adjustments.max_dice_rerolls_penalty += v;
     }
 
     pub fn disable_item_and_upgrade_purchases(&mut self) {
@@ -222,11 +213,8 @@ impl StageModifiers {
     pub fn disable_item_use(&mut self) {
         self.restrictions.disable_item_use = true;
     }
-    pub fn apply_card_selection_hand_reroll_health_cost(&mut self, v: usize) {
-        self.reroll_costs.card_selection_hand_reroll_health_cost += v;
-    }
-    pub fn apply_shop_reroll_health_cost(&mut self, v: usize) {
-        self.reroll_costs.shop_reroll_health_cost += v;
+    pub fn apply_reroll_health_cost(&mut self, v: usize) {
+        self.reroll_costs.reroll_health_cost += v;
     }
 
     pub fn disable_rank(&mut self, rank: Rank) {

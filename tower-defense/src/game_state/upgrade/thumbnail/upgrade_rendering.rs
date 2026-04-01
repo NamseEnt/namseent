@@ -53,7 +53,7 @@ impl UpgradeKind {
                 .build(),
 
             // 리롤 관련 업그레이드들
-            UpgradeKind::RerollCountPlus => ThumbnailComposer::new(width_height)
+            UpgradeKind::ExtraDice => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Refresh)
                 .add_plus_overlay()
                 .build(),
@@ -75,10 +75,6 @@ impl UpgradeKind {
                     size: width_height.width,
                 })
                 .to_rendering_tree(),
-            UpgradeKind::ShopRefreshPlus => ThumbnailComposer::new(width_height)
-                .with_icon_base(IconKind::Shop)
-                .add_reroll_indicator()
-                .build(),
 
             // 리롤 없음 관련 업그레이드들
             UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {

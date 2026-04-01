@@ -55,19 +55,6 @@ impl Component for ShopItem<'_> {
                         );
                         ctx.add(ShopItemLayout { params });
                     }
-                    ShopSlot::Contract { contract, cost } => {
-                        let params = layout::layout_params_for_slot(
-                            wh,
-                            layout::ShopSlotVariant::Contract {
-                                contract,
-                                cost: *cost,
-                            },
-                            slot_data.purchased,
-                            !can_purchase_item,
-                            &game_state,
-                        );
-                        ctx.add(ShopItemLayout { params });
-                    }
                 }
 
                 ctx.add(PaperContainerBackground {

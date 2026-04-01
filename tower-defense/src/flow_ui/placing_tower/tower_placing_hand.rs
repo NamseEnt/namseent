@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{mutate_game_state, use_game_state},
+    game_state::{Modal, mutate_game_state, set_modal, use_game_state},
     hand::{HAND_WH, HandComponent, HandSlotId},
     sound,
     theme::{
@@ -75,9 +75,7 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            mutate_game_state(|game_state| {
-                                                                game_state.goto_defense();
-                                                            });
+                                                            set_modal(Some(Modal::OperationPlan));
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(memoized_text(
@@ -92,7 +90,6 @@ impl Component for TowerPlacingHand {
                                                             ));
                                                         },
                                                     )
-                                                    .long_press_time(1.sec())
                                                     .variant(ButtonVariant::Contained)
                                                     .color(ButtonColor::Primary),
                                                 );

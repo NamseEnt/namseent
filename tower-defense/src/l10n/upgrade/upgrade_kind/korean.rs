@@ -34,8 +34,8 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
                     builder.static_text("상점 슬롯 확장");
                 },
-                crate::game_state::upgrade::UpgradeKind::RerollCountPlus => {
-                    builder.static_text("리롤 횟수 증가");
+                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
+                    builder.static_text("추가 주사위");
                 },
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => {
                     builder
@@ -45,9 +45,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
                     builder.static_text("상점 아이템 가격 할인");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => {
-                    builder.static_text("상점 새로고침 횟수 증가");
                 },
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
                     builder
@@ -128,10 +125,10 @@ impl UpgradeKindText<'_> {
                         .with_positive_effect("1개")
                         .static_text(" 추가됩니다.");
                 },
-                crate::game_state::upgrade::UpgradeKind::RerollCountPlus => {
+                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
                     builder
-                        .static_text("매 라운드마다 사용할 수 있는 리롤 횟수가 ")
-                        .with_positive_effect("1회")
+                        .static_text("매 라운드마다 사용할 수 있는 주사위 개수가 ")
+                        .with_positive_effect("1개")
                         .static_text(" 증가합니다.");
                 },
                 crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier } => {
@@ -144,12 +141,6 @@ impl UpgradeKindText<'_> {
                 },
                 crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
                     builder.static_text("상점 아이템의 가격이 할인됩니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopRefreshPlus => {
-                    builder
-                        .static_text("상점 새로고침 횟수가 ")
-                        .with_positive_effect("1회")
-                        .static_text(" 증가합니다.");
                 },
                 crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
                     builder

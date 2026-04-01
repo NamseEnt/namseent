@@ -1,4 +1,4 @@
-use super::{Language, Locale, LocalizedText};
+use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -91,6 +91,40 @@ impl ResultModalText {
 }
 
 #[derive(Debug, Clone, Copy, State)]
+pub enum RerollHealthCostDetailText {
+    Damage(usize),
+}
+
+impl LocalizedText for RerollHealthCostDetailText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => self.apply_korean(builder),
+            Language::English => self.apply_english(builder),
+        }
+    }
+}
+
+impl RerollHealthCostDetailText {
+    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            RerollHealthCostDetailText::Damage(amount) => builder
+                .text("체력을 ")
+                .with_health_loss(format!("{}", amount))
+                .text(" 잃습니다"),
+        };
+    }
+
+    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
+        match self {
+            RerollHealthCostDetailText::Damage(amount) => builder
+                .text("Lose ")
+                .with_health_loss(format!("{}", amount))
+                .text(" health"),
+        };
+    }
+}
+
+#[derive(Debug, Clone, Copy, State)]
 pub enum SettingsText {
     MasterVolume,
     EffectsVolume,
@@ -130,6 +164,41 @@ impl SettingsText {
             SettingsText::UiVolume => "UI",
             SettingsText::AmbientVolume => "Ambient",
             SettingsText::MusicVolume => "Music",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum OperationPlanText {
+    Title,
+    SelectDifficulty,
+}
+
+impl LocalizedText for OperationPlanText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.static_text(self.to_korean());
+            }
+            Language::English => {
+                builder.static_text(self.to_english());
+            }
+        }
+    }
+}
+
+impl OperationPlanText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            OperationPlanText::Title => "작전 계획",
+            OperationPlanText::SelectDifficulty => "난이도를 선택하세요",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            OperationPlanText::Title => "Operation Plan",
+            OperationPlanText::SelectDifficulty => "Select Difficulty",
         }
     }
 }

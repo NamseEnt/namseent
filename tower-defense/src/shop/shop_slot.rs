@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{contract::Contract, item::Item, upgrade::Upgrade},
+    game_state::{item::Item, upgrade::Upgrade},
     *,
 };
 use std::sync::atomic::AtomicUsize;
@@ -76,5 +76,4 @@ impl ShopSlotData {
 pub enum ShopSlot {
     Item { item: Item, cost: usize },
     Upgrade { upgrade: Upgrade, cost: usize },
-    Contract { contract: Contract, cost: usize },
 }

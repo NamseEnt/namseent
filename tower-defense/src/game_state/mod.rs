@@ -2,10 +2,10 @@ pub mod attack;
 pub mod background;
 mod camera;
 pub mod can_place_tower;
-pub mod contract;
 pub mod cursor_preview;
 #[cfg(feature = "debug-tools")]
 mod debug_tools;
+pub mod difficulty;
 pub mod effect;
 mod event_handlers;
 pub mod fast_forward;
@@ -70,6 +70,8 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 ];
 pub const MAX_HP: f32 = 100.0;
 
+pub const BASE_DICE_CHANCE: usize = 1;
+
 #[derive(State)]
 pub struct GameState {
     pub monsters: Vec<Monster>,
@@ -82,7 +84,7 @@ pub struct GameState {
     pub hand: Hand<HandItem>,
     /// one-based
     pub stage: usize,
-    pub left_reroll_chance: usize,
+    pub left_dice: usize,
     pub monster_spawn_state: MonsterSpawnState,
     pub projectiles: Vec<Projectile>,
     pub delayed_hits: Vec<attack::DelayedHit>,
@@ -92,7 +94,6 @@ pub struct GameState {
     pub hp: f32,
     pub shield: f32,
     pub user_status_effects: Vec<UserStatusEffect>,
-    pub left_shop_refresh_chance: usize,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
     pub level: NonZeroUsize,
@@ -102,8 +103,8 @@ pub struct GameState {
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
-    pub contracts: Vec<contract::Contract>,
     pub stage_modifiers: StageModifiers,
+    pub stage_difficulty_choices: difficulty::DifficultyChoices,
     pub ui_state: UIState,
     pub just_cleared_boss_stage: bool,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
@@ -122,22 +123,11 @@ impl GameState {
     pub fn max_shop_slot(&self) -> usize {
         self.upgrade_state.shop_slot_expand + 2
     }
-    pub fn max_shop_refresh_chance(&self) -> usize {
-        (self.upgrade_state.shop_refresh_chance_plus
-            + 1
-            + self.stage_modifiers.get_shop_max_rerolls_bonus())
-        .saturating_sub(self.stage_modifiers.get_shop_max_rerolls_penalty())
-    }
-    pub fn max_reroll_chance(&self) -> usize {
-        (self.upgrade_state.reroll_chance_plus
-            + 1
-            + self
-                .stage_modifiers
-                .get_card_selection_hand_max_rerolls_bonus())
-        .saturating_sub(
-            self.stage_modifiers
-                .get_card_selection_hand_max_rerolls_penalty(),
-        )
+    pub fn max_dice_chance(&self) -> usize {
+        (self.upgrade_state.dice_chance_plus
+            + BASE_DICE_CHANCE
+            + self.stage_modifiers.get_max_rerolls_bonus())
+        .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
     /// Rarity spawn weights for the given level.
@@ -248,18 +238,18 @@ fn create_initial_game_state() -> GameState {
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
-        left_reroll_chance: 1,
+        left_dice: 0,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         delayed_hits: Default::default(),
         items: vec![
             Item {
-                effect: Effect::ExtraReroll,
+                effect: Effect::ExtraDice,
                 rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
-                effect: Effect::ExtraReroll,
+                effect: Effect::ExtraDice,
                 rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
@@ -289,7 +279,6 @@ fn create_initial_game_state() -> GameState {
         hp: 100.0,
         shield: 0.0,
         user_status_effects: Default::default(),
-        left_shop_refresh_chance: 0,
         left_quest_board_refresh_chance: 0,
         item_used: false,
         level: NonZeroUsize::new(1).unwrap(),
@@ -299,8 +288,8 @@ fn create_initial_game_state() -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         play_history: PlayHistory::new(),
         opened_modal: None,
-        contracts: vec![],
         stage_modifiers: StageModifiers::new(),
+        stage_difficulty_choices: difficulty::DifficultyChoices::default(),
         ui_state: UIState::new(),
         just_cleared_boss_stage: false,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
@@ -354,7 +343,7 @@ impl GameState {
             flow: self.flow.clone(),
             hand: self.hand.clone(),
             stage: self.stage,
-            left_reroll_chance: self.left_reroll_chance,
+            left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
             projectiles: self.projectiles.clone(),
             delayed_hits: self.delayed_hits.clone(),
@@ -364,7 +353,6 @@ impl GameState {
             hp: self.hp,
             shield: self.shield,
             user_status_effects: self.user_status_effects.clone(),
-            left_shop_refresh_chance: self.left_shop_refresh_chance,
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
             level: self.level,
@@ -374,8 +362,8 @@ impl GameState {
             locale: self.locale,
             play_history: self.play_history.clone(),
             opened_modal: None,
-            contracts: self.contracts.clone(),
             stage_modifiers: self.stage_modifiers.clone(),
+            stage_difficulty_choices: self.stage_difficulty_choices.clone(),
             ui_state: self.ui_state.clone(),
             just_cleared_boss_stage: self.just_cleared_boss_stage,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
@@ -476,20 +464,25 @@ mod tests {
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is Initializing; neither panel can open
-        assert!(!gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel());
+        // initially flow is SelectingTower; both panels can open
+        assert!(gs.can_open_hand_panel());
+        assert!(gs.can_open_shop_panel());
 
-        // flags start true, but open status is false due to cannot open
+        // flags start true, and open status is true because both allowed
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
         gs.toggle_panels();
-        // toggling when nothing allowed shouldn't change flags
+        // toggling when one or both allowed should close both
+        assert!(!gs.hand_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
+
+        // reopening when none open should open allowed panels again
+        gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - both panels allowed
+        // enter selecting tower flow - both panels allowed (idempotent)
         gs.goto_selecting_tower();
         assert!(gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());

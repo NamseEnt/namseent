@@ -16,16 +16,14 @@ use std::collections::BTreeMap;
 
 pub const MAX_GOLD_EARN_PLUS: usize = 16;
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
-pub const MAX_SHOP_REFRESH_CHANCE_PLUS: usize = 2;
-pub const MAX_REROLL_CHANCE_PLUS: usize = 2;
+pub const MAX_DICE_CHANCE_PLUS: usize = 4;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 
 #[derive(Debug, Clone, Default, State)]
 pub struct UpgradeState {
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
-    pub shop_refresh_chance_plus: usize,
-    pub reroll_chance_plus: usize,
+    pub dice_chance_plus: usize,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
@@ -90,10 +88,12 @@ impl UpgradeState {
                 1 => self.shop_slot_expand = 2,
                 _ => unreachable!("Invalid shop slot upgrade: {}", self.shop_slot_expand),
             },
-            UpgradeKind::RerollCountPlus => match self.reroll_chance_plus {
-                0 => self.reroll_chance_plus = 1,
-                1 => self.reroll_chance_plus = 2,
-                _ => unreachable!("Invalid reroll upgrade: {}", self.reroll_chance_plus),
+            UpgradeKind::ExtraDice => match self.dice_chance_plus {
+                0 => self.dice_chance_plus = 1,
+                1 => self.dice_chance_plus = 2,
+                2 => self.dice_chance_plus = 3,
+                3 => self.dice_chance_plus = 4,
+                _ => unreachable!("Invalid dice upgrade: {}", self.dice_chance_plus),
             },
             UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
@@ -110,15 +110,6 @@ impl UpgradeState {
                 _ => unreachable!(
                     "Invalid shop item price minus upgrade: {}",
                     self.shop_item_price_minus
-                ),
-            },
-            UpgradeKind::ShopRefreshPlus => match self.shop_refresh_chance_plus {
-                0 => self.shop_refresh_chance_plus = 1,
-                1 => self.shop_refresh_chance_plus = 2,
-                2 => self.shop_refresh_chance_plus = 3,
-                _ => unreachable!(
-                    "Invalid shop refresh upgrade: {}",
-                    self.shop_refresh_chance_plus
                 ),
             },
             UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
@@ -227,12 +218,11 @@ pub enum UpgradeKind {
         damage_multiplier: f32,
     },
     ShopSlotExpansion,
-    RerollCountPlus,
+    ExtraDice,
     LowCardTowerDamageMultiply {
         damage_multiplier: f32,
     },
     ShopItemPriceMinus,
-    ShopRefreshPlus,
     NoRerollTowerAttackDamageMultiply {
         damage_multiplier: f32,
     },

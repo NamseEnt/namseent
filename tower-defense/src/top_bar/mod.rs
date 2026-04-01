@@ -14,7 +14,7 @@ use namui::*;
 use namui_prebuilt::table;
 
 const TOP_BAR_HEIGHT: Px = px(48.);
-const ITEM_WIDTH: Px = px(128.);
+const ITEM_WIDTH: Px = px(144.);
 const PADDING: Px = px(8.);
 
 const SETTINGS_BUTTON_SIZE: Px = px(36.);
@@ -36,17 +36,28 @@ impl Component for TopBar {
                 table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
                     ctx.compose(|ctx| {
                         let hp_pct = (game_state.hp / 100.0).clamp(0.0, 1.0);
+                        let shield = game_state.shield;
+                        let has_shield = shield > 0.0;
                         table::horizontal([
                             table::fixed_no_clip(48.px(), |wh, ctx| {
                                 ctx.add(Icon::new(IconKind::Health).size(IconSize::Large).wh(wh));
                             }),
-                            table::fixed_no_clip(32.px(), |wh, ctx| {
-                                ctx.add(memoized_text(&hp_pct, |mut builder| {
+                            table::fixed_no_clip(72.px(), |wh, ctx| {
+                                ctx.add(memoized_text(&(hp_pct, shield), move |mut builder| {
                                     builder
                                         .headline()
                                         .size(FontSize::Medium)
-                                        .text(format!("{:.0}", hp_pct * 100.0))
-                                        .render_center(wh)
+                                        .text(format!("{:.0}", hp_pct * 100.0));
+
+                                    if has_shield {
+                                        builder
+                                            .text(" (")
+                                            .icon(IconKind::Shield)
+                                            .text(format!("{:.0}", shield))
+                                            .text(")");
+                                    }
+
+                                    builder.render_left_center(wh.height)
                                 }));
                             }),
                             table::ratio(1, |_, _| {}),
@@ -68,6 +79,29 @@ impl Component for TopBar {
                                         .text(format!("{}", game_state.gold))
                                         .render_center(wh)
                                 }));
+                            }),
+                            table::ratio(1, |_, _| {}),
+                        ])(wh, ctx);
+                    });
+                }),
+                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
+                    ctx.compose(|ctx| {
+                        table::horizontal([
+                            table::fixed_no_clip(48.px(), |wh, ctx| {
+                                ctx.add(Icon::new(IconKind::Refresh).size(IconSize::Large).wh(wh));
+                            }),
+                            table::fixed_no_clip(32.px(), |wh, ctx| {
+                                let this_max = game_state.max_dice_chance();
+                                ctx.add(memoized_text(
+                                    &(game_state.left_dice, this_max),
+                                    |mut builder| {
+                                        builder
+                                            .headline()
+                                            .size(FontSize::Medium)
+                                            .text(format!("{}/{}", game_state.left_dice, this_max))
+                                            .render_center(wh)
+                                    },
+                                ));
                             }),
                             table::ratio(1, |_, _| {}),
                         ])(wh, ctx);

@@ -8,6 +8,7 @@ use namui::*;
 pub enum IconKind {
     Accept,
     Damage,
+    Warning,
     Config,
     EnemyBoss,
     EnemyNamed,
@@ -19,7 +20,6 @@ pub enum IconKind {
     Level,
     Lock,
     MoveSpeed,
-    Contract,
     Refresh,
     Reject,
     Shield,
@@ -52,12 +52,12 @@ impl IconKind {
             IconKind::Level => crate::asset::image::icon::LEVEL,
             IconKind::Lock => crate::asset::image::icon::LOCK,
             IconKind::MoveSpeed => crate::asset::image::icon::MOVE_SPEED,
-            IconKind::Contract => crate::asset::image::icon::QUEST,
             IconKind::Refresh => crate::asset::image::icon::REFRESH,
             IconKind::Reject => crate::asset::image::icon::REJECT,
             IconKind::Shield => crate::asset::image::icon::SHIELD,
             IconKind::Shop => crate::asset::image::icon::SHOP,
             IconKind::Speaker => crate::asset::image::icon::SPEAKER,
+            IconKind::Warning => crate::asset::image::icon::WARNING,
             IconKind::Suit { suit } => match suit {
                 Suit::Spades => crate::asset::image::icon::SUIT_SPADES,
                 Suit::Hearts => crate::asset::image::icon::SUIT_HEARTS,
@@ -96,7 +96,6 @@ impl IconKind {
             IconKind::Level => "level",
             IconKind::Lock => "lock",
             IconKind::MoveSpeed => "move_speed",
-            IconKind::Contract => "quest",
             IconKind::Refresh => "refresh",
             IconKind::Reject => "reject",
             IconKind::Shield => "shield",
@@ -122,6 +121,7 @@ impl IconKind {
                 Rarity::Legendary => "rarity_legendary",
             },
             IconKind::Rating => "rating",
+            IconKind::Warning => "warning",
         }
     }
 
@@ -140,7 +140,6 @@ impl IconKind {
             "level" => Some(IconKind::Level),
             "lock" => Some(IconKind::Lock),
             "move_speed" => Some(IconKind::MoveSpeed),
-            "quest" => Some(IconKind::Contract),
             "refresh" => Some(IconKind::Refresh),
             "reject" => Some(IconKind::Reject),
             "shield" => Some(IconKind::Shield),
@@ -172,6 +171,7 @@ impl IconKind {
                 rarity: Rarity::Legendary,
             }),
             "rating" => Some(IconKind::Rating),
+            "warning" => Some(IconKind::Warning),
             _ => None,
         }
     }

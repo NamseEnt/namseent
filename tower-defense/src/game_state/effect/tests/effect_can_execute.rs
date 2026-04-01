@@ -13,7 +13,7 @@ fn test_extra_reroll_in_selecting_tower_flow() {
     let mut state = make_test_state();
     state.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&state));
 
-    let effect = Effect::ExtraReroll;
+    let effect = Effect::ExtraDice;
     let result = effect.can_execute(&state);
 
     assert!(result.is_ok());
@@ -24,7 +24,7 @@ fn test_extra_reroll_in_wrong_flow() {
     let mut state = make_test_state();
     state.flow = GameFlow::Defense(DefenseFlow::new(&state));
 
-    let effect = Effect::ExtraReroll;
+    let effect = Effect::ExtraDice;
     let result = effect.can_execute(&state);
 
     assert_eq!(
@@ -78,14 +78,6 @@ fn test_all_other_effects_always_allowed() {
             max_amount: 10.0,
         },
         Effect::GainGold {
-            min_amount: 5.0,
-            max_amount: 10.0,
-        },
-        Effect::LoseHealthRange {
-            min_amount: 5.0,
-            max_amount: 10.0,
-        },
-        Effect::LoseGoldRange {
             min_amount: 5.0,
             max_amount: 10.0,
         },

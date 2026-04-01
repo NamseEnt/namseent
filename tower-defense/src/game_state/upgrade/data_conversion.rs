@@ -74,11 +74,11 @@ fn add_basic_upgrades(
         });
     }
 
-    if state.reroll_chance_plus != 0 {
+    if state.dice_chance_plus != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::RerollCountPlus,
+            upgrade_kind: UpgradeKind::ExtraDice,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::RerollChancePlus {
-                amount: state.reroll_chance_plus,
+                amount: state.dice_chance_plus,
             }),
         });
     }
@@ -88,15 +88,6 @@ fn add_basic_upgrades(
             upgrade_kind: UpgradeKind::ShopItemPriceMinus,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopItemPriceMinus {
                 amount: state.shop_item_price_minus,
-            }),
-        });
-    }
-
-    if state.shop_refresh_chance_plus != 0 {
-        infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::ShopRefreshPlus,
-            description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopRefreshChancePlus {
-                amount: state.shop_refresh_chance_plus,
             }),
         });
     }
