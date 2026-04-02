@@ -75,7 +75,9 @@ impl Component for TowerPlacingHand {
                                                     Button::new(
                                                         wh,
                                                         &|| {
-                                                            set_modal(Some(Modal::OperationPlan));
+                                                            mutate_game_state(|state| {
+                                                                state.goto_defense();
+                                                            });
                                                         },
                                                         &|wh, text_color, ctx| {
                                                             ctx.add(memoized_text(

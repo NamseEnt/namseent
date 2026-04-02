@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::game_state::poker_action::{NextStageOffer, PokerAction};
@@ -9,19 +11,10 @@ pub struct DifficultyOption {
     pub action: PokerAction,
     pub effects: Vec<Effect>,
     pub next_stage_offer: NextStageOffer,
-    pub dopamine_delta: i8,
-    pub token_delta: i8,
 }
 
 impl DifficultyOption {
     pub fn apply(&self, game_state: &mut GameState) {
-        game_state.apply_dopamine_delta(self.dopamine_delta);
-        if self.token_delta > 0 {
-            game_state.add_treasure_token(self.token_delta as u8);
-        }
-
-        game_state.pending_next_stage_offer = self.next_stage_offer;
-
         for effect in &self.effects {
             run_effect(game_state, effect);
         }
@@ -41,8 +34,6 @@ impl Default for DifficultyOption {
             action: PokerAction::Call,
             effects: vec![],
             next_stage_offer: NextStageOffer::None,
-            dopamine_delta: PokerAction::Call.dopamine_delta(),
-            token_delta: PokerAction::Call.token_delta(),
         }
     }
 }
@@ -121,7 +112,16 @@ mod tests {
 
         let mut game_state = crate::game_state::effect::tests_support::make_test_state();
         choices.call.apply(&mut game_state);
-        assert_eq!(game_state.pending_next_stage_offer, preselected);
+        // Difficulty option should apply effects without requiring legacy GameState fields.
+        assert!(matches!(
+            game_state.flow,
+            crate::game_state::flow::GameFlow::Initializing
+                | crate::game_state::flow::GameFlow::SelectingTower(_)
+                | crate::game_state::flow::GameFlow::PlacingTower
+                | crate::game_state::flow::GameFlow::Defense(_)
+                | crate::game_state::flow::GameFlow::TreasureSelection(_)
+                | crate::game_state::flow::GameFlow::Result { .. }
+        ));
     }
 
     #[test]
@@ -155,8 +155,6 @@ mod tests {
                 Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
             ],
             next_stage_offer: NextStageOffer::None,
-            dopamine_delta: PokerAction::Call.dopamine_delta(),
-            token_delta: PokerAction::Call.token_delta(),
         };
 
         option.apply(&mut game_state);

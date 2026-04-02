@@ -1,4 +1,4 @@
-use crate::game_state::difficulty::{DifficultyChoices, DifficultyOption};
+use crate::game_state::difficulty::DifficultyOption;
 use crate::game_state::{is_boss_stage, mutate_game_state, set_modal, use_game_state};
 use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
@@ -25,13 +25,13 @@ impl Component for OperationPlanModal {
 
         let game_state = use_game_state(ctx);
         let text = game_state.text();
-        let choices = game_state.stage_difficulty_choices.clone();
 
         let (hovered_card, set_hovered_card) = ctx.state::<Option<usize>>(|| None);
 
         let card_content_width = MODAL_WIDTH - PANEL_PADDING * 2.0;
         let card_content_height = MODAL_HEIGHT - PANEL_PADDING * 2.0;
 
+        let choices = crate::game_state::difficulty::generate_difficulty_choices(game_state.stage);
         let is_boss_pre_stage = is_boss_stage(game_state.stage + 1);
         let options = if is_boss_pre_stage {
             vec![choices.all_in.clone()]
@@ -101,8 +101,6 @@ impl Component for OperationPlanModal {
                                                         event.stop_propagation();
                                                         mutate_game_state(move |gs| {
                                                             option.apply(gs);
-                                                            gs.stage_difficulty_choices =
-                                                                DifficultyChoices::default();
                                                             gs.goto_defense();
                                                         });
                                                         set_modal(None);

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::game_state::effect::Effect;
 use crate::game_state::poker_action::{NextStageOffer, PokerAction, roll_call_offer};
 use namui::*;
@@ -78,7 +80,5 @@ pub fn action_to_difficulty_option(
         action,
         effects,
         next_stage_offer,
-        dopamine_delta: action.dopamine_delta(),
-        token_delta: action.token_delta(),
     }
 }

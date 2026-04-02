@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::l10n::Locale;
 use namui::*;
 

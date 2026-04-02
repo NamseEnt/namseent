@@ -495,11 +495,6 @@ pub mod tests_support {
             opened_modal: None,
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
-            stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
-            dopamine: crate::game_state::MAX_DOPAMINE.div_ceil(2),
-            treasure_tokens: 0,
-            pending_next_stage_offer: crate::game_state::poker_action::NextStageOffer::None,
-            shop_panel_mode: crate::game_state::poker_action::NextStageOffer::Shop,
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
                     Instant::now(),

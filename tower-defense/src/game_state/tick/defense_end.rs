@@ -30,8 +30,7 @@ pub fn check_defense_end(game_state: &mut GameState) {
     }
 
     if is_boss_stage {
-        game_state.pending_next_stage_offer = crate::game_state::poker_action::NextStageOffer::TreasureSelection;
-        game_state.goto_next_stage();
+        game_state.goto_treasure_selection();
         return;
     }
 

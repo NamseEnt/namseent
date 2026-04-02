@@ -135,9 +135,6 @@ impl GameState {
     }
 
     pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
-        let is_treasure_flow = self.shop_panel_mode
-            == crate::game_state::poker_action::NextStageOffer::TreasureSelection;
-
         let shop = match &mut self.flow {
             GameFlow::SelectingTower(flow) => &mut flow.shop,
             _ => return,
@@ -177,37 +174,25 @@ impl GameState {
                 self.spend_gold(cost_value);
             }
             ShopSlot::Upgrade { upgrade, cost } => {
-                if !is_treasure_flow && self.gold < *cost {
+                if self.gold < *cost {
                     return;
                 }
 
-                if !is_treasure_flow
-                    && self
-                        .stage_modifiers
-                        .is_item_and_upgrade_purchases_disabled()
-                {
+                if self.stage_modifiers.is_item_and_upgrade_purchases_disabled() {
                     return;
                 }
 
                 let upgrade_value = *upgrade;
-                let cost_value = if is_treasure_flow { 0 } else { *cost };
+                let cost_value = *cost;
 
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
                 self.upgrade_state.upgrade(upgrade_value);
-
-                if is_treasure_flow {
-                    self.record_event(HistoryEventType::UpgradeSelected {
-                        upgrade: upgrade_value,
-                    });
-                    self.goto_selecting_tower();
-                } else {
-                    self.record_event(HistoryEventType::UpgradePurchased {
-                        upgrade: upgrade_value,
-                        cost: cost_value,
-                    });
-                    self.spend_gold(cost_value);
-                }
+                self.record_event(HistoryEventType::UpgradePurchased {
+                    upgrade: upgrade_value,
+                    cost: cost_value,
+                });
+                self.spend_gold(cost_value);
             }
         }
     }
@@ -226,9 +211,6 @@ impl GameState {
     }
 
     pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
-        let is_treasure_flow = self.shop_panel_mode
-            == crate::game_state::poker_action::NextStageOffer::TreasureSelection;
-
         let shop = match &self.flow {
             GameFlow::SelectingTower(flow) => &flow.shop,
             _ => return false,
@@ -242,16 +224,12 @@ impl GameState {
             return false;
         }
 
-        if is_treasure_flow {
-            matches!(slot_data.slot, ShopSlot::Upgrade { .. })
-        } else {
-            match &slot_data.slot {
-                ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
-                    self.gold >= *cost
-                        && !self
-                            .stage_modifiers
-                            .is_item_and_upgrade_purchases_disabled()
-                }
+        match &slot_data.slot {
+            ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
+                self.gold >= *cost
+                    && !self
+                        .stage_modifiers
+                        .is_item_and_upgrade_purchases_disabled()
             }
         }
     }
