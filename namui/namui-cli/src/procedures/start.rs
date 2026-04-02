@@ -31,6 +31,9 @@ pub async fn start(
                 Target::Wasm32WasiWeb => {
                     macos::wasm32_wasi_web::start(&manifest_path, start_option).await?
                 }
+                Target::Aarch64AppleDarwin => {
+                    macos::aarch64_apple_darwin::start(&manifest_path, start_option).await?
+                }
                 _ => unimplemented!(),
             }
         }

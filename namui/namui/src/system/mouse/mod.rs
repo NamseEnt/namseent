@@ -7,9 +7,10 @@ pub(crate) fn init() -> InitResult {
     Ok(())
 }
 
-pub fn set_mouse_cursor(_cursor: &MouseCursor) {
-    todo!()
-}
+// --- Shared position tracking ---
+
+/// 16 bit x, 16 bit y
+static MOUSE_POSITION: AtomicU32 = AtomicU32::new(0);
 
 pub fn position() -> Xy<Px> {
     let mouse_position = MOUSE_POSITION.load(std::sync::atomic::Ordering::SeqCst);
@@ -19,89 +20,85 @@ pub fn position() -> Xy<Px> {
     )
 }
 
-fn update_mouse_position(x: u16, y: u16) {
-    MOUSE_POSITION.store(
-        (x as u32) << 16 | y as u32,
-        std::sync::atomic::Ordering::SeqCst,
-    );
-}
-
 pub(crate) fn mouse_position_u32() -> u32 {
     MOUSE_POSITION.load(std::sync::atomic::Ordering::SeqCst)
 }
 
-/// 16 bit x, 16 bit y
-static MOUSE_POSITION: AtomicU32 = AtomicU32::new(0);
-
-macro_rules! on_mouse {
-    ($extern_name: ident, $event: ident) => {
-        #[unsafe(no_mangle)]
-        pub extern "C" fn $extern_name(
-            x: u16,
-            y: u16,
-            mouse_event_button: u8,
-            mouse_event_buttons: u8,
-        ) -> u64 {
-            update_mouse_position(x, y);
-            let button = get_button(mouse_event_button);
-            let pressing_buttons = get_pressing_buttons(mouse_event_buttons);
-
-            crate::on_event(RawEvent::$event {
-                event: RawMouseEvent {
-                    xy: Xy::new(px(x as f32), px(y as f32)),
-                    pressing_buttons,
-                    button: Some(button),
-                },
-            })
-        }
-    };
+fn update_mouse_position(x: f32, y: f32) {
+    MOUSE_POSITION.store(
+        (x as u16 as u32) << 16 | y as u16 as u32,
+        std::sync::atomic::Ordering::SeqCst,
+    );
 }
 
-on_mouse!(_on_mouse_down, MouseDown);
-on_mouse!(_on_mouse_move, MouseMove);
-on_mouse!(_on_mouse_up, MouseUp);
+// --- Unified mouse event helpers ---
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _on_mouse_wheel(delta_x: f32, delta_y: f32, x: u16, y: u16) -> u64 {
-    let xy = Xy::new(px(x as f32), px(y as f32));
+pub(crate) fn on_mouse_down(x: f32, y: f32, button: u8, buttons: u8) -> RawEvent {
     update_mouse_position(x, y);
+    RawEvent::MouseDown {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: Some(button_from_u8(button)),
+        },
+    }
+}
 
-    crate::on_event(RawEvent::Wheel {
+pub(crate) fn on_mouse_move(x: f32, y: f32, buttons: u8) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::MouseMove {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: None,
+        },
+    }
+}
+
+pub(crate) fn on_mouse_up(x: f32, y: f32, button: u8, buttons: u8) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::MouseUp {
+        event: RawMouseEvent {
+            xy: Xy::new(px(x), px(y)),
+            pressing_buttons: buttons_from_bitmask(buttons),
+            button: Some(button_from_u8(button)),
+        },
+    }
+}
+
+pub(crate) fn on_mouse_wheel(delta_x: f32, delta_y: f32, x: f32, y: f32) -> RawEvent {
+    update_mouse_position(x, y);
+    RawEvent::Wheel {
         event: RawWheelEvent {
             delta_xy: Xy::new(delta_x, delta_y),
-            mouse_xy: xy,
+            mouse_xy: Xy::new(px(x), px(y)),
         },
-    })
+    }
 }
 
-fn get_pressing_buttons(mouse_event_buttons: u8) -> HashSet<crate::MouseButton> {
-    const MOUSE_BUTTONS_CONVERTING_TUPLES: [(u8, crate::MouseButton); 3] = [
-        (1 << 0, crate::MouseButton::Left),
-        (1 << 1, crate::MouseButton::Right),
-        (1 << 2, crate::MouseButton::Middle),
-    ];
-
-    HashSet::from_iter(
-        MOUSE_BUTTONS_CONVERTING_TUPLES
-            .iter()
-            .filter_map(|(bit, button)| {
-                if mouse_event_buttons & bit != 0 {
-                    Some(*button)
-                } else {
-                    None
-                }
-            }),
-    )
+/// Convert DOM MouseEvent.button to MouseButton.
+/// 0=Left, 1=Middle, 2=Right
+fn button_from_u8(button: u8) -> MouseButton {
+    match button {
+        0 => MouseButton::Left,
+        1 => MouseButton::Middle,
+        2 => MouseButton::Right,
+        _ => MouseButton::Left,
+    }
 }
-fn get_button(mouse_event_button: u8) -> crate::MouseButton {
-    const MOUSE_BUTTON_CONVERTING_TUPLES: [(u8, crate::MouseButton); 3] = [
-        (0, crate::MouseButton::Left),
-        (1, crate::MouseButton::Middle),
-        (2, crate::MouseButton::Right),
-    ];
 
-    MOUSE_BUTTON_CONVERTING_TUPLES
-        .iter()
-        .find_map(|(value, button)| (mouse_event_button == *value).then_some(*button))
-        .unwrap()
+/// Convert DOM MouseEvent.buttons bitmask to HashSet<MouseButton>.
+/// bit0=Left, bit1=Right, bit2=Middle
+fn buttons_from_bitmask(buttons: u8) -> HashSet<MouseButton> {
+    let mut set = HashSet::new();
+    if buttons & (1 << 0) != 0 {
+        set.insert(MouseButton::Left);
+    }
+    if buttons & (1 << 1) != 0 {
+        set.insert(MouseButton::Right);
+    }
+    if buttons & (1 << 2) != 0 {
+        set.insert(MouseButton::Middle);
+    }
+    set
 }

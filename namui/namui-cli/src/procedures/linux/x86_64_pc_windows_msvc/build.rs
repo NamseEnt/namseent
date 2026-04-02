@@ -2,7 +2,9 @@ use crate::{
     services::{
         build_status_service::{BuildStatusCategory, BuildStatusService},
         resource_collect_service,
-        runtime_project::x86_64_pc_windows_msvc::generate_runtime_project,
+        runtime_project::{
+            RuntimeProjectMode, x86_64_pc_windows_msvc::generate_runtime_project,
+        },
         rust_build_service::{self, BuildOption},
     },
     *,
@@ -22,6 +24,7 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
         strip_debug_info: true,
+        mode: RuntimeProjectMode::Binary,
     })?;
 
     let build_status_service = BuildStatusService::new();

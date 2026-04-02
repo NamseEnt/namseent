@@ -82,7 +82,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                     "--xwin-version",
                     "17",
                     "--cross-compiler",
-                    "clang",
+                    "clang-cl",
                 ]);
             }
 
@@ -94,7 +94,26 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .await?)
         }
         Target::X86_64UnknownLinuxGnu => todo!(),
-        Target::Aarch64AppleDarwin => todo!(),
+        Target::Aarch64AppleDarwin => {
+            let mut args = vec![
+                "build",
+                "--target",
+                "aarch64-apple-darwin",
+                "--message-format",
+                "json",
+            ];
+
+            if build_option.release {
+                args.push("--release");
+            }
+
+            Ok(Command::new("cargo")
+                .args(args)
+                .current_dir(&build_option.project_root_path)
+                .envs(get_envs(build_option))
+                .output()
+                .await?)
+        }
     }
 }
 

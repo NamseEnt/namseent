@@ -1,8 +1,5 @@
 use crate::*;
-use anyhow::Result;
-use namui_type::*;
-use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
-use windows::{
+use ::windows::{
     Win32::{
         Foundation::{HANDLE, HWND},
         Graphics::{
@@ -22,10 +19,13 @@ use windows::{
     },
     core::*,
 };
+use anyhow::Result;
+use namui_type::*;
+use skia_safe::gpu::d3d::{ID3D12CommandQueue, ID3D12Device, ID3D12Resource};
 
 const FRAME_COUNT: u32 = 2;
 
-pub(crate) struct NativeSurface {
+pub struct NativeSurface {
     surfaces: Vec<skia_safe::surface::Surface>,
     swap_chain: IDXGISwapChain3,
     context: skia_safe::gpu::DirectContext,
@@ -173,8 +173,8 @@ impl NativeSurface {
     }
 }
 
-impl SkSurface for NativeSurface {
-    fn flush(&mut self) {
+impl NativeSurface {
+    pub fn flush(&mut self) {
         let surface = &mut self.surfaces[self.buffer_index];
 
         self.context.flush_surface_with_access(
@@ -198,7 +198,7 @@ impl SkSurface for NativeSurface {
         };
     }
 
-    fn canvas(&mut self) -> &dyn SkCanvas {
+    pub fn canvas(&mut self) -> &dyn SkCanvas {
         self.surfaces[self.buffer_index].canvas()
     }
 }
@@ -238,7 +238,7 @@ fn setup_surfaces(
 
     let surfaces = render_targets
         .iter()
-        .map(|render_target| {
+        .map(|render_target: &ID3D12Resource| {
             let backend_render_target = skia_safe::gpu::BackendRenderTarget::new_d3d(
                 (window_wh.width.as_i32(), window_wh.height.as_i32()),
                 &skia_safe::gpu::d3d::TextureResourceInfo {

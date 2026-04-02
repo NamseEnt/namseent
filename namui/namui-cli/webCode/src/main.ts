@@ -23,17 +23,18 @@ const drawerPromise: Promise<{
 }> = (async () => {
     const drawer = await readyDrawer();
 
-    const imageCount = assetList.length;
+    const maxImageCount = assetList.length;
     const imageInfoSize = 14;
-    const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
+    const bufferSize = maxImageCount * imageInfoSize;
 
-    const imageInfosPtr = drawer.exports.malloc(imageInfoBytes.byteLength);
-    drawer.exports._image_infos(imageInfosPtr);
+    const imageInfosPtr = drawer.exports.malloc(bufferSize);
+    const imageCount = drawer.exports._image_infos(imageInfosPtr, maxImageCount);
+    const imageInfoBytes = new Uint8Array(imageCount * imageInfoSize);
     imageInfoBytes.set(
         new Uint8Array(
             drawer.exports.memory.buffer,
             imageInfosPtr,
-            imageInfoBytes.byteLength,
+            imageCount * imageInfoSize,
         ),
     );
     drawer.exports.free(imageInfosPtr);
@@ -118,14 +119,16 @@ async function startMainThread() {
             terminate();
 
             if (exports) {
-                const ptrAndLen = exports._freeze_world();
-                const ptr = Number(ptrAndLen >> 32n);
-                const len = Number(ptrAndLen & 0xffffffffn);
-                frozenWorldBytes = new Uint8Array(
-                    exports.memory.buffer,
-                    ptr,
-                    len,
-                );
+                const responsePtr = exports._freeze_world();
+                if (responsePtr !== 0) {
+                    const view = new DataView(exports.memory.buffer);
+                    const len = view.getUint32(responsePtr, true);
+                    frozenWorldBytes = new Uint8Array(
+                        exports.memory.buffer,
+                        responsePtr + 4,
+                        len,
+                    );
+                }
             }
 
             if (storageWorker) {
@@ -242,7 +245,24 @@ async function startMainThread() {
             ]);
 
             now = performance.now();
+
+            // Register image infos BEFORE _init_system / _on_screen_resize,
+            // because the render callback may access Image.info() during
+            // the first _on_screen_resize tick.
+            if (drawer.imageInfoBytes.byteLength > 0) {
+                const infoPtr = exports.malloc(drawer.imageInfoBytes.byteLength);
+                new Uint8Array(
+                    exports.memory.buffer,
+                    infoPtr,
+                    drawer.imageInfoBytes.byteLength,
+                ).set(drawer.imageInfoBytes);
+                exports._set_image_infos(infoPtr, drawer.imageCount);
+                exports.free(infoPtr);
+            }
+
             exports._init_system();
+            exports._on_screen_resize(window.innerWidth, window.innerHeight);
+
             console.log(`main initSystem took: ${performance.now() - now}ms`);
 
             const eventSystem = startEventSystem({

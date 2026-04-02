@@ -14,7 +14,7 @@ type InitResult = Result<()>;
 
 static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
-pub(super) fn init_system() -> InitResult {
+pub(crate) fn init_system() -> InitResult {
     keyboard::init()?;
     screen::init()?;
     time::init()?;

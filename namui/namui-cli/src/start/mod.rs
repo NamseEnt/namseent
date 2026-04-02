@@ -1,4 +1,6 @@
 mod app_wrapper;
+mod dylib_wrapper;
+pub mod mac;
 mod wasi_cargo_envs;
 mod watcher;
 
@@ -19,7 +21,7 @@ fn drawer_project_path() -> PathBuf {
     get_cli_root_path().join("../namui-drawer")
 }
 
-pub fn start(project_path: &Path) -> Result<()> {
+pub fn start_web(project_path: &Path) -> Result<()> {
     watcher::start_watcher(drawer_project_path().join("Cargo.toml"), || {
         DRAWER_CODE_CHANGED.store(true, Ordering::Relaxed);
     });
@@ -111,7 +113,7 @@ fn build_app_step(project_path: &Path) -> Result<()> {
     }
 }
 
-fn wait_changes(atomics: &[&AtomicBool]) {
+pub fn wait_changes(atomics: &[&AtomicBool]) {
     loop {
         if atomics.iter().any(|atomic| atomic.load(Ordering::Relaxed)) {
             break;

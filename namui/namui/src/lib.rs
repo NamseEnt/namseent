@@ -4,6 +4,8 @@ mod render;
 pub mod system;
 pub mod utils;
 
+mod ffi;
+
 pub use self::random::*;
 pub use anyhow::{Result, anyhow};
 pub use auto_ops;
@@ -36,64 +38,50 @@ thread_local! {
         .build()
         .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap()));
     static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
-    static FROZEN_STATES: RefCell<Box<[u8]>> = Default::default();
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn _init_system() {
-    system::init_system().unwrap();
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn _shutdown() {
-    TOKIO_RUNTIME.take().unwrap().shutdown_background();
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn _freeze_world() -> u64 {
-    let looper = LOOPER.with_borrow_mut(|looper| looper.take().unwrap());
-    let frozen_states = looper.world.freeze_states();
-    FROZEN_STATES.with_borrow_mut(|bytes| {
-        *bytes = frozen_states.into_boxed_slice();
-        (bytes.as_ptr() as u64) << 32 | bytes.len() as u64
-    })
-}
-
-#[unsafe(no_mangle)]
-extern "C" fn _set_freeze_states(ptr: *const u8, len: usize) {
-    LOOPER.with_borrow_mut(|looper| {
-        looper
-            .as_mut()
-            .unwrap()
-            .world
-            .set_frozen_states(unsafe { std::slice::from_raw_parts(ptr, len) });
-    });
+    static RESPONSE_BUFFER: RefCell<Vec<u8>> = Default::default();
 }
 
 pub fn start(root_component: RootComponent) {
     LOOPER.set(Some(Looper::new(root_component)));
 }
 
-/// Return values
-///
-/// - 0: No rendering tree changed
-/// - u64::MAX: Redraw with previous rendering tree
-/// - Other: Rendering tree changed. ptr 32bit, len 32bit
-fn on_event(event: RawEvent) -> u64 {
+/// Write response data in `[len: u32 LE][data...]` format into RESPONSE_BUFFER.
+/// Returns pointer to the buffer. Valid until the next call to write_response/write_empty_response.
+pub(crate) fn write_response(data: &[u8]) -> *const u8 {
+    RESPONSE_BUFFER.with_borrow_mut(|buf| {
+        buf.clear();
+        buf.reserve(4 + data.len());
+        buf.extend_from_slice(&(data.len() as u32).to_le_bytes());
+        buf.extend_from_slice(data);
+        buf.as_ptr()
+    })
+}
+
+/// Write empty response `[len: u32 = 0]`, signals "redraw with previous data".
+pub(crate) fn write_empty_response() -> *const u8 {
+    write_response(&[])
+}
+
+/// Returns null for no change, or pointer to `[len: u32 LE][data...]`.
+/// - null: no change
+/// - len == 0: mouse position changed, redraw with previous rendering tree
+/// - len > 0: new rendering tree data
+fn on_event(event: RawEvent) -> *const u8 {
     thread_local! {
         static RENDERING_TREE: RefCell<RenderingTree> = Default::default();
-        static RENDERING_TREE_BYTES: RefCell<Box<[u8]>> = Default::default();
     }
     static RENDERING_TREE_CHANGED: AtomicBool = AtomicBool::new(false);
     static MOUSE_POSITION_ON_LAST_REDRAW: AtomicU32 = AtomicU32::new(0);
 
     let is_screen_redraw = matches!(event, RawEvent::ScreenRedraw);
 
-    let mut out_ptr = 0;
-    let mut out_len_ptr = 0;
+    let mut result: *const u8 = std::ptr::null();
 
     TOKIO_RUNTIME.with(|tokio_runtime| {
-        let _guard = tokio_runtime.borrow().as_ref().unwrap().enter();
+        let Some(ref runtime) = *tokio_runtime.borrow() else {
+            return; // Already shut down
+        };
+        let _guard = runtime.enter();
 
         LOOPER.with_borrow_mut(|looper| {
             let rendering_tree = looper.as_mut().unwrap().tick(event);
@@ -120,28 +108,20 @@ fn on_event(event: RawEvent) -> u64 {
 
             if rendering_tree_changed {
                 let bytes = RENDERING_TREE.with_borrow(|rendering_tree| {
-                    bincode::encode_to_vec(rendering_tree, bincode::config::standard())
-                        .unwrap()
-                        .into_boxed_slice()
+                    bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap()
                 });
-
-                let len = bytes.len();
-
-                RENDERING_TREE_BYTES.replace(bytes);
-
-                out_ptr = RENDERING_TREE_BYTES.with_borrow(|bytes| bytes.as_ptr() as usize);
-                out_len_ptr = len;
+                result = write_response(&bytes);
             } else if mouse_position_changed {
-                out_ptr = usize::MAX;
-                out_len_ptr = usize::MAX;
+                result = write_empty_response();
             }
 
+            RENDERING_TREE_CHANGED.store(false, Ordering::Relaxed);
             MOUSE_POSITION_ON_LAST_REDRAW
                 .store(system::mouse::mouse_position_u32(), Ordering::Relaxed);
         })
     });
 
-    (out_ptr as u64) << 32 | out_len_ptr as u64
+    result
 }
 
 #[macro_export]

@@ -27,6 +27,9 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
                 Target::Wasm32WasiWeb => {
                     macos::wasm32_wasi_web::build(&manifest_path, release).await?
                 }
+                Target::Aarch64AppleDarwin => {
+                    macos::aarch64_apple_darwin::build(&manifest_path, release).await?
+                }
                 _ => unimplemented!(),
             }
         }

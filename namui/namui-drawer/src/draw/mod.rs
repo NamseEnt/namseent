@@ -4,7 +4,7 @@ mod text;
 
 use crate::*;
 
-pub(crate) trait Draw {
+pub trait Draw {
     fn draw(self, skia: &mut NativeSkia);
 }
 

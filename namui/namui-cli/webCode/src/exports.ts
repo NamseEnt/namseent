@@ -6,38 +6,38 @@ export type Exports = CommonExports & {
         y: number,
         mouseEventButton: number,
         mouseEventButtons: number,
-    ) => bigint;
+    ) => number;
     _on_mouse_up: (
         x: number,
         y: number,
         mouseEventButton: number,
         mouseEventButtons: number,
-    ) => bigint;
+    ) => number;
     _on_mouse_move: (
         x: number,
         y: number,
         mouseEventButton: number,
         mouseEventButtons: number,
-    ) => bigint;
+    ) => number;
     _on_mouse_wheel: (
         delta_x: number,
         delta_y: number,
         x: number,
         y: number,
-    ) => bigint;
-    _on_key_down: (code: number) => bigint;
-    _on_key_up: (code: number) => bigint;
-    _on_blur: () => bigint;
-    _on_visibility_change: () => bigint;
-    _on_screen_resize: (width: number, height: number) => bigint;
-    _on_animation_frame: () => bigint;
+    ) => number;
+    _on_key_down: (code: number) => number;
+    _on_key_up: (code: number) => number;
+    _on_blur: () => number;
+    _on_visibility_change: () => number;
+    _on_screen_resize: (width: number, height: number) => number;
+    _on_animation_frame: () => number;
     _on_text_input: (
         text_ptr: number,
         text_len: number,
         selection_direction: number,
         selection_start: number,
         selection_end: number,
-    ) => bigint;
+    ) => number;
     _on_text_input_key_down: (
         text_ptr: number,
         text_len: number,
@@ -45,15 +45,16 @@ export type Exports = CommonExports & {
         selection_start: number,
         selection_end: number,
         code: number,
-    ) => bigint;
+    ) => number;
     _on_text_input_selection_change: (
         text_ptr: number,
         text_len: number,
         selection_direction: number,
         selection_start: number,
         selection_end: number,
-    ) => bigint;
-    _freeze_world: () => bigint;
+    ) => number;
+    _set_image_infos: (ptr: number, count: number) => void;
+    _freeze_world: () => number;
     _set_freeze_states(ptr: number, len: number): void;
     _on_kv_store_get_response(
         requestId: number,
@@ -70,7 +71,7 @@ export type DrawerExports = CommonExports & {
         bufferPtr: number,
         bufferLen: number,
     ) => void;
-    _image_infos: (ptr: number) => void;
+    _image_infos: (ptr: number, maxCount: number) => number;
     _register_font: (
         namePtr: number,
         nameLen: number,
