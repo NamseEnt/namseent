@@ -23,6 +23,7 @@ pub enum GameFlow {
 #[derive(Clone, Debug, State)]
 pub struct TreasureSelectionFlow {
     pub options: Vec<crate::game_state::upgrade::Upgrade>,
+    pub pending_selection: Option<usize>,
 }
 
 impl TreasureSelectionFlow {
@@ -30,7 +31,10 @@ impl TreasureSelectionFlow {
         let options = (0..3)
             .map(|_| crate::game_state::upgrade::generate_treasure_upgrade(game_state))
             .collect();
-        TreasureSelectionFlow { options }
+        TreasureSelectionFlow {
+            options,
+            pending_selection: None,
+        }
     }
 
     fn update(&mut self) {}
