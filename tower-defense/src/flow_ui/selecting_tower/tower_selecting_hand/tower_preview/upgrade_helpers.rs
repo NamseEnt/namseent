@@ -24,48 +24,50 @@ pub fn create_upgrade_kind_for_target(
     value: f32,
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
-        // Rank 기반 업그레이드
-        (TowerUpgradeTarget::Rank { rank }, UpgradeStatType::Damage, false) => {
-            UpgradeKind::RankAttackDamageMultiply {
-                rank: *rank,
-                damage_multiplier: value,
-            }
-        }
-
         // Suit 기반 업그레이드
-        (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => {
-            UpgradeKind::SuitAttackDamageMultiply {
-                suit: *suit,
+        (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => match suit {
+            crate::card::Suit::Diamonds => UpgradeKind::CainSword {
                 damage_multiplier: value,
-            }
-        }
-
-        // TowerKind 기반 업그레이드
-        (TowerUpgradeTarget::TowerKind { tower_kind }, UpgradeStatType::Damage, false) => {
-            UpgradeKind::HandAttackDamageMultiply {
-                tower_kind: *tower_kind,
+            },
+            crate::card::Suit::Spades => UpgradeKind::LongSword {
                 damage_multiplier: value,
-            }
-        }
+            },
+            crate::card::Suit::Hearts => UpgradeKind::Mace {
+                damage_multiplier: value,
+            },
+            crate::card::Suit::Clubs => UpgradeKind::ClubSword {
+                damage_multiplier: value,
+            },
+        },
 
         // EvenOdd 기반 업그레이드
         (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Damage, false) => {
-            UpgradeKind::EvenOddTowerAttackDamageMultiply {
-                even: *even,
-                damage_multiplier: value,
+            if *even {
+                UpgradeKind::PairChopsticks {
+                    damage_multiplier: value,
+                }
+            } else {
+                UpgradeKind::SingleChopstick {
+                    damage_multiplier: value,
+                }
             }
         }
 
         // FaceNumber 기반 업그레이드
         (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Damage, false) => {
-            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
-                face: *face,
-                damage_multiplier: value,
+            if *face {
+                UpgradeKind::Brush {
+                    damage_multiplier: value,
+                }
+            } else {
+                UpgradeKind::FountainPen {
+                    damage_multiplier: value,
+                }
             }
         }
 
         // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
-        _ => UpgradeKind::GoldEarnPlus,
+        _ => UpgradeKind::Magnet,
     }
 }
 
@@ -77,25 +79,23 @@ pub fn create_tower_select_upgrade_kind(
     value: f32,
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
-            UpgradeKind::LowCardTowerDamageMultiply {
-                damage_multiplier: value,
-            }
-        }
+        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => UpgradeKind::Spoon {
+            damage_multiplier: value,
+        },
 
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
-            UpgradeKind::NoRerollTowerAttackDamageMultiply {
+            UpgradeKind::PerfectPottery {
                 damage_multiplier: value,
             }
         }
 
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
-            UpgradeKind::RerollTowerAttackDamageMultiply {
+            UpgradeKind::BrokenPottery {
                 damage_multiplier: value,
             }
         }
 
         // 기타 경우는 기본값 반환
-        _ => UpgradeKind::GoldEarnPlus,
+        _ => UpgradeKind::Magnet,
     }
 }

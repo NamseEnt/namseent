@@ -111,6 +111,7 @@ mod tests {
         let locale = Locale::default();
 
         let item = Item {
+            kind: crate::game_state::item::ItemKind::RiceCake,
             effect: Effect::Heal { amount: 1.0 },
             value: OneZero::default(),
         };
@@ -120,7 +121,7 @@ mod tests {
         assert_eq!(params.cost, 5);
 
         let up = Upgrade {
-            kind: UpgradeKind::GoldEarnPlus,
+            kind: UpgradeKind::Magnet,
             value: OneZero::default(),
         };
         let params = make_upgrade_params(wh, &up, 3, false, locale);

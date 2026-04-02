@@ -4,7 +4,7 @@ use crate::{theme::typography::TypographyBuilder, *};
 #[derive(Debug, Clone, State)]
 pub enum UpgradeBoardText {
     Title,
-    GoldEarnPlus { amount: usize },
+    Magnet { amount: usize },
     ShopSlotExpand { amount: usize },
     RerollChancePlus { amount: usize },
     ShopItemPriceMinus { amount: usize },
@@ -39,7 +39,7 @@ impl UpgradeBoardText {
             UpgradeBoardText::Title => {
                 builder.text("강화 정보");
             }
-            UpgradeBoardText::GoldEarnPlus { amount } => {
+            UpgradeBoardText::Magnet { amount } => {
                 builder.text("몬스터 처치 시 ");
                 builder.with_gold_icon(format!("{amount}"));
                 builder.text("를 추가로 얻습니다");
@@ -105,7 +105,7 @@ impl UpgradeBoardText {
             UpgradeBoardText::Title => {
                 builder.text("Upgrade Information");
             }
-            UpgradeBoardText::GoldEarnPlus { amount } => {
+            UpgradeBoardText::Magnet { amount } => {
                 builder.text("Earn an additional ");
                 builder.with_gold_icon(format!("{amount}"));
                 builder.text(" when defeating monsters");

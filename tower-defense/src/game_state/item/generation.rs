@@ -26,48 +26,56 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
 
     let value = rng.gen_range(0.0..1.0);
 
-    let effect = match candidate {
+    let (kind, effect) = match candidate {
         ItemCandidate::Heal => {
             let range = 10.0..14.0;
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            Effect::Heal { amount }
+            (
+                crate::game_state::item::ItemKind::RiceCake,
+                Effect::Heal { amount },
+            )
         }
-        ItemCandidate::Lottery => {
-            let amount = 500.0;
-            let probability = 0.02;
-            Effect::Lottery {
-                amount,
-                probability,
-            }
-        }
-        ItemCandidate::ExtraReroll => Effect::ExtraDice,
+        ItemCandidate::ExtraReroll => (
+            crate::game_state::item::ItemKind::EmergencyDice,
+            Effect::ExtraDice,
+        ),
         ItemCandidate::Shield => {
             let range = 15.0..25.0;
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            Effect::Shield { amount }
+            (
+                crate::game_state::item::ItemKind::Shield,
+                Effect::Shield { amount },
+            )
         }
         ItemCandidate::DamageReduction => {
             let range = 0.8..0.85;
             let amount = calculate_reverse_amount_from_value(value, range.start, range.end);
             let duration = Duration::from_secs(4);
-            Effect::UserDamageReduction {
-                multiply: amount,
-                duration,
-            }
+            (
+                crate::game_state::item::ItemKind::Painkiller,
+                Effect::UserDamageReduction {
+                    multiply: amount,
+                    duration,
+                },
+            )
         }
         ItemCandidate::GrantBarricades => {
             let range = 5.0..10.0;
             let count = calculate_amount_from_value(value, range.start, range.end) as usize;
-            Effect::AddTowerCardToPlacementHand {
-                tower_kind: crate::game_state::tower::TowerKind::Barricade,
-                suit: crate::card::Suit::Spades,
-                rank: crate::card::Rank::Ace,
-                count,
-            }
+            (
+                crate::game_state::item::ItemKind::GrantBarricades,
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind: crate::game_state::tower::TowerKind::Barricade,
+                    suit: crate::card::Suit::Spades,
+                    rank: crate::card::Rank::Ace,
+                    count,
+                },
+            )
         }
     };
 
     Item {
+        kind,
         effect,
         value: value.into(),
     }
@@ -80,21 +88,19 @@ pub fn generate_item() -> Item {
 }
 
 fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
-    let candidate_weight = [100.0, 30.0, 10.0, 10.0, 10.0, 45.0];
+    let candidate_weight = [100.0, 10.0, 10.0, 10.0, 45.0];
     let candidate_table = vec![
         (ItemCandidate::Heal, candidate_weight[0]),
-        (ItemCandidate::Lottery, candidate_weight[1]),
-        (ItemCandidate::ExtraReroll, candidate_weight[2]),
-        (ItemCandidate::Shield, candidate_weight[3]),
-        (ItemCandidate::DamageReduction, candidate_weight[4]),
-        (ItemCandidate::GrantBarricades, candidate_weight[5]),
+        (ItemCandidate::ExtraReroll, candidate_weight[1]),
+        (ItemCandidate::Shield, candidate_weight[2]),
+        (ItemCandidate::DamageReduction, candidate_weight[3]),
+        (ItemCandidate::GrantBarricades, candidate_weight[4]),
     ];
     candidate_table
 }
 
 enum ItemCandidate {
     Heal,
-    Lottery,
     ExtraReroll,
     Shield,
     DamageReduction,

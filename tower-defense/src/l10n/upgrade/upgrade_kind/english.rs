@@ -6,201 +6,144 @@ impl UpgradeKindText<'_> {
     pub fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             UpgradeKindText::Name(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::GoldEarnPlus => {
-                    builder.static_text("Gold Income Increase");
-                },
-                crate::game_state::upgrade::UpgradeKind::RankAttackDamageMultiply { rank, .. } => {
-                    builder
-                        .with_card_rank(format!("{rank}"))
-                        .static_text(" Card ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiply");
-                },
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
-                    builder
-                        .with_suit_color(format!("{:?}", suit), *suit)
-                        .static_text(" Card ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiply");
-                },
-                crate::game_state::upgrade::UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
-                    let tower_name = Self::get_english_tower_name(tower_kind);
-                    builder
-                        .text(tower_name)
-                        .static_text(" ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiplier");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
-                    builder.static_text("Shop Slot Expansion");
-                },
-                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
-                    builder.static_text("Extra Dice");
-                },
-                crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => {
-                    builder
-                        .static_text("Low Card Tower ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiply");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
-                    builder.static_text("Shop Item Price Discount");
-                },
-                crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
-                    builder
-                        .static_text("No Reroll Tower ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiply");
-                },
-                crate::game_state::upgrade::UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
-                    let card_type = if *even { "Even" } else { "Odd" };
-                    builder
-                        .text(card_type)
-                        .static_text(" Card ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiplier");
-                },
-                crate::game_state::upgrade::UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
-                    let card_type = if *face { "Face" } else { "Number" };
-                    builder
-                        .text(card_type)
-                        .static_text(" Card ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiplier");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShortenStraightFlushTo4Cards => {
-                    builder.static_text("Shorten Straight Flush to 4 Cards");
-                },
-                crate::game_state::upgrade::UpgradeKind::SkipRankForStraight => {
-                    builder.static_text("Skip Rank for Straight");
-                },
-                crate::game_state::upgrade::UpgradeKind::TreatSuitsAsSame => {
-                    builder.static_text("Treat All Suits as Same");
-                },
-                crate::game_state::upgrade::UpgradeKind::RerollTowerAttackDamageMultiply { .. } => {
-                    builder
-                        .static_text("Reroll Tower ")
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" Multiply");
-                },
+                crate::game_state::upgrade::UpgradeKind::Magnet => {
+                    builder.static_text("Magnet");
+                }
+                crate::game_state::upgrade::UpgradeKind::CainSword { .. } => {
+                    builder.static_text("Cain Sword");
+                }
+                crate::game_state::upgrade::UpgradeKind::LongSword { .. } => {
+                    builder.static_text("Long Sword");
+                }
+                crate::game_state::upgrade::UpgradeKind::Mace { .. } => {
+                    builder.static_text("Mace");
+                }
+                crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => {
+                    builder.static_text("Club");
+                }
+                crate::game_state::upgrade::UpgradeKind::Backpack => {
+                    builder.static_text("Backpack");
+                }
+                crate::game_state::upgrade::UpgradeKind::DiceBundle => {
+                    builder.static_text("Dice Bundle");
+                }
+                crate::game_state::upgrade::UpgradeKind::Spoon { .. } => {
+                    builder.static_text("Spoon");
+                }
+                crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
+                    builder.static_text("Energy Drink");
+                }
+                crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => {
+                    builder.static_text("Perfect Pottery");
+                }
+                crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => {
+                    builder.static_text("Single Chopstick");
+                }
+                crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => {
+                    builder.static_text("Pair Chopsticks");
+                }
+                crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => {
+                    builder.static_text("Fountain Pen");
+                }
+                crate::game_state::upgrade::UpgradeKind::Brush { .. } => {
+                    builder.static_text("Brush");
+                }
+                crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
+                    builder.static_text("Four Leaf Clover");
+                }
+                crate::game_state::upgrade::UpgradeKind::Rabbit => {
+                    builder.static_text("Rabbit");
+                }
+                crate::game_state::upgrade::UpgradeKind::BlackWhite => {
+                    builder.static_text("Black & White");
+                }
+                crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
+                    builder.static_text("Broken Pottery");
+                }
             },
             UpgradeKindText::Description(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::GoldEarnPlus => {
+                crate::game_state::upgrade::UpgradeKind::Magnet => {
                     builder
                         .static_text("Increases ")
                         .with_gold_icon("gold")
                         .static_text(" earned when defeating monsters.");
-                },
-                crate::game_state::upgrade::UpgradeKind::RankAttackDamageMultiply { rank, damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::CainSword { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::LongSword { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::Mace { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::ClubSword { damage_multiplier } => {
                     builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
+                        .static_text("Increases attack damage of towers built with specific suit cards by ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made with ")
-                        .with_card_rank(format!("{rank}"))
-                        .static_text(" cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, damage_multiplier } => {
-                    builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
-                        .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made with ")
-                        .with_suit_color(format!("{:?}", suit), *suit)
-                        .static_text(" cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::HandAttackDamageMultiply { tower_kind, damage_multiplier } => {
-                    let tower_name = Self::get_english_tower_name(tower_kind);
-                    builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
-                        .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for ")
-                        .text(tower_name)
-                        .static_text(" towers.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::Backpack => {
                     builder
                         .static_text("Adds ")
                         .with_positive_effect("1 slot")
-                        .static_text(" available for purchase in the shop.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
+                        .static_text(" available for shop purchases.");
+                }
+                crate::game_state::upgrade::UpgradeKind::DiceBundle => {
                     builder
                         .static_text("Increases the number of dice available each round by ")
                         .with_positive_effect("1")
                         .static_text(".");
-                },
-                crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::Spoon { damage_multiplier } => {
                     builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
+                        .static_text("Increases attack damage of towers built with 3 or fewer cards by ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made with 3 or fewer cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
-                    builder.static_text("Shop item prices are discounted.");
-                },
-                crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::PerfectPottery { damage_multiplier } => {
                     builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
+                        .static_text("Increases attack damage of towers built without reroll by ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made without rerolling.");
-                },
-                crate::game_state::upgrade::UpgradeKind::EvenOddTowerAttackDamageMultiply { even, damage_multiplier } => {
-                    let card_type = if *even { "even" } else { "odd" };
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::SingleChopstick { damage_multiplier } => {
                     builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
+                        .static_text("Increases attack damage of towers built with odd cards by ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made with ")
-                        .text(card_type)
-                        .static_text(" cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, damage_multiplier } => {
-                    let card_type = if *face { "face" } else { "number" };
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::PairChopsticks { damage_multiplier } => {
                     builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
+                        .static_text("Increases attack damage of towers built with even cards by ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made with ")
-                        .text(card_type)
-                        .static_text(" cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShortenStraightFlushTo4Cards => {
-                    builder.static_text("Allows making straight flush with 4 cards.");
-                },
-                crate::game_state::upgrade::UpgradeKind::SkipRankForStraight => {
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::FountainPen { damage_multiplier } => {
+                    builder
+                        .static_text("Increases attack damage of towers built with number cards by ")
+                        .with_multiplier(format!("{damage_multiplier:.1}"))
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::Brush { damage_multiplier } => {
+                    builder
+                        .static_text("Increases attack damage of towers built with face cards by ")
+                        .with_multiplier(format!("{damage_multiplier:.1}"))
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::BrokenPottery { damage_multiplier } => {
+                    builder
+                        .static_text("Increases attack damage of rerolled towers by ")
+                        .with_multiplier(format!("{damage_multiplier:.1}"))
+                        .static_text(".");
+                }
+                crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
+                    builder.static_text("Reduces shop item prices.");
+                }
+                crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
+                    builder.static_text("Allows straight flush with 4 cards.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Rabbit => {
                     builder.static_text("Allows skipping one rank when making a straight.");
-                },
-                crate::game_state::upgrade::UpgradeKind::TreatSuitsAsSame => {
+                }
+                crate::game_state::upgrade::UpgradeKind::BlackWhite => {
                     builder.static_text("Treats all suits as the same.");
-                },
-                crate::game_state::upgrade::UpgradeKind::RerollTowerAttackDamageMultiply { damage_multiplier } => {
-                    builder
-                        .with_attack_damage_stat("Attack Damage")
-                        .static_text(" increases by ")
-                        .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" for towers made after rerolling.");
-                },
-            }
-        }
-    }
-
-    fn get_english_tower_name(tower_kind: &crate::game_state::tower::TowerKind) -> &'static str {
-        match tower_kind {
-            crate::game_state::tower::TowerKind::Barricade => "Barricade",
-            crate::game_state::tower::TowerKind::High => "High Card",
-            crate::game_state::tower::TowerKind::OnePair => "One Pair",
-            crate::game_state::tower::TowerKind::TwoPair => "Two Pair",
-            crate::game_state::tower::TowerKind::ThreeOfAKind => "Three of a Kind",
-            crate::game_state::tower::TowerKind::Straight => "Straight",
-            crate::game_state::tower::TowerKind::Flush => "Flush",
-            crate::game_state::tower::TowerKind::FullHouse => "Full House",
-            crate::game_state::tower::TowerKind::FourOfAKind => "Four of a Kind",
-            crate::game_state::tower::TowerKind::StraightFlush => "Straight Flush",
-            crate::game_state::tower::TowerKind::RoyalFlush => "Royal Flush",
+                }
+            },
         }
     }
 }

@@ -30,6 +30,7 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem, HandSlotId};
 use crate::route::*;
@@ -273,14 +274,17 @@ fn create_initial_game_state() -> GameState {
         delayed_hits: Default::default(),
         items: vec![
             Item {
+                kind: ItemKind::EmergencyDice,
                 effect: Effect::ExtraDice,
                 value: 0.5.into(),
             },
             Item {
+                kind: ItemKind::EmergencyDice,
                 effect: Effect::ExtraDice,
                 value: 0.5.into(),
             },
             Item {
+                kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::Barricade,
                     suit: Suit::Spades,
@@ -290,6 +294,7 @@ fn create_initial_game_state() -> GameState {
                 value: 1.0.into(),
             },
             Item {
+                kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::High,
                     suit: Suit::Spades,

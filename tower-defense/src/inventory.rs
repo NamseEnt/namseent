@@ -93,7 +93,7 @@ impl Component for InventoryItem<'_> {
                 let tooltip = ctx.ghost_add(
                     "inventory-tooltip",
                     InventoryTooltip {
-                        effect: item.effect.clone(),
+                        kind: item.kind.clone(),
                         locale,
                     },
                 );
@@ -127,7 +127,7 @@ impl Component for InventoryItem<'_> {
                     // thumbnail gets normal padding; margins are handled above
                     let inner_wh = Wh::new(wh.width - PADDING * 2.0, wh.height - PADDING * 2.0);
                     ctx.translate(Xy::new(PADDING, PADDING))
-                        .add(item.effect.thumbnail(inner_wh));
+                        .add(item.thumbnail(inner_wh));
                 },
             ))
             .add(
@@ -152,17 +152,17 @@ impl Component for InventoryItem<'_> {
 }
 
 struct InventoryTooltip {
-    effect: crate::game_state::effect::Effect,
+    kind: crate::game_state::item::ItemKind,
     locale: crate::l10n::Locale,
 }
 
 impl Component for InventoryTooltip {
     fn render(self, ctx: &RenderCtx) {
-        let InventoryTooltip { effect, locale } = self;
-        let name_text = effect.name_text();
-        let desc_text = effect.description_text();
-        let name_key = format!("{:?}:name", effect);
-        let desc_key = format!("{:?}:desc", effect);
+        let InventoryTooltip { kind, locale } = self;
+        let name_text = kind.name_text();
+        let desc_text = kind.description_text();
+        let name_key = format!("{:?}:name", kind);
+        let desc_key = format!("{:?}:desc", kind);
 
         let max_width = tooltip::MAX_WIDTH;
         let text_max = max_width - (tooltip::PADDING * 2.0);

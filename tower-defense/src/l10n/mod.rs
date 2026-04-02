@@ -3,6 +3,7 @@
 pub mod api;
 pub mod effect;
 pub mod event;
+pub mod item_kind;
 pub mod locale;
 pub mod monster_skill;
 pub mod poker_action;
