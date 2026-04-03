@@ -11,7 +11,11 @@ mod test;
 pub mod windows;
 
 pub use build::*;
+#[allow(unused_imports)]
 pub use check::*;
+#[allow(unused_imports)]
 pub use clippy::*;
+#[allow(unused_imports)]
 pub use start::*;
+#[allow(unused_imports)]
 pub use test::*;

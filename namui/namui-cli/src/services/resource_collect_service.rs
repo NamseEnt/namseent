@@ -89,7 +89,7 @@ fn collect_dir_recursive(
         if path.is_dir() {
             collect_dir_recursive(ops, &path, &dest_prefix.join(&file_name))?;
         } else {
-            ops.push(CollectOperation::new(&path, dest_prefix.clone()));
+            ops.push(CollectOperation::new(&path, dest_prefix));
         }
     }
     Ok(())
