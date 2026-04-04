@@ -19,7 +19,12 @@ pub fn bundle_to_sqlite(
 ) -> Result<()> {
     let sqlite_path = sqlite_path.as_ref().to_path_buf();
     create_dir_all(sqlite_path.parent().unwrap())?;
-    let create_conn = || Connection::open(&sqlite_path).unwrap();
+    let create_conn = || {
+        let conn = Connection::open(&sqlite_path).unwrap();
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.busy_timeout(std::time::Duration::from_secs(30)).unwrap();
+        conn
+    };
     let conn = create_conn();
     let has_changes = Arc::new(AtomicBool::new(false));
 

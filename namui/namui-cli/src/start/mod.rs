@@ -1,7 +1,7 @@
 mod app_wrapper;
 mod dylib_wrapper;
 pub mod mac;
-mod wasi_cargo_envs;
+pub mod wasi_cargo_envs;
 mod watcher;
 
 use crate::{util::get_cli_root_path, *};
