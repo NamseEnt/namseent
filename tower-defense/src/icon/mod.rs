@@ -8,7 +8,6 @@ use namui::*;
 pub enum IconKind {
     Accept,
     Damage,
-    Dopamine,
     Warning,
     Config,
     EnemyBoss,
@@ -42,7 +41,6 @@ impl IconKind {
         match self {
             IconKind::Accept => crate::asset::image::icon::ACCEPT,
             IconKind::Damage => crate::asset::image::icon::DAMAGE,
-            IconKind::Dopamine => crate::asset::image::icon::DOPAMINE,
             IconKind::Config => crate::asset::image::icon::CONFIG,
             IconKind::EnemyBoss => crate::asset::image::icon::ENEMY_BOSS,
             IconKind::EnemyNamed => crate::asset::image::icon::ENEMY_NAMED,
@@ -87,7 +85,6 @@ impl IconKind {
         match self {
             IconKind::Accept => "accept",
             IconKind::Damage => "damage",
-            IconKind::Dopamine => "dopamine",
             IconKind::Config => "config",
             IconKind::EnemyBoss => "enemy_boss",
             IconKind::EnemyNamed => "enemy_named",
@@ -132,7 +129,6 @@ impl IconKind {
         match asset_id {
             "accept" => Some(IconKind::Accept),
             "damage" => Some(IconKind::Damage),
-            "dopamine" => Some(IconKind::Dopamine),
             "config" => Some(IconKind::Config),
             "enemy_boss" => Some(IconKind::EnemyBoss),
             "enemy_named" => Some(IconKind::EnemyNamed),
