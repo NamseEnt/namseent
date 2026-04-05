@@ -2,9 +2,7 @@ use crate::{
     game_state::upgrade::UpgradeKind,
     icon::{Icon, IconKind, IconSize},
     thumbnail::{
-        ThumbnailComposer,
-        constants::OVERLAY_SIZE_RATIO,
-        overlay_rendering::OverlayPosition,
+        ThumbnailComposer, constants::OVERLAY_SIZE_RATIO, overlay_rendering::OverlayPosition,
     },
 };
 use namui::*;
@@ -110,6 +108,15 @@ impl UpgradeKind {
             UpgradeKind::BlackWhite => ThumbnailComposer::new(width_height)
                 .with_default_tower()
                 .add_same_suits_indicator()
+                .build(),
+
+            UpgradeKind::Eraser => ThumbnailComposer::new(width_height)
+                .with_default_tower()
+                .add_icon_overlay(
+                    IconKind::Card,
+                    OverlayPosition::TopRight,
+                    OVERLAY_SIZE_RATIO,
+                )
                 .build(),
 
             UpgradeKind::BrokenPottery { .. } => create_condition_stat_upgrade_thumbnail(

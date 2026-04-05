@@ -15,6 +15,11 @@ pub(super) fn tower_overlay_suit_image(suit: Suit) -> Image {
 /// Returns the overlay image corresponding to the given rank.
 pub(super) fn tower_overlay_rank_image(rank: Rank) -> Image {
     match rank {
+        Rank::Two => crate::asset::image::tower::suit_rank::RANK_2,
+        Rank::Three => crate::asset::image::tower::suit_rank::RANK_3,
+        Rank::Four => crate::asset::image::tower::suit_rank::RANK_4,
+        Rank::Five => crate::asset::image::tower::suit_rank::RANK_5,
+        Rank::Six => crate::asset::image::tower::suit_rank::RANK_6,
         Rank::Seven => crate::asset::image::tower::suit_rank::RANK_7,
         Rank::Eight => crate::asset::image::tower::suit_rank::RANK_8,
         Rank::Nine => crate::asset::image::tower::suit_rank::RANK_9,

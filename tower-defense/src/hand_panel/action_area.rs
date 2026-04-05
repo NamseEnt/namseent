@@ -150,12 +150,24 @@ impl Component for HandActionArea {
                             return;
                         }
 
+                        let selected_cards: Vec<Card> = selected_slot_ids
+                            .iter()
+                            .filter_map(|slot_id| {
+                                game_state
+                                    .hand
+                                    .get_item(*slot_id)
+                                    .and_then(|item| item.as_card())
+                                    .copied()
+                            })
+                            .collect();
                         let select_count = selected_slot_ids.len();
                         game_state.hand.delete_slots(&selected_slot_ids);
+                        if !selected_cards.is_empty() {
+                            game_state.deck.put_back(selected_cards);
+                        }
                         (0..select_count).for_each(|_| {
-                            game_state
-                                .hand
-                                .push(crate::hand::HandItem::Card(Card::new_random()));
+                            let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
+                            game_state.hand.push(crate::hand::HandItem::Card(card));
                         });
                         sound::play_card_draw_sounds(select_count);
 

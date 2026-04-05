@@ -5,7 +5,11 @@ pub mod monster_hp_balance;
 mod route_length_info;
 pub mod state_snapshot;
 
-use crate::game_state::{effect::Effect, item::{Item, ItemKind}, mutate_game_state, set_modal};
+use crate::game_state::{
+    effect::Effect,
+    item::{Item, ItemKind},
+    mutate_game_state, set_modal,
+};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{

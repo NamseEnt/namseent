@@ -30,6 +30,7 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::card::Deck;
 use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem, HandSlotId};
@@ -82,6 +83,7 @@ pub struct GameState {
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     pub hand: Hand<HandItem>,
+    pub deck: Deck,
     /// one-based
     pub stage: usize,
     pub left_dice: usize,
@@ -281,6 +283,7 @@ fn create_initial_game_state() -> GameState {
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
+        deck: Deck::new(0),
         play_history: PlayHistory::new(),
         opened_modal: None,
         stage_modifiers: StageModifiers::new(),
@@ -336,6 +339,7 @@ impl GameState {
             upgrade_state: self.upgrade_state.clone(),
             flow: self.flow.clone(),
             hand: self.hand.clone(),
+            deck: self.deck.clone(),
             stage: self.stage,
             left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
@@ -451,9 +455,9 @@ mod tests {
 
         // initially flow is SelectingTower (round 0 default shop pick)
         assert!(gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel()); // shop_panel_mode starts as None per new behavior
+        assert!(gs.can_open_shop_panel()); // shop panel is allowed in selecting tower flow
 
-        // selecting tower flow: hand panel is allowed, shop is disabled unless mode set
+        // selecting tower flow: hand and shop panels are both allowed
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
@@ -462,28 +466,28 @@ mod tests {
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // reopening when none open should open hand panel again, shop remains disabled
+        // reopening when none open should open both allowed panels again
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - hand is allowed; shop is disabled by design in this flow.
+        // enter selecting tower flow - both hand and shop are allowed in this flow.
         gs.goto_selecting_tower();
         assert!(gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel());
-        // forced flags were true already; hand panel open
+        assert!(gs.can_open_shop_panel());
+        // forced flags were true already; both panels open
         assert!(gs.hand_panel_forced_open && gs.can_open_hand_panel());
-        assert!(gs.shop_panel_forced_open); // still true by state but not open because cannot open
+        assert!(gs.shop_panel_forced_open && gs.can_open_shop_panel());
 
-        // space should close hand
+        // space should close both allowed panels
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // closing again should reopen only hand panel, shop remains disabled (forced state may stay false)
+        // closing again should reopen both panels since they are allowed
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
 
         // go to placing tower flow: hand allowed, shop not
         gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
@@ -495,9 +499,9 @@ mod tests {
         assert!(!gs.can_open_shop_panel());
 
         // forced flags remain whatever they were; toggle logic should respect permissions
-        // shop is not allowed in placing flow, so forced flag can be false
+        // shop is not allowed in placing flow, so it may still be forced open in state
         assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
 
         // space when hand is open should close both (shop will be closed but can't open anyway)
         gs.toggle_panels();

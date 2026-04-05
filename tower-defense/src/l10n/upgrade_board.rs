@@ -12,6 +12,7 @@ pub enum UpgradeBoardText {
     ShortenStraightFlushTo4Cards,
     SkipRankForStraight,
     TreatSuitsAsSame,
+    Eraser { amount: usize },
     TowerSelectLowCard { amount: usize },
     TowerSelectNoReroll,
     TowerSelectReroll,
@@ -64,6 +65,11 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::TreatSuitsAsSame => {
                 builder.text("색이 같으면 같은 문양으로 취급합니다");
+            }
+            UpgradeBoardText::Eraser { amount } => {
+                builder.text(format!(
+                    "덱에서 숫자 카드 {amount}개를 순차적으로 제거합니다"
+                ));
             }
             UpgradeBoardText::TowerSelectLowCard { amount } => {
                 builder.text(format!("카드 {amount}개 이하로 타워를 만들 때 타워의"));
@@ -130,6 +136,11 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::TreatSuitsAsSame => {
                 builder.text("Treats same colors as the same pattern");
+            }
+            UpgradeBoardText::Eraser { amount } => {
+                builder.text(format!(
+                    "Removes {amount} number ranks from the deck in order"
+                ));
             }
             UpgradeBoardText::TowerSelectLowCard { amount } => {
                 builder.text(format!(

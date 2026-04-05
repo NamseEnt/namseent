@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::upgrade::MAX_REMOVE_NUMBER_RANKS;
 use crate::game_state::{GameState, tower::TowerKind};
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
@@ -140,6 +141,14 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
     push_row(
         || UpgradeKind::BlackWhite,
         Some((upgrade_state.treat_suits_as_same as usize, 1)),
+        10.0,
+    );
+    push_row(
+        || UpgradeKind::Eraser,
+        Some((
+            upgrade_state.removed_number_rank_count,
+            MAX_REMOVE_NUMBER_RANKS,
+        )),
         10.0,
     );
 

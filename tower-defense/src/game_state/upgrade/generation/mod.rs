@@ -16,7 +16,10 @@ fn select_upgrade_from_candidates(
     let kind = (candidate.kind_gen)();
     let value = thread_rng().gen_range(0.0..=1.0);
 
-    Upgrade { kind, value: value.into() }
+    Upgrade {
+        kind,
+        value: value.into(),
+    }
 }
 
 pub fn generate_tower_damage_upgrade(game_state: &GameState) -> Upgrade {

@@ -33,7 +33,11 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                     } else if let Some(upgrade) = upgrade_kind {
                                         ctx.add(upgrade.thumbnail(wh));
                                     } else {
-                                        ctx.add(Icon::new(IconKind::Config).size(IconSize::Large).wh(wh));
+                                        ctx.add(
+                                            Icon::new(IconKind::Config)
+                                                .size(IconSize::Large)
+                                                .wh(wh),
+                                        );
                                     }
                                 }),
                                 table::ratio_no_clip(1, |_, _| {}),

@@ -178,7 +178,10 @@ impl GameState {
                     return;
                 }
 
-                if self.stage_modifiers.is_item_and_upgrade_purchases_disabled() {
+                if self
+                    .stage_modifiers
+                    .is_item_and_upgrade_purchases_disabled()
+                {
                     return;
                 }
 

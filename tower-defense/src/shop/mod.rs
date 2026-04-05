@@ -109,12 +109,18 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         }
         3..=7 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
-            let cost = item_cost(upgrade.value, game_state.upgrade_state.shop_item_price_minus);
+            let cost = item_cost(
+                upgrade.value,
+                game_state.upgrade_state.shop_item_price_minus,
+            );
             ShopSlot::Upgrade { upgrade, cost }
         }
         8..=9 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
-            let cost = item_cost(upgrade.value, game_state.upgrade_state.shop_item_price_minus);
+            let cost = item_cost(
+                upgrade.value,
+                game_state.upgrade_state.shop_item_price_minus,
+            );
             ShopSlot::Upgrade { upgrade, cost }
         }
         _ => unreachable!(),

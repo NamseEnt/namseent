@@ -57,6 +57,9 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::BlackWhite => {
                     builder.static_text("흑백");
                 }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder.static_text("지우개");
+                }
                 crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
                     builder.static_text("깨진 도자기");
                 }
@@ -149,6 +152,9 @@ impl UpgradeKindText<'_> {
                 }
                 crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
                     builder.static_text("상점 아이템의 가격이 할인됩니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder.static_text("덱에서 숫자 카드 랭크를 순차적으로 제거합니다.");
                 }
                 crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
                     builder.static_text("스트레이트 플러시를 4장으로 만들 수 있게 됩니다.");

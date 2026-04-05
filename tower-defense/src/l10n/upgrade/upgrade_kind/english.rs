@@ -57,6 +57,9 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::BlackWhite => {
                     builder.static_text("Black & White");
                 }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder.static_text("Eraser");
+                }
                 crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
                     builder.static_text("Broken Pottery");
                 }
@@ -73,7 +76,9 @@ impl UpgradeKindText<'_> {
                 | crate::game_state::upgrade::UpgradeKind::Mace { damage_multiplier }
                 | crate::game_state::upgrade::UpgradeKind::ClubSword { damage_multiplier } => {
                     builder
-                        .static_text("Increases attack damage of towers built with specific suit cards by ")
+                        .static_text(
+                            "Increases attack damage of towers built with specific suit cards by ",
+                        )
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(".");
                 }
@@ -91,7 +96,9 @@ impl UpgradeKindText<'_> {
                 }
                 crate::game_state::upgrade::UpgradeKind::Spoon { damage_multiplier } => {
                     builder
-                        .static_text("Increases attack damage of towers built with 3 or fewer cards by ")
+                        .static_text(
+                            "Increases attack damage of towers built with 3 or fewer cards by ",
+                        )
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(".");
                 }
@@ -115,7 +122,9 @@ impl UpgradeKindText<'_> {
                 }
                 crate::game_state::upgrade::UpgradeKind::FountainPen { damage_multiplier } => {
                     builder
-                        .static_text("Increases attack damage of towers built with number cards by ")
+                        .static_text(
+                            "Increases attack damage of towers built with number cards by ",
+                        )
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(".");
                 }
@@ -133,6 +142,10 @@ impl UpgradeKindText<'_> {
                 }
                 crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
                     builder.static_text("Reduces shop item prices.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder
+                        .static_text("Removes number ranks from the deck sequentially when drawn.");
                 }
                 crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
                     builder.static_text("Allows straight flush with 4 cards.");

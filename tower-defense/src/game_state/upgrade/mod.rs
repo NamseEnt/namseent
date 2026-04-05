@@ -12,6 +12,7 @@ pub const MAX_GOLD_EARN_PLUS: usize = 16;
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
 pub const MAX_DICE_CHANCE_PLUS: usize = 4;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
+pub const MAX_REMOVE_NUMBER_RANKS: usize = 5;
 pub const DEFAULT_MAX_TREASURE_TOKENS: u8 = 2;
 
 #[derive(Debug, Clone, State)]
@@ -23,6 +24,7 @@ pub struct UpgradeState {
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
+    pub removed_number_rank_count: usize,
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
     pub treat_suits_as_same: bool,
@@ -38,6 +40,7 @@ impl Default for UpgradeState {
             tower_upgrade_states: BTreeMap::new(),
             tower_select_upgrade_states: BTreeMap::new(),
             shop_item_price_minus: 0,
+            removed_number_rank_count: 0,
             shorten_straight_flush_to_4_cards: false,
             skip_rank_for_straight: false,
             treat_suits_as_same: false,
@@ -174,6 +177,10 @@ impl UpgradeState {
             UpgradeKind::BlackWhite => {
                 self.treat_suits_as_same = true;
             }
+            UpgradeKind::Eraser => {
+                self.removed_number_rank_count =
+                    (self.removed_number_rank_count + 1).min(MAX_REMOVE_NUMBER_RANKS);
+            }
             UpgradeKind::BrokenPottery { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
                     TowerSelectUpgradeTarget::Reroll,
@@ -240,6 +247,7 @@ pub enum UpgradeKind {
     FourLeafClover,
     Rabbit,
     BlackWhite,
+    Eraser,
     BrokenPottery { damage_multiplier: f32 },
 }
 

@@ -96,6 +96,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
         self.record_stage_start();
         save_stage_snapshot(self);
     }
@@ -119,7 +120,8 @@ impl GameState {
             self.hand.delete_slots(&removing_ids);
         }
         for _ in 0..max_slots {
-            self.hand.push(HandItem::Card(Card::new_random()));
+            let card = self.deck.draw().unwrap_or_else(Card::new_random);
+            self.hand.push(HandItem::Card(card));
         }
 
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));

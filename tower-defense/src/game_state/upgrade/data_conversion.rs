@@ -92,6 +92,15 @@ fn add_basic_upgrades(
         });
     }
 
+    if state.removed_number_rank_count != 0 {
+        infos.push(UpgradeInfo {
+            upgrade_kind: UpgradeKind::Eraser,
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::Eraser {
+                amount: state.removed_number_rank_count,
+            }),
+        });
+    }
+
     if state.shorten_straight_flush_to_4_cards {
         infos.push(UpgradeInfo {
             upgrade_kind: UpgradeKind::FourLeafClover,
