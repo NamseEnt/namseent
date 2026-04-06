@@ -10,125 +10,121 @@ use namui::*;
 impl UpgradeKind {
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         match self {
-            // 골드 관련 업그레이드
-            UpgradeKind::GoldEarnPlus => ThumbnailComposer::new(width_height)
+            UpgradeKind::Magnet => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Gold)
                 .add_plus_overlay()
                 .build(),
 
-            // 랜크 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::RankAttackDamageMultiply { rank, .. } => {
-                create_rank_stat_upgrade_thumbnail(
-                    width_height,
-                    *rank,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
+            UpgradeKind::CainSword { .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                crate::card::Suit::Diamonds,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
+            UpgradeKind::LongSword { .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                crate::card::Suit::Spades,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
+            UpgradeKind::Mace { .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                crate::card::Suit::Hearts,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
+            UpgradeKind::ClubSword { .. } => create_suit_stat_upgrade_thumbnail(
+                width_height,
+                crate::card::Suit::Clubs,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
 
-            // 슈트 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
-                create_suit_stat_upgrade_thumbnail(
-                    width_height,
-                    *suit,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
-
-            // 핸드 기반 업그레이드들 - 공격력 관련
-            UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
-                create_hand_stat_upgrade_thumbnail(
-                    width_height,
-                    *tower_kind,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
-
-            // 확장 관련 업그레이드들
-            UpgradeKind::ShopSlotExpansion => ThumbnailComposer::new(width_height)
+            UpgradeKind::Backpack => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shop)
                 .add_expansion_indicator("+")
                 .build(),
 
-            // 리롤 관련 업그레이드들
-            UpgradeKind::ExtraDice => ThumbnailComposer::new(width_height)
+            UpgradeKind::DiceBundle => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Refresh)
                 .add_plus_overlay()
                 .build(),
 
-            // 낮은 카드 관련 업그레이드들
-            UpgradeKind::LowCardTowerDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::LowCard,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
+            UpgradeKind::Spoon { .. } => create_condition_stat_upgrade_thumbnail(
+                width_height,
+                ConditionType::LowCard,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
 
-            // 상점 관련 업그레이드들
-            UpgradeKind::ShopItemPriceMinus => Icon::new(IconKind::Shop)
+            UpgradeKind::EnergyDrink => Icon::new(IconKind::Shop)
                 .wh(width_height)
                 .size(IconSize::Custom {
                     size: width_height.width,
                 })
                 .to_rendering_tree(),
 
-            // 리롤 없음 관련 업그레이드들
-            UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::NoReroll,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
+            UpgradeKind::PerfectPottery { .. } => create_condition_stat_upgrade_thumbnail(
+                width_height,
+                ConditionType::NoReroll,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
 
-            // 짝수/홀수 관련 업그레이드들
-            UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
-                create_even_odd_stat_upgrade_thumbnail(
-                    width_height,
-                    *even,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
+            UpgradeKind::SingleChopstick { .. } => create_even_odd_stat_upgrade_thumbnail(
+                width_height,
+                false,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
+            UpgradeKind::PairChopsticks { .. } => create_even_odd_stat_upgrade_thumbnail(
+                width_height,
+                true,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
 
-            // 페이스/숫자 카드 관련 업그레이드들
-            UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
-                create_face_number_stat_upgrade_thumbnail(
-                    width_height,
-                    *face,
-                    StatType::Damage,
-                    OperationType::Multiply,
-                )
-            }
+            UpgradeKind::FountainPen { .. } => create_face_number_stat_upgrade_thumbnail(
+                width_height,
+                false,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
+            UpgradeKind::Brush { .. } => create_face_number_stat_upgrade_thumbnail(
+                width_height,
+                true,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
 
-            // 특수 카드 게임 규칙 업그레이드들
-            UpgradeKind::ShortenStraightFlushTo4Cards => ThumbnailComposer::new(width_height)
+            UpgradeKind::FourLeafClover => ThumbnailComposer::new(width_height)
                 .with_default_tower()
                 .add_shortcut_indicator("4")
                 .build(),
-            UpgradeKind::SkipRankForStraight => ThumbnailComposer::new(width_height)
+            UpgradeKind::Rabbit => ThumbnailComposer::new(width_height)
                 .with_default_tower()
                 .add_skip_indicator()
                 .build(),
-            UpgradeKind::TreatSuitsAsSame => ThumbnailComposer::new(width_height)
+            UpgradeKind::BlackWhite => ThumbnailComposer::new(width_height)
                 .with_default_tower()
                 .add_same_suits_indicator()
                 .build(),
 
-            // 리롤 관련 타워 업그레이드들
-            UpgradeKind::RerollTowerAttackDamageMultiply { .. } => {
-                create_condition_stat_upgrade_thumbnail(
-                    width_height,
-                    ConditionType::Reroll,
-                    StatType::Damage,
-                    OperationType::Multiply,
+            UpgradeKind::Eraser => ThumbnailComposer::new(width_height)
+                .with_default_tower()
+                .add_icon_overlay(
+                    IconKind::Card,
+                    OverlayPosition::TopRight,
+                    OVERLAY_SIZE_RATIO,
                 )
-            }
+                .build(),
+
+            UpgradeKind::BrokenPottery { .. } => create_condition_stat_upgrade_thumbnail(
+                width_height,
+                ConditionType::Reroll,
+                StatType::Damage,
+                OperationType::Multiply,
+            ),
         }
     }
 }
@@ -176,6 +172,7 @@ enum ConditionType {
 }
 
 // 랭크 기반 스탯 업그레이드 썸네일 생성 함수
+#[allow(dead_code)]
 fn create_rank_stat_upgrade_thumbnail(
     width_height: Wh<Px>,
     rank: crate::card::Rank,
@@ -222,6 +219,7 @@ fn create_suit_stat_upgrade_thumbnail(
 }
 
 // 핸드 기반 스탯 업그레이드 썸네일 생성 함수
+#[allow(dead_code)]
 fn create_hand_stat_upgrade_thumbnail(
     width_height: Wh<Px>,
     tower_kind: crate::game_state::tower::TowerKind,
@@ -250,41 +248,16 @@ fn create_condition_stat_upgrade_thumbnail(
     stat_type: StatType,
     operation_type: OperationType,
 ) -> RenderingTree {
-    let mut composer = ThumbnailComposer::new(width_height)
-        .with_default_tower()
+    let with_condition = match condition_type {
+        ConditionType::LowCard => ThumbnailComposer::new(width_height).add_low_card_indicator(),
+        ConditionType::NoReroll => ThumbnailComposer::new(width_height).add_no_reroll_indicator(),
+        ConditionType::Reroll => ThumbnailComposer::new(width_height).add_reroll_indicator(),
+    };
+
+    with_condition
         .add_icon_overlay(
             stat_type.to_icon_kind(),
-            OverlayPosition::BottomRight,
-            OVERLAY_SIZE_RATIO,
-        )
-        .add_icon_overlay(
-            operation_type.to_icon_kind(),
-            OverlayPosition::TopRight,
-            OVERLAY_SIZE_RATIO,
-        );
-
-    match condition_type {
-        ConditionType::LowCard => composer = composer.add_low_card_indicator(),
-        ConditionType::NoReroll => composer = composer.add_no_reroll_indicator(),
-        ConditionType::Reroll => composer = composer.add_reroll_indicator(),
-    }
-
-    composer.build()
-}
-
-// 짝수/홀수 기반 스탯 업그레이드 썸네일 생성 함수
-fn create_even_odd_stat_upgrade_thumbnail(
-    width_height: Wh<Px>,
-    is_even: bool,
-    stat_type: StatType,
-    operation_type: OperationType,
-) -> RenderingTree {
-    ThumbnailComposer::new(width_height)
-        .with_default_tower()
-        .add_even_odd_indicator(is_even)
-        .add_icon_overlay(
-            stat_type.to_icon_kind(),
-            OverlayPosition::BottomRight,
+            OverlayPosition::BottomLeft,
             OVERLAY_SIZE_RATIO,
         )
         .add_icon_overlay(
@@ -295,19 +268,42 @@ fn create_even_odd_stat_upgrade_thumbnail(
         .build()
 }
 
-// 페이스/숫자 카드 기반 스탯 업그레이드 썸네일 생성 함수
-fn create_face_number_stat_upgrade_thumbnail(
+// 짝수/홀수 기반 스탯 업그레이드 썸네일 생성 함수
+fn create_even_odd_stat_upgrade_thumbnail(
     width_height: Wh<Px>,
-    is_face: bool,
+    even: bool,
     stat_type: StatType,
     operation_type: OperationType,
 ) -> RenderingTree {
     ThumbnailComposer::new(width_height)
         .with_default_tower()
-        .add_face_number_indicator(is_face)
+        .add_even_odd_indicator(even)
         .add_icon_overlay(
             stat_type.to_icon_kind(),
-            OverlayPosition::BottomRight,
+            OverlayPosition::BottomLeft,
+            OVERLAY_SIZE_RATIO,
+        )
+        .add_icon_overlay(
+            operation_type.to_icon_kind(),
+            OverlayPosition::TopRight,
+            OVERLAY_SIZE_RATIO,
+        )
+        .build()
+}
+
+// 페이스/숫자 기반 스탯 업그레이드 썸네일 생성 함수
+fn create_face_number_stat_upgrade_thumbnail(
+    width_height: Wh<Px>,
+    face: bool,
+    stat_type: StatType,
+    operation_type: OperationType,
+) -> RenderingTree {
+    ThumbnailComposer::new(width_height)
+        .with_default_tower()
+        .add_face_number_indicator(face)
+        .add_icon_overlay(
+            stat_type.to_icon_kind(),
+            OverlayPosition::BottomLeft,
             OVERLAY_SIZE_RATIO,
         )
         .add_icon_overlay(

@@ -1,5 +1,4 @@
-use crate::card::{REVERSED_RANKS, SUITS};
-use crate::game_state::tower::TowerKind;
+use crate::card::SUITS;
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::{Icon, IconKind, IconSize};
@@ -27,10 +26,8 @@ const RARITIES: [Rarity; 4] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum UpgradeCategory {
     Random,
-    GoldEarnPlus,
-    RankDamage,
+    Magnet,
     SuitDamage,
-    HandDamage,
     ShopSlotExpansion,
     ExtraDice,
     LowCardDamage,
@@ -44,12 +41,10 @@ pub enum UpgradeCategory {
     RerollDamage,
 }
 
-const UPGRADE_CATEGORIES: [UpgradeCategory; 16] = [
+const UPGRADE_CATEGORIES: [UpgradeCategory; 14] = [
     UpgradeCategory::Random,
-    UpgradeCategory::GoldEarnPlus,
-    UpgradeCategory::RankDamage,
+    UpgradeCategory::Magnet,
     UpgradeCategory::SuitDamage,
-    UpgradeCategory::HandDamage,
     UpgradeCategory::ShopSlotExpansion,
     UpgradeCategory::ExtraDice,
     UpgradeCategory::LowCardDamage,
@@ -66,15 +61,15 @@ const UPGRADE_CATEGORIES: [UpgradeCategory; 16] = [
 const EXPECTED_UPGRADES_BY_STAGE: [(Rarity, UpgradeCategory); 50] = [
     (Rarity::Common, UpgradeCategory::NoRerollDamage),
     (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
-    (Rarity::Common, UpgradeCategory::HandDamage),
+    (Rarity::Common, UpgradeCategory::SuitDamage),
     (Rarity::Common, UpgradeCategory::RerollDamage),
-    (Rarity::Common, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Common, UpgradeCategory::Magnet),
     (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
     (Rarity::Common, UpgradeCategory::LowCardDamage),
     (Rarity::Common, UpgradeCategory::SuitDamage),
     (Rarity::Common, UpgradeCategory::TreatSuitsAsSame),
     (Rarity::Common, UpgradeCategory::ShopItemPriceMinus),
-    (Rarity::Common, UpgradeCategory::HandDamage),
+    (Rarity::Common, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::SkipRankForStraight),
     (Rarity::Common, UpgradeCategory::SuitDamage),
     (Rarity::Common, UpgradeCategory::NoRerollDamage),
@@ -91,26 +86,26 @@ const EXPECTED_UPGRADES_BY_STAGE: [(Rarity, UpgradeCategory); 50] = [
     (Rarity::Epic, UpgradeCategory::ExtraDice),
     (Rarity::Epic, UpgradeCategory::FaceNumberDamage),
     (Rarity::Legendary, UpgradeCategory::RerollDamage),
-    (Rarity::Rare, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Rare, UpgradeCategory::Magnet),
     (Rarity::Legendary, UpgradeCategory::FaceNumberDamage),
     (Rarity::Legendary, UpgradeCategory::NoRerollDamage),
     (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Legendary, UpgradeCategory::TreatSuitsAsSame),
     (Rarity::Epic, UpgradeCategory::SkipRankForStraight),
-    (Rarity::Epic, UpgradeCategory::HandDamage),
-    (Rarity::Rare, UpgradeCategory::GoldEarnPlus),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
+    (Rarity::Rare, UpgradeCategory::Magnet),
     (Rarity::Legendary, UpgradeCategory::LowCardDamage),
     (Rarity::Epic, UpgradeCategory::TreatSuitsAsSame),
-    (Rarity::Rare, UpgradeCategory::HandDamage),
-    (Rarity::Rare, UpgradeCategory::RankDamage),
-    (Rarity::Common, UpgradeCategory::RankDamage),
+    (Rarity::Rare, UpgradeCategory::SuitDamage),
+    (Rarity::Rare, UpgradeCategory::SuitDamage),
+    (Rarity::Common, UpgradeCategory::SuitDamage),
     (Rarity::Legendary, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Legendary, UpgradeCategory::SuitDamage),
-    (Rarity::Epic, UpgradeCategory::HandDamage),
+    (Rarity::Epic, UpgradeCategory::SuitDamage),
     (Rarity::Rare, UpgradeCategory::RerollDamage),
     (Rarity::Legendary, UpgradeCategory::SuitDamage),
     (Rarity::Epic, UpgradeCategory::LowCardDamage),
@@ -118,7 +113,7 @@ const EXPECTED_UPGRADES_BY_STAGE: [(Rarity, UpgradeCategory); 50] = [
 
 pub fn get_expected_upgrade_for_stage(stage: usize) -> (Rarity, UpgradeCategory) {
     if stage == 0 || stage > 50 {
-        (Rarity::Common, UpgradeCategory::GoldEarnPlus)
+        (Rarity::Common, UpgradeCategory::Magnet)
     } else {
         EXPECTED_UPGRADES_BY_STAGE[stage - 1]
     }
@@ -128,21 +123,20 @@ impl UpgradeCategory {
     fn display_name(&self) -> &'static str {
         match self {
             UpgradeCategory::Random => "Random",
-            UpgradeCategory::GoldEarnPlus => "Gold Earn +",
-            UpgradeCategory::RankDamage => "Rank Damage",
-            UpgradeCategory::SuitDamage => "Suit Damage",
-            UpgradeCategory::HandDamage => "Hand Damage",
-            UpgradeCategory::ShopSlotExpansion => "Shop Slot +",
-            UpgradeCategory::ExtraDice => "Extra Dice",
-            UpgradeCategory::LowCardDamage => "Low Card Damage",
-            UpgradeCategory::ShopItemPriceMinus => "Shop Price -",
-            UpgradeCategory::NoRerollDamage => "No Reroll Damage",
-            UpgradeCategory::EvenOddDamage => "Even/Odd Damage",
-            UpgradeCategory::FaceNumberDamage => "Face/Number Damage",
-            UpgradeCategory::ShortenStraightFlush => "Shorten Straight Flush",
-            UpgradeCategory::SkipRankForStraight => "Skip Rank for Straight",
-            UpgradeCategory::TreatSuitsAsSame => "Treat Suits as Same",
-            UpgradeCategory::RerollDamage => "Reroll Damage",
+            UpgradeCategory::Magnet => "Magnet",
+            UpgradeCategory::SuitDamage => "Suit",
+
+            UpgradeCategory::ShopSlotExpansion => "Backpack",
+            UpgradeCategory::ExtraDice => "Dice Bundle",
+            UpgradeCategory::LowCardDamage => "Spoon",
+            UpgradeCategory::ShopItemPriceMinus => "Energy Drink",
+            UpgradeCategory::NoRerollDamage => "Perfect Pottery",
+            UpgradeCategory::EvenOddDamage => "Chopsticks",
+            UpgradeCategory::FaceNumberDamage => "Pen / Brush",
+            UpgradeCategory::ShortenStraightFlush => "Four Leaf Clover",
+            UpgradeCategory::SkipRankForStraight => "Rabbit",
+            UpgradeCategory::TreatSuitsAsSame => "Black & White",
+            UpgradeCategory::RerollDamage => "Broken Pottery",
         }
     }
 
@@ -150,59 +144,49 @@ impl UpgradeCategory {
         let mut rng = thread_rng();
         match self {
             UpgradeCategory::Random => panic!("Should not generate Random category"),
-            UpgradeCategory::GoldEarnPlus => UpgradeKind::GoldEarnPlus,
-            UpgradeCategory::RankDamage => UpgradeKind::RankAttackDamageMultiply {
-                rank: *REVERSED_RANKS.choose(&mut rng).unwrap(),
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5)),
-            },
-            UpgradeCategory::SuitDamage => UpgradeKind::SuitAttackDamageMultiply {
-                suit: *SUITS.choose(&mut rng).unwrap(),
-                damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5)),
-            },
-            UpgradeCategory::HandDamage => {
-                let tower_kinds = [
-                    TowerKind::High,
-                    TowerKind::OnePair,
-                    TowerKind::TwoPair,
-                    TowerKind::ThreeOfAKind,
-                    TowerKind::Straight,
-                    TowerKind::Flush,
-                    TowerKind::FullHouse,
-                    TowerKind::FourOfAKind,
-                    TowerKind::StraightFlush,
-                    TowerKind::RoyalFlush,
-                ];
-                UpgradeKind::HandAttackDamageMultiply {
-                    tower_kind: *tower_kinds.choose(&mut rng).unwrap(),
-                    damage_multiplier: rarity_gen(
-                        rarity,
-                        (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5),
-                    ),
+            UpgradeCategory::Magnet => UpgradeKind::Magnet,
+            UpgradeCategory::SuitDamage => {
+                let suit = *SUITS.choose(&mut rng).unwrap();
+                let damage_multiplier =
+                    rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5));
+                match suit {
+                    crate::card::Suit::Diamonds => UpgradeKind::CainSword { damage_multiplier },
+                    crate::card::Suit::Spades => UpgradeKind::LongSword { damage_multiplier },
+                    crate::card::Suit::Hearts => UpgradeKind::Mace { damage_multiplier },
+                    crate::card::Suit::Clubs => UpgradeKind::ClubSword { damage_multiplier },
                 }
             }
-            UpgradeCategory::ShopSlotExpansion => UpgradeKind::ShopSlotExpansion,
-            UpgradeCategory::ExtraDice => UpgradeKind::ExtraDice,
-            UpgradeCategory::LowCardDamage => UpgradeKind::LowCardTowerDamageMultiply {
+            UpgradeCategory::ShopSlotExpansion => UpgradeKind::Backpack,
+            UpgradeCategory::ExtraDice => UpgradeKind::DiceBundle,
+            UpgradeCategory::LowCardDamage => UpgradeKind::Spoon {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
-            UpgradeCategory::ShopItemPriceMinus => UpgradeKind::ShopItemPriceMinus,
-            UpgradeCategory::NoRerollDamage => UpgradeKind::NoRerollTowerAttackDamageMultiply {
+            UpgradeCategory::ShopItemPriceMinus => UpgradeKind::EnergyDrink,
+            UpgradeCategory::NoRerollDamage => UpgradeKind::PerfectPottery {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
-            UpgradeCategory::EvenOddDamage => UpgradeKind::EvenOddTowerAttackDamageMultiply {
-                even: rng.gen_bool(0.5),
-                damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
-            },
+            UpgradeCategory::EvenOddDamage => {
+                let damage_multiplier =
+                    rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6));
+                if rng.gen_bool(0.5) {
+                    UpgradeKind::SingleChopstick { damage_multiplier }
+                } else {
+                    UpgradeKind::PairChopsticks { damage_multiplier }
+                }
+            }
             UpgradeCategory::FaceNumberDamage => {
-                UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
-                    face: rng.gen_bool(0.5),
-                    damage_multiplier: rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6)),
+                let damage_multiplier =
+                    rarity_gen(rarity, (1.1..1.2, 1.2..1.4, 1.4..1.5, 1.5..1.6));
+                if rng.gen_bool(0.5) {
+                    UpgradeKind::FountainPen { damage_multiplier }
+                } else {
+                    UpgradeKind::Brush { damage_multiplier }
                 }
             }
-            UpgradeCategory::ShortenStraightFlush => UpgradeKind::ShortenStraightFlushTo4Cards,
-            UpgradeCategory::SkipRankForStraight => UpgradeKind::SkipRankForStraight,
-            UpgradeCategory::TreatSuitsAsSame => UpgradeKind::TreatSuitsAsSame,
-            UpgradeCategory::RerollDamage => UpgradeKind::RerollTowerAttackDamageMultiply {
+            UpgradeCategory::ShortenStraightFlush => UpgradeKind::FourLeafClover,
+            UpgradeCategory::SkipRankForStraight => UpgradeKind::Rabbit,
+            UpgradeCategory::TreatSuitsAsSame => UpgradeKind::BlackWhite,
+            UpgradeCategory::RerollDamage => UpgradeKind::BrokenPottery {
                 damage_multiplier: rarity_gen(
                     rarity,
                     (1.1..1.15, 1.15..1.25, 1.25..1.35, 1.35..1.5),
@@ -256,13 +240,12 @@ impl Component for AddUpgradeTool {
             let rarity = *selected_rarity;
             mutate_game_state(move |gs| {
                 let upgrade = if category == UpgradeCategory::Random {
-                    crate::game_state::upgrade::generate_upgrade(gs, rarity)
+                    crate::game_state::upgrade::generate_treasure_upgrade(gs)
                 } else {
                     let kind = category.generate_upgrade_kind(rarity);
                     let value = thread_rng().gen_range(0.0..=1.0);
                     Upgrade {
                         kind,
-                        rarity,
                         value: value.into(),
                     }
                 };

@@ -55,6 +55,27 @@ fn test_straight_flush_4cards_with_upgrade() {
 }
 
 #[test]
+fn test_straight_flush_with_removed_two_and_shorten_4cards_allows_ace_low() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Ace),
+        make_card(Suit::Hearts, Rank::Three),
+        make_card(Suit::Hearts, Rank::Four),
+        make_card(Suit::Hearts, Rank::Five),
+        make_card(Suit::Hearts, Rank::Six),
+    ];
+    let upgrade_state = UpgradeState {
+        removed_number_rank_count: 1,
+        shorten_straight_flush_to_4_cards: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::StraightFlush);
+    assert_eq!(template.suit, Suit::Hearts);
+    assert_eq!(template.rank, Rank::Six);
+}
+
+#[test]
 fn test_straight_flush_skip_rank() {
     let cards = vec![
         make_card(Suit::Hearts, Rank::Ten),

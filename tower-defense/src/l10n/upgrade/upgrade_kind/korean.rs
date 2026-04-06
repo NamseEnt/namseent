@@ -6,204 +6,166 @@ impl UpgradeKindText<'_> {
     pub fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             UpgradeKindText::Name(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::GoldEarnPlus => {
-                    builder.static_text("골드 수입 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::RankAttackDamageMultiply { rank, .. } => {
-                    builder
-                        .with_card_rank(format!("{rank}"))
-                        .static_text(" 카드 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, .. } => {
-                    builder
-                        .with_suit_color(format!("{:?}", suit), *suit)
-                        .static_text(" 카드 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::HandAttackDamageMultiply { tower_kind, .. } => {
-                    let tower_name = Self::get_tower_name(tower_kind);
-                    builder
-                        .text(tower_name)
-                        .static_text(" ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
-                    builder.static_text("상점 슬롯 확장");
-                },
-                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
-                    builder.static_text("추가 주사위");
-                },
-                crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { .. } => {
-                    builder
-                        .static_text("로우카드 타워 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
-                    builder.static_text("상점 아이템 가격 할인");
-                },
-                crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { .. } => {
-                    builder
-                        .static_text("무리롤 타워 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::EvenOddTowerAttackDamageMultiply { even, .. } => {
-                    let card_type = if *even { "짝수" } else { "홀수" };
-                    builder
-                        .text(card_type)
-                        .static_text(" 카드 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, .. } => {
-                    let card_type = if *face { "페이스" } else { "숫자" };
-                    builder
-                        .text(card_type)
-                        .static_text(" 카드 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShortenStraightFlushTo4Cards => {
-                    builder.static_text("스트레이트 플러시 4장 단축");
-                },
-                crate::game_state::upgrade::UpgradeKind::SkipRankForStraight => {
-                    builder.static_text("스트레이트 랭크 건너뛰기");
-                },
-                crate::game_state::upgrade::UpgradeKind::TreatSuitsAsSame => {
-                    builder.static_text("모든 무늬 동일 취급");
-                },
-                crate::game_state::upgrade::UpgradeKind::RerollTowerAttackDamageMultiply { .. } => {
-                    builder
-                        .static_text("리롤 타워 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text(" 배수 증가");
-                },
+                crate::game_state::upgrade::UpgradeKind::Magnet => {
+                    builder.static_text("자석");
+                }
+                crate::game_state::upgrade::UpgradeKind::CainSword { .. } => {
+                    builder.static_text("케인소드");
+                }
+                crate::game_state::upgrade::UpgradeKind::LongSword { .. } => {
+                    builder.static_text("롱소드");
+                }
+                crate::game_state::upgrade::UpgradeKind::Mace { .. } => {
+                    builder.static_text("메이스");
+                }
+                crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => {
+                    builder.static_text("클럽");
+                }
+                crate::game_state::upgrade::UpgradeKind::Backpack => {
+                    builder.static_text("배낭");
+                }
+                crate::game_state::upgrade::UpgradeKind::DiceBundle => {
+                    builder.static_text("주사위 꾸러미");
+                }
+                crate::game_state::upgrade::UpgradeKind::Spoon { .. } => {
+                    builder.static_text("숟가락");
+                }
+                crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
+                    builder.static_text("에너지드링크");
+                }
+                crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => {
+                    builder.static_text("완벽한 도자기");
+                }
+                crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => {
+                    builder.static_text("젓가락 한개");
+                }
+                crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => {
+                    builder.static_text("젓가락 두개");
+                }
+                crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => {
+                    builder.static_text("만년필");
+                }
+                crate::game_state::upgrade::UpgradeKind::Brush { .. } => {
+                    builder.static_text("붓");
+                }
+                crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
+                    builder.static_text("네잎클로버");
+                }
+                crate::game_state::upgrade::UpgradeKind::Rabbit => {
+                    builder.static_text("토끼");
+                }
+                crate::game_state::upgrade::UpgradeKind::BlackWhite => {
+                    builder.static_text("흑백");
+                }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder.static_text("지우개");
+                }
+                crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
+                    builder.static_text("깨진 도자기");
+                }
             },
             UpgradeKindText::Description(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::GoldEarnPlus => {
+                crate::game_state::upgrade::UpgradeKind::Magnet => {
                     builder
                         .static_text("몬스터를 처치할 때 얻는 ")
                         .with_gold_icon("골드")
                         .static_text("가 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::RankAttackDamageMultiply { rank, damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::CainSword { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::LongSword { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::Mace { damage_multiplier }
+                | crate::game_state::upgrade::UpgradeKind::ClubSword { damage_multiplier } => {
                     builder
-                        .with_card_rank(format!("{rank}"))
-                        .static_text(" 카드로 만든 타워의 ")
+                        .static_text("특정 무늬 카드로 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::SuitAttackDamageMultiply { suit, damage_multiplier } => {
-                    builder
-                        .with_suit_color(format!("{:?}", suit), *suit)
-                        .static_text(" 카드로 만든 타워의 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text("이 ")
-                        .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::HandAttackDamageMultiply { tower_kind, damage_multiplier } => {
-                    let tower_name = Self::get_tower_name(tower_kind);
-                    builder
-                        .text(tower_name)
-                        .static_text(" 타워의 ")
-                        .with_attack_damage_stat("공격력")
-                        .static_text("이 ")
-                        .with_multiplier(format!("{damage_multiplier:.1}"))
-                        .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopSlotExpansion => {
+                }
+                crate::game_state::upgrade::UpgradeKind::Backpack => {
                     builder
                         .static_text("상점에서 구매할 수 있는 슬롯이 ")
                         .with_positive_effect("1개")
                         .static_text(" 추가됩니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ExtraDice => {
+                }
+                crate::game_state::upgrade::UpgradeKind::DiceBundle => {
                     builder
                         .static_text("매 라운드마다 사용할 수 있는 주사위 개수가 ")
                         .with_positive_effect("1개")
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::LowCardTowerDamageMultiply { damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::Spoon { damage_multiplier } => {
                     builder
                         .static_text("3장 이하로 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShopItemPriceMinus => {
-                    builder.static_text("상점 아이템의 가격이 할인됩니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::NoRerollTowerAttackDamageMultiply { damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::PerfectPottery { damage_multiplier } => {
                     builder
                         .static_text("리롤하지 않고 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::EvenOddTowerAttackDamageMultiply { even, damage_multiplier } => {
-                    let card_type = if *even { "짝수" } else { "홀수" };
+                }
+                crate::game_state::upgrade::UpgradeKind::SingleChopstick { damage_multiplier } => {
                     builder
-                        .text(card_type)
-                        .static_text(" 카드로 만든 타워의 ")
+                        .static_text("홀수 카드로 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::FaceNumberCardTowerAttackDamageMultiply { face, damage_multiplier } => {
-                    let card_type = if *face { "페이스" } else { "숫자" };
+                }
+                crate::game_state::upgrade::UpgradeKind::PairChopsticks { damage_multiplier } => {
                     builder
-                        .text(card_type)
-                        .static_text(" 카드로 만든 타워의 ")
+                        .static_text("짝수 카드로 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::ShortenStraightFlushTo4Cards => {
-                    builder.static_text("스트레이트 플러시를 4장으로 만들 수 있게 됩니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::SkipRankForStraight => {
-                    builder.static_text("스트레이트에서 한 랭크를 건너뛸 수 있게 됩니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::TreatSuitsAsSame => {
-                    builder.static_text("모든 무늬를 같은 것으로 취급합니다.");
-                },
-                crate::game_state::upgrade::UpgradeKind::RerollTowerAttackDamageMultiply { damage_multiplier } => {
+                }
+                crate::game_state::upgrade::UpgradeKind::FountainPen { damage_multiplier } => {
+                    builder
+                        .static_text("숫자 카드로 만든 타워의 ")
+                        .with_attack_damage_stat("공격력")
+                        .static_text("이 ")
+                        .with_multiplier(format!("{damage_multiplier:.1}"))
+                        .static_text(" 증가합니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Brush { damage_multiplier } => {
+                    builder
+                        .static_text("그림 카드로 만든 타워의 ")
+                        .with_attack_damage_stat("공격력")
+                        .static_text("이 ")
+                        .with_multiplier(format!("{damage_multiplier:.1}"))
+                        .static_text(" 증가합니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::BrokenPottery { damage_multiplier } => {
                     builder
                         .static_text("리롤하고 만든 타워의 ")
                         .with_attack_damage_stat("공격력")
                         .static_text("이 ")
                         .with_multiplier(format!("{damage_multiplier:.1}"))
                         .static_text(" 증가합니다.");
-                },
-            }
-        }
-    }
-
-    fn get_tower_name(tower_kind: &crate::game_state::tower::TowerKind) -> &'static str {
-        match tower_kind {
-            crate::game_state::tower::TowerKind::Barricade => "바리케이드",
-            crate::game_state::tower::TowerKind::High => "하이카드",
-            crate::game_state::tower::TowerKind::OnePair => "원페어",
-            crate::game_state::tower::TowerKind::TwoPair => "투페어",
-            crate::game_state::tower::TowerKind::ThreeOfAKind => "트리플",
-            crate::game_state::tower::TowerKind::Straight => "스트레이트",
-            crate::game_state::tower::TowerKind::Flush => "플러쉬",
-            crate::game_state::tower::TowerKind::FullHouse => "풀하우스",
-            crate::game_state::tower::TowerKind::FourOfAKind => "포카드",
-            crate::game_state::tower::TowerKind::StraightFlush => "스트레이트 플러쉬",
-            crate::game_state::tower::TowerKind::RoyalFlush => "로열 플러쉬",
+                }
+                crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
+                    builder.static_text("상점 아이템의 가격이 할인됩니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Eraser => {
+                    builder.static_text("덱에서 숫자 카드 랭크를 순차적으로 제거합니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::FourLeafClover => {
+                    builder.static_text("스트레이트 플러시를 4장으로 만들 수 있게 됩니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::Rabbit => {
+                    builder.static_text("스트레이트에서 한 랭크를 건너뛸 수 있게 됩니다.");
+                }
+                crate::game_state::upgrade::UpgradeKind::BlackWhite => {
+                    builder.static_text("모든 무늬를 같은 것으로 취급합니다.");
+                }
+            },
         }
     }
 }

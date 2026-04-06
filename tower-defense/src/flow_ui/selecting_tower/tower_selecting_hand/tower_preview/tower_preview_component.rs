@@ -203,14 +203,8 @@ fn calculate_upgrade_state_and_texts(
     };
 
     let targets = [
-        TowerUpgradeTarget::Rank {
-            rank: tower_template.rank,
-        },
         TowerUpgradeTarget::Suit {
             suit: tower_template.suit,
-        },
-        TowerUpgradeTarget::TowerKind {
-            tower_kind: tower_template.kind,
         },
         TowerUpgradeTarget::EvenOdd {
             even: tower_template.rank.is_even(),

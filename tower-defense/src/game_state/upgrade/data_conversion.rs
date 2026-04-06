@@ -58,8 +58,8 @@ fn add_basic_upgrades(
 ) {
     if state.gold_earn_plus != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::GoldEarnPlus,
-            description: UpgradeInfoDescription::Single(UpgradeBoardText::GoldEarnPlus {
+            upgrade_kind: UpgradeKind::Magnet,
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::Magnet {
                 amount: state.gold_earn_plus,
             }),
         });
@@ -67,7 +67,7 @@ fn add_basic_upgrades(
 
     if state.shop_slot_expand != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::ShopSlotExpansion,
+            upgrade_kind: UpgradeKind::Backpack,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopSlotExpand {
                 amount: state.shop_slot_expand,
             }),
@@ -76,7 +76,7 @@ fn add_basic_upgrades(
 
     if state.dice_chance_plus != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::ExtraDice,
+            upgrade_kind: UpgradeKind::DiceBundle,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::RerollChancePlus {
                 amount: state.dice_chance_plus,
             }),
@@ -85,16 +85,25 @@ fn add_basic_upgrades(
 
     if state.shop_item_price_minus != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::ShopItemPriceMinus,
+            upgrade_kind: UpgradeKind::EnergyDrink,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::ShopItemPriceMinus {
                 amount: state.shop_item_price_minus,
             }),
         });
     }
 
+    if state.removed_number_rank_count != 0 {
+        infos.push(UpgradeInfo {
+            upgrade_kind: UpgradeKind::Eraser,
+            description: UpgradeInfoDescription::Single(UpgradeBoardText::Eraser {
+                amount: state.removed_number_rank_count,
+            }),
+        });
+    }
+
     if state.shorten_straight_flush_to_4_cards {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::ShortenStraightFlushTo4Cards,
+            upgrade_kind: UpgradeKind::FourLeafClover,
             description: UpgradeInfoDescription::Single(
                 UpgradeBoardText::ShortenStraightFlushTo4Cards,
             ),
@@ -103,14 +112,14 @@ fn add_basic_upgrades(
 
     if state.skip_rank_for_straight {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::SkipRankForStraight,
+            upgrade_kind: UpgradeKind::Rabbit,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::SkipRankForStraight),
         });
     }
 
     if state.treat_suits_as_same {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::TreatSuitsAsSame,
+            upgrade_kind: UpgradeKind::BlackWhite,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::TreatSuitsAsSame),
         });
     }
@@ -133,15 +142,13 @@ fn add_tower_select_upgrades(
         // 데미지 배수 업그레이드
         if tower_upgrade_state.damage_multiplier != 1.0 {
             let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::LowCardTowerDamageMultiply {
+                TowerSelectUpgradeTarget::LowCard => UpgradeKind::Spoon {
                     damage_multiplier: tower_upgrade_state.damage_multiplier,
                 },
-                TowerSelectUpgradeTarget::NoReroll => {
-                    UpgradeKind::NoRerollTowerAttackDamageMultiply {
-                        damage_multiplier: tower_upgrade_state.damage_multiplier,
-                    }
-                }
-                TowerSelectUpgradeTarget::Reroll => UpgradeKind::RerollTowerAttackDamageMultiply {
+                TowerSelectUpgradeTarget::NoReroll => UpgradeKind::PerfectPottery {
+                    damage_multiplier: tower_upgrade_state.damage_multiplier,
+                },
+                TowerSelectUpgradeTarget::Reroll => UpgradeKind::BrokenPottery {
                     damage_multiplier: tower_upgrade_state.damage_multiplier,
                 },
             };
@@ -166,14 +173,8 @@ fn add_tower_upgrades(
 ) {
     for (target, tower_upgrade_state) in &state.tower_upgrade_states {
         let target_prefix = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeBoardText::TowerUpgradeRank {
-                name: rank.to_string(),
-            },
             TowerUpgradeTarget::Suit { suit } => UpgradeBoardText::TowerUpgradeSuit {
                 name: suit.to_string(),
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeBoardText::TowerUpgradeKind {
-                name: text.tower(tower_kind.to_text()).to_string(),
             },
             TowerUpgradeTarget::EvenOdd { even } => {
                 let name = if *even { "짝수" } else { "홀수" };
@@ -203,26 +204,40 @@ fn add_tower_damage_upgrades(
 ) {
     if tower_upgrade_state.damage_multiplier != 1.0 {
         let upgrade_kind = match target {
-            TowerUpgradeTarget::Rank { rank } => UpgradeKind::RankAttackDamageMultiply {
-                rank: *rank,
-                damage_multiplier: tower_upgrade_state.damage_multiplier,
-            },
-            TowerUpgradeTarget::Suit { suit } => UpgradeKind::SuitAttackDamageMultiply {
-                suit: *suit,
-                damage_multiplier: tower_upgrade_state.damage_multiplier,
-            },
-            TowerUpgradeTarget::TowerKind { tower_kind } => UpgradeKind::HandAttackDamageMultiply {
-                tower_kind: *tower_kind,
-                damage_multiplier: tower_upgrade_state.damage_multiplier,
-            },
-            TowerUpgradeTarget::EvenOdd { even } => UpgradeKind::EvenOddTowerAttackDamageMultiply {
-                even: *even,
-                damage_multiplier: tower_upgrade_state.damage_multiplier,
-            },
-            TowerUpgradeTarget::FaceNumber { face } => {
-                UpgradeKind::FaceNumberCardTowerAttackDamageMultiply {
-                    face: *face,
+            TowerUpgradeTarget::Suit { suit } => match suit {
+                crate::card::Suit::Diamonds => UpgradeKind::CainSword {
                     damage_multiplier: tower_upgrade_state.damage_multiplier,
+                },
+                crate::card::Suit::Spades => UpgradeKind::LongSword {
+                    damage_multiplier: tower_upgrade_state.damage_multiplier,
+                },
+                crate::card::Suit::Hearts => UpgradeKind::Mace {
+                    damage_multiplier: tower_upgrade_state.damage_multiplier,
+                },
+                crate::card::Suit::Clubs => UpgradeKind::ClubSword {
+                    damage_multiplier: tower_upgrade_state.damage_multiplier,
+                },
+            },
+            TowerUpgradeTarget::EvenOdd { even } => {
+                if *even {
+                    UpgradeKind::PairChopsticks {
+                        damage_multiplier: tower_upgrade_state.damage_multiplier,
+                    }
+                } else {
+                    UpgradeKind::SingleChopstick {
+                        damage_multiplier: tower_upgrade_state.damage_multiplier,
+                    }
+                }
+            }
+            TowerUpgradeTarget::FaceNumber { face } => {
+                if *face {
+                    UpgradeKind::Brush {
+                        damage_multiplier: tower_upgrade_state.damage_multiplier,
+                    }
+                } else {
+                    UpgradeKind::FountainPen {
+                        damage_multiplier: tower_upgrade_state.damage_multiplier,
+                    }
                 }
             }
         };

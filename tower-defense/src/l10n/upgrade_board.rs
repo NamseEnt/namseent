@@ -4,7 +4,7 @@ use crate::{theme::typography::TypographyBuilder, *};
 #[derive(Debug, Clone, State)]
 pub enum UpgradeBoardText {
     Title,
-    GoldEarnPlus { amount: usize },
+    Magnet { amount: usize },
     ShopSlotExpand { amount: usize },
     RerollChancePlus { amount: usize },
     ShopItemPriceMinus { amount: usize },
@@ -12,6 +12,7 @@ pub enum UpgradeBoardText {
     ShortenStraightFlushTo4Cards,
     SkipRankForStraight,
     TreatSuitsAsSame,
+    Eraser { amount: usize },
     TowerSelectLowCard { amount: usize },
     TowerSelectNoReroll,
     TowerSelectReroll,
@@ -39,7 +40,7 @@ impl UpgradeBoardText {
             UpgradeBoardText::Title => {
                 builder.text("강화 정보");
             }
-            UpgradeBoardText::GoldEarnPlus { amount } => {
+            UpgradeBoardText::Magnet { amount } => {
                 builder.text("몬스터 처치 시 ");
                 builder.with_gold_icon(format!("{amount}"));
                 builder.text("를 추가로 얻습니다");
@@ -64,6 +65,11 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::TreatSuitsAsSame => {
                 builder.text("색이 같으면 같은 문양으로 취급합니다");
+            }
+            UpgradeBoardText::Eraser { amount } => {
+                builder.text(format!(
+                    "덱에서 숫자 카드 {amount}개를 순차적으로 제거합니다"
+                ));
             }
             UpgradeBoardText::TowerSelectLowCard { amount } => {
                 builder.text(format!("카드 {amount}개 이하로 타워를 만들 때 타워의"));
@@ -105,7 +111,7 @@ impl UpgradeBoardText {
             UpgradeBoardText::Title => {
                 builder.text("Upgrade Information");
             }
-            UpgradeBoardText::GoldEarnPlus { amount } => {
+            UpgradeBoardText::Magnet { amount } => {
                 builder.text("Earn an additional ");
                 builder.with_gold_icon(format!("{amount}"));
                 builder.text(" when defeating monsters");
@@ -130,6 +136,11 @@ impl UpgradeBoardText {
             }
             UpgradeBoardText::TreatSuitsAsSame => {
                 builder.text("Treats same colors as the same pattern");
+            }
+            UpgradeBoardText::Eraser { amount } => {
+                builder.text(format!(
+                    "Removes {amount} number ranks from the deck in order"
+                ));
             }
             UpgradeBoardText::TowerSelectLowCard { amount } => {
                 builder.text(format!(

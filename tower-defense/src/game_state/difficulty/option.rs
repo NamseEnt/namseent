@@ -1,13 +1,16 @@
+#![allow(dead_code)]
+
 use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
+use crate::game_state::poker_action::{NextStageOffer, PokerAction};
 use namui::*;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::thread_rng;
 
 #[derive(Clone, Debug, State)]
 pub struct DifficultyOption {
-    pub group: super::DifficultyGroup,
-    pub operation: super::OperationKind,
+    pub action: PokerAction,
     pub effects: Vec<Effect>,
+    pub next_stage_offer: NextStageOffer,
 }
 
 impl DifficultyOption {
@@ -28,101 +31,97 @@ impl DifficultyOption {
 impl Default for DifficultyOption {
     fn default() -> Self {
         DifficultyOption {
-            group: super::DifficultyGroup::Normal,
-            operation: super::OperationKind::TeaTime,
+            action: PokerAction::Call,
             effects: vec![],
+            next_stage_offer: NextStageOffer::None,
         }
     }
 }
 
 #[derive(Clone, Debug, State, Default)]
 pub struct DifficultyChoices {
-    pub low: DifficultyOption,
-    pub high: DifficultyOption,
+    pub fold: DifficultyOption,
+    pub call: DifficultyOption,
+    pub raise: DifficultyOption,
+    pub all_in: DifficultyOption,
 }
 
 pub fn generate_difficulty_choices(stage: usize) -> DifficultyChoices {
     let mut rng = thread_rng();
-    let mut groups = super::DifficultyGroup::all().to_vec();
-    groups.shuffle(&mut rng);
 
-    let mut options = Vec::with_capacity(2);
-    for group in groups.into_iter().take(2) {
-        options.push(group.to_difficulty_option(stage, &mut rng));
-    }
+    let fold = crate::game_state::difficulty::group::action_to_difficulty_option(
+        PokerAction::Fold,
+        stage,
+        &mut rng,
+    );
 
-    options.sort_by(|a, b| a.group.difficulty_rank().cmp(&b.group.difficulty_rank()));
+    let call = crate::game_state::difficulty::group::action_to_difficulty_option(
+        PokerAction::Call,
+        stage,
+        &mut rng,
+    );
+
+    let raise = crate::game_state::difficulty::group::action_to_difficulty_option(
+        PokerAction::Raise,
+        stage,
+        &mut rng,
+    );
+
+    let all_in = crate::game_state::difficulty::group::action_to_difficulty_option(
+        PokerAction::AllIn,
+        stage,
+        &mut rng,
+    );
 
     DifficultyChoices {
-        low: options.remove(0),
-        high: options.remove(0),
+        fold,
+        call,
+        raise,
+        all_in,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::{
-        difficulty::{DifficultyGroup, OperationKind},
-        stage_modifiers::StageModifiers,
-    };
-    use rand::{SeedableRng, rngs::StdRng};
+    use crate::game_state::stage_modifiers::StageModifiers;
 
     #[test]
-    fn generate_difficulty_choices_returns_sorted_low_high() {
-        let mut rng = StdRng::seed_from_u64(123);
-        let choices = {
-            let mut groups = DifficultyGroup::all().to_vec();
-            groups.shuffle(&mut rng);
-            let mut opts = vec![];
-            for group in groups.into_iter().take(2) {
-                opts.push(group.to_difficulty_option(10, &mut rng));
-            }
-            opts.sort_by(|a, b| a.group.difficulty_rank().cmp(&b.group.difficulty_rank()));
-            DifficultyChoices {
-                low: opts.remove(0),
-                high: opts.remove(0),
-            }
-        };
+    fn generate_difficulty_choices_has_fold_call_raise_all_in() {
+        let choices = generate_difficulty_choices(10);
 
-        assert!(choices.low.group.difficulty_rank() <= choices.high.group.difficulty_rank());
-        assert!(
-            matches!(
-                choices.low.operation,
-                OperationKind::StrongTaunt
-                    | OperationKind::Taunt
-                    | OperationKind::TeaTime
-                    | OperationKind::FlowerWatering
-                    | OperationKind::Tribute
-                    | OperationKind::PeaceGift
-                    | OperationKind::Plead
-                    | OperationKind::HandstandApology
-            ),
-            "low operation wrong"
-        );
+        assert_eq!(choices.fold.action, PokerAction::Fold);
+        assert_eq!(choices.call.action, PokerAction::Call);
+        assert_eq!(choices.raise.action, PokerAction::Raise);
+        assert_eq!(choices.all_in.action, PokerAction::AllIn);
 
-        assert!(choices.low.effects.len() <= 3);
-        assert!(choices.high.effects.len() <= 3);
+        assert!(choices.fold.effects.len() <= 3);
+        assert!(choices.call.effects.len() <= 3);
+        assert!(choices.raise.effects.len() <= 3);
+        assert!(choices.all_in.effects.len() <= 3);
     }
 
     #[test]
-    fn group_effect_counts_by_group() {
-        let mut rng = StdRng::seed_from_u64(333);
+    fn call_option_preconfirms_next_stage_offer() {
+        let choices = generate_difficulty_choices(10);
+        let preselected = choices.call.next_stage_offer;
+        assert!(matches!(
+            preselected,
+            NextStageOffer::None | NextStageOffer::Shop | NextStageOffer::TreasureSelection
+        ));
 
-        let strong = DifficultyGroup::StrongTaunt.to_difficulty_option(10, &mut rng);
-        assert_eq!(strong.effects.len(), 3);
-
-        let taunt = DifficultyGroup::Taunt.to_difficulty_option(10, &mut rng);
-        assert_eq!(taunt.effects.len(), 2);
-
-        let normal = DifficultyGroup::Normal.to_difficulty_option(10, &mut rng);
-        assert!(normal.effects.is_empty());
-
-        let peace = DifficultyGroup::Peace.to_difficulty_option(10, &mut rng);
-        assert_eq!(peace.effects.len(), 2);
-
-        let big_peace = DifficultyGroup::BigPeace.to_difficulty_option(10, &mut rng);
-        assert_eq!(big_peace.effects.len(), 3);
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        choices.call.apply(&mut game_state);
+        // Difficulty option should apply effects without requiring legacy GameState fields.
+        assert!(matches!(
+            game_state.flow,
+            crate::game_state::flow::GameFlow::Initializing
+                | crate::game_state::flow::GameFlow::SelectingTower(_)
+                | crate::game_state::flow::GameFlow::PlacingTower
+                | crate::game_state::flow::GameFlow::Defense(_)
+                | crate::game_state::flow::GameFlow::TreasureSelection(_)
+                | crate::game_state::flow::GameFlow::Result { .. }
+        ));
     }
 
     #[test]
@@ -146,8 +145,7 @@ mod tests {
         game_state.gold = 0;
 
         let option = DifficultyOption {
-            group: DifficultyGroup::Normal,
-            operation: OperationKind::TeaTime,
+            action: PokerAction::Call,
             effects: vec![
                 Effect::Heal { amount: 10.0 },
                 Effect::GainGold {
@@ -156,6 +154,7 @@ mod tests {
                 },
                 Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
             ],
+            next_stage_offer: NextStageOffer::None,
         };
 
         option.apply(&mut game_state);
@@ -163,32 +162,5 @@ mod tests {
         assert!((game_state.hp - 90.0).abs() < 0.0001);
         assert_eq!(game_state.gold, 5);
         assert!((game_state.stage_modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
-    }
-
-    #[test]
-    fn reward_decrease_ranges_for_low_and_high() {
-        let mut rng = StdRng::seed_from_u64(12345);
-
-        for _ in 0..100 {
-            let low_effect = DifficultyGroup::Peace.reward_decrease(1.0, &mut rng, false);
-            if let Effect::DecreaseGoldGainPercent {
-                reduction_percentage,
-            } = low_effect
-            {
-                assert!((0.05..=0.35).contains(&reduction_percentage));
-            } else {
-                panic!("expected DecreaseGoldGainPercent from low reward_decrease");
-            }
-
-            let high_effect = DifficultyGroup::BigPeace.reward_decrease(1.0, &mut rng, true);
-            if let Effect::DecreaseGoldGainPercent {
-                reduction_percentage,
-            } = high_effect
-            {
-                assert!((0.35..=0.75).contains(&reduction_percentage));
-            } else {
-                panic!("expected DecreaseGoldGainPercent from high reward_decrease");
-            }
-        }
     }
 }

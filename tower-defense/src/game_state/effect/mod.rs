@@ -185,12 +185,12 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
                 game_state.hp = (game_state.hp - health_penalty).max(1.0);
             }
         }
-        Effect::GrantUpgrade { rarity } => {
-            let upgrade = crate::game_state::upgrade::generate_upgrade(game_state, *rarity);
+        Effect::GrantUpgrade { rarity: _ } => {
+            let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state);
             game_state.upgrade_state.upgrade(upgrade);
         }
-        Effect::GrantItem { rarity } => {
-            let item = crate::game_state::item::generation::generate_item_with_rng(*rarity, rng);
+        Effect::GrantItem { rarity: _ } => {
+            let item = crate::game_state::item::generation::generate_item_with_rng(rng);
             game_state.items.push(item);
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
@@ -459,7 +459,6 @@ pub mod tests_support {
     };
     use crate::hand::{Hand, HandItem};
     use namui::Instant;
-    use std::num::NonZeroUsize; // use the same Instant type as production code
 
     /// 테스트용 GameState 생성 헬퍼.
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
@@ -488,7 +487,7 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
-            level: NonZeroUsize::new(1).unwrap(),
+            deck: crate::card::Deck::new(0),
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
@@ -497,8 +496,6 @@ pub mod tests_support {
             opened_modal: None,
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
-            stage_difficulty_choices: crate::game_state::difficulty::DifficultyChoices::default(),
-            just_cleared_boss_stage: false,
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
                     Instant::now(),

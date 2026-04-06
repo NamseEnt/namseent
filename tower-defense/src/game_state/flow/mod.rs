@@ -16,12 +16,35 @@ pub enum GameFlow {
     SelectingTower(SelectingTowerFlow),
     PlacingTower,
     Defense(DefenseFlow),
+    TreasureSelection(TreasureSelectionFlow),
     Result { clear_rate: f32 },
+}
+
+#[derive(Clone, Debug, State)]
+pub struct TreasureSelectionFlow {
+    pub options: Vec<crate::game_state::upgrade::Upgrade>,
+    pub pending_selection: Option<usize>,
+}
+
+impl TreasureSelectionFlow {
+    pub fn new(game_state: &GameState) -> Self {
+        let options = (0..3)
+            .map(|_| crate::game_state::upgrade::generate_treasure_upgrade(game_state))
+            .collect();
+        TreasureSelectionFlow {
+            options,
+            pending_selection: None,
+        }
+    }
+
+    fn update(&mut self) {}
 }
 impl GameFlow {
     pub(crate) fn update(&mut self) {
-        if let GameFlow::SelectingTower(selecting_tower) = self {
-            selecting_tower.update();
+        match self {
+            GameFlow::SelectingTower(selecting_tower) => selecting_tower.update(),
+            GameFlow::TreasureSelection(treasure_flow) => treasure_flow.update(),
+            _ => {}
         }
     }
 }
@@ -33,9 +56,8 @@ pub struct SelectingTowerFlow {
 
 impl SelectingTowerFlow {
     pub fn new(game_state: &GameState) -> Self {
-        SelectingTowerFlow {
-            shop: Shop::new(game_state),
-        }
+        let shop = Shop::new(game_state);
+        SelectingTowerFlow { shop }
     }
 
     fn update(&mut self) {
@@ -68,20 +90,26 @@ impl DefenseFlow {
 }
 
 impl GameState {
-    pub fn goto_next_stage(&mut self) {
+    fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
-        self.stage_difficulty_choices = super::difficulty::generate_difficulty_choices(self.stage);
         self.left_dice = self.max_dice_chance();
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+        self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
         self.record_stage_start();
         save_stage_snapshot(self);
+    }
 
+    pub fn goto_next_stage(&mut self) {
+        self.prepare_next_stage();
         self.goto_selecting_tower();
     }
 
     pub fn goto_selecting_tower(&mut self) {
+        self.hand_panel_forced_open = true;
+        self.shop_panel_forced_open = true;
+
         let max_slots = (5 + self.stage_modifiers.get_max_hand_slots_bonus())
             .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
             .max(1);
@@ -92,11 +120,11 @@ impl GameState {
             self.hand.delete_slots(&removing_ids);
         }
         for _ in 0..max_slots {
-            self.hand.push(HandItem::Card(Card::new_random()));
+            let card = self.deck.draw().unwrap_or_else(Card::new_random);
+            self.hand.push(HandItem::Card(card));
         }
 
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
-        self.just_cleared_boss_stage = false;
     }
 
     pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
@@ -141,6 +169,20 @@ impl GameState {
             .with_max_duration(Duration::from_secs(6)),
         );
         start_spawn(self);
+    }
+
+    pub fn goto_treasure_selection(&mut self) {
+        self.flow = GameFlow::TreasureSelection(TreasureSelectionFlow::new(self));
+    }
+
+    pub fn select_treasure(&mut self, index: usize) {
+        if let GameFlow::TreasureSelection(flow) = &self.flow
+            && index < flow.options.len()
+        {
+            let upgrade = flow.options[index];
+            self.upgrade_state.upgrade(upgrade);
+        }
+        self.goto_next_stage();
     }
 
     pub fn goto_result(&mut self) {

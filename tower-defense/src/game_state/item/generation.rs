@@ -1,5 +1,5 @@
 use super::Item;
-use crate::{game_state::effect::Effect, rarity::Rarity};
+use crate::game_state::effect::Effect;
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
@@ -17,8 +17,8 @@ fn calculate_reverse_amount_from_value(value: f32, min_value: f32, max_value: f3
 }
 
 /// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
-pub fn generate_item_with_rng<R: Rng + ?Sized>(rarity: Rarity, rng: &mut R) -> Item {
-    let candidates = generate_item_candidate_table(rarity);
+pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
+    let candidates = generate_item_candidate_table();
     let candidate = &candidates
         .choose_weighted(rng, |x| x.1)
         .expect("item candidate table should not be empty")
@@ -26,116 +26,81 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rarity: Rarity, rng: &mut R) -> I
 
     let value = rng.gen_range(0.0..1.0);
 
-    let effect = match candidate {
+    let (kind, effect) = match candidate {
         ItemCandidate::Heal => {
-            let range = match rarity {
-                Rarity::Common => 5.0..9.0,
-                Rarity::Rare => 10.0..14.0,
-                Rarity::Epic => 15.0..19.0,
-                Rarity::Legendary => 20.0..25.0,
-            };
+            let range = 10.0..14.0;
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            Effect::Heal { amount }
+            (
+                crate::game_state::item::ItemKind::RiceCake,
+                Effect::Heal { amount },
+            )
         }
-        ItemCandidate::Lottery => {
-            let amount = match rarity {
-                Rarity::Common => 250.0,
-                Rarity::Rare => 500.0,
-                Rarity::Epic => 1000.0,
-                Rarity::Legendary => 2500.0,
-            };
-            let probability = match rarity {
-                Rarity::Common => 0.01,
-                Rarity::Rare => 0.02,
-                Rarity::Epic => 0.03,
-                Rarity::Legendary => 0.05,
-            };
-            Effect::Lottery {
-                amount,
-                probability,
-            }
-        }
-        ItemCandidate::ExtraReroll => Effect::ExtraDice,
+        ItemCandidate::ExtraReroll => (
+            crate::game_state::item::ItemKind::EmergencyDice,
+            Effect::ExtraDice,
+        ),
         ItemCandidate::Shield => {
-            let range = match rarity {
-                Rarity::Common => 10.0..15.0,
-                Rarity::Rare => 15.0..25.0,
-                Rarity::Epic => 25.0..35.0,
-                Rarity::Legendary => 35.0..50.0,
-            };
+            let range = 15.0..25.0;
             let amount = calculate_amount_from_value(value, range.start, range.end);
-            Effect::Shield { amount }
+            (
+                crate::game_state::item::ItemKind::Shield,
+                Effect::Shield { amount },
+            )
         }
         ItemCandidate::DamageReduction => {
-            let range = match rarity {
-                Rarity::Common => 0.85..0.9,
-                Rarity::Rare => 0.8..0.85,
-                Rarity::Epic => 0.7..0.8,
-                Rarity::Legendary => 0.55..0.7,
-            };
+            let range = 0.8..0.85;
             let amount = calculate_reverse_amount_from_value(value, range.start, range.end);
-            let duration = Duration::from_secs(match rarity {
-                Rarity::Common => 3,
-                Rarity::Rare => 4,
-                Rarity::Epic => 6,
-                Rarity::Legendary => 8,
-            });
-            Effect::UserDamageReduction {
-                multiply: amount,
-                duration,
-            }
+            let duration = Duration::from_secs(4);
+            (
+                crate::game_state::item::ItemKind::Painkiller,
+                Effect::UserDamageReduction {
+                    multiply: amount,
+                    duration,
+                },
+            )
         }
         ItemCandidate::GrantBarricades => {
-            let range = match rarity {
-                Rarity::Common => 2.0..5.0,
-                Rarity::Rare => 5.0..10.0,
-                Rarity::Epic => 10.0..16.0,
-                Rarity::Legendary => 16.0..21.0,
-            };
+            let range = 5.0..10.0;
             let count = calculate_amount_from_value(value, range.start, range.end) as usize;
-            Effect::AddTowerCardToPlacementHand {
-                tower_kind: crate::game_state::tower::TowerKind::Barricade,
-                suit: crate::card::Suit::Spades,
-                rank: crate::card::Rank::Ace,
-                count,
-            }
+            (
+                crate::game_state::item::ItemKind::GrantBarricades,
+                Effect::AddTowerCardToPlacementHand {
+                    tower_kind: crate::game_state::tower::TowerKind::Barricade,
+                    suit: crate::card::Suit::Spades,
+                    rank: crate::card::Rank::Ace,
+                    count,
+                },
+            )
         }
     };
 
     Item {
+        kind,
         effect,
-        rarity,
         value: value.into(),
     }
 }
 
 /// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
-pub fn generate_item(rarity: Rarity) -> Item {
+pub fn generate_item() -> Item {
     let mut rng = thread_rng();
-    generate_item_with_rng(rarity, &mut rng)
+    generate_item_with_rng(&mut rng)
 }
 
-fn generate_item_candidate_table(rarity: Rarity) -> Vec<(ItemCandidate, f32)> {
-    let candidate_weight = match rarity {
-        Rarity::Common => [100.0, 10.0, 5.0, 5.0, 5.0, 50.0],
-        Rarity::Rare => [100.0, 30.0, 10.0, 10.0, 10.0, 45.0],
-        Rarity::Epic => [100.0, 30.0, 20.0, 30.0, 30.0, 40.0],
-        Rarity::Legendary => [100.0, 30.0, 30.0, 50.0, 30.0, 35.0],
-    };
+fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
+    let candidate_weight = [100.0, 10.0, 10.0, 10.0, 45.0];
     let candidate_table = vec![
         (ItemCandidate::Heal, candidate_weight[0]),
-        (ItemCandidate::Lottery, candidate_weight[1]),
-        (ItemCandidate::ExtraReroll, candidate_weight[2]),
-        (ItemCandidate::Shield, candidate_weight[3]),
-        (ItemCandidate::DamageReduction, candidate_weight[4]),
-        (ItemCandidate::GrantBarricades, candidate_weight[5]),
+        (ItemCandidate::ExtraReroll, candidate_weight[1]),
+        (ItemCandidate::Shield, candidate_weight[2]),
+        (ItemCandidate::DamageReduction, candidate_weight[3]),
+        (ItemCandidate::GrantBarricades, candidate_weight[4]),
     ];
     candidate_table
 }
 
 enum ItemCandidate {
     Heal,
-    Lottery,
     ExtraReroll,
     Shield,
     DamageReduction,

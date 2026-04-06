@@ -12,8 +12,8 @@ pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
-mod level_rarity_weight;
 mod modal;
+pub mod poker_action;
 pub use upgrade::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub mod monster;
 mod monster_spawn;
@@ -30,6 +30,8 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::card::Deck;
+use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem, HandSlotId};
 use crate::route::*;
@@ -49,7 +51,6 @@ use play_history::PlayHistory;
 use projectile::*;
 pub use render::*;
 use status_effect_particle_generator::StatusEffectParticleGenerator;
-use std::num::NonZeroUsize;
 use std::sync::Arc;
 use tower::*;
 pub use ui_state::UIState;
@@ -82,6 +83,7 @@ pub struct GameState {
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     pub hand: Hand<HandItem>,
+    pub deck: Deck,
     /// one-based
     pub stage: usize,
     pub left_dice: usize,
@@ -96,7 +98,6 @@ pub struct GameState {
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
-    pub level: NonZeroUsize,
     game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
@@ -104,9 +105,7 @@ pub struct GameState {
     pub play_history: PlayHistory,
     pub opened_modal: Option<Modal>,
     pub stage_modifiers: StageModifiers,
-    pub stage_difficulty_choices: difficulty::DifficultyChoices,
     pub ui_state: UIState,
-    pub just_cleared_boss_stage: bool,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
 
@@ -130,11 +129,26 @@ impl GameState {
         .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
-    /// Rarity spawn weights for the given level.
-    ///
-    /// This is based on the same table used by `generate_rarity`.
-    pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
-        level_rarity_weight::level_rarity_weight(level)
+    pub fn generate_rarity(&self) -> crate::rarity::Rarity {
+        const WEIGHTS: [usize; 4] = [90, 10, 1, 0];
+        const RARITIES: [crate::rarity::Rarity; 4] = [
+            crate::rarity::Rarity::Common,
+            crate::rarity::Rarity::Rare,
+            crate::rarity::Rarity::Epic,
+            crate::rarity::Rarity::Legendary,
+        ];
+
+        let total_weight: usize = WEIGHTS.iter().sum();
+        let random_value = rand::random::<usize>() % total_weight;
+
+        let mut cumulative_weight = 0;
+        for (i, &weight) in WEIGHTS.iter().enumerate() {
+            cumulative_weight += weight;
+            if random_value < cumulative_weight {
+                return RARITIES[i];
+            }
+        }
+        unreachable!()
     }
 
     /// Returns whether the hand panel is allowed to be opened based on current flow.
@@ -174,22 +188,6 @@ impl GameState {
 
     pub fn now(&self) -> Instant {
         self.game_now
-    }
-
-    pub fn level_up_cost(&self) -> usize {
-        match self.level.get() {
-            1 => 25,
-            2 => 50,
-            3 => 75,
-            4 => 100,
-            5 => 150,
-            6 => 200,
-            7 => 300,
-            8 => 500,
-            9 => 750,
-            10 => 0,
-            _ => unreachable!("Level up cost not defined for level {}", self.level),
-        }
     }
 
     pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
@@ -244,33 +242,33 @@ fn create_initial_game_state() -> GameState {
         delayed_hits: Default::default(),
         items: vec![
             Item {
+                kind: ItemKind::EmergencyDice,
                 effect: Effect::ExtraDice,
-                rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
+                kind: ItemKind::EmergencyDice,
                 effect: Effect::ExtraDice,
-                rarity: rarity::Rarity::Epic,
                 value: 0.5.into(),
             },
             Item {
+                kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::Barricade,
                     suit: Suit::Spades,
                     rank: Rank::Ace,
                     count: 5,
                 },
-                rarity: rarity::Rarity::Common,
                 value: 1.0.into(),
             },
             Item {
+                kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::High,
                     suit: Suit::Spades,
                     rank: Rank::Ace,
                     count: 1,
                 },
-                rarity: rarity::Rarity::Common,
                 value: 1.0.into(),
             },
         ],
@@ -281,17 +279,15 @@ fn create_initial_game_state() -> GameState {
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
-        level: NonZeroUsize::new(1).unwrap(),
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
+        deck: Deck::new(0),
         play_history: PlayHistory::new(),
         opened_modal: None,
         stage_modifiers: StageModifiers::new(),
-        stage_difficulty_choices: difficulty::DifficultyChoices::default(),
         ui_state: UIState::new(),
-        just_cleared_boss_stage: false,
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
 
@@ -300,7 +296,8 @@ fn create_initial_game_state() -> GameState {
         shop_panel_forced_open: true,
     };
 
-    game_state.goto_next_stage();
+    // Start with selecting tower flow and default shop mode (normal shop).
+    game_state.goto_selecting_tower();
     game_state.record_game_start();
     game_state
 }
@@ -342,6 +339,7 @@ impl GameState {
             upgrade_state: self.upgrade_state.clone(),
             flow: self.flow.clone(),
             hand: self.hand.clone(),
+            deck: self.deck.clone(),
             stage: self.stage,
             left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
@@ -355,7 +353,6 @@ impl GameState {
             user_status_effects: self.user_status_effects.clone(),
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
-            level: self.level,
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
@@ -363,9 +360,7 @@ impl GameState {
             play_history: self.play_history.clone(),
             opened_modal: None,
             stage_modifiers: self.stage_modifiers.clone(),
-            stage_difficulty_choices: self.stage_difficulty_choices.clone(),
             ui_state: self.ui_state.clone(),
-            just_cleared_boss_stage: self.just_cleared_boss_stage,
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
             black_smoke_sources: Default::default(),
 
@@ -426,14 +421,8 @@ impl GameState {
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {
-    matches!(stage, 15 | 25 | 30 | 35 | 40 | 45 | 46 | 47 | 48 | 49 | 50)
-}
-
-/// Rarity spawn weights for the given level.
-///
-/// This is based on the same table used by [`GameState::generate_rarity`].
-pub fn level_rarity_weights(level: NonZeroUsize) -> [usize; 4] {
-    level_rarity_weight::level_rarity_weight(level)
+    // Every 5th stage, plus the last 5 final stages.
+    stage.is_multiple_of(5) || (stage >= 46)
 }
 
 /// Make sure that the tower can be placed at the given coord.
@@ -464,11 +453,11 @@ mod tests {
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is SelectingTower; both panels can open
+        // initially flow is SelectingTower (round 0 default shop pick)
         assert!(gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel());
+        assert!(gs.can_open_shop_panel()); // shop panel is allowed in selecting tower flow
 
-        // flags start true, and open status is true because both allowed
+        // selecting tower flow: hand and shop panels are both allowed
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
@@ -477,25 +466,25 @@ mod tests {
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // reopening when none open should open allowed panels again
+        // reopening when none open should open both allowed panels again
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - both panels allowed (idempotent)
+        // enter selecting tower flow - both hand and shop are allowed in this flow.
         gs.goto_selecting_tower();
         assert!(gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());
-        // forced flags were true already; panels open
+        // forced flags were true already; both panels open
         assert!(gs.hand_panel_forced_open && gs.can_open_hand_panel());
         assert!(gs.shop_panel_forced_open && gs.can_open_shop_panel());
 
-        // space should close both
+        // space should close both allowed panels
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // closing again should reopen since none are open
+        // closing again should reopen both panels since they are allowed
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
@@ -510,7 +499,7 @@ mod tests {
         assert!(!gs.can_open_shop_panel());
 
         // forced flags remain whatever they were; toggle logic should respect permissions
-        // start with both forced open from previous step
+        // shop is not allowed in placing flow, so it may still be forced open in state
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
@@ -523,5 +512,12 @@ mod tests {
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
+    }
+
+    #[test]
+    fn selecting_tower_allows_shop_panel() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&gs));
+        assert!(gs.can_open_shop_panel());
     }
 }

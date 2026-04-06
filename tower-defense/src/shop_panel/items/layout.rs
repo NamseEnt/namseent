@@ -23,7 +23,6 @@ pub(crate) struct ShopItemLayoutParams<'a> {
     pub available: bool,
     pub item_kind: Option<&'a Effect>,
     pub upgrade_kind: Option<&'a UpgradeKind>,
-    pub rarity: crate::rarity::Rarity,
 }
 
 #[inline]
@@ -67,7 +66,6 @@ fn make_item_params<'a>(
         available,
         item_kind: Some(&item.effect),
         upgrade_kind: None,
-        rarity: item.rarity,
     }
 }
 
@@ -93,7 +91,6 @@ fn make_upgrade_params<'a>(
         available,
         item_kind: None,
         upgrade_kind: Some(&upgrade.kind),
-        rarity: upgrade.rarity,
     }
 }
 
@@ -114,24 +111,21 @@ mod tests {
         let locale = Locale::default();
 
         let item = Item {
+            kind: crate::game_state::item::ItemKind::RiceCake,
             effect: Effect::Heal { amount: 1.0 },
-            rarity: crate::rarity::Rarity::Common,
             value: OneZero::default(),
         };
 
         let params = make_item_params(wh, &item, 5, true, locale);
         assert!(params.available);
         assert_eq!(params.cost, 5);
-        assert_eq!(params.rarity, item.rarity);
 
         let up = Upgrade {
-            kind: UpgradeKind::GoldEarnPlus,
-            rarity: crate::rarity::Rarity::Rare,
+            kind: UpgradeKind::Magnet,
             value: OneZero::default(),
         };
         let params = make_upgrade_params(wh, &up, 3, false, locale);
         assert!(!params.available);
         assert_eq!(params.cost, 3);
-        assert_eq!(params.rarity, up.rarity);
     }
 }

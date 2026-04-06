@@ -135,11 +135,12 @@ impl GameState {
     }
 
     pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
-        let GameFlow::SelectingTower(flow) = &mut self.flow else {
-            unreachable!()
+        let shop = match &mut self.flow {
+            GameFlow::SelectingTower(flow) => &mut flow.shop,
+            _ => return,
         };
 
-        let Some(slot_data) = flow.shop.get_slot_by_id_mut(slot_id) else {
+        let Some(slot_data) = shop.get_slot_by_id_mut(slot_id) else {
             return;
         };
 
@@ -153,15 +154,13 @@ impl GameState {
                     return;
                 }
 
-                // 아이템/업그레이드 구매 불가 효과 체크
                 if self
                     .stage_modifiers
                     .is_item_and_upgrade_purchases_disabled()
                 {
-                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                    return;
                 }
 
-                // Store values before borrowing self mutably
                 let item_clone = item.clone();
                 let cost_value = *cost;
 
@@ -179,15 +178,13 @@ impl GameState {
                     return;
                 }
 
-                // 아이템/업그레이드 구매 불가 효과 체크
                 if self
                     .stage_modifiers
                     .is_item_and_upgrade_purchases_disabled()
                 {
-                    return; // 구매 불가 상태에서는 아무것도 하지 않음
+                    return;
                 }
 
-                // Store values before borrowing self mutably
                 let upgrade_value = *upgrade;
                 let cost_value = *cost;
 
@@ -217,11 +214,12 @@ impl GameState {
     }
 
     pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
-        let GameFlow::SelectingTower(flow) = &self.flow else {
-            return false;
+        let shop = match &self.flow {
+            GameFlow::SelectingTower(flow) => &flow.shop,
+            _ => return false,
         };
 
-        let Some(slot_data) = flow.shop.get_slot_by_id(slot_id) else {
+        let Some(slot_data) = shop.get_slot_by_id(slot_id) else {
             return false;
         };
 
@@ -230,13 +228,7 @@ impl GameState {
         }
 
         match &slot_data.slot {
-            ShopSlot::Item { cost, .. } => {
-                self.gold >= *cost
-                    && !self
-                        .stage_modifiers
-                        .is_item_and_upgrade_purchases_disabled()
-            }
-            ShopSlot::Upgrade { cost, .. } => {
+            ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
                 self.gold >= *cost
                     && !self
                         .stage_modifiers

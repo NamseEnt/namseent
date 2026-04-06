@@ -3,24 +3,46 @@ mod thumbnail;
 mod usage;
 
 pub use crate::game_state::effect::Effect;
-use crate::rarity::Rarity;
 use namui::*;
 pub use usage::*;
 
 #[derive(Debug, Clone, PartialEq, State)]
+pub enum ItemKind {
+    RiceCake,
+    EmergencyDice,
+    Shield,
+    Painkiller,
+    GrantBarricades,
+}
+
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct Item {
+    pub kind: ItemKind,
     pub effect: Effect,
-    pub rarity: Rarity,
     pub value: OneZero,
 }
 
-impl Item {
-    pub fn name_text(&self) -> crate::l10n::effect::EffectText {
-        self.effect.name_text()
+impl ItemKind {
+    pub fn name_text(&self) -> crate::l10n::item_kind::ItemKindText {
+        crate::l10n::item_kind::ItemKindText::Name(self.clone())
     }
 
-    pub fn description_text(&self) -> crate::l10n::effect::EffectText {
-        self.effect.description_text()
+    pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
+        crate::l10n::item_kind::ItemKindText::Description(self.clone())
+    }
+}
+
+impl Item {
+    pub fn name_text(&self) -> crate::l10n::item_kind::ItemKindText {
+        self.kind.name_text()
+    }
+
+    pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
+        self.kind.description_text()
+    }
+
+    pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
+        self.effect.thumbnail(width_height)
     }
 
     /// 아이템이 현재 게임 상태에서 사용 가능한지 확인

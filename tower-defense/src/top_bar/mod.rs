@@ -1,9 +1,10 @@
 mod game_speed_indicator;
-mod stage;
+mod run;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::top_bar::game_speed_indicator::GameSpeedIndicator;
+use crate::top_bar::run::RunIndicator;
 use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
@@ -33,6 +34,13 @@ impl Component for TopBar {
 
         ctx.compose(|ctx| {
             table::horizontal([
+                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
+                    ctx.add(RunIndicator {
+                        wh,
+                        stage: game_state.stage,
+                    });
+                }),
+                table::fixed_no_clip(PADDING, |_, _| {}),
                 table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
                     ctx.compose(|ctx| {
                         let hp_pct = (game_state.hp / 100.0).clamp(0.0, 1.0);
@@ -107,12 +115,7 @@ impl Component for TopBar {
                         ])(wh, ctx);
                     });
                 }),
-                table::ratio(1, |wh, ctx| {
-                    ctx.add(crate::top_bar::stage::StageIndicator {
-                        wh,
-                        stage: game_state.stage,
-                    });
-                }),
+                table::ratio(1, |_, _| {}),
                 table::fixed_no_clip(
                     SPEED_INDICATOR_WIDTH,
                     table::padding_no_clip(PADDING, |wh, ctx| {
@@ -138,6 +141,7 @@ impl Component for TopBar {
         });
 
         ctx.translate((-BG_OVERSIZE_H, -BG_OVERSIZE_V))
+            .mouse_cursor(MouseCursor::Standard(StandardCursor::Default))
             .add(PaperContainerBackground {
                 width: wh.width + BG_OVERSIZE_H * 2.0,
                 height: TOP_BAR_HEIGHT + BG_OVERSIZE_V * 2.0,
@@ -146,6 +150,21 @@ impl Component for TopBar {
                 color: palette::SURFACE_CONTAINER,
                 shadow: true,
                 arrow: None,
+            })
+            .attach_event(|event| match event {
+                Event::MouseDown { event }
+                | Event::MouseUp { event }
+                | Event::MouseMove { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                Event::Wheel { event } => {
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
+                }
+                _ => {}
             });
     }
 }

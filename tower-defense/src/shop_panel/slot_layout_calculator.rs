@@ -68,14 +68,13 @@ mod tests {
     use super::*;
     use crate::game_state::effect::Effect;
     use crate::game_state::item::Item;
-    use crate::rarity::Rarity;
     use crate::shop::{Shop, ShopSlot, ShopSlotData};
     use namui::{OneZero, Wh, px};
 
     fn make_dummy_slot() -> ShopSlotData {
         let item = Item {
+            kind: crate::game_state::item::ItemKind::RiceCake,
             effect: Effect::Heal { amount: 0.0 },
-            rarity: Rarity::Common,
             value: OneZero::default(),
         };
         ShopSlotData::new(ShopSlot::Item { item, cost: 0 })

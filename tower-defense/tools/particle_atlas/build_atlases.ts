@@ -183,6 +183,7 @@ export async function createIconsAtlas(): Promise<Atlas> {
         "shield",
         "shop",
         "speaker",
+        "treasure",
         "suit_clubs",
         "suit_diamonds",
         "suit_hearts",

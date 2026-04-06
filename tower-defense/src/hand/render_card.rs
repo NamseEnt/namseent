@@ -125,6 +125,33 @@ impl<'a> RenderCard<'a> {
                 Xy::new(left_x, y8),
                 Xy::new(right_x, y8),
             ],
+            Rank::Two => vec![Xy::new(center_x, y4)],
+            Rank::Three => vec![
+                Xy::new(center_x, y0),
+                Xy::new(center_x, y4),
+                Xy::new(center_x, y8),
+            ],
+            Rank::Four => vec![
+                Xy::new(left_x, y0),
+                Xy::new(right_x, y0),
+                Xy::new(left_x, y8),
+                Xy::new(right_x, y8),
+            ],
+            Rank::Five => vec![
+                Xy::new(left_x, y0),
+                Xy::new(right_x, y0),
+                Xy::new(center_x, y4),
+                Xy::new(left_x, y8),
+                Xy::new(right_x, y8),
+            ],
+            Rank::Six => vec![
+                Xy::new(left_x, y0),
+                Xy::new(right_x, y0),
+                Xy::new(left_x, y4),
+                Xy::new(right_x, y4),
+                Xy::new(left_x, y8),
+                Xy::new(right_x, y8),
+            ],
             Rank::Ace => vec![Xy::new(center_x, y4)],
             Rank::Jack | Rank::Queen | Rank::King => {
                 vec![]

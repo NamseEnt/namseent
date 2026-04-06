@@ -2,9 +2,11 @@ mod shop_slot;
 
 use crate::{
     game_state::{
-        GameState, flow::GameFlow, item::generation::generate_item, upgrade::generate_upgrade,
+        GameState,
+        flow::GameFlow,
+        item::generation::generate_item,
+        upgrade::{generate_tower_damage_upgrade, generate_treasure_upgrade},
     },
-    rarity::Rarity,
     *,
 };
 use namui::OneZero;
@@ -24,6 +26,13 @@ impl Shop {
         Self { slots }
     }
 
+    pub fn new_treasure(game_state: &GameState) -> Self {
+        let slots = (0..3)
+            .map(|_| ShopSlotData::new(generate_treasure_slot(game_state)))
+            .collect();
+        Self { slots }
+    }
+
     pub fn get_slot_by_id(&self, id: ShopSlotId) -> Option<&ShopSlotData> {
         self.slots.iter().find(|slot| slot.id == id)
     }
@@ -34,7 +43,6 @@ impl Shop {
 
     pub fn delete_slots(&mut self, ids: &[ShopSlotId]) {
         let now = Instant::now();
-        // 삭제할 슬롯들에 exit 애니메이션 시작
         for slot in self.slots.iter_mut() {
             if ids.contains(&slot.id) {
                 slot.start_exit_animation(now);
@@ -56,7 +64,6 @@ impl Shop {
 
     pub fn remove_completed_exit_animations(&mut self) {
         let now = Instant::now();
-        // 완료된 exit 애니메이션이 있는 슬롯 제거
         self.slots
             .retain(|slot| !slot.is_exit_animation_complete(now));
     }
@@ -93,38 +100,24 @@ pub fn refresh_shop(game_state: &mut GameState) {
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     let slot_type = thread_rng().gen_range(0..10);
-    let rarity = if game_state.just_cleared_boss_stage {
-        Rarity::Legendary
-    } else {
-        game_state.generate_rarity(Default::default())
-    };
 
     match slot_type {
         0..=2 => {
-            // Item (3/10)
-            let item = generate_item(rarity);
-            let cost = item_cost(
-                rarity,
-                item.value,
-                game_state.upgrade_state.shop_item_price_minus,
-            );
+            let item = generate_item();
+            let cost = item_cost(item.value, game_state.upgrade_state.shop_item_price_minus);
             ShopSlot::Item { item, cost }
         }
         3..=7 => {
-            // Upgrade (5/10)
-            let upgrade = generate_upgrade(game_state, rarity);
+            let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
-                rarity,
                 upgrade.value,
                 game_state.upgrade_state.shop_item_price_minus,
             );
             ShopSlot::Upgrade { upgrade, cost }
         }
         8..=9 => {
-            // Contracts are temporarily disabled; treat these slots as upgrades instead.
-            let upgrade = generate_upgrade(game_state, rarity);
+            let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
-                rarity,
                 upgrade.value,
                 game_state.upgrade_state.shop_item_price_minus,
             );
@@ -134,13 +127,13 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     }
 }
 
-fn item_cost(rarity: Rarity, value: OneZero, discount: usize) -> usize {
-    let base_cost = match rarity {
-        crate::rarity::Rarity::Common => 25.0,
-        crate::rarity::Rarity::Rare => 50.0,
-        crate::rarity::Rarity::Epic => 75.0,
-        crate::rarity::Rarity::Legendary => 100.0,
-    };
+fn generate_treasure_slot(game_state: &GameState) -> ShopSlot {
+    let upgrade = generate_treasure_upgrade(game_state);
+    ShopSlot::Upgrade { upgrade, cost: 0 }
+}
+
+fn item_cost(value: OneZero, discount: usize) -> usize {
+    let base_cost = 50.0;
     let additional_cost = value.as_f32() * base_cost * 0.5;
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize
