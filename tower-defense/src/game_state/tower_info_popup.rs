@@ -41,12 +41,8 @@ impl Component for TowerInfoPopup<'_> {
                                         wh,
                                         &move || {
                                             mutate_game_state(move |game_state| {
-                                                let tower_count_before =
-                                                    game_state.towers.iter().count();
-                                                game_state.towers.remove_tower(tower_id);
                                                 let tower_removed =
-                                                    game_state.towers.iter().count()
-                                                        < tower_count_before;
+                                                    game_state.remove_tower(tower_id);
                                                 if tower_removed {
                                                     sound::emit_sound(
                                                         sound::EmitSoundParams::one_shot(

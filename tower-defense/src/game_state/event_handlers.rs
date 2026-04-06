@@ -72,6 +72,17 @@ impl GameState {
         }
     }
 
+    pub fn remove_tower(&mut self, tower_id: usize) -> bool {
+        let tower_count_before = self.towers.iter().count();
+        self.towers.remove_tower(tower_id);
+        let tower_removed = self.towers.iter().count() < tower_count_before;
+        if tower_removed {
+            self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
+                .expect("route should exist after removing a tower");
+        }
+        tower_removed
+    }
+
     pub fn take_damage(&mut self, damage: f32) {
         let mut actual_damage = damage;
 
