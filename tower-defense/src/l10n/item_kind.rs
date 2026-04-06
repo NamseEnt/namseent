@@ -36,6 +36,9 @@ impl ItemKindText {
                 crate::game_state::item::ItemKind::GrantBarricades => {
                     builder.text("바리케이드");
                 }
+                crate::game_state::item::ItemKind::GrantCard { .. } => {
+                    builder.text("비상용 카드");
+                }
             },
             ItemKindText::Description(kind) => match kind {
                 crate::game_state::item::ItemKind::RiceCake => {
@@ -52,6 +55,9 @@ impl ItemKindText {
                 }
                 crate::game_state::item::ItemKind::GrantBarricades => {
                     builder.text("바리케이드 타워 카드를 추가로 제공합니다");
+                }
+                crate::game_state::item::ItemKind::GrantCard { card } => {
+                    builder.text(format!("패에 {}{} 카드를 추가합니다", card.suit, card.rank));
                 }
             },
         }
@@ -75,6 +81,9 @@ impl ItemKindText {
                 crate::game_state::item::ItemKind::GrantBarricades => {
                     builder.text("Barricades");
                 }
+                crate::game_state::item::ItemKind::GrantCard { .. } => {
+                    builder.text("Emergency Card");
+                }
             },
             ItemKindText::Description(kind) => match kind {
                 crate::game_state::item::ItemKind::RiceCake => {
@@ -91,6 +100,9 @@ impl ItemKindText {
                 }
                 crate::game_state::item::ItemKind::GrantBarricades => {
                     builder.text("Grants barricade tower cards.");
+                }
+                crate::game_state::item::ItemKind::GrantCard { card } => {
+                    builder.text(format!("Add {}{} to your hand.", card.rank, card.suit));
                 }
             },
         }

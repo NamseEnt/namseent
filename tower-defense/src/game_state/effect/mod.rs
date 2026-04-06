@@ -103,6 +103,9 @@ pub enum Effect {
         rank: Rank,
         count: usize,
     },
+    AddCardToHand {
+        card: crate::card::Card,
+    },
     GainShield {
         min_amount: f32,
         max_amount: f32,
@@ -299,6 +302,9 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
                 }
             }
         }
+        Effect::AddCardToHand { card } => {
+            game_state.hand.push(HandItem::Card(*card));
+        }
         Effect::GainShield {
             min_amount,
             max_amount,
@@ -350,6 +356,7 @@ impl Effect {
             | Effect::DecreaseEnemyHealthPercent { .. }
             | Effect::DecreaseEnemySpeed { .. }
             | Effect::AddTowerCardToPlacementHand { .. }
+            | Effect::AddCardToHand { .. }
             | Effect::GainShield { .. }
             | Effect::HealHealth { .. }
             | Effect::GainGold { .. } => true,

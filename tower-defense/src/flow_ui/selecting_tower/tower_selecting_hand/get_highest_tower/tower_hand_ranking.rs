@@ -41,10 +41,7 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         &cards_ace_as_high,
         straight_card_count,
         skip_rank_for_straight,
-        &|prev, curr| {
-            (prev + 1..curr)
-                .all(|value| value >= ace_high_removed_low && value <= ace_high_removed_high)
-        },
+        &|value| value >= ace_high_removed_low && value <= ace_high_removed_high,
     ) {
         let straight_slice = &cards_ace_as_high[start_idx..=end_idx];
         let ranks: Vec<usize> = straight_slice.iter().map(|(r, _)| *r).collect();
@@ -114,10 +111,7 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         &cards_ace_as_low,
         straight_card_count,
         skip_rank_for_straight,
-        &|prev, curr| {
-            (prev + 1..curr)
-                .all(|value| value >= ace_low_removed_low && value <= ace_low_removed_high)
-        },
+        &|value| value >= ace_low_removed_low && value <= ace_low_removed_high,
     ) {
         let straight_slice = &cards_ace_as_low[start_idx..=end_idx];
         return Some(StraightResult {
@@ -132,24 +126,34 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         cards: &[(usize, &Card)],
         straight_card_count: usize,
         skip_rank: bool,
-        removed_gap: &dyn Fn(usize, usize) -> bool,
+        is_removed_rank: &dyn Fn(usize) -> bool,
     ) -> Option<(usize, usize, usize)> {
         let mut count = 1;
         let mut skips = 0;
         let mut start = 0;
         for i in 1..cards.len() {
-            if cards[i].0 == cards[i - 1].0 + 1 {
+            let prev = cards[i - 1].0;
+            let curr = cards[i].0;
+
+            if curr == prev {
+                continue;
+            }
+
+            let missing_non_removed_count = (prev + 1..curr)
+                .filter(|value| !is_removed_rank(*value))
+                .count();
+
+            if missing_non_removed_count == 0 {
                 count += 1;
-            } else if removed_gap(cards[i - 1].0, cards[i].0) {
+            } else if skip_rank && skips + missing_non_removed_count <= 1 {
                 count += 1;
-            } else if skip_rank && cards[i].0 == cards[i - 1].0 + 2 && skips == 0 {
-                count += 1;
-                skips += 1;
+                skips += missing_non_removed_count;
             } else {
                 count = 1;
                 skips = 0;
                 start = i;
             }
+
             if count == straight_card_count {
                 return Some((start, i, skips));
             }

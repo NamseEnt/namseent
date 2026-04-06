@@ -1,4 +1,5 @@
 use super::Item;
+use crate::card::Card;
 use crate::game_state::effect::Effect;
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -72,6 +73,13 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
                 },
             )
         }
+        ItemCandidate::GrantCard => {
+            let card = Card::new_random();
+            (
+                crate::game_state::item::ItemKind::GrantCard { card },
+                Effect::AddCardToHand { card },
+            )
+        }
     };
 
     Item {
@@ -88,13 +96,14 @@ pub fn generate_item() -> Item {
 }
 
 fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
-    let candidate_weight = [100.0, 10.0, 10.0, 10.0, 45.0];
+    let candidate_weight = [100.0, 10.0, 10.0, 10.0, 45.0, 35.0];
     let candidate_table = vec![
         (ItemCandidate::Heal, candidate_weight[0]),
         (ItemCandidate::ExtraReroll, candidate_weight[1]),
         (ItemCandidate::Shield, candidate_weight[2]),
         (ItemCandidate::DamageReduction, candidate_weight[3]),
         (ItemCandidate::GrantBarricades, candidate_weight[4]),
+        (ItemCandidate::GrantCard, candidate_weight[5]),
     ];
     candidate_table
 }
@@ -105,4 +114,42 @@ enum ItemCandidate {
     Shield,
     DamageReduction,
     GrantBarricades,
+    GrantCard,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Rank, Suit};
+    use rand::{SeedableRng, rngs::StdRng};
+
+    #[test]
+    fn grant_card_item_constructor_preserves_card() {
+        let card = Card {
+            suit: Suit::Hearts,
+            rank: Rank::Queen,
+        };
+
+        let item = Item::grant_card(card);
+
+        assert_eq!(
+            item.kind,
+            crate::game_state::item::ItemKind::GrantCard { card }
+        );
+        assert_eq!(item.effect, Effect::AddCardToHand { card });
+    }
+
+    #[test]
+    fn generate_item_with_rng_stays_in_valid_card_range() {
+        let mut rng = StdRng::seed_from_u64(7);
+
+        for _ in 0..128 {
+            let item = generate_item_with_rng(&mut rng);
+            if let crate::game_state::item::ItemKind::GrantCard { card } = item.kind {
+                assert!(crate::card::SUITS.contains(&card.suit));
+                assert!(crate::card::RANKS.contains(&card.rank));
+                assert_eq!(item.effect, Effect::AddCardToHand { card });
+            }
+        }
+    }
 }

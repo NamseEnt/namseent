@@ -2,6 +2,7 @@
 //! 개별 필드 조작이 아닌 실제 매핑(match) 로직을 검증한다.
 
 use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_state};
+use crate::hand::HandItem;
 
 #[test]
 fn increase_shop_reroll_via_run_effect() {
@@ -207,6 +208,28 @@ fn add_tower_card_to_placement_hand_flow_dependent() {
         !gs.hand.active_slot_ids().is_empty(),
         "배치 플로우에서는 즉시 핸드 추가"
     );
+}
+
+#[test]
+fn add_card_to_hand_via_run_effect() {
+    let mut gs = make_test_state();
+    let card = crate::card::Card {
+        suit: crate::card::Suit::Spades,
+        rank: crate::card::Rank::Two,
+    };
+
+    run_effect(&mut gs, &Effect::AddCardToHand { card });
+
+    assert!(gs.hand.active_slot_ids().len() == 1);
+    let slot_id = gs.hand.get_slot_id_by_index(0).unwrap();
+    let added_card = gs
+        .hand
+        .get_item(slot_id)
+        .and_then(|item| match item {
+            HandItem::Card(card) => Some(*card),
+            HandItem::Tower(_) => None,
+        });
+    assert_eq!(added_card, Some(card));
 }
 
 #[test]

@@ -147,3 +147,42 @@ fn test_straight_with_removed_two_and_three_allows_ace_low() {
     assert_eq!(template.kind, TowerKind::Straight);
     assert_eq!(template.rank, Rank::Seven);
 }
+
+#[test]
+fn test_straight_with_removed_two_still_recognizes_included_two() {
+    let cards = vec![
+        make_card(Suit::Spades, Rank::Two),
+        make_card(Suit::Hearts, Rank::Three),
+        make_card(Suit::Clubs, Rank::Four),
+        make_card(Suit::Diamonds, Rank::Five),
+        make_card(Suit::Spades, Rank::Six),
+    ];
+    let upgrade_state = UpgradeState {
+        removed_number_rank_count: 1,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::Straight);
+    assert_eq!(template.rank, Rank::Six);
+}
+
+#[test]
+fn test_straight_with_removed_two_and_skip_rank_allows_ace_four_five_six_seven() {
+    let cards = vec![
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Hearts, Rank::Four),
+        make_card(Suit::Clubs, Rank::Five),
+        make_card(Suit::Diamonds, Rank::Six),
+        make_card(Suit::Spades, Rank::Seven),
+    ];
+    let upgrade_state = UpgradeState {
+        removed_number_rank_count: 1,
+        skip_rank_for_straight: true,
+        ..UpgradeState::default()
+    };
+    let rerolled_count = 0;
+    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    assert_eq!(template.kind, TowerKind::Straight);
+    assert_eq!(template.rank, Rank::Seven);
+}
