@@ -217,7 +217,7 @@ where
 {
     fn render(self, ctx: &RenderCtx) {
         let HandComponent { hand, on_click } = self;
-        for slot in &hand.slots {
+        for slot in hand.slots.iter().rev() {
             ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
                 .add_with_key(slot.id, slot)
                 .attach_event(|event| {
