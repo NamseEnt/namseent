@@ -57,7 +57,7 @@ impl Component for ShopSlotView<'_> {
                                     set_hovered_slot_id(None);
                                 }
                             }
-                            Event::MouseUp { event } => {
+                            Event::MouseDown { event } => {
                                 if !can_purchase_item || !event.is_local_xy_in() {
                                     return;
                                 }
