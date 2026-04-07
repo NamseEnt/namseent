@@ -5,7 +5,7 @@ mod projectile;
 
 use super::*;
 
-const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
+pub(crate) const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
 
 pub struct Ticker;
 
@@ -63,6 +63,32 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
         dt,
     );
     field_particle::tick_all_emitters(now, dt);
+
+    projectile::move_projectiles(game_state, dt, now);
+    attack::shoot_attacks(game_state);
+    defense_end::check_defense_end(game_state);
+}
+
+/// Headless tick for simulation - skips rendering/animation/particle side effects.
+/// Game logic is identical to the normal tick.
+#[cfg(feature = "simulator")]
+pub(crate) fn tick_headless(game_state: &mut GameState, dt: Duration) {
+    let now = game_state.now();
+
+    game_state.flow.update();
+    game_state.hand.update();
+
+    monster_spawn::tick(game_state, now);
+    tower::tower_cooldown_tick(game_state, dt);
+
+    monster::remove_monster_finished_status_effects(game_state, now);
+    tower::remove_tower_finished_status_effects(game_state, now);
+    user_status_effect::remove_user_finished_status_effects(game_state, now);
+
+    monster::activate_monster_skills(game_state, now);
+    tower::activate_tower_skills(game_state, now);
+
+    monster::move_monsters(game_state, dt);
 
     projectile::move_projectiles(game_state, dt, now);
     attack::shoot_attacks(game_state);

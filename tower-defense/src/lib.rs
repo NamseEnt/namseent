@@ -12,6 +12,8 @@ mod rarity; // private; re-export Rarity only
 mod route;
 mod shop;
 mod shop_panel;
+#[cfg(feature = "simulator")]
+pub mod simulator;
 pub mod sound;
 mod theme;
 mod thumbnail;
@@ -36,6 +38,17 @@ type BlockUnit = usize;
 type BlockUnitF32 = f32;
 type MapCoord = Xy<BlockUnit>;
 type MapCoordF32 = Xy<BlockUnitF32>;
+
+/// Global headless mode flag. When true, sound and particle side effects are suppressed.
+static HEADLESS_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_headless(headless: bool) {
+    HEADLESS_MODE.store(headless, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn is_headless() -> bool {
+    HEADLESS_MODE.load(std::sync::atomic::Ordering::Relaxed)
+}
 
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {

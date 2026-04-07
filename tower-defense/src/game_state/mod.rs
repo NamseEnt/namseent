@@ -17,14 +17,14 @@ mod modal;
 pub mod poker_action;
 pub use upgrade::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub mod monster;
-mod monster_spawn;
+pub(crate) mod monster_spawn;
 mod placed_towers;
 pub mod play_history;
 pub mod projectile;
 mod render;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
-mod tick;
+pub(crate) mod tick;
 pub mod tower;
 mod tower_info_popup;
 mod ui_state;
@@ -39,7 +39,7 @@ use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
 pub use base::*;
-use camera::*;
+pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
@@ -52,7 +52,7 @@ use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
 pub use render::*;
-use status_effect_particle_generator::StatusEffectParticleGenerator;
+pub(crate) use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::sync::Arc;
 use tower::*;
 pub use ui_state::UIState;
@@ -100,7 +100,7 @@ pub struct GameState {
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
-    game_now: Instant,
+    pub(crate) game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
     pub locale: crate::l10n::Locale,
@@ -191,6 +191,10 @@ impl GameState {
 
     pub fn now(&self) -> Instant {
         self.game_now
+    }
+
+    pub fn advance_time(&mut self, dt: Duration) {
+        self.game_now += dt;
     }
 
     pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {

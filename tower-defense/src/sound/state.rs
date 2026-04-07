@@ -27,10 +27,16 @@ pub fn use_sound_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, SoundState> {
 }
 
 pub fn emit_sound(params: EmitSoundParams) -> SoundId {
+    if crate::is_headless() {
+        return 0;
+    }
     emit_sound_after(params, Duration::ZERO)
 }
 
 pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
+    if crate::is_headless() {
+        return 0;
+    }
     let sound_id = NEXT_SOUND_ID.fetch_add(1, Ordering::Relaxed);
     let now = Instant::now();
     let play_at = now + delay;

@@ -3,18 +3,30 @@ name = "tower-defense"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.namui]
+targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
+
 [features]
 default = ["debug-tools"]
 debug-tools = []
-
-[package.metadata.namui]
-targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
+simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:serde", "dep:serde_json", "dep:indicatif"]
 
 [dependencies]
 anyhow = "1.0.98"
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = { version = "0.8.5", features = ["alloc"] }
+rusqlite = { version = "0.31", features = ["bundled"], optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+rayon = { version = "1.10", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+indicatif = { version = "0.17", optional = true }
+
+[[bin]]
+name = "td-simulator"
+path = "src/bin/td_simulator.rs"
+required-features = ["simulator"]
 
 [build-dependencies]
 twemoji-assets = "1.4.0"
