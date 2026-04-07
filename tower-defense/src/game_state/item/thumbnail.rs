@@ -153,6 +153,11 @@ impl Effect {
                     .add_suit_overlay(*suit)
                     .build(),
             },
+            Effect::AddCardToHand { card } => ThumbnailComposer::new(width_height)
+                .with_icon_base(IconKind::Card)
+                .add_rank_overlay(card.rank)
+                .add_suit_overlay(card.suit)
+                .build(),
             Effect::GainShield { .. } => ThumbnailComposer::new(width_height)
                 .with_icon_base(IconKind::Shield)
                 .build(),

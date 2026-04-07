@@ -33,6 +33,8 @@ pub(super) const VOYAGER_WIDTH: Px = px(320.0);
 pub(super) const VOYAGER_HEIGHT: Px = px(320.0);
 pub(super) const VOYAGER_ANIM_PERIOD: std::time::Duration = std::time::Duration::from_millis(660);
 
+pub(super) const OPEN_Y_OFFSET: Px = px(128.0);
+
 #[inline]
 pub(super) fn panel_width() -> Px {
     PAPER_WIDTH

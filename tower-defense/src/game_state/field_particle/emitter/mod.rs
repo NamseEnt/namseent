@@ -1,6 +1,7 @@
 mod black_smoke;
 mod burning_trail;
 mod card_burst;
+mod dust;
 mod heart_burst;
 mod heart_trail;
 mod laser_beam;
@@ -17,6 +18,7 @@ mod yellow_explosion;
 pub use black_smoke::*;
 pub use burning_trail::*;
 pub use card_burst::*;
+pub use dust::*;
 pub use heart_burst::*;
 pub use heart_trail::*;
 pub use laser_beam::*;

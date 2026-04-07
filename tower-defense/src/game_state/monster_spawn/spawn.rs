@@ -46,6 +46,7 @@ pub fn tick(game_state: &mut GameState, now: namui::Instant) {
     }
 
     game_state.monsters.push(next_monster);
+    game_state.on_enemy_spawned();
 
     game_state.monster_spawn_state.next_spawn_time =
         Some(now + game_state.monster_spawn_state.spawn_interval);

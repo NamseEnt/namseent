@@ -2,6 +2,7 @@ pub mod generation;
 mod thumbnail;
 mod usage;
 
+use crate::card::Card;
 pub use crate::game_state::effect::Effect;
 use namui::*;
 pub use usage::*;
@@ -13,6 +14,7 @@ pub enum ItemKind {
     Shield,
     Painkiller,
     GrantBarricades,
+    GrantCard { card: Card },
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -33,6 +35,14 @@ impl ItemKind {
 }
 
 impl Item {
+    pub fn grant_card(card: Card) -> Self {
+        Item {
+            kind: ItemKind::GrantCard { card },
+            effect: Effect::AddCardToHand { card },
+            value: 1.0.into(),
+        }
+    }
+
     pub fn name_text(&self) -> crate::l10n::item_kind::ItemKindText {
         self.kind.name_text()
     }
