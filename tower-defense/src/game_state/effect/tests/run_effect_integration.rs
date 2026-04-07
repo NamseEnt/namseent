@@ -222,13 +222,10 @@ fn add_card_to_hand_via_run_effect() {
 
     assert!(gs.hand.active_slot_ids().len() == 1);
     let slot_id = gs.hand.get_slot_id_by_index(0).unwrap();
-    let added_card = gs
-        .hand
-        .get_item(slot_id)
-        .and_then(|item| match item {
-            HandItem::Card(card) => Some(*card),
-            HandItem::Tower(_) => None,
-        });
+    let added_card = gs.hand.get_item(slot_id).and_then(|item| match item {
+        HandItem::Card(card) => Some(*card),
+        HandItem::Tower(_) => None,
+    });
     assert_eq!(added_card, Some(card));
 }
 

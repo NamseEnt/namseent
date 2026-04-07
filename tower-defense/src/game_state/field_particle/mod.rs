@@ -7,9 +7,8 @@ use namui::{Duration, Instant};
 pub use particle::{
     BlackSmokeParticle, BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle,
     DustParticle, DustParticleConfig, EaseMode, EmberSparkParticle, HeartParticle, IconParticle,
-    LaserLineParticle,
-    LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
-    RedSlashParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
+    LaserLineParticle, LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle,
+    ProjectileParticle, RedSlashParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
     YellowExplosionParticle,
 };
 

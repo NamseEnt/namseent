@@ -55,9 +55,7 @@ impl EffectText {
                 Effect::RankTowerDisable { .. } => builder.text("특정 랭크 타워 비활성화"),
                 Effect::SuitTowerDisable { .. } => builder.text("특정 수트 타워 비활성화"),
                 Effect::AddTowerCardToPlacementHand { .. } => builder.text("타워 카드 추가"),
-                Effect::AddCardToHand { .. } => {
-                    builder.text("비상용 카드")
-                }
+                Effect::AddCardToHand { .. } => builder.text("비상용 카드"),
                 Effect::GainShield { .. } => builder.text("보호막 획득"),
                 Effect::HealHealth { .. } => builder.text("체력 회복"),
                 Effect::GainGold { .. } => builder.text("골드 획득"),
@@ -211,9 +209,7 @@ impl EffectText {
                 Effect::RankTowerDisable { .. } => builder.text("Rank Tower Disable"),
                 Effect::SuitTowerDisable { .. } => builder.text("Suit Tower Disable"),
                 Effect::AddTowerCardToPlacementHand { .. } => builder.text("Add Tower Card"),
-                Effect::AddCardToHand { .. } => {
-                    builder.text("Emergency Card")
-                }
+                Effect::AddCardToHand { .. } => builder.text("Emergency Card"),
                 Effect::GainShield { .. } => builder.text("Gain Shield"),
                 Effect::HealHealth { .. } => builder.text("Heal Health"),
                 Effect::GainGold { .. } => builder.text("Gain Gold"),
