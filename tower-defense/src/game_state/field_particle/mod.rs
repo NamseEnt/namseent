@@ -6,7 +6,8 @@ use namui::{Duration, Instant};
 
 pub use particle::{
     BlackSmokeParticle, BlueSparkParticle, BurningTrailParticle, CardParticle, DamageTextParticle,
-    EaseMode, EmberSparkParticle, HeartParticle, IconParticle, LaserLineParticle,
+    DustParticle, DustParticleConfig, EaseMode, EmberSparkParticle, HeartParticle, IconParticle,
+    LaserLineParticle,
     LightningBoltParticle, MonsterCorpseParticle, MonsterSoulParticle, ProjectileParticle,
     RedSlashParticle, SparkleParticle, TrashParticle, WindCurveTrailParticle,
     YellowExplosionParticle,
@@ -109,6 +110,10 @@ pub fn spawn_black_smoke_particle(particle: BlackSmokeParticle) {
     BLACK_SMOKES.spawn(particle);
 }
 
+pub fn spawn_dust_particle(particle: DustParticle) {
+    DUSTS.spawn(particle);
+}
+
 pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
     namui::particle::Emitter::new();
 pub static TRASHES: namui::particle::Emitter<TrashParticle> = namui::particle::Emitter::new();
@@ -125,6 +130,7 @@ pub static ATTACK_PARTICLES: namui::particle::Emitter<AttackParticle> =
 pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
 pub static BLACK_SMOKES: namui::particle::Emitter<BlackSmokeParticle> =
     namui::particle::Emitter::new();
+pub static DUSTS: namui::particle::Emitter<DustParticle> = namui::particle::Emitter::new();
 
 pub fn tick_all_emitters(now: Instant, dt: Duration) {
     ATTACK_PARTICLES.tick(now, dt);
@@ -137,4 +143,5 @@ pub fn tick_all_emitters(now: Instant, dt: Duration) {
     DAMAGE_TEXTS.tick(now, dt);
     HEARTS.tick(now, dt);
     BLACK_SMOKES.tick(now, dt);
+    DUSTS.tick(now, dt);
 }

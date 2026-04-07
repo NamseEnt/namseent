@@ -305,6 +305,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     let monsters = crate::asset::image::PARTICLE_MONSTERS;
     let icons = crate::asset::image::PARTICLE_ICONS;
     let digits = crate::asset::image::PARTICLE_DIGITS;
+    let dust = crate::asset::image::ui::particle::DUST;
     let screen_paint = Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen));
 
     ctx.add(namui::particle::RenderEmitter {
@@ -364,6 +365,12 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
     ctx.add(namui::particle::RenderEmitter {
         emitter: &field_particle::BLACK_SMOKES,
         image: attack,
+        sprite_colors_blend_mode: BlendMode::Modulate,
+        paint: None,
+    });
+    ctx.add(namui::particle::RenderEmitter {
+        emitter: &field_particle::DUSTS,
+        image: dust,
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });

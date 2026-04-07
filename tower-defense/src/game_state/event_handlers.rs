@@ -74,11 +74,22 @@ impl GameState {
 
     pub fn remove_tower(&mut self, tower_id: usize) -> bool {
         let tower_count_before = self.towers.iter().count();
+        let tower_center_xy =
+            self.towers
+                .iter()
+                .find(|tower| tower.id() == tower_id)
+                .map(|tower| {
+                    let center = tower.center_xy_f32();
+                    (center.x, center.y)
+                });
         self.towers.remove_tower(tower_id);
         let tower_removed = self.towers.iter().count() < tower_count_before;
         if tower_removed {
             self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                 .expect("route should exist after removing a tower");
+            if let Some(center_xy) = tower_center_xy {
+                field_particle::emitter::spawn_tower_remove_dust_burst(center_xy, self.now());
+            }
         }
         tower_removed
     }
