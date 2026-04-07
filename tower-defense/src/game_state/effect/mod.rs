@@ -508,6 +508,7 @@ pub mod tests_support {
                     Instant::now(),
                 ),
             black_smoke_sources: Default::default(),
+            base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
 
             hand_panel_forced_open: true,
             shop_panel_forced_open: true,

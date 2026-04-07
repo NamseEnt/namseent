@@ -1,5 +1,6 @@
 pub mod attack;
 pub mod background;
+mod base;
 mod camera;
 pub mod can_place_tower;
 pub mod cursor_preview;
@@ -37,6 +38,7 @@ use crate::hand::{Hand, HandItem, HandSlotId};
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
+pub use base::*;
 use camera::*;
 use cursor_preview::CursorPreview;
 use fast_forward::FastForwardMultiplier;
@@ -108,6 +110,7 @@ pub struct GameState {
     pub ui_state: UIState,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
+    pub base_animation_state: BaseAnimationState,
 
     // panel open states controlled by input/flow
     pub hand_panel_forced_open: bool,
@@ -290,6 +293,7 @@ fn create_initial_game_state() -> GameState {
         ui_state: UIState::new(),
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
+        base_animation_state: BaseAnimationState::new(now),
 
         // start panels in opened state by default (if flow allows later)
         hand_panel_forced_open: true,
@@ -363,6 +367,7 @@ impl GameState {
             ui_state: self.ui_state.clone(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
             black_smoke_sources: Default::default(),
+            base_animation_state: self.base_animation_state.clone(),
 
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,

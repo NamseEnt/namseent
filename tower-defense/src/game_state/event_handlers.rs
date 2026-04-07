@@ -104,6 +104,7 @@ impl GameState {
             _ => ShakeIntensity::Heavy,
         };
         self.camera.shake(intensity);
+        self.on_player_damaged(intensity);
 
         // Shield absorption
         if self.shield > 0.0 {

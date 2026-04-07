@@ -33,6 +33,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
     game_state.hand.update();
 
     game_state.update_camera_shake(dt);
+    game_state.update_base_animations(now);
 
     monster_spawn::tick(game_state, now);
     tower::tower_cooldown_tick(game_state, dt);

@@ -20,6 +20,7 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_projectiles, self.game_state));
                 ctx.add((render_monsters, self.game_state));
                 ctx.add((render_towers, self.game_state));
+                ctx.add((render_bases, self.game_state));
                 ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_grid, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
