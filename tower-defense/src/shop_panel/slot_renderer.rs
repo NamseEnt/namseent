@@ -58,9 +58,13 @@ impl Component for ShopSlotView<'_> {
                                 }
                             }
                             Event::MouseDown { event } => {
-                                if !can_purchase_item || !event.is_local_xy_in() {
+                                if !can_purchase_item
+                                    || !event.is_local_xy_in()
+                                    || !matches!(event.button, Some(MouseButton::Left))
+                                {
                                     return;
                                 }
+
                                 event.stop_propagation();
                                 purchase_item(slot_id);
                             }
