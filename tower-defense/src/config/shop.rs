@@ -1,6 +1,6 @@
 use namui::*;
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct ShopConfig {
     pub base_cost: f32,

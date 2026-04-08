@@ -16,4 +16,8 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
+gameconfig.toml
+results.db
+sim_results.db
+
 # End of https://www.toptal.com/developers/gitignore/api/rust

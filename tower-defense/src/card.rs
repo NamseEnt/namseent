@@ -23,7 +23,7 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Rank {
     Two,

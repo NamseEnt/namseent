@@ -80,13 +80,14 @@ pub fn monster_template_queue_table(
     let stage_wave = config
         .monsters
         .stage_waves
-        .get(&stage)
+        .iter()
+        .find(|wave| wave.stage == stage)
         .expect("missing stage wave for stage");
 
     let template_queue = stage_wave
         .entries
         .iter()
-        .flat_map(|(kind, count)| std::iter::repeat_n(*kind, *count))
+        .flat_map(|entry| std::iter::repeat_n(entry.kind, entry.count))
         .map(|kind| MonsterTemplate::new_with_config(kind, config))
         .collect::<VecDeque<_>>();
 

@@ -367,7 +367,7 @@ impl PartialOrd for TowerTemplate {
     }
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
 pub enum TowerKind {
     Barricade,

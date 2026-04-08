@@ -1,8 +1,8 @@
-pub mod monsters;
-pub mod towers;
 pub mod items;
-pub mod upgrades;
+pub mod monsters;
 pub mod shop;
+pub mod towers;
+pub mod upgrades;
 
 use self::items::ItemConfig;
 use self::monsters::MonsterConfig;
@@ -15,7 +15,7 @@ use anyhow::Context;
 
 use namui::*;
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct GameConfig {
     pub player: PlayerConfig,
@@ -27,7 +27,7 @@ pub struct GameConfig {
     pub rarity_weights: [usize; 4],
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct PlayerConfig {
     pub max_hp: f32,

@@ -3,7 +3,7 @@ use crate::game_state::tower::TowerKind;
 use namui::*;
 use std::collections::HashMap;
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct TowerStats {
     pub damage: f32,
@@ -11,7 +11,7 @@ pub struct TowerStats {
     pub cooldown_ms: u64,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct TowerConfig {
     pub stats: HashMap<TowerKind, TowerStats>,

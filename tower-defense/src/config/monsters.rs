@@ -2,7 +2,7 @@ use crate::game_state::monster::MonsterKind;
 use namui::*;
 use std::collections::HashMap;
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct MonsterStats {
     pub base_hp: f32,
@@ -11,24 +11,32 @@ pub struct MonsterStats {
     pub reward: usize,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
-pub struct StageWave {
-    pub entries: Vec<(MonsterKind, usize)>,
+pub struct StageWaveEntry {
+    pub kind: MonsterKind,
+    pub count: usize,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, State)]
+pub struct StageWave {
+    pub stage: usize,
+    pub entries: Vec<StageWaveEntry>,
+}
+
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct MonsterConfig {
     pub stats: HashMap<MonsterKind, MonsterStats>,
-    pub stage_waves: HashMap<usize, StageWave>,
+    pub stage_waves: Vec<StageWave>,
 }
 
 pub fn default_monster_config() -> MonsterConfig {
     use MonsterKind::*;
 
     let mut stats = HashMap::new();
-    let mut stage_waves = HashMap::new();
+    let mut stage_waves = Vec::new();
 
     let hp_table: Vec<(MonsterKind, f32)> = vec![
         (Mob01, 15.0),
@@ -225,7 +233,13 @@ pub fn default_monster_config() -> MonsterConfig {
     ];
 
     for (stage, entries) in waves {
-        stage_waves.insert(stage, StageWave { entries });
+        stage_waves.push(StageWave {
+            stage,
+            entries: entries
+                .into_iter()
+                .map(|(kind, count)| StageWaveEntry { kind, count })
+                .collect(),
+        });
     }
 
     MonsterConfig { stats, stage_waves }

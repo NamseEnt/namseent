@@ -1,6 +1,6 @@
 use namui::*;
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct ItemCandidateConfig {
     pub weight: f32,
@@ -8,7 +8,7 @@ pub struct ItemCandidateConfig {
     pub max_value: f32,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct ItemConfig {
     pub heal: ItemCandidateConfig,

@@ -16,17 +16,17 @@ pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> 
         .upgrades
         .tower_damage_upgrades
         .iter()
-        .map(|(name, entry)| CandidateRow {
-            weight: entry.weight,
-            kind_gen: make_tower_damage_upgrade_kind_gen(name, entry.damage_multiplier_range),
+        .map(|upgrade| CandidateRow {
+            weight: upgrade.entry.weight,
+            kind_gen: make_tower_damage_upgrade_kind_gen(
+                &upgrade.name,
+                upgrade.entry.damage_multiplier_range,
+            ),
         })
         .collect()
 }
 
-fn make_tower_damage_upgrade_kind_gen(
-    name: &str,
-    range: Option<(f32, f32)>,
-) -> KindGen {
+fn make_tower_damage_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
     match name {
         "CainSword" => {
@@ -109,10 +109,11 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
         });
     };
 
-    for (name, entry) in &game_state.config.upgrades.treasure_upgrades {
-        let weight = entry.weight;
-        let kind_gen = make_treasure_upgrade_kind_gen(name, entry.damage_multiplier_range);
-        let current_and_max = match name.as_str() {
+    for upgrade in &game_state.config.upgrades.treasure_upgrades {
+        let weight = upgrade.entry.weight;
+        let kind_gen =
+            make_treasure_upgrade_kind_gen(&upgrade.name, upgrade.entry.damage_multiplier_range);
+        let current_and_max = match upgrade.name.as_str() {
             "Magnet" => Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
             "Backpack" => Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
             "DiceBundle" => Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
@@ -123,7 +124,10 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
             "FourLeafClover" => Some((upgrade_state.shorten_straight_flush_to_4_cards as usize, 1)),
             "Rabbit" => Some((upgrade_state.skip_rank_for_straight as usize, 1)),
             "BlackWhite" => Some((upgrade_state.treat_suits_as_same as usize, 1)),
-            "Eraser" => Some((upgrade_state.removed_number_rank_count, MAX_REMOVE_NUMBER_RANKS)),
+            "Eraser" => Some((
+                upgrade_state.removed_number_rank_count,
+                MAX_REMOVE_NUMBER_RANKS,
+            )),
             _ => None,
         };
         push_row(kind_gen, current_and_max, weight);
@@ -132,10 +136,7 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
     rows
 }
 
-fn make_treasure_upgrade_kind_gen(
-    name: &str,
-    range: Option<(f32, f32)>,
-) -> KindGen {
+fn make_treasure_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
     match name {
         "Magnet" => Box::new(|| UpgradeKind::Magnet),
