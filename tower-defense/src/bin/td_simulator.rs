@@ -1,9 +1,10 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{
-    Arc,
+    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
 };
 use tower_defense::config::GameConfig;
@@ -40,6 +41,14 @@ struct Cli {
     /// Optional simulation config TOML file
     #[arg(long)]
     config: Option<PathBuf>,
+
+    /// Print per-round damage distribution statistics
+    #[arg(long)]
+    damage_distribution: bool,
+
+    /// Suppress progress bar output
+    #[arg(long)]
+    quiet: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -67,20 +76,33 @@ fn main() -> anyhow::Result<()> {
     let completed = AtomicUsize::new(0);
     let victories = AtomicUsize::new(0);
 
-    let num_threads = pool.current_num_threads();
-    println!(
-        "Running {} simulations on {} threads...",
-        cli.samples, num_threads
-    );
+    let stage_damage_by_round = if cli.damage_distribution {
+        Some(Arc::new(Mutex::new(HashMap::<usize, Vec<f32>>::new())))
+    } else {
+        None
+    };
 
-    let overall_pb = ProgressBar::new(cli.samples as u64);
-    overall_pb.set_style(
-        ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}",
-        )
-        .unwrap(),
-    );
-    overall_pb.set_message("wins 0");
+    let num_threads = pool.current_num_threads();
+    if !cli.quiet {
+        println!(
+            "Running {} simulations on {} threads...",
+            cli.samples, num_threads
+        );
+    }
+
+    let overall_pb = if cli.quiet {
+        None
+    } else {
+        let pb = ProgressBar::new(cli.samples as u64);
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}",
+            )
+            .unwrap(),
+        );
+        pb.set_message("wins 0");
+        Some(pb)
+    };
 
     pool.install(|| {
         (0..cli.samples).into_par_iter().for_each(|i| {
@@ -156,13 +178,22 @@ fn main() -> anyhow::Result<()> {
                 victories.fetch_add(1, Ordering::Relaxed);
             }
 
+            if let Some(stage_damage_by_round) = &stage_damage_by_round {
+                let mut map = stage_damage_by_round.lock().unwrap();
+                for (idx, &damage) in result.stage_damage.iter().enumerate() {
+                    map.entry(idx + 1).or_default().push(damage);
+                }
+            }
+
             completed.fetch_add(1, Ordering::Relaxed);
-            overall_pb.inc(1);
-            let win_count = victories.load(Ordering::Relaxed);
-            overall_pb.set_message(format!(
-                "wins {win_count}, last {last:.1}%",
-                last = result.clear_rate
-            ));
+            if let Some(pb) = &overall_pb {
+                pb.inc(1);
+                let win_count = victories.load(Ordering::Relaxed);
+                pb.set_message(format!(
+                    "wins {win_count}, last {last:.1}%",
+                    last = result.clear_rate
+                ));
+            }
         });
     });
 
@@ -175,6 +206,37 @@ fn main() -> anyhow::Result<()> {
         total_wins,
         cli.samples
     );
+
+    if let Some(stage_damage_by_round) = stage_damage_by_round {
+        let map = stage_damage_by_round.lock().unwrap();
+        if !map.is_empty() {
+            println!("=== Damage Distribution by Round ===");
+            let mut stages: Vec<usize> = map.keys().cloned().collect();
+            stages.sort_unstable();
+            for stage in stages {
+                let damages = &map[&stage];
+                if damages.is_empty() {
+                    continue;
+                }
+                let count = damages.len();
+                let sum: f32 = damages.iter().sum();
+                let mean = sum / count as f32;
+                let mut sorted = damages.clone();
+                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                let median = if count % 2 == 1 {
+                    sorted[count / 2]
+                } else {
+                    (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0
+                };
+                let min = *sorted.first().unwrap_or(&0.0);
+                let max = *sorted.last().unwrap_or(&0.0);
+                println!(
+                    "Round {stage}: count {count}, mean {mean:.1}, median {median:.1}, min {min:.1}, max {max:.1}",
+                );
+            }
+        }
+    }
+
     println!("Results saved to: {}", cli.db.display());
 
     Ok(())

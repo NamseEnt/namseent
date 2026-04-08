@@ -30,6 +30,7 @@ pub struct HeadlessGame {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
+    pub stage_damage: Vec<f32>,
     pub total_gold_earned: usize,
 }
 
@@ -48,6 +49,7 @@ impl HeadlessGame {
             total_towers_placed: 0,
             total_items_used: 0,
             total_damage_taken: 0.0,
+            stage_damage: Vec::new(),
             total_gold_earned: 0,
         }
     }
@@ -129,6 +131,7 @@ impl HeadlessGame {
 
                     let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
                     self.total_damage_taken += damage_this_stage;
+                    self.stage_damage.push(damage_this_stage);
                 }
                 GameFlow::TreasureSelection(ref flow) => {
                     let options = flow.options.clone();
@@ -167,6 +170,7 @@ impl HeadlessGame {
                         total_towers_placed: self.total_towers_placed,
                         total_items_used: self.total_items_used,
                         total_damage_taken: self.total_damage_taken,
+                        stage_damage: self.stage_damage.clone(),
                         total_gold_earned: self.total_gold_earned,
                     };
                 }
@@ -214,6 +218,7 @@ pub struct SimResult {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
+    pub stage_damage: Vec<f32>,
     pub total_gold_earned: usize,
 }
 
