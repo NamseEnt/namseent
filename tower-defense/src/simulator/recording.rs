@@ -13,6 +13,7 @@ pub struct SimRecorder {
 impl SimRecorder {
     pub fn new(db_path: &Path) -> anyhow::Result<Self> {
         let conn = Connection::open(db_path)?;
+        conn.execute_batch("PRAGMA journal_mode=WAL;")?;
         let recorder = Self {
             conn: Mutex::new(conn),
         };
@@ -168,38 +169,38 @@ impl SimRecorder {
         Ok(())
     }
 
-    pub fn record_events(
-        &self,
-        sim_id: &str,
-        events: &[SimEvent],
-    ) -> anyhow::Result<()> {
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "INSERT INTO simulation_events (simulation_id, event_order, event_type, event_data) VALUES (?1, ?2, ?3, ?4)",
-        )?;
+    pub fn record_events(&self, sim_id: &str, events: &[SimEvent]) -> anyhow::Result<()> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO simulation_events (simulation_id, event_order, event_type, event_data) VALUES (?1, ?2, ?3, ?4)",
+            )?;
 
-        for (i, event) in events.iter().enumerate() {
-            let event_type = match event {
-                SimEvent::GameStart => "game_start",
-                SimEvent::StageStart { .. } => "stage_start",
-                SimEvent::ShopReroll { .. } => "shop_reroll",
-                SimEvent::ShopPurchase { .. } => "shop_purchase",
-                SimEvent::CardReroll { .. } => "card_reroll",
-                SimEvent::TowerSelected { .. } => "tower_selected",
-                SimEvent::TowerPlaced { .. } => "tower_placed",
-                SimEvent::TowerRemoved { .. } => "tower_removed",
-                SimEvent::DefenseStart { .. } => "defense_start",
-                SimEvent::DefenseEnd { .. } => "defense_end",
-                SimEvent::DamageTaken { .. } => "damage_taken",
-                SimEvent::MonsterKilled { .. } => "monster_killed",
-                SimEvent::ItemUsed { .. } => "item_used",
-                SimEvent::TreasureSelected { .. } => "treasure_selected",
-                SimEvent::GameEnd { .. } => "game_end",
-            };
-            let event_data = serde_json::to_string(event)?;
-            stmt.execute(params![sim_id, i as i64, event_type, event_data])?;
+            for (i, event) in events.iter().enumerate() {
+                let event_type = match event {
+                    SimEvent::GameStart => "game_start",
+                    SimEvent::StageStart { .. } => "stage_start",
+                    SimEvent::ShopReroll { .. } => "shop_reroll",
+                    SimEvent::ShopPurchase { .. } => "shop_purchase",
+                    SimEvent::CardReroll { .. } => "card_reroll",
+                    SimEvent::TowerSelected { .. } => "tower_selected",
+                    SimEvent::TowerPlaced { .. } => "tower_placed",
+                    SimEvent::TowerRemoved { .. } => "tower_removed",
+                    SimEvent::DefenseStart { .. } => "defense_start",
+                    SimEvent::DefenseEnd { .. } => "defense_end",
+                    SimEvent::DamageTaken { .. } => "damage_taken",
+                    SimEvent::MonsterKilled { .. } => "monster_killed",
+                    SimEvent::ItemUsed { .. } => "item_used",
+                    SimEvent::TreasureSelected { .. } => "treasure_selected",
+                    SimEvent::GameEnd { .. } => "game_end",
+                };
+                let event_data = serde_json::to_string(event)?;
+                stmt.execute(params![sim_id, i as i64, event_type, event_data])?;
+            }
         }
 
+        tx.commit()?;
         Ok(())
     }
 }

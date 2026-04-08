@@ -1,6 +1,6 @@
 use super::*;
-use crate::sound;
 use rand::Rng;
+use std::collections::HashMap;
 
 const WHOOSH_INTERVAL_MIN_SECS: f32 = 0.5;
 const WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
@@ -12,15 +12,19 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         ..
     } = game_state;
 
+    let mut monster_index_by_indicator: HashMap<_, _> = monsters
+        .iter()
+        .enumerate()
+        .map(|(index, monster)| (monster.projectile_target_indicator, index))
+        .collect();
+
     let mut total_earn_gold = 0;
     let mut rng = rand::thread_rng();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
 
-        let Some(monster_index) = monsters
-            .iter()
-            .position(|monster| monster.projectile_target_indicator == projectile.target_indicator)
+        let Some(&monster_index) = monster_index_by_indicator.get(&projectile.target_indicator)
         else {
             if projectile.current_whoosh_sound_id != 0 {
                 sound::stop_sound(projectile.current_whoosh_sound_id);
@@ -38,18 +42,24 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 sound::stop_sound(projectile.current_wind_sound_id);
                 projectile.current_wind_sound_id = 0;
             }
-            field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
-                projectile.xy,
-                projectile.kind,
-                projectile.rotation,
-                projectile.rotation_speed,
-                projectile.velocity,
-                now,
-                Duration::from_millis(300),
-            ));
+            if !crate::is_headless() {
+                field_particle::PROJECTILES.spawn(field_particle::ProjectileParticle::new(
+                    projectile.xy,
+                    projectile.kind,
+                    projectile.rotation,
+                    projectile.rotation_speed,
+                    projectile.velocity,
+                    now,
+                    Duration::from_millis(300),
+                ));
+            }
             return false;
         };
 
+        let target_indicator = projectile.target_indicator;
+        let last_monster_indicator = monsters
+            .last()
+            .map(|monster| monster.projectile_target_indicator);
         let monster = &mut monsters[monster_index];
         let monster_xy = monster.center_xy_tile();
 
@@ -87,54 +97,56 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                     (projectile.trail_distance_remainder / spawn_distance).floor() as usize;
                 if spawn_count > 0 {
                     projectile.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
-                    match projectile.trail {
-                        ProjectileTrail::Burning => {
-                            field_particle::emitter::spawn_burning_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
+                    if !crate::is_headless() {
+                        match projectile.trail {
+                            ProjectileTrail::Burning => {
+                                field_particle::emitter::spawn_burning_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                            }
+                            ProjectileTrail::Sparkle => {
+                                field_particle::emitter::spawn_sparkle_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                            }
+                            ProjectileTrail::WindCurve => {
+                                field_particle::emitter::spawn_wind_curve_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                            }
+                            ProjectileTrail::Heart => {
+                                field_particle::emitter::spawn_heart_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                            }
+                            ProjectileTrail::LightningSparkle => {
+                                field_particle::emitter::spawn_lightning_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                                field_particle::emitter::spawn_sparkle_trail(
+                                    start_xy,
+                                    projectile.xy,
+                                    spawn_count,
+                                    now,
+                                );
+                            }
+                            ProjectileTrail::None => {}
                         }
-                        ProjectileTrail::Sparkle => {
-                            field_particle::emitter::spawn_sparkle_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
-                        }
-                        ProjectileTrail::WindCurve => {
-                            field_particle::emitter::spawn_wind_curve_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
-                        }
-                        ProjectileTrail::Heart => {
-                            field_particle::emitter::spawn_heart_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
-                        }
-                        ProjectileTrail::LightningSparkle => {
-                            field_particle::emitter::spawn_lightning_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
-                            field_particle::emitter::spawn_sparkle_trail(
-                                start_xy,
-                                projectile.xy,
-                                spawn_count,
-                                now,
-                            );
-                        }
-                        ProjectileTrail::None => {}
                     }
                 }
             }
@@ -280,7 +292,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                 },
             ));
         }
-        if damage > 0.0 {
+        if damage > 0.0 && !crate::is_headless() {
             field_particle::DAMAGE_TEXTS.spawn(field_particle::DamageTextParticle::new(
                 monster_xy, damage, now,
             ));
@@ -295,18 +307,26 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                     (monster_xy.x, monster_xy.y),
                     now,
                 );
-                for p in bounce_particles {
-                    field_particle::TRASHES.spawn(p);
+                if !crate::is_headless() {
+                    for p in bounce_particles {
+                        field_particle::TRASHES.spawn(p);
+                    }
                 }
             }
             ProjectileHitEffect::CardBurst => {
-                field_particle::emitter::spawn_card_burst(monster_xy, now);
+                if !crate::is_headless() {
+                    field_particle::emitter::spawn_card_burst(monster_xy, now);
+                }
             }
             ProjectileHitEffect::SparkleBurst => {
-                field_particle::emitter::spawn_sparkle_burst(monster_xy, now);
+                if !crate::is_headless() {
+                    field_particle::emitter::spawn_sparkle_burst(monster_xy, now);
+                }
             }
             ProjectileHitEffect::HeartBurst => {
-                field_particle::emitter::spawn_heart_burst(monster_xy, now);
+                if !crate::is_headless() {
+                    field_particle::emitter::spawn_heart_burst(monster_xy, now);
+                }
             }
         }
 
@@ -331,17 +351,26 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
 
-            field_particle::MONSTER_CORPSES.spawn(field_particle::MonsterCorpseParticle::new(
-                pixel_xy,
-                now,
-                rotation,
-                monster_kind,
-                wh,
-            ));
+            if !crate::is_headless() {
+                field_particle::MONSTER_CORPSES.spawn(field_particle::MonsterCorpseParticle::new(
+                    pixel_xy,
+                    now,
+                    rotation,
+                    monster_kind,
+                    wh,
+                ));
 
-            field_particle::MONSTER_SOULS.spawn(field_particle::MonsterSoulParticle::new(
-                pixel_xy, now, rotation,
-            ));
+                field_particle::MONSTER_SOULS.spawn(field_particle::MonsterSoulParticle::new(
+                    pixel_xy, now, rotation,
+                ));
+            }
+
+            monster_index_by_indicator.remove(&target_indicator);
+            if let Some(last_indicator) = last_monster_indicator {
+                if monster_index != monsters.len() - 1 {
+                    monster_index_by_indicator.insert(last_indicator, monster_index);
+                }
+            }
 
             monsters.swap_remove(monster_index);
         }

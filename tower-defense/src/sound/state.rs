@@ -62,6 +62,9 @@ pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
 }
 
 pub fn stop_sound(sound_id: SoundId) {
+    if crate::is_headless() {
+        return;
+    }
     SOUND_EVENTS
         .lock()
         .unwrap()
@@ -69,6 +72,9 @@ pub fn stop_sound(sound_id: SoundId) {
 }
 
 pub fn update_sound_position(sound_id: SoundId, position: crate::MapCoordF32) {
+    if crate::is_headless() {
+        return;
+    }
     let mut events = SOUND_EVENTS.lock().unwrap();
     let Some(sound) = events.iter_mut().find(|sound| sound.id == sound_id) else {
         return;

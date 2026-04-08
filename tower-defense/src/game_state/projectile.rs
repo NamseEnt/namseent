@@ -251,7 +251,7 @@ pub enum ProjectileTrail {
     LightningSparkle,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, State)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, State)]
 pub struct ProjectileTargetIndicator {
     id: usize,
 }

@@ -1,5 +1,6 @@
 use super::*;
 use rand::Rng;
+use std::collections::HashMap;
 
 pub fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
@@ -103,16 +104,18 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         },
                     ));
 
-                    field_particle::emitter::spawn_laser_beam(
-                        laser.start_xy,
-                        laser.end_xy,
-                        laser.created_at,
-                    );
-
-                    if damage > 0.0 {
-                        field_particle::DAMAGE_TEXTS.spawn(
-                            field_particle::DamageTextParticle::new(target_xy, damage, now),
+                    if !crate::is_headless() {
+                        field_particle::emitter::spawn_laser_beam(
+                            laser.start_xy,
+                            laser.end_xy,
+                            laser.created_at,
                         );
+
+                        if damage > 0.0 {
+                            field_particle::DAMAGE_TEXTS.spawn(
+                                field_particle::DamageTextParticle::new(target_xy, damage, now),
+                            );
+                        }
                     }
 
                     monster_kills.push((target_idx, damage, target_xy));
@@ -166,6 +169,13 @@ fn process_delayed_hits(game_state: &mut GameState) {
     let mut rng = rand::thread_rng();
     let mut due_hits = Vec::new();
 
+    let monster_index_by_id: HashMap<_, _> = game_state
+        .monsters
+        .iter()
+        .enumerate()
+        .map(|(index, monster)| (monster.id(), index))
+        .collect();
+
     game_state.delayed_hits.retain(|hit| {
         if hit.execute_at <= now {
             due_hits.push(*hit);
@@ -177,11 +187,7 @@ fn process_delayed_hits(game_state: &mut GameState) {
 
     let mut monster_kills = Vec::new();
     for hit in due_hits {
-        let Some(target_idx) = game_state
-            .monsters
-            .iter()
-            .position(|monster| monster.id() == hit.target_monster_id)
-        else {
+        let Some(&target_idx) = monster_index_by_id.get(&hit.target_monster_id) else {
             continue;
         };
 
@@ -208,7 +214,7 @@ fn process_delayed_hits(game_state: &mut GameState) {
             Duration::from_millis(second_slash_delay_ms),
         );
 
-        if hit.damage > 0.0 {
+        if hit.damage > 0.0 && !crate::is_headless() {
             crate::game_state::field_particle::DAMAGE_TEXTS.spawn(
                 crate::game_state::field_particle::DamageTextParticle::new(
                     target_xy, hit.damage, now,
