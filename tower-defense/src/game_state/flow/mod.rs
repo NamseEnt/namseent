@@ -110,9 +110,10 @@ impl GameState {
         self.hand_panel_forced_open = true;
         self.shop_panel_forced_open = true;
 
-        let max_slots = (5 + self.stage_modifiers.get_max_hand_slots_bonus())
-            .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
-            .max(1);
+        let max_slots = (self.config.player.base_hand_slots
+            + self.stage_modifiers.get_max_hand_slots_bonus())
+        .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
+        .max(1);
         sound::play_card_draw_sounds(max_slots);
 
         let removing_ids = self.hand.active_slot_ids();
@@ -132,7 +133,12 @@ impl GameState {
 
         // Drain all queued extra towers (barricades, special towers, etc.)
         for (tower_kind, suit, rank) in self.stage_modifiers.drain_extra_tower_cards() {
-            hand_items.push(TowerTemplate::new(tower_kind, suit, rank));
+            hand_items.push(TowerTemplate::new_with_config(
+                tower_kind,
+                suit,
+                rank,
+                &self.config,
+            ));
         }
 
         let removing_ids = self.hand.active_slot_ids();

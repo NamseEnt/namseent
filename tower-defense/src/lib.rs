@@ -1,6 +1,7 @@
 mod animation;
 mod camera_controller;
 mod card;
+pub mod config;
 mod flow_ui;
 mod game_state; // now private; selective re-exports below
 mod hand;

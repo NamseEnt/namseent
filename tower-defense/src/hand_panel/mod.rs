@@ -72,16 +72,18 @@ impl Component for HandPanel {
                 .collect::<Vec<Card>>()
         });
         let tower_template = ctx.memo({
-            let upgrade_state = &game_state.upgrade_state;
+            let upgrade_state = game_state.upgrade_state.clone();
             let rerolled_count = game_state.rerolled_count;
+            let config = game_state.config.clone();
             move || {
                 if using_cards.is_empty() {
                     None
                 } else {
                     Some(get_highest_tower_template(
                         &using_cards,
-                        upgrade_state,
+                        &upgrade_state,
                         rerolled_count,
+                        &config,
                     ))
                 }
             }

@@ -1,9 +1,9 @@
 //! Item use strategies.
 
 use super::ItemUseStrategy;
+use crate::game_state::GameState;
 use crate::game_state::effect::Effect;
 use crate::game_state::item::ItemKind;
-use crate::game_state::GameState;
 
 /// Default item use strategy with per-item rules:
 /// - Heal: Use when damaged AND (max_hp < current_hp + heal_amount)
@@ -46,13 +46,15 @@ impl ItemUseStrategy for NoItemUseStrategy {
 }
 
 fn use_heal_if_needed(game_state: &mut GameState) {
-    let max_hp = crate::game_state::MAX_HP;
+    let max_hp = game_state.config.player.max_hp;
 
     loop {
         let heal_item_idx = game_state.items.iter().position(|item| {
             matches!(item.kind, ItemKind::RiceCake)
                 && match &item.effect {
-                    Effect::Heal { amount } => game_state.hp + amount > max_hp || game_state.hp < max_hp * 0.5,
+                    Effect::Heal { amount } => {
+                        game_state.hp + amount > max_hp || game_state.hp < max_hp * 0.5
+                    }
                     _ => false,
                 }
         });

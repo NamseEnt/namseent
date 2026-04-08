@@ -9,7 +9,7 @@ targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msv
 [features]
 default = ["debug-tools"]
 debug-tools = []
-simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:serde", "dep:serde_json", "dep:indicatif"]
+simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:serde", "dep:serde_json", "dep:indicatif", "dep:toml"]
 
 [dependencies]
 anyhow = "1.0.98"
@@ -21,6 +21,7 @@ clap = { version = "4", features = ["derive"], optional = true }
 rayon = { version = "1.10", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
+toml = { version = "0.7", optional = true }
 indicatif = { version = "0.17", optional = true }
 
 [[bin]]

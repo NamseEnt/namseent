@@ -101,8 +101,14 @@ impl Component for TowerPreviewContent<'_> {
                         ));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
-                        let rating =
-                            tower_template.calculate_rating(upgrade_state.damage_multiplier);
+                        let rank_bonus = *game_state
+                            .config
+                            .towers
+                            .rank_bonus_damage
+                            .get(&tower_template.rank)
+                            .unwrap_or(&tower_template.rank.bonus_damage());
+                        let rating = tower_template
+                            .calculate_rating(upgrade_state.damage_multiplier, rank_bonus);
 
                         // Follow StatPreview layout: left icon, right-aligned value
                         ctx.add(
@@ -119,8 +125,13 @@ impl Component for TowerPreviewContent<'_> {
                         }));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
-                        let damage = tower_template.kind.default_damage();
-                        let damage_plus = tower_template.rank.bonus_damage() as f32;
+                        let damage = tower_template.default_damage;
+                        let damage_plus = *game_state
+                            .config
+                            .towers
+                            .rank_bonus_damage
+                            .get(&tower_template.rank)
+                            .unwrap_or(&tower_template.rank.bonus_damage()) as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {

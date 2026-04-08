@@ -4,7 +4,6 @@ use crate::{
     game_state::{
         GameState,
         flow::GameFlow,
-        item::generation::generate_item,
         upgrade::{generate_tower_damage_upgrade, generate_treasure_upgrade},
     },
     *,
@@ -103,8 +102,16 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
 
     match slot_type {
         0..=2 => {
-            let item = generate_item();
-            let cost = item_cost(item.value, game_state.upgrade_state.shop_item_price_minus);
+            let mut rng = thread_rng();
+            let item = crate::game_state::item::generation::generate_item_with_rng(
+                &mut rng,
+                &game_state.config,
+            );
+            let cost = item_cost(
+                item.value,
+                game_state.upgrade_state.shop_item_price_minus,
+                &game_state.config,
+            );
             ShopSlot::Item { item, cost }
         }
         3..=7 => {
@@ -112,6 +119,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             let cost = item_cost(
                 upgrade.value,
                 game_state.upgrade_state.shop_item_price_minus,
+                &game_state.config,
             );
             ShopSlot::Upgrade { upgrade, cost }
         }
@@ -120,6 +128,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             let cost = item_cost(
                 upgrade.value,
                 game_state.upgrade_state.shop_item_price_minus,
+                &game_state.config,
             );
             ShopSlot::Upgrade { upgrade, cost }
         }
@@ -132,9 +141,9 @@ fn generate_treasure_slot(game_state: &GameState) -> ShopSlot {
     ShopSlot::Upgrade { upgrade, cost: 0 }
 }
 
-fn item_cost(value: OneZero, discount: usize) -> usize {
-    let base_cost = 50.0;
-    let additional_cost = value.as_f32() * base_cost * 0.5;
+fn item_cost(value: OneZero, discount: usize, config: &crate::config::GameConfig) -> usize {
+    let base_cost = config.shop.base_cost;
+    let additional_cost = value.as_f32() * base_cost * config.shop.value_cost_multiplier;
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize
 }

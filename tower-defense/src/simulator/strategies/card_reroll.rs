@@ -26,7 +26,12 @@ impl CardRerollStrategy for OptimalRerollStrategy {
             }
 
             let current_template =
-                get_highest_tower_template(&cards, &game_state.upgrade_state, game_state.rerolled_count);
+                get_highest_tower_template(
+                    &cards,
+                    &game_state.upgrade_state,
+                    game_state.rerolled_count,
+                    &game_state.config,
+                );
             let current_rating = tower_kind_rating(current_template.kind);
 
             // If we already have a very good hand (Flush or better), stop rerolling
@@ -74,7 +79,12 @@ impl CardRerollStrategy for OptimalRerollStrategy {
         }
 
         let tower_template =
-            get_highest_tower_template(&cards, &game_state.upgrade_state, game_state.rerolled_count);
+            get_highest_tower_template(
+                &cards,
+                &game_state.upgrade_state,
+                game_state.rerolled_count,
+                &game_state.config,
+            );
 
         game_state.goto_placing_tower(tower_template);
     }
@@ -95,7 +105,12 @@ impl CardRerollStrategy for NoRerollStrategy {
         }
 
         let tower_template =
-            get_highest_tower_template(&cards, &game_state.upgrade_state, game_state.rerolled_count);
+            get_highest_tower_template(
+                &cards,
+                &game_state.upgrade_state,
+                game_state.rerolled_count,
+                &game_state.config,
+            );
 
         game_state.goto_placing_tower(tower_template);
     }

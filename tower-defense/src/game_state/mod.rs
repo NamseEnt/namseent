@@ -32,6 +32,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::card::Deck;
+use crate::config::GameConfig;
 use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem, HandSlotId};
@@ -71,9 +72,6 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(18, 31),
     MapCoord::new(35, 31),
 ];
-pub const MAX_HP: f32 = 100.0;
-
-pub const BASE_DICE_CHANCE: usize = 1;
 
 #[derive(State)]
 pub struct GameState {
@@ -105,6 +103,7 @@ pub struct GameState {
     pub rerolled_count: usize,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
+    pub config: Arc<GameConfig>,
     pub opened_modal: Option<Modal>,
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
@@ -127,13 +126,12 @@ impl GameState {
     }
     pub fn max_dice_chance(&self) -> usize {
         (self.upgrade_state.dice_chance_plus
-            + BASE_DICE_CHANCE
+            + self.config.player.base_dice_chance
             + self.stage_modifiers.get_max_rerolls_bonus())
         .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
     pub fn generate_rarity(&self) -> crate::rarity::Rarity {
-        const WEIGHTS: [usize; 4] = [90, 10, 1, 0];
         const RARITIES: [crate::rarity::Rarity; 4] = [
             crate::rarity::Rarity::Common,
             crate::rarity::Rarity::Rare,
@@ -141,11 +139,11 @@ impl GameState {
             crate::rarity::Rarity::Legendary,
         ];
 
-        let total_weight: usize = WEIGHTS.iter().sum();
+        let total_weight: usize = self.config.rarity_weights.iter().sum();
         let random_value = rand::random::<usize>() % total_weight;
 
         let mut cumulative_weight = 0;
-        for (i, &weight) in WEIGHTS.iter().enumerate() {
+        for (i, &weight) in self.config.rarity_weights.iter().enumerate() {
             cumulative_weight += weight;
             if random_value < cumulative_weight {
                 return RARITIES[i];
@@ -232,6 +230,7 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 fn create_initial_game_state() -> GameState {
+    let config = Arc::new(GameConfig::default_config());
     let now = Instant::now();
     let mut game_state = GameState {
         monsters: Default::default(),
@@ -243,7 +242,7 @@ fn create_initial_game_state() -> GameState {
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
-        left_dice: 0,
+        left_dice: config.player.base_dice_chance,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         delayed_hits: Default::default(),
@@ -279,9 +278,9 @@ fn create_initial_game_state() -> GameState {
                 value: 1.0.into(),
             },
         ],
-        gold: 100,
+        gold: config.player.starting_gold,
         cursor_preview: Default::default(),
-        hp: 100.0,
+        hp: config.player.starting_hp,
         shield: 0.0,
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
@@ -292,6 +291,7 @@ fn create_initial_game_state() -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(0),
         play_history: PlayHistory::new(),
+        config: Arc::clone(&config),
         opened_modal: None,
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
@@ -366,6 +366,7 @@ impl GameState {
             rerolled_count: self.rerolled_count,
             locale: self.locale,
             play_history: self.play_history.clone(),
+            config: Arc::clone(&self.config),
             opened_modal: None,
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
@@ -421,7 +422,10 @@ impl GameState {
     /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
     pub fn calculate_stage_total_hp(stage: usize, stage_modifiers: &StageModifiers) -> f32 {
         let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
-        let (template_queue, _) = monster_spawn::monster_template_queue_table(stage);
+        let (template_queue, _) = monster_spawn::monster_template_queue_table(
+            stage,
+            &crate::config::GameConfig::default_config(),
+        );
         template_queue
             .iter()
             .map(|t| t.max_hp * health_multiplier)

@@ -366,10 +366,10 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             }
 
             monster_index_by_indicator.remove(&target_indicator);
-            if let Some(last_indicator) = last_monster_indicator {
-                if monster_index != monsters.len() - 1 {
-                    monster_index_by_indicator.insert(last_indicator, monster_index);
-                }
+            if let Some(last_indicator) = last_monster_indicator
+                && monster_index != monsters.len() - 1
+            {
+                monster_index_by_indicator.insert(last_indicator, monster_index);
             }
 
             monsters.swap_remove(monster_index);

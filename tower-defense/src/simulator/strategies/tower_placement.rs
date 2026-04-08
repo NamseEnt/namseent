@@ -1,11 +1,11 @@
 //! Tower placement strategies.
 
 use super::TowerPlacementStrategy;
+use crate::MapCoord;
 use crate::game_state::can_place_tower::can_place_tower;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::Tower;
 use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS};
-use crate::MapCoord;
 use namui::*;
 
 /// Spiral placement strategy from debug tools.
@@ -26,16 +26,15 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
             let (slot_id, template) = {
                 let Some(&slot_id) = game_state.hand.selected_slot_ids().first() else {
                     // Try to select the first tower slot
-                    if let Some(first_id) = game_state.hand.get_slot_id_by_index(0) {
-                        if game_state
+                    if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
+                        && game_state
                             .hand
                             .get_item(first_id)
                             .and_then(|item| item.as_tower())
                             .is_some()
-                        {
-                            game_state.hand.select_slot(first_id);
-                            continue;
-                        }
+                    {
+                        game_state.hand.select_slot(first_id);
+                        continue;
                     }
                     break;
                 };
@@ -56,8 +55,7 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
             for step in placement_plan() {
                 match step {
                     PlanStep::Remove(coord) => {
-                        if let Some(tower_id) =
-                            game_state.towers.find_by_xy(coord).map(|t| t.id())
+                        if let Some(tower_id) = game_state.towers.find_by_xy(coord).map(|t| t.id())
                         {
                             game_state.remove_tower(tower_id);
                         }
@@ -67,8 +65,7 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
                             continue;
                         }
                         let placed_coords = game_state.towers.coords();
-                        let route_coords: Vec<MapCoord> =
-                            game_state.route.iter_coords().to_vec();
+                        let route_coords: Vec<MapCoord> = game_state.route.iter_coords().to_vec();
 
                         if can_place_tower(
                             left_top,
@@ -83,15 +80,14 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
                             game_state.hand.delete_slots(&[slot_id]);
 
                             // Select next tower if available
-                            if let Some(first_id) = game_state.hand.get_slot_id_by_index(0) {
-                                if game_state
+                            if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
+                                && game_state
                                     .hand
                                     .get_item(first_id)
                                     .and_then(|item| item.as_tower())
                                     .is_some()
-                                {
-                                    game_state.hand.select_slot(first_id);
-                                }
+                            {
+                                game_state.hand.select_slot(first_id);
                             }
 
                             placed = true;

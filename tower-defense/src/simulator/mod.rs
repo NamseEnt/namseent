@@ -3,18 +3,19 @@
 //! Runs game simulations without rendering, collects statistics into SQLite.
 
 pub mod events;
-pub mod game_config;
 pub mod recording;
 pub mod strategies;
 
 use crate::card::Deck;
+use crate::config::GameConfig;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
-use crate::game_state::{GameState, MAP_SIZE, MAX_HP, TRAVEL_POINTS, play_history::PlayHistory};
+use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory};
 use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
+use std::sync::Arc;
 
 use events::SimEvent;
 use namui::Instant;
@@ -33,7 +34,12 @@ pub struct HeadlessGame {
 impl HeadlessGame {
     /// Create a new headless game with default initial state.
     pub fn new() -> Self {
-        let game_state = create_headless_game_state();
+        Self::new_with_config(Arc::new(GameConfig::default_config()))
+    }
+
+    /// Create a new headless game using a supplied game configuration.
+    pub fn new_with_config(config: Arc<GameConfig>) -> Self {
+        let game_state = create_headless_game_state(config.clone());
         Self {
             game_state,
             events: Vec::new(),
@@ -188,6 +194,12 @@ impl HeadlessGame {
     }
 }
 
+impl Default for HeadlessGame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Result of a single simulation run.
 #[derive(Clone, Debug)]
 pub struct SimResult {
@@ -203,7 +215,7 @@ pub struct SimResult {
 }
 
 /// Create a GameState suitable for headless simulation.
-fn create_headless_game_state() -> GameState {
+fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
     use crate::game_state::BaseAnimationState;
     use crate::game_state::Camera;
     use crate::game_state::StatusEffectParticleGenerator;
@@ -220,14 +232,14 @@ fn create_headless_game_state() -> GameState {
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),
         stage: 1,
-        left_dice: 1,
+        left_dice: config.player.base_dice_chance,
         monster_spawn_state: MonsterSpawnState::idle(),
         projectiles: Default::default(),
         delayed_hits: Default::default(),
         items: vec![],
-        gold: 0,
+        gold: config.player.starting_gold,
         cursor_preview: Default::default(),
-        hp: MAX_HP,
+        hp: config.player.starting_hp,
         shield: 0.0,
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
@@ -244,6 +256,7 @@ fn create_headless_game_state() -> GameState {
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
         base_animation_state: BaseAnimationState::new(now),
+        config: config.clone(),
         hand_panel_forced_open: false,
         shop_panel_forced_open: false,
     }

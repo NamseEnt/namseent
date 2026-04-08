@@ -112,6 +112,7 @@ impl SimRecorder {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_simulation_end(
         &self,
         sim_id: &str,
@@ -133,6 +134,7 @@ impl SimRecorder {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_stage_result(
         &self,
         sim_id: &str,

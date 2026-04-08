@@ -42,10 +42,9 @@ impl ShopStrategy for BuyCheapestStrategy {
                         crate::shop::ShopSlot::Item { cost, .. } => *cost,
                         crate::shop::ShopSlot::Upgrade { cost, .. } => *cost,
                     };
-                    if cost <= game_state.gold {
-                        if cheapest.is_none() || cost < cheapest.unwrap().1 {
-                            cheapest = Some((slot.id, cost));
-                        }
+                    if cost <= game_state.gold && (cheapest.is_none() || cost < cheapest.unwrap().1)
+                    {
+                        cheapest = Some((slot.id, cost));
                     }
                 }
                 cheapest.map(|(id, _)| id)

@@ -77,7 +77,7 @@ fn heal_and_shield_and_earngold_via_run_effect() {
     let mut gs = make_test_state();
     gs.hp = 90.0;
     run_effect(&mut gs, &Effect::Heal { amount: 20.0 });
-    assert_eq!(gs.hp, crate::game_state::MAX_HP, "체력은 최대치로 제한됨");
+    assert_eq!(gs.hp, gs.config.player.max_hp, "체력은 최대치로 제한됨");
 
     let mut gs = make_test_state();
     run_effect(&mut gs, &Effect::Shield { amount: 15.0 });

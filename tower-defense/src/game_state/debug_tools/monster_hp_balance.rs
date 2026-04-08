@@ -82,6 +82,7 @@ fn get_first_monster_kind_from_spawn_table(
         gs.route.clone(),
         gs.now(),
         health_multiplier,
+        &gs.config,
     );
     monster_queue.front().map(|monster| monster.kind)
 }

@@ -6,6 +6,7 @@ use std::sync::{
     Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
 };
+use tower_defense::config::GameConfig;
 use tower_defense::set_headless;
 use tower_defense::simulator::HeadlessGame;
 use tower_defense::simulator::recording::SimRecorder;
@@ -56,12 +57,22 @@ struct Cli {
     /// Number of threads (0 = auto-detect)
     #[arg(short, long, default_value_t = 0)]
     threads: usize,
+
+    /// Optional simulation config TOML file
+    #[arg(long)]
+    config: Option<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     set_headless(true);
+
+    let config = if let Some(path) = &cli.config {
+        Arc::new(GameConfig::from_toml(path)?)
+    } else {
+        Arc::new(GameConfig::default_config())
+    };
 
     let pool = {
         let builder = rayon::ThreadPoolBuilder::new().thread_name(|idx| format!("sim-{idx}"));
@@ -164,7 +175,7 @@ fn main() -> anyhow::Result<()> {
                 thread_pb.set_message(format!("sample {i} running..."));
             }
 
-            let mut game = HeadlessGame::new();
+            let mut game = HeadlessGame::new_with_config(config.clone());
             let result = game.run(
                 shop_strategy.as_ref(),
                 card_strategy.as_ref(),
@@ -223,7 +234,7 @@ fn main() -> anyhow::Result<()> {
                 last = result.clear_rate
             ));
 
-            if done % 100 == 0 || done == cli.samples {
+            if done.is_multiple_of(100) || done == cli.samples {
                 eprintln!(
                     "[{done}/{total}] Win rate: {rate:.1}%",
                     total = cli.samples,
