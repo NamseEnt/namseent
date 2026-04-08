@@ -17,6 +17,7 @@ target/
 *.pdb
 
 gameconfig.toml
+*.gameconfig.toml
 results.db
 sim_results.db
 
