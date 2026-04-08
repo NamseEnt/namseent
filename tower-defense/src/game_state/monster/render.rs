@@ -53,7 +53,10 @@ pub fn monster_wh(kind: MonsterKind) -> Wh<Px> {
         | MonsterKind::Boss08
         | MonsterKind::Boss09
         | MonsterKind::Boss10
-        | MonsterKind::Boss11 => TILE_PX_SIZE * 1.2,
+        | MonsterKind::Boss11
+        | MonsterKind::Boss12
+        | MonsterKind::Boss13
+        | MonsterKind::Boss14 => TILE_PX_SIZE * 1.2,
         _ => TILE_PX_SIZE * 0.8,
     }
 }

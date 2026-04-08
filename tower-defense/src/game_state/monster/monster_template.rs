@@ -110,6 +110,9 @@ impl MonsterTemplate {
             MonsterKind::Boss09 => 45926.0,
             MonsterKind::Boss10 => 46924.0,
             MonsterKind::Boss11 => 48414.0,
+            MonsterKind::Boss12 => 50000.0,
+            MonsterKind::Boss13 => 52000.0,
+            MonsterKind::Boss14 => 54000.0,
         }
     }
 

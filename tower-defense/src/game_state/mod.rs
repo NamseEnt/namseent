@@ -434,8 +434,7 @@ impl GameState {
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {
-    // Every 5th stage, plus the last 5 final stages.
-    stage.is_multiple_of(5) || (stage >= 46)
+    stage.is_multiple_of(5) || (46..=49).contains(&stage)
 }
 
 /// Make sure that the tower can be placed at the given coord.
@@ -532,5 +531,13 @@ mod tests {
         let mut gs = create_initial_game_state();
         gs.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&gs));
         assert!(gs.can_open_shop_panel());
+    }
+
+    #[test]
+    fn boss_stage_logic_is_every_fifth_stage_with_final_45_to_50() {
+        for stage in [5, 10, 15, 20, 25, 30, 35, 40, 45, 46, 47, 48, 49, 50] {
+            assert!(is_boss_stage(stage), "expected stage {} to be boss", stage);
+        }
+        assert!(!is_boss_stage(51));
     }
 }
