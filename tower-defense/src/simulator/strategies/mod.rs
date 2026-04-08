@@ -4,6 +4,9 @@ pub mod card_reroll;
 pub mod item_use;
 pub mod shop;
 pub mod tower_placement;
+pub mod treasure;
+
+pub use treasure::{RandomTreasureStrategy, TreasureStrategy};
 
 use crate::game_state::GameState;
 use rand::RngCore;

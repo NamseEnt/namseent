@@ -11,11 +11,12 @@ use tower_defense::set_headless;
 use tower_defense::simulator::HeadlessGame;
 use tower_defense::simulator::recording::SimRecorder;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
+use tower_defense::simulator::strategies::treasure::RandomTreasureStrategy;
 use tower_defense::simulator::strategies::{
     card_reroll::{NoRerollStrategy, OptimalRerollStrategy},
-    item_use::{DefaultItemUseStrategy, NoItemUseStrategy},
-    shop::{BuyCheapestStrategy, NoBuyStrategy},
-    tower_placement::SpiralPlacementStrategy,
+    item_use::{DefaultItemUseStrategy, HeuristicItemUseStrategy},
+    shop::{BuyCheapestStrategy, HeuristicShopStrategy},
+    tower_placement::HeuristicPlacementStrategy,
 };
 
 struct ThreadStats {
@@ -138,7 +139,7 @@ fn main() -> anyhow::Result<()> {
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
                 if i % 2 == 0 {
-                    Box::new(NoBuyStrategy)
+                    Box::new(HeuristicShopStrategy)
                 } else {
                     Box::new(BuyCheapestStrategy)
                 };
@@ -148,13 +149,14 @@ fn main() -> anyhow::Result<()> {
                 } else {
                     Box::new(OptimalRerollStrategy)
                 };
-            let tower_strategy = SpiralPlacementStrategy;
+            let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
                 if i % 2 == 0 {
-                    Box::new(NoItemUseStrategy)
+                    Box::new(HeuristicItemUseStrategy)
                 } else {
                     Box::new(DefaultItemUseStrategy)
                 };
+            let treasure_strategy = RandomTreasureStrategy;
 
             let sim_id = format!("sim_{seed:016x}");
 
@@ -181,6 +183,7 @@ fn main() -> anyhow::Result<()> {
                 card_strategy.as_ref(),
                 &tower_strategy,
                 item_strategy.as_ref(),
+                &treasure_strategy,
                 &mut rng,
                 |clear_rate| {
                     if let Some(thread_pb) = thread_pbs.get(thread_index) {

@@ -32,17 +32,44 @@ impl ItemUseStrategy for DefaultItemUseStrategy {
     }
 }
 
-/// Never uses any items.
-pub struct NoItemUseStrategy;
+/// Heuristic item use strategy that immediately uses barricade grant items and preserves heal/shield.
+pub struct HeuristicItemUseStrategy;
 
-impl ItemUseStrategy for NoItemUseStrategy {
+impl ItemUseStrategy for HeuristicItemUseStrategy {
     fn name(&self) -> &str {
-        "no_item_use"
+        "smart_item_use"
     }
 
-    fn on_before_defense(&self, _game_state: &mut GameState) {}
-    fn on_damage_taken(&self, _game_state: &mut GameState, _damage: f32) {}
-    fn on_item_acquired(&self, _game_state: &mut GameState) {}
+    fn on_before_defense(&self, game_state: &mut GameState) {
+        use_grant_barricades(game_state);
+        use_heal_if_needed(game_state);
+    }
+
+    fn on_damage_taken(&self, game_state: &mut GameState, _damage: f32) {
+        use_shield_items(game_state);
+        use_heal_if_needed(game_state);
+    }
+
+    fn on_item_acquired(&self, game_state: &mut GameState) {
+        use_grant_barricades(game_state);
+        use_heal_if_needed(game_state);
+    }
+}
+
+fn use_grant_barricades(game_state: &mut GameState) {
+    loop {
+        let barricade_idx = game_state
+            .items
+            .iter()
+            .position(|item| matches!(item.kind, ItemKind::GrantBarricades));
+
+        let Some(idx) = barricade_idx else {
+            break;
+        };
+
+        let item = game_state.items.remove(idx);
+        game_state.use_item(&item);
+    }
 }
 
 fn use_heal_if_needed(game_state: &mut GameState) {

@@ -4,49 +4,24 @@ use super::TowerPlacementStrategy;
 use crate::MapCoord;
 use crate::game_state::can_place_tower::can_place_tower;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::tower::Tower;
+use crate::game_state::tower::{Tower, TowerKind};
 use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS};
+use crate::hand::HandSlotId;
 use namui::*;
 
-/// Spiral placement strategy from debug tools.
-/// Places towers in a predefined spiral pattern from center outward.
-pub struct SpiralPlacementStrategy;
+/// Heuristic placement strategy that uses the spiral plan and replaces central barricades with remaining towers.
+pub struct HeuristicPlacementStrategy;
 
-impl TowerPlacementStrategy for SpiralPlacementStrategy {
+impl TowerPlacementStrategy for HeuristicPlacementStrategy {
     fn name(&self) -> &str {
-        "spiral"
+        "heuristic_placement"
     }
 
     fn execute_placement(&self, game_state: &mut GameState) {
-        loop {
-            if !matches!(game_state.flow, GameFlow::PlacingTower) {
-                break;
-            }
-
-            let (slot_id, template) = {
-                let Some(&slot_id) = game_state.hand.selected_slot_ids().first() else {
-                    // Try to select the first tower slot
-                    if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
-                        && game_state
-                            .hand
-                            .get_item(first_id)
-                            .and_then(|item| item.as_tower())
-                            .is_some()
-                    {
-                        game_state.hand.select_slot(first_id);
-                        continue;
-                    }
-                    break;
-                };
-                let Some(template) = game_state
-                    .hand
-                    .get_item(slot_id)
-                    .and_then(|item| item.as_tower())
-                    .cloned()
-                else {
-                    break;
-                };
-                (slot_id, template)
+        while matches!(game_state.flow, GameFlow::PlacingTower) {
+            let (slot_id, template) = match self.current_tower_template(game_state) {
+                Some(value) => value,
+                None => break,
             };
 
             let now = game_state.now();
@@ -79,7 +54,6 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
                             game_state.place_tower(tower);
                             game_state.hand.delete_slots(&[slot_id]);
 
-                            // Select next tower if available
                             if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
                                 && game_state
                                     .hand
@@ -98,21 +72,114 @@ impl TowerPlacementStrategy for SpiralPlacementStrategy {
             }
 
             if !placed {
-                // Can't place anywhere, skip remaining towers
+                if self.replace_central_barricade(game_state, &template, slot_id, now) {
+                    placed = true;
+                }
+            }
+
+            if !placed {
                 break;
             }
 
-            // Check if hand is empty -> go to defense
             if game_state.hand.is_empty() {
                 game_state.goto_defense();
                 break;
             }
         }
 
-        // If still in PlacingTower and has items, go to defense anyway
         if matches!(game_state.flow, GameFlow::PlacingTower) {
             game_state.goto_defense();
         }
+    }
+}
+
+impl HeuristicPlacementStrategy {
+    fn current_tower_template(
+        &self,
+        game_state: &mut GameState,
+    ) -> Option<(HandSlotId, crate::game_state::tower::TowerTemplate)> {
+        let Some(&slot_id) = game_state.hand.selected_slot_ids().first() else {
+            if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
+                && game_state
+                    .hand
+                    .get_item(first_id)
+                    .and_then(|item| item.as_tower())
+                    .is_some()
+            {
+                game_state.hand.select_slot(first_id);
+                return self.current_tower_template(game_state);
+            }
+            return None;
+        };
+
+        let Some(template) = game_state
+            .hand
+            .get_item(slot_id)
+            .and_then(|item| item.as_tower())
+            .cloned()
+        else {
+            return None;
+        };
+
+        Some((slot_id, template))
+    }
+
+    fn replace_central_barricade(
+        &self,
+        game_state: &mut GameState,
+        template: &crate::game_state::tower::TowerTemplate,
+        slot_id: HandSlotId,
+        now: namui::Instant,
+    ) -> bool {
+        let center = MapCoord::new(MAP_SIZE.width / 2, MAP_SIZE.height / 2);
+
+        let mut barricades: Vec<(i32, usize, MapCoord)> = game_state
+            .towers
+            .iter()
+            .filter(|tower| tower.kind == TowerKind::Barricade)
+            .map(|tower| {
+                let dx = tower.left_top.x as i32 - center.x as i32;
+                let dy = tower.left_top.y as i32 - center.y as i32;
+                ((dx * dx + dy * dy), tower.id(), tower.left_top)
+            })
+            .collect();
+
+        barricades.sort_by_key(|(dist, _, _)| *dist);
+
+        for (_, tower_id, left_top) in barricades {
+            if !game_state.remove_tower(tower_id) {
+                continue;
+            }
+
+            let placed_coords = game_state.towers.coords();
+            let route_coords: Vec<MapCoord> = game_state.route.iter_coords().to_vec();
+            if can_place_tower(
+                left_top,
+                Wh::new(2, 2),
+                &TRAVEL_POINTS,
+                &placed_coords,
+                &route_coords,
+                MAP_SIZE,
+            ) {
+                let tower = Tower::new(template, left_top, now);
+                game_state.place_tower(tower);
+                game_state.hand.delete_slots(&[slot_id]);
+
+                if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
+                    && game_state
+                        .hand
+                        .get_item(first_id)
+                        .and_then(|item| item.as_tower())
+                        .is_some()
+                {
+                    game_state.hand.select_slot(first_id);
+                }
+
+                return true;
+            }
+        }
+
+        false
     }
 }
 

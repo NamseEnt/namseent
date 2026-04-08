@@ -19,7 +19,9 @@ use std::sync::Arc;
 
 use events::SimEvent;
 use namui::Instant;
-use strategies::{CardRerollStrategy, ItemUseStrategy, ShopStrategy, TowerPlacementStrategy};
+use strategies::{
+    CardRerollStrategy, ItemUseStrategy, ShopStrategy, TowerPlacementStrategy, TreasureStrategy,
+};
 
 /// A single headless game simulation.
 pub struct HeadlessGame {
@@ -57,6 +59,7 @@ impl HeadlessGame {
         card_reroll_strategy: &dyn CardRerollStrategy,
         tower_placement_strategy: &dyn TowerPlacementStrategy,
         item_use_strategy: &dyn ItemUseStrategy,
+        treasure_strategy: &dyn TreasureStrategy,
         rng: &mut impl rand::Rng,
         mut on_clear_rate_update: F,
     ) -> SimResult
@@ -128,10 +131,10 @@ impl HeadlessGame {
                     self.total_damage_taken += damage_this_stage;
                 }
                 GameFlow::TreasureSelection(ref flow) => {
-                    // Select the first treasure option
                     let options = flow.options.clone();
                     if !options.is_empty() {
-                        let choice = rng.gen_range(0..options.len());
+                        let choice =
+                            treasure_strategy.select_treasure(&self.game_state, &options, rng);
                         let upgrade_kind = format!("{:?}", options[choice].kind);
                         self.events.push(SimEvent::TreasureSelected {
                             stage: self.game_state.stage,
