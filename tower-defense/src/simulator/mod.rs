@@ -4,12 +4,15 @@
 
 pub mod events;
 pub mod recording;
+pub mod stats;
 pub mod strategies;
 
 use crate::card::Deck;
 use crate::config::GameConfig;
+use crate::game_state::effect::Effect;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
+use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
 use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory};
@@ -76,6 +79,8 @@ impl HeadlessGame {
             stage: self.game_state.stage,
         });
 
+        let mut last_history_event_index = 0;
+
         loop {
             match self.game_state.flow.clone() {
                 GameFlow::Initializing => {
@@ -88,14 +93,17 @@ impl HeadlessGame {
 
                     // Execute shop strategy
                     shop_strategy.execute_shop(&mut self.game_state, rng);
+                    self.drain_play_history_events(&mut last_history_event_index);
 
                     // Execute item use strategy before card selection
                     item_use_strategy.on_before_defense(&mut self.game_state);
+                    self.drain_play_history_events(&mut last_history_event_index);
 
                     // Execute card reroll and tower selection
                     let rerolls_before = self.game_state.rerolled_count;
                     card_reroll_strategy.execute_card_selection(&mut self.game_state, rng);
                     let rerolls_used = self.game_state.rerolled_count - rerolls_before;
+                    self.drain_play_history_events(&mut last_history_event_index);
 
                     self.events.push(SimEvent::CardReroll {
                         stage,
@@ -127,7 +135,8 @@ impl HeadlessGame {
                     let hp_before = self.game_state.hp;
 
                     // Run defense simulation with fixed time ticks
-                    self.simulate_defense(item_use_strategy);
+                    self.simulate_defense(item_use_strategy, &mut last_history_event_index);
+                    self.drain_play_history_events(&mut last_history_event_index);
 
                     let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
                     self.total_damage_taken += damage_this_stage;
@@ -138,7 +147,8 @@ impl HeadlessGame {
                     if !options.is_empty() {
                         let choice =
                             treasure_strategy.select_treasure(&self.game_state, &options, rng);
-                        let upgrade_kind = format!("{:?}", options[choice].kind);
+                        let upgrade_kind =
+                            Self::canonicalize_debug_name(format!("{:?}", options[choice].kind));
                         self.events.push(SimEvent::TreasureSelected {
                             stage: self.game_state.stage,
                             upgrade_kind,
@@ -179,7 +189,11 @@ impl HeadlessGame {
     }
 
     /// Simulate the defense phase with fixed time ticks until completion.
-    fn simulate_defense(&mut self, item_use_strategy: &dyn ItemUseStrategy) {
+    fn simulate_defense(
+        &mut self,
+        item_use_strategy: &dyn ItemUseStrategy,
+        last_history_event_index: &mut usize,
+    ) {
         let tick_dt = TICK_MAX_DURATION;
         let max_ticks = 60 * 60 * 5; // 5 minutes at 60fps as safety limit
         let mut tick_count = 0;
@@ -196,8 +210,58 @@ impl HeadlessGame {
             if current_hp < hp_before {
                 let damage = hp_before - current_hp;
                 item_use_strategy.on_damage_taken(&mut self.game_state, damage);
+                self.drain_play_history_events(last_history_event_index);
             }
         }
+    }
+
+    fn drain_play_history_events(&mut self, last_history_event_index: &mut usize) {
+        while *last_history_event_index < self.game_state.play_history.events.len() {
+            let event = &self.game_state.play_history.events[*last_history_event_index];
+            match &event.event_type {
+                HistoryEventType::ItemPurchased { item, cost } => {
+                    self.events.push(SimEvent::ShopPurchase {
+                        stage: event.stage,
+                        cost: *cost,
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
+                    });
+                }
+                HistoryEventType::UpgradePurchased { upgrade, cost } => {
+                    self.events.push(SimEvent::ShopPurchase {
+                        stage: event.stage,
+                        cost: *cost,
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade.kind)),
+                    });
+                }
+                HistoryEventType::ItemUsed { item_effect } => {
+                    let item_kind = Self::item_kind_from_effect(item_effect).unwrap_or_else(|| {
+                        Self::canonicalize_debug_name(format!("{:?}", item_effect))
+                    });
+                    self.events.push(SimEvent::ItemUsed {
+                        stage: event.stage,
+                        item_kind,
+                    });
+                }
+                _ => {}
+            }
+            *last_history_event_index += 1;
+        }
+    }
+
+    fn item_kind_from_effect(effect: &Effect) -> Option<String> {
+        Some(match effect {
+            Effect::Heal { .. } => "RiceCake".to_owned(),
+            Effect::ExtraDice => "EmergencyDice".to_owned(),
+            Effect::Shield { .. } => "Shield".to_owned(),
+            Effect::UserDamageReduction { .. } => "Painkiller".to_owned(),
+            Effect::AddTowerCardToPlacementHand { .. } => "GrantBarricades".to_owned(),
+            Effect::AddCardToHand { .. } => "GrantCard".to_owned(),
+            _ => return None,
+        })
+    }
+
+    fn canonicalize_debug_name(name: String) -> String {
+        name.splitn(2, ' ').next().unwrap_or(&name).to_owned()
     }
 }
 
