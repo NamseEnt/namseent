@@ -229,7 +229,7 @@ fn process_delayed_hits(game_state: &mut GameState) {
 }
 
 fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f32, MapCoordF32)>) {
-    let indices_to_remove: Vec<_> = monster_kills
+    let mut indices_to_remove: Vec<_> = monster_kills
         .into_iter()
         .filter_map(|(target_idx, damage, target_xy)| {
             if target_idx >= game_state.monsters.len() {
@@ -258,6 +258,8 @@ fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f3
         .collect();
 
     let now = game_state.now();
+    indices_to_remove.sort_by_key(|(target_idx, _)| *target_idx);
+    indices_to_remove.dedup_by_key(|(target_idx, _)| *target_idx);
     for (target_idx, target_xy) in indices_to_remove.into_iter().rev() {
         super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
     }

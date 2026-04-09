@@ -396,7 +396,7 @@ impl GameState {
                 defense_flow.stage_progress.processed_hp,
             ),
             _ => (
-                Self::calculate_stage_total_hp(self.stage, &self.stage_modifiers),
+                Self::calculate_stage_total_hp(self.stage, &self.config, &self.stage_modifiers),
                 0.0,
             ),
         };
@@ -420,12 +420,13 @@ impl GameState {
     }
 
     /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
-    pub fn calculate_stage_total_hp(stage: usize, stage_modifiers: &StageModifiers) -> f32 {
+    pub fn calculate_stage_total_hp(
+        stage: usize,
+        config: &GameConfig,
+        stage_modifiers: &StageModifiers,
+    ) -> f32 {
         let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
-        let (template_queue, _) = monster_spawn::monster_template_queue_table(
-            stage,
-            &crate::config::GameConfig::default_config(),
-        );
+        let (template_queue, _) = monster_spawn::monster_template_queue_table(stage, config);
         template_queue
             .iter()
             .map(|t| t.max_hp * health_multiplier)

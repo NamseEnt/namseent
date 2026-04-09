@@ -34,6 +34,10 @@ struct Cli {
     #[arg(short, long, default_value = "sim_results.db")]
     db: PathBuf,
 
+    /// Delete the target database file before running
+    #[arg(long)]
+    fresh_db: bool,
+
     /// Number of threads (0 = auto-detect)
     #[arg(short, long, default_value_t = 0)]
     threads: usize,
@@ -72,6 +76,9 @@ fn main() -> anyhow::Result<()> {
         builder.build()?
     };
 
+    if cli.fresh_db && cli.db.exists() {
+        std::fs::remove_file(&cli.db)?;
+    }
     let recorder = Arc::new(SimRecorder::new(&cli.db)?);
     let completed = AtomicUsize::new(0);
     let victories = AtomicUsize::new(0);

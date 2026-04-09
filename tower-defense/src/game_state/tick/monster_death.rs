@@ -6,6 +6,9 @@ pub fn handle_monster_death(
     target_xy: Xy<f32>,
     now: Instant,
 ) {
+    if target_idx >= game_state.monsters.len() {
+        return;
+    }
     let monster_max_hp = game_state.monsters[target_idx].max_hp;
     let monster_reward = game_state.monsters[target_idx].reward;
     let monster_kind = game_state.monsters[target_idx].kind;
