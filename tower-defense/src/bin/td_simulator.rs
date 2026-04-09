@@ -1,5 +1,6 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
+use rand::Rng;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -117,25 +118,25 @@ fn main() -> anyhow::Result<()> {
     };
 
     pool.install(|| {
-        (0..cli.samples).into_par_iter().for_each(|i| {
+        (0..cli.samples).into_par_iter().for_each(|_i| {
             let mut rng = rand::thread_rng();
             let seed: u64 = rand::Rng::r#gen(&mut rng);
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
-                if i % 2 == 0 {
+                if rng.gen_bool(0.5) {
                     Box::new(HeuristicShopStrategy)
                 } else {
                     Box::new(BuyCheapestStrategy)
                 };
             let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                if i % 2 == 0 {
+                if rng.gen_bool(0.5) {
                     Box::new(NoRerollStrategy)
                 } else {
                     Box::new(OptimalRerollStrategy)
                 };
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
-                if i % 2 == 0 {
+                if rng.gen_bool(0.5) {
                     Box::new(HeuristicItemUseStrategy)
                 } else {
                     Box::new(DefaultItemUseStrategy)
