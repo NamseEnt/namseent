@@ -15,7 +15,7 @@ use std::io::{self, Stdout};
 use std::path::PathBuf;
 use std::time::Duration;
 use tower_defense::set_headless;
-use tower_defense::simulator::stats::{Database, DetailStats, SummaryRow};
+use tower_defense::simulator::stats::{Database, DetailStats, StrategyStats, SummaryRow};
 
 #[derive(Parser)]
 #[command(
@@ -33,11 +33,12 @@ enum Tab {
     Items,
     Upgrades,
     Treasures,
+    Strategies,
 }
 
 impl Tab {
-    fn titles() -> [&'static str; 3] {
-        ["Items", "Upgrades", "Treasures"]
+    fn titles() -> [&'static str; 4] {
+        ["Items", "Upgrades", "Treasures", "Strategies"]
     }
 }
 
@@ -47,6 +48,7 @@ struct App {
     items: Vec<SummaryRow>,
     upgrades: Vec<SummaryRow>,
     treasures: Vec<SummaryRow>,
+    strategies: Vec<StrategyStats>,
     detail: Option<DetailStats>,
     list_state: ListState,
 }
@@ -56,6 +58,7 @@ impl App {
         let items = db.list_items()?;
         let upgrades = db.list_upgrades()?;
         let treasures = db.list_treasures()?;
+        let strategies = db.list_strategy_win_rates()?;
         let mut list_state = ListState::default();
         list_state.select(Some(0));
         let mut app = Self {
@@ -64,6 +67,7 @@ impl App {
             items,
             upgrades,
             treasures,
+            strategies,
             detail: None,
             list_state,
         };
@@ -76,20 +80,34 @@ impl App {
             Tab::Items => &self.items,
             Tab::Upgrades => &self.upgrades,
             Tab::Treasures => &self.treasures,
+            Tab::Strategies => &self.items,
+        }
+    }
+
+    fn current_list_len(&self) -> usize {
+        match self.tab {
+            Tab::Items => self.items.len(),
+            Tab::Upgrades => self.upgrades.len(),
+            Tab::Treasures => self.treasures.len(),
+            Tab::Strategies => self.strategies.len(),
         }
     }
 
     fn current_name(&self) -> Option<&str> {
-        self.current_list()
-            .get(self.selection)
-            .map(|row| row.name.as_str())
+        match self.tab {
+            Tab::Items | Tab::Upgrades | Tab::Treasures => self
+                .current_list()
+                .get(self.selection)
+                .map(|row| row.name.as_str()),
+            Tab::Strategies => None,
+        }
     }
 
     fn refresh_detail(&mut self, db: &Database) -> Result<()> {
         self.selection = self
             .selection
-            .min(self.current_list().len().saturating_sub(1));
-        if self.current_list().is_empty() {
+            .min(self.current_list_len().saturating_sub(1));
+        if self.current_list_len() == 0 {
             self.list_state.select(None);
         } else {
             self.list_state.select(Some(self.selection));
@@ -98,6 +116,7 @@ impl App {
             let details = match self.tab {
                 Tab::Items | Tab::Upgrades => db.detail_for_shop_purchase(name)?,
                 Tab::Treasures => db.detail_for_treasure(name)?,
+                Tab::Strategies => unreachable!(),
             };
             Some(details)
         } else {
@@ -110,14 +129,15 @@ impl App {
         self.tab = match self.tab {
             Tab::Items => Tab::Upgrades,
             Tab::Upgrades => Tab::Treasures,
-            Tab::Treasures => Tab::Items,
+            Tab::Treasures => Tab::Strategies,
+            Tab::Strategies => Tab::Items,
         };
         self.selection = 0;
         self.list_state.select(Some(0));
     }
 
     fn move_selection(&mut self, delta: isize) {
-        let len = self.current_list().len();
+        let len = self.current_list_len();
         if len == 0 {
             self.selection = 0;
             self.list_state.select(None);
@@ -169,6 +189,7 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
             Tab::Items => 0,
             Tab::Upgrades => 1,
             Tab::Treasures => 2,
+            Tab::Strategies => 3,
         })
         .block(Block::default().borders(Borders::ALL).title("Tabs"))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
@@ -180,20 +201,43 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
         .constraints([Constraint::Percentage(45), Constraint::Percentage(55)].as_ref())
         .split(chunks[1]);
 
-    let items: Vec<ListItem> = app
-        .current_list()
-        .iter()
-        .enumerate()
-        .map(|(idx, row)| {
-            let label = format!("{}  {:.1}%", row.name, row.win_rate * 100.0);
-            let content = vec![Line::from(Span::raw(label))];
-            let mut item = ListItem::new(content);
-            if idx == app.selection {
-                item = item.style(Style::default().fg(Color::Yellow));
-            }
-            item
-        })
-        .collect();
+    let items: Vec<ListItem> = match app.tab {
+        Tab::Strategies => app
+            .strategies
+            .iter()
+            .enumerate()
+            .map(|(idx, row)| {
+                let label = format!(
+                    "{} / {}  {:.1}% ({}/{})",
+                    row.category,
+                    row.name,
+                    row.win_rate * 100.0,
+                    row.win_count,
+                    row.sample_count,
+                );
+                let content = vec![Line::from(Span::raw(label))];
+                let mut item = ListItem::new(content);
+                if idx == app.selection {
+                    item = item.style(Style::default().fg(Color::Yellow));
+                }
+                item
+            })
+            .collect(),
+        _ => app
+            .current_list()
+            .iter()
+            .enumerate()
+            .map(|(idx, row)| {
+                let label = format!("{}  {:.1}%", row.name, row.win_rate * 100.0);
+                let content = vec![Line::from(Span::raw(label))];
+                let mut item = ListItem::new(content);
+                if idx == app.selection {
+                    item = item.style(Style::default().fg(Color::Yellow));
+                }
+                item
+            })
+            .collect(),
+    };
 
     let list = List::new(items)
         .block(Block::default().borders(Borders::ALL).title("Summary"))
@@ -206,6 +250,10 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
 
     let detail_text = if let Some(detail) = &app.detail {
         build_detail_text(detail)
+    } else if let Tab::Strategies = app.tab {
+        vec![Line::from(Span::raw(
+            "Strategy statistics are displayed on the left. Use Tab to switch categories.",
+        ))]
     } else {
         vec![Line::from(Span::raw("No detail available."))]
     };

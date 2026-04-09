@@ -25,13 +25,12 @@ impl CardRerollStrategy for OptimalRerollStrategy {
                 break;
             }
 
-            let current_template =
-                get_highest_tower_template(
-                    &cards,
-                    &game_state.upgrade_state,
-                    game_state.rerolled_count,
-                    &game_state.config,
-                );
+            let current_template = get_highest_tower_template(
+                &cards,
+                &game_state.upgrade_state,
+                game_state.rerolled_count,
+                &game_state.config,
+            );
             let current_rating = tower_kind_rating(current_template.kind);
 
             // If we already have a very good hand (Flush or better), stop rerolling
@@ -64,10 +63,7 @@ impl CardRerollStrategy for OptimalRerollStrategy {
                 .max(1);
 
             for _ in 0..max_slots {
-                let card = game_state
-                    .deck
-                    .draw()
-                    .unwrap_or_else(Card::new_random);
+                let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
                 game_state.hand.push(HandItem::Card(card));
             }
         }
@@ -78,13 +74,12 @@ impl CardRerollStrategy for OptimalRerollStrategy {
             return;
         }
 
-        let tower_template =
-            get_highest_tower_template(
-                &cards,
-                &game_state.upgrade_state,
-                game_state.rerolled_count,
-                &game_state.config,
-            );
+        let tower_template = get_highest_tower_template(
+            &cards,
+            &game_state.upgrade_state,
+            game_state.rerolled_count,
+            &game_state.config,
+        );
 
         game_state.goto_placing_tower(tower_template);
     }
@@ -104,13 +99,12 @@ impl CardRerollStrategy for NoRerollStrategy {
             return;
         }
 
-        let tower_template =
-            get_highest_tower_template(
-                &cards,
-                &game_state.upgrade_state,
-                game_state.rerolled_count,
-                &game_state.config,
-            );
+        let tower_template = get_highest_tower_template(
+            &cards,
+            &game_state.upgrade_state,
+            game_state.rerolled_count,
+            &game_state.config,
+        );
 
         game_state.goto_placing_tower(tower_template);
     }

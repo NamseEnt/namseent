@@ -16,6 +16,15 @@ pub struct SummaryRow {
 }
 
 #[derive(Clone, Debug)]
+pub struct StrategyStats {
+    pub category: String,
+    pub name: String,
+    pub sample_count: usize,
+    pub win_count: usize,
+    pub win_rate: f64,
+}
+
+#[derive(Clone, Debug)]
 pub struct PickBin {
     pub count: usize,
     pub sample_count: usize,
@@ -66,6 +75,13 @@ const UPGRADE_NAMES: &[&str] = &[
     "BrokenPottery",
 ];
 
+const STRATEGY_COLUMNS: &[(&str, &str)] = &[
+    ("Shop", "shop_strategy"),
+    ("Card Reroll", "card_reroll_strategy"),
+    ("Tower Placement", "tower_placement_strategy"),
+    ("Item Use", "item_use_strategy"),
+];
+
 impl Database {
     pub fn open(path: &Path) -> anyhow::Result<Self> {
         let conn = Connection::open(path)
@@ -87,6 +103,51 @@ impl Database {
         let outcome = self.load_simulation_outcomes()?;
         let rows = self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?;
         Ok(self.build_summary(rows, &outcome))
+    }
+
+    pub fn list_strategy_win_rates(&self) -> anyhow::Result<Vec<StrategyStats>> {
+        let mut result = Vec::new();
+        for (category, column) in STRATEGY_COLUMNS {
+            let rows = self.query_strategy_win_rates(column)?;
+            for row in rows {
+                result.push(StrategyStats {
+                    category: category.to_string(),
+                    name: row.name,
+                    sample_count: row.sample_count,
+                    win_count: row.win_count,
+                    win_rate: row.win_rate,
+                });
+            }
+        }
+        Ok(result)
+    }
+
+    fn query_strategy_win_rates(&self, column: &str) -> anyhow::Result<Vec<StrategyStats>> {
+        let sql = format!(
+            "SELECT {column}, COUNT(*) AS sample_count, SUM(COALESCE(victory, 0)) AS win_count, AVG(CAST(COALESCE(victory, 0) AS REAL)) AS win_rate FROM simulations WHERE completed_at IS NOT NULL GROUP BY {column} ORDER BY win_rate DESC",
+            column = column,
+        );
+
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map([], |row| {
+            let name: String = row.get(0)?;
+            let sample_count: i64 = row.get(1)?;
+            let win_count: i64 = row.get(2)?;
+            let win_rate: f64 = row.get(3)?;
+            Ok(StrategyStats {
+                category: String::new(),
+                name,
+                sample_count: sample_count as usize,
+                win_count: win_count as usize,
+                win_rate,
+            })
+        })?;
+
+        let mut output = Vec::new();
+        for row in rows {
+            output.push(row?);
+        }
+        Ok(output)
     }
 
     pub fn detail_for_shop_purchase(&self, kind: &str) -> anyhow::Result<DetailStats> {

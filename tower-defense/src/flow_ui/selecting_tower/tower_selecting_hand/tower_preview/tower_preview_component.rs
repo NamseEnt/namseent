@@ -131,7 +131,8 @@ impl Component for TowerPreviewContent<'_> {
                             .towers
                             .rank_bonus_damage
                             .get(&tower_template.rank)
-                            .unwrap_or(&tower_template.rank.bonus_damage()) as f32;
+                            .unwrap_or(&tower_template.rank.bonus_damage())
+                            as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {

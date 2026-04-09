@@ -15,7 +15,12 @@ fn test_high_card() {
     ];
     let upgrade_state = UpgradeState::default();
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count, &crate::config::GameConfig::default_config());
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_eq!(template.kind, TowerKind::High);
     assert_eq!(template.rank, Rank::Ace);
 }

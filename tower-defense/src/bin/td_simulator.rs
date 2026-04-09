@@ -11,6 +11,7 @@ use tower_defense::config::GameConfig;
 use tower_defense::set_headless;
 use tower_defense::simulator::HeadlessGame;
 use tower_defense::simulator::recording::SimRecorder;
+use tower_defense::simulator::stats::Database;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::RandomTreasureStrategy;
 use tower_defense::simulator::strategies::{
@@ -49,6 +50,10 @@ struct Cli {
     /// Print per-round damage distribution statistics
     #[arg(long)]
     damage_distribution: bool,
+
+    /// Print strategy win rate statistics after simulation
+    #[arg(long)]
+    strategy_stats: bool,
 
     /// Suppress progress bar output
     #[arg(long)]
@@ -239,6 +244,31 @@ fn main() -> anyhow::Result<()> {
                 let max = *sorted.last().unwrap_or(&0.0);
                 println!(
                     "Round {stage}: count {count}, mean {mean:.1}, median {median:.1}, min {min:.1}, max {max:.1}",
+                );
+            }
+        }
+    }
+
+    if cli.strategy_stats {
+        let db = Database::open(&cli.db)?;
+        let strategy_rows = db.list_strategy_win_rates()?;
+        if !strategy_rows.is_empty() {
+            println!("=== Strategy Win Rates ===");
+            let mut current_category = String::new();
+            for row in strategy_rows {
+                if row.category != current_category {
+                    if !current_category.is_empty() {
+                        println!();
+                    }
+                    current_category = row.category.clone();
+                    println!("{}:", current_category);
+                }
+                println!(
+                    "  {:<16} {:>4}/{:<4} wins  ({:.1}%)",
+                    row.name,
+                    row.win_count,
+                    row.sample_count,
+                    row.win_rate * 100.0,
                 );
             }
         }
