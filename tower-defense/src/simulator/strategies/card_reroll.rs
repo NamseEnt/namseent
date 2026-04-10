@@ -26,7 +26,7 @@ impl CardRerollStrategy for SmartRerollStrategy {
         "smart_reroll"
     }
 
-    fn execute_card_selection(&self, game_state: &mut GameState, _rng: &mut dyn RngCore) {
+    fn execute_card_selection(&self, game_state: &mut GameState, rng: &mut dyn RngCore) {
         while game_state.left_dice > 0 {
             let cards = collect_hand_cards(game_state);
             if cards.is_empty() {
@@ -51,6 +51,7 @@ impl CardRerollStrategy for SmartRerollStrategy {
                 &game_state.upgrade_state,
                 game_state.rerolled_count,
                 &game_state.config,
+                rng,
             );
 
             if hold_indices.len() == cards.len() {
@@ -90,7 +91,7 @@ impl CardRerollStrategy for ItemAwareRerollStrategy {
         "item_aware_reroll"
     }
 
-    fn execute_card_selection(&self, game_state: &mut GameState, _rng: &mut dyn RngCore) {
+    fn execute_card_selection(&self, game_state: &mut GameState, rng: &mut dyn RngCore) {
         let cards = collect_hand_cards(game_state);
         if !cards.is_empty() && game_state.left_dice > 0 {
             if try_use_grant_card_item(game_state, &cards) {
@@ -102,7 +103,7 @@ impl CardRerollStrategy for ItemAwareRerollStrategy {
         }
 
         let strategy = SmartRerollStrategy;
-        strategy.execute_card_selection(game_state, _rng);
+        strategy.execute_card_selection(game_state, rng);
     }
 }
 
@@ -174,6 +175,7 @@ fn choose_best_hold_indices(
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
     config: &std::sync::Arc<GameConfig>,
+    rng: &mut dyn RngCore,
 ) -> Vec<usize> {
     let card_count = cards.len();
     let mut best_score = f32::MIN;
@@ -199,6 +201,7 @@ fn choose_best_hold_indices(
             upgrade_state,
             rerolled_count,
             config,
+            rng,
         );
 
         if score > best_score || (score == best_score && hold_cards.len() > best_hold.len()) {
@@ -219,6 +222,7 @@ fn estimate_expected_rating(
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
     config: &std::sync::Arc<GameConfig>,
+    rng: &mut dyn RngCore,
 ) -> f32 {
     if draw_count == 0 {
         let template =
@@ -228,14 +232,8 @@ fn estimate_expected_rating(
 
     let mut total = 0.0;
     for _ in 0..EXPECTED_REROLL_SAMPLES {
-        let mut sample_deck = deck.clone();
-        sample_deck.put_back(Vec::new());
-
         let mut candidate_cards = hold_cards.to_vec();
-        for _ in 0..draw_count {
-            let card = sample_deck.draw().unwrap_or_else(Card::new_random);
-            candidate_cards.push(card);
-        }
+        candidate_cards.extend(deck.sample(draw_count, rng));
 
         let template =
             get_highest_tower_template(&candidate_cards, upgrade_state, rerolled_count, config);
