@@ -80,8 +80,12 @@ impl App {
             Tab::Items => &self.items,
             Tab::Upgrades => &self.upgrades,
             Tab::Treasures => &self.treasures,
-            Tab::Strategies => &self.items,
+            Tab::Strategies => &[],
         }
+    }
+
+    fn current_strategy(&self) -> Option<&StrategyStats> {
+        self.strategies.get(self.selection)
     }
 
     fn current_list_len(&self) -> usize {
@@ -90,16 +94,6 @@ impl App {
             Tab::Upgrades => self.upgrades.len(),
             Tab::Treasures => self.treasures.len(),
             Tab::Strategies => self.strategies.len(),
-        }
-    }
-
-    fn current_name(&self) -> Option<&str> {
-        match self.tab {
-            Tab::Items | Tab::Upgrades | Tab::Treasures => self
-                .current_list()
-                .get(self.selection)
-                .map(|row| row.name.as_str()),
-            Tab::Strategies => None,
         }
     }
 
@@ -112,15 +106,21 @@ impl App {
         } else {
             self.list_state.select(Some(self.selection));
         }
-        self.detail = if let Some(name) = self.current_name() {
-            let details = match self.tab {
-                Tab::Items | Tab::Upgrades => db.detail_for_shop_purchase(name)?,
-                Tab::Treasures => db.detail_for_treasure(name)?,
-                Tab::Strategies => unreachable!(),
-            };
-            Some(details)
-        } else {
-            None
+        self.detail = match self.tab {
+            Tab::Items | Tab::Upgrades => self
+                .current_list()
+                .get(self.selection)
+                .map(|row| db.detail_for_shop_purchase(&row.name))
+                .transpose()?,
+            Tab::Treasures => self
+                .current_list()
+                .get(self.selection)
+                .map(|row| db.detail_for_treasure(&row.name))
+                .transpose()?,
+            Tab::Strategies => self
+                .current_strategy()
+                .map(|strategy| db.detail_for_strategy(&strategy.category, &strategy.name))
+                .transpose()?,
         };
         Ok(())
     }
@@ -208,9 +208,10 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
             .enumerate()
             .map(|(idx, row)| {
                 let label = format!(
-                    "{} / {}  {:.1}% ({}/{})",
+                    "{} / {}  avg {:.1}%  win {:.1}% ({}/{})",
                     row.category,
                     row.name,
+                    row.avg_clear_rate,
                     row.win_rate * 100.0,
                     row.win_count,
                     row.sample_count,
@@ -228,7 +229,12 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
             .iter()
             .enumerate()
             .map(|(idx, row)| {
-                let label = format!("{}  {:.1}%", row.name, row.win_rate * 100.0);
+                let label = format!(
+                    "{}  avg {:.1}%  win {:.1}%",
+                    row.name,
+                    row.avg_clear_rate,
+                    row.win_rate * 100.0
+                );
                 let content = vec![Line::from(Span::raw(label))];
                 let mut item = ListItem::new(content);
                 if idx == app.selection {
@@ -252,7 +258,7 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
         build_detail_text(detail)
     } else if let Tab::Strategies = app.tab {
         vec![Line::from(Span::raw(
-            "Strategy statistics are displayed on the left. Use Tab to switch categories.",
+            "Select a strategy on the left to view clear rate statistics.",
         ))]
     } else {
         vec![Line::from(Span::raw("No detail available."))]
@@ -283,23 +289,50 @@ fn build_detail_text(detail: &DetailStats) -> Vec<Line<'_>> {
         detail.total_purchases
     ))));
     lines.push(Line::from(Span::raw(format!(
+        "Average clear rate: {:.2}%",
+        detail.avg_clear_rate
+    ))));
+    lines.push(Line::from(Span::raw(format!(
+        "Clear rate variance: {:.2}",
+        detail.clear_rate_variance
+    ))));
+    lines.push(Line::from(Span::raw(format!(
+        "Clear rate samples: {}",
+        detail.clear_rate_samples
+    ))));
+    lines.push(Line::from(Span::raw(format!(
         "Zero picks: {} (win {:.1}%)",
         detail.zero_pick_samples,
         detail.zero_pick_win_rate * 100.0
     ))));
     lines.push(Line::from(Span::raw("")));
     lines.push(Line::from(Span::styled(
-        "Pick count distribution",
+        "Clear rate distribution",
         Style::default().add_modifier(Modifier::UNDERLINED),
     )));
 
-    for bin in &detail.distribution {
+    for bin in &detail.clear_rate_distribution {
         lines.push(Line::from(Span::raw(format!(
-            "{} picks: {:>4} sims, win {:.1}%",
-            bin.count,
-            bin.sample_count,
-            bin.win_rate * 100.0
+            "{}: {:>4} sims, avg {:.2}%",
+            bin.label, bin.sample_count, bin.average_clear_rate
         ))));
+    }
+
+    if !detail.distribution.is_empty() {
+        lines.push(Line::from(Span::raw("")));
+        lines.push(Line::from(Span::styled(
+            "Pick count distribution",
+            Style::default().add_modifier(Modifier::UNDERLINED),
+        )));
+
+        for bin in &detail.distribution {
+            lines.push(Line::from(Span::raw(format!(
+                "{} picks: {:>4} sims, win {:.1}%",
+                bin.count,
+                bin.sample_count,
+                bin.win_rate * 100.0
+            ))));
+        }
     }
 
     lines

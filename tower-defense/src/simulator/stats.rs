@@ -7,12 +7,20 @@ pub struct Database {
     conn: Connection,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct SimulationOutcome {
+    pub victory: bool,
+    pub clear_rate: f64,
+}
+
 #[derive(Clone, Debug)]
 pub struct SummaryRow {
     pub name: String,
     pub selected_simulations: usize,
     pub total_purchases: usize,
     pub win_rate: f64,
+    pub avg_clear_rate: f64,
+    pub clear_rate_variance: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -22,6 +30,8 @@ pub struct StrategyStats {
     pub sample_count: usize,
     pub win_count: usize,
     pub win_rate: f64,
+    pub avg_clear_rate: f64,
+    pub clear_rate_variance: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +43,13 @@ pub struct PickBin {
 }
 
 #[derive(Clone, Debug)]
+pub struct ClearRateBin {
+    pub label: String,
+    pub sample_count: usize,
+    pub average_clear_rate: f64,
+}
+
+#[derive(Clone, Debug)]
 pub struct DetailStats {
     pub name: String,
     pub total_simulations: usize,
@@ -41,6 +58,10 @@ pub struct DetailStats {
     pub win_rate: f64,
     pub zero_pick_samples: usize,
     pub zero_pick_win_rate: f64,
+    pub avg_clear_rate: f64,
+    pub clear_rate_variance: f64,
+    pub clear_rate_samples: usize,
+    pub clear_rate_distribution: Vec<ClearRateBin>,
     pub distribution: Vec<PickBin>,
 }
 
@@ -108,7 +129,7 @@ impl Database {
     pub fn list_strategy_win_rates(&self) -> anyhow::Result<Vec<StrategyStats>> {
         let mut result = Vec::new();
         for (category, column) in STRATEGY_COLUMNS {
-            let rows = self.query_strategy_win_rates(column)?;
+            let rows = self.query_strategy_stats(column)?;
             for row in rows {
                 result.push(StrategyStats {
                     category: category.to_string(),
@@ -116,15 +137,17 @@ impl Database {
                     sample_count: row.sample_count,
                     win_count: row.win_count,
                     win_rate: row.win_rate,
+                    avg_clear_rate: row.avg_clear_rate,
+                    clear_rate_variance: row.clear_rate_variance,
                 });
             }
         }
         Ok(result)
     }
 
-    fn query_strategy_win_rates(&self, column: &str) -> anyhow::Result<Vec<StrategyStats>> {
+    fn query_strategy_stats(&self, column: &str) -> anyhow::Result<Vec<StrategyStats>> {
         let sql = format!(
-            "SELECT {column}, COUNT(*) AS sample_count, SUM(COALESCE(victory, 0)) AS win_count, AVG(CAST(COALESCE(victory, 0) AS REAL)) AS win_rate FROM simulations WHERE completed_at IS NOT NULL GROUP BY {column} ORDER BY win_rate DESC",
+            "SELECT {column}, COUNT(*) AS sample_count, SUM(COALESCE(victory, 0)) AS win_count, AVG(clear_rate) AS avg_clear_rate, AVG(clear_rate * clear_rate) AS avg_clear_rate_sq, AVG(CAST(COALESCE(victory, 0) AS REAL)) AS win_rate FROM simulations WHERE completed_at IS NOT NULL GROUP BY {column} ORDER BY avg_clear_rate DESC",
             column = column,
         );
 
@@ -133,13 +156,18 @@ impl Database {
             let name: String = row.get(0)?;
             let sample_count: i64 = row.get(1)?;
             let win_count: i64 = row.get(2)?;
-            let win_rate: f64 = row.get(3)?;
+            let avg_clear_rate: f64 = row.get(3)?;
+            let avg_clear_rate_sq: f64 = row.get(4)?;
+            let win_rate: f64 = row.get(5)?;
+            let variance = (avg_clear_rate_sq - avg_clear_rate * avg_clear_rate).max(0.0);
             Ok(StrategyStats {
                 category: String::new(),
                 name,
                 sample_count: sample_count as usize,
                 win_count: win_count as usize,
                 win_rate,
+                avg_clear_rate,
+                clear_rate_variance: variance,
             })
         })?;
 
@@ -164,20 +192,27 @@ impl Database {
         Ok(self.build_summary(rows, &outcome))
     }
 
-    fn load_simulation_outcomes(&self) -> anyhow::Result<HashMap<String, bool>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, victory FROM simulations WHERE completed_at IS NOT NULL")?;
+    fn load_simulation_outcomes(&self) -> anyhow::Result<HashMap<String, SimulationOutcome>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, victory, clear_rate FROM simulations WHERE completed_at IS NOT NULL",
+        )?;
         let rows = stmt.query_map([], |row| {
             let id: String = row.get(0)?;
             let victory: Option<i32> = row.get(1)?;
-            Ok((id, victory.unwrap_or(0) == 1))
+            let clear_rate: Option<f64> = row.get(2)?;
+            Ok((
+                id,
+                SimulationOutcome {
+                    victory: victory.unwrap_or(0) == 1,
+                    clear_rate: clear_rate.unwrap_or(0.0),
+                },
+            ))
         })?;
 
         let mut outcome = HashMap::new();
         for row in rows {
-            let (id, victory) = row?;
-            outcome.insert(id, victory);
+            let (id, outcome_value) = row?;
+            outcome.insert(id, outcome_value);
         }
         Ok(outcome)
     }
@@ -217,14 +252,20 @@ impl Database {
     fn build_summary(
         &self,
         rows: Vec<(String, String)>,
-        outcome: &HashMap<String, bool>,
+        outcome: &HashMap<String, SimulationOutcome>,
     ) -> Vec<SummaryRow> {
         let mut builder: HashMap<String, SummaryBuilder> = HashMap::new();
 
         for (simulation_id, kind) in rows {
             let entry = builder.entry(kind).or_default();
             entry.total_purchases += 1;
-            entry.simulation_ids.insert(simulation_id);
+            if entry.simulation_ids.insert(simulation_id.clone()) {
+                if let Some(outcome_value) = outcome.get(&simulation_id) {
+                    entry.clear_rate_samples += 1;
+                    entry.sum_clear_rate += outcome_value.clear_rate;
+                    entry.sum_clear_rate_sq += outcome_value.clear_rate * outcome_value.clear_rate;
+                }
+            }
         }
 
         let mut result: Vec<SummaryRow> = builder
@@ -234,18 +275,32 @@ impl Database {
                 let win_count = entry
                     .simulation_ids
                     .iter()
-                    .filter(|id| outcome.get(*id).copied().unwrap_or(false))
+                    .filter(|id| outcome.get(*id).map(|o| o.victory).unwrap_or(false))
                     .count();
                 let win_rate = if selected_simulations > 0 {
                     win_count as f64 / selected_simulations as f64
                 } else {
                     0.0
                 };
+                let avg_clear_rate = if entry.clear_rate_samples > 0 {
+                    entry.sum_clear_rate / entry.clear_rate_samples as f64
+                } else {
+                    0.0
+                };
+                let clear_rate_variance = if entry.clear_rate_samples > 0 {
+                    (entry.sum_clear_rate_sq / entry.clear_rate_samples as f64)
+                        - avg_clear_rate * avg_clear_rate
+                } else {
+                    0.0
+                }
+                .max(0.0);
                 SummaryRow {
                     name,
                     selected_simulations,
                     total_purchases: entry.total_purchases,
                     win_rate,
+                    avg_clear_rate,
+                    clear_rate_variance,
                 }
             })
             .collect();
@@ -272,6 +327,8 @@ impl Database {
                     selected_simulations: 0,
                     total_purchases: 0,
                     win_rate: 0.0,
+                    avg_clear_rate: 0.0,
+                    clear_rate_variance: 0.0,
                 })
             })
             .collect();
@@ -306,7 +363,7 @@ impl Database {
         let total_purchases: usize = counts.values().sum();
         let win_count = counts
             .keys()
-            .filter(|id| outcome.get(*id).copied().unwrap_or(false))
+            .filter(|id| outcome.get(*id).map(|o| o.victory).unwrap_or(false))
             .count();
         let win_rate = if selected_simulations > 0 {
             win_count as f64 / selected_simulations as f64
@@ -315,6 +372,7 @@ impl Database {
         };
 
         let mut distribution: BTreeMap<usize, PickBin> = BTreeMap::new();
+        let mut clear_rate_values = Vec::new();
         for (simulation_id, count) in &counts {
             let bin = distribution.entry(*count).or_insert(PickBin {
                 count: *count,
@@ -323,17 +381,20 @@ impl Database {
                 win_rate: 0.0,
             });
             bin.sample_count += 1;
-            if outcome.get(simulation_id).copied().unwrap_or(false) {
-                bin.win_count += 1;
+            if let Some(outcome_value) = outcome.get(simulation_id) {
+                if outcome_value.victory {
+                    bin.win_count += 1;
+                }
+                clear_rate_values.push(outcome_value.clear_rate);
             }
         }
 
         let mut zero_pick_samples = 0;
         let mut zero_pick_win_count = 0;
-        for (simulation_id, victory) in &outcome {
+        for (simulation_id, outcome_value) in &outcome {
             if !counts.contains_key(simulation_id) {
                 zero_pick_samples += 1;
-                if *victory {
+                if outcome_value.victory {
                     zero_pick_win_count += 1;
                 }
             }
@@ -348,6 +409,20 @@ impl Database {
             };
         }
 
+        let (avg_clear_rate, clear_rate_variance) = if !clear_rate_values.is_empty() {
+            let sum: f64 = clear_rate_values.iter().copied().sum();
+            let sum_sq: f64 = clear_rate_values.iter().copied().map(|v| v * v).sum();
+            let count = clear_rate_values.len() as f64;
+            let avg = sum / count;
+            let variance = (sum_sq / count) - avg * avg;
+            (avg, variance.max(0.0))
+        } else {
+            (0.0, 0.0)
+        };
+
+        let clear_rate_samples = clear_rate_values.len();
+        let clear_rate_distribution = Self::build_clear_rate_distribution(&clear_rate_values);
+
         Ok(DetailStats {
             name: kind.to_owned(),
             total_simulations,
@@ -360,7 +435,178 @@ impl Database {
             } else {
                 0.0
             },
+            avg_clear_rate,
+            clear_rate_variance,
+            clear_rate_samples,
+            clear_rate_distribution,
             distribution,
+        })
+    }
+
+    fn build_clear_rate_distribution(clear_rates: &[f64]) -> Vec<ClearRateBin> {
+        let mut bins: [ClearRateBin; 11] = [
+            ClearRateBin {
+                label: "0-9%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "10-19%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "20-29%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "30-39%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "40-49%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "50-59%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "60-69%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "70-79%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "80-89%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "90-99%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+            ClearRateBin {
+                label: "100%".to_string(),
+                sample_count: 0,
+                average_clear_rate: 0.0,
+            },
+        ];
+
+        for &rate in clear_rates {
+            let bin_index = if rate >= 100.0 {
+                10
+            } else if rate <= 0.0 {
+                0
+            } else {
+                (rate as usize / 10).clamp(0, 9)
+            };
+            let bin = &mut bins[bin_index];
+            bin.sample_count += 1;
+            bin.average_clear_rate += rate;
+        }
+
+        bins.iter_mut()
+            .map(|bin| {
+                if bin.sample_count > 0 {
+                    bin.average_clear_rate /= bin.sample_count as f64;
+                }
+                bin.clone()
+            })
+            .collect()
+    }
+
+    fn detail_for_strategy(
+        &self,
+        category: &str,
+        strategy_name: &str,
+    ) -> anyhow::Result<DetailStats> {
+        let outcome = self.load_simulation_outcomes()?;
+        let total_simulations = outcome.len();
+
+        let column = match category {
+            "Shop" => "shop_strategy",
+            "Card Reroll" => "card_reroll_strategy",
+            "Tower Placement" => "tower_placement_strategy",
+            "Item Use" => "item_use_strategy",
+            _ => return Err(anyhow::anyhow!("Unknown strategy category: {}", category)),
+        };
+
+        let sql = format!(
+            "SELECT id, victory, clear_rate FROM simulations WHERE completed_at IS NOT NULL AND {column} = ?1",
+            column = column,
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![strategy_name], |row| {
+            let id: String = row.get(0)?;
+            let victory: Option<i32> = row.get(1)?;
+            let clear_rate: Option<f64> = row.get(2)?;
+            Ok((
+                id,
+                SimulationOutcome {
+                    victory: victory.unwrap_or(0) == 1,
+                    clear_rate: clear_rate.unwrap_or(0.0),
+                },
+            ))
+        })?;
+
+        let mut selected_simulations = 0;
+        let mut total_purchases = 0;
+        let mut win_count = 0;
+        let mut clear_rate_values = Vec::new();
+
+        for row in rows {
+            let (_id, strategy_outcome) = row?;
+            selected_simulations += 1;
+            total_purchases += 1;
+            if strategy_outcome.victory {
+                win_count += 1;
+            }
+            clear_rate_values.push(strategy_outcome.clear_rate);
+        }
+
+        let win_rate = if selected_simulations > 0 {
+            win_count as f64 / selected_simulations as f64
+        } else {
+            0.0
+        };
+
+        let (avg_clear_rate, clear_rate_variance) = if !clear_rate_values.is_empty() {
+            let sum: f64 = clear_rate_values.iter().copied().sum();
+            let sum_sq: f64 = clear_rate_values.iter().copied().map(|v| v * v).sum();
+            let count = clear_rate_values.len() as f64;
+            let avg = sum / count;
+            let variance = (sum_sq / count) - avg * avg;
+            (avg, variance.max(0.0))
+        } else {
+            (0.0, 0.0)
+        };
+
+        let clear_rate_samples = clear_rate_values.len();
+        let clear_rate_distribution = Self::build_clear_rate_distribution(&clear_rate_values);
+
+        Ok(DetailStats {
+            name: strategy_name.to_owned(),
+            total_simulations,
+            selected_simulations,
+            total_purchases,
+            win_rate,
+            zero_pick_samples: 0,
+            zero_pick_win_rate: 0.0,
+            avg_clear_rate,
+            clear_rate_variance,
+            clear_rate_samples,
+            clear_rate_distribution,
+            distribution: Vec::new(),
         })
     }
 }
@@ -368,5 +614,8 @@ impl Database {
 #[derive(Default)]
 struct SummaryBuilder {
     total_purchases: usize,
+    clear_rate_samples: usize,
+    sum_clear_rate: f64,
+    sum_clear_rate_sq: f64,
     simulation_ids: HashSet<String>,
 }

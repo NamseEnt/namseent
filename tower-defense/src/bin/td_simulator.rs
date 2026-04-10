@@ -265,11 +265,13 @@ fn main() -> anyhow::Result<()> {
                     println!("{}:", current_category);
                 }
                 println!(
-                    "  {:<16} {:>4}/{:<4} wins  ({:.1}%)",
+                    "  {:<16} {:>4}/{:<4} wins  ({:.1}%)  avg_clear {:.1}%  var {:.2}",
                     row.name,
                     row.win_count,
                     row.sample_count,
                     row.win_rate * 100.0,
+                    row.avg_clear_rate,
+                    row.clear_rate_variance,
                 );
             }
         }
