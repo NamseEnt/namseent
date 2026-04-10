@@ -1,6 +1,5 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::Rng;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -16,10 +15,8 @@ use tower_defense::simulator::stats::Database;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::RandomTreasureStrategy;
 use tower_defense::simulator::strategies::{
-    card_reroll::{NoRerollStrategy, OptimalRerollStrategy},
-    item_use::{DefaultItemUseStrategy, HeuristicItemUseStrategy},
-    shop::{BuyCheapestStrategy, HeuristicShopStrategy},
-    tower_placement::HeuristicPlacementStrategy,
+    card_reroll::OptimalRerollStrategy, item_use::HeuristicItemUseStrategy,
+    shop::HeuristicShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
 
 #[derive(Parser)]
@@ -137,24 +134,12 @@ fn main() -> anyhow::Result<()> {
             let seed: u64 = rand::Rng::r#gen(&mut rng);
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
-                if rng.gen_bool(0.5) {
-                    Box::new(HeuristicShopStrategy)
-                } else {
-                    Box::new(BuyCheapestStrategy)
-                };
+                Box::new(HeuristicShopStrategy);
             let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                if rng.gen_bool(0.5) {
-                    Box::new(NoRerollStrategy)
-                } else {
-                    Box::new(OptimalRerollStrategy)
-                };
+                Box::new(OptimalRerollStrategy);
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
-                if rng.gen_bool(0.5) {
-                    Box::new(HeuristicItemUseStrategy)
-                } else {
-                    Box::new(DefaultItemUseStrategy)
-                };
+                Box::new(HeuristicItemUseStrategy);
             let treasure_strategy = RandomTreasureStrategy;
 
             let sim_id = format!("sim_{seed:016x}");
