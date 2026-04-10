@@ -15,7 +15,7 @@ use tower_defense::simulator::stats::Database;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::RandomTreasureStrategy;
 use tower_defense::simulator::strategies::{
-    card_reroll::OptimalRerollStrategy, item_use::HeuristicItemUseStrategy,
+    card_reroll::ItemAwareRerollStrategy, item_use::HeuristicItemUseStrategy,
     shop::HeuristicShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
 
@@ -136,7 +136,7 @@ fn main() -> anyhow::Result<()> {
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
                 Box::new(HeuristicShopStrategy);
             let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                Box::new(OptimalRerollStrategy);
+                Box::new(ItemAwareRerollStrategy);
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
                 Box::new(HeuristicItemUseStrategy);

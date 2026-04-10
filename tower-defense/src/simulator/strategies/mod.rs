@@ -6,6 +6,7 @@ pub mod shop;
 pub mod tower_placement;
 pub mod treasure;
 
+pub use card_reroll::{ItemAwareRerollStrategy, SmartRerollStrategy};
 pub use treasure::{RandomTreasureStrategy, TreasureStrategy};
 
 use crate::game_state::GameState;
