@@ -56,6 +56,14 @@ struct Cli {
     #[arg(long)]
     strategy_stats: bool,
 
+    /// Print clear rate distribution graph after simulation
+    #[arg(long)]
+    clear_rate_graph: bool,
+
+    /// Print all end-of-simulation statistics
+    #[arg(long)]
+    all_stats: bool,
+
     /// Suppress progress bar output
     #[arg(long)]
     quiet: bool,
@@ -89,8 +97,14 @@ fn main() -> anyhow::Result<()> {
     let completed = AtomicUsize::new(0);
     let victories = AtomicUsize::new(0);
 
-    let stage_damage_by_round = if cli.damage_distribution {
+    let stage_damage_by_round = if cli.damage_distribution || cli.all_stats {
         Some(Arc::new(Mutex::new(HashMap::<usize, Vec<f32>>::new())))
+    } else {
+        None
+    };
+
+    let clear_rates = if cli.clear_rate_graph || cli.all_stats {
+        Some(Arc::new(Mutex::new(Vec::<f32>::new())))
     } else {
         None
     };
@@ -198,6 +212,11 @@ fn main() -> anyhow::Result<()> {
                 }
             }
 
+            if let Some(clear_rates) = &clear_rates {
+                let mut rates = clear_rates.lock().unwrap();
+                rates.push(result.clear_rate);
+            }
+
             completed.fetch_add(1, Ordering::Relaxed);
             if let Some(pb) = &overall_pb {
                 pb.inc(1);
@@ -250,7 +269,15 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    if cli.strategy_stats {
+    if let Some(clear_rates) = clear_rates {
+        let rates = clear_rates.lock().unwrap();
+        if !rates.is_empty() {
+            println!("=== Clear Rate Distribution ===");
+            print_clear_rate_histogram(&rates);
+        }
+    }
+
+    if cli.strategy_stats || cli.all_stats {
         let db = Database::open(&cli.db)?;
         let strategy_rows = db.list_strategy_win_rates()?;
         if !strategy_rows.is_empty() {
@@ -280,4 +307,35 @@ fn main() -> anyhow::Result<()> {
     println!("Results saved to: {}", cli.db.display());
 
     Ok(())
+}
+
+fn print_clear_rate_histogram(clear_rates: &[f32]) {
+    let mut bins = vec![0usize; 21];
+    for &rate in clear_rates {
+        let idx = if rate >= 100.0 {
+            20
+        } else if rate <= 0.0 {
+            0
+        } else {
+            (rate as usize / 5).clamp(0, 19)
+        };
+        bins[idx] += 1;
+    }
+
+    let max_count = bins.iter().copied().max().unwrap_or(1).max(1);
+    let bar_width = 20;
+
+    for (idx, &count) in bins.iter().enumerate() {
+        let label = if idx == 20 {
+            "100%".to_string()
+        } else {
+            let start = idx * 5;
+            let end = start + 4;
+            format!("{start:02}-{end:02}%")
+        };
+        let bar_len = (count * bar_width + max_count / 2) / max_count;
+        let bar = "█".repeat(bar_len);
+        let padded_bar = format!("{:<width$}", bar, width = bar_width);
+        println!("{label} | {padded_bar} {count}");
+    }
 }

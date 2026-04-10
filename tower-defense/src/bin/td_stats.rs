@@ -311,11 +311,26 @@ fn build_detail_text(detail: &DetailStats) -> Vec<Line<'_>> {
         Style::default().add_modifier(Modifier::UNDERLINED),
     )));
 
-    for bin in &detail.clear_rate_distribution {
-        lines.push(Line::from(Span::raw(format!(
-            "{}: {:>4} sims, avg {:.2}%",
-            bin.label, bin.sample_count, bin.average_clear_rate
-        ))));
+    if detail.clear_rate_distribution.is_empty() {
+        lines.push(Line::from(Span::raw("No clear rate samples.")));
+    } else {
+        let max_count = detail
+            .clear_rate_distribution
+            .iter()
+            .map(|bin| bin.sample_count)
+            .max()
+            .unwrap_or(1)
+            .max(1);
+        let bar_width = 18;
+        for bin in &detail.clear_rate_distribution {
+            let bar_len = (bin.sample_count * bar_width + max_count / 2) / max_count;
+            let bar = "█".repeat(bar_len);
+            let padded_bar = format!("{:<width$}", bar, width = bar_width);
+            lines.push(Line::from(Span::raw(format!(
+                "{} | {} {}",
+                bin.label, padded_bar, bin.sample_count
+            ))));
+        }
     }
 
     if !detail.distribution.is_empty() {
