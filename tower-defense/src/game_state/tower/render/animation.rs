@@ -1,7 +1,5 @@
-use crate::game_state::GameState;
-use crate::sound::{
-    self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset, random_murchunga,
-};
+use crate::game_state::{GameEffectEvent, GameState};
+use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset, random_murchunga};
 use namui::*;
 
 use crate::game_state::tower::{Tower, TowerKind};
@@ -34,13 +32,15 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
                 now,
             );
 
-            sound::emit_sound(EmitSoundParams::one_shot(
-                random_murchunga(),
-                SoundGroup::Sfx,
-                VolumePreset::Minimum,
-                SpatialMode::Spatial {
-                    position: tower.left_top.map(|coord| coord as f32) + Xy::new(1.0, 1.0),
-                },
+            game_state.effect_events.push(GameEffectEvent::PlaySound(
+                EmitSoundParams::one_shot(
+                    random_murchunga(),
+                    SoundGroup::Sfx,
+                    VolumePreset::Minimum,
+                    SpatialMode::Spatial {
+                        position: tower.left_top.map(|coord| coord as f32) + Xy::new(1.0, 1.0),
+                    },
+                ),
             ));
         }
 

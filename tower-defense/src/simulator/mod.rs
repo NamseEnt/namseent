@@ -15,7 +15,7 @@ use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
-use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory};
+use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory, EffectEventQueue};
 use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
 use std::sync::Arc;
@@ -327,6 +327,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         ui_state: UIState::new(),
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
+        effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
         config: config.clone(),
         hand_panel_forced_open: false,

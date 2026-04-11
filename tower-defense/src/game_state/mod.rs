@@ -8,6 +8,7 @@ pub mod cursor_preview;
 mod debug_tools;
 pub mod difficulty;
 pub mod effect;
+pub mod effect_event;
 mod event_handlers;
 pub mod fast_forward;
 pub mod field_particle;
@@ -42,6 +43,7 @@ use background::{Background, generate_backgrounds};
 pub use base::*;
 pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
+pub use effect_event::*;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{Effect, Item};
@@ -52,6 +54,7 @@ use namui::*;
 use placed_towers::PlacedTowers;
 use play_history::PlayHistory;
 use projectile::*;
+use rand::Rng;
 pub use render::*;
 pub(crate) use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::sync::Arc;
@@ -72,6 +75,9 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(18, 31),
     MapCoord::new(35, 31),
 ];
+
+const PROJECTILE_WHOOSH_INTERVAL_MIN_SECS: f32 = 0.5;
+const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 
 #[derive(State)]
 pub struct GameState {
@@ -109,6 +115,7 @@ pub struct GameState {
     pub ui_state: UIState,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
+    pub effect_events: EffectEventQueue,
     pub base_animation_state: BaseAnimationState,
 
     // panel open states controlled by input/flow
@@ -193,6 +200,359 @@ impl GameState {
 
     pub fn advance_time(&mut self, dt: Duration) {
         self.game_now += dt;
+    }
+
+    pub fn flush_effect_events(&mut self) {
+        let mut active_trail_sound_projectiles = std::collections::HashSet::new();
+        let mut active_projectile_sound_ids = PROJECTILE_TRAIL_SOUND_IDS.lock().unwrap();
+
+        for event in self.effect_events.drain() {
+            match event {
+                GameEffectEvent::SpawnParticle(request) => match request {
+                    ParticleSpawnRequest::DamageText(p) => {
+                        field_particle::DAMAGE_TEXTS.spawn(p);
+                    }
+                    ParticleSpawnRequest::Projectile(p) => {
+                        field_particle::PROJECTILES.spawn(p);
+                    }
+                    ParticleSpawnRequest::Trash(p) => {
+                        field_particle::TRASHES.spawn(p);
+                    }
+                    ParticleSpawnRequest::MonsterSoul(p) => {
+                        field_particle::MONSTER_SOULS.spawn(p);
+                    }
+                    ParticleSpawnRequest::MonsterCorpse(p) => {
+                        field_particle::MONSTER_CORPSES.spawn(p);
+                    }
+                    ParticleSpawnRequest::Card(p) => {
+                        field_particle::CARDS.spawn(p);
+                    }
+                    ParticleSpawnRequest::Icon(p) => {
+                        field_particle::ICONS.spawn(p);
+                    }
+                    ParticleSpawnRequest::Heart(p) => {
+                        field_particle::HEARTS.spawn(p);
+                    }
+                    ParticleSpawnRequest::BlackSmoke(p) => {
+                        field_particle::BLACK_SMOKES.spawn(p);
+                    }
+                    ParticleSpawnRequest::Dust(p) => {
+                        field_particle::DUSTS.spawn(p);
+                    }
+                    ParticleSpawnRequest::Attack(p) => {
+                        field_particle::ATTACK_PARTICLES.spawn(p);
+                    }
+                },
+                GameEffectEvent::PlaySound(params) => {
+                    crate::sound::emit_sound(params);
+                }
+                GameEffectEvent::PlaySoundDelayed(params, delay) => {
+                    crate::sound::emit_sound_after(params, delay);
+                }
+                GameEffectEvent::SpawnProjectileTrail {
+                    trail,
+                    start_xy,
+                    end_xy,
+                    count,
+                    now,
+                } => match trail {
+                    ProjectileTrail::Burning => {
+                        field_particle::emitter::spawn_burning_trail(start_xy, end_xy, count, now);
+                    }
+                    ProjectileTrail::Sparkle => {
+                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
+                    }
+                    ProjectileTrail::WindCurve => {
+                        field_particle::emitter::spawn_wind_curve_trail(
+                            start_xy, end_xy, count, now,
+                        );
+                    }
+                    ProjectileTrail::Heart => {
+                        field_particle::emitter::spawn_heart_trail(start_xy, end_xy, count, now);
+                    }
+                    ProjectileTrail::LightningSparkle => {
+                        field_particle::emitter::spawn_lightning_trail(
+                            start_xy, end_xy, count, now,
+                        );
+                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
+                    }
+                    ProjectileTrail::None => {}
+                },
+                GameEffectEvent::SpawnProjectileHitEffect(hit_effect, impact_xy, now) => {
+                    use crate::game_state::attack::ProjectileHitEffect;
+                    match hit_effect {
+                        ProjectileHitEffect::CardBurst => {
+                            field_particle::emitter::spawn_card_burst(impact_xy, now);
+                        }
+                        ProjectileHitEffect::SparkleBurst => {
+                            field_particle::emitter::spawn_sparkle_burst(impact_xy, now);
+                        }
+                        ProjectileHitEffect::HeartBurst => {
+                            field_particle::emitter::spawn_heart_burst(impact_xy, now);
+                        }
+                        ProjectileHitEffect::TrashBounce => {
+                            // Trash bounce is handled as direct projectile activity elsewhere.
+                        }
+                    }
+                }
+                GameEffectEvent::SpawnLaserBeam(start_xy, end_xy, now) => {
+                    field_particle::emitter::spawn_laser_beam(start_xy, end_xy, now);
+                }
+                GameEffectEvent::SpawnTowerRemoveDustBurst(center_xy, now) => {
+                    field_particle::emitter::spawn_tower_remove_dust_burst(center_xy, now);
+                }
+                GameEffectEvent::SyncProjectileTrailState {
+                    projectile_id,
+                    trail,
+                    start_xy,
+                    end_xy,
+                    moved_distance,
+                    dt_secs,
+                    now,
+                } => {
+                    active_trail_sound_projectiles.insert(projectile_id);
+                    let mut effect_states = PROJECTILE_TRAIL_EFFECT_STATE.lock().unwrap();
+                    let state = effect_states
+                        .entry(projectile_id)
+                        .or_insert_with(Default::default);
+
+                    state.trail_distance_remainder += moved_distance;
+                    let spawn_distance = match trail {
+                        ProjectileTrail::None => None,
+                        ProjectileTrail::Burning => {
+                            Some(field_particle::emitter::BURNING_TRAIL_SPAWN_DISTANCE)
+                        }
+                        ProjectileTrail::Sparkle => {
+                            Some(field_particle::emitter::SPARKLE_SPAWN_DISTANCE)
+                        }
+                        ProjectileTrail::WindCurve => {
+                            Some(field_particle::emitter::WIND_CURVE_SPAWN_DISTANCE)
+                        }
+                        ProjectileTrail::Heart => {
+                            Some(field_particle::emitter::HEART_SPAWN_DISTANCE)
+                        }
+                        ProjectileTrail::LightningSparkle => {
+                            Some(field_particle::emitter::LIGHTNING_TRAIL_SPAWN_DISTANCE)
+                        }
+                    };
+
+                    if let Some(spawn_distance) = spawn_distance {
+                        let spawn_count =
+                            (state.trail_distance_remainder / spawn_distance).floor() as usize;
+                        if spawn_count > 0 {
+                            state.trail_distance_remainder -= spawn_count as f32 * spawn_distance;
+                            match trail {
+                                ProjectileTrail::Burning => {
+                                    field_particle::emitter::spawn_burning_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                }
+                                ProjectileTrail::Sparkle => {
+                                    field_particle::emitter::spawn_sparkle_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                }
+                                ProjectileTrail::WindCurve => {
+                                    field_particle::emitter::spawn_wind_curve_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                }
+                                ProjectileTrail::Heart => {
+                                    field_particle::emitter::spawn_heart_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                }
+                                ProjectileTrail::LightningSparkle => {
+                                    field_particle::emitter::spawn_lightning_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                    field_particle::emitter::spawn_sparkle_trail(
+                                        start_xy,
+                                        end_xy,
+                                        spawn_count,
+                                        now,
+                                    );
+                                }
+                                ProjectileTrail::None => {}
+                            }
+                        }
+                    }
+
+                    state.whoosh_cooldown_secs -= dt_secs;
+                    if state.whoosh_cooldown_secs <= 0.0 {
+                        crate::sound::emit_sound(sound::EmitSoundParams::one_shot(
+                            sound::random_whoosh(),
+                            sound::SoundGroup::Sfx,
+                            sound::VolumePreset::Minimum,
+                            sound::SpatialMode::Spatial { position: end_xy },
+                        ));
+                        state.whoosh_cooldown_secs = rand::thread_rng().gen_range(
+                            PROJECTILE_WHOOSH_INTERVAL_MIN_SECS
+                                ..=PROJECTILE_WHOOSH_INTERVAL_MAX_SECS,
+                        );
+                    }
+
+                    let existing_entry = active_projectile_sound_ids.get_mut(&projectile_id);
+                    match trail {
+                        ProjectileTrail::Burning => {
+                            let sound_id = match existing_entry {
+                                Some((existing_trail, sound_id))
+                                    if *existing_trail == ProjectileTrail::Burning =>
+                                {
+                                    crate::sound::update_sound_position(*sound_id, end_xy);
+                                    *sound_id
+                                }
+                                Some((existing_trail, sound_id)) => {
+                                    crate::sound::stop_sound(*sound_id);
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_crackling_fire(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let new_sound_id = crate::sound::emit_sound(params);
+                                    *existing_trail = ProjectileTrail::Burning;
+                                    *sound_id = new_sound_id;
+                                    new_sound_id
+                                }
+                                None => {
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_crackling_fire(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let sound_id = crate::sound::emit_sound(params);
+                                    active_projectile_sound_ids.insert(
+                                        projectile_id,
+                                        (ProjectileTrail::Burning, sound_id),
+                                    );
+                                    sound_id
+                                }
+                            };
+                            let _ = sound_id;
+                        }
+                        ProjectileTrail::Sparkle => {
+                            let sound_id = match existing_entry {
+                                Some((existing_trail, sound_id))
+                                    if *existing_trail == ProjectileTrail::Sparkle =>
+                                {
+                                    crate::sound::update_sound_position(*sound_id, end_xy);
+                                    *sound_id
+                                }
+                                Some((existing_trail, sound_id)) => {
+                                    crate::sound::stop_sound(*sound_id);
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_shining_ringing(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let new_sound_id = crate::sound::emit_sound(params);
+                                    *existing_trail = ProjectileTrail::Sparkle;
+                                    *sound_id = new_sound_id;
+                                    new_sound_id
+                                }
+                                None => {
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_shining_ringing(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let sound_id = crate::sound::emit_sound(params);
+                                    active_projectile_sound_ids.insert(
+                                        projectile_id,
+                                        (ProjectileTrail::Sparkle, sound_id),
+                                    );
+                                    sound_id
+                                }
+                            };
+                            let _ = sound_id;
+                        }
+                        ProjectileTrail::WindCurve => {
+                            let sound_id = match existing_entry {
+                                Some((existing_trail, sound_id))
+                                    if *existing_trail == ProjectileTrail::WindCurve =>
+                                {
+                                    crate::sound::update_sound_position(*sound_id, end_xy);
+                                    *sound_id
+                                }
+                                Some((existing_trail, sound_id)) => {
+                                    crate::sound::stop_sound(*sound_id);
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_wind(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let new_sound_id = crate::sound::emit_sound(params);
+                                    *existing_trail = ProjectileTrail::WindCurve;
+                                    *sound_id = new_sound_id;
+                                    new_sound_id
+                                }
+                                None => {
+                                    let params = sound::EmitSoundParams::looping(
+                                        sound::random_wind(),
+                                        sound::SoundGroup::Sfx,
+                                        sound::VolumePreset::Minimum,
+                                        sound::SpatialMode::Spatial { position: end_xy },
+                                    )
+                                    .with_max_duration(Duration::from_secs(32));
+                                    let sound_id = crate::sound::emit_sound(params);
+                                    active_projectile_sound_ids.insert(
+                                        projectile_id,
+                                        (ProjectileTrail::WindCurve, sound_id),
+                                    );
+                                    sound_id
+                                }
+                            };
+                            let _ = sound_id;
+                        }
+                        ProjectileTrail::Heart
+                        | ProjectileTrail::LightningSparkle
+                        | ProjectileTrail::None => {
+                            if let Some((_, sound_id)) =
+                                active_projectile_sound_ids.remove(&projectile_id)
+                            {
+                                crate::sound::stop_sound(sound_id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let stale_keys: Vec<u64> = active_projectile_sound_ids
+            .keys()
+            .filter(|key| !active_trail_sound_projectiles.contains(key))
+            .cloned()
+            .collect();
+        for stale_key in stale_keys {
+            if let Some((_, sound_id)) = active_projectile_sound_ids.remove(&stale_key) {
+                crate::sound::stop_sound(sound_id);
+            }
+        }
     }
 
     pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
@@ -297,6 +657,7 @@ fn create_initial_game_state() -> GameState {
         ui_state: UIState::new(),
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
         black_smoke_sources: Default::default(),
+        effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
 
         // start panels in opened state by default (if flow allows later)
@@ -372,8 +733,8 @@ impl GameState {
             ui_state: self.ui_state.clone(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
             black_smoke_sources: Default::default(),
+            effect_events: self.effect_events.clone(),
             base_animation_state: self.base_animation_state.clone(),
-
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,
         }

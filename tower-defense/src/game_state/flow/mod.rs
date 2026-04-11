@@ -1,5 +1,6 @@
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
+use crate::game_state::GameEffectEvent;
 
 #[cfg(feature = "debug-tools")]
 fn save_stage_snapshot(game_state: &GameState) {
@@ -168,7 +169,7 @@ impl GameState {
 
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense(DefenseFlow::new(self));
-        sound::emit_sound(
+        self.effect_events.push(GameEffectEvent::PlaySound(
             sound::EmitSoundParams::one_shot(
                 sound::random_trumpet_fanfares(),
                 sound::SoundGroup::Ui,
@@ -176,7 +177,7 @@ impl GameState {
                 sound::SpatialMode::NonSpatial,
             )
             .with_max_duration(Duration::from_secs(6)),
-        );
+        ));
         start_spawn(self);
     }
 

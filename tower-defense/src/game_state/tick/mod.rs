@@ -21,22 +21,40 @@ impl Component for Ticker {
 
                     game_state.game_now += tick_dt;
 
-                    tick(game_state, tick_dt, game_state.game_now);
+                    tick_logic(game_state, tick_dt, game_state.game_now);
+                    tick_visuals(game_state, tick_dt, game_state.game_now);
+                    game_state.flush_effect_events();
                 }
             });
         });
     }
 }
 
-fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
+fn tick_logic(game_state: &mut GameState, dt: Duration, now: Instant) {
     game_state.flow.update();
     game_state.hand.update();
 
+    monster_spawn::tick(game_state, now);
+    tower::tower_cooldown_tick(game_state, dt);
+
+    monster::remove_monster_finished_status_effects(game_state, now);
+    tower::remove_tower_finished_status_effects(game_state, now);
+    user_status_effect::remove_user_finished_status_effects(game_state, now);
+
+    monster::activate_monster_skills(game_state, now);
+    tower::activate_tower_skills(game_state, now);
+
+    monster::move_monsters(game_state, dt);
+
+    projectile::move_projectiles(game_state, dt, now);
+    attack::shoot_attacks(game_state);
+    defense_end::check_defense_end(game_state);
+}
+
+fn tick_visuals(game_state: &mut GameState, dt: Duration, now: Instant) {
     game_state.update_camera_shake(dt);
     game_state.update_base_animations(now);
 
-    monster_spawn::tick(game_state, now);
-    tower::tower_cooldown_tick(game_state, dt);
     tower::tower_animation_tick(game_state, now);
     tower::tick_royal_straight_flush_visuals(game_state, now);
     monster::monster_animation_tick(game_state, dt);
@@ -47,15 +65,7 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
         game_state.cleanup_unused_tower_popup_states();
     }
 
-    monster::remove_monster_finished_status_effects(game_state, now);
-    tower::remove_tower_finished_status_effects(game_state, now);
-    user_status_effect::remove_user_finished_status_effects(game_state, now);
-
-    monster::activate_monster_skills(game_state, now);
-    tower::activate_tower_skills(game_state, now);
     status_effect_particle_generator::tick_status_effect_particle_generator(game_state, now);
-
-    monster::move_monsters(game_state, dt);
 
     field_particle::emitter::tick_black_smoke_emitters(
         &mut game_state.black_smoke_sources,
@@ -63,10 +73,6 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
         dt,
     );
     field_particle::tick_all_emitters(now, dt);
-
-    projectile::move_projectiles(game_state, dt, now);
-    attack::shoot_attacks(game_state);
-    defense_end::check_defense_end(game_state);
 }
 
 /// Headless tick for simulation - skips rendering/animation/particle side effects.
@@ -75,24 +81,8 @@ fn tick(game_state: &mut GameState, dt: Duration, now: Instant) {
 pub(crate) fn tick_headless(game_state: &mut GameState, dt: Duration) {
     let now = game_state.now();
 
-    game_state.flow.update();
-    game_state.hand.update();
-
-    monster_spawn::tick(game_state, now);
-    tower::tower_cooldown_tick(game_state, dt);
-
-    monster::remove_monster_finished_status_effects(game_state, now);
-    tower::remove_tower_finished_status_effects(game_state, now);
-    user_status_effect::remove_user_finished_status_effects(game_state, now);
-
-    monster::activate_monster_skills(game_state, now);
-    tower::activate_tower_skills(game_state, now);
-
-    monster::move_monsters(game_state, dt);
-
-    projectile::move_projectiles(game_state, dt, now);
-    attack::shoot_attacks(game_state);
-    defense_end::check_defense_end(game_state);
+    tick_logic(game_state, dt, now);
 
     game_state.black_smoke_sources.clear();
+    game_state.effect_events.events.clear();
 }
