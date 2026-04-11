@@ -7,7 +7,9 @@ pub mod tower_placement;
 pub mod treasure;
 
 pub use card_reroll::{ItemAwareRerollStrategy, SmartRerollStrategy};
-pub use treasure::{RandomTreasureStrategy, TreasureStrategy};
+pub use item_use::HeuristicItemUseStrategy;
+pub use shop::SynergyShopStrategy;
+pub use treasure::{SynergyTreasureStrategy, TreasureStrategy};
 
 use crate::game_state::GameState;
 use rand::RngCore;

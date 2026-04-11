@@ -5,33 +5,6 @@ use crate::game_state::GameState;
 use crate::game_state::effect::Effect;
 use crate::game_state::item::ItemKind;
 
-/// Default item use strategy with per-item rules:
-/// - Heal: Use when damaged AND (max_hp < current_hp + heal_amount)
-/// - Shield: Reserved for on_damage_taken (used before damage via pre-check)  
-/// - Others: Don't use
-pub struct DefaultItemUseStrategy;
-
-impl ItemUseStrategy for DefaultItemUseStrategy {
-    fn name(&self) -> &str {
-        "default_item_use"
-    }
-
-    fn on_before_defense(&self, game_state: &mut GameState) {
-        use_heal_if_needed(game_state);
-    }
-
-    fn on_damage_taken(&self, game_state: &mut GameState, _damage: f32) {
-        // Try to use shield items
-        use_shield_items(game_state);
-        // Then try to heal
-        use_heal_if_needed(game_state);
-    }
-
-    fn on_item_acquired(&self, game_state: &mut GameState) {
-        use_heal_if_needed(game_state);
-    }
-}
-
 /// Heuristic item use strategy that immediately uses barricade grant items and preserves heal/shield.
 pub struct HeuristicItemUseStrategy;
 

@@ -3,57 +3,17 @@
 use super::ShopStrategy;
 use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::item::ItemKind;
+use crate::game_state::item::{Item, ItemKind};
 use crate::game_state::tower::Tower;
-use crate::game_state::upgrade::{Upgrade, UpgradeState};
+use crate::game_state::upgrade::{Upgrade, UpgradeKind, UpgradeState};
 use rand::RngCore;
 
-/// Buys the cheapest affordable item from the shop.
-pub struct BuyCheapestStrategy;
+/// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
+pub struct SynergyShopStrategy;
 
-impl ShopStrategy for BuyCheapestStrategy {
+impl ShopStrategy for SynergyShopStrategy {
     fn name(&self) -> &str {
-        "buy_cheapest"
-    }
-
-    fn execute_shop(&self, game_state: &mut GameState, _rng: &mut dyn RngCore) {
-        loop {
-            let cheapest_slot_id = {
-                let GameFlow::SelectingTower(flow) = &game_state.flow else {
-                    return;
-                };
-
-                let mut cheapest: Option<(crate::shop::ShopSlotId, usize)> = None;
-                for slot in &flow.shop.slots {
-                    if slot.purchased || slot.exit_animation.is_some() {
-                        continue;
-                    }
-                    let cost = match &slot.slot {
-                        crate::shop::ShopSlot::Item { cost, .. } => *cost,
-                        crate::shop::ShopSlot::Upgrade { cost, .. } => *cost,
-                    };
-                    if cost <= game_state.gold && (cheapest.is_none() || cost < cheapest.unwrap().1)
-                    {
-                        cheapest = Some((slot.id, cost));
-                    }
-                }
-                cheapest.map(|(id, _)| id)
-            };
-
-            match cheapest_slot_id {
-                Some(slot_id) => game_state.purchase_shop_item(slot_id),
-                None => return,
-            }
-        }
-    }
-}
-
-/// Heuristic shop strategy that buys essential items and evaluates upgrades by placed tower contribution.
-pub struct HeuristicShopStrategy;
-
-impl ShopStrategy for HeuristicShopStrategy {
-    fn name(&self) -> &str {
-        "heuristic_shop"
+        "synergy_shop"
     }
 
     fn execute_shop(&self, game_state: &mut GameState, _rng: &mut dyn RngCore) {
@@ -72,29 +32,44 @@ impl ShopStrategy for HeuristicShopStrategy {
     }
 }
 
-impl HeuristicShopStrategy {
+impl SynergyShopStrategy {
     fn buy_priority_item(&self, game_state: &mut GameState) -> bool {
         let GameFlow::SelectingTower(flow) = &game_state.flow else {
             return false;
         };
 
-        if count_item_kind(game_state, ItemKind::RiceCake) < 1 {
+        if count_item_kind(game_state, ItemKind::RiceCake) < 1
+            && game_state.hp < game_state.config.player.max_hp * 0.75
+        {
             if let Some(slot_id) = find_item_slot(flow, ItemKind::RiceCake, game_state.gold) {
                 game_state.purchase_shop_item(slot_id);
                 return true;
             }
         }
 
-        if count_item_kind(game_state, ItemKind::Shield) < 1 {
+        if count_item_kind(game_state, ItemKind::Shield) < 1
+            && game_state.shield <= 0.0
+            && game_state.hp < game_state.config.player.max_hp * 0.85
+        {
             if let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold) {
                 game_state.purchase_shop_item(slot_id);
                 return true;
             }
         }
 
-        if let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold) {
-            game_state.purchase_shop_item(slot_id);
-            return true;
+        if count_item_kind(game_state, ItemKind::GrantBarricades) < 1 {
+            if let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
+            {
+                game_state.purchase_shop_item(slot_id);
+                return true;
+            }
+        }
+
+        if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1) {
+            if let Some(slot_id) = find_item_slot(flow, ItemKind::EmergencyDice, game_state.gold) {
+                game_state.purchase_shop_item(slot_id);
+                return true;
+            }
         }
 
         false
@@ -143,60 +118,85 @@ impl HeuristicShopStrategy {
         best_slot
     }
 
-    fn evaluate_item_slot(
-        &self,
-        game_state: &GameState,
-        item: &crate::game_state::item::Item,
-    ) -> f32 {
+    fn evaluate_item_slot(&self, game_state: &GameState, item: &Item) -> f32 {
         match item.kind {
-            ItemKind::GrantBarricades => 8.0,
+            ItemKind::GrantBarricades => {
+                if game_state.towers.iter().count() < 3
+                    || game_state.hp < game_state.config.player.max_hp * 0.85
+                {
+                    7.0
+                } else {
+                    4.0
+                }
+            }
             ItemKind::RiceCake => {
-                if game_state.hp < game_state.config.player.max_hp * 0.75 {
+                if game_state.hp < game_state.config.player.max_hp * 0.6 {
                     6.0
                 } else {
-                    3.0
+                    2.5
                 }
             }
             ItemKind::Shield => {
-                if game_state.shield <= 0.0 {
-                    5.0
+                if game_state.shield <= 0.0
+                    && game_state.hp < game_state.config.player.max_hp * 0.85
+                {
+                    5.5
                 } else {
                     2.0
                 }
             }
-            ItemKind::EmergencyDice => 2.5,
-            ItemKind::Painkiller => 2.0,
-            ItemKind::GrantCard { .. } => 1.5,
+            ItemKind::EmergencyDice => {
+                let missing_dice = game_state
+                    .max_dice_chance()
+                    .saturating_sub(game_state.left_dice) as f32;
+                3.0 + missing_dice * 1.5
+            }
+            ItemKind::Painkiller => {
+                if game_state.hp < game_state.config.player.max_hp * 0.7 {
+                    4.0
+                } else {
+                    2.0
+                }
+            }
+            ItemKind::GrantCard { .. } => {
+                let hand_count = game_state.hand.active_slot_ids().len() as f32;
+                if hand_count <= 2.0 {
+                    6.0
+                } else if hand_count <= 4.0 {
+                    3.5
+                } else {
+                    1.5
+                }
+            }
         }
     }
 
     fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
-        let current_score = total_tower_score(game_state, &game_state.upgrade_state);
-        let mut upgraded_state = game_state.upgrade_state.clone();
-        upgraded_state.upgrade(upgrade);
-        let next_score = total_tower_score(game_state, &upgraded_state);
-        let delta = next_score - current_score;
-        if delta > 0.0 {
-            delta
-        } else {
-            self.heuristic_upgrade_value(upgrade.kind)
+        if upgrade.kind.is_tower_damage_upgrade() {
+            let current_score = total_tower_score(game_state, &game_state.upgrade_state);
+            let mut upgraded_state = game_state.upgrade_state.clone();
+            upgraded_state.upgrade(upgrade);
+            let next_score = total_tower_score(game_state, &upgraded_state);
+            let delta = next_score - current_score;
+            return delta
+                .max(0.0)
+                .max(self.evaluate_treasure_upgrade(upgrade.kind));
         }
+
+        self.evaluate_treasure_upgrade(upgrade.kind)
     }
 
-    fn heuristic_upgrade_value(&self, kind: crate::game_state::upgrade::UpgradeKind) -> f32 {
+    fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
         match kind {
-            crate::game_state::upgrade::UpgradeKind::Magnet => 2.0,
-            crate::game_state::upgrade::UpgradeKind::Backpack => 2.0,
-            crate::game_state::upgrade::UpgradeKind::DiceBundle => 2.5,
-            crate::game_state::upgrade::UpgradeKind::EnergyDrink => 1.5,
-            crate::game_state::upgrade::UpgradeKind::FourLeafClover
-            | crate::game_state::upgrade::UpgradeKind::Rabbit
-            | crate::game_state::upgrade::UpgradeKind::BlackWhite
-            | crate::game_state::upgrade::UpgradeKind::Eraser => 1.0,
-            crate::game_state::upgrade::UpgradeKind::Spoon { .. }
-            | crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. }
-            | crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => 0.5,
-            _ => 0.5,
+            UpgradeKind::Magnet => 7.0,
+            UpgradeKind::Backpack => 6.5,
+            UpgradeKind::DiceBundle => 7.5,
+            UpgradeKind::EnergyDrink => 6.0,
+            UpgradeKind::FourLeafClover => 5.0,
+            UpgradeKind::Rabbit => 5.0,
+            UpgradeKind::BlackWhite => 5.5,
+            UpgradeKind::Eraser => 6.0,
+            _ => 3.0,
         }
     }
 }
