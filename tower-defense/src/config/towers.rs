@@ -1,7 +1,7 @@
 use crate::card::Rank;
 use crate::game_state::tower::TowerKind;
 use namui::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
@@ -14,15 +14,15 @@ pub struct TowerStats {
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct TowerConfig {
-    pub stats: HashMap<TowerKind, TowerStats>,
-    pub rank_bonus_damage: HashMap<Rank, usize>,
+    pub stats: BTreeMap<TowerKind, TowerStats>,
+    pub rank_bonus_damage: BTreeMap<Rank, usize>,
 }
 
 pub fn default_tower_config() -> TowerConfig {
     use crate::card::Rank;
     use TowerKind::*;
 
-    let mut stats = HashMap::new();
+    let mut stats = BTreeMap::new();
     let tower_data: Vec<(TowerKind, f32, f32, u64)> = vec![
         (Barricade, 0.0, 4.0, 1000),
         (High, 5.0, 4.0, 1000),
@@ -48,7 +48,7 @@ pub fn default_tower_config() -> TowerConfig {
         );
     }
 
-    let mut rank_bonus = HashMap::new();
+    let mut rank_bonus = BTreeMap::new();
     let bonus: Vec<(Rank, usize)> = vec![
         (Rank::Two, 0),
         (Rank::Three, 0),

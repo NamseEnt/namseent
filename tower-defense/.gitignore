@@ -16,7 +16,6 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-gameconfig.toml
 *.gameconfig.toml
 results.db
 sim_results.db

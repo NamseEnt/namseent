@@ -7,11 +7,50 @@ pub struct UpgradeCandidateEntry {
     pub damage_multiplier_range: Option<(f32, f32)>,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize))]
 #[derive(Clone, Debug, State)]
 pub struct UpgradeCandidate {
     pub name: String,
+    #[cfg_attr(feature = "simulator", serde(flatten))]
     pub entry: UpgradeCandidateEntry,
+}
+
+#[cfg(feature = "simulator")]
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum UpgradeCandidateHelper {
+    Flattened {
+        name: String,
+        weight: f32,
+        damage_multiplier_range: Option<(f32, f32)>,
+    },
+    Nested {
+        name: String,
+        entry: UpgradeCandidateEntry,
+    },
+}
+
+#[cfg(feature = "simulator")]
+impl<'de> serde::Deserialize<'de> for UpgradeCandidate {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        match UpgradeCandidateHelper::deserialize(deserializer)? {
+            UpgradeCandidateHelper::Flattened {
+                name,
+                weight,
+                damage_multiplier_range,
+            } => Ok(UpgradeCandidate {
+                name,
+                entry: UpgradeCandidateEntry {
+                    weight,
+                    damage_multiplier_range,
+                },
+            }),
+            UpgradeCandidateHelper::Nested { name, entry } => Ok(UpgradeCandidate { name, entry }),
+        }
+    }
 }
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]

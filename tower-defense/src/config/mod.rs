@@ -18,13 +18,13 @@ use namui::*;
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct GameConfig {
+    pub rarity_weights: [usize; 4],
     pub player: PlayerConfig,
     pub monsters: MonsterConfig,
     pub towers: TowerConfig,
     pub items: ItemConfig,
     pub shop: ShopConfig,
     pub upgrades: UpgradeConfig,
-    pub rarity_weights: [usize; 4],
 }
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
@@ -81,6 +81,15 @@ mod tests {
     fn parse_gameconfig_example() -> anyhow::Result<()> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("gameconfig.toml.example");
         GameConfig::from_toml(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_default_config_deterministically() -> anyhow::Result<()> {
+        let config = GameConfig::default_config();
+        let a = toml::to_string_pretty(&config)?;
+        let b = toml::to_string_pretty(&config)?;
+        assert_eq!(a, b);
         Ok(())
     }
 }

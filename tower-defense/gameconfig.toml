@@ -14,386 +14,322 @@ max_stages = 50
 base_hand_slots = 5
 
 [monsters.stats.Mob01]
-base_hp = 36.05904
-velocity_mul = 1.0
+base_hp = 36.05904006958008
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob02]
-base_hp = 46.876752
-velocity_mul = 1.0
+base_hp = 46.87675094604492
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob03]
-base_hp = 64.906272
-velocity_mul = 1.0
+base_hp = 64.9062728881836
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob04]
-base_hp = 108.17712
-velocity_mul = 1.0
+base_hp = 108.17711639404297
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob05]
-base_hp = 126.20664
-velocity_mul = 1.0
+base_hp = 126.2066421508789
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob06]
-base_hp = 147.842064
-velocity_mul = 1.0
+base_hp = 147.84207153320313
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob07]
-base_hp = 171.28044
-velocity_mul = 1.0
+base_hp = 171.2804412841797
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob08]
-base_hp = 189.30996
-velocity_mul = 1.0
+base_hp = 189.30996704101563
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob09]
-base_hp = 207.33948
-velocity_mul = 1.0
+base_hp = 207.3394775390625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob10]
-base_hp = 243.39852
-velocity_mul = 1.0
+base_hp = 243.3985137939453
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob11]
-base_hp = 216.35424
-velocity_mul = 1.0
+base_hp = 216.35423278808594
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob12]
-base_hp = 234.38376
-velocity_mul = 1.0
+base_hp = 234.38375854492188
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob13]
-base_hp = 252.41328
-velocity_mul = 1.0
+base_hp = 252.4132843017578
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob14]
-base_hp = 342.56088
-velocity_mul = 1.0
+base_hp = 342.5608825683594
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob15]
-base_hp = 459.75276
-velocity_mul = 1.0
+base_hp = 459.75274658203125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob16]
-base_hp = 622.01844
-velocity_mul = 1.0
+base_hp = 622.0184326171875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob17]
-base_hp = 838.37268
-velocity_mul = 1.0
+base_hp = 838.3726806640625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob18]
-base_hp = 933.02766
-velocity_mul = 1.0
+base_hp = 933.0276489257813
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob19]
-base_hp = 1185.766373
-velocity_mul = 1.0
+base_hp = 1185.766357421875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob20]
-base_hp = 1592.707964
-velocity_mul = 1.0
+base_hp = 1592.7080078125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob21]
-base_hp = 1728.26291
-velocity_mul = 1.0
+base_hp = 1728.262939453125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob22]
-base_hp = 2373.186053
-velocity_mul = 1.0
+base_hp = 2373.18603515625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob23]
-base_hp = 2490.412189
-velocity_mul = 1.0
+base_hp = 2490.412109375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob24]
-base_hp = 2615.344142
-velocity_mul = 1.0
+base_hp = 2615.34423828125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob25]
-base_hp = 3352.929802
-velocity_mul = 1.0
+base_hp = 3352.9296875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob26]
-base_hp = 3673.178149
-velocity_mul = 1.0
+base_hp = 3673.17822265625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob27]
-base_hp = 4193.11545
-velocity_mul = 1.0
+base_hp = 4193.115234375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob28]
-base_hp = 4291.952277
-velocity_mul = 1.0
+base_hp = 4291.9521484375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob29]
-base_hp = 4748.906455
-velocity_mul = 1.0
+base_hp = 4748.90625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob30]
-base_hp = 6013.03423
-velocity_mul = 1.0
+base_hp = 6013.0341796875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob31]
-base_hp = 16171.418703
-velocity_mul = 1.0
+base_hp = 16171.4189453125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob32]
-base_hp = 23438.603372
-velocity_mul = 1.0
+base_hp = 23438.603515625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob33]
-base_hp = 26120.204998
-velocity_mul = 1.0
+base_hp = 26120.205078125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob34]
-base_hp = 38573.178436
-velocity_mul = 1.0
+base_hp = 38573.1796875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob35]
-base_hp = 43620.985285
-velocity_mul = 1.0
+base_hp = 43620.984375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob36]
-base_hp = 45058.829489
-velocity_mul = 1.0
+base_hp = 45058.828125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob37]
-base_hp = 52795.598014
-velocity_mul = 1.0
+base_hp = 52795.59765625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob38]
-base_hp = 65493.352235
-velocity_mul = 1.0
+base_hp = 65493.3515625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob39]
-base_hp = 79727.845582
-velocity_mul = 1.0
+base_hp = 79727.84375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob40]
-base_hp = 87542.601798
-velocity_mul = 1.0
+base_hp = 87542.6015625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob41]
-base_hp = 254749.071426
-velocity_mul = 1.0
+base_hp = 254749.078125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob42]
-base_hp = 283129.513143
-velocity_mul = 1.0
+base_hp = 283129.5
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob43]
-base_hp = 310143.098887
-velocity_mul = 1.0
+base_hp = 310143.09375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob44]
-base_hp = 386285.263701
-velocity_mul = 1.0
+base_hp = 386285.25
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob45]
-base_hp = 438620.037481
-velocity_mul = 1.0
+base_hp = 438620.03125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob46]
-base_hp = 1761841.613186
-velocity_mul = 1.0
+base_hp = 1761841.625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob47]
-base_hp = 1827345.308055
-velocity_mul = 1.0
+base_hp = 1827345.25
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob48]
-base_hp = 1965757.863151
-velocity_mul = 1.0
+base_hp = 1965757.875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob49]
-base_hp = 2056295.81542
-velocity_mul = 1.0
+base_hp = 2056295.875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob50]
-base_hp = 508121.593006
-velocity_mul = 1.0
+base_hp = 508121.59375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Boss01]
-base_hp = 189.30996
-velocity_mul = 1.0
+base_hp = 189.30996704101563
 damage = 15.0
 reward = 50
 
 [monsters.stats.Boss02]
-base_hp = 365.09778
-velocity_mul = 1.0
+base_hp = 365.0977783203125
 damage = 20.0
 reward = 75
 
 [monsters.stats.Boss03]
-base_hp = 689.62914
-velocity_mul = 1.0
+base_hp = 689.629150390625
 damage = 20.0
 reward = 100
 
 [monsters.stats.Boss04]
-base_hp = 2389.061946
-velocity_mul = 1.0
+base_hp = 2389.06201171875
 damage = 25.0
 reward = 100
 
 [monsters.stats.Boss05]
-base_hp = 5029.394703
-velocity_mul = 1.0
+base_hp = 5029.39453125
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss06]
-base_hp = 9019.551345
-velocity_mul = 1.0
+base_hp = 9019.5517578125
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss07]
-base_hp = 65431.4779275
-velocity_mul = 1.0
+base_hp = 65431.4765625
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss08]
-base_hp = 131313.902697
-velocity_mul = 1.0
+base_hp = 131313.90625
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss09]
-base_hp = 657930.0562215
-velocity_mul = 1.0
+base_hp = 657930.0625
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss10]
-base_hp = 2642762.419779
-velocity_mul = 1.0
+base_hp = 2642762.5
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss11]
-base_hp = 2741017.9620825
-velocity_mul = 1.0
+base_hp = 2741018.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss12]
-base_hp = 2948636.7947265
-velocity_mul = 1.0
+base_hp = 2948636.75
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss13]
-base_hp = 3084443.72313
-velocity_mul = 1.0
+base_hp = 3084443.75
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss14]
-base_hp = 762182.389509
-velocity_mul = 1.0
+base_hp = 762182.375
 damage = 50.0
 reward = 125
 
@@ -808,21 +744,6 @@ damage = 0.0
 range = 4.0
 cooldown_ms = 1000
 
-[towers.stats.Flush]
-damage = 32.0
-range = 9.0
-cooldown_ms = 1000
-
-[towers.stats.FourOfAKind]
-damage = 100.0
-range = 11.0
-cooldown_ms = 1000
-
-[towers.stats.FullHouse]
-damage = 50.0
-range = 11.0
-cooldown_ms = 1000
-
 [towers.stats.High]
 damage = 5.0
 range = 4.0
@@ -833,9 +754,14 @@ damage = 6.0
 range = 5.0
 cooldown_ms = 1000
 
-[towers.stats.RoyalFlush]
-damage = 1200.0
-range = 15.0
+[towers.stats.TwoPair]
+damage = 10.0
+range = 6.0
+cooldown_ms = 1000
+
+[towers.stats.ThreeOfAKind]
+damage = 12.0
+range = 7.0
 cooldown_ms = 1000
 
 [towers.stats.Straight]
@@ -843,19 +769,29 @@ damage = 14.0
 range = 9.0
 cooldown_ms = 500
 
+[towers.stats.Flush]
+damage = 32.0
+range = 9.0
+cooldown_ms = 1000
+
+[towers.stats.FullHouse]
+damage = 50.0
+range = 11.0
+cooldown_ms = 1000
+
+[towers.stats.FourOfAKind]
+damage = 100.0
+range = 11.0
+cooldown_ms = 1000
+
 [towers.stats.StraightFlush]
 damage = 250.0
 range = 14.0
 cooldown_ms = 500
 
-[towers.stats.ThreeOfAKind]
-damage = 12.0
-range = 7.0
-cooldown_ms = 1000
-
-[towers.stats.TwoPair]
-damage = 10.0
-range = 6.0
+[towers.stats.RoyalFlush]
+damage = 1200.0
+range = 15.0
 cooldown_ms = 1000
 
 [towers.rank_bonus_damage]
@@ -890,8 +826,8 @@ max_value = 25.0
 
 [items.damage_reduction]
 weight = 10.0
-min_value = 0.8
-max_value = 0.85
+min_value = 0.800000011920929
+max_value = 0.8500000238418579
 
 [items.grant_barricades]
 weight = 45.0
@@ -906,136 +842,136 @@ max_value = 0.0
 [shop]
 base_cost = 50.0
 value_cost_multiplier = 0.5
-slot_type_distribution = [3, 5, 2]
+slot_type_distribution = [
+    3,
+    5,
+    2,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "CainSword"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 13.0
-damage_multiplier_range = [1.15, 1.5]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.5,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "LongSword"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 13.0
-damage_multiplier_range = [1.15, 1.5]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.5,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "Mace"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 13.0
-damage_multiplier_range = [1.15, 1.5]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.5,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "ClubSword"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 13.0
-damage_multiplier_range = [1.15, 1.5]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.5,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "Spoon"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 50.0
-damage_multiplier_range = [1.3, 1.75]
+damage_multiplier_range = [
+    1.2999999523162842,
+    1.75,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "SingleChopstick"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.2, 1.4]
+damage_multiplier_range = [
+    1.2000000476837158,
+    1.399999976158142,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "PairChopsticks"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.2, 1.4]
+damage_multiplier_range = [
+    1.2000000476837158,
+    1.399999976158142,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "FountainPen"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.2, 1.4]
+damage_multiplier_range = [
+    1.2000000476837158,
+    1.399999976158142,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "Brush"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.2, 1.4]
+damage_multiplier_range = [
+    1.2000000476837158,
+    1.399999976158142,
+]
 
 [[upgrades.tower_damage_upgrades]]
 name = "BrokenPottery"
-
-[upgrades.tower_damage_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.15, 1.25]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.25,
+]
 
 [[upgrades.treasure_upgrades]]
 name = "Magnet"
-
-[upgrades.treasure_upgrades.entry]
 weight = 50.0
 
 [[upgrades.treasure_upgrades]]
 name = "Backpack"
-
-[upgrades.treasure_upgrades.entry]
 weight = 50.0
 
 [[upgrades.treasure_upgrades]]
 name = "DiceBundle"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
 name = "EnergyDrink"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
 name = "PerfectPottery"
-
-[upgrades.treasure_upgrades.entry]
 weight = 25.0
-damage_multiplier_range = [1.3, 1.75]
+damage_multiplier_range = [
+    1.2999999523162842,
+    1.75,
+]
 
 [[upgrades.treasure_upgrades]]
 name = "BrokenPottery"
-
-[upgrades.treasure_upgrades.entry]
 weight = 20.0
-damage_multiplier_range = [1.15, 1.25]
+damage_multiplier_range = [
+    1.149999976158142,
+    1.25,
+]
 
 [[upgrades.treasure_upgrades]]
 name = "FourLeafClover"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
 name = "Rabbit"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
 name = "BlackWhite"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
 name = "Eraser"
-
-[upgrades.treasure_upgrades.entry]
 weight = 10.0

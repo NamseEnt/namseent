@@ -1,14 +1,31 @@
 use crate::game_state::monster::MonsterKind;
 use namui::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct MonsterStats {
     pub base_hp: f32,
+    #[cfg_attr(
+        feature = "simulator",
+        serde(
+            default = "default_velocity_mul",
+            skip_serializing_if = "is_velocity_mul_default"
+        )
+    )]
     pub velocity_mul: f32,
     pub damage: f32,
     pub reward: usize,
+}
+
+#[cfg(feature = "simulator")]
+fn default_velocity_mul() -> f32 {
+    1.0
+}
+
+#[cfg(feature = "simulator")]
+fn is_velocity_mul_default(value: &f32) -> bool {
+    *value == 1.0
 }
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
@@ -28,14 +45,14 @@ pub struct StageWave {
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct MonsterConfig {
-    pub stats: HashMap<MonsterKind, MonsterStats>,
+    pub stats: BTreeMap<MonsterKind, MonsterStats>,
     pub stage_waves: Vec<StageWave>,
 }
 
 pub fn default_monster_config() -> MonsterConfig {
     use MonsterKind::*;
 
-    let mut stats = HashMap::new();
+    let mut stats = BTreeMap::new();
     let mut stage_waves = Vec::new();
 
     let hp_table: Vec<(MonsterKind, f32)> = vec![
