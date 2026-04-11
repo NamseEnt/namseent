@@ -295,15 +295,9 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn print_clear_rate_histogram(clear_rates: &[f32]) {
-    let mut bins = vec![0usize; 21];
+    let mut bins = vec![0usize; 50];
     for &rate in clear_rates {
-        let idx = if rate >= 100.0 {
-            20
-        } else if rate <= 0.0 {
-            0
-        } else {
-            (rate as usize / 5).clamp(0, 19)
-        };
+        let idx = ((rate.clamp(0.0, 100.0) as usize) / 2).min(49);
         bins[idx] += 1;
     }
 
@@ -311,13 +305,7 @@ fn print_clear_rate_histogram(clear_rates: &[f32]) {
     let bar_width = 20;
 
     for (idx, &count) in bins.iter().enumerate() {
-        let label = if idx == 20 {
-            "100%".to_string()
-        } else {
-            let start = idx * 5;
-            let end = start + 4;
-            format!("{start:02}-{end:02}%")
-        };
+        let label = format!("{:02}", idx + 1);
         let bar_len = (count * bar_width + max_count / 2) / max_count;
         let bar = "█".repeat(bar_len);
         let padded_bar = format!("{:<width$}", bar, width = bar_width);

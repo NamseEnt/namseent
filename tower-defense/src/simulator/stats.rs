@@ -444,122 +444,16 @@ impl Database {
     }
 
     fn build_clear_rate_distribution(clear_rates: &[f64]) -> Vec<ClearRateBin> {
-        let mut bins: [ClearRateBin; 21] = [
-            ClearRateBin {
-                label: "0-4%".to_string(),
+        let mut bins: Vec<ClearRateBin> = (0..50)
+            .map(|idx| ClearRateBin {
+                label: format!("{:02}", idx + 1),
                 sample_count: 0,
                 average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "5-9%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "10-14%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "15-19%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "20-24%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "25-29%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "30-34%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "35-39%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "40-44%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "45-49%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "50-54%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "55-59%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "60-64%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "65-69%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "70-74%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "75-79%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "80-84%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "85-89%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "90-94%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "95-99%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-            ClearRateBin {
-                label: "100%".to_string(),
-                sample_count: 0,
-                average_clear_rate: 0.0,
-            },
-        ];
+            })
+            .collect();
 
         for &rate in clear_rates {
-            let bin_index = if rate >= 100.0 {
-                20
-            } else if rate <= 0.0 {
-                0
-            } else {
-                (rate as usize / 5).clamp(0, 19)
-            };
+            let bin_index = ((rate.clamp(0.0, 100.0) as usize) / 2).min(49);
             let bin = &mut bins[bin_index];
             bin.sample_count += 1;
             bin.average_clear_rate += rate;
