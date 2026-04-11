@@ -71,6 +71,14 @@ impl GameConfig {
             .with_context(|| format!("Failed to parse config file: {}", path.as_ref().display()))?;
         Ok(config)
     }
+
+    #[cfg(feature = "simulator")]
+    pub fn write_toml<P: AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()> {
+        let content = toml::to_string_pretty(self).context("Failed to serialize config to TOML")?;
+        std::fs::write(path.as_ref(), content)
+            .with_context(|| format!("Failed to write config file: {}", path.as_ref().display()))?;
+        Ok(())
+    }
 }
 
 #[cfg(all(test, feature = "simulator"))]

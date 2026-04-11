@@ -4,6 +4,7 @@ mod card;
 pub mod config;
 mod flow_ui;
 mod game_state; // now private; selective re-exports below
+pub use game_state::monster::MonsterKind;
 mod hand;
 mod hand_panel;
 mod icon;

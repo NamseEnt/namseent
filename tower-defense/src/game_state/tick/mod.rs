@@ -93,4 +93,6 @@ pub(crate) fn tick_headless(game_state: &mut GameState, dt: Duration) {
     projectile::move_projectiles(game_state, dt, now);
     attack::shoot_attacks(game_state);
     defense_end::check_defense_end(game_state);
+
+    game_state.black_smoke_sources.clear();
 }

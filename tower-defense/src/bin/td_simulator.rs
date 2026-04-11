@@ -1,6 +1,5 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::Rng;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -32,6 +32,11 @@ path = "src/bin/td_simulator.rs"
 required-features = ["simulator"]
 
 [[bin]]
+name = "td-auto-hp-balance"
+path = "src/bin/td_auto_hp_balance.rs"
+required-features = ["simulator"]
+
+[[bin]]
 name = "td-stats"
 path = "src/bin/td_stats.rs"
 required-features = ["simulator"]
