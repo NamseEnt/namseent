@@ -1,6 +1,6 @@
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
-use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
 use crate::game_state::GameEffectEvent;
+use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
 
 #[cfg(feature = "debug-tools")]
 fn save_stage_snapshot(game_state: &GameState) {
@@ -102,7 +102,9 @@ impl GameState {
         self.rerolled_count = 0;
         self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
         self.record_stage_start();
-        save_stage_snapshot(self);
+        if !crate::is_headless() {
+            save_stage_snapshot(self);
+        }
     }
 
     pub fn goto_next_stage(&mut self) {
