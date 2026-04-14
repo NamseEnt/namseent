@@ -1,4 +1,7 @@
-use crate::icon::{Icon, IconKind, IconSize};
+use crate::{
+    asset::image::thumbnail::rim,
+    icon::{Icon, IconKind, IconSize},
+};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -17,10 +20,16 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
         upgrade_kind,
     } = params;
 
+    let rim_image = if let Some(_upgrade) = upgrade_kind {
+        rim::UPGRADE
+    } else {
+        rim::ITEM
+    };
+
     ctx.compose(|ctx| {
         table::vertical([
             table::fixed_no_clip(
-                wh.width * 0.9,
+                wh.width,
                 table::padding_no_clip(PADDING, |wh, ctx| {
                     ctx.compose(|ctx| {
                         table::padding_no_clip(
@@ -28,22 +37,36 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                             table::horizontal([
                                 table::ratio_no_clip(1, |_, _| {}),
                                 table::fixed_no_clip(wh.height, |wh, ctx| {
-                                    if let Some(kind) = item_kind {
-                                        ctx.add(kind.thumbnail(wh));
-                                    } else if let Some(upgrade) = upgrade_kind {
-                                        ctx.add(upgrade.thumbnail(wh));
-                                    } else {
-                                        ctx.add(
-                                            Icon::new(IconKind::Config)
-                                                .size(IconSize::Large)
-                                                .wh(wh),
-                                        );
-                                    }
+                                    let padding = wh.height * 0.125;
+
+                                    ctx.compose(|ctx| {
+                                        table::padding_no_clip(padding, |inner_wh, inner_ctx| {
+                                            if let Some(kind) = item_kind {
+                                                inner_ctx.add(kind.thumbnail(inner_wh));
+                                            } else if let Some(upgrade) = upgrade_kind {
+                                                inner_ctx.add(upgrade.thumbnail(inner_wh));
+                                            } else {
+                                                inner_ctx.add(
+                                                    Icon::new(IconKind::Config)
+                                                        .size(IconSize::Large)
+                                                        .wh(inner_wh),
+                                                );
+                                            }
+                                        })(wh, ctx);
+                                    });
                                 }),
                                 table::ratio_no_clip(1, |_, _| {}),
                             ]),
                         )(wh, ctx);
                     });
+                    ctx.add(namui::image(ImageParam {
+                        rect: wh.to_rect(),
+                        image: rim_image,
+                        style: ImageStyle {
+                            fit: ImageFit::Contain,
+                            paint: None,
+                        },
+                    }));
                 }),
             ),
             table::ratio_no_clip(1, bottom::make_renderer(name, description, cost, available)),
