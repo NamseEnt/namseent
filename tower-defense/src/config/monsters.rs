@@ -1,3 +1,5 @@
+#![allow(clippy::excessive_precision)]
+
 use crate::game_state::monster::MonsterKind;
 use namui::*;
 use std::collections::BTreeMap;

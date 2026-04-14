@@ -273,7 +273,7 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
 fn build_detail_text(detail: &DetailStats) -> Vec<Line<'_>> {
     let mut lines = Vec::new();
     lines.push(Line::from(Span::styled(
-        format!("{}", detail.name),
+        detail.name.to_string(),
         Style::default().add_modifier(Modifier::BOLD),
     )));
     lines.push(Line::from(Span::raw(format!(
@@ -361,24 +361,24 @@ fn run_app(
     loop {
         terminal.draw(|f| draw_ui(f, app))?;
 
-        if poll(Duration::from_millis(100))? {
-            if let CEvent::Key(key_event) = read()? {
-                match key_event.code {
-                    KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
-                    KeyCode::Tab => {
-                        app.next_tab();
-                        app.refresh_detail(db)?;
-                    }
-                    KeyCode::Down => {
-                        app.move_selection(1);
-                        app.refresh_detail(db)?;
-                    }
-                    KeyCode::Up => {
-                        app.move_selection(-1);
-                        app.refresh_detail(db)?;
-                    }
-                    _ => {}
+        if poll(Duration::from_millis(100))?
+            && let CEvent::Key(key_event) = read()?
+        {
+            match key_event.code {
+                KeyCode::Char('q') | KeyCode::Esc => return Ok(()),
+                KeyCode::Tab => {
+                    app.next_tab();
+                    app.refresh_detail(db)?;
                 }
+                KeyCode::Down => {
+                    app.move_selection(1);
+                    app.refresh_detail(db)?;
+                }
+                KeyCode::Up => {
+                    app.move_selection(-1);
+                    app.refresh_detail(db)?;
+                }
+                _ => {}
             }
         }
     }

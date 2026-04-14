@@ -93,12 +93,13 @@ impl CardRerollStrategy for ItemAwareRerollStrategy {
 
     fn execute_card_selection(&self, game_state: &mut GameState, rng: &mut dyn RngCore) {
         let cards = collect_hand_cards(game_state);
-        if !cards.is_empty() && game_state.left_dice > 0 {
-            if try_use_grant_card_item(game_state, &cards) {
-                let cards = collect_hand_cards(game_state);
-                if cards.is_empty() {
-                    return;
-                }
+        if !cards.is_empty()
+            && game_state.left_dice > 0
+            && try_use_grant_card_item(game_state, &cards)
+        {
+            let cards = collect_hand_cards(game_state);
+            if cards.is_empty() {
+                return;
             }
         }
 

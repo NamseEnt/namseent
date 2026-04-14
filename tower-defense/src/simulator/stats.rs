@@ -259,12 +259,12 @@ impl Database {
         for (simulation_id, kind) in rows {
             let entry = builder.entry(kind).or_default();
             entry.total_purchases += 1;
-            if entry.simulation_ids.insert(simulation_id.clone()) {
-                if let Some(outcome_value) = outcome.get(&simulation_id) {
-                    entry.clear_rate_samples += 1;
-                    entry.sum_clear_rate += outcome_value.clear_rate;
-                    entry.sum_clear_rate_sq += outcome_value.clear_rate * outcome_value.clear_rate;
-                }
+            if entry.simulation_ids.insert(simulation_id.clone())
+                && let Some(outcome_value) = outcome.get(&simulation_id)
+            {
+                entry.clear_rate_samples += 1;
+                entry.sum_clear_rate += outcome_value.clear_rate;
+                entry.sum_clear_rate_sq += outcome_value.clear_rate * outcome_value.clear_rate;
             }
         }
 

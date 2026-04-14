@@ -71,10 +71,8 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                 }
             }
 
-            if !placed {
-                if self.replace_central_barricade(game_state, &template, slot_id, now) {
-                    placed = true;
-                }
+            if !placed && self.replace_central_barricade(game_state, &template, slot_id, now) {
+                placed = true;
             }
 
             if !placed {
@@ -112,14 +110,11 @@ impl HeuristicPlacementStrategy {
             return None;
         };
 
-        let Some(template) = game_state
+        let template = game_state
             .hand
             .get_item(slot_id)
             .and_then(|item| item.as_tower())
-            .cloned()
-        else {
-            return None;
-        };
+            .cloned()?;
 
         Some((slot_id, template))
     }

@@ -60,6 +60,7 @@ impl HeadlessGame {
     }
 
     /// Run a full game simulation with the given strategies.
+    #[allow(clippy::too_many_arguments)]
     pub fn run<F>(
         &mut self,
         shop_strategy: &dyn ShopStrategy,
@@ -306,7 +307,7 @@ impl HeadlessGame {
     }
 
     fn canonicalize_debug_name(name: String) -> String {
-        name.splitn(2, ' ').next().unwrap_or(&name).to_owned()
+        name.split(' ').next().unwrap_or(&name).to_owned()
     }
 }
 

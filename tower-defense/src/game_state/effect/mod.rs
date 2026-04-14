@@ -476,7 +476,6 @@ pub mod tests_support {
     /// 테스트용 GameState 생성 헬퍼.
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
     /// - 필요한 최소 필드만 초기화.
-    #[allow(dead_code)]
     pub fn make_test_state() -> GameState {
         GameState {
             monsters: Default::default(),
@@ -484,6 +483,7 @@ pub mod tests_support {
             camera: crate::game_state::camera::Camera::new(),
             route: crate::game_state::calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: crate::game_state::generate_backgrounds(),
+            effect_events: crate::game_state::EffectEventQueue::default(),
             upgrade_state: Default::default(),
             flow: GameFlow::Initializing,
             hand: Hand::new(std::iter::empty::<HandItem>()),

@@ -1,5 +1,4 @@
 use clap::Parser;
-use ctrlc;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
 use rayon::prelude::*;
@@ -154,7 +153,7 @@ fn tune_hp_balance(
         .monsters
         .stats
         .iter()
-        .map(|(kind, stat)| (kind.clone(), stat.base_hp))
+        .map(|(&kind, stat)| (kind, stat.base_hp))
         .collect();
     let mut stage_primary = build_stage_primary_monster(&config);
     let mut stage_momentum = vec![1.0_f32; stages + 1];
@@ -201,8 +200,8 @@ fn tune_hp_balance(
         let mut stage_scale_min: f32 = f32::INFINITY;
         let mut stage_scale_max: f32 = f32::NEG_INFINITY;
 
-        for stage in 1..=stages {
-            if let Some(monster_kind) = stage_primary.get(stage).copied().flatten() {
+        for (stage, primary_monster) in stage_primary.iter().enumerate().skip(1).take(stages) {
+            if let Some(monster_kind) = *primary_monster {
                 let count = metrics.stage_counts[stage - 1];
                 if count == 0 {
                     continue;
@@ -383,17 +382,15 @@ fn apply_boss_hp_from_stage(config: &mut GameConfig) {
             .find(|entry| !entry.kind.is_normal_monster())
             .map(|entry| entry.kind);
 
-        if let (Some(normal_kind), Some(boss_kind)) = (normal_kind, boss_kind) {
-            if let Some(normal_hp) = config
+        if let (Some(normal_kind), Some(boss_kind)) = (normal_kind, boss_kind)
+            && let Some(normal_hp) = config
                 .monsters
                 .stats
                 .get(&normal_kind)
                 .map(|stat| stat.base_hp)
-            {
-                if let Some(boss_stat) = config.monsters.stats.get_mut(&boss_kind) {
-                    boss_stat.base_hp = normal_hp * 1.5;
-                }
-            }
+            && let Some(boss_stat) = config.monsters.stats.get_mut(&boss_kind)
+        {
+            boss_stat.base_hp = normal_hp * 1.5;
         }
     }
 }

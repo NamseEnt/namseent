@@ -40,36 +40,33 @@ impl SynergyShopStrategy {
 
         if count_item_kind(game_state, ItemKind::RiceCake) < 1
             && game_state.hp < game_state.config.player.max_hp * 0.75
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceCake, game_state.gold)
         {
-            if let Some(slot_id) = find_item_slot(flow, ItemKind::RiceCake, game_state.gold) {
-                game_state.purchase_shop_item(slot_id);
-                return true;
-            }
+            game_state.purchase_shop_item(slot_id);
+            return true;
         }
 
         if count_item_kind(game_state, ItemKind::Shield) < 1
             && game_state.shield <= 0.0
             && game_state.hp < game_state.config.player.max_hp * 0.85
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold)
         {
-            if let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold) {
-                game_state.purchase_shop_item(slot_id);
-                return true;
-            }
+            game_state.purchase_shop_item(slot_id);
+            return true;
         }
 
-        if count_item_kind(game_state, ItemKind::GrantBarricades) < 1 {
-            if let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
-            {
-                game_state.purchase_shop_item(slot_id);
-                return true;
-            }
+        if count_item_kind(game_state, ItemKind::GrantBarricades) < 1
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
+        {
+            game_state.purchase_shop_item(slot_id);
+            return true;
         }
 
-        if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1) {
-            if let Some(slot_id) = find_item_slot(flow, ItemKind::EmergencyDice, game_state.gold) {
-                game_state.purchase_shop_item(slot_id);
-                return true;
-            }
+        if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::EmergencyDice, game_state.gold)
+        {
+            game_state.purchase_shop_item(slot_id);
+            return true;
         }
 
         false
@@ -212,12 +209,12 @@ fn find_item_slot(
             continue;
         }
 
-        if let crate::shop::ShopSlot::Item { item, cost } = &slot.slot {
-            if item.kind == kind && *cost <= max_cost {
-                if best.is_none() || *cost < best.unwrap().1 {
-                    best = Some((slot.id, *cost));
-                }
-            }
+        if let crate::shop::ShopSlot::Item { item, cost } = &slot.slot
+            && item.kind == kind
+            && *cost <= max_cost
+            && (best.is_none() || *cost < best.unwrap().1)
+        {
+            best = Some((slot.id, *cost));
         }
     }
     best.map(|(id, _)| id)

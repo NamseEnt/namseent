@@ -312,9 +312,7 @@ impl GameState {
                 } => {
                     active_trail_sound_projectiles.insert(projectile_id);
                     let mut effect_states = PROJECTILE_TRAIL_EFFECT_STATE.lock().unwrap();
-                    let state = effect_states
-                        .entry(projectile_id)
-                        .or_insert_with(Default::default);
+                    let state = effect_states.entry(projectile_id).or_default();
 
                     state.trail_distance_remainder += moved_distance;
                     let spawn_distance = match trail {

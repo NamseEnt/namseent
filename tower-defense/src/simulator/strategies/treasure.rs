@@ -84,19 +84,19 @@ impl SynergyTreasureStrategy {
 
         let mut score = base_value;
 
-        if game_state.stage <= 12 {
-            if matches!(
+        if game_state.stage <= 12
+            && matches!(
                 option.kind,
                 UpgradeKind::Backpack | UpgradeKind::DiceBundle | UpgradeKind::Magnet
-            ) {
-                score += 1.5;
-            }
+            )
+        {
+            score += 1.5;
         }
 
-        if game_state.hp < game_state.config.player.max_hp * 0.5 {
-            if matches!(option.kind, UpgradeKind::EnergyDrink | UpgradeKind::Magnet) {
-                score += 1.5;
-            }
+        if game_state.hp < game_state.config.player.max_hp * 0.5
+            && matches!(option.kind, UpgradeKind::EnergyDrink | UpgradeKind::Magnet)
+        {
+            score += 1.5;
         }
 
         if game_state.upgrade_state.shop_item_price_minus == 0
