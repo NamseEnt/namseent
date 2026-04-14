@@ -7,7 +7,7 @@ edition = "2024"
 targets = ["wasm32-wasi-web", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin"]
 
 [features]
-default = ["debug-tools"]
+default = []
 debug-tools = []
 simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:serde", "dep:serde_json", "dep:indicatif", "dep:toml", "dep:ctrlc", "dep:crossterm", "dep:ratatui"]
 
@@ -16,6 +16,7 @@ anyhow = "1.0.98"
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = { version = "0.8.5", features = ["alloc"] }
+
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 rayon = { version = "1.10", optional = true }
@@ -41,12 +42,6 @@ required-features = ["simulator"]
 name = "td-stats"
 path = "src/bin/td_stats.rs"
 required-features = ["simulator"]
-
-[build-dependencies]
-twemoji-assets = "1.4.0"
-image = "0.25.1"
-rayon = "1.10.0"
-resvg = "0.45.1"
 
 [patch.crates-io]
 rayon = { git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }
