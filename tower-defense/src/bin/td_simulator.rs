@@ -164,7 +164,7 @@ fn main() -> anyhow::Result<()> {
                 item_strategy.as_ref(),
                 &treasure_strategy,
                 &mut rng,
-                |_clear_rate| {},
+                |_clear_rate| true,
             );
 
             if let Err(e) = recorder.record_simulation_end(
@@ -295,9 +295,9 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn print_clear_rate_histogram(clear_rates: &[f32]) {
-    let mut bins = vec![0usize; 50];
+    let mut bins = vec![0usize; 51];
     for &rate in clear_rates {
-        let idx = ((rate.clamp(0.0, 100.0) as usize) / 2).min(49);
+        let idx = ((rate.clamp(0.0, 100.0) as usize) / 2).min(50);
         bins[idx] += 1;
     }
 

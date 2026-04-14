@@ -14,322 +14,322 @@ max_stages = 50
 base_hand_slots = 5
 
 [monsters.stats.Mob01]
-base_hp = 14.061030387878418
+base_hp = 11.648940086364746
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob02]
-base_hp = 21.119237899780273
+base_hp = 17.42033576965332
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob03]
-base_hp = 27.689212799072266
+base_hp = 22.744829177856445
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob04]
-base_hp = 31.963586807250977
+base_hp = 26.153667449951172
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob05]
-base_hp = 14.701675415039063
+base_hp = 11.98615837097168
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob06]
-base_hp = 31.67357635498047
+base_hp = 25.739164352416992
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob07]
-base_hp = 40.789146423339844
+base_hp = 33.05135726928711
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob08]
-base_hp = 46.36720657348633
+base_hp = 37.47837448120117
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob09]
-base_hp = 50.414329528808594
+base_hp = 40.66684341430664
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob10]
-base_hp = 28.353227615356445
+base_hp = 32.94581604003906
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob11]
-base_hp = 128.5274658203125
+base_hp = 129.2183380126953
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob12]
-base_hp = 164.98837280273438
+base_hp = 162.69625854492188
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob13]
-base_hp = 201.86830139160156
+base_hp = 201.16197204589844
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob14]
-base_hp = 252.9656524658203
+base_hp = 247.11935424804688
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob15]
-base_hp = 320.362548828125
+base_hp = 324.7314758300781
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob16]
-base_hp = 370.068359375
+base_hp = 366.562744140625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob17]
-base_hp = 457.1856994628906
+base_hp = 462.9286193847656
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob18]
-base_hp = 571.6705322265625
+base_hp = 574.148193359375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob19]
-base_hp = 699.2919311523438
+base_hp = 723.335693359375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob20]
-base_hp = 898.2529296875
+base_hp = 916.281005859375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob21]
-base_hp = 1123.8912353515625
+base_hp = 1183.1949462890625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob22]
-base_hp = 1452.1436767578125
+base_hp = 1519.919921875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob23]
-base_hp = 1844.809326171875
+base_hp = 1951.8021240234375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob24]
-base_hp = 2301.586181640625
+base_hp = 2483.83447265625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob25]
-base_hp = 3332.33984375
+base_hp = 3636.580078125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob26]
-base_hp = 4295.68310546875
+base_hp = 4684.9609375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob27]
-base_hp = 5640.8330078125
+base_hp = 6123.0986328125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob28]
-base_hp = 7111.39990234375
+base_hp = 7806.63916015625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob29]
-base_hp = 9197.14453125
+base_hp = 9954.1201171875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob30]
-base_hp = 13669.94921875
+base_hp = 14785.9765625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob31]
-base_hp = 14691.7900390625
+base_hp = 15747.4638671875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob32]
-base_hp = 18655.138671875
+base_hp = 20229.80078125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob33]
-base_hp = 24627.404296875
+base_hp = 25919.724609375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob34]
-base_hp = 30770.818359375
+base_hp = 32757.916015625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob35]
-base_hp = 48193.91796875
+base_hp = 50444.5703125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob36]
-base_hp = 52630.88671875
+base_hp = 54536.5
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob37]
-base_hp = 68429.546875
+base_hp = 71475.9453125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob38]
-base_hp = 96505.75
+base_hp = 98490.390625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob39]
-base_hp = 132027.578125
+base_hp = 133167.421875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob40]
-base_hp = 213702.765625
+base_hp = 214899.4375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob41]
-base_hp = 233826.609375
+base_hp = 235281.546875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob42]
-base_hp = 311349.09375
+base_hp = 318684.5
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob43]
-base_hp = 436087.40625
+base_hp = 452449.9375
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob44]
-base_hp = 605616.625
+base_hp = 635586.625
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob45]
-base_hp = 929780.5
+base_hp = 1022444.875
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob46]
-base_hp = 1124350.0
+base_hp = 1342532.125
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob47]
-base_hp = 1565075.25
+base_hp = 2086689.75
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob48]
-base_hp = 1976108.5
+base_hp = 2941240.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob49]
-base_hp = 2796165.0
+base_hp = 4161812.25
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob50]
-base_hp = 3949523.0
+base_hp = 5878470.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Boss01]
-base_hp = 22.052513122558594
+base_hp = 17.979236602783203
 damage = 15.0
 reward = 50
 
 [monsters.stats.Boss02]
-base_hp = 42.529842376708984
+base_hp = 49.418724060058594
 damage = 20.0
 reward = 75
 
 [monsters.stats.Boss03]
-base_hp = 480.5438232421875
+base_hp = 487.09722900390625
 damage = 20.0
 reward = 100
 
 [monsters.stats.Boss04]
-base_hp = 1347.37939453125
+base_hp = 1374.4215087890625
 damage = 25.0
 reward = 100
 
 [monsters.stats.Boss05]
-base_hp = 4998.509765625
+base_hp = 5454.8701171875
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss06]
-base_hp = 20504.923828125
+base_hp = 22178.96484375
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss07]
-base_hp = 72290.875
+base_hp = 75666.859375
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss08]
-base_hp = 320554.15625
+base_hp = 322349.15625
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss09]
-base_hp = 1394670.75
+base_hp = 1533667.25
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss10]
-base_hp = 1686525.0
+base_hp = 2013798.25
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss11]
-base_hp = 2347613.0
+base_hp = 3130034.5
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss12]
-base_hp = 2964162.75
+base_hp = 4411860.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss13]
-base_hp = 4194247.5
+base_hp = 6242718.5
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss14]
-base_hp = 5924284.5
+base_hp = 8817705.0
 damage = 50.0
 reward = 125
 

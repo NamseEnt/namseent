@@ -444,7 +444,7 @@ impl Database {
     }
 
     fn build_clear_rate_distribution(clear_rates: &[f64]) -> Vec<ClearRateBin> {
-        let mut bins: Vec<ClearRateBin> = (0..50)
+        let mut bins: Vec<ClearRateBin> = (0..51)
             .map(|idx| ClearRateBin {
                 label: format!("{:02}", idx + 1),
                 sample_count: 0,
@@ -453,7 +453,7 @@ impl Database {
             .collect();
 
         for &rate in clear_rates {
-            let bin_index = ((rate.clamp(0.0, 100.0) as usize) / 2).min(49);
+            let bin_index = ((rate.clamp(0.0, 100.0) as usize) / 2).min(50);
             let bin = &mut bins[bin_index];
             bin.sample_count += 1;
             bin.average_clear_rate += rate;

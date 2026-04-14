@@ -15,7 +15,9 @@ use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
-use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory, EffectEventQueue};
+use crate::game_state::{
+    EffectEventQueue, GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory,
+};
 use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
 use std::sync::Arc;
@@ -69,7 +71,7 @@ impl HeadlessGame {
         mut on_clear_rate_update: F,
     ) -> SimResult
     where
-        F: FnMut(f32),
+        F: FnMut(f32) -> bool,
     {
         self.events.push(SimEvent::GameStart);
 
@@ -130,17 +132,49 @@ impl HeadlessGame {
                 }
                 GameFlow::Defense(_) => {
                     let clear_rate = self.game_state.calculate_clear_rate();
-                    on_clear_rate_update(clear_rate);
+                    if !on_clear_rate_update(clear_rate) {
+                        return SimResult {
+                            victory: false,
+                            final_stage: self.game_state.stage,
+                            clear_rate,
+                            final_hp: self.game_state.hp,
+                            final_gold: self.game_state.gold,
+                            total_towers_placed: self.total_towers_placed,
+                            total_items_used: self.total_items_used,
+                            total_damage_taken: self.total_damage_taken,
+                            stage_damage: self.stage_damage.clone(),
+                            total_gold_earned: self.total_gold_earned,
+                        };
+                    }
 
                     let hp_before = self.game_state.hp;
 
                     // Run defense simulation with fixed time ticks
-                    self.simulate_defense(item_use_strategy, &mut last_history_event_index);
+                    let continue_sim = self.simulate_defense(
+                        item_use_strategy,
+                        &mut last_history_event_index,
+                        &mut on_clear_rate_update,
+                    );
                     self.drain_play_history_events(&mut last_history_event_index);
 
                     let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
                     self.total_damage_taken += damage_this_stage;
                     self.stage_damage.push(damage_this_stage);
+
+                    if !continue_sim {
+                        return SimResult {
+                            victory: false,
+                            final_stage: self.game_state.stage,
+                            clear_rate: self.game_state.calculate_clear_rate(),
+                            final_hp: self.game_state.hp,
+                            final_gold: self.game_state.gold,
+                            total_towers_placed: self.total_towers_placed,
+                            total_items_used: self.total_items_used,
+                            total_damage_taken: self.total_damage_taken,
+                            stage_damage: self.stage_damage.clone(),
+                            total_gold_earned: self.total_gold_earned,
+                        };
+                    }
                 }
                 GameFlow::TreasureSelection(ref flow) => {
                     let options = flow.options.clone();
@@ -189,11 +223,15 @@ impl HeadlessGame {
     }
 
     /// Simulate the defense phase with fixed time ticks until completion.
-    fn simulate_defense(
+    fn simulate_defense<F>(
         &mut self,
         item_use_strategy: &dyn ItemUseStrategy,
         last_history_event_index: &mut usize,
-    ) {
+        on_clear_rate_update: &mut F,
+    ) -> bool
+    where
+        F: FnMut(f32) -> bool,
+    {
         let tick_dt = TICK_MAX_DURATION;
         let max_ticks = 60 * 60 * 5; // 5 minutes at 60fps as safety limit
         let mut tick_count = 0;
@@ -205,6 +243,11 @@ impl HeadlessGame {
             tick_headless(&mut self.game_state, tick_dt);
             tick_count += 1;
 
+            let clear_rate = self.game_state.calculate_clear_rate();
+            if !on_clear_rate_update(clear_rate) {
+                return false;
+            }
+
             // Check if damage was taken and invoke item strategy
             let current_hp = self.game_state.hp;
             if current_hp < hp_before {
@@ -213,6 +256,8 @@ impl HeadlessGame {
                 self.drain_play_history_events(last_history_event_index);
             }
         }
+
+        true
     }
 
     fn drain_play_history_events(&mut self, last_history_event_index: &mut usize) {
