@@ -1,6 +1,7 @@
 use crate::{
     asset::image::thumbnail::rim,
     icon::{Icon, IconKind, IconSize},
+    theme::sticker::StickerImage,
 };
 use namui::*;
 use namui_prebuilt::table;
@@ -42,9 +43,21 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                     ctx.compose(|ctx| {
                                         table::padding_no_clip(padding, |inner_wh, inner_ctx| {
                                             if let Some(kind) = item_kind {
-                                                inner_ctx.add(kind.thumbnail(inner_wh));
+                                                if let Some(image) = kind.thumbnail_image() {
+                                                    inner_ctx.add(StickerImage::new(
+                                                        image,
+                                                        inner_wh,
+                                                        px(12.0),
+                                                    ));
+                                                } else {
+                                                    inner_ctx.add(kind.thumbnail(inner_wh));
+                                                }
                                             } else if let Some(upgrade) = upgrade_kind {
-                                                inner_ctx.add(upgrade.thumbnail(inner_wh));
+                                                inner_ctx.add(StickerImage::new(
+                                                    upgrade.thumbnail_image(),
+                                                    inner_wh,
+                                                    px(12.0),
+                                                ));
                                             } else {
                                                 inner_ctx.add(
                                                     Icon::new(IconKind::Config)

@@ -23,7 +23,7 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
-use crate::{camera_controller::CameraController, game_state::Modal};
+use crate::camera_controller::CameraController;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -142,6 +142,8 @@ impl Component for Game {
                     #[cfg(feature = "debug-tools")]
                     Code::F8 => {
                         mutate_game_state(|game_state| {
+                            use crate::game_state::Modal;
+
                             if matches!(game_state.opened_modal, Some(Modal::DebugTools)) {
                                 game_state.opened_modal = None;
                             } else {

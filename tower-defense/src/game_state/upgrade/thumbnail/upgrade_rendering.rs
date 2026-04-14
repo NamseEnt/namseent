@@ -66,4 +66,28 @@ impl UpgradeKind {
                 .build(),
         }
     }
+
+    pub fn thumbnail_image(&self) -> Image {
+        match self {
+            UpgradeKind::Cat => thumbnail_image::CAT,
+            UpgradeKind::CainSword { .. } => thumbnail_image::CAIN_SWORD,
+            UpgradeKind::LongSword { .. } => thumbnail_image::LONG_SWORD,
+            UpgradeKind::Mace { .. } => thumbnail_image::MACE,
+            UpgradeKind::ClubSword { .. } => thumbnail_image::CLUB_SWORD,
+            UpgradeKind::Backpack => thumbnail_image::BACKPACK,
+            UpgradeKind::DiceBundle => thumbnail_image::DICE_BUNDLE,
+            UpgradeKind::Tricycle { .. } => thumbnail_image::TRICYCLE,
+            UpgradeKind::EnergyDrink => thumbnail_image::ENERGY_DRINK,
+            UpgradeKind::PerfectPottery { .. } => thumbnail_image::PERFECT_POTTERY,
+            UpgradeKind::SingleChopstick { .. } => thumbnail_image::SINGLE_CHOPSTICK,
+            UpgradeKind::PairChopsticks { .. } => thumbnail_image::PAIR_CHOPSTICK,
+            UpgradeKind::FountainPen { .. } => thumbnail_image::FOUNTAIN_PEN,
+            UpgradeKind::Brush { .. } => thumbnail_image::BRUSH,
+            UpgradeKind::FourLeafClover => thumbnail_image::FOUR_LEAF_CLOVER,
+            UpgradeKind::Rabbit => thumbnail_image::RABBIT,
+            UpgradeKind::BlackWhite => thumbnail_image::BLACK_WHITE,
+            UpgradeKind::Eraser => thumbnail_image::ERASER,
+            UpgradeKind::BrokenPottery { .. } => thumbnail_image::BROKEN_POTTERY,
+        }
+    }
 }

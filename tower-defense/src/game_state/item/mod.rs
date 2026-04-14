@@ -59,6 +59,17 @@ impl ItemKind {
                 .build(),
         }
     }
+
+    pub fn thumbnail_image(&self) -> Option<Image> {
+        match self {
+            ItemKind::RiceBall => Some(thumbnail_image::RICE_BALL),
+            ItemKind::LumpSugar => Some(thumbnail_image::LUMP_SUGAR),
+            ItemKind::Shield => Some(thumbnail_image::SHIELD),
+            ItemKind::Painkiller => Some(thumbnail_image::PAINKILLER),
+            ItemKind::GrantBarricades => Some(thumbnail_image::GRANT_BARRICADES),
+            ItemKind::GrantCard { .. } => None,
+        }
+    }
 }
 
 impl Item {

@@ -28,6 +28,16 @@ pub enum ImageFilter {
         color_filter: ColorFilter,
         input: Box<ImageFilter>,
     },
+    MatrixTransform {
+        matrix: TransformMatrix,
+        input: Box<ImageFilter>,
+    },
+    Dilate {
+        radius_xy: Xy<OrderedFloat>,
+        input: Option<Box<ImageFilter>>,
+        /// crop_rect is not supported in wasm
+        crop_rect: Option<Rect<Px>>,
+    },
 }
 
 impl ImageFilter {
@@ -53,6 +63,21 @@ impl ImageFilter {
     pub fn color_filter(self, color_filter: ColorFilter) -> Self {
         ImageFilter::ColorFilter {
             color_filter,
+            input: Box::new(self),
+        }
+    }
+
+    pub fn dilate(self, radius_xy: Xy<OrderedFloat>, crop_rect: Option<Rect<Px>>) -> Self {
+        ImageFilter::Dilate {
+            radius_xy,
+            input: Some(Box::new(self)),
+            crop_rect,
+        }
+    }
+
+    pub fn with_local_matrix(self, matrix: TransformMatrix) -> Self {
+        ImageFilter::MatrixTransform {
+            matrix,
             input: Box::new(self),
         }
     }
@@ -104,6 +129,24 @@ impl From<&ImageFilter> for skia_safe::ImageFilter {
                 NativeColorFilter::from(color_filter).skia(),
                 skia_safe::ImageFilter::from(input.as_ref()),
                 None,
+            )
+            .unwrap(),
+            ImageFilter::MatrixTransform { matrix, input } => {
+                let native_matrix: skia_safe::Matrix = (*matrix).into();
+                skia_safe::ImageFilter::from(input.as_ref())
+                    .with_local_matrix(&native_matrix)
+                    .unwrap()
+            }
+            &ImageFilter::Dilate {
+                radius_xy,
+                ref input,
+                crop_rect,
+            } => skia_safe::image_filters::dilate(
+                (radius_xy.x.as_f32(), radius_xy.y.as_f32()),
+                input
+                    .as_ref()
+                    .map(|input| skia_safe::ImageFilter::from(input.as_ref())),
+                crop_rect.map(|x| skia_safe::Rect::from(x).into()),
             )
             .unwrap(),
             ImageFilter::Empty => skia_safe::image_filters::empty(),
