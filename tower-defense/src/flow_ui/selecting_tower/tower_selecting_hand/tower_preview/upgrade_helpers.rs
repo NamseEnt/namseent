@@ -67,7 +67,7 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
-        _ => UpgradeKind::Magnet,
+        _ => UpgradeKind::Cat,
     }
 }
 
@@ -79,7 +79,7 @@ pub fn create_tower_select_upgrade_kind(
     value: f32,
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => UpgradeKind::Spoon {
+        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => UpgradeKind::Tricycle {
             damage_multiplier: value,
         },
 
@@ -96,6 +96,6 @@ pub fn create_tower_select_upgrade_kind(
         }
 
         // 기타 경우는 기본값 반환
-        _ => UpgradeKind::Magnet,
+        _ => UpgradeKind::Cat,
     }
 }

@@ -38,9 +38,9 @@ impl SynergyShopStrategy {
             return false;
         };
 
-        if count_item_kind(game_state, ItemKind::RiceCake) < 1
+        if count_item_kind(game_state, ItemKind::RiceBall) < 1
             && game_state.hp < game_state.config.player.max_hp * 0.75
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceCake, game_state.gold)
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceBall, game_state.gold)
         {
             game_state.purchase_shop_item(slot_id);
             return true;
@@ -63,7 +63,7 @@ impl SynergyShopStrategy {
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::EmergencyDice, game_state.gold)
+            && let Some(slot_id) = find_item_slot(flow, ItemKind::LumpSugar, game_state.gold)
         {
             game_state.purchase_shop_item(slot_id);
             return true;
@@ -126,7 +126,7 @@ impl SynergyShopStrategy {
                     4.0
                 }
             }
-            ItemKind::RiceCake => {
+            ItemKind::RiceBall => {
                 if game_state.hp < game_state.config.player.max_hp * 0.6 {
                     6.0
                 } else {
@@ -142,7 +142,7 @@ impl SynergyShopStrategy {
                     2.0
                 }
             }
-            ItemKind::EmergencyDice => {
+            ItemKind::LumpSugar => {
                 let missing_dice = game_state
                     .max_dice_chance()
                     .saturating_sub(game_state.left_dice) as f32;
@@ -185,7 +185,7 @@ impl SynergyShopStrategy {
 
     fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
         match kind {
-            UpgradeKind::Magnet => 7.0,
+            UpgradeKind::Cat => 7.0,
             UpgradeKind::Backpack => 6.5,
             UpgradeKind::DiceBundle => 7.5,
             UpgradeKind::EnergyDrink => 6.0,

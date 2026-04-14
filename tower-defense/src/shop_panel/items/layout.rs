@@ -1,4 +1,4 @@
-use crate::game_state::item::{Effect, Item};
+use crate::game_state::item::{Item, ItemKind};
 use crate::game_state::upgrade::{Upgrade, UpgradeKind};
 
 use namui::{Px, Wh};
@@ -21,7 +21,7 @@ pub(crate) struct ShopItemLayoutParams<'a> {
     pub description: ShopItemDescription<'a>,
     pub cost: usize,
     pub available: bool,
-    pub item_kind: Option<&'a Effect>,
+    pub item_kind: Option<&'a ItemKind>,
     pub upgrade_kind: Option<&'a UpgradeKind>,
 }
 
@@ -54,17 +54,17 @@ fn make_item_params<'a>(
 ) -> ShopItemLayoutParams<'a> {
     ShopItemLayoutParams {
         wh,
-        name: ShopItemTitle::Effect {
-            effect: item.effect.clone(),
+        name: ShopItemTitle::Item {
+            item_kind: item.kind.clone(),
             locale,
         },
-        description: ShopItemDescription::Effect {
-            effect: item.effect.clone(),
+        description: ShopItemDescription::Item {
+            item_kind: &item.kind,
             locale,
         },
         cost,
         available,
-        item_kind: Some(&item.effect),
+        item_kind: Some(&item.kind),
         upgrade_kind: None,
     }
 }
@@ -111,7 +111,7 @@ mod tests {
         let locale = Locale::default();
 
         let item = Item {
-            kind: crate::game_state::item::ItemKind::RiceCake,
+            kind: crate::game_state::item::ItemKind::RiceBall,
             effect: Effect::Heal { amount: 1.0 },
             value: OneZero::default(),
         };
@@ -121,7 +121,7 @@ mod tests {
         assert_eq!(params.cost, 5);
 
         let up = Upgrade {
-            kind: UpgradeKind::Magnet,
+            kind: UpgradeKind::Cat,
             value: OneZero::default(),
         };
         let params = make_upgrade_params(wh, &up, 3, false, locale);

@@ -21,11 +21,11 @@ impl ItemKindText {
     fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             ItemKindText::Name(kind) => match kind {
-                crate::game_state::item::ItemKind::RiceCake => {
-                    builder.text("찹쌀떡");
+                crate::game_state::item::ItemKind::RiceBall => {
+                    builder.text("주먹밥");
                 }
-                crate::game_state::item::ItemKind::EmergencyDice => {
-                    builder.text("비상용 주사위");
+                crate::game_state::item::ItemKind::LumpSugar => {
+                    builder.text("각설탕");
                 }
                 crate::game_state::item::ItemKind::Shield => {
                     builder.text("방어막");
@@ -41,10 +41,10 @@ impl ItemKindText {
                 }
             },
             ItemKindText::Description(kind) => match kind {
-                crate::game_state::item::ItemKind::RiceCake => {
-                    builder.text("체력을 회복하는 찹쌀떡");
+                crate::game_state::item::ItemKind::RiceBall => {
+                    builder.text("체력을 회복하는 주먹밥");
                 }
-                crate::game_state::item::ItemKind::EmergencyDice => {
+                crate::game_state::item::ItemKind::LumpSugar => {
                     builder.text("주사위 기회를 추가로 제공합니다");
                 }
                 crate::game_state::item::ItemKind::Shield => {
@@ -66,11 +66,11 @@ impl ItemKindText {
     fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             ItemKindText::Name(kind) => match kind {
-                crate::game_state::item::ItemKind::RiceCake => {
-                    builder.text("Rice Cake");
+                crate::game_state::item::ItemKind::RiceBall => {
+                    builder.text("Rice Ball");
                 }
-                crate::game_state::item::ItemKind::EmergencyDice => {
-                    builder.text("Emergency Dice");
+                crate::game_state::item::ItemKind::LumpSugar => {
+                    builder.text("Lump Sugar");
                 }
                 crate::game_state::item::ItemKind::Shield => {
                     builder.text("Shield");
@@ -86,10 +86,10 @@ impl ItemKindText {
                 }
             },
             ItemKindText::Description(kind) => match kind {
-                crate::game_state::item::ItemKind::RiceCake => {
+                crate::game_state::item::ItemKind::RiceBall => {
                     builder.text("Heals your HP.");
                 }
-                crate::game_state::item::ItemKind::EmergencyDice => {
+                crate::game_state::item::ItemKind::LumpSugar => {
                     builder.text("Grants an extra reroll chance.");
                 }
                 crate::game_state::item::ItemKind::Shield => {

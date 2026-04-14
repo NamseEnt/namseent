@@ -2,15 +2,17 @@ pub mod generation;
 mod thumbnail;
 mod usage;
 
+use crate::asset::image::thumbnail as thumbnail_image;
 use crate::card::Card;
 pub use crate::game_state::effect::Effect;
+use crate::thumbnail::ThumbnailComposer;
 use namui::*;
 pub use usage::*;
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum ItemKind {
-    RiceCake,
-    EmergencyDice,
+    RiceBall,
+    LumpSugar,
     Shield,
     Painkiller,
     GrantBarricades,
@@ -32,6 +34,31 @@ impl ItemKind {
     pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
         crate::l10n::item_kind::ItemKindText::Description(self.clone())
     }
+
+    pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
+        match self {
+            ItemKind::RiceBall => ThumbnailComposer::new(width_height)
+                .with_image_base(thumbnail_image::RICE_BALL)
+                .build(),
+            ItemKind::LumpSugar => ThumbnailComposer::new(width_height)
+                .with_image_base(thumbnail_image::LUMP_SUGAR)
+                .build(),
+            ItemKind::Shield => ThumbnailComposer::new(width_height)
+                .with_image_base(thumbnail_image::SHIELD)
+                .build(),
+            ItemKind::Painkiller => ThumbnailComposer::new(width_height)
+                .with_image_base(thumbnail_image::PAINKILLER)
+                .build(),
+            ItemKind::GrantBarricades => ThumbnailComposer::new(width_height)
+                .with_image_base(thumbnail_image::GRANT_BARRICADES)
+                .build(),
+            ItemKind::GrantCard { card } => ThumbnailComposer::new(width_height)
+                .with_icon_base(crate::icon::IconKind::Card)
+                .add_rank_overlay(card.rank)
+                .add_suit_overlay(card.suit)
+                .build(),
+        }
+    }
 }
 
 impl Item {
@@ -52,7 +79,7 @@ impl Item {
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
-        self.effect.thumbnail(width_height)
+        self.kind.thumbnail(width_height)
     }
 
     /// 아이템이 현재 게임 상태에서 사용 가능한지 확인

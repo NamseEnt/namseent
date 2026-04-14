@@ -66,8 +66,8 @@ pub struct DetailStats {
 }
 
 const ITEM_NAMES: &[&str] = &[
-    "RiceCake",
-    "EmergencyDice",
+    "RiceBall",
+    "LumpSugar",
     "Shield",
     "Painkiller",
     "GrantBarricades",
@@ -75,7 +75,7 @@ const ITEM_NAMES: &[&str] = &[
 ];
 
 const UPGRADE_NAMES: &[&str] = &[
-    "Magnet",
+    "Cat",
     "Backpack",
     "DiceBundle",
     "EnergyDrink",
@@ -87,7 +87,7 @@ const UPGRADE_NAMES: &[&str] = &[
     "LongSword",
     "Mace",
     "ClubSword",
-    "Spoon",
+    "Tricycle",
     "PerfectPottery",
     "SingleChopstick",
     "PairChopsticks",

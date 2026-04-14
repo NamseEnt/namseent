@@ -57,7 +57,7 @@ pub struct Upgrade {
 impl UpgradeState {
     pub fn upgrade(&mut self, upgrade: Upgrade) {
         match upgrade.kind {
-            UpgradeKind::Magnet => match self.gold_earn_plus {
+            UpgradeKind::Cat => match self.gold_earn_plus {
                 0 => self.gold_earn_plus = 1,
                 1 => self.gold_earn_plus = 2,
                 2 => self.gold_earn_plus = 4,
@@ -111,7 +111,7 @@ impl UpgradeState {
                 3 => self.dice_chance_plus = 4,
                 _ => unreachable!("Invalid dice bundle upgrade: {}", self.dice_chance_plus),
             },
-            UpgradeKind::Spoon { damage_multiplier } => {
+            UpgradeKind::Tricycle { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
                     TowerSelectUpgradeTarget::LowCard,
                     TowerUpgrade::DamageMultiplier {
@@ -230,14 +230,14 @@ impl UpgradeState {
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub enum UpgradeKind {
-    Magnet,
+    Cat,
     CainSword { damage_multiplier: f32 },
     LongSword { damage_multiplier: f32 },
     Mace { damage_multiplier: f32 },
     ClubSword { damage_multiplier: f32 },
     Backpack,
     DiceBundle,
-    Spoon { damage_multiplier: f32 },
+    Tricycle { damage_multiplier: f32 },
     EnergyDrink,
     PerfectPottery { damage_multiplier: f32 },
     SingleChopstick { damage_multiplier: f32 },
@@ -259,7 +259,7 @@ impl UpgradeKind {
                 | UpgradeKind::LongSword { .. }
                 | UpgradeKind::Mace { .. }
                 | UpgradeKind::ClubSword { .. }
-                | UpgradeKind::Spoon { .. }
+                | UpgradeKind::Tricycle { .. }
                 | UpgradeKind::PerfectPottery { .. }
                 | UpgradeKind::SingleChopstick { .. }
                 | UpgradeKind::PairChopsticks { .. }

@@ -606,12 +606,12 @@ fn create_initial_game_state() -> GameState {
         delayed_hits: Default::default(),
         items: vec![
             Item {
-                kind: ItemKind::EmergencyDice,
+                kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
                 value: 0.5.into(),
             },
             Item {
-                kind: ItemKind::EmergencyDice,
+                kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
                 value: 0.5.into(),
             },
@@ -619,16 +619,6 @@ fn create_initial_game_state() -> GameState {
                 kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::Barricade,
-                    suit: Suit::Spades,
-                    rank: Rank::Ace,
-                    count: 5,
-                },
-                value: 1.0.into(),
-            },
-            Item {
-                kind: ItemKind::GrantBarricades,
-                effect: Effect::AddTowerCardToPlacementHand {
-                    tower_kind: TowerKind::High,
                     suit: Suit::Spades,
                     rank: Rank::Ace,
                     count: 1,

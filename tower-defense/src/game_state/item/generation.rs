@@ -33,12 +33,12 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig)
             let range = config.items.heal.min_value..config.items.heal.max_value;
             let amount = calculate_amount_from_value(value, range.start, range.end);
             (
-                crate::game_state::item::ItemKind::RiceCake,
+                crate::game_state::item::ItemKind::RiceBall,
                 Effect::Heal { amount },
             )
         }
         ItemCandidate::ExtraReroll => (
-            crate::game_state::item::ItemKind::EmergencyDice,
+            crate::game_state::item::ItemKind::LumpSugar,
             Effect::ExtraDice,
         ),
         ItemCandidate::Shield => {

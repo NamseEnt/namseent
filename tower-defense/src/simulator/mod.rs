@@ -296,8 +296,8 @@ impl HeadlessGame {
 
     fn item_kind_from_effect(effect: &Effect) -> Option<String> {
         Some(match effect {
-            Effect::Heal { .. } => "RiceCake".to_owned(),
-            Effect::ExtraDice => "EmergencyDice".to_owned(),
+            Effect::Heal { .. } => "RiceBall".to_owned(),
+            Effect::ExtraDice => "LumpSugar".to_owned(),
             Effect::Shield { .. } => "Shield".to_owned(),
             Effect::UserDamageReduction { .. } => "Painkiller".to_owned(),
             Effect::AddTowerCardToPlacementHand { .. } => "GrantBarricades".to_owned(),

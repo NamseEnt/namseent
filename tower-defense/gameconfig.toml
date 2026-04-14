@@ -881,7 +881,7 @@ damage_multiplier_range = [
 ]
 
 [[upgrades.tower_damage_upgrades]]
-name = "Spoon"
+name = "Tricycle"
 weight = 50.0
 damage_multiplier_range = [
     1.2999999523162842,
@@ -929,7 +929,7 @@ damage_multiplier_range = [
 ]
 
 [[upgrades.treasure_upgrades]]
-name = "Magnet"
+name = "Cat"
 weight = 50.0
 
 [[upgrades.treasure_upgrades]]

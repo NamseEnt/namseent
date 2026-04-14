@@ -58,7 +58,7 @@ fn add_basic_upgrades(
 ) {
     if state.gold_earn_plus != 0 {
         infos.push(UpgradeInfo {
-            upgrade_kind: UpgradeKind::Magnet,
+            upgrade_kind: UpgradeKind::Cat,
             description: UpgradeInfoDescription::Single(UpgradeBoardText::Magnet {
                 amount: state.gold_earn_plus,
             }),
@@ -142,7 +142,7 @@ fn add_tower_select_upgrades(
         // 데미지 배수 업그레이드
         if tower_upgrade_state.damage_multiplier != 1.0 {
             let upgrade_kind = match target {
-                TowerSelectUpgradeTarget::LowCard => UpgradeKind::Spoon {
+                TowerSelectUpgradeTarget::LowCard => UpgradeKind::Tricycle {
                     damage_multiplier: tower_upgrade_state.damage_multiplier,
                 },
                 TowerSelectUpgradeTarget::NoReroll => UpgradeKind::PerfectPottery {

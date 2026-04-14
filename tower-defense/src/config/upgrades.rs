@@ -92,7 +92,7 @@ pub fn default_upgrade_config() -> UpgradeConfig {
                 },
             },
             UpgradeCandidate {
-                name: "Spoon".into(),
+                name: "Tricycle".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 50.0,
                     damage_multiplier_range: Some((1.3, 1.75)),
@@ -136,7 +136,7 @@ pub fn default_upgrade_config() -> UpgradeConfig {
         ],
         treasure_upgrades: vec![
             UpgradeCandidate {
-                name: "Magnet".into(),
+                name: "Cat".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 50.0,
                     damage_multiplier_range: None,

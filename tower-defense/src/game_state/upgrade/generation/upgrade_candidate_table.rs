@@ -53,9 +53,9 @@ fn make_tower_damage_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> 
                 damage_multiplier: thread_rng().gen_range(min..max),
             })
         }
-        "Spoon" => {
+        "Tricycle" => {
             let (min, max) = range;
-            Box::new(move || UpgradeKind::Spoon {
+            Box::new(move || UpgradeKind::Tricycle {
                 damage_multiplier: thread_rng().gen_range(min..max),
             })
         }
@@ -114,7 +114,7 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
         let kind_gen =
             make_treasure_upgrade_kind_gen(&upgrade.name, upgrade.entry.damage_multiplier_range);
         let current_and_max = match upgrade.name.as_str() {
-            "Magnet" => Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
+            "Cat" => Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
             "Backpack" => Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
             "DiceBundle" => Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
             "EnergyDrink" => Some((
@@ -139,7 +139,7 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
 fn make_treasure_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
     match name {
-        "Magnet" => Box::new(|| UpgradeKind::Magnet),
+        "Cat" => Box::new(|| UpgradeKind::Cat),
         "Backpack" => Box::new(|| UpgradeKind::Backpack),
         "DiceBundle" => Box::new(|| UpgradeKind::DiceBundle),
         "EnergyDrink" => Box::new(|| UpgradeKind::EnergyDrink),

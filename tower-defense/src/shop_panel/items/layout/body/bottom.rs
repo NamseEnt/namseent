@@ -25,9 +25,9 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                         .size(FontSize::Medium)
                         .max_width(wh.width);
                     match description {
-                        ShopItemDescription::Effect { effect, locale } => {
+                        ShopItemDescription::Item { item_kind, locale } => {
                             builder.l10n(
-                                l10n::effect::EffectText::Description(effect.clone()),
+                                l10n::item_kind::ItemKindText::Description((*item_kind).clone()),
                                 locale,
                             );
                         }
@@ -85,9 +85,9 @@ pub(crate) fn make_renderer<'a>(
                         ctx.add(memoized_text((&name_key, &wh.width), |mut builder| {
                             builder.headline().size(FontSize::Small).max_width(wh.width);
                             match &name {
-                                ShopItemTitle::Effect { effect, locale } => {
+                                ShopItemTitle::Item { item_kind, locale } => {
                                     builder.l10n(
-                                        l10n::effect::EffectText::Name(effect.clone()),
+                                        l10n::item_kind::ItemKindText::Name(item_kind.clone()),
                                         locale,
                                     );
                                 }

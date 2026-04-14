@@ -17,11 +17,6 @@ pub fn render_tower_image(width_height: Wh<Px>, tower_kind: TowerKind) -> Render
     })
 }
 
-/// 바리케이드 타워를 렌더링하는 함수 (가장 자주 사용되는 기본 타워)
-pub fn render_default_tower(width_height: Wh<Px>) -> RenderingTree {
-    render_tower_image(width_height, TowerKind::Barricade)
-}
-
 /// 아이콘을 렌더링하는 기본 함수
 pub fn render_icon_base(width_height: Wh<Px>, icon_kind: IconKind) -> RenderingTree {
     Icon::new(icon_kind)

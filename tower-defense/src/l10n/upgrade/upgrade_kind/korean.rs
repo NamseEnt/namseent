@@ -6,8 +6,8 @@ impl UpgradeKindText<'_> {
     pub fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             UpgradeKindText::Name(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::Magnet => {
-                    builder.static_text("자석");
+                crate::game_state::upgrade::UpgradeKind::Cat => {
+                    builder.static_text("고양이");
                 }
                 crate::game_state::upgrade::UpgradeKind::CainSword { .. } => {
                     builder.static_text("케인소드");
@@ -27,8 +27,8 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::DiceBundle => {
                     builder.static_text("주사위 꾸러미");
                 }
-                crate::game_state::upgrade::UpgradeKind::Spoon { .. } => {
-                    builder.static_text("숟가락");
+                crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => {
+                    builder.static_text("세발자전거");
                 }
                 crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
                     builder.static_text("에너지드링크");
@@ -65,7 +65,7 @@ impl UpgradeKindText<'_> {
                 }
             },
             UpgradeKindText::Description(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::Magnet => {
+                crate::game_state::upgrade::UpgradeKind::Cat => {
                     builder
                         .static_text("몬스터를 처치할 때 얻는 ")
                         .with_gold_icon("골드")
@@ -94,7 +94,7 @@ impl UpgradeKindText<'_> {
                         .with_positive_effect("1개")
                         .static_text(" 증가합니다.");
                 }
-                crate::game_state::upgrade::UpgradeKind::Spoon { damage_multiplier } => {
+                crate::game_state::upgrade::UpgradeKind::Tricycle { damage_multiplier } => {
                     builder
                         .static_text("3장 이하로 만든 타워의 ")
                         .with_attack_damage_stat("공격력")

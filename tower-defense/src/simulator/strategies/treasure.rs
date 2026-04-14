@@ -45,7 +45,7 @@ impl SynergyTreasureStrategy {
     fn score_option(&self, game_state: &GameState, option: &Upgrade) -> f32 {
         let stage = game_state.stage as f32;
         let base_value = match option.kind {
-            UpgradeKind::Magnet => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus) as f32 * 0.8,
+            UpgradeKind::Cat => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus) as f32 * 0.8,
             UpgradeKind::Backpack => {
                 6.5 + (2 - game_state.upgrade_state.shop_slot_expand) as f32 * 1.2
             }
@@ -87,14 +87,14 @@ impl SynergyTreasureStrategy {
         if game_state.stage <= 12
             && matches!(
                 option.kind,
-                UpgradeKind::Backpack | UpgradeKind::DiceBundle | UpgradeKind::Magnet
+                UpgradeKind::Backpack | UpgradeKind::DiceBundle | UpgradeKind::Cat
             )
         {
             score += 1.5;
         }
 
         if game_state.hp < game_state.config.player.max_hp * 0.5
-            && matches!(option.kind, UpgradeKind::EnergyDrink | UpgradeKind::Magnet)
+            && matches!(option.kind, UpgradeKind::EnergyDrink | UpgradeKind::Cat)
         {
             score += 1.5;
         }

@@ -50,7 +50,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
 
     loop {
         let heal_item_idx = game_state.items.iter().position(|item| {
-            matches!(item.kind, ItemKind::RiceCake)
+            matches!(item.kind, ItemKind::RiceBall)
                 && match &item.effect {
                     Effect::Heal { amount } => {
                         game_state.hp + amount > max_hp || game_state.hp < max_hp * 0.5
