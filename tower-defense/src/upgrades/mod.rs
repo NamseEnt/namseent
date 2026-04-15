@@ -1,6 +1,13 @@
 use crate::{
     animation::with_spring,
-    game_state::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos, use_game_state},
+    card::{Card, Rank, Suit},
+    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
+    game_state::{
+        UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos,
+        tower::{Tower, TowerKind, TowerTemplate},
+        use_game_state,
+    },
+    hand::HandSlotId,
     l10n::Locale,
     palette,
     theme::{
@@ -37,18 +44,39 @@ impl Component for Upgrades {
 
         let game_state = use_game_state(ctx);
         let locale = game_state.text().locale();
-        let upgrade_infos = get_upgrade_infos(&game_state.upgrade_state, &game_state.text());
+        let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
+        let active_slot_ids = ctx.track_eq(&game_state.hand.active_slot_ids());
+        let active_tower_context = get_active_tower_context(
+            &game_state,
+            selected_slot_ids.clone_inner(),
+            active_slot_ids.clone_inner(),
+        );
+
+        let mut upgrade_infos = get_upgrade_infos(&game_state.upgrade_state, &game_state.text())
+            .into_iter()
+            .map(|upgrade_info| {
+                let is_applicable = active_tower_context.as_ref().is_some_and(|context| {
+                    is_upgrade_applicable(&upgrade_info.upgrade_kind, context)
+                });
+                (upgrade_info, is_applicable)
+            })
+            .collect::<Vec<_>>();
+
+        if active_tower_context.is_some() {
+            upgrade_infos.sort_by(|(_, a), (_, b)| b.cmp(a));
+        }
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
             ctx.add(AutoScrollViewWithCtx {
                 wh,
                 scroll_bar_width: PADDING,
                 content: |mut ctx| {
-                    for upgrade_info in upgrade_infos.iter().cloned() {
+                    for (upgrade_info, is_applicable) in upgrade_infos.iter().cloned() {
                         ctx.add(UpgradeThumbnailItem {
                             wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
                             upgrade_info,
                             locale,
+                            is_applicable,
                         });
                         ctx = ctx.translate(Xy::new(0.px(), ITEM_SIZE + ITEM_GAP));
                     }
@@ -65,10 +93,119 @@ impl Component for Upgrades {
     }
 }
 
+#[derive(Clone, Copy)]
+struct SelectedTowerContext {
+    kind: TowerKind,
+    suit: Suit,
+    rank: Rank,
+    rerolled_count: Option<usize>,
+}
+
+impl SelectedTowerContext {
+    fn from_tower(tower: &Tower) -> Self {
+        Self {
+            kind: tower.kind,
+            suit: tower.suit,
+            rank: tower.rank,
+            rerolled_count: None,
+        }
+    }
+
+    fn from_template(template: &TowerTemplate, rerolled_count: Option<usize>) -> Self {
+        Self {
+            kind: template.kind,
+            suit: template.suit,
+            rank: template.rank,
+            rerolled_count,
+        }
+    }
+
+    fn is_low_card_tower(&self) -> bool {
+        self.kind.is_low_card_tower()
+    }
+}
+
+fn get_active_tower_context(
+    game_state: &crate::game_state::GameState,
+    selected_slot_ids: Vec<HandSlotId>,
+    active_slot_ids: Vec<HandSlotId>,
+) -> Option<SelectedTowerContext> {
+    if let Some(selected_tower_id) = game_state.ui_state.selected_tower_id
+        && let Some(tower) = game_state
+            .towers
+            .iter()
+            .find(|tower| tower.id() == selected_tower_id)
+    {
+        return Some(SelectedTowerContext::from_tower(tower));
+    }
+
+    let slot_ids = if !selected_slot_ids.is_empty() {
+        selected_slot_ids
+    } else {
+        active_slot_ids
+    };
+
+    if let Some(template) = game_state
+        .hand
+        .get_items(&slot_ids)
+        .find_map(|item| item.as_tower().cloned())
+    {
+        return Some(SelectedTowerContext::from_template(
+            &template,
+            Some(game_state.rerolled_count),
+        ));
+    }
+
+    let cards = game_state
+        .hand
+        .get_items(&slot_ids)
+        .filter_map(|item| item.as_card().copied())
+        .collect::<Vec<Card>>();
+
+    if cards.is_empty() {
+        return None;
+    }
+
+    Some(SelectedTowerContext::from_template(
+        &get_highest_tower_template(
+            &cards,
+            &game_state.upgrade_state,
+            game_state.rerolled_count,
+            &game_state.config,
+        ),
+        Some(game_state.rerolled_count),
+    ))
+}
+
+fn is_upgrade_applicable(
+    upgrade_kind: &crate::game_state::upgrade::UpgradeKind,
+    context: &SelectedTowerContext,
+) -> bool {
+    match upgrade_kind {
+        crate::game_state::upgrade::UpgradeKind::CainSword { .. } => context.suit == Suit::Diamonds,
+        crate::game_state::upgrade::UpgradeKind::LongSword { .. } => context.suit == Suit::Spades,
+        crate::game_state::upgrade::UpgradeKind::Mace { .. } => context.suit == Suit::Hearts,
+        crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => context.suit == Suit::Clubs,
+        crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => !context.rank.is_even(),
+        crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => context.rank.is_even(),
+        crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => !context.rank.is_face(),
+        crate::game_state::upgrade::UpgradeKind::Brush { .. } => context.rank.is_face(),
+        crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => context.is_low_card_tower(),
+        crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => {
+            context.rerolled_count == Some(0)
+        }
+        crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
+            context.rerolled_count.is_some_and(|count| count > 0)
+        }
+        _ => false,
+    }
+}
+
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
     upgrade_info: UpgradeInfo,
     locale: Locale,
+    is_applicable: bool,
 }
 
 impl Component for UpgradeThumbnailItem {
@@ -77,6 +214,7 @@ impl Component for UpgradeThumbnailItem {
             wh,
             upgrade_info,
             locale,
+            is_applicable,
         } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
@@ -89,10 +227,11 @@ impl Component for UpgradeThumbnailItem {
             || 0.0,
         );
 
-        if *hovering && (*hover_start).is_none() {
+        let should_wobble = *hovering || is_applicable;
+        if should_wobble && (*hover_start).is_none() {
             set_hover_start.set(Some(Instant::now()));
         }
-        if !*hovering {
+        if !should_wobble {
             set_hover_start.set(None);
         }
 
