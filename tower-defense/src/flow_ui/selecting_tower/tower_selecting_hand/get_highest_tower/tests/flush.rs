@@ -15,7 +15,12 @@ fn test_flush() {
     ];
     let upgrade_state = UpgradeState::default();
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_eq!(template.kind, TowerKind::Flush);
     assert_eq!(template.suit, Suit::Spades);
     assert_eq!(template.rank, Rank::Queen);
@@ -31,7 +36,12 @@ fn test_flush_4cards_without_upgrade() {
     ];
     let upgrade_state = UpgradeState::default();
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_ne!(template.kind, TowerKind::Flush);
 }
 
@@ -49,7 +59,12 @@ fn test_flush_4cards_with_upgrade() {
     };
 
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_eq!(template.kind, TowerKind::Flush);
     assert_eq!(template.suit, Suit::Spades);
     assert_eq!(template.rank, Rank::Jack);
@@ -69,7 +84,12 @@ fn test_flush_treat_suits_as_same() {
         ..UpgradeState::default()
     };
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_eq!(template.kind, TowerKind::Flush);
     assert!(template.suit == Suit::Spades || template.suit == Suit::Clubs);
     assert_eq!(template.rank, Rank::Queen);
@@ -89,7 +109,12 @@ fn test_flush_treat_suits_as_same_and_shorten_4cards() {
         ..UpgradeState::default()
     };
     let rerolled_count = 0;
-    let template = get_highest_tower_template(&cards, &upgrade_state, rerolled_count);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        rerolled_count,
+        &crate::config::GameConfig::default_config(),
+    );
     assert_eq!(template.kind, TowerKind::Flush);
     assert!(template.suit == Suit::Spades || template.suit == Suit::Clubs);
     assert_eq!(template.rank, Rank::Jack);

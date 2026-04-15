@@ -27,10 +27,16 @@ pub fn use_sound_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, SoundState> {
 }
 
 pub fn emit_sound(params: EmitSoundParams) -> SoundId {
+    if crate::is_headless() {
+        return 0;
+    }
     emit_sound_after(params, Duration::ZERO)
 }
 
 pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
+    if crate::is_headless() {
+        return 0;
+    }
     let sound_id = NEXT_SOUND_ID.fetch_add(1, Ordering::Relaxed);
     let now = Instant::now();
     let play_at = now + delay;
@@ -56,6 +62,9 @@ pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
 }
 
 pub fn stop_sound(sound_id: SoundId) {
+    if crate::is_headless() {
+        return;
+    }
     SOUND_EVENTS
         .lock()
         .unwrap()
@@ -63,6 +72,9 @@ pub fn stop_sound(sound_id: SoundId) {
 }
 
 pub fn update_sound_position(sound_id: SoundId, position: crate::MapCoordF32) {
+    if crate::is_headless() {
+        return;
+    }
     let mut events = SOUND_EVENTS.lock().unwrap();
     let Some(sound) = events.iter_mut().find(|sound| sound.id == sound_id) else {
         return;

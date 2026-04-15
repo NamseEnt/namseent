@@ -1,11 +1,13 @@
 use super::*;
 use rand::{Rng, thread_rng};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 const PROJECTILE_ROTATION_SPEED_DEG_RANGE: std::ops::RangeInclusive<f32> = -720.0..=720.0;
+static NEXT_PROJECTILE_ID: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, State)]
 pub struct Projectile {
+    pub id: u64,
     pub xy: MapCoordF32,
     pub kind: ProjectileKind,
     pub velocity: Xy<f32>,
@@ -14,14 +16,8 @@ pub struct Projectile {
     pub rotation: Angle,
     pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
-    pub trail_distance_remainder: f32,
     pub behavior: ProjectileBehavior,
     pub hit_effect: attack::ProjectileHitEffect,
-    pub whoosh_cooldown_secs: f32,
-    pub current_whoosh_sound_id: u64,
-    pub current_crackling_sound_id: u64,
-    pub current_shining_sound_id: u64,
-    pub current_wind_sound_id: u64,
 }
 impl Projectile {
     pub fn new(
@@ -36,6 +32,7 @@ impl Projectile {
         let speed = velocity * Duration::from_secs(1);
         let initial_direction = Xy::new(0.0, -1.0);
         Self {
+            id: NEXT_PROJECTILE_ID.fetch_add(1, Ordering::Relaxed),
             xy,
             kind,
             velocity: initial_direction * speed,
@@ -44,14 +41,8 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
-            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Direct,
             hit_effect,
-            whoosh_cooldown_secs: 0.0,
-            current_whoosh_sound_id: 0,
-            current_crackling_sound_id: 0,
-            current_shining_sound_id: 0,
-            current_wind_sound_id: 0,
         }
     }
 
@@ -69,6 +60,7 @@ impl Projectile {
         let turn_rate = rng.gen_range(HOMING_TURN_RATE_MIN_TILE..=HOMING_TURN_RATE_MAX_TILE);
         let initial_velocity = Xy::new(0.0, -initial_speed);
         Self {
+            id: NEXT_PROJECTILE_ID.fetch_add(1, Ordering::Relaxed),
             xy,
             kind,
             velocity: initial_velocity,
@@ -77,7 +69,6 @@ impl Projectile {
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
             trail,
-            trail_distance_remainder: 0.0,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
                 acceleration: HOMING_ACCELERATION_TILE,
@@ -85,11 +76,6 @@ impl Projectile {
                 max_speed: HOMING_MAX_SPEED_TILE,
             },
             hit_effect,
-            whoosh_cooldown_secs: 0.0,
-            current_whoosh_sound_id: 0,
-            current_crackling_sound_id: 0,
-            current_shining_sound_id: 0,
-            current_wind_sound_id: 0,
         }
     }
 
@@ -251,7 +237,7 @@ pub enum ProjectileTrail {
     LightningSparkle,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, State)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, State)]
 pub struct ProjectileTargetIndicator {
     id: usize,
 }

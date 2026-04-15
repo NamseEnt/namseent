@@ -1,4 +1,5 @@
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
+use crate::game_state::GameEffectEvent;
 use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
 
 #[cfg(feature = "debug-tools")]
@@ -78,8 +79,11 @@ pub struct DefenseFlow {
 
 impl DefenseFlow {
     pub fn new(game_state: &GameState) -> Self {
-        let start_total_hp =
-            GameState::calculate_stage_total_hp(game_state.stage, &game_state.stage_modifiers);
+        let start_total_hp = GameState::calculate_stage_total_hp(
+            game_state.stage,
+            &game_state.config,
+            &game_state.stage_modifiers,
+        );
         Self {
             stage_progress: StageProgress {
                 start_total_hp,
@@ -98,7 +102,9 @@ impl GameState {
         self.rerolled_count = 0;
         self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
         self.record_stage_start();
-        save_stage_snapshot(self);
+        if !crate::is_headless() {
+            save_stage_snapshot(self);
+        }
     }
 
     pub fn goto_next_stage(&mut self) {
@@ -110,9 +116,10 @@ impl GameState {
         self.hand_panel_forced_open = true;
         self.shop_panel_forced_open = true;
 
-        let max_slots = (5 + self.stage_modifiers.get_max_hand_slots_bonus())
-            .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
-            .max(1);
+        let max_slots = (self.config.player.base_hand_slots
+            + self.stage_modifiers.get_max_hand_slots_bonus())
+        .saturating_sub(self.stage_modifiers.get_max_hand_slots_penalty())
+        .max(1);
         sound::play_card_draw_sounds(max_slots);
 
         let removing_ids = self.hand.active_slot_ids();
@@ -132,7 +139,12 @@ impl GameState {
 
         // Drain all queued extra towers (barricades, special towers, etc.)
         for (tower_kind, suit, rank) in self.stage_modifiers.drain_extra_tower_cards() {
-            hand_items.push(TowerTemplate::new(tower_kind, suit, rank));
+            hand_items.push(TowerTemplate::new_with_config(
+                tower_kind,
+                suit,
+                rank,
+                &self.config,
+            ));
         }
 
         let removing_ids = self.hand.active_slot_ids();
@@ -159,7 +171,7 @@ impl GameState {
 
     pub fn goto_defense(&mut self) {
         self.flow = GameFlow::Defense(DefenseFlow::new(self));
-        sound::emit_sound(
+        self.effect_events.push(GameEffectEvent::PlaySound(
             sound::EmitSoundParams::one_shot(
                 sound::random_trumpet_fanfares(),
                 sound::SoundGroup::Ui,
@@ -167,7 +179,7 @@ impl GameState {
                 sound::SpatialMode::NonSpatial,
             )
             .with_max_duration(Duration::from_secs(6)),
-        );
+        ));
         start_spawn(self);
     }
 

@@ -113,23 +113,38 @@ pub fn spawn_dust_particle(particle: DustParticle) {
     DUSTS.spawn(particle);
 }
 
-pub static PROJECTILES: namui::particle::Emitter<ProjectileParticle> =
-    namui::particle::Emitter::new();
-pub static TRASHES: namui::particle::Emitter<TrashParticle> = namui::particle::Emitter::new();
-pub static CARDS: namui::particle::Emitter<CardParticle> = namui::particle::Emitter::new();
-pub static MONSTER_SOULS: namui::particle::Emitter<MonsterSoulParticle> =
-    namui::particle::Emitter::new();
-pub static MONSTER_CORPSES: namui::particle::Emitter<MonsterCorpseParticle> =
-    namui::particle::Emitter::new();
-pub static ICONS: namui::particle::Emitter<IconParticle> = namui::particle::Emitter::new();
-pub static DAMAGE_TEXTS: namui::particle::Emitter<DamageTextParticle> =
-    namui::particle::Emitter::new();
-pub static ATTACK_PARTICLES: namui::particle::Emitter<AttackParticle> =
-    namui::particle::Emitter::new();
-pub static HEARTS: namui::particle::Emitter<HeartParticle> = namui::particle::Emitter::new();
-pub static BLACK_SMOKES: namui::particle::Emitter<BlackSmokeParticle> =
-    namui::particle::Emitter::new();
-pub static DUSTS: namui::particle::Emitter<DustParticle> = namui::particle::Emitter::new();
+pub struct EmitterWrapper<T: namui::particle::Particle>(pub namui::particle::Emitter<T>);
+impl<T: namui::particle::Particle> std::ops::Deref for EmitterWrapper<T> {
+    type Target = namui::particle::Emitter<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl<T: namui::particle::Particle> EmitterWrapper<T> {
+    pub const fn new() -> Self {
+        Self(namui::particle::Emitter::new())
+    }
+    pub fn spawn(&self, particle: T) {
+        if !crate::is_headless() {
+            self.0.spawn(particle);
+        }
+    }
+    pub fn tick(&self, now: Instant, dt: Duration) {
+        self.0.tick(now, dt);
+    }
+}
+
+pub static PROJECTILES: EmitterWrapper<ProjectileParticle> = EmitterWrapper::new();
+pub static TRASHES: EmitterWrapper<TrashParticle> = EmitterWrapper::new();
+pub static CARDS: EmitterWrapper<CardParticle> = EmitterWrapper::new();
+pub static MONSTER_SOULS: EmitterWrapper<MonsterSoulParticle> = EmitterWrapper::new();
+pub static MONSTER_CORPSES: EmitterWrapper<MonsterCorpseParticle> = EmitterWrapper::new();
+pub static ICONS: EmitterWrapper<IconParticle> = EmitterWrapper::new();
+pub static DAMAGE_TEXTS: EmitterWrapper<DamageTextParticle> = EmitterWrapper::new();
+pub static ATTACK_PARTICLES: EmitterWrapper<AttackParticle> = EmitterWrapper::new();
+pub static HEARTS: EmitterWrapper<HeartParticle> = EmitterWrapper::new();
+pub static BLACK_SMOKES: EmitterWrapper<BlackSmokeParticle> = EmitterWrapper::new();
+pub static DUSTS: EmitterWrapper<DustParticle> = EmitterWrapper::new();
 
 pub fn tick_all_emitters(now: Instant, dt: Duration) {
     ATTACK_PARTICLES.tick(now, dt);

@@ -11,6 +11,7 @@ use self::tower_status_effect_injector::inject_status_effects;
 use self::tower_template_factory::create_tower_template;
 use crate::card::Card;
 use crate::card::REVERSED_RANKS;
+use crate::config::GameConfig;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::tower::TowerTemplate;
 use crate::game_state::upgrade::UpgradeState;
@@ -19,6 +20,7 @@ pub fn get_highest_tower_template(
     cards: &[Card],
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
+    config: &GameConfig,
 ) -> TowerTemplate {
     let straight_result = check_straight(cards, upgrade_state);
     let flush_result = check_flush(cards, upgrade_state);
@@ -29,6 +31,7 @@ pub fn get_highest_tower_template(
                 TowerKind::RoyalFlush,
                 flush_result.suit,
                 crate::card::Rank::Ace,
+                config,
             );
             inject_skills(&mut template);
             inject_status_effects(&mut template, upgrade_state, rerolled_count);
@@ -38,6 +41,7 @@ pub fn get_highest_tower_template(
             TowerKind::StraightFlush,
             flush_result.suit,
             straight_result.top.rank,
+            config,
         );
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
@@ -58,7 +62,7 @@ pub fn get_highest_tower_template(
             sorted_cards.sort();
             let top_card = sorted_cards.last().unwrap();
             let mut template =
-                create_tower_template(TowerKind::FourOfAKind, top_card.suit, top_card.rank);
+                create_tower_template(TowerKind::FourOfAKind, top_card.suit, top_card.rank, config);
             inject_skills(&mut template);
             inject_status_effects(&mut template, upgrade_state, rerolled_count);
             return template;
@@ -83,7 +87,7 @@ pub fn get_highest_tower_template(
         combined_cards.sort();
         let top_card = combined_cards.last().unwrap();
         let mut template =
-            create_tower_template(TowerKind::FullHouse, top_card.suit, top_card.rank);
+            create_tower_template(TowerKind::FullHouse, top_card.suit, top_card.rank, config);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -94,7 +98,7 @@ pub fn get_highest_tower_template(
         sorted_cards.sort();
         let top_card = sorted_cards.last().unwrap();
         let mut template =
-            create_tower_template(TowerKind::Flush, flush_result.suit, top_card.rank);
+            create_tower_template(TowerKind::Flush, flush_result.suit, top_card.rank, config);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -105,6 +109,7 @@ pub fn get_highest_tower_template(
             TowerKind::Straight,
             straight_result.top.suit,
             straight_result.top.rank,
+            config,
         );
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
@@ -114,8 +119,12 @@ pub fn get_highest_tower_template(
     if let Some(mut triple_cards_vec) = triple_cards {
         triple_cards_vec.sort();
         let top_card = triple_cards_vec.last().unwrap();
-        let mut template =
-            create_tower_template(TowerKind::ThreeOfAKind, top_card.suit, top_card.rank);
+        let mut template = create_tower_template(
+            TowerKind::ThreeOfAKind,
+            top_card.suit,
+            top_card.rank,
+            config,
+        );
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -130,7 +139,8 @@ pub fn get_highest_tower_template(
             .collect::<Vec<_>>();
         combined_cards.sort();
         let top_card = combined_cards.last().unwrap();
-        let mut template = create_tower_template(TowerKind::TwoPair, top_card.suit, top_card.rank);
+        let mut template =
+            create_tower_template(TowerKind::TwoPair, top_card.suit, top_card.rank, config);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -139,7 +149,8 @@ pub fn get_highest_tower_template(
     if let Some(mut pair_high_cards_vec) = pair_high_cards {
         pair_high_cards_vec.sort();
         let top_card = pair_high_cards_vec.last().unwrap();
-        let mut template = create_tower_template(TowerKind::OnePair, top_card.suit, top_card.rank);
+        let mut template =
+            create_tower_template(TowerKind::OnePair, top_card.suit, top_card.rank, config);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -148,7 +159,7 @@ pub fn get_highest_tower_template(
     let mut sorted_cards = cards.to_vec();
     sorted_cards.sort();
     let top_card = sorted_cards.last().unwrap();
-    let mut template = create_tower_template(TowerKind::High, top_card.suit, top_card.rank);
+    let mut template = create_tower_template(TowerKind::High, top_card.suit, top_card.rank, config);
     inject_skills(&mut template);
     inject_status_effects(&mut template, upgrade_state, rerolled_count);
     template

@@ -18,12 +18,6 @@ impl ThumbnailComposer {
         }
     }
 
-    /// 기본 타워 이미지를 설정합니다.
-    pub fn with_default_tower(mut self) -> Self {
-        self.base_layer = Some(base_rendering::render_default_tower(self.width_height));
-        self
-    }
-
     /// 특정 타워 이미지를 설정합니다.
     pub fn with_tower_image(mut self, tower_kind: crate::game_state::tower::TowerKind) -> Self {
         self.base_layer = Some(base_rendering::render_tower_image(
@@ -69,89 +63,6 @@ impl ThumbnailComposer {
         self
     }
 
-    /// 확장 표시기를 추가합니다.
-    pub fn add_expansion_indicator(mut self, text: &str) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_expansion_indicator(
-                self.width_height,
-                text,
-            ));
-        self
-    }
-
-    /// 낮은 카드 표시기를 추가합니다.
-    pub fn add_low_card_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_low_card_indicator(
-                self.width_height,
-            ));
-        self
-    }
-
-    /// 리롤 없음 표시기를 추가합니다.
-    pub fn add_no_reroll_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_no_reroll_indicator(
-                self.width_height,
-            ));
-        self
-    }
-
-    /// 리롤 허용 표시기를 추가합니다.
-    pub fn add_reroll_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_reroll_indicator(
-                self.width_height,
-            ));
-        self
-    }
-
-    /// 짝수/홀수 표시기를 추가합니다.
-    pub fn add_even_odd_indicator(mut self, is_even: bool) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_even_odd_indicator(
-                self.width_height,
-                is_even,
-            ));
-        self
-    }
-
-    /// 페이스/숫자 표시기를 추가합니다.
-    pub fn add_face_number_indicator(mut self, is_face: bool) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_face_number_indicator(
-                self.width_height,
-                is_face,
-            ));
-        self
-    }
-
-    /// 단축키 표시기를 추가합니다.
-    pub fn add_shortcut_indicator(mut self, text: &str) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_shortcut_indicator(
-                self.width_height,
-                text,
-            ));
-        self
-    }
-
-    /// 건너뛰기 표시기를 추가합니다.
-    pub fn add_skip_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_skip_indicator(self.width_height));
-        self
-    }
-
-    /// 같은 슈트 표시기를 추가합니다.
-    pub fn add_same_suits_indicator(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_same_suits_indicator(
-                self.width_height,
-            ));
-        self
-    }
-
     /// 아이콘 오버레이를 추가합니다.
     pub fn add_icon_overlay(
         mut self,
@@ -165,26 +76,6 @@ impl ThumbnailComposer {
                 icon_kind,
                 position,
                 size_ratio,
-            ));
-        self
-    }
-
-    /// 텍스트 오버레이를 추가합니다.
-    #[allow(dead_code)]
-    pub fn add_text_overlay(
-        mut self,
-        text: &str,
-        position: overlay_rendering::OverlayPosition,
-        size_ratio: f32,
-        text_size_ratio: f32,
-    ) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_text_overlay(
-                self.width_height,
-                text,
-                position,
-                size_ratio,
-                text_size_ratio,
             ));
         self
     }

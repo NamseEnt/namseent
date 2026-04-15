@@ -199,6 +199,9 @@ pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
         MonsterKind::Boss09 => rect(896.0, 128.0, 128.0, 128.0),
         MonsterKind::Boss10 => rect(1024.0, 128.0, 128.0, 128.0),
         MonsterKind::Boss11 => rect(1152.0, 128.0, 128.0, 128.0),
+        MonsterKind::Boss12 => rect(1152.0, 128.0, 128.0, 128.0),
+        MonsterKind::Boss13 => rect(1152.0, 128.0, 128.0, 128.0),
+        MonsterKind::Boss14 => rect(1152.0, 128.0, 128.0, 128.0),
     }
 }
 

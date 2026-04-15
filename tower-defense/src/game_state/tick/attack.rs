@@ -1,5 +1,7 @@
 use super::*;
+use crate::game_state::effect_event::{GameEffectEvent, ParticleSpawnRequest};
 use rand::Rng;
+use std::collections::HashMap;
 
 pub fn shoot_attacks(game_state: &mut GameState) {
     use crate::game_state::attack::AttackType;
@@ -86,33 +88,46 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         now,
                     });
 
-                    crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
-                        crate::sound::random_red_laser_shot(),
-                        crate::sound::SoundGroup::Sfx,
-                        crate::sound::VolumePreset::Minimum,
-                        crate::sound::SpatialMode::Spatial {
-                            position: crate::MapCoordF32::new(laser.start_xy.0, laser.start_xy.1),
-                        },
+                    game_state.effect_events.push(GameEffectEvent::PlaySound(
+                        crate::sound::EmitSoundParams::one_shot(
+                            crate::sound::random_red_laser_shot(),
+                            crate::sound::SoundGroup::Sfx,
+                            crate::sound::VolumePreset::Minimum,
+                            crate::sound::SpatialMode::Spatial {
+                                position: crate::MapCoordF32::new(
+                                    laser.start_xy.0,
+                                    laser.start_xy.1,
+                                ),
+                            },
+                        ),
                     ));
-                    crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
-                        crate::sound::random_red_laser_shot(),
-                        crate::sound::SoundGroup::Sfx,
-                        crate::sound::VolumePreset::Minimum,
-                        crate::sound::SpatialMode::Spatial {
-                            position: crate::MapCoordF32::new(laser.end_xy.0, laser.end_xy.1),
-                        },
+                    game_state.effect_events.push(GameEffectEvent::PlaySound(
+                        crate::sound::EmitSoundParams::one_shot(
+                            crate::sound::random_red_laser_shot(),
+                            crate::sound::SoundGroup::Sfx,
+                            crate::sound::VolumePreset::Minimum,
+                            crate::sound::SpatialMode::Spatial {
+                                position: crate::MapCoordF32::new(laser.end_xy.0, laser.end_xy.1),
+                            },
+                        ),
                     ));
 
-                    field_particle::emitter::spawn_laser_beam(
-                        laser.start_xy,
-                        laser.end_xy,
-                        laser.created_at,
-                    );
+                    game_state
+                        .effect_events
+                        .push(GameEffectEvent::SpawnLaserBeam(
+                            laser.start_xy,
+                            laser.end_xy,
+                            laser.created_at,
+                        ));
 
                     if damage > 0.0 {
-                        field_particle::DAMAGE_TEXTS.spawn(
-                            field_particle::DamageTextParticle::new(target_xy, damage, now),
-                        );
+                        game_state
+                            .effect_events
+                            .push(GameEffectEvent::SpawnParticle(
+                                ParticleSpawnRequest::DamageText(
+                                    field_particle::DamageTextParticle::new(target_xy, damage, now),
+                                ),
+                            ));
                     }
 
                     monster_kills.push((target_idx, damage, target_xy));
@@ -139,6 +154,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 AttackType::RoyalStraightFlush { target_xy } => {
                     let target_monster_id = monsters[target_idx].id();
                     tower.spawn_royal_straight_flush_visual(
+                        &mut game_state.effect_events,
                         target_xy,
                         target_monster_id,
                         now,
@@ -166,6 +182,13 @@ fn process_delayed_hits(game_state: &mut GameState) {
     let mut rng = rand::thread_rng();
     let mut due_hits = Vec::new();
 
+    let monster_index_by_id: HashMap<_, _> = game_state
+        .monsters
+        .iter()
+        .enumerate()
+        .map(|(index, monster)| (monster.id(), index))
+        .collect();
+
     game_state.delayed_hits.retain(|hit| {
         if hit.execute_at <= now {
             due_hits.push(*hit);
@@ -177,26 +200,13 @@ fn process_delayed_hits(game_state: &mut GameState) {
 
     let mut monster_kills = Vec::new();
     for hit in due_hits {
-        let Some(target_idx) = game_state
-            .monsters
-            .iter()
-            .position(|monster| monster.id() == hit.target_monster_id)
-        else {
+        let Some(&target_idx) = monster_index_by_id.get(&hit.target_monster_id) else {
             continue;
         };
 
         let target_xy = game_state.monsters[target_idx].center_xy_tile();
 
-        crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
-            crate::sound::random_knife_slash(),
-            crate::sound::SoundGroup::Sfx,
-            crate::sound::VolumePreset::Low,
-            crate::sound::SpatialMode::Spatial {
-                position: target_xy,
-            },
-        ));
-        let second_slash_delay_ms = rng.gen_range(30_i64..=60_i64);
-        crate::sound::emit_sound_after(
+        game_state.effect_events.push(GameEffectEvent::PlaySound(
             crate::sound::EmitSoundParams::one_shot(
                 crate::sound::random_knife_slash(),
                 crate::sound::SoundGroup::Sfx,
@@ -205,15 +215,32 @@ fn process_delayed_hits(game_state: &mut GameState) {
                     position: target_xy,
                 },
             ),
-            Duration::from_millis(second_slash_delay_ms),
-        );
+        ));
+        let second_slash_delay_ms = rng.gen_range(30_i64..=60_i64);
+        game_state
+            .effect_events
+            .push(GameEffectEvent::PlaySoundDelayed(
+                crate::sound::EmitSoundParams::one_shot(
+                    crate::sound::random_knife_slash(),
+                    crate::sound::SoundGroup::Sfx,
+                    crate::sound::VolumePreset::Low,
+                    crate::sound::SpatialMode::Spatial {
+                        position: target_xy,
+                    },
+                ),
+                Duration::from_millis(second_slash_delay_ms),
+            ));
 
         if hit.damage > 0.0 {
-            crate::game_state::field_particle::DAMAGE_TEXTS.spawn(
-                crate::game_state::field_particle::DamageTextParticle::new(
-                    target_xy, hit.damage, now,
-                ),
-            );
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::DamageText(
+                        crate::game_state::field_particle::DamageTextParticle::new(
+                            target_xy, hit.damage, now,
+                        ),
+                    ),
+                ));
         }
 
         monster_kills.push((target_idx, hit.damage, target_xy));
@@ -223,7 +250,7 @@ fn process_delayed_hits(game_state: &mut GameState) {
 }
 
 fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f32, MapCoordF32)>) {
-    let indices_to_remove: Vec<_> = monster_kills
+    let mut indices_to_remove: Vec<_> = monster_kills
         .into_iter()
         .filter_map(|(target_idx, damage, target_xy)| {
             if target_idx >= game_state.monsters.len() {
@@ -233,13 +260,15 @@ fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f3
             game_state.monsters[target_idx].get_damage(damage);
 
             if damage > 0.0 {
-                crate::sound::emit_sound(crate::sound::EmitSoundParams::one_shot(
-                    crate::sound::random_whoop(),
-                    crate::sound::SoundGroup::Sfx,
-                    crate::sound::VolumePreset::Minimum,
-                    crate::sound::SpatialMode::Spatial {
-                        position: target_xy,
-                    },
+                game_state.effect_events.push(GameEffectEvent::PlaySound(
+                    crate::sound::EmitSoundParams::one_shot(
+                        crate::sound::random_whoop(),
+                        crate::sound::SoundGroup::Sfx,
+                        crate::sound::VolumePreset::Minimum,
+                        crate::sound::SpatialMode::Spatial {
+                            position: target_xy,
+                        },
+                    ),
                 ));
             }
 
@@ -252,6 +281,8 @@ fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f3
         .collect();
 
     let now = game_state.now();
+    indices_to_remove.sort_by_key(|(target_idx, _)| *target_idx);
+    indices_to_remove.dedup_by_key(|(target_idx, _)| *target_idx);
     for (target_idx, target_xy) in indices_to_remove.into_iter().rev() {
         super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
     }

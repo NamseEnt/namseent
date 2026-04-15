@@ -1,12 +1,11 @@
 use super::Tower;
-use crate::game_state::GameState;
-use crate::game_state::Monster;
 use crate::game_state::field_particle::emitter::{
     BlackSmokeSource, spawn_black_smoke_burst, spawn_black_smoke_burst_reversed,
     spawn_black_smoke_dash_trail, spawn_black_smoke_puff_burst, spawn_red_slash_marks,
     spawn_yellow_explosion_burst,
 };
-use crate::sound;
+use crate::game_state::{EffectEventQueue, GameEffectEvent, GameState, Monster};
+use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use namui::*;
 use rand::Rng;
 
@@ -118,6 +117,7 @@ impl RoyalStraightFlushVisual {
 
     fn tick(
         &mut self,
+        effect_events: &mut EffectEventQueue,
         now: Instant,
         tower_center_xy: (f32, f32),
         monsters: &[Monster],
@@ -148,9 +148,26 @@ impl RoyalStraightFlushVisual {
             for clone in &self.clones {
                 spawn_black_smoke_burst_reversed(black_smoke_sources, clone.end_center_xy, now);
                 spawn_black_smoke_puff_burst(clone.end_center_xy, now);
-                emit_wind_at(clone.end_center_xy);
+                effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
+                    sound::random_wind(),
+                    SoundGroup::Sfx,
+                    VolumePreset::Minimum,
+                    SpatialMode::Spatial {
+                        position: crate::MapCoordF32::new(
+                            clone.end_center_xy.0,
+                            clone.end_center_xy.1,
+                        ),
+                    },
+                )));
             }
-            emit_wind_at(tower_center_xy);
+            effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
+                sound::random_wind(),
+                SoundGroup::Sfx,
+                VolumePreset::Minimum,
+                SpatialMode::Spatial {
+                    position: crate::MapCoordF32::new(tower_center_xy.0, tower_center_xy.1),
+                },
+            )));
         }
 
         self.phase = next_phase;
@@ -168,6 +185,7 @@ pub fn royal_straight_flush_hit_delay() -> Duration {
 impl Tower {
     pub fn spawn_royal_straight_flush_visual(
         &mut self,
+        effect_events: &mut EffectEventQueue,
         target_xy: (f32, f32),
         target_monster_id: usize,
         now: Instant,
@@ -179,11 +197,28 @@ impl Tower {
 
         spawn_black_smoke_burst_reversed(black_smoke_sources, tower_center_xy, now);
         spawn_black_smoke_puff_burst(tower_center_xy, now);
-        emit_wind_at(tower_center_xy);
+        effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
+            sound::random_wind(),
+            SoundGroup::Sfx,
+            VolumePreset::Minimum,
+            SpatialMode::Spatial {
+                position: crate::MapCoordF32::new(tower_center_xy.0, tower_center_xy.1),
+            },
+        )));
         for clone in &clones {
             spawn_black_smoke_burst(black_smoke_sources, clone.spawn_center_xy, now);
             spawn_black_smoke_puff_burst(clone.spawn_center_xy, now);
-            emit_wind_at(clone.spawn_center_xy);
+            effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
+                sound::random_wind(),
+                SoundGroup::Sfx,
+                VolumePreset::Minimum,
+                SpatialMode::Spatial {
+                    position: crate::MapCoordF32::new(
+                        clone.spawn_center_xy.0,
+                        clone.spawn_center_xy.1,
+                    ),
+                },
+            )));
         }
 
         self.royal_straight_flush_visual = Some(RoyalStraightFlushVisual::new(
@@ -208,7 +243,13 @@ pub fn tick_royal_straight_flush_visuals(game_state: &mut GameState, now: Instan
         let tower_center = tower.center_xy_f32();
         let tower_center_xy = (tower_center.x, tower_center.y);
         let visual = tower.royal_straight_flush_visual.as_mut().unwrap();
-        visual.tick(now, tower_center_xy, monsters, black_smoke_sources);
+        visual.tick(
+            &mut game_state.effect_events,
+            now,
+            tower_center_xy,
+            monsters,
+            black_smoke_sources,
+        );
         if visual.is_finished(now) {
             tower.royal_straight_flush_visual = None;
         }
@@ -260,15 +301,4 @@ fn compute_pass_through_xy(from: (f32, f32), target: (f32, f32)) -> (f32, f32) {
 
 fn ease_out_cubic(t: f32) -> f32 {
     1.0 - (1.0 - t).powi(3)
-}
-
-fn emit_wind_at(position: (f32, f32)) {
-    sound::emit_sound(sound::EmitSoundParams::one_shot(
-        sound::random_wind(),
-        sound::SoundGroup::Sfx,
-        sound::VolumePreset::Minimum,
-        sound::SpatialMode::Spatial {
-            position: crate::MapCoordF32::new(position.0, position.1),
-        },
-    ));
 }

@@ -1,11 +1,12 @@
 use super::*;
 use crate::game_state::camera::ShakeIntensity;
+use crate::game_state::effect_event::GameEffectEvent;
 use crate::{
     game_state::{
         effect::run_effect, item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
-    sound::{self, GameEndKind},
+    sound::{self},
 };
 use rand::Rng;
 
@@ -28,14 +29,28 @@ impl GameState {
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
         if gold > 0 {
-            sound::play_coin_sound_for_gold();
+            self.effect_events.push(GameEffectEvent::PlaySound(
+                sound::EmitSoundParams::one_shot(
+                    sound::random_coin_sounds(),
+                    sound::SoundGroup::Ui,
+                    sound::VolumePreset::High,
+                    sound::SpatialMode::NonSpatial,
+                ),
+            ));
         }
     }
     /// WARNING: `gold` must be less than or equal to self.gold
     pub fn spend_gold(&mut self, gold: usize) {
         self.gold -= gold;
         if gold > 0 {
-            sound::play_coin_sound_for_gold();
+            self.effect_events.push(GameEffectEvent::PlaySound(
+                sound::EmitSoundParams::one_shot(
+                    sound::random_coin_sounds(),
+                    sound::SoundGroup::Ui,
+                    sound::VolumePreset::High,
+                    sound::SpatialMode::NonSpatial,
+                ),
+            ));
         }
     }
 
@@ -63,11 +78,13 @@ impl GameState {
 
         let tower_placed = self.towers.iter().count() > tower_count_before;
         if tower_placed {
-            sound::emit_sound(sound::EmitSoundParams::one_shot(
-                sound::random_luggage_drop(),
-                sound::SoundGroup::Sfx,
-                sound::VolumePreset::High,
-                sound::SpatialMode::NonSpatial,
+            self.effect_events.push(GameEffectEvent::PlaySound(
+                sound::EmitSoundParams::one_shot(
+                    sound::random_luggage_drop(),
+                    sound::SoundGroup::Sfx,
+                    sound::VolumePreset::High,
+                    sound::SpatialMode::NonSpatial,
+                ),
             ));
         }
     }
@@ -88,7 +105,11 @@ impl GameState {
             self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                 .expect("route should exist after removing a tower");
             if let Some(center_xy) = tower_center_xy {
-                field_particle::emitter::spawn_tower_remove_dust_burst(center_xy, self.now());
+                self.effect_events
+                    .push(GameEffectEvent::SpawnTowerRemoveDustBurst(
+                        center_xy,
+                        self.now(),
+                    ));
             }
         }
         tower_removed
@@ -129,7 +150,7 @@ impl GameState {
             let mut accumulated_delay_ms = 0i64;
 
             for index in 0..repeat_count {
-                sound::emit_sound_after(
+                self.effect_events.push(GameEffectEvent::PlaySoundDelayed(
                     sound::EmitSoundParams::one_shot(
                         sound::random_pickaxe(),
                         sound::SoundGroup::Sfx,
@@ -137,7 +158,7 @@ impl GameState {
                         sound::SpatialMode::NonSpatial,
                     ),
                     Duration::from_millis(accumulated_delay_ms),
-                );
+                ));
 
                 if index + 1 < repeat_count {
                     accumulated_delay_ms +=
@@ -152,7 +173,14 @@ impl GameState {
 
         // Check game over
         if self.hp <= 0.0 {
-            sound::play_game_end_sound(GameEndKind::Defeat);
+            self.effect_events.push(GameEffectEvent::PlaySound(
+                sound::EmitSoundParams::one_shot(
+                    sound::random_fail(),
+                    sound::SoundGroup::Sfx,
+                    sound::VolumePreset::High,
+                    sound::SpatialMode::NonSpatial,
+                ),
+            ));
             self.goto_result();
         }
     }

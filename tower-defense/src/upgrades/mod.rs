@@ -80,6 +80,7 @@ impl Component for UpgradeThumbnailItem {
         } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
+        let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
         let tooltip_scale = with_spring(
             ctx,
             if *hovering { 1.0 } else { 0.0 },
@@ -87,6 +88,19 @@ impl Component for UpgradeThumbnailItem {
             |v| v * v,
             || 0.0,
         );
+
+        if *hovering && (*hover_start).is_none() {
+            set_hover_start.set(Some(Instant::now()));
+        }
+        if !*hovering {
+            set_hover_start.set(None);
+        }
+
+        let hover_rotation = if let Some(start) = *hover_start {
+            ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
+        } else {
+            0.0
+        };
 
         ctx.compose(|ctx| {
             if tooltip_scale > 0.01 {
@@ -118,23 +132,17 @@ impl Component for UpgradeThumbnailItem {
         });
 
         let ctx = ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN));
+        let thumbnail_wh = Wh::new(ITEM_SIZE - PADDING * 2.0, ITEM_SIZE - PADDING * 2.0);
 
-        ctx.translate(Xy::single(PADDING))
-            .add(upgrade_info.upgrade_kind.thumbnail(Wh::new(
-                ITEM_SIZE - PADDING * 2.0,
-                ITEM_SIZE - PADDING * 2.0,
-            )));
+        ctx.translate(Xy::single(PADDING)).compose(|ctx| {
+            let pivot = Xy::new(thumbnail_wh.width * 0.5, thumbnail_wh.height * 0.5);
+            ctx.translate(pivot)
+                .rotate(hover_rotation.deg())
+                .translate(Xy::new(-pivot.x, -pivot.y))
+                .add(upgrade_info.upgrade_kind.thumbnail(thumbnail_wh));
+        });
 
-        ctx.add(PaperContainerBackground {
-            width: wh.width,
-            height: wh.height,
-            texture: PaperTexture::Rough,
-            variant: PaperVariant::Sticky,
-            color: palette::SURFACE_CONTAINER,
-            shadow: true,
-            arrow: None,
-        })
-        .add(
+        ctx.add(
             simple_rect(
                 Wh::new(ITEM_SIZE, ITEM_SIZE),
                 Color::TRANSPARENT,

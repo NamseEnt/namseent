@@ -2,15 +2,19 @@ pub mod generation;
 mod thumbnail;
 mod usage;
 
+use crate::asset::image::thumbnail as thumbnail_image;
 use crate::card::Card;
 pub use crate::game_state::effect::Effect;
+use crate::thumbnail::{
+    STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
+};
 use namui::*;
 pub use usage::*;
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum ItemKind {
-    RiceCake,
-    EmergencyDice,
+    RiceBall,
+    LumpSugar,
     Shield,
     Painkiller,
     GrantBarricades,
@@ -32,6 +36,53 @@ impl ItemKind {
     pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
         crate::l10n::item_kind::ItemKindText::Description(self.clone())
     }
+
+    pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
+        self.thumbnail_with_shadow(width_height, STICKER_THUMBNAIL_STROKE, false)
+    }
+
+    pub fn thumbnail_with_shadow(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+    ) -> RenderingTree {
+        match self {
+            ItemKind::RiceBall => render_sticker_image_with_shadow(
+                thumbnail_image::RICE_BALL,
+                width_height,
+                stroke_px,
+                shadow,
+            ),
+            ItemKind::LumpSugar => render_sticker_image_with_shadow(
+                thumbnail_image::LUMP_SUGAR,
+                width_height,
+                stroke_px,
+                shadow,
+            ),
+            ItemKind::Shield => render_sticker_image_with_shadow(
+                thumbnail_image::SHIELD,
+                width_height,
+                stroke_px,
+                shadow,
+            ),
+            ItemKind::Painkiller => render_sticker_image_with_shadow(
+                thumbnail_image::PAINKILLER,
+                width_height,
+                stroke_px,
+                shadow,
+            ),
+            ItemKind::GrantBarricades => render_sticker_image_with_shadow(
+                thumbnail_image::GRANT_BARRICADES,
+                width_height,
+                stroke_px,
+                shadow,
+            ),
+            ItemKind::GrantCard { card } => {
+                render_card_thumbnail(card, width_height, stroke_px, shadow)
+            }
+        }
+    }
 }
 
 impl Item {
@@ -52,7 +103,7 @@ impl Item {
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
-        self.effect.thumbnail(width_height)
+        self.kind.thumbnail(width_height)
     }
 
     /// 아이템이 현재 게임 상태에서 사용 가능한지 확인

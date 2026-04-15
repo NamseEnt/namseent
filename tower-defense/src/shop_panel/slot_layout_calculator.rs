@@ -73,7 +73,7 @@ mod tests {
 
     fn make_dummy_slot() -> ShopSlotData {
         let item = Item {
-            kind: crate::game_state::item::ItemKind::RiceCake,
+            kind: crate::game_state::item::ItemKind::RiceBall,
             effect: Effect::Heal { amount: 0.0 },
             value: OneZero::default(),
         };

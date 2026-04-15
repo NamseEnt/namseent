@@ -1,8 +1,10 @@
 mod animation;
 mod camera_controller;
 mod card;
+pub mod config;
 mod flow_ui;
 mod game_state; // now private; selective re-exports below
+pub use game_state::monster::MonsterKind;
 mod hand;
 mod hand_panel;
 mod icon;
@@ -12,6 +14,8 @@ mod rarity; // private; re-export Rarity only
 mod route;
 mod shop;
 mod shop_panel;
+#[cfg(feature = "simulator")]
+pub mod simulator;
 pub mod sound;
 mod theme;
 mod thumbnail;
@@ -19,7 +23,7 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
-use crate::{camera_controller::CameraController, game_state::Modal};
+use crate::camera_controller::CameraController;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -36,6 +40,17 @@ type BlockUnit = usize;
 type BlockUnitF32 = f32;
 type MapCoord = Xy<BlockUnit>;
 type MapCoordF32 = Xy<BlockUnitF32>;
+
+/// Global headless mode flag. When true, sound and particle side effects are suppressed.
+static HEADLESS_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_headless(headless: bool) {
+    HEADLESS_MODE.store(headless, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub fn is_headless() -> bool {
+    HEADLESS_MODE.load(std::sync::atomic::Ordering::Relaxed)
+}
 
 pub fn main() {
     namui::start(|ctx: &RenderCtx| {
@@ -127,6 +142,8 @@ impl Component for Game {
                     #[cfg(feature = "debug-tools")]
                     Code::F8 => {
                         mutate_game_state(|game_state| {
+                            use crate::game_state::Modal;
+
                             if matches!(game_state.opened_modal, Some(Modal::DebugTools)) {
                                 game_state.opened_modal = None;
                             } else {

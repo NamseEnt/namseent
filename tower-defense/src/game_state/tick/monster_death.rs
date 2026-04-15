@@ -6,6 +6,9 @@ pub fn handle_monster_death(
     target_xy: Xy<f32>,
     now: Instant,
 ) {
+    if target_idx >= game_state.monsters.len() {
+        return;
+    }
     let monster_max_hp = game_state.monsters[target_idx].max_hp;
     let monster_reward = game_state.monsters[target_idx].reward;
     let monster_kind = game_state.monsters[target_idx].kind;
@@ -28,17 +31,25 @@ pub fn handle_monster_death(
     );
     let pixel_xy = tile_base_xy + monster_center_offset;
 
-    field_particle::MONSTER_SOULS.spawn(field_particle::MonsterSoulParticle::new(
-        pixel_xy, now, rotation,
-    ));
+    game_state
+        .effect_events
+        .push(GameEffectEvent::SpawnParticle(
+            ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
+                pixel_xy, now, rotation,
+            )),
+        ));
 
-    field_particle::MONSTER_CORPSES.spawn(field_particle::MonsterCorpseParticle::new(
-        pixel_xy,
-        now,
-        rotation,
-        monster_kind,
-        wh,
-    ));
+    game_state
+        .effect_events
+        .push(GameEffectEvent::SpawnParticle(
+            ParticleSpawnRequest::MonsterCorpse(field_particle::MonsterCorpseParticle::new(
+                pixel_xy,
+                now,
+                rotation,
+                monster_kind,
+                wh,
+            )),
+        ));
 
     game_state.earn_gold(earn);
     game_state.monsters.swap_remove(target_idx);

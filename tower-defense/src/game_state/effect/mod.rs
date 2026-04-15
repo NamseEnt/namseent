@@ -135,7 +135,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
 ) {
     match effect {
         Effect::Heal { amount } => {
-            game_state.hp = (game_state.hp + amount).min(crate::game_state::MAX_HP);
+            game_state.hp = (game_state.hp + amount).min(game_state.config.player.max_hp);
         }
         Effect::Shield { amount } => {
             game_state.shield += amount;
@@ -193,7 +193,10 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             game_state.upgrade_state.upgrade(upgrade);
         }
         Effect::GrantItem { rarity: _ } => {
-            let item = crate::game_state::item::generation::generate_item_with_rng(rng);
+            let item = crate::game_state::item::generation::generate_item_with_rng(
+                rng,
+                &game_state.config,
+            );
             game_state.items.push(item);
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
@@ -290,11 +293,14 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         } => {
             for _ in 0..*count {
                 if matches!(game_state.flow, GameFlow::PlacingTower) {
-                    game_state.hand.push(HandItem::Tower(TowerTemplate::new(
-                        *tower_kind,
-                        *suit,
-                        *rank,
-                    )));
+                    game_state
+                        .hand
+                        .push(HandItem::Tower(TowerTemplate::new_with_config(
+                            *tower_kind,
+                            *suit,
+                            *rank,
+                            &game_state.config,
+                        )));
                 } else {
                     game_state
                         .stage_modifiers
@@ -317,7 +323,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             max_amount,
         } => {
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp + heal_amount).min(crate::game_state::MAX_HP);
+            game_state.hp = (game_state.hp + heal_amount).min(game_state.config.player.max_hp);
         }
         Effect::GainGold {
             min_amount,
@@ -470,7 +476,6 @@ pub mod tests_support {
     /// 테스트용 GameState 생성 헬퍼.
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
     /// - 필요한 최소 필드만 초기화.
-    #[allow(dead_code)]
     pub fn make_test_state() -> GameState {
         GameState {
             monsters: Default::default(),
@@ -478,6 +483,7 @@ pub mod tests_support {
             camera: crate::game_state::camera::Camera::new(),
             route: crate::game_state::calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: crate::game_state::generate_backgrounds(),
+            effect_events: crate::game_state::EffectEventQueue::default(),
             upgrade_state: Default::default(),
             flow: GameFlow::Initializing,
             hand: Hand::new(std::iter::empty::<HandItem>()),
@@ -509,6 +515,7 @@ pub mod tests_support {
                 ),
             black_smoke_sources: Default::default(),
             base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
+            config: std::sync::Arc::new(crate::config::GameConfig::default_config()),
 
             hand_panel_forced_open: true,
             shop_panel_forced_open: true,

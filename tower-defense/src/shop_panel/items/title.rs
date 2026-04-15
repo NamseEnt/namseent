@@ -1,10 +1,10 @@
-use crate::game_state::item::Effect;
+use crate::game_state::item::ItemKind;
 use crate::game_state::upgrade::UpgradeKind;
 use crate::l10n;
 
 pub enum ShopItemTitle {
-    Effect {
-        effect: Effect,
+    Item {
+        item_kind: ItemKind,
         locale: l10n::Locale,
     },
     Upgrade {
@@ -16,8 +16,8 @@ pub enum ShopItemTitle {
 impl ShopItemTitle {
     pub(crate) fn key(&self) -> String {
         match self {
-            ShopItemTitle::Effect { effect, locale } => {
-                format!("{:?}:{:?}", locale.language, effect)
+            ShopItemTitle::Item { item_kind, locale } => {
+                format!("{:?}:{:?}", locale.language, item_kind)
             }
             ShopItemTitle::Upgrade {
                 upgrade_kind,

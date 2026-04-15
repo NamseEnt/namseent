@@ -123,12 +123,12 @@ impl UpgradeCategory {
     fn display_name(&self) -> &'static str {
         match self {
             UpgradeCategory::Random => "Random",
-            UpgradeCategory::Magnet => "Magnet",
+            UpgradeCategory::Magnet => "Cat",
             UpgradeCategory::SuitDamage => "Suit",
 
             UpgradeCategory::ShopSlotExpansion => "Backpack",
             UpgradeCategory::ExtraDice => "Dice Bundle",
-            UpgradeCategory::LowCardDamage => "Spoon",
+            UpgradeCategory::LowCardDamage => "Tricycle",
             UpgradeCategory::ShopItemPriceMinus => "Energy Drink",
             UpgradeCategory::NoRerollDamage => "Perfect Pottery",
             UpgradeCategory::EvenOddDamage => "Chopsticks",
@@ -144,7 +144,7 @@ impl UpgradeCategory {
         let mut rng = thread_rng();
         match self {
             UpgradeCategory::Random => panic!("Should not generate Random category"),
-            UpgradeCategory::Magnet => UpgradeKind::Magnet,
+            UpgradeCategory::Magnet => UpgradeKind::Cat,
             UpgradeCategory::SuitDamage => {
                 let suit = *SUITS.choose(&mut rng).unwrap();
                 let damage_multiplier =
@@ -158,7 +158,7 @@ impl UpgradeCategory {
             }
             UpgradeCategory::ShopSlotExpansion => UpgradeKind::Backpack,
             UpgradeCategory::ExtraDice => UpgradeKind::DiceBundle,
-            UpgradeCategory::LowCardDamage => UpgradeKind::Spoon {
+            UpgradeCategory::LowCardDamage => UpgradeKind::Tricycle {
                 damage_multiplier: rarity_gen(rarity, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..4.0)),
             },
             UpgradeCategory::ShopItemPriceMinus => UpgradeKind::EnergyDrink,

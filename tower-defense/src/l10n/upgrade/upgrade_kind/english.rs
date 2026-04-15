@@ -6,8 +6,8 @@ impl UpgradeKindText<'_> {
     pub fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self {
             UpgradeKindText::Name(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::Magnet => {
-                    builder.static_text("Magnet");
+                crate::game_state::upgrade::UpgradeKind::Cat => {
+                    builder.static_text("Cat");
                 }
                 crate::game_state::upgrade::UpgradeKind::CainSword { .. } => {
                     builder.static_text("Cain Sword");
@@ -27,8 +27,8 @@ impl UpgradeKindText<'_> {
                 crate::game_state::upgrade::UpgradeKind::DiceBundle => {
                     builder.static_text("Dice Bundle");
                 }
-                crate::game_state::upgrade::UpgradeKind::Spoon { .. } => {
-                    builder.static_text("Spoon");
+                crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => {
+                    builder.static_text("Tricycle");
                 }
                 crate::game_state::upgrade::UpgradeKind::EnergyDrink => {
                     builder.static_text("Energy Drink");
@@ -65,7 +65,7 @@ impl UpgradeKindText<'_> {
                 }
             },
             UpgradeKindText::Description(upgrade_kind) => match upgrade_kind {
-                crate::game_state::upgrade::UpgradeKind::Magnet => {
+                crate::game_state::upgrade::UpgradeKind::Cat => {
                     builder
                         .static_text("Increases ")
                         .with_gold_icon("gold")
@@ -94,7 +94,7 @@ impl UpgradeKindText<'_> {
                         .with_positive_effect("1")
                         .static_text(".");
                 }
-                crate::game_state::upgrade::UpgradeKind::Spoon { damage_multiplier } => {
+                crate::game_state::upgrade::UpgradeKind::Tricycle { damage_multiplier } => {
                     builder
                         .static_text(
                             "Increases attack damage of towers built with 3 or fewer cards by ",

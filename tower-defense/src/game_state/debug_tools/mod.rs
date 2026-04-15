@@ -135,7 +135,7 @@ impl Component for DebugToolsModal {
                                                         &|| {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
-                                                                    kind: ItemKind::EmergencyDice,
+                                                                    kind: ItemKind::LumpSugar,
                                                                     effect: Effect::ExtraDice,
                                                                     value: 0.0.into(),
                                                                 });
@@ -167,7 +167,7 @@ impl Component for DebugToolsModal {
                                                         &|| {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(Item {
-                                                                    kind: ItemKind::EmergencyDice,
+                                                                    kind: ItemKind::LumpSugar,
                                                                     effect: Effect::ExtraDice,
                                                                     value: 0.0.into(),
                                                                 });

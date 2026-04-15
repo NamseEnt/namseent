@@ -3,10 +3,7 @@ use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, Pape
 use crate::{
     game_state::{item::use_item, mutate_game_state, use_game_state},
     palette,
-    theme::{
-        button::Button,
-        typography::{FontSize, memoized_text},
-    },
+    theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -17,6 +14,7 @@ const ITEM_GAP: Px = px(12.);
 // half the gap becomes margin around each button
 const ITEM_MARGIN: Px = px(6.);
 const PADDING: Px = px(8.);
+const INVENTORY_STICKER_THUMBNAIL_STROKE: Px = px(6.);
 
 mod tooltip {
     use namui::*;
@@ -79,6 +77,7 @@ impl Component for InventoryItem<'_> {
         } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
+        let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
 
         let tooltip_scale = with_spring(
             ctx,
@@ -113,40 +112,62 @@ impl Component for InventoryItem<'_> {
             }
         });
 
-        // translate the whole item by margin so button and hit area aren't flush
+        let item_wh = Wh::new(ITEM_SIZE, ITEM_SIZE);
+        let inner_wh = Wh::new(
+            item_wh.width - PADDING * 2.0,
+            item_wh.height - PADDING * 2.0,
+        );
+
+        if *hovering && (*hover_start).is_none() {
+            set_hover_start.set(Some(Instant::now()));
+        }
+        if !*hovering {
+            set_hover_start.set(None);
+        }
+
+        let hover_rotation = if let Some(start) = *hover_start {
+            ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
+        } else {
+            0.0
+        };
+
         ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN))
-            .add(Button::new(
-                Wh::new(ITEM_SIZE, ITEM_SIZE),
-                &|| {
-                    mutate_game_state(move |game_state| {
-                        let item = game_state.items.remove(index);
-                        use_item(game_state, &item);
-                    });
-                },
-                &|wh, _color, ctx| {
-                    // thumbnail gets normal padding; margins are handled above
-                    let inner_wh = Wh::new(wh.width - PADDING * 2.0, wh.height - PADDING * 2.0);
-                    ctx.translate(Xy::new(PADDING, PADDING))
-                        .add(item.thumbnail(inner_wh));
-                },
-            ))
+            .compose(|ctx| {
+                let pivot = Xy::new(ITEM_SIZE * 0.5, ITEM_SIZE * 0.5);
+                ctx.translate(pivot)
+                    .rotate(hover_rotation.deg())
+                    .translate(Xy::new(-pivot.x, -pivot.y))
+                    .translate(Xy::new(PADDING, PADDING))
+                    .add(item.kind.thumbnail_with_shadow(
+                        inner_wh,
+                        INVENTORY_STICKER_THUMBNAIL_STROKE,
+                        true,
+                    ));
+            });
+
+        ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN))
+            .mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
             .add(
-                simple_rect(
-                    Wh::new(ITEM_SIZE, ITEM_SIZE),
-                    Color::TRANSPARENT,
-                    0.px(),
-                    Color::TRANSPARENT,
-                )
-                .attach_event(move |event| {
-                    let Event::MouseMove { event } = event else {
-                        return;
-                    };
-                    if event.is_local_xy_in() {
-                        set_hovering.set(true);
-                    } else {
-                        set_hovering.set(false);
-                    }
-                }),
+                simple_rect(item_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                    move |event| match event {
+                        Event::MouseMove { event } => {
+                            if event.is_local_xy_in() {
+                                set_hovering.set(true);
+                            } else {
+                                set_hovering.set(false);
+                            }
+                        }
+                        Event::MouseDown { event } => {
+                            if event.is_local_xy_in() {
+                                mutate_game_state(move |game_state| {
+                                    let item = game_state.items.remove(index);
+                                    use_item(game_state, &item);
+                                });
+                            }
+                        }
+                        _ => {}
+                    },
+                ),
             );
     }
 }

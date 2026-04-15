@@ -1,5 +1,6 @@
 use crate::*;
 use rand::Rng;
+use rand::RngCore;
 use rand::seq::SliceRandom;
 use std::fmt::Display;
 
@@ -23,6 +24,7 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
 pub enum Rank {
     Two,
@@ -225,6 +227,21 @@ impl Deck {
     pub fn put_back(&mut self, cards: impl IntoIterator<Item = Card>) {
         self.cards.extend(cards);
         self.cards.shuffle(&mut rand::thread_rng());
+    }
+
+    pub fn sample<R: RngCore + ?Sized>(&self, count: usize, rng: &mut R) -> Vec<Card> {
+        let available = self.cards.len().min(count);
+        let mut cards = self
+            .cards
+            .choose_multiple(rng, available)
+            .copied()
+            .collect::<Vec<_>>();
+
+        for _ in available..count {
+            cards.push(Card::new_random());
+        }
+
+        cards
     }
 
     pub fn remaining(&self) -> usize {

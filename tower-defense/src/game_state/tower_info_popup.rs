@@ -1,5 +1,6 @@
 use super::{Tower, mutate_game_state};
 use crate::flow_ui::TowerPreviewContent;
+use crate::game_state::GameEffectEvent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
     paper_container::{
@@ -44,12 +45,14 @@ impl Component for TowerInfoPopup<'_> {
                                                 let tower_removed =
                                                     game_state.remove_tower(tower_id);
                                                 if tower_removed {
-                                                    sound::emit_sound(
-                                                        sound::EmitSoundParams::one_shot(
-                                                            sound::random_paper_crumpling(),
-                                                            sound::SoundGroup::Sfx,
-                                                            sound::VolumePreset::High,
-                                                            sound::SpatialMode::NonSpatial,
+                                                    game_state.effect_events.push(
+                                                        GameEffectEvent::PlaySound(
+                                                            sound::EmitSoundParams::one_shot(
+                                                                sound::random_paper_crumpling(),
+                                                                sound::SoundGroup::Sfx,
+                                                                sound::VolumePreset::High,
+                                                                sound::SpatialMode::NonSpatial,
+                                                            ),
                                                         ),
                                                     );
                                                 }

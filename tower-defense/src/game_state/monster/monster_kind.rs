@@ -1,6 +1,7 @@
 use crate::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, State)]
+#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
 pub enum MonsterKind {
     Mob01,
     Mob02,
@@ -63,6 +64,9 @@ pub enum MonsterKind {
     Boss09,
     Boss10,
     Boss11,
+    Boss12,
+    Boss13,
+    Boss14,
 }
 
 impl MonsterKind {
@@ -129,6 +133,9 @@ impl MonsterKind {
             MonsterKind::Boss09 => crate::asset::image::monster::BOSS09,
             MonsterKind::Boss10 => crate::asset::image::monster::BOSS10,
             MonsterKind::Boss11 => crate::asset::image::monster::BOSS11,
+            MonsterKind::Boss12 => crate::asset::image::monster::BOSS11,
+            MonsterKind::Boss13 => crate::asset::image::monster::BOSS11,
+            MonsterKind::Boss14 => crate::asset::image::monster::BOSS11,
         }
     }
 
@@ -251,6 +258,9 @@ impl MonsterKind {
             MonsterKind::Boss09 => "🦍",
             MonsterKind::Boss10 => "🦖",
             MonsterKind::Boss11 => "🦚",
+            MonsterKind::Boss12 => "🦜",
+            MonsterKind::Boss13 => "🦢",
+            MonsterKind::Boss14 => "🦩",
         }
     }
 
