@@ -3,7 +3,6 @@ use crate::{
     card::{Card, Rank, Suit},
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{
-        UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos,
         tower::{Tower, TowerKind, TowerTemplate},
         use_game_state,
     },
@@ -52,13 +51,16 @@ impl Component for Upgrades {
             active_slot_ids.clone_inner(),
         );
 
-        let mut upgrade_infos = get_upgrade_infos(&game_state.upgrade_state, &game_state.text())
-            .into_iter()
-            .map(|upgrade_info| {
-                let is_applicable = active_tower_context.as_ref().is_some_and(|context| {
-                    is_upgrade_applicable(&upgrade_info.upgrade_kind, context)
-                });
-                (upgrade_info, is_applicable)
+        let mut upgrade_infos = game_state
+            .upgrade_state
+            .upgrades
+            .iter()
+            .map(|upgrade| upgrade.kind)
+            .map(|upgrade_kind| {
+                let is_applicable = active_tower_context
+                    .as_ref()
+                    .is_some_and(|context| is_upgrade_applicable(&upgrade_kind, context));
+                (upgrade_kind, is_applicable)
             })
             .collect::<Vec<_>>();
 
@@ -71,10 +73,10 @@ impl Component for Upgrades {
                 wh,
                 scroll_bar_width: PADDING,
                 content: |mut ctx| {
-                    for (upgrade_info, is_applicable) in upgrade_infos.iter().cloned() {
+                    for (upgrade_kind, is_applicable) in upgrade_infos.iter().cloned() {
                         ctx.add(UpgradeThumbnailItem {
                             wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
-                            upgrade_info,
+                            upgrade_kind,
                             locale,
                             is_applicable,
                         });
@@ -203,7 +205,7 @@ fn is_upgrade_applicable(
 
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
-    upgrade_info: UpgradeInfo,
+    upgrade_kind: crate::game_state::upgrade::UpgradeKind,
     locale: Locale,
     is_applicable: bool,
 }
@@ -212,7 +214,7 @@ impl Component for UpgradeThumbnailItem {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            upgrade_info,
+            upgrade_kind,
             locale,
             is_applicable,
         } = self;
@@ -246,7 +248,7 @@ impl Component for UpgradeThumbnailItem {
                 let tooltip = ctx.ghost_add(
                     "upgrade-tooltip",
                     UpgradeTooltip {
-                        description: upgrade_info.description.clone(),
+                        upgrade_kind,
                         locale,
                     },
                 );
@@ -278,7 +280,7 @@ impl Component for UpgradeThumbnailItem {
             ctx.translate(pivot)
                 .rotate(hover_rotation.deg())
                 .translate(Xy::new(-pivot.x, -pivot.y))
-                .add(upgrade_info.upgrade_kind.thumbnail(thumbnail_wh));
+                .add(upgrade_kind.thumbnail(thumbnail_wh));
         });
 
         ctx.add(
@@ -303,14 +305,14 @@ impl Component for UpgradeThumbnailItem {
 }
 
 struct UpgradeTooltip {
-    description: UpgradeInfoDescription,
+    upgrade_kind: crate::game_state::upgrade::UpgradeKind,
     locale: Locale,
 }
 
 impl Component for UpgradeTooltip {
     fn render(self, ctx: &RenderCtx) {
         let UpgradeTooltip {
-            description,
+            upgrade_kind,
             locale,
         } = self;
 
@@ -319,24 +321,15 @@ impl Component for UpgradeTooltip {
 
         let content = ctx.ghost_compose("tooltip-content", |ctx| {
             table::vertical([table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                let description_key = description.key();
                 compose_ctx.add(memoized_text(
-                    (&description_key, &text_max, &locale.language),
+                    (&upgrade_kind, &text_max, &locale.language),
                     |mut builder| {
-                        let builder = builder
+                        builder
                             .paragraph()
                             .size(FontSize::Medium)
-                            .max_width(text_max);
-                        let builder = match &description {
-                            UpgradeInfoDescription::Single(text) => {
-                                builder.l10n(text.clone(), &locale)
-                            }
-                            UpgradeInfoDescription::PrefixSuffix { prefix, suffix } => builder
-                                .l10n(prefix.clone(), &locale)
-                                .space()
-                                .l10n(suffix.clone(), &locale),
-                        };
-                        builder.render_left_top()
+                            .max_width(text_max)
+                            .l10n(upgrade_kind.description_text(), &locale)
+                            .render_left_top()
                     },
                 ));
             })])(Wh::new(text_max, f32::MAX.px()), ctx);

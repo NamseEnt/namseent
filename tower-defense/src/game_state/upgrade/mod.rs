@@ -1,10 +1,8 @@
-mod data_conversion;
 mod display;
 mod generation;
 mod thumbnail;
 
 use crate::{card::Suit, game_state::tower::Tower, *};
-pub use data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub use generation::*;
 use std::collections::BTreeMap;
 
@@ -13,14 +11,13 @@ pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
 pub const MAX_DICE_CHANCE_PLUS: usize = 4;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 pub const MAX_REMOVE_NUMBER_RANKS: usize = 5;
-pub const DEFAULT_MAX_TREASURE_TOKENS: u8 = 2;
 
-#[derive(Debug, Clone, State)]
+#[derive(Debug, Clone, State, Default)]
 pub struct UpgradeState {
+    pub upgrades: Vec<Upgrade>,
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
-    pub max_treasure_tokens: u8,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
@@ -28,24 +25,6 @@ pub struct UpgradeState {
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
     pub treat_suits_as_same: bool,
-}
-
-impl Default for UpgradeState {
-    fn default() -> Self {
-        Self {
-            gold_earn_plus: 0,
-            shop_slot_expand: 0,
-            dice_chance_plus: 0,
-            max_treasure_tokens: DEFAULT_MAX_TREASURE_TOKENS,
-            tower_upgrade_states: BTreeMap::new(),
-            tower_select_upgrade_states: BTreeMap::new(),
-            shop_item_price_minus: 0,
-            removed_number_rank_count: 0,
-            shorten_straight_flush_to_4_cards: false,
-            skip_rank_for_straight: false,
-            treat_suits_as_same: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, State)]
@@ -56,7 +35,12 @@ pub struct Upgrade {
 
 impl UpgradeState {
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        match upgrade.kind {
+        self.upgrades.push(upgrade);
+        self.apply_upgrade_kind(upgrade.kind);
+    }
+
+    fn apply_upgrade_kind(&mut self, kind: UpgradeKind) {
+        match kind {
             UpgradeKind::Cat => match self.gold_earn_plus {
                 0 => self.gold_earn_plus = 1,
                 1 => self.gold_earn_plus = 2,
@@ -191,6 +175,7 @@ impl UpgradeState {
             }
         }
     }
+
     pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
         [
             TowerUpgradeTarget::Suit { suit: tower.suit },
@@ -272,6 +257,14 @@ impl UpgradeKind {
     pub fn is_treasure_upgrade(&self) -> bool {
         !self.is_tower_damage_upgrade()
     }
+
+    pub fn name_text(&self) -> crate::l10n::upgrade::UpgradeKindText<'_> {
+        crate::l10n::upgrade::UpgradeKindText::Name(self)
+    }
+
+    pub fn description_text(&self) -> crate::l10n::upgrade::UpgradeKindText<'_> {
+        crate::l10n::upgrade::UpgradeKindText::Description(self)
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
@@ -309,6 +302,3 @@ pub enum TowerSelectUpgradeTarget {
     NoReroll,
     Reroll,
 }
-
-/// Equal to or less than the number of cards in the hand.
-pub const LOW_CARD_COUNT: usize = 3;
