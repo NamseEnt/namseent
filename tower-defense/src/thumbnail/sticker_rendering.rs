@@ -2,33 +2,48 @@ use crate::{card::Card, icon::IconKind};
 use namui::*;
 
 pub const STICKER_THUMBNAIL_STROKE: Px = px(8.0);
+const STICKER_SHADOW_ALPHA: u8 = 192;
+const STICKER_SHADOW_BLUR: Px = px(2.5);
+const STICKER_SHADOW_OFFSET_Y: Px = px(2.0);
 
 pub fn render_sticker_image(image: Image, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
-    let paint = Paint::new(Color::WHITE).set_image_filter(sticker_image_filter(
-        image,
-        width_height,
-        stroke_px,
-    ));
-
-    namui::image(ImageParam {
-        rect: width_height.to_rect(),
-        image,
-        style: ImageStyle {
-            fit: ImageFit::Contain,
-            paint: Some(paint),
-        },
-    })
+    render_sticker_image_with_shadow(image, width_height, stroke_px, false)
 }
 
-pub fn render_placeholder_thumbnail(width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
-    render_sticker_image(
+pub fn render_sticker_image_with_shadow(
+    image: Image,
+    width_height: Wh<Px>,
+    stroke_px: Px,
+    shadow: bool,
+) -> RenderingTree {
+    let image_tree = render_sticker_image_tree(image, width_height, stroke_px);
+    if !shadow {
+        return image_tree;
+    }
+
+    let shadow_tree = render_sticker_shadow(image, width_height, stroke_px);
+    namui::render(vec![image_tree, shadow_tree])
+}
+
+pub fn render_placeholder_thumbnail(
+    width_height: Wh<Px>,
+    stroke_px: Px,
+    shadow: bool,
+) -> RenderingTree {
+    render_sticker_image_with_shadow(
         crate::asset::image::ui::PLACEHOLDER,
         width_height,
         stroke_px,
+        shadow,
     )
 }
 
-pub fn render_card_thumbnail(card: &Card, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
+pub fn render_card_thumbnail(
+    card: &Card,
+    width_height: Wh<Px>,
+    stroke_px: Px,
+    shadow: bool,
+) -> RenderingTree {
     let rank_overlay = crate::thumbnail::overlay_rendering::render_text_overlay(
         width_height,
         &card.rank.to_string(),
@@ -47,8 +62,56 @@ pub fn render_card_thumbnail(card: &Card, width_height: Wh<Px>, stroke_px: Px) -
     namui::render(vec![
         rank_overlay,
         suit_overlay,
-        render_sticker_image(IconKind::Card.image(), width_height, stroke_px),
+        render_sticker_image_with_shadow(IconKind::Card.image(), width_height, stroke_px, shadow),
     ])
+}
+
+fn render_sticker_image_tree(image: Image, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
+    let paint = Paint::new(Color::WHITE).set_image_filter(sticker_image_filter(
+        image,
+        width_height,
+        stroke_px,
+    ));
+
+    namui::image(ImageParam {
+        rect: width_height.to_rect(),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: Some(paint),
+        },
+    })
+}
+
+fn render_sticker_shadow(image: Image, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
+    let shadow_color = Color::BLACK.with_alpha(STICKER_SHADOW_ALPHA);
+
+    let shadow_filter = ImageFilter::Blur {
+        sigma_xy: Xy::new(
+            OrderedFloat::new(STICKER_SHADOW_BLUR.as_f32()),
+            OrderedFloat::new(STICKER_SHADOW_BLUR.as_f32()),
+        ),
+        tile_mode: None,
+        input: Some(Box::new(
+            sticker_image_filter(image, width_height, stroke_px).color_filter(ColorFilter::Blend {
+                color: shadow_color,
+                blend_mode: BlendMode::SrcIn,
+            }),
+        )),
+        crop_rect: None,
+    }
+    .offset(Xy::new(0.px(), STICKER_SHADOW_OFFSET_Y));
+
+    let paint = Paint::new(Color::WHITE).set_image_filter(shadow_filter);
+
+    namui::image(ImageParam {
+        rect: width_height.to_rect(),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: Some(paint),
+        },
+    })
 }
 
 fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> ImageFilter {

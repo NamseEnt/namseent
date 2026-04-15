@@ -1,6 +1,4 @@
-use crate::{
-    asset::image::thumbnail::rim,
-};
+use crate::asset::image::thumbnail::rim;
 use namui::*;
 use namui_prebuilt::table;
 
@@ -45,10 +43,13 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                             } else if let Some(upgrade) = upgrade_kind {
                                                 inner_ctx.add(upgrade.thumbnail(inner_wh));
                                             } else {
-                                                inner_ctx.add(crate::thumbnail::render_placeholder_thumbnail(
-                                                    inner_wh,
-                                                    px(12.0),
-                                                ));
+                                                inner_ctx.add(
+                                                    crate::thumbnail::render_placeholder_thumbnail(
+                                                        inner_wh,
+                                                        crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+                                                        false,
+                                                    ),
+                                                );
                                             }
                                         })(wh, ctx);
                                     });

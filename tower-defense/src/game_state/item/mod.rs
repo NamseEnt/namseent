@@ -5,7 +5,9 @@ mod usage;
 use crate::asset::image::thumbnail as thumbnail_image;
 use crate::card::Card;
 pub use crate::game_state::effect::Effect;
-use crate::thumbnail::{STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image};
+use crate::thumbnail::{
+    STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
+};
 use namui::*;
 pub use usage::*;
 
@@ -36,34 +38,48 @@ impl ItemKind {
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
+        self.thumbnail_with_shadow(width_height, STICKER_THUMBNAIL_STROKE, false)
+    }
+
+    pub fn thumbnail_with_shadow(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+    ) -> RenderingTree {
         match self {
-            ItemKind::RiceBall => render_sticker_image(
+            ItemKind::RiceBall => render_sticker_image_with_shadow(
                 thumbnail_image::RICE_BALL,
                 width_height,
-                STICKER_THUMBNAIL_STROKE,
+                stroke_px,
+                shadow,
             ),
-            ItemKind::LumpSugar => render_sticker_image(
+            ItemKind::LumpSugar => render_sticker_image_with_shadow(
                 thumbnail_image::LUMP_SUGAR,
                 width_height,
-                STICKER_THUMBNAIL_STROKE,
+                stroke_px,
+                shadow,
             ),
-            ItemKind::Shield => render_sticker_image(
+            ItemKind::Shield => render_sticker_image_with_shadow(
                 thumbnail_image::SHIELD,
                 width_height,
-                STICKER_THUMBNAIL_STROKE,
+                stroke_px,
+                shadow,
             ),
-            ItemKind::Painkiller => render_sticker_image(
+            ItemKind::Painkiller => render_sticker_image_with_shadow(
                 thumbnail_image::PAINKILLER,
                 width_height,
-                STICKER_THUMBNAIL_STROKE,
+                stroke_px,
+                shadow,
             ),
-            ItemKind::GrantBarricades => render_sticker_image(
+            ItemKind::GrantBarricades => render_sticker_image_with_shadow(
                 thumbnail_image::GRANT_BARRICADES,
                 width_height,
-                STICKER_THUMBNAIL_STROKE,
+                stroke_px,
+                shadow,
             ),
             ItemKind::GrantCard { card } => {
-                render_card_thumbnail(card, width_height, STICKER_THUMBNAIL_STROKE)
+                render_card_thumbnail(card, width_height, stroke_px, shadow)
             }
         }
     }
