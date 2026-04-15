@@ -94,7 +94,10 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             crate::sound::SoundGroup::Sfx,
                             crate::sound::VolumePreset::Minimum,
                             crate::sound::SpatialMode::Spatial {
-                                position: crate::MapCoordF32::new(laser.start_xy.0, laser.start_xy.1),
+                                position: crate::MapCoordF32::new(
+                                    laser.start_xy.0,
+                                    laser.start_xy.1,
+                                ),
                             },
                         ),
                     ));
@@ -109,18 +112,22 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         ),
                     ));
 
-                    game_state.effect_events.push(GameEffectEvent::SpawnLaserBeam(
-                        laser.start_xy,
-                        laser.end_xy,
-                        laser.created_at,
-                    ));
+                    game_state
+                        .effect_events
+                        .push(GameEffectEvent::SpawnLaserBeam(
+                            laser.start_xy,
+                            laser.end_xy,
+                            laser.created_at,
+                        ));
 
                     if damage > 0.0 {
-                        game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                            ParticleSpawnRequest::DamageText(
-                                field_particle::DamageTextParticle::new(target_xy, damage, now),
-                            ),
-                        ));
+                        game_state
+                            .effect_events
+                            .push(GameEffectEvent::SpawnParticle(
+                                ParticleSpawnRequest::DamageText(
+                                    field_particle::DamageTextParticle::new(target_xy, damage, now),
+                                ),
+                            ));
                     }
 
                     monster_kills.push((target_idx, damage, target_xy));
@@ -210,28 +217,30 @@ fn process_delayed_hits(game_state: &mut GameState) {
             ),
         ));
         let second_slash_delay_ms = rng.gen_range(30_i64..=60_i64);
-        game_state.effect_events.push(GameEffectEvent::PlaySoundDelayed(
-            crate::sound::EmitSoundParams::one_shot(
-                crate::sound::random_knife_slash(),
-                crate::sound::SoundGroup::Sfx,
-                crate::sound::VolumePreset::Low,
-                crate::sound::SpatialMode::Spatial {
-                    position: target_xy,
-                },
-            ),
-            Duration::from_millis(second_slash_delay_ms),
-        ));
+        game_state
+            .effect_events
+            .push(GameEffectEvent::PlaySoundDelayed(
+                crate::sound::EmitSoundParams::one_shot(
+                    crate::sound::random_knife_slash(),
+                    crate::sound::SoundGroup::Sfx,
+                    crate::sound::VolumePreset::Low,
+                    crate::sound::SpatialMode::Spatial {
+                        position: target_xy,
+                    },
+                ),
+                Duration::from_millis(second_slash_delay_ms),
+            ));
 
         if hit.damage > 0.0 {
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::DamageText(
-                    crate::game_state::field_particle::DamageTextParticle::new(
-                        target_xy,
-                        hit.damage,
-                        now,
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::DamageText(
+                        crate::game_state::field_particle::DamageTextParticle::new(
+                            target_xy, hit.damage, now,
+                        ),
                     ),
-                ),
-            ));
+                ));
         }
 
         monster_kills.push((target_idx, hit.damage, target_xy));

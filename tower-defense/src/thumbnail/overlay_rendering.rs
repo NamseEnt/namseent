@@ -117,4 +117,3 @@ pub fn render_suit_overlay(container_size: Wh<Px>, suit: Suit) -> RenderingTree 
         RANK_OVERLAY_SIZE_RATIO,
     )
 }
-
