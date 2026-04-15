@@ -1,5 +1,5 @@
 use crate::game_state::{
-    GameState, GameEffectEvent, MonsterKind, TILE_PX_SIZE,
+    GameEffectEvent, GameState, MonsterKind, TILE_PX_SIZE,
     monster::{MONSTER_HP_BAR_HEIGHT, Monster, monster_hp_bar::MonsterHpBar},
 };
 use crate::sound;

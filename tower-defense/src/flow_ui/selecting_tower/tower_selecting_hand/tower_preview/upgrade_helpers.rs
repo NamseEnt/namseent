@@ -79,9 +79,11 @@ pub fn create_tower_select_upgrade_kind(
     value: f32,
 ) -> UpgradeKind {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => UpgradeKind::Tricycle {
-            damage_multiplier: value,
-        },
+        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
+            UpgradeKind::Tricycle {
+                damage_multiplier: value,
+            }
+        }
 
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
             UpgradeKind::PerfectPottery {

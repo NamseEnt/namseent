@@ -22,17 +22,19 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
         let Some(&monster_index) = monster_index_by_indicator.get(&projectile.target_indicator)
         else {
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::Projectile(field_particle::ProjectileParticle::new(
-                    projectile.xy,
-                    projectile.kind,
-                    projectile.rotation,
-                    projectile.rotation_speed,
-                    projectile.velocity,
-                    now,
-                    Duration::from_millis(300),
-                )),
-            ));
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::Projectile(field_particle::ProjectileParticle::new(
+                        projectile.xy,
+                        projectile.kind,
+                        projectile.rotation,
+                        projectile.rotation_speed,
+                        projectile.velocity,
+                        now,
+                        Duration::from_millis(300),
+                    )),
+                ));
             return false;
         };
 
@@ -56,15 +58,17 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
             let moved_distance = (projectile.xy - start_xy).length();
 
-            game_state.effect_events.push(GameEffectEvent::SyncProjectileTrailState {
-                projectile_id: projectile.id,
-                trail: projectile.trail,
-                start_xy,
-                end_xy: projectile.xy,
-                moved_distance,
-                dt_secs: dt.as_secs_f32(),
-                now,
-            });
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SyncProjectileTrailState {
+                    projectile_id: projectile.id,
+                    trail: projectile.trail,
+                    start_xy,
+                    end_xy: projectile.xy,
+                    moved_distance,
+                    dt_secs: dt.as_secs_f32(),
+                    now,
+                });
 
             return true;
         }
@@ -108,13 +112,13 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             ));
         }
         if damage > 0.0 {
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
-                    monster_xy,
-                    damage,
-                    now,
-                )),
-            ));
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
+                        monster_xy, damage, now,
+                    )),
+                ));
         }
 
         use crate::game_state::attack::ProjectileHitEffect;
@@ -127,31 +131,39 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
                     now,
                 );
                 for p in bounce_particles {
-                    game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                        ParticleSpawnRequest::Trash(p),
-                    ));
+                    game_state
+                        .effect_events
+                        .push(GameEffectEvent::SpawnParticle(ParticleSpawnRequest::Trash(
+                            p,
+                        )));
                 }
             }
             ProjectileHitEffect::CardBurst => {
-                game_state.effect_events.push(GameEffectEvent::SpawnProjectileHitEffect(
-                    ProjectileHitEffect::CardBurst,
-                    monster_xy,
-                    now,
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SpawnProjectileHitEffect(
+                        ProjectileHitEffect::CardBurst,
+                        monster_xy,
+                        now,
+                    ));
             }
             ProjectileHitEffect::SparkleBurst => {
-                game_state.effect_events.push(GameEffectEvent::SpawnProjectileHitEffect(
-                    ProjectileHitEffect::SparkleBurst,
-                    monster_xy,
-                    now,
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SpawnProjectileHitEffect(
+                        ProjectileHitEffect::SparkleBurst,
+                        monster_xy,
+                        now,
+                    ));
             }
             ProjectileHitEffect::HeartBurst => {
-                game_state.effect_events.push(GameEffectEvent::SpawnProjectileHitEffect(
-                    ProjectileHitEffect::HeartBurst,
-                    monster_xy,
-                    now,
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SpawnProjectileHitEffect(
+                        ProjectileHitEffect::HeartBurst,
+                        monster_xy,
+                        now,
+                    ));
             }
         }
 
@@ -176,21 +188,27 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             );
             let pixel_xy = tile_base_xy + monster_center_offset;
 
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::MonsterCorpse(field_particle::MonsterCorpseParticle::new(
-                    pixel_xy,
-                    now,
-                    rotation,
-                    monster_kind,
-                    wh,
-                )),
-            ));
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::MonsterCorpse(
+                        field_particle::MonsterCorpseParticle::new(
+                            pixel_xy,
+                            now,
+                            rotation,
+                            monster_kind,
+                            wh,
+                        ),
+                    ),
+                ));
 
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
-                    pixel_xy, now, rotation,
-                )),
-            ));
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
+                        pixel_xy, now, rotation,
+                    )),
+                ));
 
             monster_index_by_indicator.remove(&target_indicator);
             if let Some(last_indicator) = last_monster_indicator

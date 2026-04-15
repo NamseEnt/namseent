@@ -31,21 +31,25 @@ pub fn handle_monster_death(
     );
     let pixel_xy = tile_base_xy + monster_center_offset;
 
-    game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-        ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
-            pixel_xy, now, rotation,
-        )),
-    ));
+    game_state
+        .effect_events
+        .push(GameEffectEvent::SpawnParticle(
+            ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
+                pixel_xy, now, rotation,
+            )),
+        ));
 
-    game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-        ParticleSpawnRequest::MonsterCorpse(field_particle::MonsterCorpseParticle::new(
-            pixel_xy,
-            now,
-            rotation,
-            monster_kind,
-            wh,
-        )),
-    ));
+    game_state
+        .effect_events
+        .push(GameEffectEvent::SpawnParticle(
+            ParticleSpawnRequest::MonsterCorpse(field_particle::MonsterCorpseParticle::new(
+                pixel_xy,
+                now,
+                rotation,
+                monster_kind,
+                wh,
+            )),
+        ));
 
     game_state.earn_gold(earn);
     game_state.monsters.swap_remove(target_idx);
