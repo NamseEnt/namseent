@@ -5,7 +5,7 @@ mod usage;
 use crate::asset::image::thumbnail as thumbnail_image;
 use crate::card::Card;
 pub use crate::game_state::effect::Effect;
-use crate::thumbnail::ThumbnailComposer;
+use crate::thumbnail::{STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image};
 use namui::*;
 pub use usage::*;
 
@@ -37,37 +37,34 @@ impl ItemKind {
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         match self {
-            ItemKind::RiceBall => ThumbnailComposer::new(width_height)
-                .with_image_base(thumbnail_image::RICE_BALL)
-                .build(),
-            ItemKind::LumpSugar => ThumbnailComposer::new(width_height)
-                .with_image_base(thumbnail_image::LUMP_SUGAR)
-                .build(),
-            ItemKind::Shield => ThumbnailComposer::new(width_height)
-                .with_image_base(thumbnail_image::SHIELD)
-                .build(),
-            ItemKind::Painkiller => ThumbnailComposer::new(width_height)
-                .with_image_base(thumbnail_image::PAINKILLER)
-                .build(),
-            ItemKind::GrantBarricades => ThumbnailComposer::new(width_height)
-                .with_image_base(thumbnail_image::GRANT_BARRICADES)
-                .build(),
-            ItemKind::GrantCard { card } => ThumbnailComposer::new(width_height)
-                .with_icon_base(crate::icon::IconKind::Card)
-                .add_rank_overlay(card.rank)
-                .add_suit_overlay(card.suit)
-                .build(),
-        }
-    }
-
-    pub fn thumbnail_image(&self) -> Option<Image> {
-        match self {
-            ItemKind::RiceBall => Some(thumbnail_image::RICE_BALL),
-            ItemKind::LumpSugar => Some(thumbnail_image::LUMP_SUGAR),
-            ItemKind::Shield => Some(thumbnail_image::SHIELD),
-            ItemKind::Painkiller => Some(thumbnail_image::PAINKILLER),
-            ItemKind::GrantBarricades => Some(thumbnail_image::GRANT_BARRICADES),
-            ItemKind::GrantCard { .. } => None,
+            ItemKind::RiceBall => render_sticker_image(
+                thumbnail_image::RICE_BALL,
+                width_height,
+                STICKER_THUMBNAIL_STROKE,
+            ),
+            ItemKind::LumpSugar => render_sticker_image(
+                thumbnail_image::LUMP_SUGAR,
+                width_height,
+                STICKER_THUMBNAIL_STROKE,
+            ),
+            ItemKind::Shield => render_sticker_image(
+                thumbnail_image::SHIELD,
+                width_height,
+                STICKER_THUMBNAIL_STROKE,
+            ),
+            ItemKind::Painkiller => render_sticker_image(
+                thumbnail_image::PAINKILLER,
+                width_height,
+                STICKER_THUMBNAIL_STROKE,
+            ),
+            ItemKind::GrantBarricades => render_sticker_image(
+                thumbnail_image::GRANT_BARRICADES,
+                width_height,
+                STICKER_THUMBNAIL_STROKE,
+            ),
+            ItemKind::GrantCard { card } => {
+                render_card_thumbnail(card, width_height, STICKER_THUMBNAIL_STROKE)
+            }
         }
     }
 }

@@ -36,19 +36,6 @@ impl ThumbnailComposer {
         self
     }
 
-    /// 이미지 자원을 기본 레이어로 설정합니다.
-    pub fn with_image_base(mut self, image: Image) -> Self {
-        self.base_layer = Some(namui::image(ImageParam {
-            rect: self.width_height.to_rect(),
-            image,
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
-        self
-    }
-
     /// 플러스 오버레이를 추가합니다.
     pub fn add_plus_overlay(mut self) -> Self {
         self.overlay_layers
