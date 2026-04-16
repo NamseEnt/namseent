@@ -121,7 +121,7 @@ mod tests {
         assert_eq!(params.cost, 5);
 
         let up = Upgrade {
-            kind: UpgradeKind::Cat,
+            kind: UpgradeKind::Cat { add: 1 },
             value: OneZero::default(),
         };
         let params = make_upgrade_params(wh, &up, 3, false, locale);

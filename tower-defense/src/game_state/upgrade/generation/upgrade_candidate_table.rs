@@ -29,9 +29,9 @@ pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> 
 fn make_tower_damage_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
     match name {
-        "CainSword" => {
+        "Staff" => {
             let (min, max) = range;
-            Box::new(move || UpgradeKind::CainSword {
+            Box::new(move || UpgradeKind::Staff {
                 damage_multiplier: thread_rng().gen_range(min..max),
             })
         }
@@ -111,8 +111,11 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
 
     for upgrade in &game_state.config.upgrades.treasure_upgrades {
         let weight = upgrade.entry.weight;
-        let kind_gen =
-            make_treasure_upgrade_kind_gen(&upgrade.name, upgrade.entry.damage_multiplier_range);
+        let kind_gen = make_treasure_upgrade_kind_gen(
+            &upgrade.name,
+            upgrade.entry.damage_multiplier_range,
+            upgrade_state,
+        );
         let current_and_max = match upgrade.name.as_str() {
             "Cat" => Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
             "Backpack" => Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
@@ -136,13 +139,31 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
     rows
 }
 
-fn make_treasure_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
+fn make_treasure_upgrade_kind_gen(
+    name: &str,
+    range: Option<(f32, f32)>,
+    upgrade_state: &UpgradeState,
+) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
+    let add = match name {
+        "Cat" => match upgrade_state.gold_earn_plus {
+            0 | 1 => 1,
+            2 => 2,
+            4 => 4,
+            8 => 8,
+            _ => unreachable!("Invalid magnet upgrade: {}", upgrade_state.gold_earn_plus),
+        },
+        "Backpack" => 1,
+        "DiceBundle" => 1,
+        "EnergyDrink" => 5,
+        "Eraser" => 1,
+        _ => 0,
+    };
     match name {
-        "Cat" => Box::new(|| UpgradeKind::Cat),
-        "Backpack" => Box::new(|| UpgradeKind::Backpack),
-        "DiceBundle" => Box::new(|| UpgradeKind::DiceBundle),
-        "EnergyDrink" => Box::new(|| UpgradeKind::EnergyDrink),
+        "Cat" => Box::new(move || UpgradeKind::Cat { add }),
+        "Backpack" => Box::new(move || UpgradeKind::Backpack { add }),
+        "DiceBundle" => Box::new(move || UpgradeKind::DiceBundle { add }),
+        "EnergyDrink" => Box::new(move || UpgradeKind::EnergyDrink { add }),
         "PerfectPottery" => {
             let (min, max) = range;
             Box::new(move || UpgradeKind::PerfectPottery {
@@ -158,7 +179,7 @@ fn make_treasure_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> Kind
         "FourLeafClover" => Box::new(|| UpgradeKind::FourLeafClover),
         "Rabbit" => Box::new(|| UpgradeKind::Rabbit),
         "BlackWhite" => Box::new(|| UpgradeKind::BlackWhite),
-        "Eraser" => Box::new(|| UpgradeKind::Eraser),
+        "Eraser" => Box::new(move || UpgradeKind::Eraser { add }),
         other => panic!("Unknown treasure upgrade kind: {other}"),
     }
 }

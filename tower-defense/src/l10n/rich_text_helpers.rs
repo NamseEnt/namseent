@@ -5,14 +5,12 @@ use crate::theme::typography::TypographyBuilder;
 /// Typography Builder extension trait for rich text helpers
 pub trait RichTextHelpers<'a> {
     fn with_range<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
-    fn with_attack_damage_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_percentage_increase<S: Into<String>>(&mut self, value: S)
     -> &mut TypographyBuilder<'a>;
     fn with_percentage_decrease<S: Into<String>>(&mut self, value: S)
     -> &mut TypographyBuilder<'a>;
     fn with_value_increase<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
-    fn with_gold_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_card_rank<S: Into<String>>(&mut self, rank: S) -> &mut TypographyBuilder<'a>;
     fn with_heal_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_shield_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
@@ -21,6 +19,11 @@ pub trait RichTextHelpers<'a> {
     fn with_health_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_gold_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_gold_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
+    fn with_icon_bold<S: Into<String>>(
+        &mut self,
+        icon_kind: IconKind,
+        value: S,
+    ) -> &mut TypographyBuilder<'a>;
     fn with_positive_effect<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_negative_effect<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_neutral_stat<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
@@ -59,14 +62,6 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         self
     }
 
-    fn with_attack_damage_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::Damage);
-        self.with_style(|b| {
-            b.color(palette::RED).text(value.into());
-        });
-        self
-    }
-
     fn with_percentage_increase<S: Into<String>>(
         &mut self,
         value: S,
@@ -97,14 +92,6 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::BLUE).text(format!("x{}", value.into()));
-        });
-        self
-    }
-
-    fn with_gold_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
-        self.icon(IconKind::Gold);
-        self.with_style(|b| {
-            b.color(palette::YELLOW).text(value.into());
         });
         self
     }
@@ -159,7 +146,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         stat_name: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.color(palette::RED).text(stat_name.into());
+            b.bold().text(stat_name.into());
         });
         self
     }
@@ -249,6 +236,18 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     fn with_gold_loss<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::YELLOW).bold().text(value.into());
+        });
+        self
+    }
+
+    fn with_icon_bold<S: Into<String>>(
+        &mut self,
+        icon_kind: IconKind,
+        value: S,
+    ) -> &mut TypographyBuilder<'a> {
+        self.icon(icon_kind);
+        self.with_style(|b| {
+            b.bold().text(value.into());
         });
         self
     }

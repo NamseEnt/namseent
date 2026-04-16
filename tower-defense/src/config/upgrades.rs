@@ -64,7 +64,7 @@ pub fn default_upgrade_config() -> UpgradeConfig {
     UpgradeConfig {
         tower_damage_upgrades: vec![
             UpgradeCandidate {
-                name: "CainSword".into(),
+                name: "Staff".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 13.0,
                     damage_multiplier_range: Some((1.15, 1.5)),

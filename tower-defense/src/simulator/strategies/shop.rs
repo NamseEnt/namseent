@@ -185,14 +185,14 @@ impl SynergyShopStrategy {
 
     fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
         match kind {
-            UpgradeKind::Cat => 7.0,
-            UpgradeKind::Backpack => 6.5,
-            UpgradeKind::DiceBundle => 7.5,
-            UpgradeKind::EnergyDrink => 6.0,
+            UpgradeKind::Cat { .. } => 7.0,
+            UpgradeKind::Backpack { .. } => 6.5,
+            UpgradeKind::DiceBundle { .. } => 7.5,
+            UpgradeKind::EnergyDrink { .. } => 6.0,
             UpgradeKind::FourLeafClover => 5.0,
             UpgradeKind::Rabbit => 5.0,
             UpgradeKind::BlackWhite => 5.5,
-            UpgradeKind::Eraser => 6.0,
+            UpgradeKind::Eraser { .. } => 6.0,
             _ => 3.0,
         }
     }

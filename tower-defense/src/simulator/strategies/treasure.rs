@@ -45,14 +45,14 @@ impl SynergyTreasureStrategy {
     fn score_option(&self, game_state: &GameState, option: &Upgrade) -> f32 {
         let stage = game_state.stage as f32;
         let base_value = match option.kind {
-            UpgradeKind::Cat => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus) as f32 * 0.8,
-            UpgradeKind::Backpack => {
+            UpgradeKind::Cat { .. } => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus) as f32 * 0.8,
+            UpgradeKind::Backpack { .. } => {
                 6.5 + (2 - game_state.upgrade_state.shop_slot_expand) as f32 * 1.2
             }
-            UpgradeKind::DiceBundle => {
+            UpgradeKind::DiceBundle { .. } => {
                 7.5 + (4 - game_state.upgrade_state.dice_chance_plus) as f32 * 1.3
             }
-            UpgradeKind::EnergyDrink => {
+            UpgradeKind::EnergyDrink { .. } => {
                 6.5 + (15 - game_state.upgrade_state.shop_item_price_minus) as f32 * 0.2
             }
             UpgradeKind::FourLeafClover => {
@@ -76,7 +76,7 @@ impl SynergyTreasureStrategy {
                     5.0
                 }
             }
-            UpgradeKind::Eraser => {
+            UpgradeKind::Eraser { .. } => {
                 5.5 + (5 - game_state.upgrade_state.removed_number_rank_count) as f32 * 0.7
             }
             _ => 4.0,
@@ -87,20 +87,20 @@ impl SynergyTreasureStrategy {
         if game_state.stage <= 12
             && matches!(
                 option.kind,
-                UpgradeKind::Backpack | UpgradeKind::DiceBundle | UpgradeKind::Cat
+                UpgradeKind::Backpack { .. } | UpgradeKind::DiceBundle { .. } | UpgradeKind::Cat { .. }
             )
         {
             score += 1.5;
         }
 
         if game_state.hp < game_state.config.player.max_hp * 0.5
-            && matches!(option.kind, UpgradeKind::EnergyDrink | UpgradeKind::Cat)
+            && matches!(option.kind, UpgradeKind::EnergyDrink { .. } | UpgradeKind::Cat { .. })
         {
             score += 1.5;
         }
 
         if game_state.upgrade_state.shop_item_price_minus == 0
-            && option.kind == UpgradeKind::EnergyDrink
+            && matches!(option.kind, UpgradeKind::EnergyDrink { .. })
         {
             score += 1.0;
         }

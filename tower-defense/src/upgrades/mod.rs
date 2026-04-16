@@ -208,7 +208,7 @@ fn is_upgrade_applicable(
     context: &SelectedTowerContext,
 ) -> bool {
     match upgrade_kind {
-        crate::game_state::upgrade::UpgradeKind::CainSword { .. } => context.suit == Suit::Diamonds,
+        crate::game_state::upgrade::UpgradeKind::Staff { .. } => context.suit == Suit::Diamonds,
         crate::game_state::upgrade::UpgradeKind::LongSword { .. } => context.suit == Suit::Spades,
         crate::game_state::upgrade::UpgradeKind::Mace { .. } => context.suit == Suit::Hearts,
         crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => context.suit == Suit::Clubs,
@@ -229,15 +229,15 @@ fn is_upgrade_applicable(
 
 fn upgrade_kind_key(upgrade_kind: crate::game_state::upgrade::UpgradeKind) -> u128 {
     match upgrade_kind {
-        crate::game_state::upgrade::UpgradeKind::Cat => 0,
-        crate::game_state::upgrade::UpgradeKind::CainSword { .. } => 1,
+        crate::game_state::upgrade::UpgradeKind::Cat { .. } => 0,
+        crate::game_state::upgrade::UpgradeKind::Staff { .. } => 1,
         crate::game_state::upgrade::UpgradeKind::LongSword { .. } => 2,
         crate::game_state::upgrade::UpgradeKind::Mace { .. } => 3,
         crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => 4,
-        crate::game_state::upgrade::UpgradeKind::Backpack => 5,
-        crate::game_state::upgrade::UpgradeKind::DiceBundle => 6,
+        crate::game_state::upgrade::UpgradeKind::Backpack { .. } => 5,
+        crate::game_state::upgrade::UpgradeKind::DiceBundle { .. } => 6,
         crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => 7,
-        crate::game_state::upgrade::UpgradeKind::EnergyDrink => 8,
+        crate::game_state::upgrade::UpgradeKind::EnergyDrink { .. } => 8,
         crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => 9,
         crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => 10,
         crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => 11,
@@ -246,7 +246,7 @@ fn upgrade_kind_key(upgrade_kind: crate::game_state::upgrade::UpgradeKind) -> u1
         crate::game_state::upgrade::UpgradeKind::FourLeafClover => 14,
         crate::game_state::upgrade::UpgradeKind::Rabbit => 15,
         crate::game_state::upgrade::UpgradeKind::BlackWhite => 16,
-        crate::game_state::upgrade::UpgradeKind::Eraser => 17,
+        crate::game_state::upgrade::UpgradeKind::Eraser { .. } => 17,
         crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => 18,
     }
 }
