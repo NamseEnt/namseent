@@ -1,5 +1,5 @@
 use crate::{
-    animation::with_spring,
+    animation::{with_spring, xy_with_spring},
     card::{Card, Rank, Suit},
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{
@@ -75,19 +75,37 @@ impl Component for Upgrades {
         });
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
+            let item_offset = ITEM_SIZE + ITEM_GAP;
+            let total_height = item_offset * upgrade_infos.len() as f32;
+
             ctx.add(AutoScrollViewWithCtx {
                 wh,
                 scroll_bar_width: PADDING,
-                content: |mut ctx| {
-                    for (upgrade_kind, is_applicable) in upgrade_infos.iter().cloned() {
-                        ctx.add(UpgradeThumbnailItem {
-                            wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
-                            upgrade_kind,
-                            locale,
-                            is_applicable,
-                        });
-                        ctx = ctx.translate(Xy::new(0.px(), ITEM_SIZE + ITEM_GAP));
+                content: |ctx| {
+                    for (index, (upgrade_kind, is_applicable)) in
+                        upgrade_infos.iter().cloned().enumerate()
+                    {
+                        let key = upgrade_kind_key(upgrade_kind);
+                        let target_xy = Xy::new(0.px(), item_offset * index as f32);
+
+                        ctx.add_with_key(
+                            key,
+                            UpgradeThumbnailItem {
+                                wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
+                                upgrade_kind,
+                                locale,
+                                is_applicable,
+                                target_xy,
+                            },
+                        );
                     }
+
+                    ctx.add(simple_rect(
+                        Wh::new(wh.width, total_height),
+                        Color::TRANSPARENT,
+                        0.px(),
+                        Color::TRANSPARENT,
+                    ));
                 },
             });
         };
@@ -209,11 +227,36 @@ fn is_upgrade_applicable(
     }
 }
 
+fn upgrade_kind_key(upgrade_kind: crate::game_state::upgrade::UpgradeKind) -> u128 {
+    match upgrade_kind {
+        crate::game_state::upgrade::UpgradeKind::Cat => 0,
+        crate::game_state::upgrade::UpgradeKind::CainSword { .. } => 1,
+        crate::game_state::upgrade::UpgradeKind::LongSword { .. } => 2,
+        crate::game_state::upgrade::UpgradeKind::Mace { .. } => 3,
+        crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => 4,
+        crate::game_state::upgrade::UpgradeKind::Backpack => 5,
+        crate::game_state::upgrade::UpgradeKind::DiceBundle => 6,
+        crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => 7,
+        crate::game_state::upgrade::UpgradeKind::EnergyDrink => 8,
+        crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => 9,
+        crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => 10,
+        crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => 11,
+        crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => 12,
+        crate::game_state::upgrade::UpgradeKind::Brush { .. } => 13,
+        crate::game_state::upgrade::UpgradeKind::FourLeafClover => 14,
+        crate::game_state::upgrade::UpgradeKind::Rabbit => 15,
+        crate::game_state::upgrade::UpgradeKind::BlackWhite => 16,
+        crate::game_state::upgrade::UpgradeKind::Eraser => 17,
+        crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => 18,
+    }
+}
+
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
     upgrade_kind: crate::game_state::upgrade::UpgradeKind,
     locale: Locale,
     is_applicable: bool,
+    target_xy: Xy<Px>,
 }
 
 impl Component for UpgradeThumbnailItem {
@@ -223,6 +266,7 @@ impl Component for UpgradeThumbnailItem {
             upgrade_kind,
             locale,
             is_applicable,
+            target_xy,
         } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
@@ -234,6 +278,9 @@ impl Component for UpgradeThumbnailItem {
             |v| v * v,
             || 0.0,
         );
+
+        let animated_xy = xy_with_spring(ctx, target_xy, target_xy);
+        let ctx = ctx.translate(animated_xy);
 
         let should_wobble = *hovering || is_applicable;
         if should_wobble && (*hover_start).is_none() {
