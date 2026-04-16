@@ -279,10 +279,7 @@ impl Component for InternalSlice<'_> {
                     table_cell_type,
                 },
             ),
-        ) in pixel_sizes
-            .into_iter()
-            .zip(intermediates.into_iter())
-            .enumerate()
+        ) in pixel_sizes.into_iter().zip(intermediates).enumerate()
         {
             let xywh = match direction {
                 Direction::Vertical => Rect::Xywh {

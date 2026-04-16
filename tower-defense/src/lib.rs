@@ -292,10 +292,8 @@ impl Component for Game {
                         set_middle_mouse_button_dragging.set(None);
                     }
                 }
-                Event::VisibilityChange => {
-                    if middle_mouse_button_dragging.is_some() {
-                        set_middle_mouse_button_dragging.set(None);
-                    }
+                Event::VisibilityChange if middle_mouse_button_dragging.is_some() => {
+                    set_middle_mouse_button_dragging.set(None);
                 }
                 _ => {}
             };

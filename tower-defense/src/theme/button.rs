@@ -248,19 +248,17 @@ impl Component for Button<'_> {
             }
 
             match event {
-                Event::MouseDown { event } => {
-                    if event.is_local_xy_in() {
-                        event.stop_propagation();
-                        set_button_state.set(ButtonState::Pressed);
+                Event::MouseDown { event } if event.is_local_xy_in() => {
+                    event.stop_propagation();
+                    set_button_state.set(ButtonState::Pressed);
 
-                        if long_press_time.is_some() {
-                            play_random_button_click_sound();
-                            let mut state = *long_press_state;
-                            state.on_press_start();
-                            set_long_press_state.set(state);
-                            set_long_press_sound_started_at.set(Some(Instant::now()));
-                            set_last_long_press_sound_elapsed.set(None);
-                        }
+                    if long_press_time.is_some() {
+                        play_random_button_click_sound();
+                        let mut state = *long_press_state;
+                        state.on_press_start();
+                        set_long_press_state.set(state);
+                        set_long_press_sound_started_at.set(Some(Instant::now()));
+                        set_last_long_press_sound_elapsed.set(None);
                     }
                 }
                 Event::MouseUp { event } => {
