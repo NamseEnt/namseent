@@ -41,6 +41,90 @@ type BlockUnitF32 = f32;
 type MapCoord = Xy<BlockUnit>;
 type MapCoordF32 = Xy<BlockUnitF32>;
 
+pub fn format_compact_number(value: f32) -> String {
+    if value >= 1_000_000_000.0 {
+        format!("{:.1}b", value / 1_000_000_000.0)
+    } else if value >= 1_000_000.0 {
+        format!("{:.1}m", value / 1_000_000.0)
+    } else if value >= 1_000.0 {
+        format!("{:.1}k", value / 1_000.0)
+    } else {
+        format!("{:.1}", value)
+    }
+}
+
+pub fn render_attack_power_badge(
+    ctx: &ComposeCtx<'_, '_>,
+    attack_power_text: &str,
+    container_width: Px,
+    container_height: Px,
+) -> Px {
+    let badge_text_string = attack_power_text.to_string();
+    let badge_text_ref: &String = &badge_text_string;
+    let badge_height = container_height;
+    let badge_text = ctx.ghost_add(
+        "attack-power-text",
+        crate::theme::typography::memoized_text(
+            (badge_text_ref, &container_width),
+            move |mut builder| {
+                builder
+                    .paragraph()
+                    .size(crate::theme::typography::FontSize::Medium)
+                    .bold()
+                    .color(crate::theme::palette::WHITE)
+                    .text(badge_text_ref.as_str())
+                    .render_left_center(badge_height)
+            },
+        ),
+    );
+
+    let badge_text_width = badge_text
+        .bounding_box()
+        .map(|rect| rect.width())
+        .unwrap_or_default();
+    let badge_padding = 6.px();
+    let badge_gap = 4.px();
+    let badge_icon_width = 16.px();
+    let badge_width =
+        badge_padding + badge_icon_width + badge_gap + badge_text_width + badge_padding;
+    let badge_x = container_width - badge_width;
+    let badge_y = (container_height - badge_height) / 2.0;
+    let badge_rect = Rect::Xywh {
+        x: badge_x,
+        y: badge_y,
+        width: badge_width,
+        height: badge_height,
+    };
+    let badge_radius = badge_height / 2.0;
+    let badge_path = Path::new().add_rrect(badge_rect, badge_radius, badge_radius);
+
+    ctx.translate(Xy::new(
+        badge_x + badge_padding + badge_icon_width + badge_gap,
+        badge_y,
+    ))
+    .add(badge_text);
+
+    ctx.translate(Xy::new(badge_x + badge_padding, badge_y))
+        .add(
+            crate::icon::Icon::new(crate::icon::IconKind::Damage)
+                .size(crate::icon::IconSize::Small)
+                .wh(Wh::new(badge_icon_width, badge_height)),
+        );
+
+    ctx.add(namui::path(
+        badge_path.clone(),
+        Paint::new(crate::theme::palette::WHITE)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(1.px()),
+    ));
+    ctx.add(namui::path(
+        badge_path,
+        Paint::new(crate::theme::palette::RED).set_style(PaintStyle::Fill),
+    ));
+
+    badge_width
+}
+
 /// Global headless mode flag. When true, sound and particle side effects are suppressed.
 static HEADLESS_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
