@@ -45,28 +45,34 @@ impl Component for Upgrades {
         let locale = game_state.text().locale();
         let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
         let active_slot_ids = ctx.track_eq(&game_state.hand.active_slot_ids());
-        let active_tower_context = get_active_tower_context(
+        let active_tower_context = ctx.track_eq(&get_active_tower_context(
             &game_state,
-            selected_slot_ids.clone_inner(),
-            active_slot_ids.clone_inner(),
-        );
+            &selected_slot_ids,
+            &active_slot_ids,
+        ));
 
-        let mut upgrade_infos = game_state
-            .upgrade_state
-            .upgrades
-            .iter()
-            .map(|upgrade| upgrade.kind)
-            .map(|upgrade_kind| {
-                let is_applicable = active_tower_context
-                    .as_ref()
-                    .is_some_and(|context| is_upgrade_applicable(&upgrade_kind, context));
-                (upgrade_kind, is_applicable)
-            })
-            .collect::<Vec<_>>();
+        let upgrades = &game_state.upgrade_state.upgrades;
+        let upgrade_revision = ctx.track_eq(&game_state.upgrade_state.revision);
+        let upgrade_infos = ctx.memo(move || {
+            upgrade_revision.record_as_used();
+            active_tower_context.record_as_used();
+            let mut upgrade_infos = upgrades
+                .iter()
+                .map(|upgrade| upgrade.kind)
+                .map(|upgrade_kind| {
+                    let is_applicable = active_tower_context
+                        .as_ref()
+                        .is_some_and(|context| is_upgrade_applicable(&upgrade_kind, &context));
+                    (upgrade_kind, is_applicable)
+                })
+                .collect::<Vec<_>>();
 
-        if active_tower_context.is_some() {
-            upgrade_infos.sort_by(|(_, a), (_, b)| b.cmp(a));
-        }
+            if active_tower_context.is_some() {
+                upgrade_infos.sort_by(|(_, a), (_, b)| b.cmp(a));
+            }
+
+            upgrade_infos
+        });
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
             ctx.add(AutoScrollViewWithCtx {
@@ -95,7 +101,7 @@ impl Component for Upgrades {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, State)]
 struct SelectedTowerContext {
     kind: TowerKind,
     suit: Suit,
@@ -129,8 +135,8 @@ impl SelectedTowerContext {
 
 fn get_active_tower_context(
     game_state: &crate::game_state::GameState,
-    selected_slot_ids: Vec<HandSlotId>,
-    active_slot_ids: Vec<HandSlotId>,
+    selected_slot_ids: &[HandSlotId],
+    active_slot_ids: &[HandSlotId],
 ) -> Option<SelectedTowerContext> {
     if let Some(selected_tower_id) = game_state.ui_state.selected_tower_id
         && let Some(tower) = game_state
@@ -149,7 +155,7 @@ fn get_active_tower_context(
 
     if let Some(template) = game_state
         .hand
-        .get_items(&slot_ids)
+        .get_items(slot_ids)
         .find_map(|item| item.as_tower().cloned())
     {
         return Some(SelectedTowerContext::from_template(
@@ -160,7 +166,7 @@ fn get_active_tower_context(
 
     let cards = game_state
         .hand
-        .get_items(&slot_ids)
+        .get_items(slot_ids)
         .filter_map(|item| item.as_card().copied())
         .collect::<Vec<Card>>();
 

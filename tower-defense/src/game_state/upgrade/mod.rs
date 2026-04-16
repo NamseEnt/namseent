@@ -25,6 +25,7 @@ pub struct UpgradeState {
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
     pub treat_suits_as_same: bool,
+    pub revision: usize,
 }
 
 #[derive(Debug, Clone, Copy, State)]
@@ -37,6 +38,7 @@ impl UpgradeState {
     pub fn upgrade(&mut self, upgrade: Upgrade) {
         self.upgrades.push(upgrade);
         self.apply_upgrade_kind(upgrade.kind);
+        self.revision = self.revision.wrapping_add(1);
     }
 
     fn apply_upgrade_kind(&mut self, kind: UpgradeKind) {
