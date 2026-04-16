@@ -26,11 +26,11 @@ const ITEM_MARGIN: Px = px(6.);
 
 mod tooltip {
     use namui::*;
-    pub const PADDING: Px = px(8.0);
-    pub const MAX_WIDTH: Px = px(240.0);
-    pub const ARROW_WIDTH: Px = px(8.0);
-    pub const ARROW_HEIGHT: Px = px(16.0);
-    pub const OFFSET_X: Px = px(2.0);
+    pub const PADDING: Px = px(12.0);
+    pub const MAX_WIDTH: Px = px(320.0);
+    pub const ARROW_WIDTH: Px = px(10.0);
+    pub const ARROW_HEIGHT: Px = px(18.0);
+    pub const OFFSET_X: Px = px(4.0);
 }
 
 pub struct Upgrades {
@@ -379,7 +379,7 @@ impl Component for UpgradeTooltip {
                     |mut builder| {
                         builder
                             .paragraph()
-                            .size(FontSize::Medium)
+                            .size(FontSize::Large)
                             .max_width(text_max)
                             .l10n(upgrade_kind.description_text(), &locale)
                             .render_left_top()
