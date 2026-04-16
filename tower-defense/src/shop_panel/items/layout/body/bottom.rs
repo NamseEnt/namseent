@@ -25,9 +25,9 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                         .size(FontSize::Medium)
                         .max_width(wh.width);
                     match description {
-                        ShopItemDescription::Item { item_kind, locale } => {
+                        ShopItemDescription::Item { item, locale } => {
                             builder.l10n(
-                                l10n::item_kind::ItemKindText::Description((*item_kind).clone()),
+                                l10n::item_kind::ItemText::Description((*item).clone()),
                                 locale,
                             );
                         }
@@ -87,7 +87,7 @@ pub(crate) fn make_renderer<'a>(
                             match &name {
                                 ShopItemTitle::Item { item_kind, locale } => {
                                     builder.l10n(
-                                        l10n::item_kind::ItemKindText::Name(item_kind.clone()),
+                                        l10n::item_kind::ItemText::Name(item_kind.clone()),
                                         locale,
                                     );
                                 }

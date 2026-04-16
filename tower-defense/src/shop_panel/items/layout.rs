@@ -58,10 +58,7 @@ fn make_item_params<'a>(
             item_kind: item.kind.clone(),
             locale,
         },
-        description: ShopItemDescription::Item {
-            item_kind: &item.kind,
-            locale,
-        },
+        description: ShopItemDescription::Item { item, locale },
         cost,
         available,
         item_kind: Some(&item.kind),

@@ -18,7 +18,7 @@ const INVENTORY_STICKER_THUMBNAIL_STROKE: Px = px(6.);
 
 mod tooltip {
     use namui::*;
-    pub const PADDING: Px = px(8.0);
+    pub const PADDING: Px = px(12.0);
     pub const MAX_WIDTH: Px = px(240.0);
     pub const ARROW_WIDTH: Px = px(8.0);
     pub const ARROW_HEIGHT: Px = px(16.0);
@@ -89,13 +89,7 @@ impl Component for InventoryItem<'_> {
 
         ctx.compose(|ctx| {
             if tooltip_scale > 0.01 {
-                let tooltip = ctx.ghost_add(
-                    "inventory-tooltip",
-                    InventoryTooltip {
-                        kind: item.kind.clone(),
-                        locale,
-                    },
-                );
+                let tooltip = ctx.ghost_add("inventory-tooltip", InventoryTooltip { item, locale });
                 if let Some(tooltip_wh) = tooltip.bounding_box().map(|r| r.wh()) {
                     let total_width = tooltip_wh.width + tooltip::ARROW_WIDTH + tooltip::OFFSET_X;
                     let y = (ITEM_SIZE - tooltip_wh.height) / 2.0;
@@ -172,18 +166,17 @@ impl Component for InventoryItem<'_> {
     }
 }
 
-struct InventoryTooltip {
-    kind: crate::game_state::item::ItemKind,
+struct InventoryTooltip<'a> {
+    item: &'a crate::game_state::item::Item,
     locale: crate::l10n::Locale,
 }
 
-impl Component for InventoryTooltip {
+impl Component for InventoryTooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let InventoryTooltip { kind, locale } = self;
-        let name_text = kind.name_text();
-        let desc_text = kind.description_text();
-        let name_key = format!("{:?}:name", kind);
-        let desc_key = format!("{:?}:desc", kind);
+        let InventoryTooltip { item, locale } = self;
+        let name_text = item.kind.name_text();
+        let name_key = format!("{:?}:name", item.kind);
+        let desc_key = format!("{:?}:{:?}:desc", item.kind, item.effect);
 
         let max_width = tooltip::MAX_WIDTH;
         let text_max = max_width - (tooltip::PADDING * 2.0);
@@ -196,7 +189,7 @@ impl Component for InventoryTooltip {
                         |mut builder| {
                             builder
                                 .headline()
-                                .size(FontSize::Small)
+                                .size(FontSize::Medium)
                                 .max_width(text_max)
                                 .l10n(name_text.clone(), &locale)
                                 .render_left_top()
@@ -210,9 +203,9 @@ impl Component for InventoryTooltip {
                         |mut builder| {
                             builder
                                 .paragraph()
-                                .size(FontSize::Medium)
+                                .size(FontSize::Large)
                                 .max_width(text_max)
-                                .l10n(desc_text.clone(), &locale)
+                                .l10n(item.description_text(), &locale)
                                 .render_left_top()
                         },
                     ));
@@ -231,7 +224,7 @@ impl Component for InventoryTooltip {
     }
 }
 
-impl InventoryTooltip {
+impl InventoryTooltip<'_> {
     fn render_background(ctx: &RenderCtx, wh: Wh<Px>) {
         ctx.add(PaperContainerBackground {
             width: wh.width,

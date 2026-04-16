@@ -29,12 +29,8 @@ pub struct Item {
 }
 
 impl ItemKind {
-    pub fn name_text(&self) -> crate::l10n::item_kind::ItemKindText {
-        crate::l10n::item_kind::ItemKindText::Name(self.clone())
-    }
-
-    pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
-        crate::l10n::item_kind::ItemKindText::Description(self.clone())
+    pub fn name_text(&self) -> crate::l10n::item_kind::ItemText {
+        crate::l10n::item_kind::ItemText::Name(self.clone())
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
@@ -94,12 +90,12 @@ impl Item {
         }
     }
 
-    pub fn name_text(&self) -> crate::l10n::item_kind::ItemKindText {
-        self.kind.name_text()
+    pub fn name_text(&self) -> crate::l10n::item_kind::ItemText {
+        crate::l10n::item_kind::ItemText::Name(self.kind.clone())
     }
 
-    pub fn description_text(&self) -> crate::l10n::item_kind::ItemKindText {
-        self.kind.description_text()
+    pub fn description_text(&self) -> crate::l10n::item_kind::ItemText {
+        crate::l10n::item_kind::ItemText::Description(self.clone())
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {

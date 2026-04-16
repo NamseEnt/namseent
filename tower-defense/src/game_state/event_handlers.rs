@@ -259,9 +259,7 @@ impl GameState {
 
         self.item_used = true;
         run_effect(self, &item.effect);
-        self.record_event(HistoryEventType::ItemUsed {
-            item_effect: item.effect.clone(),
-        });
+        self.record_event(HistoryEventType::ItemUsed { item: item.clone() });
     }
 
     pub fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {

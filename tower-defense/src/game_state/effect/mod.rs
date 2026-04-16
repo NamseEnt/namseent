@@ -336,10 +336,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
 }
 
 impl Effect {
-    pub fn name_text(&self) -> crate::l10n::effect::EffectText {
-        crate::l10n::effect::EffectText::Name(self.clone())
-    }
-
     pub fn description_text(&self) -> crate::l10n::effect::EffectText {
         crate::l10n::effect::EffectText::Description(self.clone())
     }

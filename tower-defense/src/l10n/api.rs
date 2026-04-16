@@ -82,15 +82,6 @@ impl TextManager {
 
 /// 아이템 텍스트 처리
 impl TextManager {
-    pub fn effect_name<'a>(
-        &self,
-        effect: &crate::game_state::effect::Effect,
-        mut builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        effect::EffectText::Name(effect.clone()).apply_to_builder(&mut builder, &self.locale);
-        builder
-    }
-
     pub fn effect_description<'a>(
         &self,
         effect: &crate::game_state::effect::Effect,
