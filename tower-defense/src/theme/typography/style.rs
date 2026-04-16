@@ -9,6 +9,24 @@ pub enum VerticalAlign {
     Bottom,
 }
 
+fn parse_font_name(font_name: &str) -> (String, bool) {
+    if let Some(base) = font_name.strip_suffix("-Bold") {
+        return (base.to_string(), true);
+    }
+    if let Some(base) = font_name.strip_suffix("-Regular") {
+        return (base.to_string(), false);
+    }
+    (font_name.to_string(), false)
+}
+
+fn build_font_name(font_family: &str, bold: bool) -> String {
+    if bold {
+        format!("{}-Bold", font_family)
+    } else {
+        format!("{}-Regular", font_family)
+    }
+}
+
 /// Style changes to apply (partial updates) - const-compatible
 #[derive(Debug, Clone, Copy)]
 pub struct StyleDelta {
@@ -97,7 +115,7 @@ impl StyleDelta {
 /// Complete style context (full state)
 #[derive(Debug, Clone)]
 pub struct StyleContext {
-    pub font_name: String,
+    pub font_family: String,
     pub font_size: IntPx,
     pub color: Color,
     pub bold: bool,
@@ -109,11 +127,12 @@ pub struct StyleContext {
 impl StyleContext {
     /// Create new style context with defaults
     pub fn new(font_name: String, font_size: IntPx, color: Color, text_style: TextStyle) -> Self {
+        let (font_family, bold) = parse_font_name(&font_name);
         Self {
-            font_name,
+            font_family,
             font_size,
             color,
-            bold: false,
+            bold,
             underline: false,
             text_style,
             vertical_align: VerticalAlign::Middle,
@@ -147,7 +166,7 @@ impl StyleContext {
     /// Convert to Font
     pub fn to_font(&self) -> Font {
         Font {
-            name: self.font_name.clone(),
+            name: build_font_name(&self.font_family, self.bold),
             size: self.font_size,
         }
     }
