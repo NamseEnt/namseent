@@ -154,15 +154,13 @@ impl Component for TopBar {
             .attach_event(|event| match event {
                 Event::MouseDown { event }
                 | Event::MouseUp { event }
-                | Event::MouseMove { event } => {
-                    if event.is_local_xy_in() {
-                        event.stop_propagation();
-                    }
+                | Event::MouseMove { event }
+                    if event.is_local_xy_in() =>
+                {
+                    event.stop_propagation();
                 }
-                Event::Wheel { event } => {
-                    if event.is_local_xy_in() {
-                        event.stop_propagation();
-                    }
+                Event::Wheel { event } if event.is_local_xy_in() => {
+                    event.stop_propagation();
                 }
                 _ => {}
             });

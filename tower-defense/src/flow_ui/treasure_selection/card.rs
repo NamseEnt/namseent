@@ -137,17 +137,15 @@ impl Component for TreasureCard {
                                 set_hovered.set(false);
                             }
                         }
-                        Event::MouseUp { event } => {
-                            if event.is_local_xy_in() {
-                                event.stop_propagation();
-                                mutate_game_state(move |gs| {
-                                    if let GameFlow::TreasureSelection(flow) = &mut gs.flow
-                                        && flow.pending_selection.is_none()
-                                    {
-                                        flow.pending_selection = Some(index);
-                                    }
-                                });
-                            }
+                        Event::MouseUp { event } if event.is_local_xy_in() => {
+                            event.stop_propagation();
+                            mutate_game_state(move |gs| {
+                                if let GameFlow::TreasureSelection(flow) = &mut gs.flow
+                                    && flow.pending_selection.is_none()
+                                {
+                                    flow.pending_selection = Some(index);
+                                }
+                            });
                         }
                         _ => {}
                     },

@@ -151,13 +151,11 @@ impl Component for InventoryItem<'_> {
                                 set_hovering.set(false);
                             }
                         }
-                        Event::MouseDown { event } => {
-                            if event.is_local_xy_in() {
-                                mutate_game_state(move |game_state| {
-                                    let item = game_state.items.remove(index);
-                                    use_item(game_state, &item);
-                                });
-                            }
+                        Event::MouseDown { event } if event.is_local_xy_in() => {
+                            mutate_game_state(move |game_state| {
+                                let item = game_state.items.remove(index);
+                                use_item(game_state, &item);
+                            });
                         }
                         _ => {}
                     },

@@ -86,19 +86,15 @@ impl Component for Dropdown<'_> {
                                 is_mouse_over,
                             }
                             .attach_event(move |event| match event {
-                                Event::MouseDown { event } => {
-                                    if event.is_local_xy_in() {
-                                        set_mouse_over_item_index.set(Some(item_index));
-                                    }
+                                Event::MouseDown { event } if event.is_local_xy_in() => {
+                                    set_mouse_over_item_index.set(Some(item_index));
                                 }
-                                Event::MouseMove { event } => {
-                                    if event.is_local_xy_in() {
-                                        event.stop_propagation();
-                                        if !is_selected {
-                                            (item.on_select_item)();
-                                        }
-                                        set_is_opened.set(false);
+                                Event::MouseMove { event } if event.is_local_xy_in() => {
+                                    event.stop_propagation();
+                                    if !is_selected {
+                                        (item.on_select_item)();
                                     }
+                                    set_is_opened.set(false);
                                 }
                                 _ => {}
                             });
