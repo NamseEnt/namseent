@@ -849,7 +849,7 @@ slot_type_distribution = [
 ]
 
 [[upgrades.tower_damage_upgrades]]
-name = "CainSword"
+name = "Staff"
 weight = 13.0
 damage_multiplier_range = [
     1.149999976158142,

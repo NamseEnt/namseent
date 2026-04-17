@@ -1,6 +1,9 @@
+use crate::MapCoord;
+use crate::flow_ui::treasure_selection::PADDING;
+use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
-use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
+use crate::game_state::tower::{AnimationKind, Tower, TowerKind, TowerTemplate};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
 use crate::theme::typography::{FontSize, memoized_text};
@@ -16,7 +19,7 @@ use crate::animation::with_spring;
 
 const EXIT_ANIMATION_DURATION: f32 = 0.5;
 
-const PLACEHOLDER_FLAVOR_TEXT: &str = "대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트";
+const PLACEHOLDER_FLAVOR_TEXT: &str = "대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트";
 
 fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
     match kind {
@@ -131,6 +134,33 @@ impl Component for PreviewEntryComponent {
                     16.px(),
                     table::vertical([
                         table::fixed_no_clip(24.px(), move |wh, ctx| {
+                            let now = game_state.now();
+                            let preview_tower = Tower::new(&template, MapCoord::new(0, 0), now);
+                            let tower_upgrades =
+                                game_state.upgrade_state.tower_upgrades(&preview_tower);
+                            let damage_multiplier = tower_upgrades
+                                .iter()
+                                .fold(1.0, |acc, state| acc * state.damage_multiplier);
+                            let rank_bonus = *game_state
+                                .config
+                                .towers
+                                .rank_bonus_damage
+                                .get(&template.rank)
+                                .unwrap_or(&template.rank.bonus_damage())
+                                as f32;
+                            let attack_power =
+                                (template.default_damage + rank_bonus) * damage_multiplier;
+                            let attack_power_text = format_compact_number(attack_power);
+                            ctx.compose(|ctx| {
+                                let _badge_width = crate::render_attack_power_badge(
+                                    &ctx,
+                                    &attack_power_text,
+                                    wh.width,
+                                    wh.height,
+                                );
+                                let _ = _badge_width;
+                            });
+
                             ctx.add(memoized_text(
                                 (&wh.width, &template.kind, &template.suit, &template.rank),
                                 |mut builder| {
@@ -149,10 +179,11 @@ impl Component for PreviewEntryComponent {
                                             .text(template.rank.to_string())
                                             .space();
                                     }
-                                    builder.text(tower_name).render_left_center(wh.height * 0.4)
+                                    builder.text(tower_name).render_left_center(wh.height)
                                 },
                             ));
                         }),
+                        table::fixed_no_clip(PADDING, |_, _| {}),
                         table::ratio_no_clip(1, move |wh, ctx| {
                             ctx.add(AutoScrollViewWithCtx {
                                 wh,

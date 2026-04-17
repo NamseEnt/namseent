@@ -9,7 +9,6 @@ pub mod strategies;
 
 use crate::card::Deck;
 use crate::config::GameConfig;
-use crate::game_state::effect::Effect;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::play_history::HistoryEventType;
@@ -279,31 +278,16 @@ impl HeadlessGame {
                         item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade.kind)),
                     });
                 }
-                HistoryEventType::ItemUsed { item_effect } => {
-                    let item_kind = Self::item_kind_from_effect(item_effect).unwrap_or_else(|| {
-                        Self::canonicalize_debug_name(format!("{:?}", item_effect))
-                    });
+                HistoryEventType::ItemUsed { item } => {
                     self.events.push(SimEvent::ItemUsed {
                         stage: event.stage,
-                        item_kind,
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
                     });
                 }
                 _ => {}
             }
             *last_history_event_index += 1;
         }
-    }
-
-    fn item_kind_from_effect(effect: &Effect) -> Option<String> {
-        Some(match effect {
-            Effect::Heal { .. } => "RiceBall".to_owned(),
-            Effect::ExtraDice => "LumpSugar".to_owned(),
-            Effect::Shield { .. } => "Shield".to_owned(),
-            Effect::UserDamageReduction { .. } => "Painkiller".to_owned(),
-            Effect::AddTowerCardToPlacementHand { .. } => "GrantBarricades".to_owned(),
-            Effect::AddCardToHand { .. } => "GrantCard".to_owned(),
-            _ => return None,
-        })
     }
 
     fn canonicalize_debug_name(name: String) -> String {

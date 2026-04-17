@@ -102,11 +102,9 @@ impl Component for TowerCursorPreview<'_> {
                 }
                 _ => {}
             },
-            Event::KeyDown { event } => {
-                if event.code == Code::Escape {
-                    cancel_placing_tower_selection();
-                    event.stop_propagation();
-                }
+            Event::KeyDown { event } if event.code == Code::Escape => {
+                cancel_placing_tower_selection();
+                event.stop_propagation();
             }
             _ => {}
         });

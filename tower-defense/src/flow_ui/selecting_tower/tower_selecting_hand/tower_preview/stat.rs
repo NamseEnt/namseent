@@ -1,4 +1,4 @@
-use super::format_compact_number;
+use crate::format_compact_number;
 use crate::{
     icon::{Icon, IconKind, IconSize},
     theme::{

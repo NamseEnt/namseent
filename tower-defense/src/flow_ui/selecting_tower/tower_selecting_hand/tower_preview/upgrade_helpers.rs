@@ -26,7 +26,7 @@ pub fn create_upgrade_kind_for_target(
     match (target, stat_type, is_additive) {
         // Suit 기반 업그레이드
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => match suit {
-            crate::card::Suit::Diamonds => UpgradeKind::CainSword {
+            crate::card::Suit::Diamonds => UpgradeKind::Staff {
                 damage_multiplier: value,
             },
             crate::card::Suit::Spades => UpgradeKind::LongSword {
@@ -67,7 +67,7 @@ pub fn create_upgrade_kind_for_target(
         }
 
         // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
-        _ => UpgradeKind::Cat,
+        _ => UpgradeKind::Cat { add: 1 },
     }
 }
 
@@ -98,6 +98,6 @@ pub fn create_tower_select_upgrade_kind(
         }
 
         // 기타 경우는 기본값 반환
-        _ => UpgradeKind::Cat,
+        _ => UpgradeKind::Cat { add: 1 },
     }
 }

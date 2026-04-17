@@ -1,10 +1,8 @@
-mod data_conversion;
 mod display;
 mod generation;
 mod thumbnail;
 
 use crate::{card::Suit, game_state::tower::Tower, *};
-pub use data_conversion::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos};
 pub use generation::*;
 use std::collections::BTreeMap;
 
@@ -13,14 +11,13 @@ pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
 pub const MAX_DICE_CHANCE_PLUS: usize = 4;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
 pub const MAX_REMOVE_NUMBER_RANKS: usize = 5;
-pub const DEFAULT_MAX_TREASURE_TOKENS: u8 = 2;
 
-#[derive(Debug, Clone, State)]
+#[derive(Debug, Clone, State, Default)]
 pub struct UpgradeState {
+    pub upgrades: Vec<Upgrade>,
     pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
-    pub max_treasure_tokens: u8,
     pub tower_upgrade_states: BTreeMap<TowerUpgradeTarget, TowerUpgradeState>,
     pub tower_select_upgrade_states: BTreeMap<TowerSelectUpgradeTarget, TowerUpgradeState>,
     pub shop_item_price_minus: usize,
@@ -28,24 +25,7 @@ pub struct UpgradeState {
     pub shorten_straight_flush_to_4_cards: bool,
     pub skip_rank_for_straight: bool,
     pub treat_suits_as_same: bool,
-}
-
-impl Default for UpgradeState {
-    fn default() -> Self {
-        Self {
-            gold_earn_plus: 0,
-            shop_slot_expand: 0,
-            dice_chance_plus: 0,
-            max_treasure_tokens: DEFAULT_MAX_TREASURE_TOKENS,
-            tower_upgrade_states: BTreeMap::new(),
-            tower_select_upgrade_states: BTreeMap::new(),
-            shop_item_price_minus: 0,
-            removed_number_rank_count: 0,
-            shorten_straight_flush_to_4_cards: false,
-            skip_rank_for_straight: false,
-            treat_suits_as_same: false,
-        }
-    }
+    pub revision: usize,
 }
 
 #[derive(Debug, Clone, Copy, State)]
@@ -56,16 +36,17 @@ pub struct Upgrade {
 
 impl UpgradeState {
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        match upgrade.kind {
-            UpgradeKind::Cat => match self.gold_earn_plus {
-                0 => self.gold_earn_plus = 1,
-                1 => self.gold_earn_plus = 2,
-                2 => self.gold_earn_plus = 4,
-                4 => self.gold_earn_plus = 8,
-                8 => self.gold_earn_plus = 16,
-                _ => unreachable!("Invalid magnet upgrade: {}", self.gold_earn_plus),
-            },
-            UpgradeKind::CainSword { damage_multiplier } => {
+        self.upgrades.push(upgrade);
+        self.apply_upgrade_kind(upgrade.kind);
+        self.revision = self.revision.wrapping_add(1);
+    }
+
+    fn apply_upgrade_kind(&mut self, kind: UpgradeKind) {
+        match kind {
+            UpgradeKind::Cat { add } => {
+                self.gold_earn_plus = (self.gold_earn_plus + add).min(MAX_GOLD_EARN_PLUS);
+            }
+            UpgradeKind::Staff { damage_multiplier } => {
                 self.apply_tower_upgrade(
                     TowerUpgradeTarget::Suit {
                         suit: Suit::Diamonds,
@@ -99,18 +80,12 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::Backpack => match self.shop_slot_expand {
-                0 => self.shop_slot_expand = 1,
-                1 => self.shop_slot_expand = 2,
-                _ => unreachable!("Invalid backpack upgrade: {}", self.shop_slot_expand),
-            },
-            UpgradeKind::DiceBundle => match self.dice_chance_plus {
-                0 => self.dice_chance_plus = 1,
-                1 => self.dice_chance_plus = 2,
-                2 => self.dice_chance_plus = 3,
-                3 => self.dice_chance_plus = 4,
-                _ => unreachable!("Invalid dice bundle upgrade: {}", self.dice_chance_plus),
-            },
+            UpgradeKind::Backpack { add } => {
+                self.shop_slot_expand = (self.shop_slot_expand + add).min(MAX_SHOP_SLOT_EXPAND);
+            }
+            UpgradeKind::DiceBundle { add } => {
+                self.dice_chance_plus = (self.dice_chance_plus + add).min(MAX_DICE_CHANCE_PLUS);
+            }
             UpgradeKind::Tricycle { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
                     TowerSelectUpgradeTarget::LowCard,
@@ -119,15 +94,10 @@ impl UpgradeState {
                     },
                 );
             }
-            UpgradeKind::EnergyDrink => match self.shop_item_price_minus {
-                0 => self.shop_item_price_minus = 5,
-                5 => self.shop_item_price_minus = 10,
-                10 => self.shop_item_price_minus = 15,
-                _ => unreachable!(
-                    "Invalid energy drink upgrade: {}",
-                    self.shop_item_price_minus
-                ),
-            },
+            UpgradeKind::EnergyDrink { add } => {
+                self.shop_item_price_minus =
+                    (self.shop_item_price_minus + add).min(MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE);
+            }
             UpgradeKind::PerfectPottery { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
                     TowerSelectUpgradeTarget::NoReroll,
@@ -177,9 +147,9 @@ impl UpgradeState {
             UpgradeKind::BlackWhite => {
                 self.treat_suits_as_same = true;
             }
-            UpgradeKind::Eraser => {
+            UpgradeKind::Eraser { add } => {
                 self.removed_number_rank_count =
-                    (self.removed_number_rank_count + 1).min(MAX_REMOVE_NUMBER_RANKS);
+                    (self.removed_number_rank_count + add).min(MAX_REMOVE_NUMBER_RANKS);
             }
             UpgradeKind::BrokenPottery { damage_multiplier } => {
                 self.apply_tower_select_upgrade(
@@ -191,6 +161,7 @@ impl UpgradeState {
             }
         }
     }
+
     pub fn tower_upgrades(&self, tower: &Tower) -> Vec<TowerUpgradeState> {
         [
             TowerUpgradeTarget::Suit { suit: tower.suit },
@@ -230,15 +201,15 @@ impl UpgradeState {
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub enum UpgradeKind {
-    Cat,
-    CainSword { damage_multiplier: f32 },
+    Cat { add: usize },
+    Staff { damage_multiplier: f32 },
     LongSword { damage_multiplier: f32 },
     Mace { damage_multiplier: f32 },
     ClubSword { damage_multiplier: f32 },
-    Backpack,
-    DiceBundle,
+    Backpack { add: usize },
+    DiceBundle { add: usize },
     Tricycle { damage_multiplier: f32 },
-    EnergyDrink,
+    EnergyDrink { add: usize },
     PerfectPottery { damage_multiplier: f32 },
     SingleChopstick { damage_multiplier: f32 },
     PairChopsticks { damage_multiplier: f32 },
@@ -247,7 +218,7 @@ pub enum UpgradeKind {
     FourLeafClover,
     Rabbit,
     BlackWhite,
-    Eraser,
+    Eraser { add: usize },
     BrokenPottery { damage_multiplier: f32 },
 }
 
@@ -255,7 +226,7 @@ impl UpgradeKind {
     pub fn is_tower_damage_upgrade(&self) -> bool {
         matches!(
             self,
-            UpgradeKind::CainSword { .. }
+            UpgradeKind::Staff { .. }
                 | UpgradeKind::LongSword { .. }
                 | UpgradeKind::Mace { .. }
                 | UpgradeKind::ClubSword { .. }
@@ -271,6 +242,14 @@ impl UpgradeKind {
 
     pub fn is_treasure_upgrade(&self) -> bool {
         !self.is_tower_damage_upgrade()
+    }
+
+    pub fn name_text(&self) -> crate::l10n::upgrade::UpgradeKindText<'_> {
+        crate::l10n::upgrade::UpgradeKindText::Name(self)
+    }
+
+    pub fn description_text(&self) -> crate::l10n::upgrade::UpgradeKindText<'_> {
+        crate::l10n::upgrade::UpgradeKindText::Description(self)
     }
 }
 
@@ -309,6 +288,3 @@ pub enum TowerSelectUpgradeTarget {
     NoReroll,
     Reroll,
 }
-
-/// Equal to or less than the number of cards in the hand.
-pub const LOW_CARD_COUNT: usize = 3;

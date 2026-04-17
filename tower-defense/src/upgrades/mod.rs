@@ -1,6 +1,12 @@
 use crate::{
-    animation::with_spring,
-    game_state::{UpgradeInfo, UpgradeInfoDescription, get_upgrade_infos, use_game_state},
+    animation::{with_spring, xy_with_spring},
+    card::{Card, Rank, Suit},
+    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
+    game_state::{
+        tower::{Tower, TowerKind, TowerTemplate},
+        use_game_state,
+    },
+    hand::HandSlotId,
     l10n::Locale,
     palette,
     theme::{
@@ -20,11 +26,11 @@ const ITEM_MARGIN: Px = px(6.);
 
 mod tooltip {
     use namui::*;
-    pub const PADDING: Px = px(8.0);
-    pub const MAX_WIDTH: Px = px(240.0);
-    pub const ARROW_WIDTH: Px = px(8.0);
-    pub const ARROW_HEIGHT: Px = px(16.0);
-    pub const OFFSET_X: Px = px(2.0);
+    pub const PADDING: Px = px(12.0);
+    pub const MAX_WIDTH: Px = px(320.0);
+    pub const ARROW_WIDTH: Px = px(10.0);
+    pub const ARROW_HEIGHT: Px = px(18.0);
+    pub const OFFSET_X: Px = px(4.0);
 }
 
 pub struct Upgrades {
@@ -37,21 +43,69 @@ impl Component for Upgrades {
 
         let game_state = use_game_state(ctx);
         let locale = game_state.text().locale();
-        let upgrade_infos = get_upgrade_infos(&game_state.upgrade_state, &game_state.text());
+        let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
+        let active_slot_ids = ctx.track_eq(&game_state.hand.active_slot_ids());
+        let active_tower_context = ctx.track_eq(&get_active_tower_context(
+            &game_state,
+            &selected_slot_ids,
+            &active_slot_ids,
+        ));
+
+        let upgrades = &game_state.upgrade_state.upgrades;
+        let upgrade_revision = ctx.track_eq(&game_state.upgrade_state.revision);
+        let upgrade_infos = ctx.memo(move || {
+            upgrade_revision.record_as_used();
+            active_tower_context.record_as_used();
+            let mut upgrade_infos = upgrades
+                .iter()
+                .map(|upgrade| upgrade.kind)
+                .map(|upgrade_kind| {
+                    let is_applicable = active_tower_context
+                        .as_ref()
+                        .is_some_and(|context| is_upgrade_applicable(&upgrade_kind, &context));
+                    (upgrade_kind, is_applicable)
+                })
+                .collect::<Vec<_>>();
+
+            if active_tower_context.is_some() {
+                upgrade_infos.sort_by(|(_, a), (_, b)| b.cmp(a));
+            }
+
+            upgrade_infos
+        });
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
+            let item_offset = ITEM_SIZE + ITEM_GAP;
+            let total_height = item_offset * upgrade_infos.len() as f32;
+
             ctx.add(AutoScrollViewWithCtx {
                 wh,
                 scroll_bar_width: PADDING,
-                content: |mut ctx| {
-                    for upgrade_info in upgrade_infos.iter().cloned() {
-                        ctx.add(UpgradeThumbnailItem {
-                            wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
-                            upgrade_info,
-                            locale,
-                        });
-                        ctx = ctx.translate(Xy::new(0.px(), ITEM_SIZE + ITEM_GAP));
+                content: |ctx| {
+                    for (index, (upgrade_kind, is_applicable)) in
+                        upgrade_infos.iter().cloned().enumerate()
+                    {
+                        let key = upgrade_kind_key(upgrade_kind);
+                        let target_xy = Xy::new(0.px(), item_offset * index as f32);
+
+                        ctx.add_with_key(
+                            key,
+                            UpgradeThumbnailItem {
+                                wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
+                                upgrade_kind,
+                                locale,
+                                is_applicable,
+                                target_xy,
+                            },
+                        );
                     }
+
+                    ctx.add(simple_rect(
+                        Wh::new(wh.width, total_height),
+                        Color::TRANSPARENT,
+                        0.px(),
+                        Color::TRANSPARENT,
+                    ));
                 },
             });
         };
@@ -65,18 +119,154 @@ impl Component for Upgrades {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, State)]
+struct SelectedTowerContext {
+    kind: TowerKind,
+    suit: Suit,
+    rank: Rank,
+    rerolled_count: Option<usize>,
+}
+
+impl SelectedTowerContext {
+    fn from_tower(tower: &Tower) -> Self {
+        Self {
+            kind: tower.kind,
+            suit: tower.suit,
+            rank: tower.rank,
+            rerolled_count: None,
+        }
+    }
+
+    fn from_template(template: &TowerTemplate, rerolled_count: Option<usize>) -> Self {
+        Self {
+            kind: template.kind,
+            suit: template.suit,
+            rank: template.rank,
+            rerolled_count,
+        }
+    }
+
+    fn is_low_card_tower(&self) -> bool {
+        self.kind.is_low_card_tower()
+    }
+}
+
+fn get_active_tower_context(
+    game_state: &crate::game_state::GameState,
+    selected_slot_ids: &[HandSlotId],
+    active_slot_ids: &[HandSlotId],
+) -> Option<SelectedTowerContext> {
+    if let Some(selected_tower_id) = game_state.ui_state.selected_tower_id
+        && let Some(tower) = game_state
+            .towers
+            .iter()
+            .find(|tower| tower.id() == selected_tower_id)
+    {
+        return Some(SelectedTowerContext::from_tower(tower));
+    }
+
+    let slot_ids = if !selected_slot_ids.is_empty() {
+        selected_slot_ids
+    } else {
+        active_slot_ids
+    };
+
+    if let Some(template) = game_state
+        .hand
+        .get_items(slot_ids)
+        .find_map(|item| item.as_tower().cloned())
+    {
+        return Some(SelectedTowerContext::from_template(
+            &template,
+            Some(game_state.rerolled_count),
+        ));
+    }
+
+    let cards = game_state
+        .hand
+        .get_items(slot_ids)
+        .filter_map(|item| item.as_card().copied())
+        .collect::<Vec<Card>>();
+
+    if cards.is_empty() {
+        return None;
+    }
+
+    Some(SelectedTowerContext::from_template(
+        &get_highest_tower_template(
+            &cards,
+            &game_state.upgrade_state,
+            game_state.rerolled_count,
+            &game_state.config,
+        ),
+        Some(game_state.rerolled_count),
+    ))
+}
+
+fn is_upgrade_applicable(
+    upgrade_kind: &crate::game_state::upgrade::UpgradeKind,
+    context: &SelectedTowerContext,
+) -> bool {
+    match upgrade_kind {
+        crate::game_state::upgrade::UpgradeKind::Staff { .. } => context.suit == Suit::Diamonds,
+        crate::game_state::upgrade::UpgradeKind::LongSword { .. } => context.suit == Suit::Spades,
+        crate::game_state::upgrade::UpgradeKind::Mace { .. } => context.suit == Suit::Hearts,
+        crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => context.suit == Suit::Clubs,
+        crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => !context.rank.is_even(),
+        crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => context.rank.is_even(),
+        crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => !context.rank.is_face(),
+        crate::game_state::upgrade::UpgradeKind::Brush { .. } => context.rank.is_face(),
+        crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => context.is_low_card_tower(),
+        crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => {
+            context.rerolled_count == Some(0)
+        }
+        crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => {
+            context.rerolled_count.is_some_and(|count| count > 0)
+        }
+        _ => false,
+    }
+}
+
+fn upgrade_kind_key(upgrade_kind: crate::game_state::upgrade::UpgradeKind) -> u128 {
+    match upgrade_kind {
+        crate::game_state::upgrade::UpgradeKind::Cat { .. } => 0,
+        crate::game_state::upgrade::UpgradeKind::Staff { .. } => 1,
+        crate::game_state::upgrade::UpgradeKind::LongSword { .. } => 2,
+        crate::game_state::upgrade::UpgradeKind::Mace { .. } => 3,
+        crate::game_state::upgrade::UpgradeKind::ClubSword { .. } => 4,
+        crate::game_state::upgrade::UpgradeKind::Backpack { .. } => 5,
+        crate::game_state::upgrade::UpgradeKind::DiceBundle { .. } => 6,
+        crate::game_state::upgrade::UpgradeKind::Tricycle { .. } => 7,
+        crate::game_state::upgrade::UpgradeKind::EnergyDrink { .. } => 8,
+        crate::game_state::upgrade::UpgradeKind::PerfectPottery { .. } => 9,
+        crate::game_state::upgrade::UpgradeKind::SingleChopstick { .. } => 10,
+        crate::game_state::upgrade::UpgradeKind::PairChopsticks { .. } => 11,
+        crate::game_state::upgrade::UpgradeKind::FountainPen { .. } => 12,
+        crate::game_state::upgrade::UpgradeKind::Brush { .. } => 13,
+        crate::game_state::upgrade::UpgradeKind::FourLeafClover => 14,
+        crate::game_state::upgrade::UpgradeKind::Rabbit => 15,
+        crate::game_state::upgrade::UpgradeKind::BlackWhite => 16,
+        crate::game_state::upgrade::UpgradeKind::Eraser { .. } => 17,
+        crate::game_state::upgrade::UpgradeKind::BrokenPottery { .. } => 18,
+    }
+}
+
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
-    upgrade_info: UpgradeInfo,
+    upgrade_kind: crate::game_state::upgrade::UpgradeKind,
     locale: Locale,
+    is_applicable: bool,
+    target_xy: Xy<Px>,
 }
 
 impl Component for UpgradeThumbnailItem {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            upgrade_info,
+            upgrade_kind,
             locale,
+            is_applicable,
+            target_xy,
         } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
@@ -89,10 +279,14 @@ impl Component for UpgradeThumbnailItem {
             || 0.0,
         );
 
-        if *hovering && (*hover_start).is_none() {
+        let animated_xy = xy_with_spring(ctx, target_xy, target_xy);
+        let ctx = ctx.translate(animated_xy);
+
+        let should_wobble = *hovering || is_applicable;
+        if should_wobble && (*hover_start).is_none() {
             set_hover_start.set(Some(Instant::now()));
         }
-        if !*hovering {
+        if !should_wobble {
             set_hover_start.set(None);
         }
 
@@ -107,7 +301,7 @@ impl Component for UpgradeThumbnailItem {
                 let tooltip = ctx.ghost_add(
                     "upgrade-tooltip",
                     UpgradeTooltip {
-                        description: upgrade_info.description.clone(),
+                        upgrade_kind,
                         locale,
                     },
                 );
@@ -139,7 +333,7 @@ impl Component for UpgradeThumbnailItem {
             ctx.translate(pivot)
                 .rotate(hover_rotation.deg())
                 .translate(Xy::new(-pivot.x, -pivot.y))
-                .add(upgrade_info.upgrade_kind.thumbnail(thumbnail_wh));
+                .add(upgrade_kind.thumbnail(thumbnail_wh));
         });
 
         ctx.add(
@@ -164,14 +358,14 @@ impl Component for UpgradeThumbnailItem {
 }
 
 struct UpgradeTooltip {
-    description: UpgradeInfoDescription,
+    upgrade_kind: crate::game_state::upgrade::UpgradeKind,
     locale: Locale,
 }
 
 impl Component for UpgradeTooltip {
     fn render(self, ctx: &RenderCtx) {
         let UpgradeTooltip {
-            description,
+            upgrade_kind,
             locale,
         } = self;
 
@@ -180,24 +374,15 @@ impl Component for UpgradeTooltip {
 
         let content = ctx.ghost_compose("tooltip-content", |ctx| {
             table::vertical([table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                let description_key = description.key();
                 compose_ctx.add(memoized_text(
-                    (&description_key, &text_max, &locale.language),
+                    (&upgrade_kind, &text_max, &locale.language),
                     |mut builder| {
-                        let builder = builder
+                        builder
                             .paragraph()
-                            .size(FontSize::Medium)
-                            .max_width(text_max);
-                        let builder = match &description {
-                            UpgradeInfoDescription::Single(text) => {
-                                builder.l10n(text.clone(), &locale)
-                            }
-                            UpgradeInfoDescription::PrefixSuffix { prefix, suffix } => builder
-                                .l10n(prefix.clone(), &locale)
-                                .space()
-                                .l10n(suffix.clone(), &locale),
-                        };
-                        builder.render_left_top()
+                            .size(FontSize::Large)
+                            .max_width(text_max)
+                            .l10n(upgrade_kind.description_text(), &locale)
+                            .render_left_top()
                     },
                 ));
             })])(Wh::new(text_max, f32::MAX.px()), ctx);

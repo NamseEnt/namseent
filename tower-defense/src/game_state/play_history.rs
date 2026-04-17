@@ -1,10 +1,7 @@
 use super::*;
 use crate::{
     card::{Rank, Suit},
-    game_state::{
-        item::{Effect, Item},
-        upgrade::Upgrade,
-    },
+    game_state::{item::Item, upgrade::Upgrade},
     *,
 };
 
@@ -45,7 +42,7 @@ pub enum HistoryEventType {
     },
 
     ItemUsed {
-        item_effect: Effect,
+        item: Item,
     },
 
     UpgradeSelected {

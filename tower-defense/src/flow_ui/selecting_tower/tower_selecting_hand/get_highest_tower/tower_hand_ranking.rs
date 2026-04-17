@@ -34,7 +34,7 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
             (rank, card)
         })
         .collect::<Vec<_>>();
-    cards_ace_as_high.sort_by(|a, b| a.0.cmp(&b.0));
+    cards_ace_as_high.sort_by_key(|a| a.0);
     let ace_high_removed_low = 2;
     let ace_high_removed_high = removed_number_rank_count + 1;
     if let Some((start_idx, end_idx, _)) = check_rank(
@@ -104,7 +104,7 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
             (rank, card)
         })
         .collect::<Vec<_>>();
-    cards_ace_as_low.sort_by(|a, b| a.0.cmp(&b.0));
+    cards_ace_as_low.sort_by_key(|a| a.0);
     let ace_low_removed_low = 1;
     let ace_low_removed_high = removed_number_rank_count;
     if let Some((start_idx, end_idx, _)) = check_rank(

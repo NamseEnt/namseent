@@ -1,9 +1,9 @@
-use super::format_compact_number;
 use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
     upgrade_helpers::*,
 };
+use crate::format_compact_number;
 use crate::{
     game_state::{
         self, GameState,
@@ -76,6 +76,27 @@ impl Component for TowerPreviewContent<'_> {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
+                        let damage = tower_template.default_damage;
+                        let damage_plus = *game_state
+                            .config
+                            .towers
+                            .rank_bonus_damage
+                            .get(&tower_template.rank)
+                            .unwrap_or(&tower_template.rank.bonus_damage())
+                            as f32;
+                        let damage_multiplier = upgrade_state.damage_multiplier;
+                        let attack_power = (damage + damage_plus) * damage_multiplier;
+                        let attack_power_text = format_compact_number(attack_power);
+                        ctx.compose(|ctx| {
+                            let _badge_width = crate::render_attack_power_badge(
+                                &ctx,
+                                &attack_power_text,
+                                wh.width,
+                                wh.height,
+                            );
+                            let _ = _badge_width;
+                        });
+
                         ctx.add(memoized_text(
                             (&wh, &tower_template.kind, &tower_template.suit),
                             |mut builder| {

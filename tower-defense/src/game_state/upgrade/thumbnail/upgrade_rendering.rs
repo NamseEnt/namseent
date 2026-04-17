@@ -13,10 +13,8 @@ fn sticker_thumbnail(image: Image, width_height: Wh<Px>) -> RenderingTree {
 impl UpgradeKind {
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         match self {
-            UpgradeKind::Cat => sticker_thumbnail(thumbnail_image::CAT, width_height),
-            UpgradeKind::CainSword { .. } => {
-                sticker_thumbnail(thumbnail_image::CAIN_SWORD, width_height)
-            }
+            UpgradeKind::Cat { .. } => sticker_thumbnail(thumbnail_image::CAT, width_height),
+            UpgradeKind::Staff { .. } => sticker_thumbnail(thumbnail_image::STAFF, width_height),
             UpgradeKind::LongSword { .. } => {
                 sticker_thumbnail(thumbnail_image::LONG_SWORD, width_height)
             }
@@ -24,14 +22,16 @@ impl UpgradeKind {
             UpgradeKind::ClubSword { .. } => {
                 sticker_thumbnail(thumbnail_image::CLUB_SWORD, width_height)
             }
-            UpgradeKind::Backpack => sticker_thumbnail(thumbnail_image::BACKPACK, width_height),
-            UpgradeKind::DiceBundle => {
+            UpgradeKind::Backpack { .. } => {
+                sticker_thumbnail(thumbnail_image::BACKPACK, width_height)
+            }
+            UpgradeKind::DiceBundle { .. } => {
                 sticker_thumbnail(thumbnail_image::DICE_BUNDLE, width_height)
             }
             UpgradeKind::Tricycle { .. } => {
                 sticker_thumbnail(thumbnail_image::TRICYCLE, width_height)
             }
-            UpgradeKind::EnergyDrink => {
+            UpgradeKind::EnergyDrink { .. } => {
                 sticker_thumbnail(thumbnail_image::ENERGY_DRINK, width_height)
             }
             UpgradeKind::PerfectPottery { .. } => {
@@ -54,7 +54,7 @@ impl UpgradeKind {
             UpgradeKind::BlackWhite => {
                 sticker_thumbnail(thumbnail_image::BLACK_WHITE, width_height)
             }
-            UpgradeKind::Eraser => sticker_thumbnail(thumbnail_image::ERASER, width_height),
+            UpgradeKind::Eraser { .. } => sticker_thumbnail(thumbnail_image::ERASER, width_height),
             UpgradeKind::BrokenPottery { .. } => {
                 sticker_thumbnail(thumbnail_image::BROKEN_POTTERY, width_height)
             }

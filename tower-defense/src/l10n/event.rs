@@ -1,6 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::game_state::play_history::HistoryEventType;
-use crate::l10n::effect::EffectText;
 use crate::l10n::upgrade::UpgradeKindText;
 use crate::theme::typography::TypographyBuilder;
 
@@ -56,15 +55,15 @@ impl HistoryEventType {
             HistoryEventType::ItemPurchased { item, cost } => {
                 builder
                     .static_text("아이템 구매: ")
-                    .l10n(EffectText::Name(item.effect.clone()), _locale)
+                    .l10n(item.name_text(), _locale)
                     .static_text(" (")
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");
             }
-            HistoryEventType::ItemUsed { item_effect } => {
+            HistoryEventType::ItemUsed { item } => {
                 builder
                     .static_text("아이템 사용: ")
-                    .l10n(EffectText::Name(item_effect.clone()), _locale);
+                    .l10n(item.name_text(), _locale);
             }
             HistoryEventType::UpgradeSelected { upgrade } => {
                 builder
@@ -118,15 +117,15 @@ impl HistoryEventType {
             HistoryEventType::ItemPurchased { item, cost } => {
                 builder
                     .static_text("Item Purchased: ")
-                    .l10n(EffectText::Name(item.effect.clone()), _locale)
+                    .l10n(item.name_text(), _locale)
                     .static_text(" (")
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");
             }
-            HistoryEventType::ItemUsed { item_effect } => {
+            HistoryEventType::ItemUsed { item } => {
                 builder
                     .static_text("Item Used: ")
-                    .l10n(EffectText::Name(item_effect.clone()), _locale);
+                    .l10n(item.name_text(), _locale);
             }
             HistoryEventType::UpgradeSelected { upgrade } => {
                 builder

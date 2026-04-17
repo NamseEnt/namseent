@@ -1,4 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::icon::IconKind;
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -46,7 +47,7 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => {
                 builder
                     .static_text("주변 타워의 ")
-                    .with_attack_damage_icon("공격력")
+                    .with_icon_bold(IconKind::Damage, "공격력")
                     .static_text("를 ")
                     .with_percentage_increase(format!("{:.0}", mul * 100.0))
                     .static_text(" 증가시킵니다 (반경 ")
@@ -56,7 +57,7 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => {
                 builder
                     .static_text("주변 타워의 ")
-                    .with_attack_damage_icon("공격력")
+                    .with_icon_bold(IconKind::Damage, "공격력")
                     .static_text("를 ")
                     .with_value_increase(format!("{add:.0}"))
                     .static_text("만큼 증가시킵니다 (반경 ")
@@ -74,7 +75,7 @@ impl TowerSkillText {
             TowerSkillText::MoneyIncomeAddDesc { add } => {
                 builder
                     .static_text("적 처치시 ")
-                    .with_gold_icon(format!("{add}"))
+                    .with_icon_bold(IconKind::Gold, format!("{add}"))
                     .static_text(" 골드를 추가로 획득합니다");
             }
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
@@ -82,7 +83,7 @@ impl TowerSkillText {
                     .static_text("탑 카드 보너스: ")
                     .with_card_rank(&rank)
                     .static_text(" (")
-                    .with_attack_damage_icon(format!("+{bonus_damage}"))
+                    .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
                     .static_text(")");
             }
         }
@@ -108,7 +109,7 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => {
                 builder
                     .static_text("Increases nearby towers' ")
-                    .with_attack_damage_icon("damage")
+                    .with_icon_bold(IconKind::Damage, "damage")
                     .static_text(" by ")
                     .with_percentage_increase(format!("{:.0}", mul * 100.0))
                     .static_text(" (within ")
@@ -118,7 +119,7 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => {
                 builder
                     .static_text("Increases nearby towers' ")
-                    .with_attack_damage_icon("damage")
+                    .with_icon_bold(IconKind::Damage, "damage")
                     .static_text(" by ")
                     .with_value_increase(format!("{add:.0}"))
                     .static_text(" (within ")
@@ -136,7 +137,7 @@ impl TowerSkillText {
             TowerSkillText::MoneyIncomeAddDesc { add } => {
                 builder
                     .static_text("Gain an additional ")
-                    .with_gold_icon(format!("{add}"))
+                    .with_icon_bold(IconKind::Gold, format!("{add}"))
                     .static_text(" when defeating enemies");
             }
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
@@ -144,7 +145,7 @@ impl TowerSkillText {
                     .static_text("Top Card Bonus: ")
                     .with_card_rank(&rank)
                     .static_text(" (")
-                    .with_attack_damage_icon(format!("+{bonus_damage}"))
+                    .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
                     .static_text(")");
             }
         }

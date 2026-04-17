@@ -83,7 +83,7 @@ const UPGRADE_NAMES: &[&str] = &[
     "Rabbit",
     "BlackWhite",
     "Eraser",
-    "CainSword",
+    "Staff",
     "LongSword",
     "Mace",
     "ClubSword",
