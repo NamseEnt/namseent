@@ -1,0 +1,15 @@
+"appbuild"
+{
+	"appid"			"2793590"
+	"desc"			"Tower Defense beta build"
+	"buildoutput"	"output/"
+	"contentroot"	"content/"
+	"setlive"		""
+	"preview"		"0"
+	"local"			""
+
+	"depots"
+	{
+		"2793591"	"depot_build_2793591.vdf"
+	}
+}
