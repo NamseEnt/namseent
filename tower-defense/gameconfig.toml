@@ -15,321 +15,385 @@ base_hand_slots = 5
 
 [monsters.stats.Mob01]
 base_hp = 11.648940086364746
+velocity_mul = 1.0
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob02]
 base_hp = 17.42033576965332
+velocity_mul = 1.0
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob03]
 base_hp = 22.744829177856445
+velocity_mul = 1.0
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob04]
 base_hp = 26.153667449951172
+velocity_mul = 1.0
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob05]
 base_hp = 11.98615837097168
+velocity_mul = 1.0
 damage = 1.0
 reward = 3
 
 [monsters.stats.Mob06]
 base_hp = 25.739164352416992
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob07]
 base_hp = 33.05135726928711
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob08]
 base_hp = 37.47837448120117
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob09]
 base_hp = 40.66684341430664
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob10]
 base_hp = 32.94581604003906
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob11]
 base_hp = 129.2183380126953
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob12]
 base_hp = 162.69625854492188
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob13]
 base_hp = 201.16197204589844
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob14]
 base_hp = 247.11935424804688
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob15]
 base_hp = 324.7314758300781
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob16]
 base_hp = 366.562744140625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob17]
 base_hp = 462.9286193847656
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob18]
 base_hp = 574.148193359375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob19]
 base_hp = 723.335693359375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob20]
 base_hp = 916.281005859375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob21]
 base_hp = 1183.1949462890625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob22]
 base_hp = 1519.919921875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob23]
 base_hp = 1951.8021240234375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob24]
 base_hp = 2483.83447265625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob25]
 base_hp = 3636.580078125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob26]
 base_hp = 4684.9609375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob27]
 base_hp = 6123.0986328125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob28]
 base_hp = 7806.63916015625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob29]
 base_hp = 9954.1201171875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob30]
 base_hp = 14785.9765625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob31]
 base_hp = 15747.4638671875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob32]
 base_hp = 20229.80078125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob33]
 base_hp = 25919.724609375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob34]
 base_hp = 32757.916015625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob35]
 base_hp = 50444.5703125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob36]
 base_hp = 54536.5
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob37]
 base_hp = 71475.9453125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob38]
 base_hp = 98490.390625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob39]
 base_hp = 133167.421875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob40]
 base_hp = 214899.4375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob41]
 base_hp = 235281.546875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob42]
 base_hp = 318684.5
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob43]
 base_hp = 452449.9375
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob44]
 base_hp = 635586.625
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob45]
 base_hp = 1022444.875
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob46]
 base_hp = 1342532.125
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob47]
 base_hp = 2086689.75
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob48]
 base_hp = 2941240.0
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob49]
 base_hp = 4161812.25
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Mob50]
 base_hp = 5878470.0
+velocity_mul = 1.0
 damage = 1.0
 reward = 5
 
 [monsters.stats.Boss01]
 base_hp = 17.979236602783203
+velocity_mul = 1.0
 damage = 15.0
 reward = 50
 
 [monsters.stats.Boss02]
 base_hp = 49.418724060058594
+velocity_mul = 1.0
 damage = 20.0
 reward = 75
 
 [monsters.stats.Boss03]
 base_hp = 487.09722900390625
+velocity_mul = 1.0
 damage = 20.0
 reward = 100
 
 [monsters.stats.Boss04]
 base_hp = 1374.4215087890625
+velocity_mul = 1.0
 damage = 25.0
 reward = 100
 
 [monsters.stats.Boss05]
 base_hp = 5454.8701171875
+velocity_mul = 1.0
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss06]
 base_hp = 22178.96484375
+velocity_mul = 1.0
 damage = 25.0
 reward = 125
 
 [monsters.stats.Boss07]
 base_hp = 75666.859375
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss08]
 base_hp = 322349.15625
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss09]
 base_hp = 1533667.25
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss10]
 base_hp = 2013798.25
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss11]
 base_hp = 3130034.5
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss12]
 base_hp = 4411860.0
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss13]
 base_hp = 6242718.5
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 
 [monsters.stats.Boss14]
 base_hp = 8817705.0
+velocity_mul = 1.0
 damage = 50.0
 reward = 125
 

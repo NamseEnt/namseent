@@ -8,26 +8,9 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, State)]
 pub struct MonsterStats {
     pub base_hp: f32,
-    #[cfg_attr(
-        feature = "simulator",
-        serde(
-            default = "default_velocity_mul",
-            skip_serializing_if = "is_velocity_mul_default"
-        )
-    )]
     pub velocity_mul: f32,
     pub damage: f32,
     pub reward: usize,
-}
-
-#[cfg(feature = "simulator")]
-fn default_velocity_mul() -> f32 {
-    1.0
-}
-
-#[cfg(feature = "simulator")]
-fn is_velocity_mul_default(value: &f32) -> bool {
-    *value == 1.0
 }
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
