@@ -1,0 +1,4 @@
+content/
+output/
+steamcmd/
+*.generated.vdf
