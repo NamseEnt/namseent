@@ -56,15 +56,15 @@ pub fn monster_wh(kind: MonsterKind) -> Wh<Px> {
         | MonsterKind::Boss11
         | MonsterKind::Boss12
         | MonsterKind::Boss13
-        | MonsterKind::Boss14 => TILE_PX_SIZE * 1.2,
-        _ => TILE_PX_SIZE * 0.8,
+        | MonsterKind::Boss14 => TILE_PX_SIZE * 1.4,
+        _ => TILE_PX_SIZE * 0.9,
     }
 }
 
 pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
     // STIFFNESS represents the spring constant in the physics simulation.
     // A negative value is used to simulate a restoring force that pulls the tower back to its equilibrium position.
-    const STIFFNESS: f32 = 750.0;
+    const STIFFNESS: f32 = 350.0;
 
     // DAMPING represents the damping coefficient, which reduces oscillations over time.
     // A negative value is used to simulate a force opposing the velocity of the tower's animation.
@@ -73,17 +73,6 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
     const GRAVITY: f32 = 10.0;
 
     game_state.monsters.iter_mut().for_each(|monster| {
-        let target_rotation = match monster.animation.rotated_side {
-            MonsterAnimationRotatedSide::Left => (-15.0).deg(),
-            MonsterAnimationRotatedSide::Right => 15.0.deg(),
-        };
-        let rotation_difference = target_rotation - monster.animation.rotation;
-        let rotation_acceleration = STIFFNESS * rotation_difference.as_degrees()
-            + DAMPING * monster.animation.rotation_velocity;
-        monster.animation.rotation_velocity += rotation_acceleration * dt.as_secs_f32();
-        monster.animation.rotation +=
-            (monster.animation.rotation_velocity * dt.as_secs_f32()).deg();
-
         monster.animation.y_offset_velocity += GRAVITY * dt.as_secs_f32();
         monster.animation.y_offset += monster.animation.y_offset_velocity * dt.as_secs_f32();
 
@@ -101,12 +90,23 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
                 monster.move_on_route.velocity() * 1.sec() * monster.get_speed_multiplier();
 
             monster.animation.y_offset_velocity =
-                (-3.25 + ((movement_speed - 1.5) / (4.0 - 1.5)) * (-1.5)).clamp(-3.25, -1.75);
-            monster.animation.rotated_side = match monster.animation.rotated_side {
-                MonsterAnimationRotatedSide::Left => MonsterAnimationRotatedSide::Right,
-                MonsterAnimationRotatedSide::Right => MonsterAnimationRotatedSide::Left,
-            };
+                (-3.0 + ((movement_speed - 1.0) / (0.25)) * 0.4).clamp(-3.5, -1.85);
+            monster.animation.next_descending_left = !monster.animation.next_descending_left;
         }
+
+        let target_rotation = if monster.animation.y_offset_velocity < 0.0 {
+            0.0.deg()
+        } else if monster.animation.next_descending_left {
+            (-10.0).deg()
+        } else {
+            10.0.deg()
+        };
+        let rotation_difference = target_rotation - monster.animation.rotation;
+        let rotation_acceleration = STIFFNESS * rotation_difference.as_degrees()
+            + DAMPING * monster.animation.rotation_velocity;
+        monster.animation.rotation_velocity += rotation_acceleration * dt.as_secs_f32();
+        monster.animation.rotation +=
+            (monster.animation.rotation_velocity * dt.as_secs_f32()).deg();
     });
 }
 
@@ -116,7 +116,7 @@ pub struct MonsterAnimation {
     rotation_velocity: f32,
     pub y_offset: f32,
     y_offset_velocity: f32,
-    rotated_side: MonsterAnimationRotatedSide,
+    next_descending_left: bool,
 }
 impl Default for MonsterAnimation {
     fn default() -> Self {
@@ -131,13 +131,7 @@ impl MonsterAnimation {
             rotation_velocity: 0.0,
             y_offset: 0.0,
             y_offset_velocity: 0.0,
-            rotated_side: MonsterAnimationRotatedSide::Left,
+            next_descending_left: false,
         }
     }
-}
-
-#[derive(State, Clone)]
-enum MonsterAnimationRotatedSide {
-    Left,
-    Right,
 }
