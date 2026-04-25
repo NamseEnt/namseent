@@ -35,7 +35,11 @@ impl HistoryEventType {
                 builder
                     .static_text("스테이지 ")
                     .text(format!("{}", stage))
-                    .static_text(if *boss { " 보스 스테이지 시작" } else { " 시작" });
+                    .static_text(if *boss {
+                        " 보스 스테이지 시작"
+                    } else {
+                        " 시작"
+                    });
             }
             HistoryEventType::StagePerfectClear { stage } => {
                 builder
