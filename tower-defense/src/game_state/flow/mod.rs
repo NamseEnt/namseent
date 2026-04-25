@@ -75,6 +75,7 @@ pub struct StageProgress {
 #[derive(Clone, Debug, State)]
 pub struct DefenseFlow {
     pub stage_progress: StageProgress,
+    pub took_damage: bool,
 }
 
 impl DefenseFlow {
@@ -89,6 +90,7 @@ impl DefenseFlow {
                 start_total_hp,
                 processed_hp: 0.0,
             },
+            took_damage: false,
         }
     }
 }
@@ -100,6 +102,7 @@ impl GameState {
         self.shield = 0.0;
         self.item_used = false;
         self.rerolled_count = 0;
+
         self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
         self.record_stage_start();
         if !crate::is_headless() {

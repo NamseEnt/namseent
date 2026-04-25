@@ -500,6 +500,13 @@ pub mod tests_support {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
+            metrics: crate::game_state::GameMetrics {
+                total_gold_earned: 0,
+                total_gold_spent: 0,
+                current_consecutive_perfect_clears: 0,
+                max_consecutive_perfect_clears: 0,
+                tower_damage_stats: vec![],
+            },
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
             opened_modal: None,

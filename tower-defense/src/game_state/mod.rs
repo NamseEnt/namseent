@@ -78,6 +78,24 @@ pub const TRAVEL_POINTS: [MapCoord; 7] = [
 const PROJECTILE_WHOOSH_INTERVAL_MIN_SECS: f32 = 0.5;
 const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 
+#[derive(Debug, Clone, State)]
+pub struct TowerDamageStats {
+    pub tower_id: usize,
+    pub tower_kind: TowerKind,
+    pub rank: Rank,
+    pub suit: Suit,
+    pub total_damage: f32,
+}
+
+#[derive(Debug, Clone, State)]
+pub struct GameMetrics {
+    pub total_gold_earned: usize,
+    pub total_gold_spent: usize,
+    pub current_consecutive_perfect_clears: usize,
+    pub max_consecutive_perfect_clears: usize,
+    pub tower_damage_stats: Vec<TowerDamageStats>,
+}
+
 #[derive(State)]
 pub struct GameState {
     pub monsters: Vec<Monster>,
@@ -106,6 +124,7 @@ pub struct GameState {
     pub(crate) game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
+    pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub config: Arc<GameConfig>,
@@ -195,6 +214,36 @@ impl GameState {
 
     pub fn now(&self) -> Instant {
         self.game_now
+    }
+
+    pub fn record_tower_damage(
+        &mut self,
+        tower_id: usize,
+        tower_kind: TowerKind,
+        rank: Rank,
+        suit: Suit,
+        damage: f32,
+    ) {
+        if damage <= 0.0 {
+            return;
+        }
+
+        if let Some(entry) = self
+            .metrics
+            .tower_damage_stats
+            .iter_mut()
+            .find(|entry| entry.tower_id == tower_id)
+        {
+            entry.total_damage += damage;
+        } else {
+            self.metrics.tower_damage_stats.push(TowerDamageStats {
+                tower_id,
+                tower_kind,
+                rank,
+                suit,
+                total_damage: damage,
+            });
+        }
     }
 
     pub fn advance_time(&mut self, dt: Duration) {
@@ -646,6 +695,13 @@ fn create_initial_game_state() -> GameState {
         black_smoke_sources: Default::default(),
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
+        metrics: GameMetrics {
+            total_gold_earned: config.player.starting_gold,
+            total_gold_spent: 0,
+            current_consecutive_perfect_clears: 0,
+            max_consecutive_perfect_clears: 0,
+            tower_damage_stats: Vec::new(),
+        },
 
         // start panels in opened state by default (if flow allows later)
         hand_panel_forced_open: true,
@@ -722,6 +778,13 @@ impl GameState {
             black_smoke_sources: Default::default(),
             effect_events: self.effect_events.clone(),
             base_animation_state: self.base_animation_state.clone(),
+            metrics: GameMetrics {
+                total_gold_earned: self.metrics.total_gold_earned,
+                total_gold_spent: self.metrics.total_gold_spent,
+                current_consecutive_perfect_clears: self.metrics.current_consecutive_perfect_clears,
+                max_consecutive_perfect_clears: self.metrics.max_consecutive_perfect_clears,
+                tower_damage_stats: self.metrics.tower_damage_stats.clone(),
+            },
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,
         }

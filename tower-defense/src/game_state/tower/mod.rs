@@ -42,6 +42,8 @@ pub struct ShootProjectileParams<'a> {
     pub tower_upgrade_states: &'a [TowerUpgradeState],
     pub contract_multiplier: f32,
     pub now: Instant,
+    pub source_tower_id: Option<usize>,
+    pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
 }
 
 pub struct ShootLaserParams<'a> {
@@ -85,12 +87,16 @@ impl Tower {
             params.projectile_group.random_kind(),
             params.speed,
             params.target_indicator,
-            self.calculate_projectile_damage(
-                params.tower_upgrade_states,
-                params.contract_multiplier,
-            ),
-            params.trail,
-            params.hit_effect,
+            ProjectileParams {
+                damage: self.calculate_projectile_damage(
+                    params.tower_upgrade_states,
+                    params.contract_multiplier,
+                ),
+                trail: params.trail,
+                hit_effect: params.hit_effect,
+                source_tower_id: params.source_tower_id,
+                source_tower_info: params.source_tower_info,
+            },
         )
     }
 

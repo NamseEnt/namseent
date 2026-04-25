@@ -18,6 +18,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     let mut new_delayed_hits = Vec::new();
     let mut monster_kills = Vec::new();
 
+    let mut tower_damage_updates = Vec::new();
+
     {
         let towers = &mut game_state.towers;
         let upgrade_state = &game_state.upgrade_state;
@@ -77,6 +79,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         tower_upgrade_states: &tower_upgrades,
                         contract_multiplier,
                         now,
+                        source_tower_id: Some(tower.id()),
+                        source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
                     });
                     projectiles.push(projectile);
                 }
@@ -121,6 +125,13 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         ));
 
                     if damage > 0.0 {
+                        tower_damage_updates.push((
+                            tower.id(),
+                            tower.kind,
+                            tower.rank(),
+                            tower.suit(),
+                            damage,
+                        ));
                         game_state
                             .effect_events
                             .push(GameEffectEvent::SpawnParticle(
@@ -144,9 +155,13 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             crate::MapCoordF32::new(tower_xy.0, tower_xy.1),
                             ProjectileKind::random_trash(),
                             target_indicator,
-                            damage_per_projectile,
-                            ProjectileTrail::Burning,
-                            crate::game_state::attack::ProjectileHitEffect::TrashBounce,
+                            ProjectileParams {
+                                damage: damage_per_projectile,
+                                trail: ProjectileTrail::Burning,
+                                hit_effect: crate::game_state::attack::ProjectileHitEffect::TrashBounce,
+                                source_tower_id: Some(tower.id()),
+                                source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
+                            },
                         );
                         projectiles.push(projectile);
                     }
@@ -170,7 +185,10 @@ pub fn shoot_attacks(game_state: &mut GameState) {
         }
     }
 
-    game_state.delayed_hits.extend(new_delayed_hits);
+    for (tower_id, tower_kind, rank, suit, damage) in tower_damage_updates {
+        game_state.record_tower_damage(tower_id, tower_kind, rank, suit, damage);
+    }
+
 
     apply_monster_kills(game_state, monster_kills);
 

@@ -18,16 +18,26 @@ pub struct Projectile {
     pub trail: ProjectileTrail,
     pub behavior: ProjectileBehavior,
     pub hit_effect: attack::ProjectileHitEffect,
+    pub source_tower_id: Option<usize>,
+    pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
 }
+
+#[derive(Clone, Debug)]
+pub struct ProjectileParams {
+    pub damage: f32,
+    pub trail: ProjectileTrail,
+    pub hit_effect: attack::ProjectileHitEffect,
+    pub source_tower_id: Option<usize>,
+    pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
+}
+
 impl Projectile {
     pub fn new(
         xy: MapCoordF32,
         kind: ProjectileKind,
         velocity: Velocity,
         target_indicator: ProjectileTargetIndicator,
-        damage: f32,
-        trail: ProjectileTrail,
-        hit_effect: attack::ProjectileHitEffect,
+        params: ProjectileParams,
     ) -> Self {
         let speed = velocity * Duration::from_secs(1);
         let initial_direction = Xy::new(0.0, -1.0);
@@ -37,12 +47,14 @@ impl Projectile {
             kind,
             velocity: initial_direction * speed,
             target_indicator,
-            damage,
+            damage: params.damage,
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
-            trail,
+            trail: params.trail,
             behavior: ProjectileBehavior::Direct,
-            hit_effect,
+            hit_effect: params.hit_effect,
+            source_tower_id: params.source_tower_id,
+            source_tower_info: params.source_tower_info,
         }
     }
 
@@ -50,9 +62,7 @@ impl Projectile {
         xy: MapCoordF32,
         kind: ProjectileKind,
         target_indicator: ProjectileTargetIndicator,
-        damage: f32,
-        trail: ProjectileTrail,
-        hit_effect: attack::ProjectileHitEffect,
+        params: ProjectileParams,
     ) -> Self {
         let mut rng = thread_rng();
         let initial_speed =
@@ -65,17 +75,19 @@ impl Projectile {
             kind,
             velocity: initial_velocity,
             target_indicator,
-            damage,
+            damage: params.damage,
             rotation: 0.0.deg(),
             rotation_speed: random_rotation_speed(),
-            trail,
+            trail: params.trail,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
                 acceleration: HOMING_ACCELERATION_TILE,
                 turn_rate,
                 max_speed: HOMING_MAX_SPEED_TILE,
             },
-            hit_effect,
+            hit_effect: params.hit_effect,
+            source_tower_id: params.source_tower_id,
+            source_tower_info: params.source_tower_info,
         }
     }
 

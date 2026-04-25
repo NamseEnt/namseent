@@ -23,12 +23,21 @@ pub enum HistoryEventType {
 
     StageStart {
         stage: usize,
+        boss: bool,
+    },
+
+    StagePerfectClear {
+        stage: usize,
     },
 
     TowerPlaced {
         tower_kind: TowerKind,
         rank: Rank,
         suit: Suit,
+        left_top: MapCoord,
+    },
+
+    TowerRemoved {
         left_top: MapCoord,
     },
 
