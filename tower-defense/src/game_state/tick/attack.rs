@@ -158,7 +158,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             ProjectileParams {
                                 damage: damage_per_projectile,
                                 trail: ProjectileTrail::Burning,
-                                hit_effect: crate::game_state::attack::ProjectileHitEffect::TrashBounce,
+                                hit_effect:
+                                    crate::game_state::attack::ProjectileHitEffect::TrashBounce,
                                 source_tower_id: Some(tower.id()),
                                 source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
                             },
@@ -188,7 +189,6 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     for (tower_id, tower_kind, rank, suit, damage) in tower_damage_updates {
         game_state.record_tower_damage(tower_id, tower_kind, rank, suit, damage);
     }
-
 
     apply_monster_kills(game_state, monster_kills);
 
