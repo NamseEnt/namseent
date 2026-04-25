@@ -146,13 +146,7 @@ fn make_treasure_upgrade_kind_gen(
 ) -> KindGen {
     let range = range.unwrap_or((1.0, 1.0));
     let add = match name {
-        "Cat" => match upgrade_state.gold_earn_plus {
-            0 | 1 => 1,
-            2 => 2,
-            4 => 4,
-            8 => 8,
-            _ => unreachable!("Invalid magnet upgrade: {}", upgrade_state.gold_earn_plus),
-        },
+        "Cat" => next_cat_add(upgrade_state.gold_earn_plus),
         "Backpack" => 1,
         "DiceBundle" => 1,
         "EnergyDrink" => 5,
@@ -184,6 +178,16 @@ fn make_treasure_upgrade_kind_gen(
     }
 }
 
+fn next_cat_add(gold_earn_plus: usize) -> usize {
+    match gold_earn_plus {
+        0 | 1 => 1,
+        2 => 2,
+        4 => 4,
+        8 => 8,
+        _ => 0,
+    }
+}
+
 #[allow(dead_code)]
 fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
     const TOWER_KINDS: [TowerKind; 10] = [
@@ -206,4 +210,19 @@ fn get_tower_kind_with_weight(weights: &[f32; 10]) -> TowerKind {
         .choose_weighted(&mut thread_rng(), |x| x.1)
         .unwrap()
         .0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn make_treasure_upgrade_kind_gen_maxed_cat_does_not_panic() {
+        let upgrade_state = UpgradeState {
+            gold_earn_plus: MAX_GOLD_EARN_PLUS,
+            ..UpgradeState::default()
+        };
+        let kind_gen = make_treasure_upgrade_kind_gen("Cat", None, &upgrade_state);
+        assert!(matches!((kind_gen)(), UpgradeKind::Cat { add: 0 }));
+    }
 }

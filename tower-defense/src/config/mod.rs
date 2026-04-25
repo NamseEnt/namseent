@@ -43,9 +43,9 @@ impl GameConfig {
     pub fn default_config() -> Self {
         Self {
             player: PlayerConfig {
-                max_hp: 100.0,
+                max_hp: 60.0,
                 starting_gold: 100,
-                starting_hp: 100.0,
+                starting_hp: 60.0,
                 base_dice_chance: 1,
                 max_stages: 50,
                 base_hand_slots: 5,
