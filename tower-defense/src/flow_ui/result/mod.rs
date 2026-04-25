@@ -67,7 +67,10 @@ impl Component for ResultModal {
                                 label: game_state
                                     .text()
                                     .result_modal(ResultModalText::MaxPerfectClearLabel),
-                                value: format!("{}회", game_state.metrics.max_consecutive_perfect_clears),
+                                value: format!(
+                                    "{}회",
+                                    game_state.metrics.max_consecutive_perfect_clears
+                                ),
                                 icon_kind: None,
                             });
                         }),
@@ -84,7 +87,9 @@ impl Component for ResultModal {
                         }),
                         table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                         table::fixed_no_clip(24.px(), |wh, ctx| {
-                            let total_damage = game_state.metrics.tower_damage_stats
+                            let total_damage = game_state
+                                .metrics
+                                .tower_damage_stats
                                 .iter()
                                 .map(|stat| stat.total_damage)
                                 .sum::<f32>();
@@ -142,7 +147,6 @@ impl Component for ResultModal {
                                         }));
                                     },
                                 )
-                                .long_press_time(2.sec())
                                 .color(ButtonColor::Primary)
                                 .variant(ButtonVariant::Contained),
                             );
