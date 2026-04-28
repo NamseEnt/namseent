@@ -157,24 +157,7 @@ impl GameState {
     }
 
     pub fn generate_rarity(&self) -> crate::rarity::Rarity {
-        const RARITIES: [crate::rarity::Rarity; 4] = [
-            crate::rarity::Rarity::Common,
-            crate::rarity::Rarity::Rare,
-            crate::rarity::Rarity::Epic,
-            crate::rarity::Rarity::Legendary,
-        ];
-
-        let total_weight: usize = self.config.rarity_weights.iter().sum();
-        let random_value = rand::random::<usize>() % total_weight;
-
-        let mut cumulative_weight = 0;
-        for (i, &weight) in self.config.rarity_weights.iter().enumerate() {
-            cumulative_weight += weight;
-            if random_value < cumulative_weight {
-                return RARITIES[i];
-            }
-        }
-        unreachable!()
+        crate::rarity::Rarity::Common
     }
 
     /// Returns whether the hand panel is allowed to be opened based on current flow.
@@ -656,12 +639,10 @@ fn create_initial_game_state() -> GameState {
             Item {
                 kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
-                value: 0.5.into(),
             },
             Item {
                 kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
-                value: 0.5.into(),
             },
             Item {
                 kind: ItemKind::GrantBarricades,
@@ -671,7 +652,6 @@ fn create_initial_game_state() -> GameState {
                     rank: Rank::Ace,
                     count: 1,
                 },
-                value: 1.0.into(),
             },
         ],
         gold: config.player.starting_gold,

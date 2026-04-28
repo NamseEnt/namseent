@@ -18,7 +18,6 @@ use namui::*;
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct GameConfig {
-    pub rarity_weights: [usize; 4],
     pub player: PlayerConfig,
     pub monsters: MonsterConfig,
     pub towers: TowerConfig,
@@ -59,7 +58,6 @@ impl GameConfig {
                 slot_type_distribution: [3, 5, 2], // 30% items, 50% tower upgrades, 20% extra
             },
             upgrades: upgrades::default_upgrade_config(),
-            rarity_weights: [90, 10, 1, 0],
         }
     }
 

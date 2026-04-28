@@ -1,7 +1,6 @@
 use super::*;
 use crate::game_state::upgrade::MAX_REMOVE_NUMBER_RANKS;
 use crate::game_state::{GameState, tower::TowerKind};
-use rand::{Rng, seq::SliceRandom, thread_rng};
 
 type KindGen = Box<dyn Fn() -> UpgradeKind + Send + Sync>;
 
@@ -20,75 +19,25 @@ pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> 
             weight: upgrade.entry.weight,
             kind_gen: make_tower_damage_upgrade_kind_gen(
                 &upgrade.name,
-                upgrade.entry.damage_multiplier_range,
+                upgrade.entry.damage_multiplier,
             ),
         })
         .collect()
 }
 
-fn make_tower_damage_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
-    let range = range.unwrap_or((1.0, 1.0));
+fn make_tower_damage_upgrade_kind_gen(name: &str, damage_multiplier: Option<f32>) -> KindGen {
+    let damage_multiplier = damage_multiplier.unwrap_or(1.0);
     match name {
-        "Staff" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Staff {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "LongSword" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::LongSword {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Mace" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Mace {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "ClubSword" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::ClubSword {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Tricycle" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Tricycle {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "SingleChopstick" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::SingleChopstick {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "PairChopsticks" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::PairChopsticks {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "FountainPen" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::FountainPen {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Brush" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Brush {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "BrokenPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::BrokenPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
+        "Staff" => Box::new(move || UpgradeKind::Staff { damage_multiplier }),
+        "LongSword" => Box::new(move || UpgradeKind::LongSword { damage_multiplier }),
+        "Mace" => Box::new(move || UpgradeKind::Mace { damage_multiplier }),
+        "ClubSword" => Box::new(move || UpgradeKind::ClubSword { damage_multiplier }),
+        "Tricycle" => Box::new(move || UpgradeKind::Tricycle { damage_multiplier }),
+        "SingleChopstick" => Box::new(move || UpgradeKind::SingleChopstick { damage_multiplier }),
+        "PairChopsticks" => Box::new(move || UpgradeKind::PairChopsticks { damage_multiplier }),
+        "FountainPen" => Box::new(move || UpgradeKind::FountainPen { damage_multiplier }),
+        "Brush" => Box::new(move || UpgradeKind::Brush { damage_multiplier }),
+        "BrokenPottery" => Box::new(move || UpgradeKind::BrokenPottery { damage_multiplier }),
         other => panic!("Unknown tower damage upgrade kind: {other}"),
     }
 }
@@ -113,7 +62,7 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
         let weight = upgrade.entry.weight;
         let kind_gen = make_treasure_upgrade_kind_gen(
             &upgrade.name,
-            upgrade.entry.damage_multiplier_range,
+            upgrade.entry.damage_multiplier,
             upgrade_state,
         );
         let current_and_max = match upgrade.name.as_str() {
@@ -141,10 +90,10 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
 
 fn make_treasure_upgrade_kind_gen(
     name: &str,
-    range: Option<(f32, f32)>,
+    damage_multiplier: Option<f32>,
     upgrade_state: &UpgradeState,
 ) -> KindGen {
-    let range = range.unwrap_or((1.0, 1.0));
+    let damage_multiplier = damage_multiplier.unwrap_or(1.0);
     let add = match name {
         "Cat" => next_cat_add(upgrade_state.gold_earn_plus),
         "Backpack" => 1,
@@ -158,18 +107,8 @@ fn make_treasure_upgrade_kind_gen(
         "Backpack" => Box::new(move || UpgradeKind::Backpack { add }),
         "DiceBundle" => Box::new(move || UpgradeKind::DiceBundle { add }),
         "EnergyDrink" => Box::new(move || UpgradeKind::EnergyDrink { add }),
-        "PerfectPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::PerfectPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "BrokenPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::BrokenPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
+        "PerfectPottery" => Box::new(move || UpgradeKind::PerfectPottery { damage_multiplier }),
+        "BrokenPottery" => Box::new(move || UpgradeKind::BrokenPottery { damage_multiplier }),
         "FourLeafClover" => Box::new(|| UpgradeKind::FourLeafClover),
         "Rabbit" => Box::new(|| UpgradeKind::Rabbit),
         "BlackWhite" => Box::new(|| UpgradeKind::BlackWhite),

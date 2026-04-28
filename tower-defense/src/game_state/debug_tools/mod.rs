@@ -137,7 +137,6 @@ impl Component for DebugToolsModal {
                                                                 gs.items.push(Item {
                                                                     kind: ItemKind::LumpSugar,
                                                                     effect: Effect::ExtraDice,
-                                                                    value: 0.0.into(),
                                                                 });
                                                             });
                                                         },
@@ -169,7 +168,6 @@ impl Component for DebugToolsModal {
                                                                 gs.items.push(Item {
                                                                     kind: ItemKind::LumpSugar,
                                                                     effect: Effect::ExtraDice,
-                                                                    value: 0.0.into(),
                                                                 });
                                                             });
                                                         },

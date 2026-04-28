@@ -110,7 +110,6 @@ mod tests {
         let item = Item {
             kind: crate::game_state::item::ItemKind::RiceBall,
             effect: Effect::Heal { amount: 1.0 },
-            value: OneZero::default(),
         };
 
         let params = make_item_params(wh, &item, 5, true, locale);
