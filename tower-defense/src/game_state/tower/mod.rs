@@ -41,6 +41,7 @@ pub struct ShootProjectileParams<'a> {
     pub hit_effect: attack::ProjectileHitEffect,
     pub tower_upgrade_states: &'a [TowerUpgradeState],
     pub contract_multiplier: f32,
+    pub global_damage_multiplier: f32,
     pub now: Instant,
     pub source_tower_id: Option<usize>,
     pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
@@ -50,6 +51,7 @@ pub struct ShootLaserParams<'a> {
     pub target_xy: (f32, f32),
     pub tower_upgrade_states: &'a [TowerUpgradeState],
     pub contract_multiplier: f32,
+    pub global_damage_multiplier: f32,
     pub now: Instant,
 }
 
@@ -57,6 +59,7 @@ pub struct AttackTypeParams<'a> {
     pub target_xy: (f32, f32),
     pub tower_upgrade_states: &'a [TowerUpgradeState],
     pub contract_multiplier: f32,
+    pub global_damage_multiplier: f32,
     pub now: Instant,
 }
 
@@ -68,7 +71,7 @@ impl Tower {
             left_top,
             cooldown: Duration::from_secs(0),
             template: template.clone(),
-            status_effects: vec![],
+            status_effects: template.default_status_effects.clone(),
             skills: vec![],
             animation: Animation::new(now),
             royal_straight_flush_visual: None,
@@ -91,6 +94,7 @@ impl Tower {
                 damage: self.calculate_projectile_damage(
                     params.tower_upgrade_states,
                     params.contract_multiplier,
+                    params.global_damage_multiplier,
                 ),
                 trail: params.trail,
                 hit_effect: params.hit_effect,
@@ -104,8 +108,11 @@ impl Tower {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, params.now);
 
-        let damage = self
-            .calculate_projectile_damage(params.tower_upgrade_states, params.contract_multiplier);
+        let damage = self.calculate_projectile_damage(
+            params.tower_upgrade_states,
+            params.contract_multiplier,
+            params.global_damage_multiplier,
+        );
 
         let head_xy = self.head_xy_tile();
         let laser = attack::laser::LaserBeam::new(
@@ -173,6 +180,7 @@ impl Tower {
                 let damage = self.calculate_projectile_damage(
                     params.tower_upgrade_states,
                     params.contract_multiplier,
+                    params.global_damage_multiplier,
                 );
 
                 (
@@ -207,6 +215,7 @@ impl Tower {
                 let damage = self.calculate_projectile_damage(
                     params.tower_upgrade_states,
                     params.contract_multiplier,
+                    params.global_damage_multiplier,
                 );
 
                 let head_xy = self.head_xy_tile();
@@ -259,6 +268,7 @@ impl Tower {
         &self,
         tower_upgrade_states: &[TowerUpgradeState],
         contract_multiplier: f32,
+        global_damage_multiplier: f32,
     ) -> f32 {
         let mut damage = self.default_damage;
 
@@ -282,6 +292,7 @@ impl Tower {
             damage *= tower_upgrade_state.damage_multiplier;
         });
 
+        damage *= global_damage_multiplier;
         damage *= contract_multiplier;
 
         damage

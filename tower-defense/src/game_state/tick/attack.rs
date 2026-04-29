@@ -21,6 +21,9 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     let mut tower_damage_updates = Vec::new();
 
     {
+        let global_multiplier = game_state
+            .upgrade_state
+            .global_tower_damage_multiplier(game_state);
         let towers = &mut game_state.towers;
         let upgrade_state = &game_state.upgrade_state;
         let stage_modifiers = &game_state.stage_modifiers;
@@ -59,6 +62,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 target_xy: (target_xy.x, target_xy.y),
                 tower_upgrade_states: &tower_upgrades,
                 contract_multiplier,
+                global_damage_multiplier: global_multiplier,
                 now,
             });
 
@@ -78,6 +82,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         hit_effect,
                         tower_upgrade_states: &tower_upgrades,
                         contract_multiplier,
+                        global_damage_multiplier: global_multiplier,
                         now,
                         source_tower_id: Some(tower.id()),
                         source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
@@ -89,6 +94,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         target_xy: (target_xy.x, target_xy.y),
                         tower_upgrade_states: &tower_upgrades,
                         contract_multiplier,
+                        global_damage_multiplier: global_multiplier,
                         now,
                     });
 

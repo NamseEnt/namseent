@@ -98,12 +98,23 @@ impl DefenseFlow {
 impl GameState {
     fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
-        self.left_dice = self.max_dice_chance();
-        self.shield = 0.0;
+        let effects = self.upgrade_state.stage_start_effects(self.stage);
+        self.left_dice = self.max_dice_chance() + effects.extra_dice;
+        self.stage_modifiers
+            .apply_damage_multiplier(effects.damage_multiplier);
+        if let Some(speed_multiplier) = effects.enemy_speed_multiplier {
+            self.stage_modifiers
+                .apply_enemy_speed_multiplier(speed_multiplier);
+        }
+        self.stage_modifiers
+            .set_free_shop_this_stage(effects.free_shop_this_stage);
+        if !self.upgrade_state.has_spanner() {
+            self.shield = 0.0;
+        }
         self.item_used = false;
         self.rerolled_count = 0;
 
-        self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count);
+        self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count());
         self.record_stage_start();
         if !crate::is_headless() {
             save_stage_snapshot(self);
@@ -137,8 +148,14 @@ impl GameState {
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
     }
 
-    pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
-        let mut hand_items = vec![tower_template];
+    pub fn goto_placing_tower(&mut self, mut tower_template: TowerTemplate) {
+        self.upgrade_state
+            .apply_pending_placement_bonuses(&mut tower_template, self.left_dice);
+
+        let mut hand_items = vec![tower_template.clone()];
+        for _ in 0..self.upgrade_state.consume_pending_mirror_count() {
+            hand_items.push(tower_template.clone());
+        }
 
         // Drain all queued extra towers (barricades, special towers, etc.)
         for (tower_kind, suit, rank) in self.stage_modifiers.drain_extra_tower_cards() {
@@ -195,7 +212,7 @@ impl GameState {
             && index < flow.options.len()
         {
             let upgrade = flow.options[index];
-            self.upgrade_state.upgrade(upgrade);
+            self.upgrade(upgrade);
         }
         self.goto_next_stage();
     }

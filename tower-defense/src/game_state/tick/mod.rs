@@ -1,6 +1,6 @@
 mod attack;
-mod defense_end;
-mod monster_death;
+pub(crate) mod defense_end;
+pub(crate) mod monster_death;
 mod projectile;
 
 use super::*;

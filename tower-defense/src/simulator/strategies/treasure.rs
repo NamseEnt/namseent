@@ -45,41 +45,41 @@ impl SynergyTreasureStrategy {
     fn score_option(&self, game_state: &GameState, option: &Upgrade) -> f32 {
         let stage = game_state.stage as f32;
         let base_value = match option.kind {
-            UpgradeKind::Cat { .. } => {
-                7.0 + (8 - game_state.upgrade_state.gold_earn_plus) as f32 * 0.8
+            UpgradeKind::Cat(_) => {
+                7.0 + (8 - game_state.upgrade_state.gold_earn_plus()) as f32 * 0.8
             }
-            UpgradeKind::Backpack { .. } => {
-                6.5 + (2 - game_state.upgrade_state.shop_slot_expand) as f32 * 1.2
+            UpgradeKind::Backpack(_) => {
+                6.5 + (2 - game_state.upgrade_state.shop_slot_expand()) as f32 * 1.2
             }
-            UpgradeKind::DiceBundle { .. } => {
-                7.5 + (4 - game_state.upgrade_state.dice_chance_plus) as f32 * 1.3
+            UpgradeKind::DiceBundle(_) => {
+                7.5 + (4 - game_state.upgrade_state.dice_chance_plus()) as f32 * 1.3
             }
-            UpgradeKind::EnergyDrink { .. } => {
-                6.5 + (15 - game_state.upgrade_state.shop_item_price_minus) as f32 * 0.2
+            UpgradeKind::EnergyDrink(_) => {
+                6.5 + (15 - game_state.upgrade_state.shop_item_price_minus()) as f32 * 0.2
             }
-            UpgradeKind::FourLeafClover => {
-                if game_state.upgrade_state.shorten_straight_flush_to_4_cards {
+            UpgradeKind::FourLeafClover(_) => {
+                if game_state.upgrade_state.shorten_straight_flush_to_4_cards() {
                     3.0
                 } else {
                     5.5
                 }
             }
-            UpgradeKind::Rabbit => {
-                if game_state.upgrade_state.skip_rank_for_straight {
+            UpgradeKind::Rabbit(_) => {
+                if game_state.upgrade_state.skip_rank_for_straight() {
                     3.0
                 } else {
                     5.0
                 }
             }
-            UpgradeKind::BlackWhite => {
-                if game_state.upgrade_state.treat_suits_as_same {
+            UpgradeKind::BlackWhite(_) => {
+                if game_state.upgrade_state.treat_suits_as_same() {
                     3.0
                 } else {
                     5.0
                 }
             }
-            UpgradeKind::Eraser { .. } => {
-                5.5 + (5 - game_state.upgrade_state.removed_number_rank_count) as f32 * 0.7
+            UpgradeKind::Eraser(_) => {
+                5.5 + (5 - game_state.upgrade_state.removed_number_rank_count()) as f32 * 0.7
             }
             _ => 4.0,
         };
@@ -89,9 +89,9 @@ impl SynergyTreasureStrategy {
         if game_state.stage <= 12
             && matches!(
                 option.kind,
-                UpgradeKind::Backpack { .. }
-                    | UpgradeKind::DiceBundle { .. }
-                    | UpgradeKind::Cat { .. }
+                UpgradeKind::Backpack(_)
+                    | UpgradeKind::DiceBundle(_)
+                    | UpgradeKind::Cat(_)
             )
         {
             score += 1.5;
@@ -100,14 +100,14 @@ impl SynergyTreasureStrategy {
         if game_state.hp < game_state.config.player.max_hp * 0.5
             && matches!(
                 option.kind,
-                UpgradeKind::EnergyDrink { .. } | UpgradeKind::Cat { .. }
+                UpgradeKind::EnergyDrink(_) | UpgradeKind::Cat(_)
             )
         {
             score += 1.5;
         }
 
-        if game_state.upgrade_state.shop_item_price_minus == 0
-            && matches!(option.kind, UpgradeKind::EnergyDrink { .. })
+        if game_state.upgrade_state.shop_item_price_minus() == 0
+            && matches!(option.kind, UpgradeKind::EnergyDrink(_))
         {
             score += 1.0;
         }

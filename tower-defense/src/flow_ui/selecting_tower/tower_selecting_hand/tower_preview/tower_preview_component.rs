@@ -229,10 +229,8 @@ fn calculate_upgrade_state_and_texts(
     };
 
     let apply_tower_upgrade_target = |target| {
-        let Some(upgrade_state) = game_state.upgrade_state.tower_upgrade_states.get(&target) else {
-            return;
-        };
-        apply_upgrade(upgrade_state, &UpgradeTargetType::Tower(target));
+        let upgrade_state = game_state.upgrade_state.tower_upgrade_state(target);
+        apply_upgrade(&upgrade_state, &UpgradeTargetType::Tower(target));
     };
 
     let targets = [
@@ -249,14 +247,8 @@ fn calculate_upgrade_state_and_texts(
     targets.into_iter().for_each(apply_tower_upgrade_target);
 
     let mut apply_tower_select_upgrade_target = |target| {
-        let Some(upgrade_state) = game_state
-            .upgrade_state
-            .tower_select_upgrade_states
-            .get(&target)
-        else {
-            return;
-        };
-        apply_upgrade(upgrade_state, &UpgradeTargetType::TowerSelect(target));
+        let upgrade_state = game_state.upgrade_state.tower_select_upgrade_state(target);
+        apply_upgrade(&upgrade_state, &UpgradeTargetType::TowerSelect(target));
     };
 
     if tower_template.kind.is_low_card_tower() {
@@ -266,14 +258,13 @@ fn calculate_upgrade_state_and_texts(
     let rerolled_count = game_state.rerolled_count;
     if rerolled_count == 0 {
         apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::NoReroll);
-    } else if let Some(upgrade_state) = game_state
-        .upgrade_state
-        .tower_select_upgrade_states
-        .get(&TowerSelectUpgradeTarget::Reroll)
-    {
+    } else {
+        let upgrade_state = game_state
+            .upgrade_state
+            .tower_select_upgrade_state(TowerSelectUpgradeTarget::Reroll);
         for _ in 0..rerolled_count {
             apply_upgrade(
-                upgrade_state,
+                &upgrade_state,
                 &UpgradeTargetType::TowerSelect(TowerSelectUpgradeTarget::Reroll),
             );
         }

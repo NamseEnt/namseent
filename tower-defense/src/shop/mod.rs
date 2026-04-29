@@ -107,18 +107,22 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
                 &mut rng,
                 &game_state.config,
             );
-            let cost = random_item_cost(
-                &mut rng,
-                game_state.upgrade_state.shop_item_price_minus,
-                &game_state.config,
-            );
+            let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
+                0
+            } else {
+                random_item_cost(
+                    &mut rng,
+                    game_state.upgrade_state.shop_item_price_minus(),
+                    &game_state.config,
+                )
+            };
             ShopSlot::Item { item, cost }
         }
         3..=7 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
                 upgrade.value,
-                game_state.upgrade_state.shop_item_price_minus,
+                game_state.upgrade_state.shop_item_price_minus(),
                 &game_state.config,
             );
             ShopSlot::Upgrade { upgrade, cost }
@@ -127,7 +131,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
                 upgrade.value,
-                game_state.upgrade_state.shop_item_price_minus,
+                game_state.upgrade_state.shop_item_price_minus(),
                 &game_state.config,
             );
             ShopSlot::Upgrade { upgrade, cost }

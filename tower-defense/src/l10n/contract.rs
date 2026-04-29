@@ -175,19 +175,19 @@ pub fn duration_english(status: &crate::game_state::contract::ContractStatus) ->
 
 fn phase_ko(ce: &ContractEffect) -> String {
     match ce {
-        ContractEffect::OnSign { .. } => "계약 시".into(),
-        ContractEffect::WhileActive { .. } => "계약 중".into(),
-        ContractEffect::OnStageStart { .. } => "매 스테이지".into(),
-        ContractEffect::OnExpire { .. } => "계약 종료 시".into(),
+        ContractEffect::OnSign (_) => "계약 시".into(),
+        ContractEffect::WhileActive (_) => "계약 중".into(),
+        ContractEffect::OnStageStart (_) => "매 스테이지".into(),
+        ContractEffect::OnExpire (_) => "계약 종료 시".into(),
     }
 }
 
 fn phase_en(ce: &ContractEffect) -> String {
     match ce {
-        ContractEffect::OnSign { .. } => "On sign".into(),
-        ContractEffect::WhileActive { .. } => "While active".into(),
-        ContractEffect::OnStageStart { .. } => "On stage start".into(),
-        ContractEffect::OnExpire { .. } => "On expire".into(),
+        ContractEffect::OnSign (_) => "On sign".into(),
+        ContractEffect::WhileActive (_) => "While active".into(),
+        ContractEffect::OnStageStart (_) => "On stage start".into(),
+        ContractEffect::OnExpire (_) => "On expire".into(),
     }
 }
 

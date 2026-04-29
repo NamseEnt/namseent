@@ -135,7 +135,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
 ) {
     match effect {
         Effect::Heal { amount } => {
-            game_state.hp = (game_state.hp + amount).min(game_state.config.player.max_hp);
+            game_state.hp = (game_state.hp + amount).min(game_state.max_hp());
         }
         Effect::Shield { amount } => {
             game_state.shield += amount;
@@ -190,7 +190,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         }
         Effect::GrantUpgrade { rarity: _ } => {
             let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state);
-            game_state.upgrade_state.upgrade(upgrade);
+            game_state.apply_upgrade_effects(upgrade);
         }
         Effect::GrantItem { rarity: _ } => {
             let item = crate::game_state::item::generation::generate_item_with_rng(
@@ -323,7 +323,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             max_amount,
         } => {
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp + heal_amount).min(game_state.config.player.max_hp);
+            game_state.hp = (game_state.hp + heal_amount).min(game_state.max_hp());
         }
         Effect::GainGold {
             min_amount,

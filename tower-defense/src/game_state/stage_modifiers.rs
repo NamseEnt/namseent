@@ -52,6 +52,7 @@ pub struct RerollCosts {
 pub struct Restrictions {
     pub disable_item_and_upgrade_purchases: bool,
     pub disable_item_use: bool,
+    pub free_shop_this_stage: bool,
     pub disabled_ranks: Vec<Rank>,
     pub disabled_suits: Vec<Suit>,
 }
@@ -148,6 +149,9 @@ impl StageModifiers {
     pub fn is_item_use_disabled(&self) -> bool {
         self.restrictions.disable_item_use
     }
+    pub fn is_free_shop_this_stage(&self) -> bool {
+        self.restrictions.free_shop_this_stage
+    }
     pub fn get_reroll_health_cost(&self) -> usize {
         self.reroll_costs.reroll_health_cost
     }
@@ -212,6 +216,9 @@ impl StageModifiers {
     }
     pub fn disable_item_use(&mut self) {
         self.restrictions.disable_item_use = true;
+    }
+    pub fn set_free_shop_this_stage(&mut self, enabled: bool) {
+        self.restrictions.free_shop_this_stage = enabled;
     }
     pub fn apply_reroll_health_cost(&mut self, v: usize) {
         self.reroll_costs.reroll_health_cost += v;

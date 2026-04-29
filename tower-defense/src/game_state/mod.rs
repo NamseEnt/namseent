@@ -147,10 +147,15 @@ impl GameState {
     }
 
     pub fn max_shop_slot(&self) -> usize {
-        self.upgrade_state.shop_slot_expand + 2
+        self.upgrade_state.shop_slot_expand() + 2
     }
+
+    pub fn max_hp(&self) -> f32 {
+        self.config.player.max_hp + self.upgrade_state.pea_max_hp_plus() as f32
+    }
+
     pub fn max_dice_chance(&self) -> usize {
-        (self.upgrade_state.dice_chance_plus
+        (self.upgrade_state.dice_chance_plus()
             + self.config.player.base_dice_chance
             + self.stage_modifiers.get_max_rerolls_bonus())
         .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
@@ -694,6 +699,11 @@ fn create_initial_game_state() -> GameState {
     game_state
 }
 
+#[cfg(test)]
+pub(crate) fn create_initial_game_state_for_tests() -> GameState {
+    create_initial_game_state()
+}
+
 pub fn init_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
     ctx.init_atom(&GAME_STATE_ATOM, create_initial_game_state).0
 }
@@ -852,6 +862,10 @@ pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game_state::upgrade::{
+        GiftBoxUpgrade, MirrorUpgrade, PiggyBankUpgrade, SpannerUpgrade, TrophyUpgrade, Upgrade,
+        UpgradeKind,
+    };
 
     #[test]
     fn toggle_panels_basic_scenarios() {
@@ -931,5 +945,138 @@ mod tests {
             assert!(is_boss_stage(stage), "expected stage {} to be boss", stage);
         }
         assert!(!is_boss_stage(51));
+    }
+
+    #[test]
+    fn trophy_perfect_clear_increments_perfect_clear_stacks() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::Trophy(TrophyUpgrade {
+                perfect_clear_stacks: 0,
+            }),
+            value: crate::OneZero::default(),
+        });
+
+        tick::defense_end::check_defense_end(&mut gs);
+
+        assert!(gs.upgrade_state.upgrades.iter().any(|upgrade| matches!(
+            upgrade.kind,
+            UpgradeKind::Trophy(TrophyUpgrade {
+                perfect_clear_stacks: 1
+            })
+        )));
+    }
+
+    #[test]
+    fn piggy_bank_awards_gold_on_stage_end_with_enough_gold() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.gold = 500;
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::PiggyBank(PiggyBankUpgrade),
+            value: crate::OneZero::default(),
+        });
+
+        tick::defense_end::check_defense_end(&mut gs);
+
+        assert_eq!(gs.gold, 550);
+    }
+
+    #[test]
+    fn gift_box_awards_gold_per_item_on_stage_end() {
+        let mut gs = create_initial_game_state();
+        gs.flow = GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.items = vec![
+            crate::game_state::item::Item {
+                kind: ItemKind::LumpSugar,
+                effect: crate::game_state::item::Effect::ExtraDice,
+            },
+            crate::game_state::item::Item {
+                kind: ItemKind::LumpSugar,
+                effect: crate::game_state::item::Effect::ExtraDice,
+            },
+        ];
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::GiftBox(GiftBoxUpgrade),
+            value: crate::OneZero::default(),
+        });
+
+        tick::defense_end::check_defense_end(&mut gs);
+
+        assert_eq!(gs.gold, gs.config.player.starting_gold + 20);
+    }
+
+    #[test]
+    fn spanner_keeps_shield_across_stage_transition() {
+        let mut gs = create_initial_game_state();
+        gs.shield = 50.0;
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::Spanner(SpannerUpgrade),
+            value: crate::OneZero::default(),
+        });
+
+        gs.goto_next_stage();
+
+        assert_eq!(gs.shield, 50.0);
+    }
+
+    #[test]
+    fn mirror_produces_duplicate_towers_in_placing_flow() {
+        let mut gs = create_initial_game_state();
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::Mirror(MirrorUpgrade { pending: true }),
+            value: crate::OneZero::default(),
+        });
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::Mirror(MirrorUpgrade { pending: true }),
+            value: crate::OneZero::default(),
+        });
+
+        gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            crate::card::Suit::Spades,
+            crate::card::Rank::Ace,
+        ));
+
+        assert_eq!(gs.hand.active_slot_ids().len(), 3);
+        assert_eq!(
+            gs.upgrade_state
+                .upgrades
+                .iter()
+                .filter(|upgrade| {
+                    if let UpgradeKind::Mirror(ref m) = upgrade.kind {
+                        m.pending
+                    } else {
+                        false
+                    }
+                })
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn shopping_bag_global_tower_damage_multiplier_increases_with_stacks() {
+        use crate::game_state::upgrade::ShoppingBagUpgrade;
+        let mut gs = create_initial_game_state();
+        gs.upgrade_state.upgrade(Upgrade {
+            kind: UpgradeKind::ShoppingBag(ShoppingBagUpgrade {
+                damage_multiplier: 1.5,
+                stacks: 0,
+            }),
+            value: crate::OneZero::default(),
+        });
+        if let Some(bag) = gs.upgrade_state.upgrades.iter_mut().find_map(|u| {
+            if let UpgradeKind::ShoppingBag(ref mut b) = u.kind {
+                Some(&mut b.stacks)
+            } else {
+                None
+            }
+        }) {
+            *bag = 2;
+        }
+
+        assert_eq!(gs.upgrade_state.global_tower_damage_multiplier(&gs), 2.0);
     }
 }

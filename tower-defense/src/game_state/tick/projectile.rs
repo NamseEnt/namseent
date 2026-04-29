@@ -183,7 +183,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
             if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
                 defense_flow.stage_progress.processed_hp += monster.max_hp;
             }
-            let earn = monster.reward + game_state.upgrade_state.gold_earn_plus;
+            let earn = monster.reward + game_state.upgrade_state.gold_earn_plus();
             let earn =
                 (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
             total_earn_gold += earn;

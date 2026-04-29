@@ -101,6 +101,7 @@ mod tests {
     use crate::game_state::upgrade::{Upgrade, UpgradeKind};
     use crate::l10n::Locale;
     use namui::{OneZero, Wh, px};
+    use crate::game_state::upgrade::CatUpgrade;
 
     #[test]
     fn make_item_and_upgrade_params() {
@@ -117,7 +118,7 @@ mod tests {
         assert_eq!(params.cost, 5);
 
         let up = Upgrade {
-            kind: UpgradeKind::Cat { add: 1 },
+            kind: UpgradeKind::Cat(CatUpgrade { add: 1 }),
             value: OneZero::default(),
         };
         let params = make_upgrade_params(wh, &up, 3, false, locale);

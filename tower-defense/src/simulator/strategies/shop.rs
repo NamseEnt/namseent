@@ -185,14 +185,14 @@ impl SynergyShopStrategy {
 
     fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
         match kind {
-            UpgradeKind::Cat { .. } => 7.0,
-            UpgradeKind::Backpack { .. } => 6.5,
-            UpgradeKind::DiceBundle { .. } => 7.5,
-            UpgradeKind::EnergyDrink { .. } => 6.0,
-            UpgradeKind::FourLeafClover => 5.0,
-            UpgradeKind::Rabbit => 5.0,
-            UpgradeKind::BlackWhite => 5.5,
-            UpgradeKind::Eraser { .. } => 6.0,
+            UpgradeKind::Cat(_) => 7.0,
+            UpgradeKind::Backpack(_) => 6.5,
+            UpgradeKind::DiceBundle(_) => 7.5,
+            UpgradeKind::EnergyDrink(_) => 6.0,
+            UpgradeKind::FourLeafClover(_) => 5.0,
+            UpgradeKind::Rabbit(_) => 5.0,
+            UpgradeKind::BlackWhite(_) => 5.5,
+            UpgradeKind::Eraser(_) => 6.0,
             _ => 3.0,
         }
     }
@@ -238,7 +238,7 @@ fn total_tower_score(game_state: &GameState, upgrade_state: &UpgradeState) -> f3
 
 fn tower_score(tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
     let tower_upgrade_states = upgrade_state.tower_upgrades(tower);
-    let damage = tower.calculate_projectile_damage(&tower_upgrade_states, 1.0);
+    let damage = tower.calculate_projectile_damage(&tower_upgrade_states, 1.0, 1.0);
     if damage <= 0.0 {
         return 0.0;
     }

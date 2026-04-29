@@ -3,7 +3,11 @@ use crate::game_state::camera::ShakeIntensity;
 use crate::game_state::effect_event::GameEffectEvent;
 use crate::{
     game_state::{
-        effect::run_effect, item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade,
+        effect::run_effect,
+        item,
+        play_history::HistoryEventType,
+        tower::Tower,
+        upgrade::{Upgrade, UpgradeKind},
     },
     shop::ShopSlot,
     sound::{self},
@@ -14,6 +18,18 @@ const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
 const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
 impl GameState {
+    pub(crate) fn apply_upgrade_effects(&mut self, mut upgrade: Upgrade) {
+        if let UpgradeKind::Tape(ref mut u) = upgrade.kind {
+            u.acquired_stage = self.stage;
+        }
+
+        self.upgrade_state.upgrade(upgrade);
+
+        if matches!(upgrade.kind, UpgradeKind::Pea(_)) {
+            self.hp = self.max_hp();
+        }
+    }
+
     pub fn record_game_start(&mut self) {
         self.record_event(HistoryEventType::GameStart);
     }
@@ -60,7 +76,7 @@ impl GameState {
     }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        self.upgrade_state.upgrade(upgrade);
+        self.apply_upgrade_effects(upgrade);
         self.record_event(HistoryEventType::UpgradeSelected { upgrade });
     }
 
@@ -83,6 +99,9 @@ impl GameState {
 
         let tower_placed = self.towers.iter().count() > tower_count_before;
         if tower_placed {
+            if self.upgrade_state.has_camera() && rank.is_face() {
+                self.earn_gold(50);
+            }
             self.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
                     sound::random_luggage_drop(),
@@ -114,6 +133,7 @@ impl GameState {
         if tower_removed {
             self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                 .expect("route should exist after removing a tower");
+            self.upgrade_state.record_tower_removed();
             if let Some(left_top) = removed_tower_left_top {
                 self.record_event(HistoryEventType::TowerRemoved { left_top });
             }
@@ -234,6 +254,15 @@ impl GameState {
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
                 self.items.push(item_clone.clone());
+                if let Some(bag) = self.upgrade_state.upgrades.iter_mut().find_map(|u| {
+                    if let UpgradeKind::ShoppingBag(ref mut b) = u.kind {
+                        Some(&mut b.stacks)
+                    } else {
+                        None
+                    }
+                }) {
+                    *bag += 1;
+                }
                 self.record_event(HistoryEventType::ItemPurchased {
                     item: item_clone,
                     cost: cost_value,
@@ -257,7 +286,7 @@ impl GameState {
 
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
-                self.upgrade_state.upgrade(upgrade_value);
+                self.apply_upgrade_effects(upgrade_value);
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
                     cost: cost_value,

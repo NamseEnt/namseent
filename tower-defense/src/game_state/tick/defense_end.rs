@@ -32,9 +32,17 @@ pub fn check_defense_end(game_state: &mut GameState) {
                 .metrics
                 .max_consecutive_perfect_clears
                 .max(game_state.metrics.current_consecutive_perfect_clears);
+            game_state.upgrade_state.record_perfect_clear();
         } else {
             game_state.metrics.current_consecutive_perfect_clears = 0;
         }
+    }
+
+    if game_state.upgrade_state.has_piggy_bank() && game_state.gold >= 500 {
+        game_state.earn_gold(50);
+    }
+    if game_state.upgrade_state.has_gift_box() {
+        game_state.earn_gold(10 * game_state.items.len());
     }
 
     let is_boss_stage = is_boss_stage(game_state.stage);

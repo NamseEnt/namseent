@@ -2,7 +2,20 @@ use super::super::get_highest_tower_template;
 use super::make_card;
 use crate::card::{Rank, Suit};
 use crate::game_state::tower::TowerKind;
-use crate::game_state::upgrade::UpgradeState;
+use crate::game_state::upgrade::{Upgrade, UpgradeKind, UpgradeState};
+
+fn state_with(kinds: Vec<UpgradeKind>) -> UpgradeState {
+    UpgradeState {
+        upgrades: kinds
+            .into_iter()
+            .map(|kind| Upgrade {
+                kind,
+                value: crate::OneZero::default(),
+            })
+            .collect(),
+        ..UpgradeState::default()
+    }
+}
 
 #[test]
 fn test_royal_flush() {
@@ -53,10 +66,7 @@ fn test_royal_flush_4cards_with_upgrade() {
         make_card(Suit::Hearts, Rank::King),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = UpgradeState {
-        shorten_straight_flush_to_4_cards: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state = state_with(vec![UpgradeKind::FourLeafClover(crate::game_state::upgrade::FourLeafCloverUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -77,10 +87,7 @@ fn test_royal_flush_skip_rank() {
         make_card(Suit::Hearts, Rank::Queen),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = UpgradeState {
-        skip_rank_for_straight: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state = state_with(vec![UpgradeKind::Rabbit(crate::game_state::upgrade::RabbitUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -101,11 +108,7 @@ fn test_royal_flush_skip_rank_and_shorten_4cards() {
         make_card(Suit::Hearts, Rank::Ace),
         make_card(Suit::Hearts, Rank::Jack),
     ];
-    let upgrade_state = UpgradeState {
-        skip_rank_for_straight: true,
-        shorten_straight_flush_to_4_cards: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state = state_with(vec![UpgradeKind::Rabbit(crate::game_state::upgrade::RabbitUpgrade), UpgradeKind::FourLeafClover(crate::game_state::upgrade::FourLeafCloverUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -127,10 +130,7 @@ fn test_royal_flush_treat_suits_as_same() {
         make_card(Suit::Diamonds, Rank::King),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = UpgradeState {
-        treat_suits_as_same: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state = state_with(vec![UpgradeKind::BlackWhite(crate::game_state::upgrade::BlackWhiteUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -151,11 +151,7 @@ fn test_royal_flush_treat_suits_as_same_and_shorten_4cards() {
         make_card(Suit::Hearts, Rank::King),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = UpgradeState {
-        treat_suits_as_same: true,
-        shorten_straight_flush_to_4_cards: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state = state_with(vec![UpgradeKind::BlackWhite(crate::game_state::upgrade::BlackWhiteUpgrade), UpgradeKind::FourLeafClover(crate::game_state::upgrade::FourLeafCloverUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -176,12 +172,8 @@ fn test_royal_flush_treat_suits_as_same_and_shorten_4cards_and_skip_rank_for_str
         make_card(Suit::Diamonds, Rank::Queen),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = UpgradeState {
-        treat_suits_as_same: true,
-        shorten_straight_flush_to_4_cards: true,
-        skip_rank_for_straight: true,
-        ..UpgradeState::default()
-    };
+    let upgrade_state =
+        state_with(vec![UpgradeKind::BlackWhite(crate::game_state::upgrade::BlackWhiteUpgrade), UpgradeKind::FourLeafClover(crate::game_state::upgrade::FourLeafCloverUpgrade), UpgradeKind::Rabbit(crate::game_state::upgrade::RabbitUpgrade)]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,

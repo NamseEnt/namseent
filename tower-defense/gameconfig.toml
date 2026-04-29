@@ -945,43 +945,84 @@ weight = 20.0
 damage_multiplier = 1.25
 
 [[upgrades.treasure_upgrades]]
-name = "Cat"
-weight = 50.0
+name = "Trophy"
+weight = 10.0
+damage_multiplier = 2.0
 
 [[upgrades.treasure_upgrades]]
-name = "Backpack"
-weight = 50.0
-
-[[upgrades.treasure_upgrades]]
-name = "DiceBundle"
+name = "Crock"
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
-name = "EnergyDrink"
+name = "DemolitionHammer"
+weight = 10.0
+damage_multiplier = 2.0
+
+[[upgrades.treasure_upgrades]]
+name = "Metronome"
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
-name = "PerfectPottery"
-weight = 25.0
-damage_multiplier = 1.75
-
-[[upgrades.treasure_upgrades]]
-name = "BrokenPottery"
-weight = 20.0
-damage_multiplier = 1.25
-
-[[upgrades.treasure_upgrades]]
-name = "FourLeafClover"
+name = "Tape"
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
-name = "Rabbit"
+name = "NameTag"
+weight = 10.0
+damage_multiplier = 3.0
+
+[[upgrades.treasure_upgrades]]
+name = "ShoppingBag"
+weight = 10.0
+damage_multiplier = 1.5
+
+[[upgrades.treasure_upgrades]]
+name = "Resolution"
+weight = 10.0
+damage_multiplier = 0.25
+
+[[upgrades.treasure_upgrades]]
+name = "Mirror"
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
-name = "BlackWhite"
+name = "IceCream"
+weight = 10.0
+damage_multiplier = 3.0
+
+[[upgrades.treasure_upgrades]]
+name = "Spanner"
 weight = 10.0
 
 [[upgrades.treasure_upgrades]]
-name = "Eraser"
+name = "Pea"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "SlotMachine"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "PiggyBank"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "Camera"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "GiftBox"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "Fang"
+weight = 10.0
+
+[[upgrades.treasure_upgrades]]
+name = "Popcorn"
+weight = 10.0
+damage_multiplier = 5.0
+
+[[upgrades.treasure_upgrades]]
+name = "MembershipCard"
 weight = 10.0

@@ -20,29 +20,18 @@ pub fn inject_status_effects(
         }
     };
 
-    if tower.kind.is_low_card_tower()
-        && let Some(upgrade) = upgrade_state
-            .tower_select_upgrade_states
-            .get(&TowerSelectUpgradeTarget::LowCard)
-    {
-        inject_tower_upgrades(upgrade);
+    if tower.kind.is_low_card_tower() {
+        let upgrade = upgrade_state.tower_select_upgrade_state(TowerSelectUpgradeTarget::LowCard);
+        inject_tower_upgrades(&upgrade);
     }
 
     if rerolled_count == 0 {
-        if let Some(upgrade) = upgrade_state
-            .tower_select_upgrade_states
-            .get(&TowerSelectUpgradeTarget::NoReroll)
-        {
-            inject_tower_upgrades(upgrade);
-        }
+        let upgrade = upgrade_state.tower_select_upgrade_state(TowerSelectUpgradeTarget::NoReroll);
+        inject_tower_upgrades(&upgrade);
     } else if rerolled_count > 0 {
+        let upgrade = upgrade_state.tower_select_upgrade_state(TowerSelectUpgradeTarget::Reroll);
         for _ in 0..rerolled_count {
-            if let Some(upgrade) = upgrade_state
-                .tower_select_upgrade_states
-                .get(&TowerSelectUpgradeTarget::Reroll)
-            {
-                inject_tower_upgrades(upgrade);
-            }
+            inject_tower_upgrades(&upgrade);
         }
     }
 }

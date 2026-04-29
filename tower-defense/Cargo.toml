@@ -27,6 +27,8 @@ indicatif = { version = "0.17", optional = true }
 ctrlc = { version = "3", optional = true }
 crossterm = { version = "0.28", optional = true }
 ratatui = { version = "0.29", optional = true }
+strum = "0.28.0"
+strum_macros = "0.28.0"
 
 [[bin]]
 name = "td-simulator"

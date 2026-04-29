@@ -136,70 +136,133 @@ pub fn default_upgrade_config() -> UpgradeConfig {
         ],
         treasure_upgrades: vec![
             UpgradeCandidate {
-                name: "Cat".into(),
+                name: "Trophy".into(),
                 entry: UpgradeCandidateEntry {
-                    weight: 50.0,
-                    damage_multiplier: None,
+                    weight: 10.0,
+                    damage_multiplier: Some(2.0),
                 },
             },
             UpgradeCandidate {
-                name: "Backpack".into(),
-                entry: UpgradeCandidateEntry {
-                    weight: 50.0,
-                    damage_multiplier: None,
-                },
-            },
-            UpgradeCandidate {
-                name: "DiceBundle".into(),
+                name: "Crock".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
-                name: "EnergyDrink".into(),
+                name: "DemolitionHammer".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(2.0),
+                },
+            },
+            UpgradeCandidate {
+                name: "Metronome".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
-                name: "PerfectPottery".into(),
-                entry: UpgradeCandidateEntry {
-                    weight: 25.0,
-                    damage_multiplier: Some(1.75),
-                },
-            },
-            UpgradeCandidate {
-                name: "BrokenPottery".into(),
-                entry: UpgradeCandidateEntry {
-                    weight: 20.0,
-                    damage_multiplier: Some(1.25),
-                },
-            },
-            UpgradeCandidate {
-                name: "FourLeafClover".into(),
+                name: "Tape".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
-                name: "Rabbit".into(),
+                name: "NameTag".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(3.0),
+                },
+            },
+            UpgradeCandidate {
+                name: "ShoppingBag".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(1.5),
+                },
+            },
+            UpgradeCandidate {
+                name: "Resolution".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(0.25),
+                },
+            },
+            UpgradeCandidate {
+                name: "Mirror".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
-                name: "BlackWhite".into(),
+                name: "IceCream".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(3.0),
+                },
+            },
+            UpgradeCandidate {
+                name: "Spanner".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
-                name: "Eraser".into(),
+                name: "Pea".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "SlotMachine".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "PiggyBank".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "Camera".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "GiftBox".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "Fang".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: None,
+                },
+            },
+            UpgradeCandidate {
+                name: "Popcorn".into(),
+                entry: UpgradeCandidateEntry {
+                    weight: 10.0,
+                    damage_multiplier: Some(5.0),
+                },
+            },
+            UpgradeCandidate {
+                name: "MembershipCard".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
                     damage_multiplier: None,

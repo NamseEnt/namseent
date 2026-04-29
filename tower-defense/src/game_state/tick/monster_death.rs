@@ -19,7 +19,7 @@ pub fn handle_monster_death(
         defense_flow.stage_progress.processed_hp += monster_max_hp;
     }
 
-    let earn = monster_reward + game_state.upgrade_state.gold_earn_plus;
+    let earn = monster_reward + game_state.upgrade_state.gold_earn_plus();
     let earn = (earn as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
 
     let wh = monster::monster_wh(monster_kind);
@@ -52,5 +52,8 @@ pub fn handle_monster_death(
         ));
 
     game_state.earn_gold(earn);
+    if game_state.upgrade_state.has_fang() {
+        game_state.hp = (game_state.hp + 1.0).min(game_state.max_hp());
+    }
     game_state.monsters.swap_remove(target_idx);
 }
