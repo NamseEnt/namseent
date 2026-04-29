@@ -18,6 +18,11 @@ pub enum TopBarText {
 pub enum ResultModalText {
     Title,
     RestartButton,
+    MaxPerfectClearLabel,
+    TotalGoldLabel,
+    TotalDamageLabel,
+    RerollCountLabel,
+    NoTowerDamage,
 }
 
 impl LocalizedText for TopBarText {
@@ -79,6 +84,11 @@ impl ResultModalText {
         match self {
             ResultModalText::Title => "게임 결과",
             ResultModalText::RestartButton => "다시하기",
+            ResultModalText::MaxPerfectClearLabel => "최대 연속 퍼펙트 클리어",
+            ResultModalText::TotalGoldLabel => "총 획득 골드",
+            ResultModalText::TotalDamageLabel => "총 데미지",
+            ResultModalText::RerollCountLabel => "리롤 횟수",
+            ResultModalText::NoTowerDamage => "타워 기여 기록이 없습니다",
         }
     }
 
@@ -86,6 +96,11 @@ impl ResultModalText {
         match self {
             ResultModalText::Title => "Game Result",
             ResultModalText::RestartButton => "Restart",
+            ResultModalText::MaxPerfectClearLabel => "Max Perfect Streak",
+            ResultModalText::TotalGoldLabel => "Total Gold Earned",
+            ResultModalText::TotalDamageLabel => "Total Damage",
+            ResultModalText::RerollCountLabel => "Reroll Count",
+            ResultModalText::NoTowerDamage => "No tower contribution recorded",
         }
     }
 }

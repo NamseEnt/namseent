@@ -19,7 +19,10 @@ impl GameState {
     }
 
     pub fn record_stage_start(&mut self) {
-        self.record_event(HistoryEventType::StageStart { stage: self.stage });
+        self.record_event(HistoryEventType::StageStart {
+            stage: self.stage,
+            boss: crate::game_state::is_boss_stage(self.stage),
+        });
     }
 
     pub fn record_game_over(&mut self) {
@@ -28,6 +31,7 @@ impl GameState {
 
     pub fn earn_gold(&mut self, gold: usize) {
         self.gold += gold;
+        self.metrics.total_gold_earned += gold;
         if gold > 0 {
             self.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
@@ -42,6 +46,7 @@ impl GameState {
     /// WARNING: `gold` must be less than or equal to self.gold
     pub fn spend_gold(&mut self, gold: usize) {
         self.gold -= gold;
+        self.metrics.total_gold_spent += gold;
         if gold > 0 {
             self.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
@@ -91,6 +96,11 @@ impl GameState {
 
     pub fn remove_tower(&mut self, tower_id: usize) -> bool {
         let tower_count_before = self.towers.iter().count();
+        let removed_tower_left_top = self
+            .towers
+            .iter()
+            .find(|tower| tower.id() == tower_id)
+            .map(|tower| tower.left_top);
         let tower_center_xy =
             self.towers
                 .iter()
@@ -104,6 +114,9 @@ impl GameState {
         if tower_removed {
             self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                 .expect("route should exist after removing a tower");
+            if let Some(left_top) = removed_tower_left_top {
+                self.record_event(HistoryEventType::TowerRemoved { left_top });
+            }
             if let Some(center_xy) = tower_center_xy {
                 self.effect_events
                     .push(GameEffectEvent::SpawnTowerRemoveDustBurst(
@@ -136,6 +149,9 @@ impl GameState {
 
         // Apply damage
         self.hp -= actual_damage;
+        if let GameFlow::Defense(defense_flow) = &mut self.flow {
+            defense_flow.took_damage = true;
+        }
 
         // Record event
         if damage > 0.0 {

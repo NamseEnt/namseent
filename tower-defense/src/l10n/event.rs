@@ -31,11 +31,21 @@ impl HistoryEventType {
             HistoryEventType::GameStart => {
                 builder.static_text("게임 시작");
             }
-            HistoryEventType::StageStart { stage } => {
+            HistoryEventType::StageStart { stage, boss } => {
                 builder
                     .static_text("스테이지 ")
                     .text(format!("{}", stage))
-                    .static_text(" 시작");
+                    .static_text(if *boss {
+                        " 보스 스테이지 시작"
+                    } else {
+                        " 시작"
+                    });
+            }
+            HistoryEventType::StagePerfectClear { stage } => {
+                builder
+                    .static_text("완벽 클리어: ")
+                    .text(format!("{}", stage))
+                    .static_text(" 스테이지");
             }
             HistoryEventType::TowerPlaced {
                 tower_kind,
@@ -46,6 +56,11 @@ impl HistoryEventType {
                 builder
                     .static_text("타워 배치: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
+            }
+            HistoryEventType::TowerRemoved { left_top } => {
+                builder
+                    .static_text("타워 제거: ")
+                    .text(format!("({}, {})", left_top.x, left_top.y));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder
@@ -93,11 +108,17 @@ impl HistoryEventType {
             HistoryEventType::GameStart => {
                 builder.static_text("Game Started");
             }
-            HistoryEventType::StageStart { stage } => {
+            HistoryEventType::StageStart { stage, boss } => {
                 builder
                     .static_text("Stage ")
                     .text(format!("{}", stage))
-                    .static_text(" Started");
+                    .static_text(if *boss { " Boss Started" } else { " Started" });
+            }
+            HistoryEventType::StagePerfectClear { stage } => {
+                builder
+                    .static_text("Perfect Clear: ")
+                    .text(format!("{}", stage))
+                    .static_text(" Stage");
             }
             HistoryEventType::TowerPlaced {
                 tower_kind,
@@ -108,6 +129,11 @@ impl HistoryEventType {
                 builder
                     .static_text("Tower Placed: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
+            }
+            HistoryEventType::TowerRemoved { left_top } => {
+                builder
+                    .static_text("Tower Removed: ")
+                    .text(format!("({}, {})", left_top.x, left_top.y));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder

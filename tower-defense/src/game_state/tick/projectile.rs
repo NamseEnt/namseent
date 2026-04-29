@@ -16,6 +16,7 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         .collect();
 
     let mut total_earn_gold = 0;
+    let mut tower_damage_updates = Vec::new();
 
     projectiles.retain_mut(|projectile| {
         let start_xy = projectile.xy;
@@ -76,6 +77,17 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
         let damage = projectile.damage;
         monster.get_damage(damage);
         if damage > 0.0 {
+            if let Some(source_tower_info) = projectile.source_tower_info
+                && let Some(source_tower_id) = projectile.source_tower_id
+            {
+                tower_damage_updates.push((
+                    source_tower_id,
+                    source_tower_info.0,
+                    source_tower_info.1,
+                    source_tower_info.2,
+                    damage,
+                ));
+            }
             game_state.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
                     sound::random_whoop(),
@@ -222,6 +234,10 @@ pub fn move_projectiles(game_state: &mut GameState, dt: Duration, now: Instant) 
 
         false
     });
+
+    for (source_tower_id, tower_kind, rank, suit, damage) in tower_damage_updates {
+        game_state.record_tower_damage(source_tower_id, tower_kind, rank, suit, damage);
+    }
 
     if total_earn_gold > 0 {
         game_state.earn_gold(total_earn_gold);

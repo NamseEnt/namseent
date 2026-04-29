@@ -15,7 +15,7 @@ use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
 use crate::game_state::{
-    EffectEventQueue, GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory,
+    EffectEventQueue, GameMetrics, GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory,
 };
 use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
@@ -143,7 +143,7 @@ impl HeadlessGame {
                             total_items_used: self.total_items_used,
                             total_damage_taken: self.total_damage_taken,
                             stage_damage: self.stage_damage.clone(),
-                            total_gold_earned: self.total_gold_earned,
+                            total_gold_earned: self.game_state.metrics.total_gold_earned,
                         };
                     }
 
@@ -172,7 +172,7 @@ impl HeadlessGame {
                             total_items_used: self.total_items_used,
                             total_damage_taken: self.total_damage_taken,
                             stage_damage: self.stage_damage.clone(),
-                            total_gold_earned: self.total_gold_earned,
+                            total_gold_earned: self.game_state.metrics.total_gold_earned,
                         };
                     }
                 }
@@ -215,7 +215,7 @@ impl HeadlessGame {
                         total_items_used: self.total_items_used,
                         total_damage_taken: self.total_damage_taken,
                         stage_damage: self.stage_damage.clone(),
-                        total_gold_earned: self.total_gold_earned,
+                        total_gold_earned: self.game_state.metrics.total_gold_earned,
                     };
                 }
             }
@@ -349,6 +349,13 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
+        metrics: GameMetrics {
+            total_gold_earned: 0,
+            total_gold_spent: 0,
+            current_consecutive_perfect_clears: 0,
+            max_consecutive_perfect_clears: 0,
+            tower_damage_stats: vec![],
+        },
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(0),
         play_history: PlayHistory::new(),
