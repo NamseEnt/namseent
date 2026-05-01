@@ -41,7 +41,7 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                             if let Some(kind) = item_kind {
                                                 inner_ctx.add(kind.thumbnail(inner_wh));
                                             } else if let Some(upgrade) = upgrade {
-                                                inner_ctx.add(upgrade.thumbnail(inner_wh));
+                                                inner_ctx.add(upgrade.thumbnail(inner_wh, false));
                                             } else {
                                                 inner_ctx.add(
                                                     crate::thumbnail::render_placeholder_thumbnail(

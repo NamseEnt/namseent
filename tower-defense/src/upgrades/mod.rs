@@ -333,7 +333,7 @@ impl Component for UpgradeThumbnailItem {
             ctx.translate(pivot)
                 .rotate(hover_rotation.deg())
                 .translate(Xy::new(-pivot.x, -pivot.y))
-                .add(upgrade_kind.thumbnail(thumbnail_wh));
+                .add(upgrade_kind.thumbnail(thumbnail_wh, true));
         });
 
         ctx.add(

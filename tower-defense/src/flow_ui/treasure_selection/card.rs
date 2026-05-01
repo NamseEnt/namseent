@@ -37,7 +37,7 @@ impl Component for TreasureCardContent {
                     table::fixed_no_clip(wh.height, |thumb_wh, ctx| {
                         ctx.compose(|ctx| {
                             table::padding_no_clip(PADDING, |inner_wh, inner_ctx| {
-                                inner_ctx.add(upgrade.thumbnail(inner_wh));
+                                inner_ctx.add(upgrade.thumbnail(inner_wh, false));
                             })(thumb_wh, ctx);
                         });
                         ctx.add(PaperContainerBackground {
