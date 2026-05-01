@@ -1,14 +1,10 @@
 use super::super::*;
 use crate::game_state::tower::{Tower, TowerTemplate};
-use namui::OneZero;
 
 #[test]
 fn camera_upgrade_sets_active_flag() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::Camera(CameraUpgrade),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
 
     assert!(state.has_camera());
 }
@@ -18,10 +14,7 @@ fn camera_grants_gold_when_face_tower_is_placed() {
     let mut game_state = super::support::create_mock_game_state();
     let initial_gold = game_state.gold;
 
-    game_state.upgrade_state.upgrade(Upgrade {
-        kind: UpgradeKind::Camera(CameraUpgrade),
-        value: OneZero::default(),
-    });
+    game_state.upgrade_state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
 
     let face_tower_template = TowerTemplate::new(
         crate::game_state::tower::TowerKind::High,
@@ -43,10 +36,7 @@ fn camera_does_not_grant_gold_for_number_tower() {
     let mut game_state = super::support::create_mock_game_state();
     let initial_gold = game_state.gold;
 
-    game_state.upgrade_state.upgrade(Upgrade {
-        kind: UpgradeKind::Camera(CameraUpgrade),
-        value: OneZero::default(),
-    });
+    game_state.upgrade_state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
 
     let number_tower_template = TowerTemplate::new(
         crate::game_state::tower::TowerKind::High,

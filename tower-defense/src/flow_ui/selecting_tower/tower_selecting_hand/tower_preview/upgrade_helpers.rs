@@ -1,5 +1,5 @@
 use crate::{
-    game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeTarget, UpgradeKind},
+    game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeTarget, Upgrade},
     *,
 };
 
@@ -16,88 +16,61 @@ pub enum UpgradeTargetType {
     TowerSelect(TowerSelectUpgradeTarget),
 }
 
-/// TowerUpgradeTarget에서 적절한 UpgradeKind를 생성하는 함수
+/// TowerUpgradeTarget에서 적절한 UpgradeType를 생성하는 함수
 pub fn create_upgrade_kind_for_target(
     target: &TowerUpgradeTarget,
     stat_type: UpgradeStatType,
     is_additive: bool,
     value: f32,
-) -> UpgradeKind {
+) -> Upgrade {
     match (target, stat_type, is_additive) {
         // Suit 기반 업그레이드
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => match suit {
-            crate::card::Suit::Diamonds => UpgradeKind::Staff(crate::game_state::upgrade::StaffUpgrade {
-                damage_multiplier: value,
-            }),
-            crate::card::Suit::Spades => UpgradeKind::LongSword(crate::game_state::upgrade::LongSwordUpgrade {
-                damage_multiplier: value,
-            }),
-            crate::card::Suit::Hearts => UpgradeKind::Mace(crate::game_state::upgrade::MaceUpgrade {
-                damage_multiplier: value,
-            }),
-            crate::card::Suit::Clubs => UpgradeKind::ClubSword(crate::game_state::upgrade::ClubSwordUpgrade {
-                damage_multiplier: value,
-            }),
+            crate::card::Suit::Diamonds => crate::game_state::upgrade::StaffUpgrade::into_upgrade(value),
+            crate::card::Suit::Spades => crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(value),
+            crate::card::Suit::Hearts => crate::game_state::upgrade::MaceUpgrade::into_upgrade(value),
+            crate::card::Suit::Clubs => crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(value),
         },
 
         // EvenOdd 기반 업그레이드
         (TowerUpgradeTarget::EvenOdd { even }, UpgradeStatType::Damage, false) => {
             if *even {
-                UpgradeKind::PairChopsticks(crate::game_state::upgrade::PairChopsticksUpgrade {
-                    damage_multiplier: value,
-                })
+                crate::game_state::upgrade::PairChopsticksUpgrade::into_upgrade(value)
             } else {
-                UpgradeKind::SingleChopstick(crate::game_state::upgrade::SingleChopstickUpgrade {
-                    damage_multiplier: value,
-                })
+                crate::game_state::upgrade::SingleChopstickUpgrade::into_upgrade(value)
             }
         }
 
         // FaceNumber 기반 업그레이드
         (TowerUpgradeTarget::FaceNumber { face }, UpgradeStatType::Damage, false) => {
             if *face {
-                UpgradeKind::Brush(crate::game_state::upgrade::BrushUpgrade {
-                    damage_multiplier: value,
-                })
+                crate::game_state::upgrade::BrushUpgrade::into_upgrade(value)
             } else {
-                UpgradeKind::FountainPen(crate::game_state::upgrade::FountainPenUpgrade {
-                    damage_multiplier: value,
-                })
+                crate::game_state::upgrade::FountainPenUpgrade::into_upgrade(value)
             }
         }
 
         // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
-        _ => UpgradeKind::Cat(crate::game_state::upgrade::CatUpgrade { add: 1 }),
+        _ => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
     }
 }
 
-/// TowerSelectUpgradeTarget에서 적절한 UpgradeKind를 생성하는 함수
+/// TowerSelectUpgradeTarget에서 적절한 UpgradeType를 생성하는 함수
 pub fn create_tower_select_upgrade_kind(
     target: &TowerSelectUpgradeTarget,
     stat_type: UpgradeStatType,
     is_additive: bool,
     value: f32,
-) -> UpgradeKind {
+) -> Upgrade {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
-            UpgradeKind::Tricycle(crate::game_state::upgrade::TricycleUpgrade {
-                damage_multiplier: value,
-            })
-        }
-
+        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => crate::game_state::upgrade::TricycleUpgrade::into_upgrade(value),
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
-            UpgradeKind::PerfectPottery(crate::game_state::upgrade::PerfectPotteryUpgrade {
-                damage_multiplier: value,
-            })
+            crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(value)
         }
-
         (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
-            UpgradeKind::BrokenPottery(crate::game_state::upgrade::BrokenPotteryUpgrade {
-                damage_multiplier: value,
-            })
+            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(value)
         }
-
         // 기타 경우는 기본값 반환
-        _ => UpgradeKind::Cat(crate::game_state::upgrade::CatUpgrade { add: 1 }),
+        _ => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
     }
 }

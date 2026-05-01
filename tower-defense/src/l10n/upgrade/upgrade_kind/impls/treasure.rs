@@ -5,9 +5,9 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 
-use super::UpgradeKindL10n;
+use super::UpgradeTypeL10n;
 
-impl UpgradeKindL10n for BackpackUpgrade {
+impl UpgradeTypeL10n for BackpackUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Backpack",
@@ -25,7 +25,7 @@ impl UpgradeKindL10n for BackpackUpgrade {
     }
 }
 
-impl UpgradeKindL10n for DiceBundleUpgrade {
+impl UpgradeTypeL10n for DiceBundleUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Dice Bundle",
@@ -43,7 +43,7 @@ impl UpgradeKindL10n for DiceBundleUpgrade {
     }
 }
 
-impl UpgradeKindL10n for EnergyDrinkUpgrade {
+impl UpgradeTypeL10n for EnergyDrinkUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Energy Drink",
@@ -64,7 +64,7 @@ impl UpgradeKindL10n for EnergyDrinkUpgrade {
     }
 }
 
-impl UpgradeKindL10n for EraserUpgrade {
+impl UpgradeTypeL10n for EraserUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Eraser",

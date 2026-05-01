@@ -1,0 +1,166 @@
+    Checking tower-defense v0.1.0 (/home/bigfood/programming/namseent/tower-defense)
+error: returning the result of a `let` binding from a block
+   --> src/game_state/debug_tools/add_upgrade.rs:254:21
+    |
+253 | ...     let kind = generate_mock_upgrade(disc, rarity, &mut rng);
+    |         --------------------------------------------------------- unnecessary `let` binding
+254 | ...     kind
+    |         ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#let_and_return
+    = note: `-D clippy::let-and-return` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::let_and_return)]`
+help: return the expression directly
+    |
+253 ~                     
+254 ~                     generate_mock_upgrade(disc, rarity, &mut rng)
+    |
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:144:58
+    |
+144 | ...er => Box::new(|| Upgrade::perfect_clover()),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::perfect_clover`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+    = note: `-D clippy::redundant-closure` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:145:50
+    |
+145 |         UpgradeDiscriminants::Rabbit => Box::new(|| Upgrade::rabbit()),
+    |                                                  ^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::rabbit`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:146:54
+    |
+146 | ...hite => Box::new(|| Upgrade::black_white()),
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::black_white`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:148:50
+    |
+148 |         UpgradeDiscriminants::Trophy => Box::new(|| Upgrade::trophy()),
+    |                                                  ^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::trophy`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:149:49
+    |
+149 |         UpgradeDiscriminants::Crock => Box::new(|| Upgrade::crock()),
+    |                                                 ^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::crock`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:153:53
+    |
+153 | ...nome => Box::new(|| Upgrade::metronome()),
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::metronome`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:162:50
+    |
+162 |         UpgradeDiscriminants::Mirror => Box::new(|| Upgrade::mirror()),
+    |                                                  ^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::mirror`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:166:51
+    |
+166 |         UpgradeDiscriminants::Spanner => Box::new(|| Upgrade::spanner()),
+    |                                                   ^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::spanner`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:167:47
+    |
+167 |         UpgradeDiscriminants::Pea => Box::new(|| Upgrade::pea()),
+    |                                               ^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::pea`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:169:53
+    |
+169 | ...Bank => Box::new(|| Upgrade::piggy_bank()),
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::piggy_bank`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:170:50
+    |
+170 |         UpgradeDiscriminants::Camera => Box::new(|| Upgrade::camera()),
+    |                                                  ^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::camera`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:171:51
+    |
+171 |         UpgradeDiscriminants::GiftBox => Box::new(|| Upgrade::gift_box()),
+    |                                                   ^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::gift_box`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:172:48
+    |
+172 |         UpgradeDiscriminants::Fang => Box::new(|| Upgrade::fang()),
+    |                                                ^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::fang`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/game_state/upgrade/generation/upgrade_candidate_table.rs:176:58
+    |
+176 | ...rd => Box::new(|| Upgrade::membership_card()),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the associated function itself: `Upgrade::membership_card`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#redundant_closure
+
+error: returning the result of a `let` binding from a block
+  --> src/game_state/upgrade/generation/mod.rs:18:5
+   |
+13 | /     let upgrade = (upgrade_candidates
+14 | |         .choose_weighted(&mut rand::thread_rng(), |x| x.weight)
+15 | |         .unwrap()
+16 | |         .kind_gen)();
+   | |_____________________- unnecessary `let` binding
+17 |
+18 |       upgrade
+   |       ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#let_and_return
+help: return the expression directly
+   |
+13 ~     
+14 |
+15 ~     (upgrade_candidates
+16 +         .choose_weighted(&mut rand::thread_rng(), |x| x.weight)
+17 +         .unwrap()
+18 +         .kind_gen)()
+   |
+
+error: using `clone` on type `Upgrade` which implements the `Copy` trait
+  --> src/upgrades/mod.rs:65:22
+   |
+65 |                     (upgrade.clone(), is_applicable)
+   |                      ^^^^^^^^^^^^^^^ help: try dereferencing it: `*upgrade`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.95.0/index.html#clone_on_copy
+   = note: `-D clippy::clone-on-copy` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`
+
+error: could not compile `tower-defense` (lib) due to 17 previous errors

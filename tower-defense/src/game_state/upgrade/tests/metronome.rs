@@ -1,13 +1,9 @@
 use super::super::*;
-use namui::OneZero;
 
 #[test]
 fn metronome_grants_extra_dice_every_two_waves() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::Metronome(MetronomeUpgrade { start_stage: None  }),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::MetronomeUpgrade::into_upgrade());
 
     let effects_stage_1 = state.stage_start_effects(1);
     assert_eq!(effects_stage_1.extra_dice, 1);

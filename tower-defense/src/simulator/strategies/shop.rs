@@ -5,7 +5,7 @@ use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::item::{Item, ItemKind};
 use crate::game_state::tower::Tower;
-use crate::game_state::upgrade::{Upgrade, UpgradeKind, UpgradeState};
+use crate::game_state::upgrade::{Upgrade, UpgradeBehavior, UpgradeState};
 use rand::RngCore;
 
 /// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
@@ -169,30 +169,28 @@ impl SynergyShopStrategy {
     }
 
     fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
-        if upgrade.kind.is_tower_damage_upgrade() {
+        if upgrade.is_tower_damage_upgrade() {
             let current_score = total_tower_score(game_state, &game_state.upgrade_state);
             let mut upgraded_state = game_state.upgrade_state.clone();
             upgraded_state.upgrade(upgrade);
             let next_score = total_tower_score(game_state, &upgraded_state);
             let delta = next_score - current_score;
-            return delta
-                .max(0.0)
-                .max(self.evaluate_treasure_upgrade(upgrade.kind));
+            return delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade));
         }
 
-        self.evaluate_treasure_upgrade(upgrade.kind)
+        self.evaluate_treasure_upgrade(&upgrade)
     }
 
-    fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
-        match kind {
-            UpgradeKind::Cat(_) => 7.0,
-            UpgradeKind::Backpack(_) => 6.5,
-            UpgradeKind::DiceBundle(_) => 7.5,
-            UpgradeKind::EnergyDrink(_) => 6.0,
-            UpgradeKind::FourLeafClover(_) => 5.0,
-            UpgradeKind::Rabbit(_) => 5.0,
-            UpgradeKind::BlackWhite(_) => 5.5,
-            UpgradeKind::Eraser(_) => 6.0,
+    fn evaluate_treasure_upgrade(&self, upgrade: &Upgrade) -> f32 {
+        match upgrade {
+            Upgrade::Cat(..) => 7.0,
+            Upgrade::Backpack(..) => 6.5,
+            Upgrade::DiceBundle(..) => 7.5,
+            Upgrade::EnergyDrink(..) => 6.0,
+            Upgrade::FourLeafClover(..) => 5.0,
+            Upgrade::Rabbit(..) => 5.0,
+            Upgrade::BlackWhite(..) => 5.5,
+            Upgrade::Eraser(..) => 6.0,
             _ => 3.0,
         }
     }

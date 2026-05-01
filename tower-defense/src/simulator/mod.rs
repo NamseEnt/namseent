@@ -182,7 +182,7 @@ impl HeadlessGame {
                         let choice =
                             treasure_strategy.select_treasure(&self.game_state, &options, rng);
                         let upgrade_kind =
-                            Self::canonicalize_debug_name(format!("{:?}", options[choice].kind));
+                            Self::canonicalize_debug_name(format!("{:?}", options[choice]));
                         self.events.push(SimEvent::TreasureSelected {
                             stage: self.game_state.stage,
                             upgrade_kind,
@@ -275,7 +275,7 @@ impl HeadlessGame {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade.kind)),
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade)),
                     });
                 }
                 HistoryEventType::ItemUsed { item } => {

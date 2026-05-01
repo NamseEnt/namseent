@@ -37,7 +37,7 @@ impl Component for TreasureCardContent {
                     table::fixed_no_clip(wh.height, |thumb_wh, ctx| {
                         ctx.compose(|ctx| {
                             table::padding_no_clip(PADDING, |inner_wh, inner_ctx| {
-                                inner_ctx.add(upgrade.kind.thumbnail(inner_wh));
+                                inner_ctx.add(upgrade.thumbnail(inner_wh));
                             })(thumb_wh, ctx);
                         });
                         ctx.add(PaperContainerBackground {
@@ -60,7 +60,7 @@ impl Component for TreasureCardContent {
                                             .headline()
                                             .size(FontSize::Large)
                                             .l10n(
-                                                l10n::upgrade::UpgradeKindText::Name(&upgrade.kind),
+                                                    l10n::upgrade::UpgradeTypeText::Name(&upgrade),
                                                 &locale,
                                             )
                                             .render_left_top()
@@ -77,8 +77,8 @@ impl Component for TreasureCardContent {
                                                     .paragraph()
                                                     .size(FontSize::Medium)
                                                     .l10n(
-                                                        l10n::upgrade::UpgradeKindText::Description(
-                                                            &upgrade.kind,
+                                                        l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(
+                                                            &upgrade,
                                                         ),
                                                         &locale,
                                                     )

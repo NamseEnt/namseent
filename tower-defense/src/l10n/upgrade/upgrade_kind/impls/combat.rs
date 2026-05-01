@@ -5,9 +5,9 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 
-use super::UpgradeKindL10n;
+use super::UpgradeTypeL10n;
 
-impl UpgradeKindL10n for CatUpgrade {
+impl UpgradeTypeL10n for CatUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Cat",
@@ -28,7 +28,7 @@ impl UpgradeKindL10n for CatUpgrade {
     }
 }
 
-impl UpgradeKindL10n for StaffUpgrade {
+impl UpgradeTypeL10n for StaffUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Staff",
@@ -48,7 +48,7 @@ impl UpgradeKindL10n for StaffUpgrade {
     }
 }
 
-impl UpgradeKindL10n for LongSwordUpgrade {
+impl UpgradeTypeL10n for LongSwordUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Long Sword",
@@ -68,7 +68,7 @@ impl UpgradeKindL10n for LongSwordUpgrade {
     }
 }
 
-impl UpgradeKindL10n for MaceUpgrade {
+impl UpgradeTypeL10n for MaceUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Mace",
@@ -88,7 +88,7 @@ impl UpgradeKindL10n for MaceUpgrade {
     }
 }
 
-impl UpgradeKindL10n for ClubSwordUpgrade {
+impl UpgradeTypeL10n for ClubSwordUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Club",
@@ -108,7 +108,7 @@ impl UpgradeKindL10n for ClubSwordUpgrade {
     }
 }
 
-impl UpgradeKindL10n for TricycleUpgrade {
+impl UpgradeTypeL10n for TricycleUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Tricycle",
@@ -128,7 +128,7 @@ impl UpgradeKindL10n for TricycleUpgrade {
     }
 }
 
-impl UpgradeKindL10n for PerfectPotteryUpgrade {
+impl UpgradeTypeL10n for PerfectPotteryUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Perfect Pottery",
@@ -148,7 +148,7 @@ impl UpgradeKindL10n for PerfectPotteryUpgrade {
     }
 }
 
-impl UpgradeKindL10n for SingleChopstickUpgrade {
+impl UpgradeTypeL10n for SingleChopstickUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Single Chopstick",
@@ -168,7 +168,7 @@ impl UpgradeKindL10n for SingleChopstickUpgrade {
     }
 }
 
-impl UpgradeKindL10n for PairChopsticksUpgrade {
+impl UpgradeTypeL10n for PairChopsticksUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Pair Chopsticks",
@@ -188,7 +188,7 @@ impl UpgradeKindL10n for PairChopsticksUpgrade {
     }
 }
 
-impl UpgradeKindL10n for FountainPenUpgrade {
+impl UpgradeTypeL10n for FountainPenUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Fountain Pen",
@@ -208,7 +208,7 @@ impl UpgradeKindL10n for FountainPenUpgrade {
     }
 }
 
-impl UpgradeKindL10n for BrushUpgrade {
+impl UpgradeTypeL10n for BrushUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Brush",
@@ -228,7 +228,7 @@ impl UpgradeKindL10n for BrushUpgrade {
     }
 }
 
-impl UpgradeKindL10n for BrokenPotteryUpgrade {
+impl UpgradeTypeL10n for BrokenPotteryUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Broken Pottery",

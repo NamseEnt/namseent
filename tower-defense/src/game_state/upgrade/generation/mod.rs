@@ -10,15 +10,10 @@ use upgrade_candidate_table::{
 fn select_upgrade_from_candidates(
     upgrade_candidates: Vec<upgrade_candidate_table::CandidateRow>,
 ) -> Upgrade {
-    let candidate = upgrade_candidates
+    (upgrade_candidates
         .choose_weighted(&mut rand::thread_rng(), |x| x.weight)
-        .unwrap();
-    let kind = (candidate.kind_gen)();
-
-    Upgrade {
-        kind,
-        value: 1.0.into(),
-    }
+        .unwrap()
+        .kind_gen)()
 }
 
 pub fn generate_tower_damage_upgrade(game_state: &GameState) -> Upgrade {

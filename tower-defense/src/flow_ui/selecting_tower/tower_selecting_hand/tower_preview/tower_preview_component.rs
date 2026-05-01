@@ -190,8 +190,8 @@ impl Component for TowerPreviewContent<'_> {
 
 #[derive(State)]
 struct UpgradeTexts {
-    damage: Vec<crate::game_state::upgrade::UpgradeKind>,
-    speed: Vec<crate::game_state::upgrade::UpgradeKind>,
+    damage: Vec<crate::game_state::upgrade::Upgrade>,
+    speed: Vec<crate::game_state::upgrade::Upgrade>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -208,7 +208,7 @@ fn calculate_upgrade_state_and_texts(
         state.damage_multiplier *= upgrade_state.damage_multiplier;
 
         if upgrade_state.damage_multiplier > 1.0 {
-            let upgrade_kind = match target {
+            let upgrade = match target {
                 UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
                     tower_target,
                     UpgradeStatType::Damage,
@@ -224,7 +224,7 @@ fn calculate_upgrade_state_and_texts(
                     )
                 }
             };
-            texts.damage.push(upgrade_kind);
+            texts.damage.push(upgrade);
         }
     };
 

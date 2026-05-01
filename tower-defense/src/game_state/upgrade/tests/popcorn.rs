@@ -1,14 +1,9 @@
 use super::super::*;
-use namui::OneZero;
 
 #[test]
 fn popcorn_effect_decrements_over_waves_and_expires() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::Popcorn(PopcornUpgrade { max_multiplier: 5.0, duration: 5, waves_remaining: 5,
-         }),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::PopcornUpgrade::into_upgrade(5.0, 5, 5));
 
     for remaining in (1..=5).rev() {
         let effects = state.stage_start_effects(1);
@@ -22,11 +17,7 @@ fn popcorn_effect_decrements_over_waves_and_expires() {
 #[test]
 fn popcorn_uses_configured_max_multiplier_and_duration() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::Popcorn(PopcornUpgrade { max_multiplier: 4.0, duration: 4, waves_remaining: 4,
-         }),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::PopcornUpgrade::into_upgrade(4.0, 4, 4));
 
     let first = state.stage_start_effects(1);
     let second = state.stage_start_effects(2);

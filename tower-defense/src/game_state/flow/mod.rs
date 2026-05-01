@@ -108,7 +108,7 @@ impl GameState {
         }
         self.stage_modifiers
             .set_free_shop_this_stage(effects.free_shop_this_stage);
-        if !self.upgrade_state.has_spanner() {
+        if self.upgrade_state.clear_shield_on_stage_start() {
             self.shield = 0.0;
         }
         self.item_used = false;

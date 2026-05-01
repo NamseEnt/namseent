@@ -1,5 +1,5 @@
 use crate::game_state::item::{Item, ItemKind};
-use crate::game_state::upgrade::{Upgrade, UpgradeKind};
+use crate::game_state::upgrade::Upgrade;
 
 use namui::{Px, Wh};
 
@@ -17,12 +17,12 @@ pub(crate) enum ShopSlotVariant<'a> {
 
 pub(crate) struct ShopItemLayoutParams<'a> {
     pub wh: Wh<Px>,
-    pub name: ShopItemTitle,
+    pub name: ShopItemTitle<'a>,
     pub description: ShopItemDescription<'a>,
     pub cost: usize,
     pub available: bool,
     pub item_kind: Option<&'a ItemKind>,
-    pub upgrade_kind: Option<&'a UpgradeKind>,
+    pub upgrade: Option<&'a Upgrade>,
 }
 
 #[inline]
@@ -62,7 +62,7 @@ fn make_item_params<'a>(
         cost,
         available,
         item_kind: Some(&item.kind),
-        upgrade_kind: None,
+        upgrade: None,
     }
 }
 
@@ -76,18 +76,12 @@ fn make_upgrade_params<'a>(
 ) -> ShopItemLayoutParams<'a> {
     ShopItemLayoutParams {
         wh,
-        name: ShopItemTitle::Upgrade {
-            upgrade_kind: upgrade.kind,
-            locale,
-        },
-        description: ShopItemDescription::Upgrade {
-            upgrade_kind: &upgrade.kind,
-            locale,
-        },
+        name: ShopItemTitle::Upgrade { upgrade, locale },
+        description: ShopItemDescription::Upgrade { upgrade, locale },
         cost,
         available,
         item_kind: None,
-        upgrade_kind: Some(&upgrade.kind),
+        upgrade: Some(upgrade),
     }
 }
 
@@ -98,10 +92,8 @@ mod tests {
     use super::*;
     use crate::game_state::effect::Effect;
     use crate::game_state::item::Item;
-    use crate::game_state::upgrade::{Upgrade, UpgradeKind};
     use crate::l10n::Locale;
-    use namui::{OneZero, Wh, px};
-    use crate::game_state::upgrade::CatUpgrade;
+    use namui::{Wh, px};
 
     #[test]
     fn make_item_and_upgrade_params() {
@@ -117,10 +109,7 @@ mod tests {
         assert!(params.available);
         assert_eq!(params.cost, 5);
 
-        let up = Upgrade {
-            kind: UpgradeKind::Cat(CatUpgrade { add: 1 }),
-            value: OneZero::default(),
-        };
+        let up = crate::game_state::upgrade::CatUpgrade::into_upgrade(1);
         let params = make_upgrade_params(wh, &up, 3, false, locale);
         assert!(!params.available);
         assert_eq!(params.cost, 3);

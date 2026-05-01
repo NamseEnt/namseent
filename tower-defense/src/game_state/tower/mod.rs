@@ -40,7 +40,7 @@ pub struct ShootProjectileParams<'a> {
     pub projectile_group: ProjectileGroup,
     pub hit_effect: attack::ProjectileHitEffect,
     pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
+    pub stage_damage_multiplier: f32,
     pub global_damage_multiplier: f32,
     pub now: Instant,
     pub source_tower_id: Option<usize>,
@@ -50,7 +50,7 @@ pub struct ShootProjectileParams<'a> {
 pub struct ShootLaserParams<'a> {
     pub target_xy: (f32, f32),
     pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
+    pub stage_damage_multiplier: f32,
     pub global_damage_multiplier: f32,
     pub now: Instant,
 }
@@ -58,7 +58,7 @@ pub struct ShootLaserParams<'a> {
 pub struct AttackTypeParams<'a> {
     pub target_xy: (f32, f32),
     pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
+    pub stage_damage_multiplier: f32,
     pub global_damage_multiplier: f32,
     pub now: Instant,
 }
@@ -93,7 +93,7 @@ impl Tower {
             ProjectileParams {
                 damage: self.calculate_projectile_damage(
                     params.tower_upgrade_states,
-                    params.contract_multiplier,
+                    params.stage_damage_multiplier,
                     params.global_damage_multiplier,
                 ),
                 trail: params.trail,
@@ -110,7 +110,7 @@ impl Tower {
 
         let damage = self.calculate_projectile_damage(
             params.tower_upgrade_states,
-            params.contract_multiplier,
+            params.stage_damage_multiplier,
             params.global_damage_multiplier,
         );
 
@@ -179,7 +179,7 @@ impl Tower {
 
                 let damage = self.calculate_projectile_damage(
                     params.tower_upgrade_states,
-                    params.contract_multiplier,
+                    params.stage_damage_multiplier,
                     params.global_damage_multiplier,
                 );
 
@@ -214,7 +214,7 @@ impl Tower {
 
                 let damage = self.calculate_projectile_damage(
                     params.tower_upgrade_states,
-                    params.contract_multiplier,
+                    params.stage_damage_multiplier,
                     params.global_damage_multiplier,
                 );
 
@@ -267,7 +267,7 @@ impl Tower {
     pub fn calculate_projectile_damage(
         &self,
         tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
+        stage_damage_multiplier: f32,
         global_damage_multiplier: f32,
     ) -> f32 {
         let mut damage = self.default_damage;
@@ -293,7 +293,7 @@ impl Tower {
         });
 
         damage *= global_damage_multiplier;
-        damage *= contract_multiplier;
+        damage *= stage_damage_multiplier;
 
         damage
     }

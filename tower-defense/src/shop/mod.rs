@@ -121,7 +121,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         3..=7 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
-                upgrade.value,
+                OneZero::default(),
                 game_state.upgrade_state.shop_item_price_minus(),
                 &game_state.config,
             );
@@ -130,7 +130,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         8..=9 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
-                upgrade.value,
+                OneZero::default(),
                 game_state.upgrade_state.shop_item_price_minus(),
                 &game_state.config,
             );

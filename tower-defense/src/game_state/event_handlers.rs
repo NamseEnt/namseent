@@ -3,11 +3,7 @@ use crate::game_state::camera::ShakeIntensity;
 use crate::game_state::effect_event::GameEffectEvent;
 use crate::{
     game_state::{
-        effect::run_effect,
-        item,
-        play_history::HistoryEventType,
-        tower::Tower,
-        upgrade::{Upgrade, UpgradeKind},
+        effect::run_effect, item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade,
     },
     shop::ShopSlot,
     sound::{self},
@@ -19,13 +15,14 @@ const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
 impl GameState {
     pub(crate) fn apply_upgrade_effects(&mut self, mut upgrade: Upgrade) {
-        if let UpgradeKind::Tape(ref mut u) = upgrade.kind {
-            u.acquired_stage = self.stage;
+        if let Upgrade::Tape(tape_upgrade) = &mut upgrade {
+            tape_upgrade.acquired_stage = self.stage;
         }
 
+        let is_pea = matches!(upgrade, Upgrade::Pea(..));
         self.upgrade_state.upgrade(upgrade);
 
-        if matches!(upgrade.kind, UpgradeKind::Pea(_)) {
+        if is_pea {
             self.hp = self.max_hp();
         }
     }
@@ -86,8 +83,7 @@ impl GameState {
         let hand = tower.kind;
         let left_top = tower.left_top;
         let tower_count_before = self.towers.iter().count();
-
-        self.towers.place_tower(tower);
+        self.towers.place_tower(tower.clone());
         self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
 
         self.record_event(HistoryEventType::TowerPlaced {
@@ -99,8 +95,9 @@ impl GameState {
 
         let tower_placed = self.towers.iter().count() > tower_count_before;
         if tower_placed {
-            if self.upgrade_state.has_camera() && rank.is_face() {
-                self.earn_gold(50);
+            let placement_result = self.upgrade_state.on_tower_placed(&tower);
+            if placement_result.gold_earn > 0 {
+                self.earn_gold(placement_result.gold_earn);
             }
             self.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
@@ -255,8 +252,8 @@ impl GameState {
                 slot_data.start_exit_animation(Instant::now());
                 self.items.push(item_clone.clone());
                 if let Some(bag) = self.upgrade_state.upgrades.iter_mut().find_map(|u| {
-                    if let UpgradeKind::ShoppingBag(ref mut b) = u.kind {
-                        Some(&mut b.stacks)
+                    if let Upgrade::ShoppingBag(upgrade) = u {
+                        Some(&mut upgrade.stacks)
                     } else {
                         None
                     }

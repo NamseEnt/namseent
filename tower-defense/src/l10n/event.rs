@@ -1,6 +1,6 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::game_state::play_history::HistoryEventType;
-use crate::l10n::upgrade::UpgradeKindText;
+use crate::l10n::upgrade::UpgradeTypeText;
 use crate::theme::typography::TypographyBuilder;
 
 #[derive(Debug, Clone)]
@@ -83,12 +83,12 @@ impl HistoryEventType {
             HistoryEventType::UpgradeSelected { upgrade } => {
                 builder
                     .static_text("업그레이드 선택: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
+                    .l10n(UpgradeTypeText::Name(upgrade), _locale);
             }
             HistoryEventType::UpgradePurchased { upgrade, cost } => {
                 builder
                     .static_text("업그레이드 구매: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
+                    .l10n(UpgradeTypeText::Name(upgrade), _locale)
                     .static_text(" (")
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");
@@ -156,12 +156,12 @@ impl HistoryEventType {
             HistoryEventType::UpgradeSelected { upgrade } => {
                 builder
                     .static_text("Upgrade Selected: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
+                    .l10n(UpgradeTypeText::Name(upgrade), _locale);
             }
             HistoryEventType::UpgradePurchased { upgrade, cost } => {
                 builder
                     .static_text("Upgrade Purchased: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
+                    .l10n(UpgradeTypeText::Name(upgrade), _locale)
                     .static_text(" (")
                     .with_gold_value(format!("{}G", cost))
                     .static_text(")");

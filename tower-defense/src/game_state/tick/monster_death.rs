@@ -52,7 +52,7 @@ pub fn handle_monster_death(
         ));
 
     game_state.earn_gold(earn);
-    if game_state.upgrade_state.has_fang() {
+    if game_state.upgrade_state.on_monster_death() {
         game_state.hp = (game_state.hp + 1.0).min(game_state.max_hp());
     }
     game_state.monsters.swap_remove(target_idx);

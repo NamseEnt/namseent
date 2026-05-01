@@ -56,12 +56,12 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             };
 
-            let contract_multiplier = stage_modifiers.get_damage_multiplier();
+            let stage_damage_multiplier = stage_modifiers.get_damage_multiplier();
             let target_xy = monsters[target_idx].center_xy_tile();
             let (attack_type, instant_damage) = tower.attack_type(AttackTypeParams {
                 target_xy: (target_xy.x, target_xy.y),
                 tower_upgrade_states: &tower_upgrades,
-                contract_multiplier,
+                stage_damage_multiplier,
                 global_damage_multiplier: global_multiplier,
                 now,
             });
@@ -81,7 +81,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         projectile_group,
                         hit_effect,
                         tower_upgrade_states: &tower_upgrades,
-                        contract_multiplier,
+                        stage_damage_multiplier,
                         global_damage_multiplier: global_multiplier,
                         now,
                         source_tower_id: Some(tower.id()),
@@ -93,7 +93,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     let (laser, damage) = tower.shoot_laser(ShootLaserParams {
                         target_xy: (target_xy.x, target_xy.y),
                         tower_upgrade_states: &tower_upgrades,
-                        contract_multiplier,
+                        stage_damage_multiplier,
                         global_damage_multiplier: global_multiplier,
                         now,
                     });

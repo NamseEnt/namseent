@@ -3,9 +3,9 @@ use crate::l10n::locale::Language;
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 
-use super::UpgradeKindL10n;
+use super::UpgradeTypeL10n;
 
-impl UpgradeKindL10n for FourLeafCloverUpgrade {
+impl UpgradeTypeL10n for FourLeafCloverUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Four Leaf Clover",
@@ -21,7 +21,7 @@ impl UpgradeKindL10n for FourLeafCloverUpgrade {
     }
 }
 
-impl UpgradeKindL10n for RabbitUpgrade {
+impl UpgradeTypeL10n for RabbitUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Rabbit",
@@ -37,7 +37,7 @@ impl UpgradeKindL10n for RabbitUpgrade {
     }
 }
 
-impl UpgradeKindL10n for BlackWhiteUpgrade {
+impl UpgradeTypeL10n for BlackWhiteUpgrade {
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         builder.static_text(match locale.language {
             Language::English => "Black & White",

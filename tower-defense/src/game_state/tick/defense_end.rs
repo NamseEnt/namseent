@@ -38,11 +38,11 @@ pub fn check_defense_end(game_state: &mut GameState) {
         }
     }
 
-    if game_state.upgrade_state.has_piggy_bank() && game_state.gold >= 500 {
-        game_state.earn_gold(50);
-    }
-    if game_state.upgrade_state.has_gift_box() {
-        game_state.earn_gold(10 * game_state.items.len());
+    let bonus_gold = game_state
+        .upgrade_state
+        .on_stage_end(game_state.gold, game_state.items.len());
+    if bonus_gold > 0 {
+        game_state.earn_gold(bonus_gold);
     }
 
     let is_boss_stage = is_boss_stage(game_state.stage);

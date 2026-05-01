@@ -1,8 +1,8 @@
 use super::*;
-use crate::game_state::upgrade::{UpgradeKindDiscriminants, MAX_REMOVE_NUMBER_RANKS};
+use crate::game_state::upgrade::{MAX_REMOVE_NUMBER_RANKS, UpgradeDiscriminants};
 use crate::game_state::{GameState, tower::TowerKind};
 
-type KindGen = Box<dyn Fn() -> UpgradeKind + Send + Sync>;
+type KindGen = Box<dyn Fn() -> Upgrade + Send + Sync>;
 
 pub struct CandidateRow {
     pub weight: f32,
@@ -16,48 +16,56 @@ pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> 
         .tower_damage_upgrades
         .iter()
         .map(|upgrade| {
-            let disc: UpgradeKindDiscriminants = upgrade.name.parse().unwrap_or_else(|_| panic!("Unknown tower damage upgrade config name: {}", upgrade.name));
+            let disc: UpgradeDiscriminants = upgrade.name.parse().unwrap_or_else(|_| {
+                panic!("Unknown tower damage upgrade config name: {}", upgrade.name)
+            });
             CandidateRow {
                 weight: upgrade.entry.weight,
-                kind_gen: make_tower_damage_upgrade_kind_gen(
-                    disc,
-                    upgrade.entry.damage_multiplier,
-                ),
+                kind_gen: make_tower_damage_upgrade_kind_gen(disc, upgrade.entry.damage_multiplier),
             }
         })
         .collect()
 }
 
-fn make_tower_damage_upgrade_kind_gen(disc: UpgradeKindDiscriminants, damage_multiplier: Option<f32>) -> KindGen {
+fn make_tower_damage_upgrade_kind_gen(
+    disc: UpgradeDiscriminants,
+    damage_multiplier: Option<f32>,
+) -> KindGen {
     let damage_multiplier = damage_multiplier.unwrap_or(1.0);
     match disc {
-        UpgradeKindDiscriminants::Staff => Box::new(move || UpgradeKind::Staff(StaffUpgrade { damage_multiplier })),
-        UpgradeKindDiscriminants::LongSword => {
-            Box::new(move || UpgradeKind::LongSword(LongSwordUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::Staff => {
+            Box::new(move || crate::game_state::upgrade::StaffUpgrade::into_upgrade(damage_multiplier))
         }
-        UpgradeKindDiscriminants::Mace => Box::new(move || UpgradeKind::Mace(MaceUpgrade { damage_multiplier })),
-        UpgradeKindDiscriminants::ClubSword => {
-            Box::new(move || UpgradeKind::ClubSword(ClubSwordUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::LongSword => {
+            Box::new(move || crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(damage_multiplier))
         }
-        UpgradeKindDiscriminants::Tricycle => {
-            Box::new(move || UpgradeKind::Tricycle(TricycleUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::Mace => {
+            Box::new(move || crate::game_state::upgrade::MaceUpgrade::into_upgrade(damage_multiplier))
         }
-        UpgradeKindDiscriminants::SingleChopstick => Box::new(move || {
-            UpgradeKind::SingleChopstick(SingleChopstickUpgrade { damage_multiplier })
+        UpgradeDiscriminants::ClubSword => {
+            Box::new(move || crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(damage_multiplier))
+        }
+        UpgradeDiscriminants::Tricycle => {
+            Box::new(move || crate::game_state::upgrade::TricycleUpgrade::into_upgrade(damage_multiplier))
+        }
+        UpgradeDiscriminants::SingleChopstick => Box::new(move || {
+            crate::game_state::upgrade::SingleChopstickUpgrade::into_upgrade(damage_multiplier)
         }),
-        UpgradeKindDiscriminants::PairChopsticks => Box::new(move || {
-            UpgradeKind::PairChopsticks(PairChopsticksUpgrade { damage_multiplier })
+        UpgradeDiscriminants::PairChopsticks => Box::new(move || {
+            crate::game_state::upgrade::PairChopsticksUpgrade::into_upgrade(damage_multiplier)
         }),
-        UpgradeKindDiscriminants::FountainPen => {
-            Box::new(move || UpgradeKind::FountainPen(FountainPenUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::FountainPen => {
+            Box::new(move || crate::game_state::upgrade::FountainPenUpgrade::into_upgrade(damage_multiplier))
         }
-        UpgradeKindDiscriminants::Brush => Box::new(move || UpgradeKind::Brush(BrushUpgrade { damage_multiplier })),
-        UpgradeKindDiscriminants::BrokenPottery => {
-            Box::new(move || UpgradeKind::BrokenPottery(BrokenPotteryUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::Brush => {
+            Box::new(move || crate::game_state::upgrade::BrushUpgrade::into_upgrade(damage_multiplier))
         }
-        UpgradeKindDiscriminants::PerfectPottery => {
-            Box::new(move || UpgradeKind::PerfectPottery(PerfectPotteryUpgrade { damage_multiplier }))
-        }
+        UpgradeDiscriminants::BrokenPottery => Box::new(move || {
+            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_multiplier)
+        }),
+        UpgradeDiscriminants::PerfectPottery => Box::new(move || {
+            crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(damage_multiplier)
+        }),
         other => panic!("Invalid tower damage upgrade kind: {:?}", other),
     }
 }
@@ -79,28 +87,36 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
     };
 
     for upgrade in &game_state.config.upgrades.treasure_upgrades {
-        let disc: UpgradeKindDiscriminants = upgrade.name.parse().unwrap_or_else(|_| panic!("Unknown treasure upgrade config name: {}", upgrade.name));
+        let disc: UpgradeDiscriminants = upgrade
+            .name
+            .parse()
+            .unwrap_or_else(|_| panic!("Unknown treasure upgrade config name: {}", upgrade.name));
         let weight = upgrade.entry.weight;
-        let kind_gen = make_treasure_upgrade_kind_gen(
-            disc,
-            upgrade.entry.damage_multiplier,
-            upgrade_state,
-        );
+        let kind_gen =
+            make_treasure_upgrade_kind_gen(disc, upgrade.entry.damage_multiplier, upgrade_state);
         let current_and_max = match disc {
-            UpgradeKindDiscriminants::Cat => Some((upgrade_state.gold_earn_plus(), MAX_GOLD_EARN_PLUS)),
-            UpgradeKindDiscriminants::Backpack => Some((upgrade_state.shop_slot_expand(), MAX_SHOP_SLOT_EXPAND)),
-            UpgradeKindDiscriminants::DiceBundle => Some((upgrade_state.dice_chance_plus(), MAX_DICE_CHANCE_PLUS)),
-            UpgradeKindDiscriminants::EnergyDrink => Some((
+            UpgradeDiscriminants::Cat => Some((upgrade_state.gold_earn_plus(), MAX_GOLD_EARN_PLUS)),
+            UpgradeDiscriminants::Backpack => {
+                Some((upgrade_state.shop_slot_expand(), MAX_SHOP_SLOT_EXPAND))
+            }
+            UpgradeDiscriminants::DiceBundle => {
+                Some((upgrade_state.dice_chance_plus(), MAX_DICE_CHANCE_PLUS))
+            }
+            UpgradeDiscriminants::EnergyDrink => Some((
                 upgrade_state.shop_item_price_minus(),
                 MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
             )),
-            UpgradeKindDiscriminants::FourLeafClover => Some((
+            UpgradeDiscriminants::FourLeafClover => Some((
                 upgrade_state.shorten_straight_flush_to_4_cards() as usize,
                 1,
             )),
-            UpgradeKindDiscriminants::Rabbit => Some((upgrade_state.skip_rank_for_straight() as usize, 1)),
-            UpgradeKindDiscriminants::BlackWhite => Some((upgrade_state.treat_suits_as_same() as usize, 1)),
-            UpgradeKindDiscriminants::Eraser => Some((
+            UpgradeDiscriminants::Rabbit => {
+                Some((upgrade_state.skip_rank_for_straight() as usize, 1))
+            }
+            UpgradeDiscriminants::BlackWhite => {
+                Some((upgrade_state.treat_suits_as_same() as usize, 1))
+            }
+            UpgradeDiscriminants::Eraser => Some((
                 upgrade_state.removed_number_rank_count(),
                 MAX_REMOVE_NUMBER_RANKS,
             )),
@@ -113,96 +129,87 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
 }
 
 fn make_treasure_upgrade_kind_gen(
-    disc: UpgradeKindDiscriminants,
+    disc: UpgradeDiscriminants,
     damage_multiplier: Option<f32>,
     upgrade_state: &UpgradeState,
 ) -> KindGen {
     let damage_multiplier = damage_multiplier.unwrap_or(1.0);
     let add = match disc {
-        UpgradeKindDiscriminants::Cat => next_cat_add(upgrade_state.gold_earn_plus()),
-        UpgradeKindDiscriminants::Backpack => 1,
-        UpgradeKindDiscriminants::DiceBundle => 1,
-        UpgradeKindDiscriminants::EnergyDrink => 5,
-        UpgradeKindDiscriminants::Eraser => 1,
+        UpgradeDiscriminants::Cat => next_cat_add(upgrade_state.gold_earn_plus()),
+        UpgradeDiscriminants::Backpack => 1,
+        UpgradeDiscriminants::DiceBundle => 1,
+        UpgradeDiscriminants::EnergyDrink => 5,
+        UpgradeDiscriminants::Eraser => 1,
         _ => 0,
     };
     match disc {
-        UpgradeKindDiscriminants::Cat => Box::new(move || UpgradeKind::Cat(CatUpgrade { add })),
-        UpgradeKindDiscriminants::Backpack => Box::new(move || UpgradeKind::Backpack(BackpackUpgrade { add })),
-        UpgradeKindDiscriminants::DiceBundle => Box::new(move || UpgradeKind::DiceBundle(DiceBundleUpgrade { add })),
-        UpgradeKindDiscriminants::EnergyDrink => Box::new(move || UpgradeKind::EnergyDrink(EnergyDrinkUpgrade { add })),
-        UpgradeKindDiscriminants::PerfectPottery => Box::new(move || {
-            UpgradeKind::PerfectPottery(PerfectPotteryUpgrade { damage_multiplier })
-        }),
-        UpgradeKindDiscriminants::BrokenPottery => {
-            Box::new(move || UpgradeKind::BrokenPottery(BrokenPotteryUpgrade { damage_multiplier }))
+        UpgradeDiscriminants::Cat => {
+            Box::new(move || crate::game_state::upgrade::CatUpgrade::into_upgrade(add))
         }
-        UpgradeKindDiscriminants::FourLeafClover => Box::new(|| UpgradeKind::FourLeafClover(FourLeafCloverUpgrade)),
-        UpgradeKindDiscriminants::Rabbit => Box::new(|| UpgradeKind::Rabbit(RabbitUpgrade)),
-        UpgradeKindDiscriminants::BlackWhite => Box::new(|| UpgradeKind::BlackWhite(BlackWhiteUpgrade)),
-        UpgradeKindDiscriminants::Eraser => Box::new(move || UpgradeKind::Eraser(EraserUpgrade { add })),
-        UpgradeKindDiscriminants::Trophy => Box::new(|| {
-            UpgradeKind::Trophy(TrophyUpgrade {
-                perfect_clear_stacks: 0,
-            })
+        UpgradeDiscriminants::Backpack => {
+            Box::new(move || crate::game_state::upgrade::BackpackUpgrade::into_upgrade(add))
+        }
+        UpgradeDiscriminants::DiceBundle => {
+            Box::new(move || crate::game_state::upgrade::DiceBundleUpgrade::into_upgrade(add))
+        }
+        UpgradeDiscriminants::EnergyDrink => {
+            Box::new(move || crate::game_state::upgrade::EnergyDrinkUpgrade::into_upgrade(5))
+        }
+        UpgradeDiscriminants::PerfectPottery => Box::new(move || {
+            crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(damage_multiplier)
         }),
-        UpgradeKindDiscriminants::Crock => Box::new(|| UpgradeKind::Crock(CrockUpgrade)),
-        UpgradeKindDiscriminants::DemolitionHammer => Box::new(move || {
-            UpgradeKind::DemolitionHammer(DemolitionHammerUpgrade {
-                damage_multiplier,
-                removed_tower_count: 0,
-            })
+        UpgradeDiscriminants::BrokenPottery => Box::new(move || {
+            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_multiplier)
         }),
-        UpgradeKindDiscriminants::Metronome => Box::new(|| UpgradeKind::Metronome(MetronomeUpgrade { start_stage: None })),
-        UpgradeKindDiscriminants::Tape => Box::new(|| UpgradeKind::Tape(TapeUpgrade { acquired_stage: 0 })),
-        UpgradeKindDiscriminants::NameTag => Box::new(move || {
-            UpgradeKind::NameTag(NameTagUpgrade {
-                damage_multiplier,
-                pending: true,
-            })
+        UpgradeDiscriminants::FourLeafClover => {
+            Box::new(crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade)
+        }
+        UpgradeDiscriminants::Rabbit => Box::new(crate::game_state::upgrade::RabbitUpgrade::into_upgrade),
+        UpgradeDiscriminants::BlackWhite => {
+            Box::new(crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade)
+        }
+        UpgradeDiscriminants::Eraser => {
+            Box::new(move || crate::game_state::upgrade::EraserUpgrade::into_upgrade(add))
+        }
+        UpgradeDiscriminants::Trophy => Box::new(crate::game_state::upgrade::TrophyUpgrade::into_upgrade),
+        UpgradeDiscriminants::Crock => Box::new(crate::game_state::upgrade::CrockUpgrade::into_upgrade),
+        UpgradeDiscriminants::DemolitionHammer => Box::new(move || {
+            crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(damage_multiplier)
         }),
-        UpgradeKindDiscriminants::ShoppingBag => Box::new(move || {
-            UpgradeKind::ShoppingBag(ShoppingBagUpgrade {
-                damage_multiplier,
-                stacks: 0,
-            })
+        UpgradeDiscriminants::Metronome => {
+            Box::new(crate::game_state::upgrade::MetronomeUpgrade::into_upgrade)
+        }
+        UpgradeDiscriminants::Tape => Box::new(|| crate::game_state::upgrade::TapeUpgrade::into_upgrade(0)),
+        UpgradeDiscriminants::NameTag => {
+            Box::new(move || crate::game_state::upgrade::NameTagUpgrade::into_upgrade(damage_multiplier))
+        }
+        UpgradeDiscriminants::ShoppingBag => {
+            Box::new(move || crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(damage_multiplier))
+        }
+        UpgradeDiscriminants::Resolution => {
+            Box::new(move || crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(damage_multiplier))
+        }
+        UpgradeDiscriminants::Mirror => Box::new(crate::game_state::upgrade::MirrorUpgrade::into_upgrade),
+        UpgradeDiscriminants::IceCream => {
+            Box::new(move || crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(damage_multiplier, 5))
+        }
+        UpgradeDiscriminants::Spanner => Box::new(crate::game_state::upgrade::SpannerUpgrade::into_upgrade),
+        UpgradeDiscriminants::Pea => Box::new(crate::game_state::upgrade::PeaUpgrade::into_upgrade),
+        UpgradeDiscriminants::SlotMachine => {
+            Box::new(|| crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10))
+        }
+        UpgradeDiscriminants::PiggyBank => {
+            Box::new(crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade)
+        }
+        UpgradeDiscriminants::Camera => Box::new(crate::game_state::upgrade::CameraUpgrade::into_upgrade),
+        UpgradeDiscriminants::GiftBox => Box::new(crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade),
+        UpgradeDiscriminants::Fang => Box::new(crate::game_state::upgrade::FangUpgrade::into_upgrade),
+        UpgradeDiscriminants::Popcorn => Box::new(move || {
+            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(damage_multiplier, 5, 5)
         }),
-        UpgradeKindDiscriminants::Resolution => Box::new(move || {
-            UpgradeKind::Resolution(ResolutionUpgrade {
-                damage_multiplier_per_reroll: damage_multiplier,
-                pending: true,
-            })
-        }),
-        UpgradeKindDiscriminants::Mirror => Box::new(|| UpgradeKind::Mirror(MirrorUpgrade { pending: true })),
-        UpgradeKindDiscriminants::IceCream => Box::new(move || {
-            UpgradeKind::IceCream(IceCreamUpgrade {
-                damage_multiplier,
-                waves_remaining: 5,
-            })
-        }),
-        UpgradeKindDiscriminants::Spanner => Box::new(|| UpgradeKind::Spanner(SpannerUpgrade)),
-        UpgradeKindDiscriminants::Pea => Box::new(|| UpgradeKind::Pea(PeaUpgrade)),
-        UpgradeKindDiscriminants::SlotMachine => Box::new(|| {
-            UpgradeKind::SlotMachine(SlotMachineUpgrade {
-                next_round_dice: 10,
-            })
-        }),
-        UpgradeKindDiscriminants::PiggyBank => Box::new(|| UpgradeKind::PiggyBank(PiggyBankUpgrade)),
-        UpgradeKindDiscriminants::Camera => Box::new(|| UpgradeKind::Camera(CameraUpgrade)),
-        UpgradeKindDiscriminants::GiftBox => Box::new(|| UpgradeKind::GiftBox(GiftBoxUpgrade)),
-        UpgradeKindDiscriminants::Fang => Box::new(|| UpgradeKind::Fang(FangUpgrade)),
-        UpgradeKindDiscriminants::Popcorn => Box::new(move || {
-            UpgradeKind::Popcorn(PopcornUpgrade {
-                max_multiplier: damage_multiplier,
-                duration: 5,
-                waves_remaining: 5,
-            })
-        }),
-        UpgradeKindDiscriminants::MembershipCard => Box::new(|| {
-            UpgradeKind::MembershipCard(MembershipCardUpgrade {
-                pending_free_shop: true,
-            })
-        }),
+        UpgradeDiscriminants::MembershipCard => {
+            Box::new(crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade)
+        }
         other => panic!("Invalid treasure upgrade kind: {:?}", other),
     }
 }
@@ -248,18 +255,13 @@ mod tests {
     #[test]
     fn make_treasure_upgrade_kind_gen_maxed_cat_does_not_panic() {
         let upgrade_state = UpgradeState {
-            upgrades: vec![Upgrade {
-                kind: UpgradeKind::Cat(CatUpgrade {
-                    add: MAX_GOLD_EARN_PLUS,
-                }),
-                value: crate::OneZero::default(),
-            }],
+            upgrades: vec![crate::game_state::upgrade::CatUpgrade::into_upgrade(
+                MAX_GOLD_EARN_PLUS,
+            )],
             ..UpgradeState::default()
         };
-        let kind_gen = make_treasure_upgrade_kind_gen(UpgradeKindDiscriminants::Cat, None, &upgrade_state);
-        assert!(matches!(
-            (kind_gen)(),
-            UpgradeKind::Cat(CatUpgrade { add: 0 })
-        ));
+        let kind_gen =
+            make_treasure_upgrade_kind_gen(UpgradeDiscriminants::Cat, None, &upgrade_state);
+        assert!(matches!((kind_gen)(), Upgrade::Cat(..)));
     }
 }

@@ -8,14 +8,12 @@ use crate::game_state::{
     },
     mutate_game_state,
     tower::TowerTemplate,
-    upgrade::Upgrade,
 };
 use crate::theme::{
     button::{Button, ButtonVariant},
     typography::memoized_text,
 };
 use namui::*;
-use rand::{Rng, thread_rng};
 use std::sync::{Mutex, OnceLock};
 
 #[derive(Clone, State)]
@@ -170,12 +168,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     let upgrade = if expected_category == UpgradeCategory::Random {
         crate::game_state::upgrade::generate_treasure_upgrade(gs)
     } else {
-        let kind = expected_category.generate_upgrade_kind(expected_rarity);
-        let value = thread_rng().gen_range(0.0..=1.0);
-        Upgrade {
-            kind,
-            value: value.into(),
-        }
+        expected_category.generate_upgrade_kind(expected_rarity)
     };
     gs.upgrade_state.upgrade(upgrade);
 

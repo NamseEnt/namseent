@@ -1,14 +1,9 @@
 use super::super::*;
-use namui::OneZero;
 
 #[test]
 fn ice_cream_effect_expires_after_five_waves() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::IceCream(IceCreamUpgrade { damage_multiplier: 3.0, waves_remaining: 5,
-         }),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(3.0, 5));
 
     for expected in (1..=5).rev() {
         let effects = state.stage_start_effects(expected);
@@ -22,11 +17,7 @@ fn ice_cream_effect_expires_after_five_waves() {
 #[test]
 fn ice_cream_uses_configured_multiplier_and_duration() {
     let mut state = UpgradeState::default();
-    state.upgrade(Upgrade {
-        kind: UpgradeKind::IceCream(IceCreamUpgrade { damage_multiplier: 2.5, waves_remaining: 2,
-         }),
-        value: OneZero::default(),
-    });
+    state.upgrade(crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.5, 2));
 
     let first = state.stage_start_effects(1);
     let second = state.stage_start_effects(2);
