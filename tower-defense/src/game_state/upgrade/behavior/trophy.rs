@@ -1,0 +1,101 @@
+use super::*;
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct TrophyUpgrade {
+    pub perfect_clear_stacks: usize,
+}
+
+impl UpgradeBehavior for TrophyUpgrade {
+    fn on_stage_end(
+        &mut self,
+        perfect_clear: bool,
+        _gold: usize,
+        _item_count: usize,
+    ) -> (usize, UpgradeUpdateFlags) {
+        if perfect_clear {
+            self.perfect_clear_stacks += 1;
+        }
+        (0, UpgradeUpdateFlags::TOWER_STATS)
+    }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        if self.perfect_clear_stacks > 0 {
+            Some((
+                TowerUpgradeTarget::Global,
+                self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0),
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+impl TrophyUpgrade {
+    pub fn into_upgrade() -> Upgrade {
+        Upgrade::Trophy(TrophyUpgrade {
+            perfect_clear_stacks: 0,
+        })
+    }
+}
+
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
+    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+
+fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
+    TrophyUpgrade::into_upgrade()
+}
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn trophy_uses_perfect_clear_stacks_for_global_damage() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        game_state
+            .upgrade_state
+            .upgrade(crate::game_state::upgrade::TrophyUpgrade::into_upgrade());
+
+        let tower_template = crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            crate::card::Suit::Hearts,
+            crate::card::Rank::Two,
+        );
+        let tower = crate::game_state::tower::Tower::new(
+            &tower_template,
+            crate::MapCoord::new(0, 0),
+            game_state.now(),
+        );
+        let before_damage = tower.calculate_projectile_damage(&[], 1.0);
+
+        game_state.apply_stage_end(true, 0, 0);
+        game_state.apply_stage_end(true, 0, 0);
+
+        let upgrade_bonuses = game_state
+            .upgrade_state
+            .tower_upgrade_damage_bonuses(&game_state);
+        let after_damage = tower.calculate_projectile_damage(&upgrade_bonuses, 1.0);
+
+        assert!(after_damage > before_damage);
+        assert!((after_damage / before_damage - 3.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn trophy_perfect_clear_increments_perfect_clear_stacks() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut gs = support::create_mock_game_state();
+        gs.flow = crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.upgrade_state
+            .upgrade(crate::game_state::upgrade::TrophyUpgrade::into_upgrade());
+
+        crate::game_state::tick::defense_end::check_defense_end(&mut gs);
+
+        assert!(gs.upgrade_state.upgrades.iter().any(|upgrade| {
+            matches!(upgrade, crate::game_state::upgrade::Upgrade::Trophy(trophy) if trophy.perfect_clear_stacks == 1)
+        }));
+    }
+}

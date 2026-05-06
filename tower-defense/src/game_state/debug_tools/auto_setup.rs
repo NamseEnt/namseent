@@ -39,7 +39,7 @@ impl Component for AutoSetupButton {
                         } else {
                             expected_category.generate_upgrade_kind(expected_rarity)
                         };
-                        gs.upgrade_state.upgrade(upgrade);
+                        gs.upgrade(upgrade);
 
                         place_selected_tower_in_spiral(gs);
                         gs.goto_defense();

@@ -54,13 +54,9 @@ pub enum HistoryEventType {
         item: Item,
     },
 
-    UpgradeSelected {
+    UpgradeAcquired {
         upgrade: Upgrade,
-    },
-
-    UpgradePurchased {
-        upgrade: Upgrade,
-        cost: usize,
+        cost: Option<usize>,
     },
 
     GameOver,
@@ -73,7 +69,7 @@ impl PlayHistory {
 }
 
 impl GameState {
-    pub fn record_event(&mut self, event_type: HistoryEventType) {
+    pub(crate) fn record_event(&mut self, event_type: HistoryEventType) {
         self.play_history.events.push(HistoryEvent {
             stage: self.stage,
             timestamp: self.now(),

@@ -299,14 +299,14 @@ impl Component for AddUpgradeTool {
             if selection_idx == RANDOM_SELECTION_IDX {
                 mutate_game_state(move |gs| {
                     let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(gs);
-                    gs.upgrade_state.upgrade(upgrade);
+                    gs.upgrade(upgrade);
                 });
             } else {
                 let mut rng = thread_rng();
                 let disc = UpgradeDiscriminants::iter().nth(selection_idx - 1).unwrap();
                 let upgrade = generate_mock_upgrade(disc, rarity, &mut rng);
                 mutate_game_state(move |gs| {
-                    gs.upgrade_state.upgrade(upgrade);
+                    gs.upgrade(upgrade);
                 });
             }
         };

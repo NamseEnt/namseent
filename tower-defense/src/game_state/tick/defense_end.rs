@@ -1,5 +1,4 @@
 use super::*;
-use crate::game_state::play_history::HistoryEventType;
 use crate::sound::{self, GameEndKind};
 
 pub fn check_defense_end(game_state: &mut GameState) {
@@ -21,33 +20,15 @@ pub fn check_defense_end(game_state: &mut GameState) {
         }
     }
 
-    let completed_stage = game_state.stage;
     let perfect_clear = if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
-        let perfect_clear = !defense_flow.took_damage;
-        if perfect_clear {
-            game_state.record_event(HistoryEventType::StagePerfectClear {
-                stage: completed_stage,
-            });
-            game_state.metrics.current_consecutive_perfect_clears += 1;
-            game_state.metrics.max_consecutive_perfect_clears = game_state
-                .metrics
-                .max_consecutive_perfect_clears
-                .max(game_state.metrics.current_consecutive_perfect_clears);
-        } else {
-            game_state.metrics.current_consecutive_perfect_clears = 0;
-        }
-        perfect_clear
+        !defense_flow.took_damage
     } else {
         false
     };
 
     let gold = game_state.gold;
     let item_count = game_state.items.len();
-    game_state.handle_upgrade_trigger(crate::game_state::upgrade::UpgradeTriggerEvent::StageEnd {
-        perfect_clear,
-        gold,
-        item_count,
-    });
+    game_state.apply_stage_end(perfect_clear, gold, item_count);
 
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;

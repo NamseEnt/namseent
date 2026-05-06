@@ -80,18 +80,19 @@ impl HistoryEventType {
                     .static_text("아이템 사용: ")
                     .l10n(item.name_text(), _locale);
             }
-            HistoryEventType::UpgradeSelected { upgrade } => {
-                builder
-                    .static_text("업그레이드 선택: ")
-                    .l10n(UpgradeTypeText::Name(upgrade), _locale);
-            }
-            HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                builder
-                    .static_text("업그레이드 구매: ")
-                    .l10n(UpgradeTypeText::Name(upgrade), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
+            HistoryEventType::UpgradeAcquired { upgrade, cost } => {
+                if let Some(cost) = cost {
+                    builder
+                        .static_text("업그레이드 구매: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale)
+                        .static_text(" (")
+                        .with_gold_value(format!("{}G", cost))
+                        .static_text(")");
+                } else {
+                    builder
+                        .static_text("업그레이드 선택: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale);
+                }
             }
             HistoryEventType::GameOver => {
                 builder.static_text("게임 오버");
@@ -153,18 +154,19 @@ impl HistoryEventType {
                     .static_text("Item Used: ")
                     .l10n(item.name_text(), _locale);
             }
-            HistoryEventType::UpgradeSelected { upgrade } => {
-                builder
-                    .static_text("Upgrade Selected: ")
-                    .l10n(UpgradeTypeText::Name(upgrade), _locale);
-            }
-            HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                builder
-                    .static_text("Upgrade Purchased: ")
-                    .l10n(UpgradeTypeText::Name(upgrade), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
+            HistoryEventType::UpgradeAcquired { upgrade, cost } => {
+                if let Some(cost) = cost {
+                    builder
+                        .static_text("Upgrade Purchased: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale)
+                        .static_text(" (")
+                        .with_gold_value(format!("{}G", cost))
+                        .static_text(")");
+                } else {
+                    builder
+                        .static_text("Upgrade Selected: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale);
+                }
             }
             HistoryEventType::GameOver => {
                 builder.static_text("Game Over");

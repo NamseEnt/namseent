@@ -18,7 +18,7 @@ mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
-pub mod play_history;
+pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
 mod render;

@@ -1,3 +1,4 @@
+use super::state::UpgradeState;
 use super::*;
 use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerTemplate};
@@ -203,17 +204,113 @@ pub trait UpgradeBehavior {
     }
 }
 
-mod card_rules;
-mod damage;
-mod simple_flags;
-mod stateful;
-mod treasure;
+#[derive(Clone, Copy)]
+pub(super) struct UpgradeDefinition {
+    generate: fn(&UpgradeState) -> Upgrade,
+    current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+}
 
-pub use card_rules::*;
-pub use damage::*;
-pub use simple_flags::*;
-pub use stateful::*;
-pub use treasure::*;
+impl UpgradeDefinition {
+    pub(super) const fn new(
+        generate: fn(&UpgradeState) -> Upgrade,
+        current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+    ) -> Self {
+        Self {
+            generate,
+            current_and_max,
+        }
+    }
+
+    pub(super) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
+        (self.generate)(upgrade_state)
+    }
+
+    pub(super) fn current_and_max(self, upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
+        (self.current_and_max)(upgrade_state)
+    }
+}
+
+pub(super) fn no_current_and_max(_upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
+    None
+}
+
+mod backpack;
+mod black_white;
+mod broken_pottery;
+mod brush;
+mod camera;
+mod cat;
+mod club_sword;
+mod crock;
+mod demolition_hammer;
+mod dice_bundle;
+mod energy_drink;
+mod eraser;
+mod fang;
+mod fountain_pen;
+mod four_leaf_clover;
+mod gift_box;
+mod ice_cream;
+mod long_sword;
+mod mace;
+mod membership_card;
+mod metronome;
+mod mirror;
+mod name_tag;
+mod pair_chopsticks;
+mod pea;
+mod perfect_pottery;
+mod piggy_bank;
+mod popcorn;
+mod rabbit;
+mod resolution;
+mod shopping_bag;
+mod single_chopstick;
+mod slot_machine;
+mod spanner;
+mod staff;
+mod tape;
+mod tricycle;
+mod trophy;
+
+pub use backpack::*;
+pub use black_white::*;
+pub use broken_pottery::*;
+pub use brush::*;
+pub use camera::*;
+pub use cat::*;
+pub use club_sword::*;
+pub use crock::*;
+pub use demolition_hammer::*;
+pub use dice_bundle::*;
+pub use energy_drink::*;
+pub use eraser::*;
+pub use fang::*;
+pub use fountain_pen::*;
+pub use four_leaf_clover::*;
+pub use gift_box::*;
+pub use ice_cream::*;
+pub use long_sword::*;
+pub use mace::*;
+pub use membership_card::*;
+pub use metronome::*;
+pub use mirror::*;
+pub use name_tag::*;
+pub use pair_chopsticks::*;
+pub use pea::*;
+pub use perfect_pottery::*;
+pub use piggy_bank::*;
+pub use popcorn::*;
+pub use rabbit::*;
+pub use resolution::*;
+pub use shopping_bag::*;
+pub use single_chopstick::*;
+pub use slot_machine::*;
+pub use spanner::*;
+pub use staff::*;
+pub use tape::*;
+pub use tricycle::*;
+pub use trophy::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(
@@ -265,256 +362,56 @@ pub enum Upgrade {
     BrokenPottery(BrokenPotteryUpgrade),
 }
 
-impl CatUpgrade {
-    pub fn into_upgrade(add: usize) -> Upgrade {
-        Upgrade::Cat(CatUpgrade { add })
+impl UpgradeDiscriminants {
+    fn definition(self) -> UpgradeDefinition {
+        match self {
+            UpgradeDiscriminants::Cat => cat::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Staff => staff::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::LongSword => long_sword::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Mace => mace::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::ClubSword => club_sword::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Backpack => backpack::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::DiceBundle => dice_bundle::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Tricycle => tricycle::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::EnergyDrink => energy_drink::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::PerfectPottery => perfect_pottery::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::SingleChopstick => single_chopstick::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::PairChopsticks => pair_chopsticks::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::FountainPen => fountain_pen::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Brush => brush::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::FourLeafClover => four_leaf_clover::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Rabbit => rabbit::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::BlackWhite => black_white::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Trophy => trophy::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Crock => crock::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::NameTag => name_tag::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::ShoppingBag => shopping_bag::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Resolution => resolution::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Mirror => mirror::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::IceCream => ice_cream::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Spanner => spanner::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Pea => pea::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::SlotMachine => slot_machine::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::PiggyBank => piggy_bank::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Camera => camera::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::GiftBox => gift_box::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Fang => fang::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Popcorn => popcorn::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::MembershipCard => membership_card::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Eraser => eraser::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::BrokenPottery => broken_pottery::UPGRADE_DEFINITION,
+        }
     }
-}
 
-impl StaffUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Staff(StaffUpgrade { damage_multiplier })
+    pub(crate) fn current_and_max(self, upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
+        self.definition().current_and_max(upgrade_state)
     }
-}
 
-impl LongSwordUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::LongSword(LongSwordUpgrade { damage_multiplier })
-    }
-}
-
-impl MaceUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Mace(MaceUpgrade { damage_multiplier })
-    }
-}
-
-impl ClubSwordUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::ClubSword(ClubSwordUpgrade { damage_multiplier })
-    }
-}
-
-impl BackpackUpgrade {
-    pub fn into_upgrade(add: usize) -> Upgrade {
-        Upgrade::Backpack(BackpackUpgrade { add })
-    }
-}
-
-impl DiceBundleUpgrade {
-    pub fn into_upgrade(add: usize) -> Upgrade {
-        Upgrade::DiceBundle(DiceBundleUpgrade { add })
-    }
-}
-
-impl TricycleUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Tricycle(TricycleUpgrade { damage_multiplier })
-    }
-}
-
-impl EnergyDrinkUpgrade {
-    pub fn into_upgrade(add: usize) -> Upgrade {
-        Upgrade::EnergyDrink(EnergyDrinkUpgrade { add })
-    }
-}
-
-impl PerfectPotteryUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::PerfectPottery(PerfectPotteryUpgrade { damage_multiplier })
-    }
-}
-
-impl SingleChopstickUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::SingleChopstick(SingleChopstickUpgrade { damage_multiplier })
-    }
-}
-
-impl PairChopsticksUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::PairChopsticks(PairChopsticksUpgrade { damage_multiplier })
-    }
-}
-
-impl FountainPenUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::FountainPen(FountainPenUpgrade { damage_multiplier })
-    }
-}
-
-impl BrushUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Brush(BrushUpgrade { damage_multiplier })
-    }
-}
-
-impl FourLeafCloverUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::FourLeafClover(FourLeafCloverUpgrade)
-    }
-}
-
-impl RabbitUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Rabbit(RabbitUpgrade)
-    }
-}
-
-impl BlackWhiteUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::BlackWhite(BlackWhiteUpgrade)
-    }
-}
-
-impl TrophyUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Trophy(TrophyUpgrade {
-            perfect_clear_stacks: 0,
-        })
-    }
-}
-
-impl CrockUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Crock(CrockUpgrade)
-    }
-}
-
-impl DemolitionHammerUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::DemolitionHammer(DemolitionHammerUpgrade {
-            damage_multiplier,
-            removed_tower_count: 0,
-            stored_damage_bonus: 0.0,
-        })
-    }
-}
-
-impl MetronomeUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Metronome(MetronomeUpgrade { start_stage: None })
-    }
-}
-
-impl TapeUpgrade {
-    pub fn into_upgrade(acquired_stage: usize) -> Upgrade {
-        Upgrade::Tape(TapeUpgrade { acquired_stage })
-    }
-}
-
-impl NameTagUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::NameTag(NameTagUpgrade {
-            damage_multiplier,
-            target_tower_id: None,
-        })
-    }
-}
-
-impl ShoppingBagUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::ShoppingBag(ShoppingBagUpgrade {
-            damage_multiplier,
-            stacks: 0,
-        })
-    }
-}
-
-impl ResolutionUpgrade {
-    pub fn into_upgrade(damage_multiplier_per_reroll: f32) -> Upgrade {
-        Upgrade::Resolution(ResolutionUpgrade {
-            damage_multiplier_per_reroll,
-            stored_rerolls: 0,
-        })
-    }
-}
-
-impl MirrorUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Mirror(MirrorUpgrade { pending: true })
-    }
-}
-
-impl IceCreamUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32, waves_remaining: usize) -> Upgrade {
-        Upgrade::IceCream(IceCreamUpgrade {
-            damage_multiplier,
-            waves_remaining,
-        })
-    }
-}
-
-impl SpannerUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Spanner(SpannerUpgrade)
-    }
-}
-
-impl PeaUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Pea(PeaUpgrade)
-    }
-}
-
-impl SlotMachineUpgrade {
-    pub fn into_upgrade(next_round_dice: usize) -> Upgrade {
-        Upgrade::SlotMachine(SlotMachineUpgrade { next_round_dice })
-    }
-}
-
-impl PiggyBankUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::PiggyBank(PiggyBankUpgrade)
-    }
-}
-
-impl CameraUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Camera(CameraUpgrade)
-    }
-}
-
-impl GiftBoxUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::GiftBox(GiftBoxUpgrade)
-    }
-}
-
-impl FangUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::Fang(FangUpgrade)
-    }
-}
-
-impl PopcornUpgrade {
-    pub fn into_upgrade(max_multiplier: f32, duration: usize, waves_remaining: usize) -> Upgrade {
-        Upgrade::Popcorn(PopcornUpgrade {
-            max_multiplier,
-            duration,
-            waves_remaining,
-            active_stage_damage_bonus: 0.0,
-        })
-    }
-}
-
-impl MembershipCardUpgrade {
-    pub fn into_upgrade() -> Upgrade {
-        Upgrade::MembershipCard(MembershipCardUpgrade {
-            pending_free_shop: true,
-        })
-    }
-}
-
-impl EraserUpgrade {
-    pub fn into_upgrade(add: usize) -> Upgrade {
-        Upgrade::Eraser(EraserUpgrade { add })
-    }
-}
-
-impl BrokenPotteryUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::BrokenPottery(BrokenPotteryUpgrade { damage_multiplier })
+    pub(crate) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
+        self.definition().generate(upgrade_state)
     }
 }
 

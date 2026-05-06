@@ -67,12 +67,6 @@ impl SelectingTowerFlow {
 }
 
 #[derive(Clone, Debug, State)]
-pub struct StageProgress {
-    pub start_total_hp: f32,
-    pub processed_hp: f32,
-}
-
-#[derive(Clone, Debug, State)]
 pub struct DefenseFlow {
     pub stage_progress: StageProgress,
     pub took_damage: bool,
@@ -95,12 +89,44 @@ impl DefenseFlow {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum GameFlowAction {
+    NextStage,
+    SelectingTower,
+    PlacingTower(TowerTemplate),
+    Defense,
+    TreasureSelection,
+    SelectTreasure(usize),
+    Result { clear_rate: f32 },
+}
+
+#[derive(Clone, Debug, State)]
+pub struct StageProgress {
+    pub start_total_hp: f32,
+    pub processed_hp: f32,
+}
+
 impl GameState {
+    pub(crate) fn apply_flow_action(&mut self, action: GameFlowAction) {
+        match action {
+            GameFlowAction::NextStage => {
+                self.prepare_next_stage();
+                self.do_goto_selecting_tower();
+            }
+            GameFlowAction::SelectingTower => self.do_goto_selecting_tower(),
+            GameFlowAction::PlacingTower(tower_template) => {
+                self.do_goto_placing_tower(tower_template)
+            }
+            GameFlowAction::Defense => self.do_goto_defense(),
+            GameFlowAction::TreasureSelection => self.do_goto_treasure_selection(),
+            GameFlowAction::SelectTreasure(index) => self.do_select_treasure(index),
+            GameFlowAction::Result { clear_rate } => self.do_goto_result(clear_rate),
+        }
+    }
+
     fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
-        self.handle_upgrade_trigger(
-            crate::game_state::upgrade::UpgradeTriggerEvent::StageStart { stage: self.stage },
-        );
+        self.apply_stage_start(self.stage);
         if self.upgrade_state.clear_shield_on_stage_start() {
             self.shield = 0.0;
         }
@@ -114,12 +140,7 @@ impl GameState {
         }
     }
 
-    pub fn goto_next_stage(&mut self) {
-        self.prepare_next_stage();
-        self.goto_selecting_tower();
-    }
-
-    pub fn goto_selecting_tower(&mut self) {
+    fn do_goto_selecting_tower(&mut self) {
         self.hand_panel_forced_open = true;
         self.shop_panel_forced_open = true;
 
@@ -141,7 +162,7 @@ impl GameState {
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
     }
 
-    pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
+    fn do_goto_placing_tower(&mut self, tower_template: TowerTemplate) {
         let mut hand_items = vec![tower_template.clone()];
 
         // Drain all queued extra towers (barricades, special towers, etc.)
@@ -174,12 +195,9 @@ impl GameState {
         }
 
         self.flow = GameFlow::PlacingTower;
-        self.handle_upgrade_trigger(
-            crate::game_state::upgrade::UpgradeTriggerEvent::PlacingTowerStarted,
-        );
     }
 
-    pub fn goto_defense(&mut self) {
+    fn do_goto_defense(&mut self) {
         self.flow = GameFlow::Defense(DefenseFlow::new(self));
         self.effect_events.push(GameEffectEvent::PlaySound(
             sound::EmitSoundParams::one_shot(
@@ -193,18 +211,46 @@ impl GameState {
         start_spawn(self);
     }
 
-    pub fn goto_treasure_selection(&mut self) {
+    fn do_goto_treasure_selection(&mut self) {
         self.flow = GameFlow::TreasureSelection(TreasureSelectionFlow::new(self));
     }
 
-    pub fn select_treasure(&mut self, index: usize) {
+    fn do_goto_result(&mut self, clear_rate: f32) {
+        self.flow = GameFlow::Result { clear_rate };
+    }
+
+    pub fn goto_next_stage(&mut self) {
+        self.apply_flow_action(GameFlowAction::NextStage);
+    }
+
+    pub fn goto_selecting_tower(&mut self) {
+        self.apply_flow_action(GameFlowAction::SelectingTower);
+    }
+
+    pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
+        self.apply_flow_action(GameFlowAction::PlacingTower(tower_template));
+    }
+
+    pub fn goto_defense(&mut self) {
+        self.apply_flow_action(GameFlowAction::Defense);
+    }
+
+    pub fn goto_treasure_selection(&mut self) {
+        self.apply_flow_action(GameFlowAction::TreasureSelection);
+    }
+
+    fn do_select_treasure(&mut self, index: usize) {
         if let GameFlow::TreasureSelection(flow) = &self.flow
             && index < flow.options.len()
         {
             let upgrade = flow.options[index];
             self.upgrade(upgrade);
         }
-        self.goto_next_stage();
+        self.apply_flow_action(GameFlowAction::NextStage);
+    }
+
+    pub fn select_treasure(&mut self, index: usize) {
+        self.apply_flow_action(GameFlowAction::SelectTreasure(index));
     }
 
     pub fn goto_result(&mut self) {
@@ -214,6 +260,6 @@ impl GameState {
         self.monsters.clear();
         self.projectiles.clear();
         self.record_game_over();
-        self.flow = GameFlow::Result { clear_rate };
+        self.apply_flow_action(GameFlowAction::Result { clear_rate });
     }
 }

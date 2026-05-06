@@ -1,0 +1,40 @@
+use super::*;
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct SpannerUpgrade;
+
+impl UpgradeBehavior for SpannerUpgrade {
+    fn clear_shield_on_stage_start(&self) -> bool {
+        false
+    }
+}
+
+impl SpannerUpgrade {
+    pub fn into_upgrade() -> Upgrade {
+        Upgrade::Spanner(SpannerUpgrade)
+    }
+}
+
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
+    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+
+fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
+    SpannerUpgrade::into_upgrade()
+}
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn spanner_keeps_shield_across_stage_transition() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut gs = support::create_mock_game_state();
+        gs.shield = 50.0;
+        gs.upgrade_state
+            .upgrade(crate::game_state::upgrade::SpannerUpgrade::into_upgrade());
+
+        gs.goto_next_stage();
+
+        assert_eq!(gs.shield, 50.0);
+    }
+}

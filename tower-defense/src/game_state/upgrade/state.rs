@@ -74,7 +74,6 @@ pub(crate) enum UpgradeTriggerEvent<'a> {
     StageStart {
         stage: usize,
     },
-    PlacingTowerStarted,
     TowerPlaced {
         tower: &'a Tower,
     },
@@ -135,9 +134,6 @@ impl UpgradeState {
             UpgradeTriggerEvent::TowerPlaced { tower } => {
                 let (placement_result, flags) = self.on_tower_placed(tower);
                 UpgradeTriggerResult::TowerPlaced(placement_result, flags)
-            }
-            UpgradeTriggerEvent::PlacingTowerStarted => {
-                UpgradeTriggerResult::Flags(UpgradeUpdateFlags::NONE)
             }
             UpgradeTriggerEvent::TowerPlacement {
                 tower_template,

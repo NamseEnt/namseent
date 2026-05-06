@@ -16,19 +16,89 @@ use rand::Rng;
 const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
 const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
+enum GameStateAction<'a> {
+    StageStart {
+        stage: usize,
+    },
+    Upgrade(Upgrade, Option<usize>),
+    PlaceTower(Box<Tower>),
+    PurchaseShopItem(crate::shop::ShopSlotId),
+    UseItem(&'a item::Item),
+    TakeDamage(f32),
+    StageEnd {
+        perfect_clear: bool,
+        gold: usize,
+        item_count: usize,
+    },
+}
+
 impl GameState {
-    pub fn record_game_start(&mut self) {
+    fn apply_game_state_action(&mut self, action: GameStateAction<'_>) {
+        match action {
+            GameStateAction::StageStart { stage } => self.do_stage_start(stage),
+            GameStateAction::Upgrade(upgrade, cost) => {
+                self.handle_upgrade_trigger(UpgradeTriggerEvent::UpgradeAcquired { upgrade });
+                self.record_event(HistoryEventType::UpgradeAcquired { upgrade, cost });
+            }
+            GameStateAction::PlaceTower(tower) => self.do_place_tower(*tower),
+            GameStateAction::PurchaseShopItem(slot_id) => self.do_purchase_shop_item(slot_id),
+            GameStateAction::UseItem(item) => self.do_use_item(item),
+            GameStateAction::TakeDamage(damage) => self.do_take_damage(damage),
+            GameStateAction::StageEnd {
+                perfect_clear,
+                gold,
+                item_count,
+            } => self.do_stage_end(perfect_clear, gold, item_count),
+        }
+    }
+
+    pub(crate) fn apply_stage_start(&mut self, stage: usize) {
+        self.apply_game_state_action(GameStateAction::StageStart { stage });
+    }
+
+    pub(crate) fn apply_stage_end(&mut self, perfect_clear: bool, gold: usize, item_count: usize) {
+        self.apply_game_state_action(GameStateAction::StageEnd {
+            perfect_clear,
+            gold,
+            item_count,
+        });
+    }
+
+    fn do_stage_start(&mut self, stage: usize) {
+        self.handle_upgrade_trigger(UpgradeTriggerEvent::StageStart { stage });
+    }
+
+    fn do_stage_end(&mut self, perfect_clear: bool, gold: usize, item_count: usize) {
+        if perfect_clear {
+            self.record_event(HistoryEventType::StagePerfectClear { stage: self.stage });
+            self.metrics.current_consecutive_perfect_clears += 1;
+            self.metrics.max_consecutive_perfect_clears = self
+                .metrics
+                .max_consecutive_perfect_clears
+                .max(self.metrics.current_consecutive_perfect_clears);
+        } else {
+            self.metrics.current_consecutive_perfect_clears = 0;
+        }
+
+        self.handle_upgrade_trigger(UpgradeTriggerEvent::StageEnd {
+            perfect_clear,
+            gold,
+            item_count,
+        });
+    }
+
+    pub(crate) fn record_game_start(&mut self) {
         self.record_event(HistoryEventType::GameStart);
     }
 
-    pub fn record_stage_start(&mut self) {
+    pub(crate) fn record_stage_start(&mut self) {
         self.record_event(HistoryEventType::StageStart {
             stage: self.stage,
             boss: crate::game_state::is_boss_stage(self.stage),
         });
     }
 
-    pub fn record_game_over(&mut self) {
+    pub(crate) fn record_game_over(&mut self) {
         self.record_event(HistoryEventType::GameOver);
     }
 
@@ -93,7 +163,7 @@ impl GameState {
         }
     }
 
-    pub(crate) fn handle_upgrade_trigger(&mut self, event: UpgradeTriggerEvent<'_>) {
+    fn handle_upgrade_trigger(&mut self, event: UpgradeTriggerEvent<'_>) {
         let result = match event {
             UpgradeTriggerEvent::UpgradeAcquired { upgrade } => {
                 self.upgrade_state.upgrade(upgrade);
@@ -168,11 +238,14 @@ impl GameState {
     }
 
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        self.handle_upgrade_trigger(UpgradeTriggerEvent::UpgradeAcquired { upgrade });
-        self.record_event(HistoryEventType::UpgradeSelected { upgrade });
+        self.apply_game_state_action(GameStateAction::Upgrade(upgrade, None));
     }
 
-    pub fn place_tower(&mut self, mut tower: Tower) {
+    pub fn place_tower(&mut self, tower: Tower) {
+        self.apply_game_state_action(GameStateAction::PlaceTower(Box::new(tower)));
+    }
+
+    fn do_place_tower(&mut self, mut tower: Tower) {
         let rank = tower.rank;
         let suit = tower.suit;
         let hand = tower.kind;
@@ -251,6 +324,14 @@ impl GameState {
     }
 
     pub fn take_damage(&mut self, damage: f32) {
+        self.apply_game_state_action(GameStateAction::TakeDamage(damage));
+    }
+
+    pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
+        self.apply_game_state_action(GameStateAction::PurchaseShopItem(slot_id));
+    }
+
+    fn do_take_damage(&mut self, damage: f32) {
         let mut actual_damage = damage;
 
         // Camera shake based on damage
@@ -323,7 +404,7 @@ impl GameState {
         }
     }
 
-    pub fn purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
+    fn do_purchase_shop_item(&mut self, slot_id: crate::shop::ShopSlotId) {
         let shop = match &mut self.flow {
             GameFlow::SelectingTower(flow) => &mut flow.shop,
             _ => return,
@@ -380,17 +461,20 @@ impl GameState {
 
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
-                self.upgrade(upgrade_value);
-                self.record_event(HistoryEventType::UpgradePurchased {
-                    upgrade: upgrade_value,
-                    cost: cost_value,
-                });
+                self.apply_game_state_action(GameStateAction::Upgrade(
+                    upgrade_value,
+                    Some(cost_value),
+                ));
                 self.spend_gold(cost_value);
             }
         }
     }
 
     pub fn use_item(&mut self, item: &item::Item) {
+        self.apply_game_state_action(GameStateAction::UseItem(item));
+    }
+
+    fn do_use_item(&mut self, item: &item::Item) {
         // 아이템 사용 불가 효과 체크
         if self.stage_modifiers.is_item_use_disabled() {
             return; // 아이템 사용 불가 상태에서는 아무것도 하지 않음

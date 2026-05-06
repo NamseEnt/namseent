@@ -170,7 +170,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     } else {
         expected_category.generate_upgrade_kind(expected_rarity)
     };
-    gs.upgrade_state.upgrade(upgrade);
+    gs.upgrade(upgrade);
 
     // Step 4: Place towers in spiral
     place_selected_tower_in_spiral(gs);
