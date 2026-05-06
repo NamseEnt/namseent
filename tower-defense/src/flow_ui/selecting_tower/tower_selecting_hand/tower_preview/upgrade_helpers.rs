@@ -26,10 +26,18 @@ pub fn create_upgrade_kind_for_target(
     match (target, stat_type, is_additive) {
         // Suit 기반 업그레이드
         (TowerUpgradeTarget::Suit { suit }, UpgradeStatType::Damage, false) => match suit {
-            crate::card::Suit::Diamonds => crate::game_state::upgrade::StaffUpgrade::into_upgrade(value),
-            crate::card::Suit::Spades => crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(value),
-            crate::card::Suit::Hearts => crate::game_state::upgrade::MaceUpgrade::into_upgrade(value),
-            crate::card::Suit::Clubs => crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(value),
+            crate::card::Suit::Diamonds => {
+                crate::game_state::upgrade::StaffUpgrade::into_upgrade(value)
+            }
+            crate::card::Suit::Spades => {
+                crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(value)
+            }
+            crate::card::Suit::Hearts => {
+                crate::game_state::upgrade::MaceUpgrade::into_upgrade(value)
+            }
+            crate::card::Suit::Clubs => {
+                crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(value)
+            }
         },
 
         // EvenOdd 기반 업그레이드
@@ -63,7 +71,9 @@ pub fn create_tower_select_upgrade_kind(
     value: f32,
 ) -> Upgrade {
     match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => crate::game_state::upgrade::TricycleUpgrade::into_upgrade(value),
+        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
+            crate::game_state::upgrade::TricycleUpgrade::into_upgrade(value)
+        }
         (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
             crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(value)
         }

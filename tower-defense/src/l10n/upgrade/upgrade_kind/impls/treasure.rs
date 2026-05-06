@@ -1,8 +1,8 @@
 use crate::game_state::upgrade::*;
 use crate::icon::IconKind;
+use crate::l10n::Locale;
 use crate::l10n::locale::Language;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
-use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 
 use super::UpgradeTypeL10n;
@@ -79,7 +79,9 @@ impl UpgradeTypeL10n for EraserUpgrade {
                 .with_positive_effect(format!("{} rank", self.add))
                 .static_text(" from the deck"),
             Language::Korean => {
-                let desc = Box::leak(format!("덱에서 {}개 숫자카드를 제거합니다", self.add).into_boxed_str());
+                let desc = Box::leak(
+                    format!("덱에서 {}개 숫자카드를 제거합니다", self.add).into_boxed_str(),
+                );
                 builder.static_text(desc)
             }
         };

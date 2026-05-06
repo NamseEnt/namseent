@@ -182,43 +182,95 @@ fn generate_mock_upgrade(
     let damage_multiplier = rarity_gen(rarity, rng, (1.2..1.5, 1.3..1.75, 1.5..2.5, 2.0..3.5));
     match disc {
         UpgradeDiscriminants::Cat => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
-        UpgradeDiscriminants::Staff => crate::game_state::upgrade::StaffUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::LongSword => crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::Mace => crate::game_state::upgrade::MaceUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::ClubSword => crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::Backpack => crate::game_state::upgrade::BackpackUpgrade::into_upgrade(1),
-        UpgradeDiscriminants::DiceBundle => crate::game_state::upgrade::DiceBundleUpgrade::into_upgrade(1),
-        UpgradeDiscriminants::Tricycle => crate::game_state::upgrade::TricycleUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::EnergyDrink => crate::game_state::upgrade::EnergyDrinkUpgrade::into_upgrade(5),
-        UpgradeDiscriminants::PerfectPottery => crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::SingleChopstick => crate::game_state::upgrade::SingleChopstickUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::PairChopsticks => crate::game_state::upgrade::PairChopsticksUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::FountainPen => crate::game_state::upgrade::FountainPenUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::Brush => crate::game_state::upgrade::BrushUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::FourLeafClover => crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Staff => {
+            crate::game_state::upgrade::StaffUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::LongSword => {
+            crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::Mace => {
+            crate::game_state::upgrade::MaceUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::ClubSword => {
+            crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::Backpack => {
+            crate::game_state::upgrade::BackpackUpgrade::into_upgrade(1)
+        }
+        UpgradeDiscriminants::DiceBundle => {
+            crate::game_state::upgrade::DiceBundleUpgrade::into_upgrade(1)
+        }
+        UpgradeDiscriminants::Tricycle => {
+            crate::game_state::upgrade::TricycleUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::EnergyDrink => {
+            crate::game_state::upgrade::EnergyDrinkUpgrade::into_upgrade(5)
+        }
+        UpgradeDiscriminants::PerfectPottery => {
+            crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::SingleChopstick => {
+            crate::game_state::upgrade::SingleChopstickUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::PairChopsticks => {
+            crate::game_state::upgrade::PairChopsticksUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::FountainPen => {
+            crate::game_state::upgrade::FountainPenUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::Brush => {
+            crate::game_state::upgrade::BrushUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::FourLeafClover => {
+            crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::Rabbit => crate::game_state::upgrade::RabbitUpgrade::into_upgrade(),
-        UpgradeDiscriminants::BlackWhite => crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade(),
+        UpgradeDiscriminants::BlackWhite => {
+            crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::Trophy => crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
         UpgradeDiscriminants::Crock => crate::game_state::upgrade::CrockUpgrade::into_upgrade(),
-        UpgradeDiscriminants::DemolitionHammer => crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::Metronome => crate::game_state::upgrade::MetronomeUpgrade::into_upgrade(),
+        UpgradeDiscriminants::DemolitionHammer => {
+            crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::Metronome => {
+            crate::game_state::upgrade::MetronomeUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::Tape => crate::game_state::upgrade::TapeUpgrade::into_upgrade(0),
-        UpgradeDiscriminants::NameTag => crate::game_state::upgrade::NameTagUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::ShoppingBag => crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(damage_multiplier),
-        UpgradeDiscriminants::Resolution => crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(damage_multiplier),
+        UpgradeDiscriminants::NameTag => {
+            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::ShoppingBag => {
+            crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(damage_multiplier)
+        }
+        UpgradeDiscriminants::Resolution => {
+            crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(damage_multiplier)
+        }
         UpgradeDiscriminants::Mirror => crate::game_state::upgrade::MirrorUpgrade::into_upgrade(),
-        UpgradeDiscriminants::IceCream => crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(damage_multiplier, 5),
+        UpgradeDiscriminants::IceCream => {
+            crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(damage_multiplier, 5)
+        }
         UpgradeDiscriminants::Spanner => crate::game_state::upgrade::SpannerUpgrade::into_upgrade(),
         UpgradeDiscriminants::Pea => crate::game_state::upgrade::PeaUpgrade::into_upgrade(),
-        UpgradeDiscriminants::SlotMachine => crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10),
-        UpgradeDiscriminants::PiggyBank => crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade(),
+        UpgradeDiscriminants::SlotMachine => {
+            crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10)
+        }
+        UpgradeDiscriminants::PiggyBank => {
+            crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::Camera => crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
         UpgradeDiscriminants::GiftBox => crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade(),
         UpgradeDiscriminants::Fang => crate::game_state::upgrade::FangUpgrade::into_upgrade(),
-        UpgradeDiscriminants::Popcorn => crate::game_state::upgrade::PopcornUpgrade::into_upgrade(damage_multiplier, 5, 5),
-        UpgradeDiscriminants::MembershipCard => crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Popcorn => {
+            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(damage_multiplier, 5, 5)
+        }
+        UpgradeDiscriminants::MembershipCard => {
+            crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::Eraser => crate::game_state::upgrade::EraserUpgrade::into_upgrade(1),
-        UpgradeDiscriminants::BrokenPottery => crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_multiplier),
+        UpgradeDiscriminants::BrokenPottery => {
+            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_multiplier)
+        }
     }
 }
 

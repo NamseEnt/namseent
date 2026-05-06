@@ -2,7 +2,7 @@ pub mod render;
 mod royal_straight_flush;
 mod skill;
 
-use super::{upgrade::TowerUpgradeState, *};
+use super::*;
 use crate::card::{Rank, Suit};
 use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
@@ -29,37 +29,39 @@ pub struct Tower {
     template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
+    cached_upgrade: CachedTowerUpgradeDamage,
     pub(in crate::game_state::tower) animation: Animation,
     pub(self) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
-pub struct ShootProjectileParams<'a> {
+#[derive(Clone, Debug, PartialEq, State)]
+pub struct CachedTowerUpgradeDamage {
+    pub revision: usize,
+    pub bonuses: Vec<crate::game_state::upgrade::TowerUpgradeDamageBonus>,
+    pub damage: f32,
+}
+
+pub struct ShootProjectileParams {
     pub target_indicator: ProjectileTargetIndicator,
     pub speed: Velocity,
     pub trail: ProjectileTrail,
     pub projectile_group: ProjectileGroup,
     pub hit_effect: attack::ProjectileHitEffect,
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub stage_damage_multiplier: f32,
-    pub global_damage_multiplier: f32,
+    pub damage: f32,
     pub now: Instant,
     pub source_tower_id: Option<usize>,
     pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
 }
 
-pub struct ShootLaserParams<'a> {
+pub struct ShootLaserParams {
     pub target_xy: (f32, f32),
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub stage_damage_multiplier: f32,
-    pub global_damage_multiplier: f32,
+    pub damage: f32,
     pub now: Instant,
 }
 
-pub struct AttackTypeParams<'a> {
+pub struct AttackTypeParams {
     pub target_xy: (f32, f32),
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub stage_damage_multiplier: f32,
-    pub global_damage_multiplier: f32,
+    pub damage: f32,
     pub now: Instant,
 }
 
@@ -73,6 +75,11 @@ impl Tower {
             template: template.clone(),
             status_effects: template.default_status_effects.clone(),
             skills: vec![],
+            cached_upgrade: CachedTowerUpgradeDamage {
+                revision: 0,
+                bonuses: Vec::new(),
+                damage: template.default_damage,
+            },
             animation: Animation::new(now),
             royal_straight_flush_visual: None,
         }
@@ -81,7 +88,15 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot_projectile(&mut self, params: ShootProjectileParams<'_>) -> Projectile {
+    pub(crate) fn template_mut(&mut self) -> &mut TowerTemplate {
+        &mut self.template
+    }
+
+    pub(crate) fn refresh_status_effects_from_template(&mut self) {
+        self.status_effects = self.template.default_status_effects.clone();
+    }
+
+    pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> Projectile {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, params.now);
 
@@ -91,11 +106,7 @@ impl Tower {
             params.speed,
             params.target_indicator,
             ProjectileParams {
-                damage: self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.stage_damage_multiplier,
-                    params.global_damage_multiplier,
-                ),
+                damage: params.damage,
                 trail: params.trail,
                 hit_effect: params.hit_effect,
                 source_tower_id: params.source_tower_id,
@@ -104,28 +115,39 @@ impl Tower {
         )
     }
 
-    pub fn shoot_laser(&mut self, params: ShootLaserParams<'_>) -> (attack::laser::LaserBeam, f32) {
+    pub fn shoot_laser(&mut self, params: ShootLaserParams) -> (attack::laser::LaserBeam, f32) {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, params.now);
-
-        let damage = self.calculate_projectile_damage(
-            params.tower_upgrade_states,
-            params.stage_damage_multiplier,
-            params.global_damage_multiplier,
-        );
 
         let head_xy = self.head_xy_tile();
         let laser = attack::laser::LaserBeam::new(
             (head_xy.x, head_xy.y),
             params.target_xy,
             params.now,
-            damage,
+            params.damage,
         );
 
-        (laser, damage)
+        (laser, params.damage)
     }
 
-    pub fn attack_type(&mut self, params: AttackTypeParams<'_>) -> (AttackType, f32) {
+    pub fn refresh_cached_upgrade_damage(
+        &mut self,
+        revision: usize,
+        upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
+    ) {
+        if self.cached_upgrade.revision != revision {
+            self.cached_upgrade.bonuses = upgrade_bonuses.to_vec();
+            self.cached_upgrade.damage =
+                self.calculate_projectile_damage(&self.cached_upgrade.bonuses, 1.0);
+            self.cached_upgrade.revision = revision;
+        }
+    }
+
+    pub fn cached_upgrade_damage(&self) -> f32 {
+        self.cached_upgrade.damage
+    }
+
+    pub fn attack_type(&mut self, params: AttackTypeParams) -> (AttackType, f32) {
         match self.kind {
             TowerKind::Barricade => (
                 AttackType::Projectile {
@@ -177,17 +199,11 @@ impl Tower {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, params.now);
 
-                let damage = self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.stage_damage_multiplier,
-                    params.global_damage_multiplier,
-                );
-
                 (
                     AttackType::RoyalStraightFlush {
                         target_xy: params.target_xy,
                     },
-                    damage,
+                    params.damage,
                 )
             }
             TowerKind::StraightFlush => (
@@ -212,12 +228,6 @@ impl Tower {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, params.now);
 
-                let damage = self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.stage_damage_multiplier,
-                    params.global_damage_multiplier,
-                );
-
                 let head_xy = self.head_xy_tile();
                 let tower_xy = (head_xy.x, head_xy.y);
 
@@ -226,7 +236,7 @@ impl Tower {
                         tower_xy,
                         target_xy: params.target_xy,
                     },
-                    damage,
+                    params.damage,
                 )
             }
             TowerKind::FourOfAKind => (
@@ -266,9 +276,8 @@ impl Tower {
 
     pub fn calculate_projectile_damage(
         &self,
-        tower_upgrade_states: &[TowerUpgradeState],
+        tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
         stage_damage_multiplier: f32,
-        global_damage_multiplier: f32,
     ) -> f32 {
         let mut damage = self.default_damage;
 
@@ -288,21 +297,20 @@ impl Tower {
             }
         });
 
-        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
-            damage *= tower_upgrade_state.damage_multiplier;
-        });
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .filter(|upgrade_bonus| upgrade_bonus.applies_to_tower(self))
+            .map(|upgrade_bonus| upgrade_bonus.bonus_pct)
+            .sum();
 
-        damage *= global_damage_multiplier;
+        damage *= 1.0 + bonus_sum;
+
         damage *= stage_damage_multiplier;
 
         damage
     }
 
-    pub(crate) fn attack_range_radius(
-        &self,
-        _tower_upgrade_states: &[TowerUpgradeState],
-        contract_range_multiplier: f32,
-    ) -> f32 {
+    pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }

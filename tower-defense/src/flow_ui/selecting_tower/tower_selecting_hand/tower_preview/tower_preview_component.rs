@@ -199,13 +199,14 @@ fn calculate_upgrade_state_and_texts(
     tower_template: &TowerTemplate,
 ) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
+    let mut combined_damage_multiplier = 1.0;
     let mut texts = UpgradeTexts {
         damage: vec![],
         speed: vec![],
     };
 
     let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
-        state.damage_multiplier *= upgrade_state.damage_multiplier;
+        combined_damage_multiplier *= upgrade_state.damage_multiplier;
 
         if upgrade_state.damage_multiplier > 1.0 {
             let upgrade = match target {
@@ -229,7 +230,9 @@ fn calculate_upgrade_state_and_texts(
     };
 
     let apply_tower_upgrade_target = |target| {
-        let upgrade_state = game_state.upgrade_state.tower_upgrade_state(target);
+        let upgrade_state = game_state
+            .upgrade_state
+            .tower_upgrade_state(target, game_state);
         apply_upgrade(&upgrade_state, &UpgradeTargetType::Tower(target));
     };
 
@@ -245,6 +248,11 @@ fn calculate_upgrade_state_and_texts(
         },
     ];
     targets.into_iter().for_each(apply_tower_upgrade_target);
+
+    let global_upgrade_state = game_state
+        .upgrade_state
+        .tower_upgrade_state(TowerUpgradeTarget::Global, game_state);
+    state.damage_multiplier *= global_upgrade_state.damage_multiplier;
 
     let mut apply_tower_select_upgrade_target = |target| {
         let upgrade_state = game_state.upgrade_state.tower_select_upgrade_state(target);
@@ -270,5 +278,6 @@ fn calculate_upgrade_state_and_texts(
         }
     }
 
+    state.damage_multiplier = combined_damage_multiplier;
     (state, texts)
 }

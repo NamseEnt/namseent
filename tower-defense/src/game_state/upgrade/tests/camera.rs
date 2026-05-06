@@ -1,27 +1,20 @@
-use super::super::*;
-use crate::game_state::tower::{Tower, TowerTemplate};
-
-#[test]
-fn camera_upgrade_sets_active_flag() {
-    let mut state = UpgradeState::default();
-    state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
-
-    assert!(state.has_camera());
-}
-
 #[test]
 fn camera_grants_gold_when_face_tower_is_placed() {
-    let mut game_state = super::support::create_mock_game_state();
+    use super::support;
+
+    let mut game_state = support::create_mock_game_state();
     let initial_gold = game_state.gold;
 
-    game_state.upgrade_state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
+    game_state
+        .upgrade_state
+        .upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
 
-    let face_tower_template = TowerTemplate::new(
+    let face_tower_template = crate::game_state::tower::TowerTemplate::new(
         crate::game_state::tower::TowerKind::High,
         crate::card::Suit::Spades,
         crate::card::Rank::King,
     );
-    let face_tower = Tower::new(
+    let face_tower = crate::game_state::tower::Tower::new(
         &face_tower_template,
         crate::MapCoord::new(0, 0),
         game_state.now(),
@@ -33,17 +26,21 @@ fn camera_grants_gold_when_face_tower_is_placed() {
 
 #[test]
 fn camera_does_not_grant_gold_for_number_tower() {
-    let mut game_state = super::support::create_mock_game_state();
+    use super::support;
+
+    let mut game_state = support::create_mock_game_state();
     let initial_gold = game_state.gold;
 
-    game_state.upgrade_state.upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
+    game_state
+        .upgrade_state
+        .upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
 
-    let number_tower_template = TowerTemplate::new(
+    let number_tower_template = crate::game_state::tower::TowerTemplate::new(
         crate::game_state::tower::TowerKind::High,
         crate::card::Suit::Spades,
         crate::card::Rank::Ten,
     );
-    let number_tower = Tower::new(
+    let number_tower = crate::game_state::tower::Tower::new(
         &number_tower_template,
         crate::MapCoord::new(2, 0),
         game_state.now(),

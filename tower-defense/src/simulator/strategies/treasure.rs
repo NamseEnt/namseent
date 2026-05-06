@@ -45,9 +45,7 @@ impl SynergyTreasureStrategy {
     fn score_option(&self, game_state: &GameState, option: &Upgrade) -> f32 {
         let stage = game_state.stage as f32;
         let base_value = match option {
-            Upgrade::Cat(..) => {
-                7.0 + (8 - game_state.upgrade_state.gold_earn_plus()) as f32 * 0.8
-            }
+            Upgrade::Cat(..) => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus()) as f32 * 0.8,
             Upgrade::Backpack(..) => {
                 6.5 + (2 - game_state.upgrade_state.shop_slot_expand()) as f32 * 1.2
             }

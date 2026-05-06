@@ -98,16 +98,9 @@ impl DefenseFlow {
 impl GameState {
     fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
-        let effects = self.upgrade_state.stage_start_effects(self.stage);
-        self.left_dice = self.max_dice_chance() + effects.extra_dice;
-        self.stage_modifiers
-            .apply_damage_multiplier(effects.damage_multiplier);
-        if let Some(speed_multiplier) = effects.enemy_speed_multiplier {
-            self.stage_modifiers
-                .apply_enemy_speed_multiplier(speed_multiplier);
-        }
-        self.stage_modifiers
-            .set_free_shop_this_stage(effects.free_shop_this_stage);
+        self.handle_upgrade_trigger(
+            crate::game_state::upgrade::UpgradeTriggerEvent::StageStart { stage: self.stage },
+        );
         if self.upgrade_state.clear_shield_on_stage_start() {
             self.shield = 0.0;
         }
@@ -148,14 +141,8 @@ impl GameState {
         self.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(self));
     }
 
-    pub fn goto_placing_tower(&mut self, mut tower_template: TowerTemplate) {
-        self.upgrade_state
-            .apply_pending_placement_bonuses(&mut tower_template, self.left_dice);
-
+    pub fn goto_placing_tower(&mut self, tower_template: TowerTemplate) {
         let mut hand_items = vec![tower_template.clone()];
-        for _ in 0..self.upgrade_state.consume_pending_mirror_count() {
-            hand_items.push(tower_template.clone());
-        }
 
         // Drain all queued extra towers (barricades, special towers, etc.)
         for (tower_kind, suit, rank) in self.stage_modifiers.drain_extra_tower_cards() {
@@ -187,6 +174,9 @@ impl GameState {
         }
 
         self.flow = GameFlow::PlacingTower;
+        self.handle_upgrade_trigger(
+            crate::game_state::upgrade::UpgradeTriggerEvent::PlacingTowerStarted,
+        );
     }
 
     pub fn goto_defense(&mut self) {

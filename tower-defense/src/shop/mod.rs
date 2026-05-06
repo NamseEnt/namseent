@@ -1,11 +1,7 @@
 mod shop_slot;
 
 use crate::{
-    game_state::{
-        GameState,
-        flow::GameFlow,
-        upgrade::{generate_tower_damage_upgrade, generate_treasure_upgrade},
-    },
+    game_state::{GameState, flow::GameFlow, upgrade::generate_tower_damage_upgrade},
     *,
 };
 use namui::OneZero;
@@ -21,13 +17,6 @@ impl Shop {
     pub fn new(game_state: &GameState) -> Self {
         let slots = (0..game_state.max_shop_slot())
             .map(|_| ShopSlotData::new(generate_shop_slot(game_state)))
-            .collect();
-        Self { slots }
-    }
-
-    pub fn new_treasure(game_state: &GameState) -> Self {
-        let slots = (0..3)
-            .map(|_| ShopSlotData::new(generate_treasure_slot(game_state)))
             .collect();
         Self { slots }
     }
@@ -101,7 +90,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     let slot_type = thread_rng().gen_range(0..10);
 
     match slot_type {
-        0..=2 => {
+        0..=4 => {
             let mut rng = thread_rng();
             let item = crate::game_state::item::generation::generate_item_with_rng(
                 &mut rng,
@@ -118,16 +107,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             };
             ShopSlot::Item { item, cost }
         }
-        3..=7 => {
-            let upgrade = generate_tower_damage_upgrade(game_state);
-            let cost = item_cost(
-                OneZero::default(),
-                game_state.upgrade_state.shop_item_price_minus(),
-                &game_state.config,
-            );
-            ShopSlot::Upgrade { upgrade, cost }
-        }
-        8..=9 => {
+        5..=9 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
             let cost = item_cost(
                 OneZero::default(),
@@ -138,11 +118,6 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         }
         _ => unreachable!(),
     }
-}
-
-fn generate_treasure_slot(game_state: &GameState) -> ShopSlot {
-    let upgrade = generate_treasure_upgrade(game_state);
-    ShopSlot::Upgrade { upgrade, cost: 0 }
 }
 
 fn random_item_cost<R: Rng + ?Sized>(

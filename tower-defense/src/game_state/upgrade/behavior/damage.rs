@@ -9,6 +9,22 @@ impl UpgradeBehavior for StaffUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::Suit {
+                suit: crate::card::Suit::Diamonds,
+            },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -18,6 +34,22 @@ pub struct LongSwordUpgrade {
 impl UpgradeBehavior for LongSwordUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
+    }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::Suit {
+                suit: crate::card::Suit::Spades,
+            },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }
 
@@ -29,6 +61,22 @@ impl UpgradeBehavior for MaceUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::Suit {
+                suit: crate::card::Suit::Hearts,
+            },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -38,6 +86,22 @@ pub struct ClubSwordUpgrade {
 impl UpgradeBehavior for ClubSwordUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
+    }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::Suit {
+                suit: crate::card::Suit::Clubs,
+            },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }
 
@@ -49,6 +113,20 @@ impl UpgradeBehavior for SingleChopstickUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::EvenOdd { even: false },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -58,6 +136,20 @@ pub struct PairChopsticksUpgrade {
 impl UpgradeBehavior for PairChopsticksUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
+    }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::EvenOdd { even: true },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }
 
@@ -69,6 +161,20 @@ impl UpgradeBehavior for FountainPenUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::FaceNumber { face: false },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -79,6 +185,20 @@ impl UpgradeBehavior for BrushUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((
+            TowerUpgradeTarget::FaceNumber { face: true },
+            self.damage_multiplier - 1.0,
+        ))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -88,6 +208,17 @@ pub struct BrokenPotteryUpgrade {
 impl UpgradeBehavior for BrokenPotteryUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
+    }
+
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((TowerUpgradeTarget::Global, self.damage_multiplier - 1.0))
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }
 
@@ -100,6 +231,10 @@ impl UpgradeBehavior for TricycleUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
     }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
+    }
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -109,5 +244,9 @@ pub struct PerfectPotteryUpgrade {
 impl UpgradeBehavior for PerfectPotteryUpgrade {
     fn is_tower_damage_upgrade(&self) -> bool {
         true
+    }
+
+    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }

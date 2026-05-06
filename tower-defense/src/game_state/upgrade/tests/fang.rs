@@ -1,9 +1,10 @@
-use super::super::*;
-use crate::game_state::{monster::Monster, monster_spawn, tick};
+use crate::game_state::{monster_spawn, Monster, tick};
 
 #[test]
 fn fang_recovers_hp_when_monster_dies() {
-    let mut game_state = super::support::create_mock_game_state();
+    use super::support;
+
+    let mut game_state = support::create_mock_game_state();
     game_state.hp = 10.0;
 
     game_state.upgrade(crate::game_state::upgrade::FangUpgrade::into_upgrade());
@@ -25,7 +26,9 @@ fn fang_recovers_hp_when_monster_dies() {
 
 #[test]
 fn fang_recovery_respects_current_max_hp() {
-    let mut game_state = super::support::create_mock_game_state();
+    use super::support;
+
+    let mut game_state = support::create_mock_game_state();
     game_state.hp = game_state.max_hp();
 
     game_state.upgrade(crate::game_state::upgrade::FangUpgrade::into_upgrade());

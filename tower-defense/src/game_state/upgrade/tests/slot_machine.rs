@@ -1,16 +1,22 @@
-use super::super::*;
-
 #[test]
-fn stage_start_effects_applies_ice_cream_and_slot_machine() {
-    let mut state = UpgradeState::default();
-    state.upgrade(crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(3.0, 5));
-    state.upgrade(crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10));
+fn slot_machine_grants_extra_dice_on_stage_start_only_once() {
+    use super::support;
+    use crate::game_state::upgrade::UpgradeTriggerEvent;
 
-    let effects = state.stage_start_effects(2);
-    let effects_next_wave = state.stage_start_effects(3);
+    let mut game_state = support::create_mock_game_state();
+    game_state.upgrade(crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10));
 
-    assert_eq!(effects.damage_multiplier, 3.0);
-    assert_eq!(effects.extra_dice, 10);
-    assert_eq!(effects_next_wave.damage_multiplier, 3.0);
-    assert_eq!(effects_next_wave.extra_dice, 0);
+    game_state.handle_upgrade_trigger(UpgradeTriggerEvent::StageStart { stage: 1 });
+    assert_eq!(
+        game_state.left_dice,
+        game_state.max_dice_chance() + 10,
+        "slot machine should add extra dice on the first stage start",
+    );
+
+    game_state.handle_upgrade_trigger(UpgradeTriggerEvent::StageStart { stage: 2 });
+    assert_eq!(
+        game_state.left_dice,
+        game_state.max_dice_chance(),
+        "slot machine should only apply extra dice once",
+    );
 }

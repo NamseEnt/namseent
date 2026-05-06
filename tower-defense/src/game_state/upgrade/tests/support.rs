@@ -1,9 +1,14 @@
-use crate::game_state::{GameState, tower::{Tower, TowerStatusEffectKind, TowerTemplate}};
+use crate::game_state::{
+    GameState,
+    tower::{Tower, TowerTemplate},
+};
 
+#[cfg(test)]
 pub fn create_mock_game_state() -> GameState {
-    crate::game_state::create_initial_game_state_for_tests()
+    crate::game_state::create_initial_game_state()
 }
 
+#[cfg(test)]
 pub fn first_hand_tower_template(game_state: &GameState) -> TowerTemplate {
     let slot_id = game_state
         .hand
@@ -17,14 +22,9 @@ pub fn first_hand_tower_template(game_state: &GameState) -> TowerTemplate {
         .expect("expected first hand item to be tower template")
 }
 
-pub fn assert_template_has_damage_mul(template: &TowerTemplate, expected_mul: f32) {
-    assert!(template.default_status_effects.iter().any(|effect| {
-        matches!(effect.kind, TowerStatusEffectKind::DamageMul { mul } if (mul - expected_mul).abs() < f32::EPSILON)
-    }));
-}
-
-pub fn assert_tower_has_damage_mul(tower: &Tower, expected_mul: f32) {
-    assert!(tower.status_effects.iter().any(|effect| {
-        matches!(effect.kind, TowerStatusEffectKind::DamageMul { mul } if (mul - expected_mul).abs() < f32::EPSILON)
-    }));
+#[cfg(test)]
+pub fn assert_tower_cached_damage_mul(tower: &Tower, expected_mul: f32) {
+    let base_damage = tower.calculate_projectile_damage(&[], 1.0);
+    let boosted_damage = tower.cached_upgrade_damage();
+    assert!((boosted_damage / base_damage - expected_mul).abs() < f32::EPSILON);
 }

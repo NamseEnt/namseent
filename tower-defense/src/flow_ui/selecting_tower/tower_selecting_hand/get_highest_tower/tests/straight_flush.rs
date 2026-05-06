@@ -5,10 +5,7 @@ use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::{Upgrade, UpgradeState};
 
 fn state_with(upgrades: Vec<Upgrade>) -> UpgradeState {
-    UpgradeState {
-        upgrades,
-        ..UpgradeState::default()
-    }
+    UpgradeState::with_upgrades(upgrades)
 }
 
 #[test]
@@ -60,7 +57,9 @@ fn test_straight_flush_4cards_with_upgrade() {
         make_card(Suit::Hearts, Rank::Queen),
         make_card(Suit::Hearts, Rank::King),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade()]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -82,7 +81,10 @@ fn test_straight_flush_with_removed_two_and_shorten_4cards_allows_ace_low() {
         make_card(Suit::Hearts, Rank::Five),
         make_card(Suit::Hearts, Rank::Six),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::EraserUpgrade::into_upgrade(1), crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade()]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::EraserUpgrade::into_upgrade(1),
+        crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -103,7 +105,9 @@ fn test_straight_flush_skip_rank() {
         make_card(Suit::Hearts, Rank::Queen),
         make_card(Suit::Hearts, Rank::Ace),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::RabbitUpgrade::into_upgrade()]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::RabbitUpgrade::into_upgrade(),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -125,7 +129,9 @@ fn test_straight_flush_treat_suits_as_same() {
         make_card(Suit::Diamonds, Rank::Queen),
         make_card(Suit::Hearts, Rank::King),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade()]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade(),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -146,7 +152,10 @@ fn test_straight_flush_treat_suits_as_same_and_shorten_4cards() {
         make_card(Suit::Hearts, Rank::Queen),
         make_card(Suit::Diamonds, Rank::King),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade(), crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade()]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade(),
+        crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,
@@ -168,7 +177,9 @@ fn test_straight_flush_with_removed_two_still_recognizes_included_two() {
         make_card(Suit::Hearts, Rank::Five),
         make_card(Suit::Hearts, Rank::Six),
     ];
-    let upgrade_state = state_with(vec![crate::game_state::upgrade::EraserUpgrade::into_upgrade(1)]);
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::EraserUpgrade::into_upgrade(1),
+    ]);
     let rerolled_count = 0;
     let template = get_highest_tower_template(
         &cards,

@@ -1,8 +1,8 @@
 use crate::game_state::upgrade::*;
 use crate::icon::IconKind;
+use crate::l10n::Locale;
 use crate::l10n::locale::Language;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
-use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 
 use super::UpgradeTypeL10n;

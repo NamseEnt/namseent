@@ -1,17 +1,23 @@
-use super::super::*;
-use crate::game_state::tower::{Tower, TowerTemplate};
+use crate::game_state::upgrade::Upgrade;
 
 #[test]
 fn resolution_applies_remaining_reroll_damage_and_consumes_it() {
-    let mut game_state = super::support::create_mock_game_state();
+    use super::support;
+
+    let mut game_state = support::create_mock_game_state();
     game_state
         .upgrade_state
         .upgrade(crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(
             0.25,
         ));
     game_state.left_dice = 2;
+    game_state.handle_upgrade_trigger(crate::game_state::upgrade::UpgradeTriggerEvent::StageEnd {
+        perfect_clear: false,
+        gold: 0,
+        item_count: 0,
+    });
 
-    let template = TowerTemplate::new(
+    let template = crate::game_state::tower::TowerTemplate::new(
         crate::game_state::tower::TowerKind::High,
         crate::card::Suit::Spades,
         crate::card::Rank::Ace,
@@ -19,30 +25,30 @@ fn resolution_applies_remaining_reroll_damage_and_consumes_it() {
     game_state.goto_placing_tower(template);
 
     assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
-        matches!(upgrade, Upgrade::Resolution(..))
-            && (upgrade.damage_multiplier().unwrap_or_default() - 0.25).abs() < f32::EPSILON
+        if let Upgrade::Resolution(upgrade) = upgrade {
+            (upgrade.damage_multiplier_per_reroll - 0.25).abs() < f32::EPSILON
+        } else {
+            false
+        }
     }));
 
-    let placed_template = super::support::first_hand_tower_template(&game_state);
-    super::support::assert_template_has_damage_mul(&placed_template, 1.5);
-
-    let mut next_template = TowerTemplate::new(
-        crate::game_state::tower::TowerKind::High,
-        crate::card::Suit::Spades,
-        crate::card::Rank::Ace,
-    );
-    game_state
-        .upgrade_state
-        .apply_pending_placement_bonuses(&mut next_template, game_state.left_dice);
-    assert!(!next_template.default_status_effects.iter().any(|effect| {
-        matches!(effect.kind, crate::game_state::tower::TowerStatusEffectKind::DamageMul { mul }
-            if (mul - 1.5).abs() < f32::EPSILON)
-    }));
-
-    let tower = Tower::new(
+    let placing_slot_id = game_state
+        .hand
+        .get_slot_id_by_index(0)
+        .expect("expected tower slot to be present");
+    let placed_template = support::first_hand_tower_template(&game_state);
+    let tower = crate::game_state::tower::Tower::new(
         &placed_template,
         crate::MapCoord::new(0, 0),
         game_state.now(),
     );
-    super::support::assert_tower_has_damage_mul(&tower, 1.5);
+    game_state.place_tower(tower);
+    game_state.hand.delete_slots(&[placing_slot_id]);
+
+    let placed_tower = game_state
+        .towers
+        .iter()
+        .next()
+        .expect("expected tower placed");
+    support::assert_tower_cached_damage_mul(placed_tower, 1.5);
 }

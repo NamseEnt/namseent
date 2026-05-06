@@ -1,29 +1,55 @@
-use super::super::*;
-
 #[test]
-fn ice_cream_effect_expires_after_five_waves() {
-    let mut state = UpgradeState::default();
-    state.upgrade(crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(3.0, 5));
+fn ice_cream_effect_applies_to_placed_tower_and_expires_after_waves() {
+    use super::support;
+    use crate::game_state::flow::DefenseFlow;
+    use crate::game_state::tower::TowerTemplate;
 
-    for expected in (1..=5).rev() {
-        let effects = state.stage_start_effects(expected);
-        assert_eq!(effects.damage_multiplier, 3.0);
-    }
+    let mut game_state = support::create_mock_game_state();
+    game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
+    let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(3.0, 2);
+    game_state.upgrade(upgrade);
 
-    let effects = state.stage_start_effects(6);
-    assert_eq!(effects.damage_multiplier, 1.0);
-}
+    let tower_template = TowerTemplate::new(
+        crate::game_state::tower::TowerKind::High,
+        crate::card::Suit::Hearts,
+        crate::card::Rank::Two,
+    );
+    let tower = crate::game_state::tower::Tower::new(
+        &tower_template,
+        crate::MapCoord::new(0, 0),
+        game_state.now(),
+    );
+    game_state.place_tower(tower);
 
-#[test]
-fn ice_cream_uses_configured_multiplier_and_duration() {
-    let mut state = UpgradeState::default();
-    state.upgrade(crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.5, 2));
+    let placed_tower = game_state
+        .towers
+        .iter()
+        .next()
+        .expect("expected tower placed");
+    let base_damage = placed_tower.calculate_projectile_damage(&[], 1.0);
+    let boosted_damage = placed_tower.cached_upgrade_damage();
 
-    let first = state.stage_start_effects(1);
-    let second = state.stage_start_effects(2);
-    let third = state.stage_start_effects(3);
+    assert!(boosted_damage > base_damage);
+    assert!((boosted_damage / base_damage - 3.0).abs() < f32::EPSILON);
 
-    assert!((first.damage_multiplier - 2.5).abs() < f32::EPSILON);
-    assert!((second.damage_multiplier - 2.5).abs() < f32::EPSILON);
-    assert!((third.damage_multiplier - 1.0).abs() < f32::EPSILON);
+    crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
+    let first_tower_after_second_wave = game_state
+        .towers
+        .iter()
+        .find(|tower| tower.left_top == crate::MapCoord::new(0, 0))
+        .expect("expected tower to still exist after first stage");
+    let second_boosted_damage = first_tower_after_second_wave.cached_upgrade_damage();
+    assert!((second_boosted_damage / base_damage - 3.0).abs() < f32::EPSILON);
+
+    game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
+    crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
+
+    let expired_tower = game_state
+        .towers
+        .iter()
+        .find(|tower| tower.left_top == crate::MapCoord::new(0, 0))
+        .expect("expected tower to still exist after second stage");
+    let expired_damage = expired_tower.cached_upgrade_damage();
+
+    assert!((expired_damage / base_damage - 1.0).abs() < f32::EPSILON);
 }

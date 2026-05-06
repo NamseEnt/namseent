@@ -1,6 +1,8 @@
 mod behavior;
 mod generation;
 mod state;
+#[cfg(test)]
+mod tests;
 mod thumbnail;
 
 pub use behavior::*;

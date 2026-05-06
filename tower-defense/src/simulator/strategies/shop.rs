@@ -230,19 +230,19 @@ fn total_tower_score(game_state: &GameState, upgrade_state: &UpgradeState) -> f3
     game_state
         .towers
         .iter()
-        .map(|tower| tower_score(tower, upgrade_state))
+        .map(|tower| tower_score(game_state, tower, upgrade_state))
         .sum()
 }
 
-fn tower_score(tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
-    let tower_upgrade_states = upgrade_state.tower_upgrades(tower);
-    let damage = tower.calculate_projectile_damage(&tower_upgrade_states, 1.0, 1.0);
+fn tower_score(game_state: &GameState, tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
+    let tower_upgrade_bonuses = upgrade_state.tower_upgrade_damage_bonuses(game_state);
+    let damage = tower.calculate_projectile_damage(&tower_upgrade_bonuses, 1.0);
     if damage <= 0.0 {
         return 0.0;
     }
     let interval = tower.shoot_interval.as_secs_f32().max(0.001);
     let dps = damage / interval;
-    let range = tower.attack_range_radius(&tower_upgrade_states, 1.0);
+    let range = tower.attack_range_radius(1.0);
     let range_factor = (range / 4.0).max(0.5);
     dps * range_factor
 }

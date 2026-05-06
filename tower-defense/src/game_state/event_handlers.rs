@@ -1,6 +1,9 @@
 use super::*;
 use crate::game_state::camera::ShakeIntensity;
 use crate::game_state::effect_event::GameEffectEvent;
+use crate::game_state::upgrade::{
+    UpgradeBehavior, UpgradeTriggerEvent, UpgradeTriggerResult, UpgradeUpdateFlags,
+};
 use crate::{
     game_state::{
         effect::run_effect, item, play_history::HistoryEventType, tower::Tower, upgrade::Upgrade,
@@ -14,19 +17,6 @@ const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
 const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
 impl GameState {
-    pub(crate) fn apply_upgrade_effects(&mut self, mut upgrade: Upgrade) {
-        if let Upgrade::Tape(tape_upgrade) = &mut upgrade {
-            tape_upgrade.acquired_stage = self.stage;
-        }
-
-        let is_pea = matches!(upgrade, Upgrade::Pea(..));
-        self.upgrade_state.upgrade(upgrade);
-
-        if is_pea {
-            self.hp = self.max_hp();
-        }
-    }
-
     pub fn record_game_start(&mut self) {
         self.record_event(HistoryEventType::GameStart);
     }
@@ -72,16 +62,132 @@ impl GameState {
         }
     }
 
+    pub fn refresh_tower_upgrade_caches(&mut self) {
+        let upgrade_bonuses = self.upgrade_state.tower_upgrade_damage_bonuses(self);
+        let revision = self.upgrade_state.revision;
+        for tower in self.towers.iter_mut() {
+            tower.refresh_cached_upgrade_damage(revision, &upgrade_bonuses);
+        }
+    }
+
+    pub(crate) fn refresh_tower_upgrade_caches_if_dirty(&mut self, flags: UpgradeUpdateFlags) {
+        if flags.contains(UpgradeUpdateFlags::TOWER_STATS) {
+            self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
+            self.refresh_tower_upgrade_caches();
+        }
+    }
+
+    pub(crate) fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
+        self.refresh_tower_upgrade_caches_if_dirty(flags);
+
+        if flags.contains(UpgradeUpdateFlags::RESOURCE) {
+            crate::shop::refresh_shop(self);
+        }
+
+        if flags.contains(UpgradeUpdateFlags::PLAYER_STATS) {
+            self.hp = self.hp.min(self.max_hp());
+        }
+
+        if flags.contains(UpgradeUpdateFlags::CARD_OPTIONS) {
+            // CARD_OPTIONS is reserved for future card selection / option refresh logic.
+        }
+    }
+
+    pub(crate) fn handle_upgrade_trigger(&mut self, event: UpgradeTriggerEvent<'_>) {
+        let result = match event {
+            UpgradeTriggerEvent::UpgradeAcquired { upgrade } => {
+                self.upgrade_state.upgrade(upgrade);
+                let flags = {
+                    let upgrade_ptr =
+                        self.upgrade_state
+                            .upgrades
+                            .last_mut()
+                            .expect("upgrade just added") as *mut Upgrade;
+                    unsafe { (*upgrade_ptr).on_upgrade_acquired_mut(self) }
+                };
+                UpgradeTriggerResult::Flags(flags)
+            }
+            UpgradeTriggerEvent::TowerPlaced { tower } => {
+                let game_state_ptr: *const GameState = self;
+                let result = self.upgrade_state.handle_upgrade_trigger(
+                    unsafe { &*game_state_ptr },
+                    UpgradeTriggerEvent::TowerPlaced { tower },
+                );
+                let extra_flags = {
+                    let upgrade_state_ptr: *mut UpgradeState = &mut self.upgrade_state;
+                    unsafe { (*upgrade_state_ptr).on_tower_placed_mut(self, tower) }
+                };
+                match result {
+                    UpgradeTriggerResult::TowerPlaced(placement_result, flags) => {
+                        UpgradeTriggerResult::TowerPlaced(placement_result, flags | extra_flags)
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            event => {
+                let game_state_ptr: *const GameState = self;
+                unsafe {
+                    self.upgrade_state
+                        .handle_upgrade_trigger(&*game_state_ptr, event)
+                }
+            }
+        };
+
+        let flags = match result {
+            UpgradeTriggerResult::Flags(flags) => flags,
+            UpgradeTriggerResult::StageStart(effects, flags) => {
+                self.left_dice = self.max_dice_chance() + effects.extra_dice;
+                if let Some(speed_multiplier) = effects.enemy_speed_multiplier {
+                    self.stage_modifiers
+                        .apply_enemy_speed_multiplier(speed_multiplier);
+                }
+                self.stage_modifiers
+                    .set_free_shop_this_stage(effects.free_shop_this_stage);
+                flags
+            }
+            UpgradeTriggerResult::TowerPlaced(placement_result, flags) => {
+                if placement_result.gold_earn > 0 {
+                    self.earn_gold(placement_result.gold_earn);
+                }
+                flags
+            }
+            UpgradeTriggerResult::TowerPlacement(gold) => {
+                if gold > 0 {
+                    self.earn_gold(gold);
+                }
+                UpgradeUpdateFlags::NONE
+            }
+            UpgradeTriggerResult::StageEnd(bonus_gold, flags) => {
+                if bonus_gold > 0 {
+                    self.earn_gold(bonus_gold);
+                }
+                flags
+            }
+        };
+        self.refresh_upgrade_trigger_side_effects(flags);
+    }
+
     pub fn upgrade(&mut self, upgrade: Upgrade) {
-        self.apply_upgrade_effects(upgrade);
+        self.handle_upgrade_trigger(UpgradeTriggerEvent::UpgradeAcquired { upgrade });
         self.record_event(HistoryEventType::UpgradeSelected { upgrade });
     }
 
-    pub fn place_tower(&mut self, tower: Tower) {
+    pub fn place_tower(&mut self, mut tower: Tower) {
         let rank = tower.rank;
         let suit = tower.suit;
         let hand = tower.kind;
         let left_top = tower.left_top;
+
+        self.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlacement {
+            tower_template: tower.template_mut(),
+            left_dice: self.left_dice,
+        });
+        tower.refresh_status_effects_from_template();
+        tower.refresh_cached_upgrade_damage(
+            self.upgrade_state.revision,
+            &self.upgrade_state.tower_upgrade_damage_bonuses(self),
+        );
+
         let tower_count_before = self.towers.iter().count();
         self.towers.place_tower(tower.clone());
         self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
@@ -95,10 +201,8 @@ impl GameState {
 
         let tower_placed = self.towers.iter().count() > tower_count_before;
         if tower_placed {
-            let placement_result = self.upgrade_state.on_tower_placed(&tower);
-            if placement_result.gold_earn > 0 {
-                self.earn_gold(placement_result.gold_earn);
-            }
+            self.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlaced { tower: &tower });
+
             self.effect_events.push(GameEffectEvent::PlaySound(
                 sound::EmitSoundParams::one_shot(
                     sound::random_luggage_drop(),
@@ -130,7 +234,7 @@ impl GameState {
         if tower_removed {
             self.route = calculate_routes(&self.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                 .expect("route should exist after removing a tower");
-            self.upgrade_state.record_tower_removed();
+            self.handle_upgrade_trigger(UpgradeTriggerEvent::TowerRemoved);
             if let Some(left_top) = removed_tower_left_top {
                 self.record_event(HistoryEventType::TowerRemoved { left_top });
             }
@@ -142,6 +246,7 @@ impl GameState {
                     ));
             }
         }
+
         tower_removed
     }
 
@@ -251,15 +356,7 @@ impl GameState {
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
                 self.items.push(item_clone.clone());
-                if let Some(bag) = self.upgrade_state.upgrades.iter_mut().find_map(|u| {
-                    if let Upgrade::ShoppingBag(upgrade) = u {
-                        Some(&mut upgrade.stacks)
-                    } else {
-                        None
-                    }
-                }) {
-                    *bag += 1;
-                }
+                self.handle_upgrade_trigger(UpgradeTriggerEvent::ItemBought);
                 self.record_event(HistoryEventType::ItemPurchased {
                     item: item_clone,
                     cost: cost_value,
@@ -283,7 +380,7 @@ impl GameState {
 
                 slot_data.purchased = true;
                 slot_data.start_exit_animation(Instant::now());
-                self.apply_upgrade_effects(upgrade_value);
+                self.upgrade(upgrade_value);
                 self.record_event(HistoryEventType::UpgradePurchased {
                     upgrade: upgrade_value,
                     cost: cost_value,
@@ -326,5 +423,53 @@ impl GameState {
                         .is_item_and_upgrade_purchases_disabled()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Rank, Suit};
+    use crate::game_state::flow::GameFlow;
+    use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
+    use namui::Instant;
+
+    #[test]
+    fn resource_flag_refreshes_shop_when_selecting_tower() {
+        let mut game_state = create_initial_game_state();
+        game_state
+            .upgrade_state
+            .upgrade(Upgrade::Camera(crate::game_state::upgrade::CameraUpgrade));
+
+        let old_ids: Vec<_> = match &game_state.flow {
+            GameFlow::SelectingTower(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
+            _ => panic!("expected selecting tower flow"),
+        };
+
+        let tower_template = TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Jack);
+        let tower = Tower::new(&tower_template, crate::MapCoord::new(0, 0), Instant::now());
+
+        game_state.handle_upgrade_trigger(
+            crate::game_state::upgrade::UpgradeTriggerEvent::TowerPlaced { tower: &tower },
+        );
+
+        let new_ids: Vec<_> = match &game_state.flow {
+            GameFlow::SelectingTower(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
+            _ => panic!("expected selecting tower flow"),
+        };
+
+        assert!(new_ids.len() >= old_ids.len());
+        assert!(new_ids.iter().any(|id| !old_ids.contains(id)));
+        assert_eq!(game_state.gold, game_state.config.player.starting_gold + 50);
+    }
+
+    #[test]
+    fn player_stats_flag_clamps_hp_to_max() {
+        let mut game_state = create_initial_game_state();
+        game_state.hp = game_state.max_hp() + 10.0;
+        game_state.refresh_upgrade_trigger_side_effects(
+            crate::game_state::upgrade::UpgradeUpdateFlags::PLAYER_STATS,
+        );
+        assert_eq!(game_state.hp, game_state.max_hp());
     }
 }

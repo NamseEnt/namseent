@@ -151,7 +151,7 @@ impl GameState {
     }
 
     pub fn max_hp(&self) -> f32 {
-        self.config.player.max_hp + self.upgrade_state.pea_max_hp_plus() as f32
+        self.config.player.max_hp + self.upgrade_state.max_hp_plus() as f32
     }
 
     pub fn max_dice_chance(&self) -> usize {

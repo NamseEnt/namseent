@@ -21,11 +21,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     let mut tower_damage_updates = Vec::new();
 
     {
-        let global_multiplier = game_state
-            .upgrade_state
-            .global_tower_damage_multiplier(game_state);
         let towers = &mut game_state.towers;
-        let upgrade_state = &game_state.upgrade_state;
         let stage_modifiers = &game_state.stage_modifiers;
         let monsters = &game_state.monsters;
         let black_smoke_sources = &mut game_state.black_smoke_sources;
@@ -43,9 +39,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             }
 
-            let tower_upgrades = upgrade_state.tower_upgrades(tower);
-
-            let attack_range_radius = tower.attack_range_radius(&tower_upgrades, 1.0);
+            let attack_range_radius = tower.attack_range_radius(1.0);
 
             let tower_center = tower.center_xy_f32();
             let target_idx = monsters.iter().position(|monster| {
@@ -56,13 +50,11 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             };
 
-            let stage_damage_multiplier = stage_modifiers.get_damage_multiplier();
             let target_xy = monsters[target_idx].center_xy_tile();
+            let damage = tower.cached_upgrade_damage();
             let (attack_type, instant_damage) = tower.attack_type(AttackTypeParams {
                 target_xy: (target_xy.x, target_xy.y),
-                tower_upgrade_states: &tower_upgrades,
-                stage_damage_multiplier,
-                global_damage_multiplier: global_multiplier,
+                damage,
                 now,
             });
 
@@ -80,9 +72,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         trail,
                         projectile_group,
                         hit_effect,
-                        tower_upgrade_states: &tower_upgrades,
-                        stage_damage_multiplier,
-                        global_damage_multiplier: global_multiplier,
+                        damage: instant_damage,
                         now,
                         source_tower_id: Some(tower.id()),
                         source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
@@ -92,9 +82,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 AttackType::Laser => {
                     let (laser, damage) = tower.shoot_laser(ShootLaserParams {
                         target_xy: (target_xy.x, target_xy.y),
-                        tower_upgrade_states: &tower_upgrades,
-                        stage_damage_multiplier,
-                        global_damage_multiplier: global_multiplier,
+                        damage: instant_damage,
                         now,
                     });
 

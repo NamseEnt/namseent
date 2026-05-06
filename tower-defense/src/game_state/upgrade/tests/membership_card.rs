@@ -1,14 +1,45 @@
-use super::super::*;
-
 #[test]
 fn membership_card_grants_free_shop_next_stage() {
-    let mut state = UpgradeState::default();
-    state.upgrade(crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade());
+    use super::support;
+    use crate::game_state::GameFlow;
+    use crate::game_state::effect::Effect;
+    use crate::game_state::item::ItemKind;
+    use crate::shop::ShopSlot;
 
-    let effects = state.stage_start_effects(3);
-    assert_eq!(effects.damage_multiplier, 1.0);
-    assert!(effects.free_shop_this_stage);
+    let mut game_state = support::create_mock_game_state();
+    game_state.upgrade(crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade());
 
-    let next_effects = state.stage_start_effects(4);
-    assert!(!next_effects.free_shop_this_stage);
+    game_state.handle_upgrade_trigger(
+        crate::game_state::upgrade::UpgradeTriggerEvent::StageStart { stage: 3 },
+    );
+    assert!(game_state.stage_modifiers.is_free_shop_this_stage());
+
+    game_state.goto_selecting_tower();
+    let initial_gold = game_state.gold;
+
+    let slot_id = if let GameFlow::SelectingTower(flow) = &mut game_state.flow {
+        flow.shop
+            .slots
+            .iter()
+            .find_map(|slot_data| match &slot_data.slot {
+                ShopSlot::Item { .. } if !slot_data.purchased => Some(slot_data.id),
+                _ => None,
+            })
+            .expect("expected at least one item slot in shop")
+    } else {
+        panic!("expected selecting tower flow");
+    };
+
+    game_state.purchase_shop_item(slot_id);
+    assert_eq!(game_state.gold, initial_gold);
+    assert!(
+        game_state
+            .items
+            .iter()
+            .any(|item| item.kind == ItemKind::LumpSugar)
+            || game_state
+                .items
+                .iter()
+                .any(|item| item.effect == Effect::ExtraDice)
+    );
 }

@@ -136,8 +136,9 @@ impl Component for PreviewEntryComponent {
                         table::fixed_no_clip(24.px(), move |wh, ctx| {
                             let now = game_state.now();
                             let preview_tower = Tower::new(&template, MapCoord::new(0, 0), now);
-                            let tower_upgrades =
-                                game_state.upgrade_state.tower_upgrades(&preview_tower);
+                            let tower_upgrades = game_state
+                                .upgrade_state
+                                .tower_upgrades(&preview_tower, game_state.as_ref());
                             let damage_multiplier = tower_upgrades
                                 .iter()
                                 .fold(1.0, |acc, state| acc * state.damage_multiplier);

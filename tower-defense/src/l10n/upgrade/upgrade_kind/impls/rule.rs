@@ -1,6 +1,6 @@
 use crate::game_state::upgrade::*;
-use crate::l10n::locale::Language;
 use crate::l10n::Locale;
+use crate::l10n::locale::Language;
 use crate::theme::typography::TypographyBuilder;
 
 use super::UpgradeTypeL10n;

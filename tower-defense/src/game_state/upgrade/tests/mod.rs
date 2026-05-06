@@ -2,7 +2,7 @@ mod camera;
 mod crock;
 mod demolition_hammer;
 mod fang;
-mod global_tower_damage;
+mod gift_box;
 mod ice_cream;
 mod membership_card;
 mod metronome;
