@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct StaffUpgrade {
@@ -24,6 +25,24 @@ impl UpgradeBehavior for StaffUpgrade {
 
     fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::TOWER_STATS
+    }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Staff",
+            crate::l10n::locale::Language::Korean => "지팡이",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Diamond tower ")
+                .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("다이아몬드 타워 ")
+                .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
+        };
     }
 }
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CatUpgrade {
@@ -8,6 +9,25 @@ pub struct CatUpgrade {
 impl UpgradeBehavior for CatUpgrade {
     fn gold_earn_plus(&self) -> usize {
         self.add
+    }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Cat",
+            crate::l10n::locale::Language::Korean => "고양이",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Gain ")
+                .with_icon_bold(crate::icon::IconKind::Gold, format!("+{}", self.add))
+                .static_text(" on monster kills"),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("몬스터 처치 시 ")
+                .with_icon_bold(crate::icon::IconKind::Gold, format!("{}", self.add)),
+        };
     }
 }
 
@@ -37,3 +57,4 @@ fn next_cat_add(gold_earn_plus: usize) -> usize {
         _ => 0,
     }
 }
+

@@ -12,6 +12,20 @@ impl UpgradeBehavior for CameraUpgrade {
             UpgradeUpdateFlags::RESOURCE,
         )
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Camera",
+            crate::l10n::locale::Language::Korean => "카메라",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Gain 50 gold when placing a face tower",
+            crate::l10n::locale::Language::Korean => "페이스 타워를 배치하면 50골드를 얻습니다",
+        });
+    }
 }
 
 impl CameraUpgrade {
@@ -81,3 +95,4 @@ mod tests {
         assert_eq!(game_state.gold, initial_gold);
     }
 }
+

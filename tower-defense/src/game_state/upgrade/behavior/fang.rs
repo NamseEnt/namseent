@@ -7,6 +7,20 @@ impl UpgradeBehavior for FangUpgrade {
     fn on_monster_death(&mut self) -> bool {
         true
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Fang",
+            crate::l10n::locale::Language::Korean => "송곳니",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Recover 1 HP when a monster dies",
+            crate::l10n::locale::Language::Korean => "몬스터가 죽을 때마다 1HP를 회복합니다",
+        });
+    }
 }
 
 impl FangUpgrade {
@@ -74,3 +88,4 @@ mod tests {
         assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
     }
 }
+

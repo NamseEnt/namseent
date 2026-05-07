@@ -21,6 +21,20 @@ impl UpgradeBehavior for TapeUpgrade {
         }
         flags
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Tape",
+            crate::l10n::locale::Language::Korean => "테이프",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Slow enemies every 4 waves after acquisition",
+            crate::l10n::locale::Language::Korean => "획득 후 4웨이브마다 적 속도가 느려집니다",
+        });
+    }
 }
 
 impl TapeUpgrade {
@@ -76,3 +90,4 @@ mod tests {
         assert!(flags.contains(UpgradeUpdateFlags::REVISION_REQUIRED));
     }
 }
+

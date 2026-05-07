@@ -207,6 +207,18 @@ pub trait UpgradeBehavior {
     fn clear_shield_on_stage_start(&self) -> bool {
         true
     }
+
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    );
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    );
 }
 
 #[derive(Clone, Copy)]
@@ -699,5 +711,21 @@ impl UpgradeBehavior for Upgrade {
 
     fn clear_shield_on_stage_start(&self) -> bool {
         self.behavior().clear_shield_on_stage_start()
+    }
+
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        self.behavior().l10n_name(builder, locale)
+    }
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        self.behavior().l10n_description(builder, locale)
     }
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct EraserUpgrade {
@@ -8,6 +9,28 @@ pub struct EraserUpgrade {
 impl UpgradeBehavior for EraserUpgrade {
     fn removed_number_rank_count(&self) -> usize {
         self.add
+    }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Eraser",
+            crate::l10n::locale::Language::Korean => "지우개",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Remove ")
+                .with_positive_effect(format!("{} rank", self.add))
+                .static_text(" from the deck"),
+            crate::l10n::locale::Language::Korean => {
+                let desc = Box::leak(
+                    format!("덱에서 {}개 숫자카드를 제거합니다", self.add).into_boxed_str(),
+                );
+                builder.static_text(desc)
+            }
+        };
     }
 }
 

@@ -25,6 +25,20 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         self.stacks += 1;
         UpgradeUpdateFlags::TOWER_STATS
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Shopping Bag",
+            crate::l10n::locale::Language::Korean => "쇼핑백",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Purchased items increase global damage",
+            crate::l10n::locale::Language::Korean => "구매한 아이템마다 전역 피해가 증가합니다",
+        });
+    }
 }
 
 impl ShoppingBagUpgrade {
@@ -115,3 +129,4 @@ mod tests {
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);
     }
 }
+

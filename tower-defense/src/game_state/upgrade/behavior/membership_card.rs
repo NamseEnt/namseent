@@ -21,6 +21,20 @@ impl UpgradeBehavior for MembershipCardUpgrade {
         self.apply_on_stage_start(stage, effects);
         UpgradeUpdateFlags::RESOURCE
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Membership Card",
+            crate::l10n::locale::Language::Korean => "멤버십 카드",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Get a free shop this stage",
+            crate::l10n::locale::Language::Korean => "이번 스테이지 상점이 무료가 됩니다",
+        });
+    }
 }
 
 impl MembershipCardUpgrade {
@@ -98,3 +112,4 @@ mod tests {
         );
     }
 }
+

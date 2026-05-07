@@ -30,6 +30,20 @@ impl UpgradeBehavior for NameTagUpgrade {
             )
         })
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Name Tag",
+            crate::l10n::locale::Language::Korean => "이름표",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "The next placed tower gains bonus damage",
+            crate::l10n::locale::Language::Korean => "다음 배치한 타워가 추가 피해를 얻습니다",
+        });
+    }
 }
 
 impl NameTagUpgrade {
@@ -100,3 +114,4 @@ mod tests {
         support::assert_tower_cached_damage_mul(placed_tower, 3.0);
     }
 }
+

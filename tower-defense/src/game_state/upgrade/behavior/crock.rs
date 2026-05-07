@@ -14,6 +14,20 @@ impl UpgradeBehavior for CrockUpgrade {
             None
         }
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Crock",
+            crate::l10n::locale::Language::Korean => "항아리",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Damage increases with your gold",
+            crate::l10n::locale::Language::Korean => "골드가 많을수록 피해가 증가합니다",
+        });
+    }
 }
 
 impl CrockUpgrade {
@@ -81,3 +95,4 @@ mod tests {
         assert!(after_damage > before_damage);
     }
 }
+

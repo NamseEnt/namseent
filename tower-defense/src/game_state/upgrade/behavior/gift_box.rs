@@ -13,6 +13,20 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         let bonus_gold = item_count * 10;
         (bonus_gold, UpgradeUpdateFlags::RESOURCE)
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Gift Box",
+            crate::l10n::locale::Language::Korean => "선물 상자",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Earn 10 gold per item at the end of each stage",
+            crate::l10n::locale::Language::Korean => "각 아이템마다 스테이지 종료 시 10골드를 얻습니다",
+        });
+    }
 }
 
 impl GiftBoxUpgrade {
@@ -55,3 +69,4 @@ mod tests {
         assert_eq!(gs.gold, gs.config.player.starting_gold + 20);
     }
 }
+

@@ -31,6 +31,20 @@ impl UpgradeBehavior for TrophyUpgrade {
             None
         }
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Trophy",
+            crate::l10n::locale::Language::Korean => "트로피",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Perfect clears stack to increase global damage",
+            crate::l10n::locale::Language::Korean => "완전 클리어가 쌓일수록 전역 피해가 증가합니다",
+        });
+    }
 }
 
 impl TrophyUpgrade {
@@ -99,3 +113,4 @@ mod tests {
         }));
     }
 }
+

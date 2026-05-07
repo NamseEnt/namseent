@@ -40,6 +40,20 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         self.removed_tower_count = 0;
         (0, UpgradeUpdateFlags::TOWER_STATS)
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Demolition Hammer",
+            crate::l10n::locale::Language::Korean => "파괴 망치",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Removing a tower boosts damage on the next stage",
+            crate::l10n::locale::Language::Korean => "타워를 제거하면 다음 스테이지 피해가 증가합니다",
+        });
+    }
 }
 
 impl DemolitionHammerUpgrade {
@@ -174,3 +188,4 @@ mod tests {
         assert!((upgrade_bonuses[0].bonus_pct - 2.5).abs() < f32::EPSILON);
     }
 }
+

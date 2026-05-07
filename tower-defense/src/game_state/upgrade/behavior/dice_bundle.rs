@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct DiceBundleUpgrade {
@@ -8,6 +9,22 @@ pub struct DiceBundleUpgrade {
 impl UpgradeBehavior for DiceBundleUpgrade {
     fn dice_chance_plus(&self) -> usize {
         self.add
+    }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Dice Bundle",
+            crate::l10n::locale::Language::Korean => "주사위 꾸러미",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Dice ")
+                .with_icon_bold(crate::icon::IconKind::Refresh, format!("+{}", self.add)),
+            crate::l10n::locale::Language::Korean => builder.with_icon_bold(crate::icon::IconKind::Refresh, "+1"),
+        };
     }
 }
 
@@ -30,3 +47,4 @@ fn current_and_max(upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
         super::MAX_DICE_CHANCE_PLUS,
     ))
 }
+

@@ -13,6 +13,20 @@ impl UpgradeBehavior for PiggyBankUpgrade {
         let bonus_gold = if gold >= 500 { gold / 10 } else { 0 };
         (bonus_gold, UpgradeUpdateFlags::RESOURCE)
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Piggy Bank",
+            crate::l10n::locale::Language::Korean => "돼지저금통",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "If you have 500 gold, earn 50 gold after each stage",
+            crate::l10n::locale::Language::Korean => "골드가 500 이상일 때 스테이지 종료 후 50골드를 얻습니다",
+        });
+    }
 }
 
 impl PiggyBankUpgrade {
@@ -45,3 +59,4 @@ mod tests {
         assert_eq!(gs.gold, 550);
     }
 }
+

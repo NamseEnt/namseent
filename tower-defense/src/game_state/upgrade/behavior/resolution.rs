@@ -36,6 +36,20 @@ impl UpgradeBehavior for ResolutionUpgrade {
             None
         }
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Resolution",
+            crate::l10n::locale::Language::Korean => "결심",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Remaining rerolls add damage to the next tower",
+            crate::l10n::locale::Language::Korean => "남은 리롤 수만큼 다음 타워 피해가 증가합니다",
+        });
+    }
 }
 
 impl ResolutionUpgrade {
@@ -138,3 +152,4 @@ mod tests {
         assert_eq!(flags, UpgradeUpdateFlags::NONE);
     }
 }
+

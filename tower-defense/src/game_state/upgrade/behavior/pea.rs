@@ -17,6 +17,20 @@ impl UpgradeBehavior for PeaUpgrade {
         game_state.hp = game_state.max_hp();
         flags
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Pea",
+            crate::l10n::locale::Language::Korean => "완두콩",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Increase max HP by 10 and heal to full",
+            crate::l10n::locale::Language::Korean => "최대 체력이 10 증가하고 즉시 회복합니다",
+        });
+    }
 }
 
 impl PeaUpgrade {
@@ -48,3 +62,4 @@ mod tests {
         assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
     }
 }
+

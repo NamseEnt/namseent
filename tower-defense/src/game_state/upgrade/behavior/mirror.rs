@@ -30,6 +30,20 @@ impl UpgradeBehavior for MirrorUpgrade {
         self.pending = false;
         UpgradeUpdateFlags::TOWER_STATS
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Mirror",
+            crate::l10n::locale::Language::Korean => "거울",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Duplicate the next acquired tower",
+            crate::l10n::locale::Language::Korean => "다음 획득한 타워를 복제합니다",
+        });
+    }
 }
 
 impl MirrorUpgrade {
@@ -118,3 +132,4 @@ mod tests {
         assert!((boosted_damage / base_damage - 2.0).abs() < f32::EPSILON);
     }
 }
+

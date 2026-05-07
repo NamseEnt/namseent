@@ -21,6 +21,33 @@ impl UpgradeBehavior for SlotMachineUpgrade {
         self.apply_on_stage_start(stage, effects);
         UpgradeUpdateFlags::RESOURCE
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Slot Machine",
+            crate::l10n::locale::Language::Korean => "슬롯머신",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                let dice_text =
+                    Box::leak(format!("{} extra dice", self.next_round_dice).into_boxed_str());
+                builder
+                    .static_text("Gain ")
+                    .static_text(dice_text)
+                    .static_text(" next stage")
+            }
+            crate::l10n::locale::Language::Korean => {
+                let dice_text = Box::leak(format!("{}개", self.next_round_dice).into_boxed_str());
+                builder
+                    .static_text("다음 스테이지에 주사위 ")
+                    .static_text(dice_text)
+                    .static_text("를 얻습니다")
+            }
+        };
+    }
 }
 
 impl SlotMachineUpgrade {
@@ -60,3 +87,4 @@ mod tests {
         );
     }
 }
+

@@ -46,6 +46,32 @@ impl UpgradeBehavior for PopcornUpgrade {
         self.apply_on_stage_start(stage, effects);
         UpgradeUpdateFlags::TOWER_STATS
     }
+
+    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Popcorn",
+            crate::l10n::locale::Language::Korean => "팝콘",
+        });
+    }
+
+    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                let duration_text = Box::leak(format!("{} waves", self.duration).into_boxed_str());
+                builder
+                    .static_text("Damage boost lasts for ")
+                    .static_text(duration_text)
+                    .static_text(" and decreases each wave")
+            }
+            crate::l10n::locale::Language::Korean => {
+                let duration_text =
+                    Box::leak(format!("{}웨이브 동안 피해 증가", self.duration).into_boxed_str());
+                builder
+                    .static_text(duration_text)
+                    .static_text("가 매 웨이브마다 감소합니다")
+            }
+        };
+    }
 }
 
 impl PopcornUpgrade {
@@ -110,3 +136,4 @@ mod tests {
         }
     }
 }
+
