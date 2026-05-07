@@ -134,26 +134,18 @@ impl GameState {
         }
     }
 
-    pub fn refresh_tower_upgrade_caches(&mut self) {
-        let upgrade_bonuses = self.upgrade_state.tower_upgrade_damage_bonuses(self);
-        let revision = self.upgrade_state.revision;
-        for tower in self.towers.iter_mut() {
-            tower.refresh_cached_upgrade_damage(revision, &upgrade_bonuses);
-        }
-    }
-
-    pub(crate) fn refresh_tower_upgrade_caches_if_dirty(&mut self, flags: UpgradeUpdateFlags) {
-        if flags.contains(UpgradeUpdateFlags::TOWER_STATS) {
-            self.refresh_tower_upgrade_caches();
-        }
-    }
-
     pub(crate) fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
         if flags.requires_revision() {
             self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
         }
 
-        self.refresh_tower_upgrade_caches_if_dirty(flags);
+        if flags.contains(UpgradeUpdateFlags::TOWER_STATS) {
+            let upgrade_bonuses = self.upgrade_state.tower_upgrade_damage_bonuses(self);
+            let revision = self.upgrade_state.revision;
+            for tower in self.towers.iter_mut() {
+                tower.refresh_cached_upgrade_damage(revision, &upgrade_bonuses);
+            }
+        }
 
         if flags.contains(UpgradeUpdateFlags::RESOURCE) {
             crate::shop::refresh_shop(self);
