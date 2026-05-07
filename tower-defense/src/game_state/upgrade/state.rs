@@ -296,15 +296,6 @@ impl UpgradeState {
             })
     }
 
-    pub fn global_tower_damage_multiplier(&self, game_state: &GameState) -> f32 {
-        1.0 + self
-            .tower_upgrade_damage_bonuses(game_state)
-            .into_iter()
-            .filter(|bonus| matches!(bonus.target, TowerUpgradeTarget::Global))
-            .map(|bonus| bonus.bonus_pct)
-            .sum::<f32>()
-    }
-
     pub fn tower_upgrade_damage_bonuses(
         &self,
         game_state: &GameState,

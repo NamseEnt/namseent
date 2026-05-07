@@ -14,8 +14,13 @@ impl UpgradeBehavior for ResolutionUpgrade {
         _gold: usize,
         _item_count: usize,
     ) -> (usize, UpgradeUpdateFlags) {
+        let before = self.stored_rerolls;
         self.stored_rerolls = game_state.left_dice;
-        (0, UpgradeUpdateFlags::NONE)
+        if self.stored_rerolls != before {
+            (0, UpgradeUpdateFlags::TOWER_STATS)
+        } else {
+            (0, UpgradeUpdateFlags::NONE)
+        }
     }
 
     fn tower_upgrade_damage_bonus(
@@ -50,19 +55,18 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
 
-    use crate::game_state::upgrade::Upgrade;
+    use crate::game_state::upgrade::{Upgrade, UpgradeUpdateFlags};
 
     #[test]
     fn resolution_applies_remaining_reroll_damage_and_consumes_it() {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(
-                0.25,
-            ));
+        game_state.upgrade_state.upgrade(
+            crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(0.25),
+        );
         game_state.left_dice = 2;
         game_state.apply_stage_end(false, 0, 0);
 
@@ -100,5 +104,37 @@ mod tests {
             .next()
             .expect("expected tower placed");
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);
+    }
+
+    #[test]
+    fn resolution_returns_tower_stats_when_stored_rerolls_changed() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let mut upgrade = ResolutionUpgrade {
+            damage_bonus_pct_per_reroll: 0.25,
+            stored_rerolls: 0,
+        };
+        game_state.left_dice = 3;
+
+        let (_, flags) = upgrade.on_stage_end_with_state(&game_state, false, 0, 0);
+
+        assert!(flags.contains(UpgradeUpdateFlags::TOWER_STATS));
+    }
+
+    #[test]
+    fn resolution_returns_none_when_stored_rerolls_unchanged() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let mut upgrade = ResolutionUpgrade {
+            damage_bonus_pct_per_reroll: 0.25,
+            stored_rerolls: 2,
+        };
+        game_state.left_dice = 2;
+
+        let (_, flags) = upgrade.on_stage_end_with_state(&game_state, false, 0, 0);
+
+        assert_eq!(flags, UpgradeUpdateFlags::NONE);
     }
 }

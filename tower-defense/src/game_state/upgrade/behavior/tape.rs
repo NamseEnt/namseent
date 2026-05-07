@@ -13,8 +13,13 @@ impl UpgradeBehavior for TapeUpgrade {
     }
 
     fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        let before = self.acquired_stage;
         self.acquired_stage = game_state.stage;
-        self.on_upgrade_acquired(game_state)
+        let mut flags = self.on_upgrade_acquired(game_state);
+        if self.acquired_stage != before {
+            flags |= UpgradeUpdateFlags::REVISION_REQUIRED;
+        }
+        flags
     }
 }
 
@@ -32,6 +37,8 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::game_state::upgrade::{UpgradeBehavior, UpgradeUpdateFlags};
 
     #[test]
     fn tape_applies_enemy_speed_reduction_every_four_waves() {
@@ -53,5 +60,19 @@ mod tests {
 
         let (effects_stage_8, _) = game_state.upgrade_state.stage_start_effects(8);
         assert_eq!(effects_stage_8.enemy_speed_multiplier, Some(0.75));
+    }
+
+    #[test]
+    fn tape_returns_revision_required_when_acquired_stage_changes() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        game_state.stage = 5;
+        let mut upgrade = TapeUpgrade { acquired_stage: 0 };
+
+        let flags = upgrade.on_upgrade_acquired_mut(&mut game_state);
+
+        assert_eq!(upgrade.acquired_stage, 5);
+        assert!(flags.contains(UpgradeUpdateFlags::REVISION_REQUIRED));
     }
 }

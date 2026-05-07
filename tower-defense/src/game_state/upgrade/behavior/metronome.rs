@@ -6,6 +6,20 @@ pub struct MetronomeUpgrade {
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
+    fn on_stage_start(
+        &mut self,
+        stage: usize,
+        effects: &mut StageStartEffects,
+    ) -> UpgradeUpdateFlags {
+        let before = self.start_stage;
+        self.apply_on_stage_start(stage, effects);
+        if self.start_stage != before {
+            UpgradeUpdateFlags::REVISION_REQUIRED
+        } else {
+            UpgradeUpdateFlags::NONE
+        }
+    }
+
     fn apply_on_stage_start(&mut self, stage: usize, effects: &mut StageStartEffects) {
         let start = self.start_stage.get_or_insert(stage);
         if stage >= *start && (stage - *start).is_multiple_of(2) {
@@ -28,6 +42,8 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::game_state::upgrade::{UpgradeBehavior, UpgradeUpdateFlags};
 
     #[test]
     fn metronome_grants_extra_dice_every_two_waves() {
@@ -42,5 +58,17 @@ mod tests {
 
         let (effects_stage_3, _) = state.stage_start_effects(3);
         assert_eq!(effects_stage_3.extra_dice, 1);
+    }
+
+    #[test]
+    fn metronome_returns_revision_required_only_on_first_stage_start() {
+        let mut upgrade = MetronomeUpgrade { start_stage: None };
+        let mut effects = StageStartEffects::new();
+
+        let first_flags = upgrade.on_stage_start(1, &mut effects);
+        let second_flags = upgrade.on_stage_start(2, &mut effects);
+
+        assert_eq!(first_flags, UpgradeUpdateFlags::REVISION_REQUIRED);
+        assert_eq!(second_flags, UpgradeUpdateFlags::NONE);
     }
 }

@@ -58,6 +58,7 @@ impl UpgradeUpdateFlags {
     pub const CARD_OPTIONS: Self = Self(1 << 1);
     pub const RESOURCE: Self = Self(1 << 2);
     pub const PLAYER_STATS: Self = Self(1 << 3);
+    pub const REVISION_REQUIRED: Self = Self(1 << 4);
 
     pub fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
@@ -65,6 +66,10 @@ impl UpgradeUpdateFlags {
 
     pub fn is_empty(&self) -> bool {
         self.0 == 0
+    }
+
+    pub fn requires_revision(&self) -> bool {
+        self.contains(Self::TOWER_STATS) || self.contains(Self::REVISION_REQUIRED)
     }
 }
 

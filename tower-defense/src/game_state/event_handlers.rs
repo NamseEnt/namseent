@@ -142,12 +142,15 @@ impl GameState {
 
     pub(crate) fn refresh_tower_upgrade_caches_if_dirty(&mut self, flags: UpgradeUpdateFlags) {
         if flags.contains(UpgradeUpdateFlags::TOWER_STATS) {
-            self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
             self.refresh_tower_upgrade_caches();
         }
     }
 
     pub(crate) fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
+        if flags.requires_revision() {
+            self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
+        }
+
         self.refresh_tower_upgrade_caches_if_dirty(flags);
 
         if flags.contains(UpgradeUpdateFlags::RESOURCE) {
@@ -555,5 +558,29 @@ mod tests {
             crate::game_state::upgrade::UpgradeUpdateFlags::PLAYER_STATS,
         );
         assert_eq!(game_state.hp, game_state.max_hp());
+    }
+
+    #[test]
+    fn revision_required_flag_increments_upgrade_revision() {
+        let mut game_state = create_initial_game_state();
+        let before = game_state.upgrade_state.revision;
+
+        game_state.refresh_upgrade_trigger_side_effects(
+            crate::game_state::upgrade::UpgradeUpdateFlags::REVISION_REQUIRED,
+        );
+
+        assert_eq!(game_state.upgrade_state.revision, before + 1);
+    }
+
+    #[test]
+    fn no_flag_does_not_increment_upgrade_revision() {
+        let mut game_state = create_initial_game_state();
+        let before = game_state.upgrade_state.revision;
+
+        game_state.refresh_upgrade_trigger_side_effects(
+            crate::game_state::upgrade::UpgradeUpdateFlags::NONE,
+        );
+
+        assert_eq!(game_state.upgrade_state.revision, before);
     }
 }
