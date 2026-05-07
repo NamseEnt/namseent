@@ -22,17 +22,25 @@ impl UpgradeBehavior for MembershipCardUpgrade {
         UpgradeUpdateFlags::RESOURCE
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Membership Card",
             crate::l10n::locale::Language::Korean => "멤버십 카드",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Get a free shop this stage",
-            crate::l10n::locale::Language::Korean => "이번 스테이지 상점이 무료가 됩니다",
+            crate::l10n::locale::Language::English => "Get a free shop next stage",
+            crate::l10n::locale::Language::Korean => "다음 스테이지 상점이 무료가 됩니다",
         });
     }
 }
@@ -56,10 +64,10 @@ mod tests {
 
     #[test]
     fn membership_card_grants_free_shop_next_stage() {
-        use crate::game_state::upgrade::tests::support;
         use crate::game_state::GameFlow;
         use crate::game_state::effect::Effect;
         use crate::game_state::item::ItemKind;
+        use crate::game_state::upgrade::tests::support;
         use crate::shop::ShopSlot;
 
         let mut game_state = support::create_mock_game_state();
@@ -72,12 +80,9 @@ mod tests {
         let initial_gold = game_state.gold;
 
         let slot_id = if let GameFlow::SelectingTower(flow) = &mut game_state.flow {
-            if !flow
-                .shop
-                .slots
-                .iter()
-                .any(|slot_data| matches!(slot_data.slot, ShopSlot::Item { .. }) && !slot_data.purchased)
-            {
+            if !flow.shop.slots.iter().any(|slot_data| {
+                matches!(slot_data.slot, ShopSlot::Item { .. }) && !slot_data.purchased
+            }) {
                 flow.shop.push(ShopSlot::Item {
                     item: crate::game_state::item::Item {
                         kind: ItemKind::LumpSugar,
@@ -112,4 +117,3 @@ mod tests {
         );
     }
 }
-

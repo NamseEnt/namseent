@@ -6,14 +6,6 @@ pub struct MirrorUpgrade {
 }
 
 impl UpgradeBehavior for MirrorUpgrade {
-    fn on_tower_placement(
-        &mut self,
-        _tower_template: &mut TowerTemplate,
-        _left_dice: usize,
-    ) -> usize {
-        0
-    }
-
     fn on_tower_placed_mut(
         &mut self,
         game_state: &mut GameState,
@@ -31,17 +23,25 @@ impl UpgradeBehavior for MirrorUpgrade {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Mirror",
             crate::l10n::locale::Language::Korean => "거울",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Duplicate the next acquired tower",
-            crate::l10n::locale::Language::Korean => "다음 획득한 타워를 복제합니다",
+            crate::l10n::locale::Language::English => "Duplicate the next tower you place",
+            crate::l10n::locale::Language::Korean => "다음에 배치하는 타워를 복제합니다",
         });
     }
 }
@@ -132,4 +132,3 @@ mod tests {
         assert!((boosted_damage / base_damage - 2.0).abs() < f32::EPSILON);
     }
 }
-

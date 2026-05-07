@@ -32,17 +32,35 @@ impl UpgradeBehavior for TrophyUpgrade {
         }
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Trophy",
             crate::l10n::locale::Language::Korean => "트로피",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Perfect clears stack to increase global damage",
-            crate::l10n::locale::Language::Korean => "완전 클리어가 쌓일수록 전역 피해가 증가합니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        let current_bonus =
+            self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0);
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "Perfect clears increase all towers' damage by {:.0}% each wave (currently +{:.0}%)",
+                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
+                current_bonus * 100.0,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "웨이브를 퍼펙트 클리어할 때마다 모든 타워의 공격력이 {:.0}% 증가합니다 (현재 +{:.0}%)",
+                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
+                current_bonus * 100.0,
+            ),
         });
     }
 }
@@ -102,7 +120,8 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut gs = support::create_mock_game_state();
-        gs.flow = crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.flow =
+            crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.upgrade_state
             .upgrade(crate::game_state::upgrade::TrophyUpgrade::into_upgrade());
 
@@ -113,4 +132,3 @@ mod tests {
         }));
     }
 }
-

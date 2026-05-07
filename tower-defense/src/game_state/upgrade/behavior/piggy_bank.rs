@@ -1,5 +1,8 @@
 use super::*;
 
+const PIGGY_BANK_GOLD_STEP: usize = 500;
+const PIGGY_BANK_GOLD_REWARD_PER_STEP: usize = 50;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PiggyBankUpgrade;
 
@@ -10,21 +13,39 @@ impl UpgradeBehavior for PiggyBankUpgrade {
         gold: usize,
         _item_count: usize,
     ) -> (usize, UpgradeUpdateFlags) {
-        let bonus_gold = if gold >= 500 { gold / 10 } else { 0 };
+        let bonus_gold = if gold >= PIGGY_BANK_GOLD_STEP {
+            gold / PIGGY_BANK_GOLD_STEP * PIGGY_BANK_GOLD_REWARD_PER_STEP
+        } else {
+            0
+        };
         (bonus_gold, UpgradeUpdateFlags::RESOURCE)
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Piggy Bank",
             crate::l10n::locale::Language::Korean => "돼지저금통",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "If you have 500 gold, earn 50 gold after each stage",
-            crate::l10n::locale::Language::Korean => "골드가 500 이상일 때 스테이지 종료 후 50골드를 얻습니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "At stage end, gain {} gold for every {} gold you hold",
+                PIGGY_BANK_GOLD_REWARD_PER_STEP, PIGGY_BANK_GOLD_STEP,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "스테이지 종료 시 보유한 골드 {}골드당 {}골드를 획득합니다",
+                PIGGY_BANK_GOLD_STEP, PIGGY_BANK_GOLD_REWARD_PER_STEP,
+            ),
         });
     }
 }
@@ -49,7 +70,8 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut gs = support::create_mock_game_state();
-        gs.flow = crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.flow =
+            crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.gold = 500;
         gs.upgrade_state
             .upgrade(crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade());
@@ -59,4 +81,3 @@ mod tests {
         assert_eq!(gs.gold, 550);
     }
 }
-

@@ -36,10 +36,10 @@ impl UpgradeBehavior for PairChopsticksUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Even-card tower ")
-                .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
+                .with_icon_bold(crate::icon::IconKind::Damage, format!("+{:.0}%", self.damage_bonus_pct * 100.0)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("짝수 카드 타워 ")
-                .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
+                .with_icon_bold(crate::icon::IconKind::Damage, format!("+{:.0}%", self.damage_bonus_pct * 100.0)),
         };
     }
 }

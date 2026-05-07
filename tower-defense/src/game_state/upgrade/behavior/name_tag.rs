@@ -1,5 +1,7 @@
 use super::*;
 
+const NAME_TAG_DAMAGE_BONUS_PCT: f32 = 2.0;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct NameTagUpgrade {
     pub damage_bonus_pct: f32,
@@ -31,17 +33,31 @@ impl UpgradeBehavior for NameTagUpgrade {
         })
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Name Tag",
             crate::l10n::locale::Language::Korean => "이름표",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "The next placed tower gains bonus damage",
-            crate::l10n::locale::Language::Korean => "다음 배치한 타워가 추가 피해를 얻습니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "The next tower you place gains +{:.0}% damage",
+                self.damage_bonus_pct * 100.0,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "다음 배치하는 타워가 +{:.0}% 피해를 얻습니다",
+                self.damage_bonus_pct * 100.0,
+            ),
         });
     }
 }
@@ -59,7 +75,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    NameTagUpgrade::into_upgrade(2.0)
+    NameTagUpgrade::into_upgrade(NAME_TAG_DAMAGE_BONUS_PCT)
 }
 #[cfg(test)]
 mod tests {
@@ -114,4 +130,3 @@ mod tests {
         support::assert_tower_cached_damage_mul(placed_tower, 3.0);
     }
 }
-

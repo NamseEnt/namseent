@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct SlotMachineUpgrade {
@@ -31,21 +32,20 @@ impl UpgradeBehavior for SlotMachineUpgrade {
 
     fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                let dice_text =
-                    Box::leak(format!("{} extra dice", self.next_round_dice).into_boxed_str());
-                builder
-                    .static_text("Gain ")
-                    .static_text(dice_text)
-                    .static_text(" next stage")
-            }
-            crate::l10n::locale::Language::Korean => {
-                let dice_text = Box::leak(format!("{}개", self.next_round_dice).into_boxed_str());
-                builder
-                    .static_text("다음 스테이지에 주사위 ")
-                    .static_text(dice_text)
-                    .static_text("를 얻습니다")
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Gain ")
+                .with_icon_bold(
+                    crate::icon::IconKind::Refresh,
+                    format!("+{}", self.next_round_dice),
+                )
+                .static_text(" next stage"),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("다음 스테이지에 ")
+                .with_icon_bold(
+                    crate::icon::IconKind::Refresh,
+                    format!("+{}", self.next_round_dice),
+                )
+                .static_text(" 주사위를 얻습니다"),
         };
     }
 }

@@ -1,11 +1,13 @@
 use super::*;
 
+const PEA_HP_PLUS: f32 = 10.0;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PeaUpgrade;
 
 impl UpgradeBehavior for PeaUpgrade {
     fn max_hp_plus(&self) -> f32 {
-        10.0
+        PEA_HP_PLUS
     }
 
     fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
@@ -26,9 +28,9 @@ impl UpgradeBehavior for PeaUpgrade {
     }
 
     fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Increase max HP by 10 and heal to full",
-            crate::l10n::locale::Language::Korean => "최대 체력이 10 증가하고 즉시 회복합니다",
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!("Increase max HP by {:.0} and heal to full", PEA_HP_PLUS),
+            crate::l10n::locale::Language::Korean => format!("최대 체력이 {:.0} 증가하고 즉시 회복합니다", PEA_HP_PLUS),
         });
     }
 }

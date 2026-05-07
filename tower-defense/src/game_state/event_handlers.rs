@@ -114,6 +114,7 @@ impl GameState {
                     sound::SpatialMode::NonSpatial,
                 ),
             ));
+            self.handle_upgrade_trigger(UpgradeTriggerEvent::GoldEarned { amount: gold });
         }
     }
     /// WARNING: `gold` must be less than or equal to self.gold
@@ -129,6 +130,7 @@ impl GameState {
                     sound::SpatialMode::NonSpatial,
                 ),
             ));
+            self.handle_upgrade_trigger(UpgradeTriggerEvent::GoldSpent { amount: gold });
         }
     }
 

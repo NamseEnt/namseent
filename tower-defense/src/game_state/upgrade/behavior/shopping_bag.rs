@@ -26,17 +26,31 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Shopping Bag",
             crate::l10n::locale::Language::Korean => "쇼핑백",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Purchased items increase global damage",
-            crate::l10n::locale::Language::Korean => "구매한 아이템마다 전역 피해가 증가합니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "Each purchased item increases all towers' damage by +{:.0}%",
+                self.damage_bonus_pct * 100.0,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "아이템을 구매할 때마다 모든 타워의 피해가 +{:.0}% 증가합니다",
+                self.damage_bonus_pct * 100.0,
+            ),
         });
     }
 }
@@ -76,8 +90,8 @@ mod tests {
 
     #[test]
     fn shopping_bag_global_tower_damage_increases_with_stacks() {
-        use crate::game_state::upgrade::tests::support;
         use crate::game_state::GameFlow;
+        use crate::game_state::upgrade::tests::support;
         use crate::shop::ShopSlot;
 
         let mut gs = support::create_mock_game_state();
@@ -129,4 +143,3 @@ mod tests {
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);
     }
 }
-

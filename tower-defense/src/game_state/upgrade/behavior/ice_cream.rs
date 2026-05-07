@@ -1,5 +1,4 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct IceCreamUpgrade {
@@ -48,34 +47,34 @@ impl UpgradeBehavior for IceCreamUpgrade {
         }
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Ice Cream",
             crate::l10n::locale::Language::Korean => "아이스크림",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        match locale.language {
-            crate::l10n::locale::Language::English => {
-                let waves_text =
-                    Box::leak(format!("{} waves", self.waves_remaining).into_boxed_str());
-                builder
-                    .static_text("Damage ")
-                    .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct))
-                    .static_text(" for ")
-                    .static_text(waves_text)
-            }
-            crate::l10n::locale::Language::Korean => {
-                let waves_text =
-                    Box::leak(format!("{}웨이브", self.waves_remaining).into_boxed_str());
-                builder
-                    .static_text("다음 ")
-                    .static_text(waves_text)
-                    .static_text(" 동안 피해 ")
-                    .with_icon_bold(crate::icon::IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct))
-            }
-        };
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "Damage +{:.0}% for {} waves",
+                self.damage_bonus_pct * 100.0,
+                self.waves_remaining,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "{}웨이브 동안 피해 +{:.0}%",
+                self.waves_remaining,
+                self.damage_bonus_pct * 100.0,
+            ),
+        });
     }
 }
 
@@ -99,9 +98,9 @@ mod tests {
 
     #[test]
     fn ice_cream_effect_applies_to_placed_tower_and_expires_after_waves() {
-        use crate::game_state::upgrade::tests::support;
         use crate::game_state::flow::DefenseFlow;
         use crate::game_state::tower::TowerTemplate;
+        use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
@@ -153,4 +152,3 @@ mod tests {
         assert!((expired_damage / base_damage - 1.0).abs() < f32::EPSILON);
     }
 }
-

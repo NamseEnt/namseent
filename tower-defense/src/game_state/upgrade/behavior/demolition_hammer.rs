@@ -41,17 +41,37 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         (0, UpgradeUpdateFlags::TOWER_STATS)
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Demolition Hammer",
-            crate::l10n::locale::Language::Korean => "파괴 망치",
+            crate::l10n::locale::Language::Korean => "철거 망치",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Removing a tower boosts damage on the next stage",
-            crate::l10n::locale::Language::Korean => "타워를 제거하면 다음 스테이지 피해가 증가합니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => {
+                let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
+                format!(
+                    "Removing towers increases next stage damage (currently {})",
+                    current
+                )
+            }
+            crate::l10n::locale::Language::Korean => {
+                let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
+                format!(
+                    "타워를 제거하면 다음 스테이지 피해가 증가합니다 (현재 {})",
+                    current
+                )
+            }
         });
     }
 }
@@ -188,4 +208,3 @@ mod tests {
         assert!((upgrade_bonuses[0].bonus_pct - 2.5).abs() < f32::EPSILON);
     }
 }
-

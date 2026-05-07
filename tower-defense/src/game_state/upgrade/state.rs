@@ -83,6 +83,12 @@ pub(crate) enum UpgradeTriggerEvent<'a> {
     },
     TowerRemoved,
     ItemBought,
+    GoldEarned {
+        amount: usize,
+    },
+    GoldSpent {
+        amount: usize,
+    },
     StageEnd {
         perfect_clear: bool,
         gold: usize,
@@ -146,6 +152,12 @@ impl UpgradeState {
                 UpgradeTriggerResult::Flags(self.on_tower_removed())
             }
             UpgradeTriggerEvent::ItemBought => UpgradeTriggerResult::Flags(self.on_item_bought()),
+            UpgradeTriggerEvent::GoldEarned { amount } => {
+                UpgradeTriggerResult::Flags(self.on_gold_earned(game_state, amount))
+            }
+            UpgradeTriggerEvent::GoldSpent { amount } => {
+                UpgradeTriggerResult::Flags(self.on_gold_spent(game_state, amount))
+            }
             UpgradeTriggerEvent::StageEnd {
                 perfect_clear,
                 gold,
@@ -175,6 +187,30 @@ impl UpgradeState {
             .iter_mut()
             .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
                 flags | upgrade.on_item_bought()
+            })
+    }
+
+    pub(crate) fn on_gold_earned(
+        &mut self,
+        game_state: &GameState,
+        amount: usize,
+    ) -> UpgradeUpdateFlags {
+        self.upgrades
+            .iter_mut()
+            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
+                flags | upgrade.on_gold_earned(game_state, amount)
+            })
+    }
+
+    pub(crate) fn on_gold_spent(
+        &mut self,
+        game_state: &GameState,
+        amount: usize,
+    ) -> UpgradeUpdateFlags {
+        self.upgrades
+            .iter_mut()
+            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
+                flags | upgrade.on_gold_spent(game_state, amount)
             })
     }
 

@@ -55,22 +55,18 @@ impl UpgradeBehavior for PopcornUpgrade {
     }
 
     fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        match locale.language {
-            crate::l10n::locale::Language::English => {
-                let duration_text = Box::leak(format!("{} waves", self.duration).into_boxed_str());
-                builder
-                    .static_text("Damage boost lasts for ")
-                    .static_text(duration_text)
-                    .static_text(" and decreases each wave")
-            }
-            crate::l10n::locale::Language::Korean => {
-                let duration_text =
-                    Box::leak(format!("{}웨이브 동안 피해 증가", self.duration).into_boxed_str());
-                builder
-                    .static_text(duration_text)
-                    .static_text("가 매 웨이브마다 감소합니다")
-            }
-        };
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "Damage lasts for {} waves with a max multiplier of {:.0}%, decreasing each wave",
+                self.duration,
+                self.max_multiplier * 100.0,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "{}웨이브 동안 데미지 최대 {:.0}%까지 증가하며, 웨이브가 지날수록 증가치가 감소합니다",
+                self.duration,
+                self.max_multiplier * 100.0,
+            ),
+        });
     }
 }
 

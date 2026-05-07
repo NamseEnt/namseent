@@ -1,5 +1,7 @@
 use super::*;
 
+const GIFT_BOX_GOLD_PER_ITEM: usize = 10;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct GiftBoxUpgrade;
 
@@ -10,21 +12,39 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         _gold: usize,
         item_count: usize,
     ) -> (usize, UpgradeUpdateFlags) {
-        let bonus_gold = item_count * 10;
+        let bonus_gold = item_count * GIFT_BOX_GOLD_PER_ITEM;
         (bonus_gold, UpgradeUpdateFlags::RESOURCE)
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Gift Box",
             crate::l10n::locale::Language::Korean => "선물 상자",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Earn 10 gold per item at the end of each stage",
-            crate::l10n::locale::Language::Korean => "각 아이템마다 스테이지 종료 시 10골드를 얻습니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => {
+                format!(
+                    "Earn {} gold per item at the end of each stage",
+                    GIFT_BOX_GOLD_PER_ITEM
+                )
+            }
+            crate::l10n::locale::Language::Korean => {
+                format!(
+                    "스테이지 종료 시 보유한 아이템당 {}골드를 얻습니다",
+                    GIFT_BOX_GOLD_PER_ITEM
+                )
+            }
         });
     }
 }
@@ -46,11 +66,12 @@ mod tests {
 
     #[test]
     fn gift_box_awards_gold_per_item_on_stage_end() {
-        use crate::game_state::upgrade::tests::support;
         use crate::game_state::item::ItemKind;
+        use crate::game_state::upgrade::tests::support;
 
         let mut gs = support::create_mock_game_state();
-        gs.flow = crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
+        gs.flow =
+            crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.items = vec![
             crate::game_state::item::Item {
                 kind: ItemKind::LumpSugar,
@@ -69,4 +90,3 @@ mod tests {
         assert_eq!(gs.gold, gs.config.player.starting_gold + 20);
     }
 }
-

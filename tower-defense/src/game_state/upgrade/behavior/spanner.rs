@@ -8,17 +8,25 @@ impl UpgradeBehavior for SpannerUpgrade {
         false
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Spanner",
             crate::l10n::locale::Language::Korean => "스패너",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Keep shield across stage transitions",
-            crate::l10n::locale::Language::Korean => "스테이지 전환 시 방패를 유지합니다",
+            crate::l10n::locale::Language::Korean => "스테이지 전환 시 보호막을 유지합니다",
         });
     }
 }
@@ -52,4 +60,3 @@ mod tests {
         assert_eq!(gs.shield, 50.0);
     }
 }
-

@@ -37,17 +37,33 @@ impl UpgradeBehavior for ResolutionUpgrade {
         }
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Resolution",
             crate::l10n::locale::Language::Korean => "결심",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Remaining rerolls add damage to the next tower",
-            crate::l10n::locale::Language::Korean => "남은 리롤 수만큼 다음 타워 피해가 증가합니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => format!(
+                "Remaining rerolls add +{:.0}% damage to the next tower (currently +{:.0}%)",
+                self.damage_bonus_pct_per_reroll * 100.0,
+                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0,
+            ),
+            crate::l10n::locale::Language::Korean => format!(
+                "남은 리롤마다 피해 +{:.0}% (현재 +{:.0}%)",
+                self.damage_bonus_pct_per_reroll * 100.0,
+                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0,
+            ),
         });
     }
 }
@@ -152,4 +168,3 @@ mod tests {
         assert_eq!(flags, UpgradeUpdateFlags::NONE);
     }
 }
-

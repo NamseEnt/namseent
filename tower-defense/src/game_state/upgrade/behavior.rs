@@ -204,6 +204,14 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
+    fn on_gold_earned(&mut self, _game_state: &GameState, _earned: usize) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
+    fn on_gold_spent(&mut self, _game_state: &GameState, _spent: usize) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
     fn clear_shield_on_stage_start(&self) -> bool {
         true
     }
@@ -626,6 +634,14 @@ impl UpgradeBehavior for Upgrade {
 
     fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
         self.behavior_mut().on_item_bought()
+    }
+
+    fn on_gold_earned(&mut self, game_state: &GameState, earned: usize) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_gold_earned(game_state, earned)
+    }
+
+    fn on_gold_spent(&mut self, game_state: &GameState, spent: usize) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_gold_spent(game_state, spent)
     }
 
     fn on_tower_placed_mut(

@@ -3,27 +3,46 @@ use super::*;
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CameraUpgrade;
 
+const CAMERA_GOLD_REWARD: usize = 50;
+
 impl UpgradeBehavior for CameraUpgrade {
     fn on_tower_placed(&mut self, tower: &Tower) -> (TowerPlacementResult, UpgradeUpdateFlags) {
         (
             TowerPlacementResult {
-                gold_earn: if tower.rank().is_face() { 50 } else { 0 },
+                gold_earn: if tower.rank().is_face() {
+                    CAMERA_GOLD_REWARD
+                } else {
+                    0
+                },
             },
             UpgradeUpdateFlags::RESOURCE,
         )
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Camera",
             crate::l10n::locale::Language::Korean => "카메라",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Gain 50 gold when placing a face tower",
-            crate::l10n::locale::Language::Korean => "페이스 타워를 배치하면 50골드를 얻습니다",
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.text(match locale.language {
+            crate::l10n::locale::Language::English => {
+                format!("Gain {} gold when placing a face tower", CAMERA_GOLD_REWARD)
+            }
+            crate::l10n::locale::Language::Korean => format!(
+                "페이스 타워를 배치하면 {}골드를 얻습니다",
+                CAMERA_GOLD_REWARD
+            ),
         });
     }
 }
@@ -42,6 +61,7 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::game_state::upgrade::behavior::camera::CAMERA_GOLD_REWARD;
 
     #[test]
     fn camera_grants_gold_when_face_tower_is_placed() {
@@ -66,7 +86,7 @@ mod tests {
         );
         game_state.place_tower(face_tower);
 
-        assert_eq!(game_state.gold, initial_gold + 50);
+        assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
     }
 
     #[test]
@@ -95,4 +115,3 @@ mod tests {
         assert_eq!(game_state.gold, initial_gold);
     }
 }
-
