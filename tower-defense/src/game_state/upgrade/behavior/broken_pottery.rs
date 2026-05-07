@@ -14,7 +14,7 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
         &self,
         _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
-        Some((TowerUpgradeTarget::Global, self.damage_bonus_pct))
+        Some((TowerUpgradeTarget::RerolledTower, self.damage_bonus_pct))
     }
 
     fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {

@@ -1,5 +1,5 @@
 use crate::{
-    game_state::upgrade::{TowerSelectUpgradeTarget, TowerUpgradeTarget, Upgrade},
+    game_state::upgrade::{TowerUpgradeTarget, Upgrade},
     *,
 };
 
@@ -13,7 +13,6 @@ pub enum UpgradeStatType {
 #[derive(Debug, Clone, State)]
 pub enum UpgradeTargetType {
     Tower(TowerUpgradeTarget),
-    TowerSelect(TowerSelectUpgradeTarget),
 }
 
 /// TowerUpgradeTarget에서 적절한 UpgradeType를 생성하는 함수
@@ -58,29 +57,19 @@ pub fn create_upgrade_kind_for_target(
             }
         }
 
-        // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
-        _ => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
-    }
-}
-
-/// TowerSelectUpgradeTarget에서 적절한 UpgradeType를 생성하는 함수
-pub fn create_tower_select_upgrade_kind(
-    target: &TowerSelectUpgradeTarget,
-    stat_type: UpgradeStatType,
-    is_additive: bool,
-    value: f32,
-) -> Upgrade {
-    match (target, stat_type, is_additive) {
-        (TowerSelectUpgradeTarget::LowCard, UpgradeStatType::Damage, false) => {
+        (TowerUpgradeTarget::LowCardTower, UpgradeStatType::Damage, false) => {
             crate::game_state::upgrade::TricycleUpgrade::into_upgrade(value)
         }
-        (TowerSelectUpgradeTarget::NoReroll, UpgradeStatType::Damage, false) => {
+
+        (TowerUpgradeTarget::NoRerollTower, UpgradeStatType::Damage, false) => {
             crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(value)
         }
-        (TowerSelectUpgradeTarget::Reroll, UpgradeStatType::Damage, false) => {
+
+        (TowerUpgradeTarget::RerolledTower, UpgradeStatType::Damage, false) => {
             crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(value)
         }
-        // 기타 경우는 기본값 반환
+
+        // 기타 경우는 기본값 반환 (이는 실제로는 발생하지 않아야 함)
         _ => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
     }
 }

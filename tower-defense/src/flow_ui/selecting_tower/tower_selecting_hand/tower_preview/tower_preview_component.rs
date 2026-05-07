@@ -8,7 +8,7 @@ use crate::{
     game_state::{
         self, GameState,
         tower::{TowerSkillTemplate, TowerTemplate},
-        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
+        upgrade::{TowerUpgradeState, TowerUpgradeTarget},
     },
     icon::{Icon, IconKind, IconSize},
     theme::typography::{FontSize, memoized_text},
@@ -200,40 +200,49 @@ fn calculate_upgrade_state_and_texts(
 ) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
     let mut combined_damage_multiplier = 1.0;
+    let tower_upgrade_bonuses = game_state
+        .upgrade_state
+        .tower_upgrade_damage_bonuses(game_state);
     let mut texts = UpgradeTexts {
         damage: vec![],
         speed: vec![],
     };
 
-    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
-        combined_damage_multiplier *= upgrade_state.damage_multiplier;
+    let mut apply_upgrade = |combined_damage_multiplier: &mut f32,
+                             upgrade_state: &TowerUpgradeState,
+                             target: &UpgradeTargetType| {
+        *combined_damage_multiplier *= upgrade_state.damage_multiplier;
 
         if upgrade_state.damage_multiplier > 1.0 {
-            let upgrade = match target {
-                UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
-                    tower_target,
-                    UpgradeStatType::Damage,
-                    false,
-                    upgrade_state.damage_multiplier,
-                ),
-                UpgradeTargetType::TowerSelect(tower_select_target) => {
-                    create_tower_select_upgrade_kind(
-                        tower_select_target,
-                        UpgradeStatType::Damage,
-                        false,
-                        upgrade_state.damage_multiplier,
-                    )
-                }
-            };
+            let UpgradeTargetType::Tower(tower_target) = target;
+            let upgrade = create_upgrade_kind_for_target(
+                tower_target,
+                UpgradeStatType::Damage,
+                false,
+                upgrade_state.damage_multiplier,
+            );
             texts.damage.push(upgrade);
         }
     };
 
-    let apply_tower_upgrade_target = |target| {
-        let upgrade_state = game_state
-            .upgrade_state
-            .tower_upgrade_state(target, game_state);
-        apply_upgrade(&upgrade_state, &UpgradeTargetType::Tower(target));
+    let tower_upgrade_state_for_target = |target: TowerUpgradeTarget| {
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .filter(|bonus| bonus.target == target)
+            .map(|bonus| bonus.bonus_pct)
+            .sum();
+        TowerUpgradeState {
+            damage_multiplier: 1.0 + bonus_sum,
+        }
+    };
+
+    let mut apply_tower_upgrade_target = |target| {
+        let upgrade_state = tower_upgrade_state_for_target(target);
+        apply_upgrade(
+            &mut combined_damage_multiplier,
+            &upgrade_state,
+            &UpgradeTargetType::Tower(target),
+        );
     };
 
     let targets = [
@@ -247,36 +256,34 @@ fn calculate_upgrade_state_and_texts(
             face: tower_template.rank.is_face(),
         },
     ];
-    targets.into_iter().for_each(apply_tower_upgrade_target);
-
-    let global_upgrade_state = game_state
-        .upgrade_state
-        .tower_upgrade_state(TowerUpgradeTarget::Global, game_state);
-    state.damage_multiplier *= global_upgrade_state.damage_multiplier;
-
-    let mut apply_tower_select_upgrade_target = |target| {
-        let upgrade_state = game_state.upgrade_state.tower_select_upgrade_state(target);
-        apply_upgrade(&upgrade_state, &UpgradeTargetType::TowerSelect(target));
-    };
+    for target in targets {
+        apply_tower_upgrade_target(target);
+    }
 
     if tower_template.kind.is_low_card_tower() {
-        apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::LowCard);
+        apply_tower_upgrade_target(TowerUpgradeTarget::LowCardTower);
     }
 
-    let rerolled_count = game_state.rerolled_count;
-    if rerolled_count == 0 {
-        apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::NoReroll);
+    if tower_template.rerolled_count == 0 {
+        apply_tower_upgrade_target(TowerUpgradeTarget::NoRerollTower);
     } else {
-        let upgrade_state = game_state
-            .upgrade_state
-            .tower_select_upgrade_state(TowerSelectUpgradeTarget::Reroll);
-        for _ in 0..rerolled_count {
-            apply_upgrade(
-                &upgrade_state,
-                &UpgradeTargetType::TowerSelect(TowerSelectUpgradeTarget::Reroll),
-            );
-        }
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .filter(|bonus| bonus.target == TowerUpgradeTarget::RerolledTower)
+            .map(|bonus| bonus.bonus_pct)
+            .sum();
+        let reroll_multiplier = (1.0 + bonus_sum).powi(tower_template.rerolled_count as i32);
+        apply_upgrade(
+            &mut combined_damage_multiplier,
+            &TowerUpgradeState {
+                damage_multiplier: reroll_multiplier,
+            },
+            &UpgradeTargetType::Tower(TowerUpgradeTarget::RerolledTower),
+        );
     }
+
+    let global_upgrade_state = tower_upgrade_state_for_target(TowerUpgradeTarget::Global);
+    combined_damage_multiplier *= global_upgrade_state.damage_multiplier;
 
     state.damage_multiplier = combined_damage_multiplier;
     (state, texts)

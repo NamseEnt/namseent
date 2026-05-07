@@ -306,68 +306,6 @@ impl UpgradeState {
             .map(|(target, bonus_pct)| TowerUpgradeDamageBonus { target, bonus_pct })
             .collect()
     }
-
-    pub fn tower_upgrade_state(
-        &self,
-        target: TowerUpgradeTarget,
-        game_state: &GameState,
-    ) -> TowerUpgradeState {
-        let bonus_sum: f32 = self
-            .upgrades
-            .iter()
-            .filter_map(|upgrade| upgrade.tower_upgrade_damage_bonus(game_state))
-            .filter(|(bonus_target, _)| *bonus_target == target)
-            .map(|(_, bonus_pct)| bonus_pct)
-            .sum();
-
-        TowerUpgradeState {
-            damage_multiplier: 1.0 + bonus_sum,
-        }
-    }
-
-    pub fn tower_select_upgrade_state(
-        &self,
-        target: TowerSelectUpgradeTarget,
-    ) -> TowerUpgradeState {
-        let mut state = TowerUpgradeState::default();
-        for upgrade in &self.upgrades {
-            let multiplier = match (upgrade, target) {
-                (Upgrade::Tricycle(upgrade), TowerSelectUpgradeTarget::LowCard) => {
-                    Some(1.0 + upgrade.damage_bonus_pct)
-                }
-                (Upgrade::PerfectPottery(upgrade), TowerSelectUpgradeTarget::NoReroll) => {
-                    Some(1.0 + upgrade.damage_bonus_pct)
-                }
-                (Upgrade::BrokenPottery(upgrade), TowerSelectUpgradeTarget::Reroll) => {
-                    Some(1.0 + upgrade.damage_bonus_pct)
-                }
-                _ => None,
-            };
-            if let Some(multiplier) = multiplier {
-                state.apply_upgrade(TowerUpgrade::DamageMultiplier { multiplier });
-            }
-        }
-        state
-    }
-
-    pub fn tower_upgrades(&self, tower: &Tower, game_state: &GameState) -> Vec<TowerUpgradeState> {
-        vec![
-            self.tower_upgrade_state(TowerUpgradeTarget::Suit { suit: tower.suit() }, game_state),
-            self.tower_upgrade_state(
-                TowerUpgradeTarget::EvenOdd {
-                    even: tower.rank().is_even(),
-                },
-                game_state,
-            ),
-            self.tower_upgrade_state(
-                TowerUpgradeTarget::FaceNumber {
-                    face: tower.rank().is_face(),
-                },
-                game_state,
-            ),
-            self.tower_upgrade_state(TowerUpgradeTarget::Global, game_state),
-        ]
-    }
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
@@ -376,6 +314,9 @@ pub enum TowerUpgradeTarget {
     Suit { suit: Suit },
     EvenOdd { even: bool },
     FaceNumber { face: bool },
+    LowCardTower,
+    NoRerollTower,
+    RerolledTower,
     TowerId { tower_id: usize },
 }
 
@@ -389,6 +330,20 @@ impl TowerUpgradeDamageBonus {
     pub fn applies_to_tower(&self, tower: &Tower) -> bool {
         self.target.applies_to_tower(tower)
     }
+
+    pub fn effective_bonus_pct_for_tower(&self, tower: &Tower) -> f32 {
+        if !self.applies_to_tower(tower) {
+            return 0.0;
+        }
+
+        match self.target {
+            TowerUpgradeTarget::RerolledTower => {
+                let rerolled_count = tower.rerolled_count() as f32;
+                self.bonus_pct * rerolled_count
+            }
+            _ => self.bonus_pct,
+        }
+    }
 }
 
 impl TowerUpgradeTarget {
@@ -398,29 +353,17 @@ impl TowerUpgradeTarget {
             TowerUpgradeTarget::Suit { suit } => *suit == tower.suit(),
             TowerUpgradeTarget::EvenOdd { even } => *even == tower.rank().is_even(),
             TowerUpgradeTarget::FaceNumber { face } => *face == tower.rank().is_face(),
+            TowerUpgradeTarget::LowCardTower => tower.kind.is_low_card_tower(),
+            TowerUpgradeTarget::NoRerollTower => tower.rerolled_count() == 0,
+            TowerUpgradeTarget::RerolledTower => tower.rerolled_count() > 0,
             TowerUpgradeTarget::TowerId { tower_id } => *tower_id == tower.id(),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, State)]
-pub enum TowerUpgrade {
-    DamageMultiplier { multiplier: f32 },
-}
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TowerUpgradeState {
     pub damage_multiplier: f32,
-}
-impl TowerUpgradeState {
-    fn apply_upgrade(&mut self, upgrade: TowerUpgrade) {
-        match upgrade {
-            TowerUpgrade::DamageMultiplier { multiplier } => self.damage_multiplier *= multiplier,
-        }
-    }
-
-    pub fn merge(&mut self, other: TowerUpgradeState) {
-        self.damage_multiplier *= other.damage_multiplier;
-    }
 }
 impl Default for TowerUpgradeState {
     fn default() -> Self {
@@ -428,11 +371,4 @@ impl Default for TowerUpgradeState {
             damage_multiplier: 1.0,
         }
     }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
-pub enum TowerSelectUpgradeTarget {
-    LowCard,
-    NoReroll,
-    Reroll,
 }

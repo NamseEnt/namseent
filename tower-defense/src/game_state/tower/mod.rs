@@ -274,6 +274,10 @@ impl Tower {
         self.template.suit
     }
 
+    pub fn rerolled_count(&self) -> usize {
+        self.template.rerolled_count
+    }
+
     pub fn calculate_projectile_damage(
         &self,
         tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
@@ -299,8 +303,7 @@ impl Tower {
 
         let bonus_sum: f32 = tower_upgrade_bonuses
             .iter()
-            .filter(|upgrade_bonus| upgrade_bonus.applies_to_tower(self))
-            .map(|upgrade_bonus| upgrade_bonus.bonus_pct)
+            .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
             .sum();
 
         damage *= 1.0 + bonus_sum;
@@ -328,6 +331,7 @@ impl Deref for Tower {
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
+    pub rerolled_count: usize,
     pub shoot_interval: Duration,
     pub default_attack_range_radius: f32,
     pub default_damage: f32,
@@ -340,6 +344,7 @@ impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
         Self {
             kind,
+            rerolled_count: 0,
             shoot_interval: kind.shoot_interval(),
             default_attack_range_radius: kind.default_attack_range_radius(),
             default_damage: kind.default_damage(),
@@ -363,6 +368,7 @@ impl TowerTemplate {
             .expect("missing tower stats for kind");
         Self {
             kind,
+            rerolled_count: 0,
             shoot_interval: Duration::from_millis(stats.cooldown_ms as i64),
             default_attack_range_radius: stats.range,
             default_damage: stats.damage,

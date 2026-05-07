@@ -10,6 +10,13 @@ impl UpgradeBehavior for TricycleUpgrade {
         true
     }
 
+    fn tower_upgrade_damage_bonus(
+        &self,
+        _game_state: &GameState,
+    ) -> Option<(TowerUpgradeTarget, f32)> {
+        Some((TowerUpgradeTarget::LowCardTower, self.damage_bonus_pct))
+    }
+
     fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::TOWER_STATS
     }
