@@ -8,6 +8,9 @@ use namui::OneZero;
 use rand::{Rng, thread_rng};
 pub use shop_slot::*;
 
+const SHOP_BASE_COST: f32 = 50.0;
+const SHOP_VALUE_COST_MULTIPLIER: f32 = 0.5;
+
 #[derive(Clone, Debug, State)]
 pub struct Shop {
     pub slots: Vec<ShopSlotData>,
@@ -92,18 +95,11 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     match slot_type {
         0..=4 => {
             let mut rng = thread_rng();
-            let item = crate::game_state::item::generation::generate_item_with_rng(
-                &mut rng,
-                &game_state.config,
-            );
+            let item = crate::game_state::item::generation::generate_item_with_rng(&mut rng);
             let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
                 0
             } else {
-                random_item_cost(
-                    &mut rng,
-                    game_state.upgrade_state.shop_item_price_minus(),
-                    &game_state.config,
-                )
+                random_item_cost(&mut rng, game_state.upgrade_state.shop_item_price_minus())
             };
             ShopSlot::Item { item, cost }
         }
@@ -112,7 +108,6 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             let cost = item_cost(
                 OneZero::default(),
                 game_state.upgrade_state.shop_item_price_minus(),
-                &game_state.config,
             );
             ShopSlot::Upgrade { upgrade, cost }
         }
@@ -120,20 +115,16 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     }
 }
 
-fn random_item_cost<R: Rng + ?Sized>(
-    rng: &mut R,
-    discount: usize,
-    config: &crate::config::GameConfig,
-) -> usize {
-    let base_cost = config.shop.base_cost;
-    let additional_cost = rng.gen_range(0.0..=base_cost * config.shop.value_cost_multiplier);
+fn random_item_cost<R: Rng + ?Sized>(rng: &mut R, discount: usize) -> usize {
+    let base_cost = SHOP_BASE_COST;
+    let additional_cost = rng.gen_range(0.0..=base_cost * SHOP_VALUE_COST_MULTIPLIER);
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize
 }
 
-fn item_cost(value: OneZero, discount: usize, config: &crate::config::GameConfig) -> usize {
-    let base_cost = config.shop.base_cost;
-    let additional_cost = value.as_f32() * base_cost * config.shop.value_cost_multiplier;
+fn item_cost(value: OneZero, discount: usize) -> usize {
+    let base_cost = SHOP_BASE_COST;
+    let additional_cost = value.as_f32() * base_cost * SHOP_VALUE_COST_MULTIPLIER;
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize
 }

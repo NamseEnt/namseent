@@ -193,10 +193,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             game_state.upgrade(upgrade);
         }
         Effect::GrantItem { rarity: _ } => {
-            let item = crate::game_state::item::generation::generate_item_with_rng(
-                rng,
-                &game_state.config,
-            );
+            let item = crate::game_state::item::generation::generate_item_with_rng(rng);
             game_state.items.push(item);
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {

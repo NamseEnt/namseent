@@ -1,13 +1,12 @@
 use super::Item;
 use crate::card::Card;
-use crate::config::GameConfig;
 use crate::game_state::effect::Effect;
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
 /// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
-pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig) -> Item {
-    let candidates = generate_item_candidate_table(config);
+pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
+    let candidates = generate_item_candidate_table();
     let candidate = &candidates
         .choose_weighted(rng, |x| x.1)
         .expect("item candidate table should not be empty")
@@ -71,25 +70,18 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig)
 #[allow(dead_code)]
 pub fn generate_item() -> Item {
     let mut rng = thread_rng();
-    generate_item_with_rng(&mut rng, &GameConfig::default_config())
+    generate_item_with_rng(&mut rng)
 }
 
-fn generate_item_candidate_table(config: &GameConfig) -> Vec<(ItemCandidate, f32)> {
-    let candidate_table = vec![
-        (ItemCandidate::Heal, config.items.heal.weight),
-        (ItemCandidate::ExtraReroll, config.items.extra_reroll.weight),
-        (ItemCandidate::Shield, config.items.shield.weight),
-        (
-            ItemCandidate::DamageReduction,
-            config.items.damage_reduction.weight,
-        ),
-        (
-            ItemCandidate::GrantBarricades,
-            config.items.grant_barricades.weight,
-        ),
-        (ItemCandidate::GrantCard, config.items.grant_card.weight),
-    ];
-    candidate_table
+fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
+    vec![
+        (ItemCandidate::Heal, 100.0),
+        (ItemCandidate::ExtraReroll, 10.0),
+        (ItemCandidate::Shield, 10.0),
+        (ItemCandidate::DamageReduction, 10.0),
+        (ItemCandidate::GrantBarricades, 45.0),
+        (ItemCandidate::GrantCard, 35.0),
+    ]
 }
 
 enum ItemCandidate {
@@ -128,7 +120,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(7);
 
         for _ in 0..128 {
-            let item = generate_item_with_rng(&mut rng, &GameConfig::default_config());
+            let item = generate_item_with_rng(&mut rng);
             if let crate::game_state::item::ItemKind::GrantCard { card } = item.kind {
                 assert!(crate::card::SUITS.contains(&card.suit));
                 assert!(crate::card::RANKS.contains(&card.rank));

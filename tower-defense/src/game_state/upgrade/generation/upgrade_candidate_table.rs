@@ -7,20 +7,49 @@ pub struct CandidateRow {
     pub upgrade: Upgrade,
 }
 
+const TOWER_DAMAGE_UPGRADES: &[(UpgradeDiscriminants, f32)] = &[
+    (UpgradeDiscriminants::Staff, 13.0),
+    (UpgradeDiscriminants::LongSword, 13.0),
+    (UpgradeDiscriminants::Mace, 13.0),
+    (UpgradeDiscriminants::ClubSword, 13.0),
+    (UpgradeDiscriminants::Tricycle, 50.0),
+    (UpgradeDiscriminants::SingleChopstick, 20.0),
+    (UpgradeDiscriminants::PairChopsticks, 20.0),
+    (UpgradeDiscriminants::FountainPen, 20.0),
+    (UpgradeDiscriminants::Brush, 20.0),
+    (UpgradeDiscriminants::BrokenPottery, 20.0),
+];
+
+const TREASURE_UPGRADES: &[(UpgradeDiscriminants, f32)] = &[
+    (UpgradeDiscriminants::Trophy, 10.0),
+    (UpgradeDiscriminants::Crock, 10.0),
+    (UpgradeDiscriminants::DemolitionHammer, 10.0),
+    (UpgradeDiscriminants::Metronome, 10.0),
+    (UpgradeDiscriminants::Tape, 10.0),
+    (UpgradeDiscriminants::NameTag, 10.0),
+    (UpgradeDiscriminants::ShoppingBag, 10.0),
+    (UpgradeDiscriminants::Resolution, 10.0),
+    (UpgradeDiscriminants::Mirror, 10.0),
+    (UpgradeDiscriminants::IceCream, 10.0),
+    (UpgradeDiscriminants::Spanner, 10.0),
+    (UpgradeDiscriminants::Pea, 10.0),
+    (UpgradeDiscriminants::SlotMachine, 10.0),
+    (UpgradeDiscriminants::PiggyBank, 10.0),
+    (UpgradeDiscriminants::Camera, 10.0),
+    (UpgradeDiscriminants::GiftBox, 10.0),
+    (UpgradeDiscriminants::Fang, 10.0),
+    (UpgradeDiscriminants::Popcorn, 10.0),
+    (UpgradeDiscriminants::MembershipCard, 10.0),
+    (UpgradeDiscriminants::Eraser, 10.0),
+    (UpgradeDiscriminants::BrokenPottery, 10.0),
+];
+
 pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
-    game_state
-        .config
-        .upgrades
-        .tower_damage_upgrades
+    TOWER_DAMAGE_UPGRADES
         .iter()
-        .map(|upgrade| {
-            let disc: UpgradeDiscriminants = upgrade.name.parse().unwrap_or_else(|_| {
-                panic!("Unknown tower damage upgrade config name: {}", upgrade.name)
-            });
-            CandidateRow {
-                weight: upgrade.entry.weight,
-                upgrade: disc.generate(&game_state.upgrade_state),
-            }
+        .map(|(discriminant, weight)| CandidateRow {
+            weight: *weight,
+            upgrade: discriminant.generate(&game_state.upgrade_state),
         })
         .collect()
 }
@@ -28,7 +57,7 @@ pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> 
 pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
     let upgrade_state = &game_state.upgrade_state;
 
-    let mut rows = Vec::with_capacity(16);
+    let mut rows = Vec::with_capacity(TREASURE_UPGRADES.len());
     let mut push_row = |upgrade: Upgrade, current_and_max: Option<(usize, usize)>, weight: f32| {
         let actual_weight = if let Some((current, max)) = current_and_max {
             if current >= max { 0.0 } else { weight }
@@ -41,15 +70,10 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
         });
     };
 
-    for upgrade in &game_state.config.upgrades.treasure_upgrades {
-        let disc: UpgradeDiscriminants = upgrade
-            .name
-            .parse()
-            .unwrap_or_else(|_| panic!("Unknown treasure upgrade config name: {}", upgrade.name));
-        let weight = upgrade.entry.weight;
-        let next_upgrade = disc.generate(upgrade_state);
-        let current_and_max = disc.current_and_max(upgrade_state);
-        push_row(next_upgrade, current_and_max, weight);
+    for (discriminant, weight) in TREASURE_UPGRADES {
+        let next_upgrade = discriminant.generate(upgrade_state);
+        let current_and_max = discriminant.current_and_max(upgrade_state);
+        push_row(next_upgrade, current_and_max, *weight);
     }
 
     rows
