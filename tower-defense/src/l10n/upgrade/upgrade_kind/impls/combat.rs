@@ -40,10 +40,10 @@ impl UpgradeTypeL10n for StaffUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Diamond tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("다이아몬드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -60,10 +60,10 @@ impl UpgradeTypeL10n for LongSwordUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Spade tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("스페이드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -80,10 +80,10 @@ impl UpgradeTypeL10n for MaceUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Heart tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("하트 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -100,10 +100,10 @@ impl UpgradeTypeL10n for ClubSwordUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Club tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("클럽 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -120,10 +120,10 @@ impl UpgradeTypeL10n for TricycleUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("3-card tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("3장 이하 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -140,10 +140,10 @@ impl UpgradeTypeL10n for PerfectPotteryUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("No-reroll tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("리롤 안한 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -160,10 +160,10 @@ impl UpgradeTypeL10n for SingleChopstickUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Odd-card tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("홀수 카드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -180,10 +180,10 @@ impl UpgradeTypeL10n for PairChopsticksUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Even-card tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("짝수 카드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -200,10 +200,10 @@ impl UpgradeTypeL10n for FountainPenUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Number-card tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("숫자 카드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -220,10 +220,10 @@ impl UpgradeTypeL10n for BrushUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Face-card tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("그림 카드 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }
@@ -240,10 +240,10 @@ impl UpgradeTypeL10n for BrokenPotteryUpgrade {
         match locale.language {
             Language::English => builder
                 .static_text("Rerolled tower ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
             Language::Korean => builder
                 .static_text("리롤한 타워 ")
-                .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier)),
+                .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct)),
         };
     }
 }

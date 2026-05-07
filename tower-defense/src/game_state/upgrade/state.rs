@@ -342,13 +342,13 @@ impl UpgradeState {
         for upgrade in &self.upgrades {
             let multiplier = match (upgrade, target) {
                 (Upgrade::Tricycle(upgrade), TowerSelectUpgradeTarget::LowCard) => {
-                    Some(upgrade.damage_multiplier)
+                    Some(1.0 + upgrade.damage_bonus_pct)
                 }
                 (Upgrade::PerfectPottery(upgrade), TowerSelectUpgradeTarget::NoReroll) => {
-                    Some(upgrade.damage_multiplier)
+                    Some(1.0 + upgrade.damage_bonus_pct)
                 }
                 (Upgrade::BrokenPottery(upgrade), TowerSelectUpgradeTarget::Reroll) => {
-                    Some(upgrade.damage_multiplier)
+                    Some(1.0 + upgrade.damage_bonus_pct)
                 }
                 _ => None,
             };

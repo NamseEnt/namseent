@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FountainPenUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
 }
 
 impl UpgradeBehavior for FountainPenUpgrade {
@@ -16,7 +16,7 @@ impl UpgradeBehavior for FountainPenUpgrade {
     ) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::FaceNumber { face: false },
-            self.damage_multiplier - 1.0,
+            self.damage_bonus_pct,
         ))
     }
 
@@ -26,8 +26,8 @@ impl UpgradeBehavior for FountainPenUpgrade {
 }
 
 impl FountainPenUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::FountainPen(FountainPenUpgrade { damage_multiplier })
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+        Upgrade::FountainPen(FountainPenUpgrade { damage_bonus_pct })
     }
 }
 
@@ -35,5 +35,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    FountainPenUpgrade::into_upgrade(1.4)
+    FountainPenUpgrade::into_upgrade(0.4)
 }

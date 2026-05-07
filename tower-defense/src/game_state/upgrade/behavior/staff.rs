@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct StaffUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
 }
 
 impl UpgradeBehavior for StaffUpgrade {
@@ -18,7 +18,7 @@ impl UpgradeBehavior for StaffUpgrade {
             TowerUpgradeTarget::Suit {
                 suit: crate::card::Suit::Diamonds,
             },
-            self.damage_multiplier - 1.0,
+            self.damage_bonus_pct,
         ))
     }
 
@@ -28,8 +28,8 @@ impl UpgradeBehavior for StaffUpgrade {
 }
 
 impl StaffUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Staff(StaffUpgrade { damage_multiplier })
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+        Upgrade::Staff(StaffUpgrade { damage_bonus_pct })
     }
 }
 
@@ -37,5 +37,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    StaffUpgrade::into_upgrade(1.5)
+    StaffUpgrade::into_upgrade(0.5)
 }

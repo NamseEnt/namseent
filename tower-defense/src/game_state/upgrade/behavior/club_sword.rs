@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ClubSwordUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
 }
 
 impl UpgradeBehavior for ClubSwordUpgrade {
@@ -18,7 +18,7 @@ impl UpgradeBehavior for ClubSwordUpgrade {
             TowerUpgradeTarget::Suit {
                 suit: crate::card::Suit::Clubs,
             },
-            self.damage_multiplier - 1.0,
+            self.damage_bonus_pct,
         ))
     }
 
@@ -28,8 +28,8 @@ impl UpgradeBehavior for ClubSwordUpgrade {
 }
 
 impl ClubSwordUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::ClubSword(ClubSwordUpgrade { damage_multiplier })
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+        Upgrade::ClubSword(ClubSwordUpgrade { damage_bonus_pct })
     }
 }
 
@@ -37,5 +37,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    ClubSwordUpgrade::into_upgrade(1.5)
+    ClubSwordUpgrade::into_upgrade(0.5)
 }

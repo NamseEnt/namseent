@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ResolutionUpgrade {
-    pub damage_multiplier_per_reroll: f32,
+    pub damage_bonus_pct_per_reroll: f32,
     pub stored_rerolls: usize,
 }
 
@@ -25,7 +25,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
         if self.stored_rerolls > 0 {
             Some((
                 TowerUpgradeTarget::Global,
-                self.stored_rerolls as f32 * self.damage_multiplier_per_reroll,
+                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll,
             ))
         } else {
             None
@@ -34,9 +34,9 @@ impl UpgradeBehavior for ResolutionUpgrade {
 }
 
 impl ResolutionUpgrade {
-    pub fn into_upgrade(damage_multiplier_per_reroll: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct_per_reroll: f32) -> Upgrade {
         Upgrade::Resolution(ResolutionUpgrade {
-            damage_multiplier_per_reroll,
+            damage_bonus_pct_per_reroll,
             stored_rerolls: 0,
         })
     }
@@ -75,7 +75,7 @@ mod tests {
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::Resolution(upgrade) = upgrade {
-                (upgrade.damage_multiplier_per_reroll - 0.25).abs() < f32::EPSILON
+                (upgrade.damage_bonus_pct_per_reroll - 0.25).abs() < f32::EPSILON
             } else {
                 false
             }

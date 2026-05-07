@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TricycleUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
 }
 
 impl UpgradeBehavior for TricycleUpgrade {
@@ -16,8 +16,8 @@ impl UpgradeBehavior for TricycleUpgrade {
 }
 
 impl TricycleUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
-        Upgrade::Tricycle(TricycleUpgrade { damage_multiplier })
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+        Upgrade::Tricycle(TricycleUpgrade { damage_bonus_pct })
     }
 }
 
@@ -25,5 +25,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    TricycleUpgrade::into_upgrade(1.75)
+    TricycleUpgrade::into_upgrade(0.75)
 }

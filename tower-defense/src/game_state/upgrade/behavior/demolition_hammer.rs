@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct DemolitionHammerUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
     pub removed_tower_count: usize,
     pub stored_damage_bonus: f32,
 }
@@ -36,16 +36,16 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             return (0, UpgradeUpdateFlags::NONE);
         }
 
-        self.stored_damage_bonus += self.damage_multiplier * self.removed_tower_count as f32;
+        self.stored_damage_bonus += self.damage_bonus_pct * self.removed_tower_count as f32;
         self.removed_tower_count = 0;
         (0, UpgradeUpdateFlags::TOWER_STATS)
     }
 }
 
 impl DemolitionHammerUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
         Upgrade::DemolitionHammer(DemolitionHammerUpgrade {
-            damage_multiplier,
+            damage_bonus_pct,
             removed_tower_count: 0,
             stored_damage_bonus: 0.0,
         })

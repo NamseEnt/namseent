@@ -57,7 +57,7 @@ mod tests {
         game_state
             .upgrade_state
             .upgrade(crate::game_state::upgrade::NameTagUpgrade::into_upgrade(
-                2.0,
+                1.0,
             ));
         game_state
             .upgrade_state
@@ -94,13 +94,15 @@ mod tests {
                 .upgrade_state
                 .upgrades
                 .iter()
-                .filter(|upgrade| { matches!(upgrade, Upgrade::Mirror(upgrade) if upgrade.pending) })
+                .filter(|upgrade| {
+                    matches!(upgrade, Upgrade::Mirror(upgrade) if upgrade.pending)
+                })
                 .count(),
             0
         );
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::NameTag(upgrade) = upgrade {
-                (upgrade.damage_multiplier - 2.0).abs() < f32::EPSILON
+                (upgrade.damage_bonus_pct - 1.0).abs() < f32::EPSILON
             } else {
                 false
             }

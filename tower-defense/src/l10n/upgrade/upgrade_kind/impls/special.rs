@@ -166,7 +166,7 @@ impl UpgradeTypeL10n for IceCreamUpgrade {
                     Box::leak(format!("{} waves", self.waves_remaining).into_boxed_str());
                 builder
                     .static_text("Damage ")
-                    .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier))
+                    .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct))
                     .static_text(" for ")
                     .static_text(waves_text)
             }
@@ -177,7 +177,7 @@ impl UpgradeTypeL10n for IceCreamUpgrade {
                     .static_text("다음 ")
                     .static_text(waves_text)
                     .static_text(" 동안 피해 ")
-                    .with_icon_bold(IconKind::Damage, format!("X{:.1}", self.damage_multiplier))
+                    .with_icon_bold(IconKind::Damage, format!("X{:.1}", 1.0 + self.damage_bonus_pct))
             }
         };
     }

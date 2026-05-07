@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ShoppingBagUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
     pub stacks: usize,
 }
 
@@ -14,7 +14,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         if self.stacks > 0 {
             Some((
                 TowerUpgradeTarget::Global,
-                self.stacks as f32 * (self.damage_multiplier - 1.0),
+                self.stacks as f32 * (self.damage_bonus_pct),
             ))
         } else {
             None
@@ -28,9 +28,9 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
 }
 
 impl ShoppingBagUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
         Upgrade::ShoppingBag(ShoppingBagUpgrade {
-            damage_multiplier,
+            damage_bonus_pct,
             stacks: 0,
         })
     }
@@ -40,7 +40,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    ShoppingBagUpgrade::into_upgrade(1.5)
+    ShoppingBagUpgrade::into_upgrade(0.5)
 }
 #[cfg(test)]
 mod tests {
@@ -50,7 +50,7 @@ mod tests {
     #[test]
     fn shopping_bag_upgrade_activates_without_stacks() {
         let mut state = UpgradeState::default();
-        state.upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(1.5));
+        state.upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5));
 
         assert!(
             state
@@ -68,7 +68,7 @@ mod tests {
 
         let mut gs = support::create_mock_game_state();
         gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(1.5));
+            .upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5));
 
         let slot_id = if let GameFlow::SelectingTower(flow) = &mut gs.flow {
             match flow

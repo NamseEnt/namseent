@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct IceCreamUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
     pub waves_remaining: usize,
 }
 
@@ -13,7 +13,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         effects: &mut StageStartEffects,
     ) -> UpgradeUpdateFlags {
         if self.waves_remaining > 0 {
-            effects.damage_multiplier += self.damage_multiplier - 1.0;
+            effects.damage_multiplier += self.damage_bonus_pct;
         }
         UpgradeUpdateFlags::TOWER_STATS
     }
@@ -27,7 +27,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
         if self.waves_remaining > 0 {
-            Some((TowerUpgradeTarget::Global, self.damage_multiplier - 1.0))
+            Some((TowerUpgradeTarget::Global, self.damage_bonus_pct))
         } else {
             None
         }
@@ -49,9 +49,9 @@ impl UpgradeBehavior for IceCreamUpgrade {
 }
 
 impl IceCreamUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32, waves_remaining: usize) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: f32, waves_remaining: usize) -> Upgrade {
         Upgrade::IceCream(IceCreamUpgrade {
-            damage_multiplier,
+            damage_bonus_pct,
             waves_remaining,
         })
     }
@@ -61,7 +61,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    IceCreamUpgrade::into_upgrade(3.0, 5)
+    IceCreamUpgrade::into_upgrade(2.0, 5)
 }
 #[cfg(test)]
 mod tests {
@@ -74,7 +74,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
-        let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(3.0, 2);
+        let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.0, 2);
         game_state.upgrade(upgrade);
 
         let tower_template = TowerTemplate::new(

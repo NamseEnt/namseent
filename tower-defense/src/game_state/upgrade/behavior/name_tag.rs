@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct NameTagUpgrade {
-    pub damage_multiplier: f32,
+    pub damage_bonus_pct: f32,
     pub target_tower_id: Option<usize>,
 }
 
@@ -26,16 +26,16 @@ impl UpgradeBehavior for NameTagUpgrade {
         self.target_tower_id.map(|tower_id| {
             (
                 TowerUpgradeTarget::TowerId { tower_id },
-                self.damage_multiplier - 1.0,
+                self.damage_bonus_pct,
             )
         })
     }
 }
 
 impl NameTagUpgrade {
-    pub fn into_upgrade(damage_multiplier: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
         Upgrade::NameTag(NameTagUpgrade {
-            damage_multiplier,
+            damage_bonus_pct,
             target_tower_id: None,
         })
     }
@@ -45,7 +45,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    NameTagUpgrade::into_upgrade(3.0)
+    NameTagUpgrade::into_upgrade(2.0)
 }
 #[cfg(test)]
 mod tests {
@@ -60,7 +60,7 @@ mod tests {
         game_state
             .upgrade_state
             .upgrade(crate::game_state::upgrade::NameTagUpgrade::into_upgrade(
-                3.0,
+                2.0,
             ));
         game_state.left_dice = 0;
 
@@ -73,7 +73,7 @@ mod tests {
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::NameTag(upgrade) = upgrade {
-                (upgrade.damage_multiplier - 3.0).abs() < f32::EPSILON
+                (upgrade.damage_bonus_pct - 2.0).abs() < f32::EPSILON
             } else {
                 false
             }
