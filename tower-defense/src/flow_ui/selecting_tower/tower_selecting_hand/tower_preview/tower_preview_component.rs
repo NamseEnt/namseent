@@ -1,14 +1,13 @@
 use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
-    upgrade_helpers::*,
 };
 use crate::format_compact_number;
 use crate::{
     game_state::{
         self, GameState,
         tower::{TowerSkillTemplate, TowerTemplate},
-        upgrade::{TowerUpgradeState, TowerUpgradeTarget},
+        upgrade::{TowerUpgradeState, TowerUpgradeTarget, Upgrade, UpgradeBehavior},
     },
     icon::{Icon, IconKind, IconSize},
     theme::typography::{FontSize, memoized_text},
@@ -39,8 +38,18 @@ impl Component for TowerPreviewContent<'_> {
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
             ctx.state::<Option<MouseHoveringSkill>>(|| None);
         let game_state = game_state::use_game_state(ctx);
-        let upgrade_state_and_texts =
-            ctx.memo(|| calculate_upgrade_state_and_texts(game_state.as_ref(), tower_template));
+        let tracked_upgrade_revision = ctx.track_eq(&game_state.upgrade_state.revision);
+        let tracked_tower_template = ctx.track_eq(&(
+            tower_template.kind,
+            tower_template.suit,
+            tower_template.rank,
+            tower_template.rerolled_count,
+        ));
+        let upgrade_state_and_texts = ctx.memo(|| {
+            tracked_upgrade_revision.record_as_used();
+            tracked_tower_template.record_as_used();
+            calculate_upgrade_state_and_texts(game_state.as_ref(), tower_template)
+        });
         let (upgrade_state, texts) = upgrade_state_and_texts.as_ref();
 
         let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
@@ -190,8 +199,7 @@ impl Component for TowerPreviewContent<'_> {
 
 #[derive(State)]
 struct UpgradeTexts {
-    damage: Vec<crate::game_state::upgrade::Upgrade>,
-    speed: Vec<crate::game_state::upgrade::Upgrade>,
+    damage: Vec<Upgrade>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -200,91 +208,46 @@ fn calculate_upgrade_state_and_texts(
 ) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
     let mut combined_damage_multiplier = 1.0;
-    let tower_upgrade_bonuses = game_state
-        .upgrade_state
-        .tower_upgrade_damage_bonuses(game_state);
-    let mut texts = UpgradeTexts {
-        damage: vec![],
-        speed: vec![],
-    };
+    let mut texts = UpgradeTexts { damage: vec![] };
 
-    let mut apply_upgrade = |combined_damage_multiplier: &mut f32,
-                             upgrade_state: &TowerUpgradeState,
-                             target: &UpgradeTargetType| {
-        *combined_damage_multiplier *= upgrade_state.damage_multiplier;
+    for upgrade in &game_state.upgrade_state.upgrades {
+        let Some((target, bonus_pct)) = upgrade.tower_upgrade_damage_bonus(game_state) else {
+            continue;
+        };
 
-        if upgrade_state.damage_multiplier > 1.0 {
-            let UpgradeTargetType::Tower(tower_target) = target;
-            let upgrade = create_upgrade_kind_for_target(
-                tower_target,
-                UpgradeStatType::Damage,
-                false,
-                upgrade_state.damage_multiplier,
-            );
-            texts.damage.push(upgrade);
+        if !target_applies_to_tower_template(&target, tower_template) {
+            continue;
         }
-    };
 
-    let tower_upgrade_state_for_target = |target: TowerUpgradeTarget| {
-        let bonus_sum: f32 = tower_upgrade_bonuses
-            .iter()
-            .filter(|bonus| bonus.target == target)
-            .map(|bonus| bonus.bonus_pct)
-            .sum();
-        TowerUpgradeState {
-            damage_multiplier: 1.0 + bonus_sum,
+        let damage_multiplier = if target == TowerUpgradeTarget::RerolledTower {
+            (1.0 + bonus_pct).powi(tower_template.rerolled_count as i32)
+        } else {
+            1.0 + bonus_pct
+        };
+
+        combined_damage_multiplier *= damage_multiplier;
+
+        if damage_multiplier > 1.0 {
+            texts.damage.push(*upgrade);
         }
-    };
-
-    let mut apply_tower_upgrade_target = |target| {
-        let upgrade_state = tower_upgrade_state_for_target(target);
-        apply_upgrade(
-            &mut combined_damage_multiplier,
-            &upgrade_state,
-            &UpgradeTargetType::Tower(target),
-        );
-    };
-
-    let targets = [
-        TowerUpgradeTarget::Suit {
-            suit: tower_template.suit,
-        },
-        TowerUpgradeTarget::EvenOdd {
-            even: tower_template.rank.is_even(),
-        },
-        TowerUpgradeTarget::FaceNumber {
-            face: tower_template.rank.is_face(),
-        },
-    ];
-    for target in targets {
-        apply_tower_upgrade_target(target);
     }
-
-    if tower_template.kind.is_low_card_tower() {
-        apply_tower_upgrade_target(TowerUpgradeTarget::LowCardTower);
-    }
-
-    if tower_template.rerolled_count == 0 {
-        apply_tower_upgrade_target(TowerUpgradeTarget::NoRerollTower);
-    } else {
-        let bonus_sum: f32 = tower_upgrade_bonuses
-            .iter()
-            .filter(|bonus| bonus.target == TowerUpgradeTarget::RerolledTower)
-            .map(|bonus| bonus.bonus_pct)
-            .sum();
-        let reroll_multiplier = (1.0 + bonus_sum).powi(tower_template.rerolled_count as i32);
-        apply_upgrade(
-            &mut combined_damage_multiplier,
-            &TowerUpgradeState {
-                damage_multiplier: reroll_multiplier,
-            },
-            &UpgradeTargetType::Tower(TowerUpgradeTarget::RerolledTower),
-        );
-    }
-
-    let global_upgrade_state = tower_upgrade_state_for_target(TowerUpgradeTarget::Global);
-    combined_damage_multiplier *= global_upgrade_state.damage_multiplier;
 
     state.damage_multiplier = combined_damage_multiplier;
     (state, texts)
+}
+
+fn target_applies_to_tower_template(
+    target: &TowerUpgradeTarget,
+    tower_template: &TowerTemplate,
+) -> bool {
+    match target {
+        TowerUpgradeTarget::Global => true,
+        TowerUpgradeTarget::Suit { suit } => *suit == tower_template.suit,
+        TowerUpgradeTarget::EvenOdd { even } => *even == tower_template.rank.is_even(),
+        TowerUpgradeTarget::FaceNumber { face } => *face == tower_template.rank.is_face(),
+        TowerUpgradeTarget::LowCardTower => tower_template.kind.is_low_card_tower(),
+        TowerUpgradeTarget::NoRerollTower => tower_template.rerolled_count == 0,
+        TowerUpgradeTarget::RerolledTower => tower_template.rerolled_count > 0,
+        TowerUpgradeTarget::TowerId { .. } => false,
+    }
 }
