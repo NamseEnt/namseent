@@ -61,7 +61,6 @@ pub struct ShootLaserParams {
 
 pub struct AttackTypeParams {
     pub target_xy: (f32, f32),
-    pub damage: f32,
     pub now: Instant,
 }
 
@@ -115,19 +114,17 @@ impl Tower {
         )
     }
 
-    pub fn shoot_laser(&mut self, params: ShootLaserParams) -> (attack::laser::LaserBeam, f32) {
+    pub fn shoot_laser(&mut self, params: ShootLaserParams) -> attack::laser::LaserBeam {
         self.cooldown = self.shoot_interval;
         self.animation.transition(AnimationKind::Attack, params.now);
 
         let head_xy = self.head_xy_tile();
-        let laser = attack::laser::LaserBeam::new(
+        attack::laser::LaserBeam::new(
             (head_xy.x, head_xy.y),
             params.target_xy,
             params.now,
             params.damage,
-        );
-
-        (laser, params.damage)
+        )
     }
 
     pub fn refresh_cached_upgrade_damage(
@@ -147,83 +144,59 @@ impl Tower {
         self.cached_upgrade.damage
     }
 
-    pub fn attack_type(&mut self, params: AttackTypeParams) -> (AttackType, f32) {
+    pub fn attack_type(&mut self, params: AttackTypeParams) -> AttackType {
         match self.kind {
-            TowerKind::Barricade => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::High => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::OnePair => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::TwoPair => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::ThreeOfAKind => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::Burning,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::Straight => (AttackType::Laser, 0.0),
+            TowerKind::Barricade => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::High => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::OnePair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::TwoPair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::ThreeOfAKind => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::Burning,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::Straight => AttackType::Laser,
             TowerKind::RoyalFlush => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, params.now);
 
-                (
-                    AttackType::RoyalStraightFlush {
-                        target_xy: params.target_xy,
-                    },
-                    params.damage,
-                )
+                AttackType::RoyalStraightFlush {
+                    target_xy: params.target_xy,
+                }
             }
-            TowerKind::StraightFlush => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::LightningSparkle,
-                    projectile_group: ProjectileGroup::Heart,
-                    hit_effect: attack::ProjectileHitEffect::HeartBurst,
-                },
-                0.0,
-            ),
-            TowerKind::Flush => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::Sparkle,
-                    projectile_group: ProjectileGroup::Girl,
-                    hit_effect: attack::ProjectileHitEffect::SparkleBurst,
-                },
-                0.0,
-            ),
+            TowerKind::StraightFlush => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::LightningSparkle,
+                projectile_group: ProjectileGroup::Heart,
+                hit_effect: attack::ProjectileHitEffect::HeartBurst,
+            },
+            TowerKind::Flush => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::Sparkle,
+                projectile_group: ProjectileGroup::Girl,
+                hit_effect: attack::ProjectileHitEffect::SparkleBurst,
+            },
             TowerKind::FullHouse => {
                 self.cooldown = self.shoot_interval;
                 self.animation.transition(AnimationKind::Attack, params.now);
@@ -231,23 +204,14 @@ impl Tower {
                 let head_xy = self.head_xy_tile();
                 let tower_xy = (head_xy.x, head_xy.y);
 
-                (
-                    AttackType::FullHouseRain {
-                        tower_xy,
-                        target_xy: params.target_xy,
-                    },
-                    params.damage,
-                )
+                AttackType::FullHouseRain { tower_xy }
             }
-            TowerKind::FourOfAKind => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::WindCurve,
-                    projectile_group: ProjectileGroup::Cards,
-                    hit_effect: attack::ProjectileHitEffect::CardBurst,
-                },
-                0.0,
-            ),
+            TowerKind::FourOfAKind => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::WindCurve,
+                projectile_group: ProjectileGroup::Cards,
+                hit_effect: attack::ProjectileHitEffect::CardBurst,
+            },
         }
     }
 

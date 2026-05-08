@@ -41,7 +41,6 @@ pub enum AttackType {
     Laser,
     FullHouseRain {
         tower_xy: (f32, f32),
-        target_xy: (f32, f32),
     },
     RoyalStraightFlush {
         target_xy: (f32, f32),

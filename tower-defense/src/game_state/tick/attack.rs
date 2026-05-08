@@ -16,7 +16,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
     let mut projectiles = Vec::new();
     let mut new_delayed_hits = Vec::new();
-    let mut monster_kills = Vec::new();
+    let mut monster_hits = Vec::new();
 
     let mut tower_damage_updates = Vec::new();
 
@@ -52,9 +52,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let target_xy = monsters[target_idx].center_xy_tile();
             let damage = tower.cached_upgrade_damage();
-            let (attack_type, instant_damage) = tower.attack_type(AttackTypeParams {
+            let attack_type = tower.attack_type(AttackTypeParams {
                 target_xy: (target_xy.x, target_xy.y),
-                damage,
                 now,
             });
 
@@ -72,7 +71,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         trail,
                         projectile_group,
                         hit_effect,
-                        damage: instant_damage,
+                        damage,
                         now,
                         source_tower_id: Some(tower.id()),
                         source_tower_info: Some((tower.kind, tower.rank(), tower.suit())),
@@ -80,9 +79,9 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     projectiles.push(projectile);
                 }
                 AttackType::Laser => {
-                    let (laser, damage) = tower.shoot_laser(ShootLaserParams {
+                    let laser = tower.shoot_laser(ShootLaserParams {
                         target_xy: (target_xy.x, target_xy.y),
-                        damage: instant_damage,
+                        damage,
                         now,
                     });
 
@@ -135,14 +134,11 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             ));
                     }
 
-                    monster_kills.push((target_idx, damage, target_xy));
+                    monster_hits.push((target_idx, damage, target_xy));
                 }
-                AttackType::FullHouseRain {
-                    tower_xy,
-                    target_xy: _,
-                } => {
+                AttackType::FullHouseRain { tower_xy } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
-                    let damage_per_projectile = instant_damage / 4.0;
+                    let damage_per_projectile = damage / 4.0;
 
                     for _ in 0..4 {
                         let projectile = Projectile::new_homing(
@@ -172,7 +168,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     );
                     new_delayed_hits.push(crate::game_state::attack::DelayedHit {
                         target_monster_id,
-                        damage: instant_damage,
+                        damage,
                         execute_at: now + royal_straight_flush_hit_delay(),
                     });
                 }
@@ -184,7 +180,8 @@ pub fn shoot_attacks(game_state: &mut GameState) {
         game_state.record_tower_damage(tower_id, tower_kind, rank, suit, damage);
     }
 
-    apply_monster_kills(game_state, monster_kills);
+    game_state.delayed_hits.extend(new_delayed_hits);
+    apply_monster_damage_and_remove_dead(game_state, monster_hits);
 
     game_state.projectiles.extend(projectiles);
 }
@@ -210,7 +207,7 @@ fn process_delayed_hits(game_state: &mut GameState) {
         }
     });
 
-    let mut monster_kills = Vec::new();
+    let mut monster_hits = Vec::new();
     for hit in due_hits {
         let Some(&target_idx) = monster_index_by_id.get(&hit.target_monster_id) else {
             continue;
@@ -255,14 +252,17 @@ fn process_delayed_hits(game_state: &mut GameState) {
                 ));
         }
 
-        monster_kills.push((target_idx, hit.damage, target_xy));
+        monster_hits.push((target_idx, hit.damage, target_xy));
     }
 
-    apply_monster_kills(game_state, monster_kills);
+    apply_monster_damage_and_remove_dead(game_state, monster_hits);
 }
 
-fn apply_monster_kills(game_state: &mut GameState, monster_kills: Vec<(usize, f32, MapCoordF32)>) {
-    let mut indices_to_remove: Vec<_> = monster_kills
+fn apply_monster_damage_and_remove_dead(
+    game_state: &mut GameState,
+    monster_hits: Vec<(usize, f32, MapCoordF32)>,
+) {
+    let mut indices_to_remove: Vec<_> = monster_hits
         .into_iter()
         .filter_map(|(target_idx, damage, target_xy)| {
             if target_idx >= game_state.monsters.len() {
