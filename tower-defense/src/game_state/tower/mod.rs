@@ -49,14 +49,7 @@ pub struct ShootProjectileParams {
     pub hit_effect: attack::ProjectileHitEffect,
     pub damage: f32,
     pub now: Instant,
-    pub source_tower_id: Option<usize>,
-    pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
-}
-
-pub struct ShootLaserParams {
-    pub target_xy: (f32, f32),
-    pub damage: f32,
-    pub now: Instant,
+    pub source_tower: Option<attack::TowerInfo>,
 }
 
 pub struct AttackTypeParams {
@@ -95,36 +88,41 @@ impl Tower {
         self.status_effects = self.template.default_status_effects.clone();
     }
 
-    pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> Projectile {
-        self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, params.now);
+    pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
+        self.mark_fired(params.now);
 
-        Projectile::new(
-            self.head_xy_tile(),
-            params.projectile_group.random_kind(),
-            params.speed,
-            params.target_indicator,
-            ProjectileParams {
-                damage: params.damage,
-                trail: params.trail,
-                hit_effect: params.hit_effect,
-                source_tower_id: params.source_tower_id,
-                source_tower_info: params.source_tower_info,
-            },
+        attack::InFlightAttack::new_spatial(
+            attack::SpatialAttack::new_direct(
+                self.head_xy_tile(),
+                params.target_indicator,
+                params.projectile_group.random_kind(),
+                params.speed,
+                params.trail,
+                params.hit_effect,
+            ),
+            params.damage,
+            params.source_tower,
         )
     }
 
-    pub fn shoot_laser(&mut self, params: ShootLaserParams) -> attack::laser::LaserBeam {
-        self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, params.now);
+    pub fn shoot_laser(
+        &mut self,
+        target_xy: (f32, f32),
+        target_monster_id: usize,
+        damage: f32,
+        now: Instant,
+        source_tower: Option<attack::TowerInfo>,
+    ) -> attack::InFlightAttack {
+        self.mark_fired(now);
 
         let head_xy = self.head_xy_tile();
-        attack::laser::LaserBeam::new(
+        let beam = attack::laser::LaserBeam::new(
             (head_xy.x, head_xy.y),
-            params.target_xy,
-            params.now,
-            params.damage,
-        )
+            target_xy,
+            now,
+            target_monster_id,
+        );
+        attack::InFlightAttack::new_laser(beam, damage, source_tower)
     }
 
     pub fn refresh_cached_upgrade_damage(
@@ -144,7 +142,7 @@ impl Tower {
         self.cached_upgrade.damage
     }
 
-    pub fn attack_type(&mut self, params: AttackTypeParams) -> AttackType {
+    pub fn attack_type(&self, params: AttackTypeParams) -> AttackType {
         match self.kind {
             TowerKind::Barricade => AttackType::Projectile {
                 speed: PROJECTILE_SPEED,
@@ -177,14 +175,9 @@ impl Tower {
                 hit_effect: attack::ProjectileHitEffect::TrashBounce,
             },
             TowerKind::Straight => AttackType::Laser,
-            TowerKind::RoyalFlush => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, params.now);
-
-                AttackType::RoyalStraightFlush {
-                    target_xy: params.target_xy,
-                }
-            }
+            TowerKind::RoyalFlush => AttackType::RoyalStraightFlush {
+                target_xy: params.target_xy,
+            },
             TowerKind::StraightFlush => AttackType::Projectile {
                 speed: FAST_PROJECTILE_SPEED,
                 trail: ProjectileTrail::LightningSparkle,
@@ -198,13 +191,10 @@ impl Tower {
                 hit_effect: attack::ProjectileHitEffect::SparkleBurst,
             },
             TowerKind::FullHouse => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, params.now);
-
                 let head_xy = self.head_xy_tile();
-                let tower_xy = (head_xy.x, head_xy.y);
-
-                AttackType::FullHouseRain { tower_xy }
+                AttackType::FullHouseRain {
+                    tower_xy: (head_xy.x, head_xy.y),
+                }
             }
             TowerKind::FourOfAKind => AttackType::Projectile {
                 speed: FAST_PROJECTILE_SPEED,
@@ -213,6 +203,13 @@ impl Tower {
                 hit_effect: attack::ProjectileHitEffect::CardBurst,
             },
         }
+    }
+
+    /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
+    /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
+    pub fn mark_fired(&mut self, now: Instant) {
+        self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack, now);
     }
 
     fn center_xy(&self) -> MapCoord {

@@ -111,8 +111,7 @@ pub struct GameState {
     pub stage: usize,
     pub left_dice: usize,
     pub monster_spawn_state: MonsterSpawnState,
-    pub projectiles: Vec<Projectile>,
-    pub delayed_hits: Vec<attack::DelayedHit>,
+    pub in_flight_attacks: Vec<attack::InFlightAttack>,
     pub items: Vec<item::Item>,
     pub gold: usize,
     pub cursor_preview: CursorPreview,
@@ -204,14 +203,7 @@ impl GameState {
         self.game_now
     }
 
-    pub fn record_tower_damage(
-        &mut self,
-        tower_id: usize,
-        tower_kind: TowerKind,
-        rank: Rank,
-        suit: Suit,
-        damage: f32,
-    ) {
+    pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: f32) {
         if damage <= 0.0 {
             return;
         }
@@ -220,15 +212,15 @@ impl GameState {
             .metrics
             .tower_damage_stats
             .iter_mut()
-            .find(|entry| entry.tower_id == tower_id)
+            .find(|entry| entry.tower_id == tower.id)
         {
             entry.total_damage += damage;
         } else {
             self.metrics.tower_damage_stats.push(TowerDamageStats {
-                tower_id,
-                tower_kind,
-                rank,
-                suit,
+                tower_id: tower.id,
+                tower_kind: tower.kind,
+                rank: tower.rank,
+                suit: tower.suit,
                 total_damage: damage,
             });
         }
@@ -638,8 +630,7 @@ fn create_initial_game_state() -> GameState {
         stage: 1,
         left_dice: config.player.base_dice_chance,
         monster_spawn_state: MonsterSpawnState::idle(),
-        projectiles: Default::default(),
-        delayed_hits: Default::default(),
+        in_flight_attacks: Default::default(),
         items: vec![
             Item {
                 kind: ItemKind::LumpSugar,
@@ -740,8 +731,7 @@ impl GameState {
             stage: self.stage,
             left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
-            projectiles: self.projectiles.clone(),
-            delayed_hits: self.delayed_hits.clone(),
+            in_flight_attacks: self.in_flight_attacks.clone(),
             items: self.items.clone(),
             gold: self.gold,
             cursor_preview: self.cursor_preview.clone(),

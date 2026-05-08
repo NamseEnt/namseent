@@ -258,7 +258,7 @@ impl GameState {
 
         // 남은 모든 적 제거 (패배 후에도 적들이 건물에 들어오는 것을 방지)
         self.monsters.clear();
-        self.projectiles.clear();
+        self.in_flight_attacks.clear();
         self.record_game_over();
         self.apply_flow_action(GameFlowAction::Result { clear_rate });
     }
