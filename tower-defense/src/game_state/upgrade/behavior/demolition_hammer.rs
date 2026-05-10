@@ -8,12 +8,7 @@ pub struct DemolitionHammerUpgrade {
 }
 
 impl UpgradeBehavior for DemolitionHammerUpgrade {
-    fn apply_on_stage_start(&mut self, _stage: usize, _effects: &mut StageStartEffects) {}
-
-    fn tower_upgrade_damage_bonus(
-        &self,
-        _game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stored_damage_bonus > 0.0 {
             Some((TowerUpgradeTarget::Global, self.stored_damage_bonus))
         } else {
@@ -21,24 +16,25 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         }
     }
 
-    fn on_tower_removed(&mut self) -> UpgradeUpdateFlags {
+    fn on_tower_removed(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.removed_tower_count += 1;
         UpgradeUpdateFlags::TOWER_STATS
     }
 
     fn on_stage_end(
         &mut self,
+        _game_state: &mut GameState,
         _perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         if self.removed_tower_count == 0 {
-            return (0, UpgradeUpdateFlags::NONE);
+            return UpgradeUpdateFlags::NONE;
         }
 
         self.stored_damage_bonus += self.damage_bonus_pct * self.removed_tower_count as f32;
         self.removed_tower_count = 0;
-        (0, UpgradeUpdateFlags::TOWER_STATS)
+        UpgradeUpdateFlags::TOWER_STATS
     }
 
     fn l10n_name<'a>(
@@ -101,7 +97,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         let upgrade = crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(2.0);
-        game_state.upgrade(upgrade);
+        game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -119,8 +115,12 @@ mod tests {
             game_state.now(),
         );
 
-        game_state.place_tower(first_tower);
-        game_state.place_tower(second_tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            first_tower,
+        )));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            second_tower,
+        )));
 
         let first_id = game_state
             .towers
@@ -134,14 +134,16 @@ mod tests {
             .find(|tower| tower.left_top == crate::MapCoord::new(2, 0))
             .expect("expected second tower placed")
             .id();
-        assert!(game_state.remove_tower(first_id));
-        assert!(game_state.remove_tower(second_id));
+        assert!(game_state.action(crate::game_state::GameStateAction::RemoveTower(first_id)));
+        assert!(game_state.action(crate::game_state::GameStateAction::RemoveTower(second_id)));
 
-        game_state.apply_stage_end(false, game_state.gold, game_state.items.len());
+        game_state.action(crate::game_state::GameStateAction::StageEnd {
+            perfect_clear: false,
+            gold: game_state.gold,
+            item_count: game_state.items.len(),
+        });
 
-        let upgrade_bonuses = game_state
-            .upgrade_state
-            .tower_upgrade_damage_bonuses(&game_state);
+        let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
         assert_eq!(upgrade_bonuses.len(), 1);
         assert!((upgrade_bonuses[0].bonus_pct - 4.0).abs() < f32::EPSILON);
@@ -162,7 +164,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         let upgrade = crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(1.25);
-        game_state.upgrade(upgrade);
+        game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -180,8 +182,12 @@ mod tests {
             game_state.now(),
         );
 
-        game_state.place_tower(first_tower);
-        game_state.place_tower(second_tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            first_tower,
+        )));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            second_tower,
+        )));
 
         let first_id = game_state
             .towers
@@ -195,14 +201,16 @@ mod tests {
             .find(|tower| tower.left_top == crate::MapCoord::new(2, 0))
             .expect("expected second tower placed")
             .id();
-        assert!(game_state.remove_tower(first_id));
-        assert!(game_state.remove_tower(second_id));
+        assert!(game_state.action(crate::game_state::GameStateAction::RemoveTower(first_id)));
+        assert!(game_state.action(crate::game_state::GameStateAction::RemoveTower(second_id)));
 
-        game_state.apply_stage_end(false, game_state.gold, game_state.items.len());
+        game_state.action(crate::game_state::GameStateAction::StageEnd {
+            perfect_clear: false,
+            gold: game_state.gold,
+            item_count: game_state.items.len(),
+        });
 
-        let upgrade_bonuses = game_state
-            .upgrade_state
-            .tower_upgrade_damage_bonuses(&game_state);
+        let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
         assert_eq!(upgrade_bonuses.len(), 1);
         assert!((upgrade_bonuses[0].bonus_pct - 2.5).abs() < f32::EPSILON);

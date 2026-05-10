@@ -6,24 +6,16 @@ pub struct MetronomeUpgrade {
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
+    fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
         let before = self.start_stage;
-        self.apply_on_stage_start(stage, effects);
+        let start = self.start_stage.get_or_insert(stage);
+        if stage >= *start && (stage - *start).is_multiple_of(2) {
+            _game_state.left_dice += 1;
+        }
         if self.start_stage != before {
             UpgradeUpdateFlags::REVISION_REQUIRED
         } else {
             UpgradeUpdateFlags::NONE
-        }
-    }
-
-    fn apply_on_stage_start(&mut self, stage: usize, effects: &mut StageStartEffects) {
-        let start = self.start_stage.get_or_insert(stage);
-        if stage >= *start && (stage - *start).is_multiple_of(2) {
-            effects.extra_dice += 1;
         }
     }
 
@@ -61,26 +53,32 @@ mod tests {
 
     #[test]
     fn metronome_grants_extra_dice_every_two_waves() {
-        let mut state = crate::game_state::upgrade::UpgradeState::default();
-        state.upgrade(crate::game_state::upgrade::MetronomeUpgrade::into_upgrade());
+        use crate::game_state::upgrade::tests::support;
 
-        let (effects_stage_1, _) = state.stage_start_effects(1);
-        assert_eq!(effects_stage_1.extra_dice, 1);
+        let mut game_state = support::create_mock_game_state();
+        let mut upgrade = MetronomeUpgrade { start_stage: None };
 
-        let (effects_stage_2, _) = state.stage_start_effects(2);
-        assert_eq!(effects_stage_2.extra_dice, 0);
+        game_state.left_dice = game_state.max_dice_chance();
+        upgrade.on_stage_start(&mut game_state, 1);
+        assert_eq!(game_state.left_dice, game_state.max_dice_chance() + 1);
 
-        let (effects_stage_3, _) = state.stage_start_effects(3);
-        assert_eq!(effects_stage_3.extra_dice, 1);
+        game_state.left_dice = game_state.max_dice_chance();
+        upgrade.on_stage_start(&mut game_state, 2);
+        assert_eq!(game_state.left_dice, game_state.max_dice_chance());
+
+        game_state.left_dice = game_state.max_dice_chance();
+        upgrade.on_stage_start(&mut game_state, 3);
+        assert_eq!(game_state.left_dice, game_state.max_dice_chance() + 1);
     }
 
     #[test]
     fn metronome_returns_revision_required_only_on_first_stage_start() {
         let mut upgrade = MetronomeUpgrade { start_stage: None };
-        let mut effects = StageStartEffects::new();
+        use crate::game_state::upgrade::tests::support;
+        let mut game_state = support::create_mock_game_state();
 
-        let first_flags = upgrade.on_stage_start(1, &mut effects);
-        let second_flags = upgrade.on_stage_start(2, &mut effects);
+        let first_flags = upgrade.on_stage_start(&mut game_state, 1);
+        let second_flags = upgrade.on_stage_start(&mut game_state, 2);
 
         assert_eq!(first_flags, UpgradeUpdateFlags::REVISION_REQUIRED);
         assert_eq!(second_flags, UpgradeUpdateFlags::NONE);

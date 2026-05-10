@@ -152,7 +152,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         } => {
             let is_winner = rng.gen_bool(*probability as f64);
             let gold = if is_winner { *amount as usize } else { 0 };
-            game_state.earn_gold(gold);
+            game_state.action(crate::game_state::GameStateAction::EarnGold(gold));
         }
         Effect::DamageReduction {
             damage_multiply,
@@ -190,7 +190,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         }
         Effect::GrantUpgrade { rarity: _ } => {
             let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state);
-            game_state.upgrade(upgrade);
+            game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
         }
         Effect::GrantItem { rarity: _ } => {
             let item = crate::game_state::item::generation::generate_item_with_rng(rng);

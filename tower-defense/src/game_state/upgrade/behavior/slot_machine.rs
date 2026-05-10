@@ -7,30 +7,32 @@ pub struct SlotMachineUpgrade {
 }
 
 impl UpgradeBehavior for SlotMachineUpgrade {
-    fn apply_on_stage_start(&mut self, _stage: usize, effects: &mut StageStartEffects) {
+    fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.next_round_dice > 0 {
-            effects.extra_dice += self.next_round_dice;
+            game_state.left_dice += self.next_round_dice;
             self.next_round_dice = 0;
+            UpgradeUpdateFlags::RESOURCE
+        } else {
+            UpgradeUpdateFlags::NONE
         }
     }
 
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
-        self.apply_on_stage_start(stage, effects);
-        UpgradeUpdateFlags::RESOURCE
-    }
-
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Slot Machine",
             crate::l10n::locale::Language::Korean => "슬롯머신",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
@@ -70,16 +72,19 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.upgrade(crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10));
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::SlotMachineUpgrade::into_upgrade(10),
+            None,
+        ));
 
-        game_state.apply_stage_start(1);
+        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 1 });
         assert_eq!(
             game_state.left_dice,
             game_state.max_dice_chance() + 10,
             "slot machine should add extra dice on the first stage start",
         );
 
-        game_state.apply_stage_start(2);
+        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 2 });
         assert_eq!(
             game_state.left_dice,
             game_state.max_dice_chance(),
@@ -87,4 +92,3 @@ mod tests {
         );
     }
 }
-

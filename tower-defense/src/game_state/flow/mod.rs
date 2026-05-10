@@ -1,5 +1,6 @@
 use super::{GameState, monster_spawn::start_spawn, tower::TowerTemplate};
 use crate::game_state::GameEffectEvent;
+use crate::game_state::GameStateAction;
 use crate::{card::Card, hand::HandItem, shop::Shop, sound, *};
 
 #[cfg(feature = "debug-tools")]
@@ -126,7 +127,7 @@ impl GameState {
 
     fn prepare_next_stage(&mut self) {
         self.stage_modifiers.reset_stage_state();
-        self.apply_stage_start(self.stage);
+        self.action(GameStateAction::StageStart { stage: self.stage });
         if self.upgrade_state.clear_shield_on_stage_start() {
             self.shield = 0.0;
         }
@@ -134,7 +135,6 @@ impl GameState {
         self.rerolled_count = 0;
 
         self.deck = crate::card::Deck::new(self.upgrade_state.removed_number_rank_count());
-        self.record_stage_start();
         if !crate::is_headless() {
             save_stage_snapshot(self);
         }
@@ -244,7 +244,7 @@ impl GameState {
             && index < flow.options.len()
         {
             let upgrade = flow.options[index];
-            self.upgrade(upgrade);
+            self.action(GameStateAction::Upgrade(upgrade, None));
         }
         self.apply_flow_action(GameFlowAction::NextStage);
     }
@@ -259,7 +259,7 @@ impl GameState {
         // 남은 모든 적 제거 (패배 후에도 적들이 건물에 들어오는 것을 방지)
         self.monsters.clear();
         self.in_flight_attacks.clear();
-        self.record_game_over();
+        self.action(GameStateAction::GameOver);
         self.apply_flow_action(GameFlowAction::Result { clear_rate });
     }
 }

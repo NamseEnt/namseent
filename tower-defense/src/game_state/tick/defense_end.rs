@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::GameStateAction;
 use crate::sound::{self, GameEndKind};
 
 pub fn check_defense_end(game_state: &mut GameState) {
@@ -28,7 +29,11 @@ pub fn check_defense_end(game_state: &mut GameState) {
 
     let gold = game_state.gold;
     let item_count = game_state.items.len();
-    game_state.apply_stage_end(perfect_clear, gold, item_count);
+    game_state.action(GameStateAction::StageEnd {
+        perfect_clear,
+        gold,
+        item_count,
+    });
 
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;

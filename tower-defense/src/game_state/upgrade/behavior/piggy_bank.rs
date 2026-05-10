@@ -9,16 +9,22 @@ pub struct PiggyBankUpgrade;
 impl UpgradeBehavior for PiggyBankUpgrade {
     fn on_stage_end(
         &mut self,
+        game_state: &mut GameState,
         _perfect_clear: bool,
         gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         let bonus_gold = if gold >= PIGGY_BANK_GOLD_STEP {
             gold / PIGGY_BANK_GOLD_STEP * PIGGY_BANK_GOLD_REWARD_PER_STEP
         } else {
             0
         };
-        (bonus_gold, UpgradeUpdateFlags::RESOURCE)
+        if bonus_gold > 0 {
+            game_state.action(crate::game_state::GameStateAction::EarnGold(bonus_gold));
+            UpgradeUpdateFlags::RESOURCE
+        } else {
+            UpgradeUpdateFlags::NONE
+        }
     }
 
     fn l10n_name<'a>(
@@ -73,8 +79,10 @@ mod tests {
         gs.flow =
             crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.gold = 500;
-        gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade());
+        gs.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::PiggyBankUpgrade::into_upgrade(),
+            None,
+        ));
 
         crate::game_state::tick::defense_end::check_defense_end(&mut gs);
 

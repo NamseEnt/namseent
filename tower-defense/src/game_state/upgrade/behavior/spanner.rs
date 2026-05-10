@@ -52,8 +52,10 @@ mod tests {
 
         let mut gs = support::create_mock_game_state();
         gs.shield = 50.0;
-        gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::SpannerUpgrade::into_upgrade());
+        gs.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::SpannerUpgrade::into_upgrade(),
+            None,
+        ));
 
         gs.goto_next_stage();
 

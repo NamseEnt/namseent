@@ -2,12 +2,15 @@ use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
 };
-use crate::format_compact_number;
+use crate::{
+    format_compact_number,
+    game_state::upgrade::{TowerUpgradeState, TowerUpgradeTarget},
+};
 use crate::{
     game_state::{
         self, GameState,
         tower::{TowerSkillTemplate, TowerTemplate},
-        upgrade::{TowerUpgradeState, TowerUpgradeTarget, Upgrade, UpgradeBehavior},
+        upgrade::{Upgrade, UpgradeBehavior},
     },
     icon::{Icon, IconKind, IconSize},
     theme::typography::{FontSize, memoized_text},
@@ -211,11 +214,11 @@ fn calculate_upgrade_state_and_texts(
     let mut texts = UpgradeTexts { damage: vec![] };
 
     for upgrade in &game_state.upgrade_state.upgrades {
-        let Some((target, bonus_pct)) = upgrade.tower_upgrade_damage_bonus(game_state) else {
+        let Some((target, bonus_pct)) = upgrade.tower_upgrade_damage_bonus() else {
             continue;
         };
 
-        if !target_applies_to_tower_template(&target, tower_template) {
+        if !target.applies_to_tower_template(tower_template) {
             continue;
         }
 
@@ -234,20 +237,4 @@ fn calculate_upgrade_state_and_texts(
 
     state.damage_multiplier = combined_damage_multiplier;
     (state, texts)
-}
-
-fn target_applies_to_tower_template(
-    target: &TowerUpgradeTarget,
-    tower_template: &TowerTemplate,
-) -> bool {
-    match target {
-        TowerUpgradeTarget::Global => true,
-        TowerUpgradeTarget::Suit { suit } => *suit == tower_template.suit,
-        TowerUpgradeTarget::EvenOdd { even } => *even == tower_template.rank.is_even(),
-        TowerUpgradeTarget::FaceNumber { face } => *face == tower_template.rank.is_face(),
-        TowerUpgradeTarget::LowCardTower => tower_template.kind.is_low_card_tower(),
-        TowerUpgradeTarget::NoRerollTower => tower_template.rerolled_count == 0,
-        TowerUpgradeTarget::RerolledTower => tower_template.rerolled_count > 0,
-        TowerUpgradeTarget::TowerId { .. } => false,
-    }
 }

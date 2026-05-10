@@ -10,27 +10,34 @@ impl UpgradeBehavior for PeaUpgrade {
         PEA_HP_PLUS
     }
 
-    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
-        UpgradeUpdateFlags::PLAYER_STATS
+    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        let _ = game_state;
+        UpgradeUpdateFlags::PLAYER_STATS | UpgradeUpdateFlags::HEAL_TO_FULL
     }
 
-    fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        let flags = self.on_upgrade_acquired(game_state);
-        game_state.hp = game_state.max_hp();
-        flags
-    }
-
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Pea",
             crate::l10n::locale::Language::Korean => "완두콩",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!("Increase max HP by {:.0} and heal to full", PEA_HP_PLUS),
-            crate::l10n::locale::Language::Korean => format!("최대 체력이 {:.0} 증가하고 즉시 회복합니다", PEA_HP_PLUS),
+            crate::l10n::locale::Language::English => {
+                format!("Increase max HP by {:.0} and heal to full", PEA_HP_PLUS)
+            }
+            crate::l10n::locale::Language::Korean => {
+                format!("최대 체력이 {:.0} 증가하고 즉시 회복합니다", PEA_HP_PLUS)
+            }
         });
     }
 }
@@ -57,11 +64,15 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         game_state.hp = 1.0;
 
-        game_state.upgrade(crate::game_state::upgrade::PeaUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::PeaUpgrade::into_upgrade(),
+            None,
+        ));
 
         assert_eq!(game_state.upgrade_state.max_hp_plus(), 10);
-        assert!((game_state.max_hp() - (game_state.config.player.max_hp + 10.0)).abs() < f32::EPSILON);
+        assert!(
+            (game_state.max_hp() - (game_state.config.player.max_hp + 10.0)).abs() < f32::EPSILON
+        );
         assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
     }
 }
-

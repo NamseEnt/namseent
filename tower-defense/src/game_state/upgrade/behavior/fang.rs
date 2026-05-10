@@ -4,7 +4,7 @@ use super::*;
 pub struct FangUpgrade;
 
 impl UpgradeBehavior for FangUpgrade {
-    fn on_monster_death(&mut self) -> bool {
+    fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
         true
     }
 
@@ -47,7 +47,10 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         game_state.hp = 10.0;
 
-        game_state.upgrade(crate::game_state::upgrade::FangUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::FangUpgrade::into_upgrade(),
+            None,
+        ));
 
         let (template_queue, _) = monster_spawn::monster_template_queue_table(1, &game_state.config);
         let template = template_queue
@@ -71,7 +74,10 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         game_state.hp = game_state.max_hp();
 
-        game_state.upgrade(crate::game_state::upgrade::FangUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::FangUpgrade::into_upgrade(),
+            None,
+        ));
 
         let (template_queue, _) = monster_spawn::monster_template_queue_table(1, &game_state.config);
         let template = template_queue

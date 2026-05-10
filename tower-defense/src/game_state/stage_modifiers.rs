@@ -62,13 +62,19 @@ pub struct StageGrants {
     pub extra_tower_cards: Vec<(TowerKind, Suit, Rank)>,
 }
 
-#[derive(Clone, Debug, Default, State)]
+#[derive(Clone, Debug, State)]
 pub struct StageModifiers {
     multipliers: Multipliers,
     adjustments: Adjustments,
     reroll_costs: RerollCosts,
     restrictions: Restrictions,
     stage_grants: StageGrants,
+}
+
+impl Default for StageModifiers {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl StageModifiers {

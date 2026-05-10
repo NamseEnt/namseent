@@ -7,26 +7,23 @@ pub struct ResolutionUpgrade {
 }
 
 impl UpgradeBehavior for ResolutionUpgrade {
-    fn on_stage_end_with_state(
+    fn on_stage_end(
         &mut self,
-        game_state: &GameState,
+        game_state: &mut GameState,
         _perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         let before = self.stored_rerolls;
         self.stored_rerolls = game_state.left_dice;
         if self.stored_rerolls != before {
-            (0, UpgradeUpdateFlags::TOWER_STATS)
+            UpgradeUpdateFlags::TOWER_STATS
         } else {
-            (0, UpgradeUpdateFlags::NONE)
+            UpgradeUpdateFlags::NONE
         }
     }
 
-    fn tower_upgrade_damage_bonus(
-        &self,
-        _game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stored_rerolls > 0 {
             Some((
                 TowerUpgradeTarget::Global,
@@ -94,11 +91,16 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.upgrade_state.upgrade(
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(0.25),
-        );
+            None,
+        ));
         game_state.left_dice = 2;
-        game_state.apply_stage_end(false, 0, 0);
+        game_state.action(crate::game_state::GameStateAction::StageEnd {
+            perfect_clear: false,
+            gold: 0,
+            item_count: 0,
+        });
 
         let template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -125,7 +127,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
         game_state.hand.delete_slots(&[placing_slot_id]);
 
         let placed_tower = game_state
@@ -147,7 +151,7 @@ mod tests {
         };
         game_state.left_dice = 3;
 
-        let (_, flags) = upgrade.on_stage_end_with_state(&game_state, false, 0, 0);
+        let flags = upgrade.on_stage_end(&mut game_state, false, 0, 0);
 
         assert!(flags.contains(UpgradeUpdateFlags::TOWER_STATS));
     }
@@ -163,7 +167,7 @@ mod tests {
         };
         game_state.left_dice = 2;
 
-        let (_, flags) = upgrade.on_stage_end_with_state(&game_state, false, 0, 0);
+        let flags = upgrade.on_stage_end(&mut game_state, false, 0, 0);
 
         assert_eq!(flags, UpgradeUpdateFlags::NONE);
     }

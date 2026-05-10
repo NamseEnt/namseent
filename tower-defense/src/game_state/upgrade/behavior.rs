@@ -1,53 +1,13 @@
 use super::state::UpgradeState;
 use super::*;
 use crate::game_state::GameState;
-use crate::game_state::tower::{Tower, TowerTemplate};
+use crate::game_state::tower::Tower;
+use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::*;
 
 // ============================================================================
 // Upgrade Trait and Structs
 // ============================================================================
-
-/// Common trait for all upgrade behaviors
-#[derive(Debug, Clone, Copy, Default)]
-pub struct TowerPlacementResult {
-    pub gold_earn: usize,
-}
-
-impl std::ops::AddAssign for TowerPlacementResult {
-    fn add_assign(&mut self, other: Self) {
-        self.gold_earn += other.gold_earn;
-    }
-}
-
-impl std::ops::Add for TowerPlacementResult {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self {
-            gold_earn: self.gold_earn + other.gold_earn,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct StageStartEffects {
-    pub extra_dice: usize,
-    pub damage_multiplier: f32,
-    pub enemy_speed_multiplier: Option<f32>,
-    pub free_shop_this_stage: bool,
-}
-
-impl StageStartEffects {
-    pub fn new() -> Self {
-        Self {
-            extra_dice: 0,
-            damage_multiplier: 1.0,
-            enemy_speed_multiplier: None,
-            free_shop_this_stage: false,
-        }
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, State)]
 pub struct UpgradeUpdateFlags(u8);
@@ -59,6 +19,7 @@ impl UpgradeUpdateFlags {
     pub const RESOURCE: Self = Self(1 << 2);
     pub const PLAYER_STATS: Self = Self(1 << 3);
     pub const REVISION_REQUIRED: Self = Self(1 << 4);
+    pub const HEAL_TO_FULL: Self = Self(1 << 5);
 
     pub fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
@@ -89,59 +50,38 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
 
 /// Common trait for all upgrade behaviors
 pub trait UpgradeBehavior {
-    fn apply_on_stage_start(&mut self, _stage: usize, _effects: &mut StageStartEffects) {}
-    fn on_tower_placement(
+    fn on_tower_placed(
         &mut self,
-        _tower_template: &mut TowerTemplate,
-        _left_dice: usize,
-    ) -> usize {
-        0
-    }
-    fn on_tower_placed(&mut self, _tower: &Tower) -> (TowerPlacementResult, UpgradeUpdateFlags) {
-        (TowerPlacementResult::default(), UpgradeUpdateFlags::NONE)
-    }
-
-    fn on_tower_removed(&mut self) -> UpgradeUpdateFlags {
+        _game_state: &mut GameState,
+        _tower: &Tower,
+    ) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::NONE
     }
 
-    fn tower_upgrade_damage_bonus(
-        &self,
-        _game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn on_tower_removed(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         None
     }
 
-    fn on_monster_death(&mut self) -> bool {
+    fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
         false
     }
 
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
-        self.apply_on_stage_start(stage, effects);
+    fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::NONE
     }
 
     fn on_stage_end(
         &mut self,
+        _game_state: &mut GameState,
         _perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
-        (0, UpgradeUpdateFlags::NONE)
-    }
-
-    fn on_stage_end_with_state(
-        &mut self,
-        _game_state: &GameState,
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
-        self.on_stage_end(perfect_clear, gold, item_count)
+    ) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
     }
 
     fn max_hp_plus(&self) -> f32 {
@@ -184,31 +124,79 @@ pub trait UpgradeBehavior {
         false
     }
 
-    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+    fn on_upgrade_acquired(self, _game_state: &mut GameState) -> UpgradeUpdateFlags
+    where
+        Self: Sized,
+    {
         UpgradeUpdateFlags::NONE
     }
 
-    fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.on_upgrade_acquired(game_state)
+    fn acquire(game_state: &mut GameState, incoming: Upgrade) -> UpgradeUpdateFlags
+    where
+        Self: Sized,
+    {
+        let index = game_state.upgrade_state.upgrades.len();
+        game_state.upgrade_state.upgrades.push(incoming);
+
+        let mut target_upgrade = game_state.upgrade_state.upgrades.remove(index);
+        let flags = target_upgrade.on_upgrade_acquired_effect(game_state)
+            | UpgradeUpdateFlags::REVISION_REQUIRED;
+        game_state
+            .upgrade_state
+            .upgrades
+            .insert(index, target_upgrade);
+        flags
     }
 
-    fn on_tower_placed_mut(
+    fn merge_or_acquire(game_state: &mut GameState, incoming: Upgrade) -> UpgradeUpdateFlags
+    where
+        Self: Sized,
+    {
+        let index = {
+            let upgrades = &mut game_state.upgrade_state.upgrades;
+            let mut merged_index = None;
+            for (index, upgrade) in upgrades.iter_mut().enumerate() {
+                if upgrade.merge_for_acquire(incoming) {
+                    merged_index = Some(index);
+                    break;
+                }
+            }
+
+            if let Some(index) = merged_index {
+                index
+            } else {
+                upgrades.push(incoming);
+                upgrades.len() - 1
+            }
+        };
+
+        let mut target_upgrade = game_state.upgrade_state.upgrades.remove(index);
+        let flags = target_upgrade.on_upgrade_acquired_effect(game_state)
+            | UpgradeUpdateFlags::REVISION_REQUIRED;
+        game_state
+            .upgrade_state
+            .upgrades
+            .insert(index, target_upgrade);
+        flags
+    }
+
+    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
+    fn on_item_bought(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
+    fn on_gold_earned(
         &mut self,
         _game_state: &mut GameState,
-        _tower: &Tower,
+        _earned: usize,
     ) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::NONE
     }
 
-    fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
-        UpgradeUpdateFlags::NONE
-    }
-
-    fn on_gold_earned(&mut self, _game_state: &GameState, _earned: usize) -> UpgradeUpdateFlags {
-        UpgradeUpdateFlags::NONE
-    }
-
-    fn on_gold_spent(&mut self, _game_state: &GameState, _spent: usize) -> UpgradeUpdateFlags {
+    fn on_gold_spent(&mut self, _game_state: &mut GameState, _spent: usize) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::NONE
     }
 
@@ -535,55 +523,47 @@ impl Upgrade {
         self.behavior()
     }
 
-    pub fn apply_on_stage_start(&mut self, stage: usize, effects: &mut StageStartEffects) {
-        self.behavior_mut().apply_on_stage_start(stage, effects);
-    }
-
     pub fn on_stage_start(
         &mut self,
+        game_state: &mut GameState,
         stage: usize,
-        effects: &mut StageStartEffects,
     ) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_stage_start(stage, effects)
+        self.behavior_mut().on_stage_start(game_state, stage)
     }
 
-    pub fn on_tower_placement(
+    pub fn on_tower_placed(
         &mut self,
-        tower_template: &mut TowerTemplate,
-        left_dice: usize,
-    ) -> usize {
-        self.behavior_mut()
-            .on_tower_placement(tower_template, left_dice)
-    }
-
-    pub fn on_tower_placed(&mut self, tower: &Tower) -> (TowerPlacementResult, UpgradeUpdateFlags) {
-        self.behavior_mut().on_tower_placed(tower)
+        game_state: &mut GameState,
+        tower: &Tower,
+    ) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_tower_placed(game_state, tower)
     }
 
     pub fn clear_shield_on_stage_start(&self) -> bool {
         self.behavior().clear_shield_on_stage_start()
     }
 
-    pub fn on_upgrade_acquired(&self, game_state: &GameState) -> UpgradeUpdateFlags {
-        self.behavior().on_upgrade_acquired(game_state)
+    pub fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_upgrade_acquired_effect(game_state)
     }
 
     pub fn on_stage_end(
         &mut self,
+        game_state: &mut GameState,
         perfect_clear: bool,
         gold: usize,
         item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         self.behavior_mut()
-            .on_stage_end(perfect_clear, gold, item_count)
+            .on_stage_end(game_state, perfect_clear, gold, item_count)
     }
 
-    pub fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_item_bought()
+    pub fn on_item_bought(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_item_bought(game_state)
     }
 
-    pub fn on_tower_removed(&mut self) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_removed()
+    pub fn on_tower_removed(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_tower_removed(game_state)
     }
 
     pub fn name_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
@@ -596,93 +576,64 @@ impl Upgrade {
 }
 
 impl UpgradeBehavior for Upgrade {
-    fn apply_on_stage_start(&mut self, stage: usize, effects: &mut StageStartEffects) {
-        self.behavior_mut().apply_on_stage_start(stage, effects);
+    fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_stage_start(game_state, stage)
     }
 
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_stage_start(stage, effects)
+    fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_tower_placed(game_state, tower)
     }
 
-    fn on_tower_placement(
-        &mut self,
-        tower_template: &mut TowerTemplate,
-        left_dice: usize,
-    ) -> usize {
-        self.behavior_mut()
-            .on_tower_placement(tower_template, left_dice)
+    fn on_tower_removed(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_tower_removed(game_state)
     }
 
-    fn on_tower_placed(&mut self, tower: &Tower) -> (TowerPlacementResult, UpgradeUpdateFlags) {
-        self.behavior_mut().on_tower_placed(tower)
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+        self.behavior().tower_upgrade_damage_bonus()
     }
 
-    fn on_tower_removed(&mut self) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_removed()
+    fn on_item_bought(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_item_bought(game_state)
     }
 
-    fn tower_upgrade_damage_bonus(
-        &self,
-        game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
-        self.behavior().tower_upgrade_damage_bonus(game_state)
-    }
-
-    fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_item_bought()
-    }
-
-    fn on_gold_earned(&mut self, game_state: &GameState, earned: usize) -> UpgradeUpdateFlags {
+    fn on_gold_earned(&mut self, game_state: &mut GameState, earned: usize) -> UpgradeUpdateFlags {
         self.behavior_mut().on_gold_earned(game_state, earned)
     }
 
-    fn on_gold_spent(&mut self, game_state: &GameState, spent: usize) -> UpgradeUpdateFlags {
+    fn on_gold_spent(&mut self, game_state: &mut GameState, spent: usize) -> UpgradeUpdateFlags {
         self.behavior_mut().on_gold_spent(game_state, spent)
     }
 
-    fn on_tower_placed_mut(
-        &mut self,
-        game_state: &mut GameState,
-        tower: &Tower,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_placed_mut(game_state, tower)
+    fn on_upgrade_acquired(self, game_state: &mut GameState) -> UpgradeUpdateFlags
+    where
+        Self: Sized,
+    {
+        match self {
+            Upgrade::Staff(..)
+            | Upgrade::LongSword(..)
+            | Upgrade::Mace(..)
+            | Upgrade::ClubSword(..) => Self::merge_or_acquire(game_state, self),
+            _ => Self::acquire(game_state, self),
+        }
     }
 
-    fn on_upgrade_acquired(&self, game_state: &GameState) -> UpgradeUpdateFlags {
-        self.behavior().on_upgrade_acquired(game_state)
+    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.behavior_mut().on_upgrade_acquired_effect(game_state)
     }
 
-    fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_upgrade_acquired_mut(game_state)
-    }
-
-    fn on_monster_death(&mut self) -> bool {
-        self.behavior_mut().on_monster_death()
+    fn on_monster_death(&mut self, game_state: &mut GameState) -> bool {
+        self.behavior_mut().on_monster_death(game_state)
     }
 
     fn on_stage_end(
         &mut self,
+        game_state: &mut GameState,
         perfect_clear: bool,
         gold: usize,
         item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         self.behavior_mut()
-            .on_stage_end(perfect_clear, gold, item_count)
-    }
-
-    fn on_stage_end_with_state(
-        &mut self,
-        game_state: &GameState,
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
-        self.behavior_mut()
-            .on_stage_end_with_state(game_state, perfect_clear, gold, item_count)
+            .on_stage_end(game_state, perfect_clear, gold, item_count)
     }
 
     fn max_hp_plus(&self) -> f32 {
@@ -743,5 +694,29 @@ impl UpgradeBehavior for Upgrade {
         locale: &crate::l10n::Locale,
     ) {
         self.behavior().l10n_description(builder, locale)
+    }
+}
+
+impl Upgrade {
+    pub(crate) fn merge_for_acquire(&mut self, incoming: Upgrade) -> bool {
+        match (self, incoming) {
+            (Upgrade::Staff(current), Upgrade::Staff(next)) => {
+                current.damage_bonus_pct += next.damage_bonus_pct;
+                true
+            }
+            (Upgrade::LongSword(current), Upgrade::LongSword(next)) => {
+                current.damage_bonus_pct += next.damage_bonus_pct;
+                true
+            }
+            (Upgrade::Mace(current), Upgrade::Mace(next)) => {
+                current.damage_bonus_pct += next.damage_bonus_pct;
+                true
+            }
+            (Upgrade::ClubSword(current), Upgrade::ClubSword(next)) => {
+                current.damage_bonus_pct += next.damage_bonus_pct;
+                true
+            }
+            _ => false,
+        }
     }
 }

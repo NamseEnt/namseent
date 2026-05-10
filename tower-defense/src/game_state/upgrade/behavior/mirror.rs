@@ -6,11 +6,7 @@ pub struct MirrorUpgrade {
 }
 
 impl UpgradeBehavior for MirrorUpgrade {
-    fn on_tower_placed_mut(
-        &mut self,
-        game_state: &mut GameState,
-        tower: &Tower,
-    ) -> UpgradeUpdateFlags {
+    fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if !self.pending {
             return UpgradeUpdateFlags::NONE;
         }
@@ -68,17 +64,18 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::NameTagUpgrade::into_upgrade(
-                1.0,
-            ));
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::MirrorUpgrade::into_upgrade());
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::MirrorUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(1.0),
+            None,
+        ));
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::MirrorUpgrade::into_upgrade(),
+            None,
+        ));
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::MirrorUpgrade::into_upgrade(),
+            None,
+        ));
         game_state.left_dice = 0;
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
@@ -98,7 +95,7 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
         game_state.hand.delete_slots(&[placing_slot_id]);
 
         let slot_ids = game_state.hand.active_slot_ids();

@@ -1,12 +1,5 @@
 use super::*;
-use crate::*;
-use crate::{
-    card::Suit,
-    game_state::{
-        GameState,
-        tower::{Tower, TowerTemplate},
-    },
-};
+use crate::{game_state::upgrade::tower::TowerUpgradeDamageBonus, *};
 
 #[derive(Debug, Clone, State, Default)]
 pub struct UpgradeState {
@@ -67,43 +60,6 @@ impl UpgradeCache {
     }
 }
 
-pub(crate) enum UpgradeTriggerEvent<'a> {
-    UpgradeAcquired {
-        upgrade: Upgrade,
-    },
-    StageStart {
-        stage: usize,
-    },
-    TowerPlaced {
-        tower: &'a Tower,
-    },
-    TowerPlacement {
-        tower_template: &'a mut TowerTemplate,
-        left_dice: usize,
-    },
-    TowerRemoved,
-    ItemBought,
-    GoldEarned {
-        amount: usize,
-    },
-    GoldSpent {
-        amount: usize,
-    },
-    StageEnd {
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    },
-}
-
-pub(crate) enum UpgradeTriggerResult {
-    Flags(UpgradeUpdateFlags),
-    StageStart(StageStartEffects, UpgradeUpdateFlags),
-    TowerPlaced(TowerPlacementResult, UpgradeUpdateFlags),
-    TowerPlacement(usize),
-    StageEnd(usize, UpgradeUpdateFlags),
-}
-
 impl UpgradeState {
     pub fn cache(&self) -> &UpgradeCache {
         &self.cache
@@ -118,142 +74,12 @@ impl UpgradeState {
         state
     }
 
-    pub fn upgrade(&mut self, upgrade: Upgrade) {
-        self.revision = self.revision.wrapping_add(1);
-        self.upgrades.push(upgrade);
+    pub(crate) fn rebuild_cache(&mut self) {
         self.cache = UpgradeCache::from_state(self);
-    }
-
-    pub(crate) fn handle_upgrade_trigger<'a>(
-        &mut self,
-        game_state: &GameState,
-        event: UpgradeTriggerEvent<'a>,
-    ) -> UpgradeTriggerResult {
-        match event {
-            UpgradeTriggerEvent::UpgradeAcquired { .. } => {
-                unreachable!("UpgradeAcquired is handled by GameState directly",)
-            }
-            UpgradeTriggerEvent::StageStart { stage } => {
-                let (effects, flags) = self.stage_start_effects(stage);
-                UpgradeTriggerResult::StageStart(effects, flags)
-            }
-            UpgradeTriggerEvent::TowerPlaced { tower } => {
-                let (placement_result, flags) = self.on_tower_placed(tower);
-                UpgradeTriggerResult::TowerPlaced(placement_result, flags)
-            }
-            UpgradeTriggerEvent::TowerPlacement {
-                tower_template,
-                left_dice,
-            } => {
-                let gold = self.on_tower_placement(tower_template, left_dice);
-                UpgradeTriggerResult::TowerPlacement(gold)
-            }
-            UpgradeTriggerEvent::TowerRemoved => {
-                UpgradeTriggerResult::Flags(self.on_tower_removed())
-            }
-            UpgradeTriggerEvent::ItemBought => UpgradeTriggerResult::Flags(self.on_item_bought()),
-            UpgradeTriggerEvent::GoldEarned { amount } => {
-                UpgradeTriggerResult::Flags(self.on_gold_earned(game_state, amount))
-            }
-            UpgradeTriggerEvent::GoldSpent { amount } => {
-                UpgradeTriggerResult::Flags(self.on_gold_spent(game_state, amount))
-            }
-            UpgradeTriggerEvent::StageEnd {
-                perfect_clear,
-                gold,
-                item_count,
-            } => {
-                let (bonus_gold, flags) =
-                    self.on_stage_end(game_state, perfect_clear, gold, item_count);
-                UpgradeTriggerResult::StageEnd(bonus_gold, flags)
-            }
-        }
-    }
-
-    pub(crate) fn stage_start_effects(
-        &mut self,
-        stage: usize,
-    ) -> (StageStartEffects, UpgradeUpdateFlags) {
-        let mut effects = StageStartEffects::new();
-        let mut flags = UpgradeUpdateFlags::NONE;
-        for upgrade in &mut self.upgrades {
-            flags |= upgrade.on_stage_start(stage, &mut effects);
-        }
-        (effects, flags)
-    }
-
-    pub(crate) fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
-        self.upgrades
-            .iter_mut()
-            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
-                flags | upgrade.on_item_bought()
-            })
-    }
-
-    pub(crate) fn on_gold_earned(
-        &mut self,
-        game_state: &GameState,
-        amount: usize,
-    ) -> UpgradeUpdateFlags {
-        self.upgrades
-            .iter_mut()
-            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
-                flags | upgrade.on_gold_earned(game_state, amount)
-            })
-    }
-
-    pub(crate) fn on_gold_spent(
-        &mut self,
-        game_state: &GameState,
-        amount: usize,
-    ) -> UpgradeUpdateFlags {
-        self.upgrades
-            .iter_mut()
-            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
-                flags | upgrade.on_gold_spent(game_state, amount)
-            })
-    }
-
-    pub fn on_tower_placement(
-        &mut self,
-        tower_template: &mut TowerTemplate,
-        left_dice: usize,
-    ) -> usize {
-        self.upgrades
-            .iter_mut()
-            .map(|upgrade| upgrade.on_tower_placement(tower_template, left_dice))
-            .sum()
     }
 
     pub fn clear_shield_on_stage_start(&self) -> bool {
         self.cache().clear_shield_on_stage_start
-    }
-
-    pub fn on_monster_death(&mut self) -> bool {
-        self.upgrades
-            .iter_mut()
-            .any(|upgrade| upgrade.on_monster_death())
-    }
-
-    pub(crate) fn on_stage_end(
-        &mut self,
-        game_state: &GameState,
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
-        let mut flags = UpgradeUpdateFlags::NONE;
-        let result: usize = self
-            .upgrades
-            .iter_mut()
-            .map(|upgrade| {
-                let (upgrade_result, upgrade_flags) =
-                    upgrade.on_stage_end_with_state(game_state, perfect_clear, gold, item_count);
-                flags |= upgrade_flags;
-                upgrade_result
-            })
-            .sum();
-        (result, flags)
     }
 
     pub fn max_hp_plus(&self) -> usize {
@@ -292,119 +118,11 @@ impl UpgradeState {
         self.cache().removed_number_rank_count
     }
 
-    pub(crate) fn on_tower_removed(&mut self) -> UpgradeUpdateFlags {
-        let mut flags = UpgradeUpdateFlags::NONE;
-        for upgrade in &mut self.upgrades {
-            flags |= upgrade.on_tower_removed();
-        }
-        flags
-    }
-
-    pub(crate) fn on_tower_placed(
-        &mut self,
-        tower: &Tower,
-    ) -> (TowerPlacementResult, UpgradeUpdateFlags) {
-        let mut flags = UpgradeUpdateFlags::NONE;
-        let result = self
-            .upgrades
-            .iter_mut()
-            .map(|upgrade| {
-                let (upgrade_result, upgrade_flags) = upgrade.on_tower_placed(tower);
-                flags |= upgrade_flags;
-                upgrade_result
-            })
-            .fold(TowerPlacementResult::default(), |mut acc, result| {
-                acc += result;
-                acc
-            });
-        (result, flags)
-    }
-
-    pub(crate) fn on_tower_placed_mut(
-        &mut self,
-        game_state: &mut GameState,
-        tower: &Tower,
-    ) -> UpgradeUpdateFlags {
-        self.upgrades
-            .iter_mut()
-            .fold(UpgradeUpdateFlags::NONE, |flags, upgrade| {
-                flags | upgrade.on_tower_placed_mut(game_state, tower)
-            })
-    }
-
-    pub fn tower_upgrade_damage_bonuses(
-        &self,
-        game_state: &GameState,
-    ) -> Vec<TowerUpgradeDamageBonus> {
+    pub fn tower_upgrade_damage_bonuses(&self) -> Vec<TowerUpgradeDamageBonus> {
         self.upgrades
             .iter()
-            .filter_map(|upgrade| upgrade.tower_upgrade_damage_bonus(game_state))
+            .filter_map(|upgrade| upgrade.tower_upgrade_damage_bonus())
             .map(|(target, bonus_pct)| TowerUpgradeDamageBonus { target, bonus_pct })
             .collect()
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]
-pub enum TowerUpgradeTarget {
-    Global,
-    Suit { suit: Suit },
-    EvenOdd { even: bool },
-    FaceNumber { face: bool },
-    LowCardTower,
-    NoRerollTower,
-    RerolledTower,
-    TowerId { tower_id: usize },
-}
-
-#[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct TowerUpgradeDamageBonus {
-    pub target: TowerUpgradeTarget,
-    pub bonus_pct: f32,
-}
-
-impl TowerUpgradeDamageBonus {
-    pub fn applies_to_tower(&self, tower: &Tower) -> bool {
-        self.target.applies_to_tower(tower)
-    }
-
-    pub fn effective_bonus_pct_for_tower(&self, tower: &Tower) -> f32 {
-        if !self.applies_to_tower(tower) {
-            return 0.0;
-        }
-
-        match self.target {
-            TowerUpgradeTarget::RerolledTower => {
-                let rerolled_count = tower.rerolled_count() as f32;
-                self.bonus_pct * rerolled_count
-            }
-            _ => self.bonus_pct,
-        }
-    }
-}
-
-impl TowerUpgradeTarget {
-    pub fn applies_to_tower(&self, tower: &Tower) -> bool {
-        match self {
-            TowerUpgradeTarget::Global => true,
-            TowerUpgradeTarget::Suit { suit } => *suit == tower.suit(),
-            TowerUpgradeTarget::EvenOdd { even } => *even == tower.rank().is_even(),
-            TowerUpgradeTarget::FaceNumber { face } => *face == tower.rank().is_face(),
-            TowerUpgradeTarget::LowCardTower => tower.kind.is_low_card_tower(),
-            TowerUpgradeTarget::NoRerollTower => tower.rerolled_count() == 0,
-            TowerUpgradeTarget::RerolledTower => tower.rerolled_count() > 0,
-            TowerUpgradeTarget::TowerId { tower_id } => *tower_id == tower.id(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct TowerUpgradeState {
-    pub damage_multiplier: f32,
-}
-impl Default for TowerUpgradeState {
-    fn default() -> Self {
-        TowerUpgradeState {
-            damage_multiplier: 1.0,
-        }
     }
 }

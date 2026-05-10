@@ -32,7 +32,8 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                     PlanStep::Remove(coord) => {
                         if let Some(tower_id) = game_state.towers.find_by_xy(coord).map(|t| t.id())
                         {
-                            game_state.remove_tower(tower_id);
+                            game_state
+                                .action(crate::game_state::GameStateAction::RemoveTower(tower_id));
                         }
                     }
                     PlanStep::Place(left_top) => {
@@ -51,7 +52,9 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                             MAP_SIZE,
                         ) {
                             let tower = Tower::new(&template, left_top, now);
-                            game_state.place_tower(tower);
+                            game_state.action(crate::game_state::GameStateAction::PlaceTower(
+                                Box::new(tower),
+                            ));
                             game_state.hand.delete_slots(&[slot_id]);
 
                             if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
@@ -142,7 +145,7 @@ impl HeuristicPlacementStrategy {
         barricades.sort_by_key(|(dist, _, _)| *dist);
 
         for (_, tower_id, left_top) in barricades {
-            if !game_state.remove_tower(tower_id) {
+            if !game_state.action(crate::game_state::GameStateAction::RemoveTower(tower_id)) {
                 continue;
             }
 
@@ -157,7 +160,9 @@ impl HeuristicPlacementStrategy {
                 MAP_SIZE,
             ) {
                 let tower = Tower::new(template, left_top, now);
-                game_state.place_tower(tower);
+                game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+                    tower,
+                )));
                 game_state.hand.delete_slots(&[slot_id]);
 
                 if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)

@@ -9,22 +9,22 @@ pub struct IceCreamUpgrade {
 impl UpgradeBehavior for IceCreamUpgrade {
     fn on_stage_start(
         &mut self,
+        _game_state: &mut GameState,
         _stage: usize,
-        effects: &mut StageStartEffects,
     ) -> UpgradeUpdateFlags {
         if self.waves_remaining > 0 {
-            effects.damage_multiplier += self.damage_bonus_pct;
+            UpgradeUpdateFlags::TOWER_STATS
+        } else {
+            UpgradeUpdateFlags::NONE
         }
-        UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn on_upgrade_acquired_mut(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
     fn tower_upgrade_damage_bonus(
         &self,
-        _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
         if self.waves_remaining > 0 {
             Some((TowerUpgradeTarget::Global, self.damage_bonus_pct))
@@ -35,15 +35,16 @@ impl UpgradeBehavior for IceCreamUpgrade {
 
     fn on_stage_end(
         &mut self,
+        _game_state: &mut GameState,
         _perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         if self.waves_remaining > 0 {
             self.waves_remaining -= 1;
-            (0, UpgradeUpdateFlags::TOWER_STATS)
+            UpgradeUpdateFlags::TOWER_STATS
         } else {
-            (0, UpgradeUpdateFlags::NONE)
+            UpgradeUpdateFlags::NONE
         }
     }
 
@@ -105,7 +106,10 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
         let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.0, 2);
-        game_state.upgrade(upgrade);
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            upgrade,
+            None,
+        ));
 
         let tower_template = TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -117,7 +121,7 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
 
         let placed_tower = game_state
             .towers

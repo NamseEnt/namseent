@@ -9,30 +9,43 @@ pub struct TapeUpgrade {
 }
 
 impl UpgradeBehavior for TapeUpgrade {
-    fn apply_on_stage_start(&mut self, stage: usize, effects: &mut StageStartEffects) {
-        if stage > self.acquired_stage && (stage - self.acquired_stage - 1).is_multiple_of(TAPE_WAVE_INTERVAL) {
-            effects.enemy_speed_multiplier = Some(TAPE_ENEMY_SPEED_MULTIPLIER);
+    fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
+        if stage > self.acquired_stage
+            && (stage - self.acquired_stage - 1).is_multiple_of(TAPE_WAVE_INTERVAL)
+        {
+            game_state
+                .stage_modifiers
+                .apply_enemy_speed_multiplier(TAPE_ENEMY_SPEED_MULTIPLIER);
         }
+        UpgradeUpdateFlags::NONE
     }
 
-    fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         let before = self.acquired_stage;
         self.acquired_stage = game_state.stage;
-        let mut flags = self.on_upgrade_acquired(game_state);
+        let mut flags = UpgradeUpdateFlags::NONE;
         if self.acquired_stage != before {
             flags |= UpgradeUpdateFlags::REVISION_REQUIRED;
         }
         flags
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Tape",
             crate::l10n::locale::Language::Korean => "테이프",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.text(match locale.language {
             crate::l10n::locale::Language::English => format!(
                 "Slow enemies by {}% every {} waves after acquisition",
@@ -71,20 +84,21 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.stage = 3;
+        let mut upgrade = TapeUpgrade { acquired_stage: 3 };
 
-        game_state.upgrade(crate::game_state::upgrade::TapeUpgrade::into_upgrade(0));
+        upgrade.on_stage_start(&mut game_state, 3);
+        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
 
-        let (effects_stage_3, _) = game_state.upgrade_state.stage_start_effects(3);
-        assert_eq!(effects_stage_3.enemy_speed_multiplier, None);
+        upgrade.on_stage_start(&mut game_state, 4);
+        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 0.75);
 
-        let (effects_stage_4, _) = game_state.upgrade_state.stage_start_effects(4);
-        assert_eq!(effects_stage_4.enemy_speed_multiplier, Some(0.75));
+        game_state.stage_modifiers = crate::game_state::StageModifiers::default();
+        upgrade.on_stage_start(&mut game_state, 5);
+        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
 
-        let (effects_stage_5, _) = game_state.upgrade_state.stage_start_effects(5);
-        assert_eq!(effects_stage_5.enemy_speed_multiplier, None);
-
-        let (effects_stage_8, _) = game_state.upgrade_state.stage_start_effects(8);
-        assert_eq!(effects_stage_8.enemy_speed_multiplier, Some(0.75));
+        game_state.stage_modifiers = crate::game_state::StageModifiers::default();
+        upgrade.on_stage_start(&mut game_state, 8);
+        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 0.75);
     }
 
     #[test]
@@ -95,10 +109,9 @@ mod tests {
         game_state.stage = 5;
         let mut upgrade = TapeUpgrade { acquired_stage: 0 };
 
-        let flags = upgrade.on_upgrade_acquired_mut(&mut game_state);
+        let flags = upgrade.on_upgrade_acquired_effect(&mut game_state);
 
         assert_eq!(upgrade.acquired_stage, 5);
         assert!(flags.contains(UpgradeUpdateFlags::REVISION_REQUIRED));
     }
 }
-

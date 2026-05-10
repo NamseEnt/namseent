@@ -8,12 +8,18 @@ pub struct GiftBoxUpgrade;
 impl UpgradeBehavior for GiftBoxUpgrade {
     fn on_stage_end(
         &mut self,
+        game_state: &mut GameState,
         _perfect_clear: bool,
         _gold: usize,
         item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         let bonus_gold = item_count * GIFT_BOX_GOLD_PER_ITEM;
-        (bonus_gold, UpgradeUpdateFlags::RESOURCE)
+        if bonus_gold > 0 {
+            game_state.action(crate::game_state::GameStateAction::EarnGold(bonus_gold));
+            UpgradeUpdateFlags::RESOURCE
+        } else {
+            UpgradeUpdateFlags::NONE
+        }
     }
 
     fn l10n_name<'a>(
@@ -82,8 +88,10 @@ mod tests {
                 effect: crate::game_state::item::Effect::ExtraDice,
             },
         ];
-        gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade());
+        gs.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade(),
+            None,
+        ));
 
         crate::game_state::tick::defense_end::check_defense_end(&mut gs);
 

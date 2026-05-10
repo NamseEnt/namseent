@@ -23,7 +23,9 @@ impl ShopStrategy for SynergyShopStrategy {
             }
 
             if let Some(slot_id) = self.choose_best_slot(game_state) {
-                game_state.purchase_shop_item(slot_id);
+                game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                    slot_id,
+                ));
                 continue;
             }
 
@@ -42,7 +44,9 @@ impl SynergyShopStrategy {
             && game_state.hp < game_state.config.player.max_hp * 0.75
             && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceBall, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
@@ -51,21 +55,27 @@ impl SynergyShopStrategy {
             && game_state.hp < game_state.config.player.max_hp * 0.85
             && let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
         if count_item_kind(game_state, ItemKind::GrantBarricades) < 1
             && let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
             && let Some(slot_id) = find_item_slot(flow, ItemKind::LumpSugar, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
@@ -172,7 +182,16 @@ impl SynergyShopStrategy {
         if upgrade.is_tower_damage_upgrade() {
             let current_score = total_tower_score(game_state, &game_state.upgrade_state);
             let mut upgraded_state = game_state.upgrade_state.clone();
-            upgraded_state.upgrade(upgrade);
+            let mut merged = false;
+            for current in &mut upgraded_state.upgrades {
+                if current.merge_for_acquire(upgrade) {
+                    merged = true;
+                    break;
+                }
+            }
+            if !merged {
+                upgraded_state.upgrades.push(upgrade);
+            }
             let next_score = total_tower_score(game_state, &upgraded_state);
             let delta = next_score - current_score;
             return delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade));
@@ -230,12 +249,12 @@ fn total_tower_score(game_state: &GameState, upgrade_state: &UpgradeState) -> f3
     game_state
         .towers
         .iter()
-        .map(|tower| tower_score(game_state, tower, upgrade_state))
+        .map(|tower| tower_score(tower, upgrade_state))
         .sum()
 }
 
-fn tower_score(game_state: &GameState, tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
-    let tower_upgrade_bonuses = upgrade_state.tower_upgrade_damage_bonuses(game_state);
+fn tower_score(tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
+    let tower_upgrade_bonuses = upgrade_state.tower_upgrade_damage_bonuses();
     let damage = tower.calculate_projectile_damage(&tower_upgrade_bonuses, 1.0);
     if damage <= 0.0 {
         return 0.0;

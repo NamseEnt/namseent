@@ -9,7 +9,15 @@ pub struct PopcornUpgrade {
 }
 
 impl UpgradeBehavior for PopcornUpgrade {
-    fn apply_on_stage_start(&mut self, _stage: usize, effects: &mut StageStartEffects) {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+        if self.active_stage_damage_bonus > 0.0 {
+            Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))
+        } else {
+            None
+        }
+    }
+
+    fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         self.active_stage_damage_bonus = 0.0;
         if self.waves_remaining > 0 {
             let duration = self.duration.max(1);
@@ -22,39 +30,29 @@ impl UpgradeBehavior for PopcornUpgrade {
             };
 
             self.active_stage_damage_bonus = popcorn_multiplier - 1.0;
-            effects.damage_multiplier += self.active_stage_damage_bonus;
             self.waves_remaining -= 1;
-        }
-    }
-
-    fn tower_upgrade_damage_bonus(
-        &self,
-        _game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
-        if self.active_stage_damage_bonus > 0.0 {
-            Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))
+            UpgradeUpdateFlags::TOWER_STATS
         } else {
-            None
+            UpgradeUpdateFlags::NONE
         }
     }
 
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
-        self.apply_on_stage_start(stage, effects);
-        UpgradeUpdateFlags::TOWER_STATS
-    }
-
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Popcorn",
             crate::l10n::locale::Language::Korean => "팝콘",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.text(match locale.language {
             crate::l10n::locale::Language::English => format!(
                 "Damage lasts for {} waves with a max multiplier of {:.0}%, decreasing each wave",
@@ -92,16 +90,17 @@ mod tests {
 
     #[test]
     fn popcorn_effect_decrements_over_waves_and_expires() {
-        use crate::game_state::upgrade::tests::support;
         use crate::game_state::GameFlow;
         use crate::game_state::flow::DefenseFlow;
         use crate::game_state::tower::{Tower, TowerTemplate};
+        use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.upgrade(crate::game_state::upgrade::PopcornUpgrade::into_upgrade(
-            5.0, 5, 5,
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(5.0, 5, 5),
+            None,
         ));
-        game_state.apply_stage_start(1);
+        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 1 });
 
         game_state.flow = GameFlow::Defense(DefenseFlow::new(&game_state));
         let tower_template = TowerTemplate::new(
@@ -114,7 +113,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
 
         let expected_multipliers = [5.0, 4.0, 3.0, 2.0, 1.0, 1.0];
         for expected_multiplier in expected_multipliers {
@@ -132,4 +133,3 @@ mod tests {
         }
     }
 }
-

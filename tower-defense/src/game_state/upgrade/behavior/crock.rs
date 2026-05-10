@@ -13,7 +13,7 @@ impl CrockUpgrade {
         self.current_step as f32 * CROCK_DAMAGE_PER_STEP
     }
 
-    fn update_step_from_gold(&mut self, game_state: &GameState) -> UpgradeUpdateFlags {
+    fn update_step_from_gold(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         let next_step = game_state.gold / CROCK_GOLD_PER_DAMAGE;
         if next_step == self.current_step {
             return UpgradeUpdateFlags::NONE;
@@ -27,7 +27,6 @@ impl CrockUpgrade {
 impl UpgradeBehavior for CrockUpgrade {
     fn tower_upgrade_damage_bonus(
         &self,
-        _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
         if self.current_step > 0 {
             Some((TowerUpgradeTarget::Global, self.current_damage_bonus()))
@@ -36,15 +35,15 @@ impl UpgradeBehavior for CrockUpgrade {
         }
     }
 
-    fn on_upgrade_acquired_mut(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.update_step_from_gold(game_state)
     }
 
-    fn on_gold_earned(&mut self, game_state: &GameState, _earned: usize) -> UpgradeUpdateFlags {
+    fn on_gold_earned(&mut self, game_state: &mut GameState, _earned: usize) -> UpgradeUpdateFlags {
         self.update_step_from_gold(game_state)
     }
 
-    fn on_gold_spent(&mut self, game_state: &GameState, _spent: usize) -> UpgradeUpdateFlags {
+    fn on_gold_spent(&mut self, game_state: &mut GameState, _spent: usize) -> UpgradeUpdateFlags {
         self.update_step_from_gold(game_state)
     }
 
@@ -112,7 +111,7 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
 
         let tower_id = game_state
             .towers
@@ -128,7 +127,10 @@ mod tests {
             .calculate_projectile_damage(&[], 1.0);
 
         game_state.gold = 2500;
-        game_state.upgrade(crate::game_state::upgrade::CrockUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::CrockUpgrade::into_upgrade(),
+            None,
+        ));
 
         let after_damage = {
             let tower = game_state
@@ -138,7 +140,7 @@ mod tests {
                 .expect("expected placed tower");
             let upgrade_bonuses = game_state
                 .upgrade_state
-                .tower_upgrade_damage_bonuses(&game_state);
+                .tower_upgrade_damage_bonuses();
             tower.calculate_projectile_damage(&upgrade_bonuses, 1.0)
         };
 

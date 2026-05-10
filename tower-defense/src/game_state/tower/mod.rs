@@ -26,7 +26,7 @@ pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
     cooldown: Duration,
-    template: TowerTemplate,
+    pub template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
     cached_upgrade: CachedTowerUpgradeDamage,
@@ -78,10 +78,6 @@ impl Tower {
     }
     pub fn in_cooltime(&self) -> bool {
         self.cooldown > Duration::from_secs(0)
-    }
-
-    pub(crate) fn template_mut(&mut self) -> &mut TowerTemplate {
-        &mut self.template
     }
 
     pub(crate) fn refresh_status_effects_from_template(&mut self) {

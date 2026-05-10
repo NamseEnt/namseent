@@ -9,7 +9,6 @@ pub struct ShoppingBagUpgrade {
 impl UpgradeBehavior for ShoppingBagUpgrade {
     fn tower_upgrade_damage_bonus(
         &self,
-        _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stacks > 0 {
             Some((
@@ -21,7 +20,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         }
     }
 
-    fn on_item_bought(&mut self) -> UpgradeUpdateFlags {
+    fn on_item_bought(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.stacks += 1;
         UpgradeUpdateFlags::TOWER_STATS
     }
@@ -77,8 +76,9 @@ mod tests {
 
     #[test]
     fn shopping_bag_upgrade_activates_without_stacks() {
-        let mut state = UpgradeState::default();
-        state.upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5));
+        let state = UpgradeState::with_upgrades(vec![
+            crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5),
+        ]);
 
         assert!(
             state
@@ -95,8 +95,10 @@ mod tests {
         use crate::shop::ShopSlot;
 
         let mut gs = support::create_mock_game_state();
-        gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5));
+        gs.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5),
+            None,
+        ));
 
         let slot_id = if let GameFlow::SelectingTower(flow) = &mut gs.flow {
             match flow
@@ -122,7 +124,7 @@ mod tests {
             panic!("expected selecting tower flow");
         };
 
-        gs.purchase_shop_item(slot_id);
+        gs.action(crate::game_state::GameStateAction::PurchaseShopItem(slot_id));
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -137,7 +139,7 @@ mod tests {
             crate::MapCoord::new(0, 0),
             gs.now(),
         );
-        gs.place_tower(tower);
+        gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
 
         let placed_tower = gs.towers.iter().next().expect("expected tower placed");
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);

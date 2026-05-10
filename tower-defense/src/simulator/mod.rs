@@ -271,7 +271,10 @@ impl HeadlessGame {
                         item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
                     });
                 }
-                HistoryEventType::UpgradeAcquired { upgrade, cost: Some(cost) } => {
+                HistoryEventType::UpgradeAcquired {
+                    upgrade,
+                    cost: Some(cost),
+                } => {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,

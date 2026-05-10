@@ -6,17 +6,13 @@ pub struct CameraUpgrade;
 const CAMERA_GOLD_REWARD: usize = 50;
 
 impl UpgradeBehavior for CameraUpgrade {
-    fn on_tower_placed(&mut self, tower: &Tower) -> (TowerPlacementResult, UpgradeUpdateFlags) {
-        (
-            TowerPlacementResult {
-                gold_earn: if tower.rank().is_face() {
-                    CAMERA_GOLD_REWARD
-                } else {
-                    0
-                },
-            },
-            UpgradeUpdateFlags::RESOURCE,
-        )
+    fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
+        if tower.rank().is_face() {
+            game_state.action(crate::game_state::GameStateAction::EarnGold(CAMERA_GOLD_REWARD));
+            UpgradeUpdateFlags::RESOURCE
+        } else {
+            UpgradeUpdateFlags::NONE
+        }
     }
 
     fn l10n_name<'a>(
@@ -70,9 +66,10 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         let initial_gold = game_state.gold;
 
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
+            None,
+        ));
 
         let face_tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -84,7 +81,7 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.place_tower(face_tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(face_tower)));
 
         assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
     }
@@ -96,9 +93,10 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         let initial_gold = game_state.gold;
 
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::CameraUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
+            None,
+        ));
 
         let number_tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -110,7 +108,7 @@ mod tests {
             crate::MapCoord::new(2, 0),
             game_state.now(),
         );
-        game_state.place_tower(number_tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(number_tower)));
 
         assert_eq!(game_state.gold, initial_gold);
     }

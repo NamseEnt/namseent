@@ -4,10 +4,12 @@ mod state;
 #[cfg(test)]
 mod tests;
 mod thumbnail;
+mod tower;
 
 pub use behavior::*;
 pub use generation::*;
 pub use state::*;
+pub use tower::*;
 
 pub const MAX_GOLD_EARN_PLUS: usize = 16;
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;

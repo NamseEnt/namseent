@@ -8,20 +8,18 @@ pub struct TrophyUpgrade {
 impl UpgradeBehavior for TrophyUpgrade {
     fn on_stage_end(
         &mut self,
+        _game_state: &mut GameState,
         perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
-    ) -> (usize, UpgradeUpdateFlags) {
+    ) -> UpgradeUpdateFlags {
         if perfect_clear {
             self.perfect_clear_stacks += 1;
         }
-        (0, UpgradeUpdateFlags::TOWER_STATS)
+        UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn tower_upgrade_damage_bonus(
-        &self,
-        _game_state: &GameState,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.perfect_clear_stacks > 0 {
             Some((
                 TowerUpgradeTarget::Global,
@@ -87,9 +85,10 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state
-            .upgrade_state
-            .upgrade(crate::game_state::upgrade::TrophyUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
+            None,
+        ));
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -103,12 +102,18 @@ mod tests {
         );
         let before_damage = tower.calculate_projectile_damage(&[], 1.0);
 
-        game_state.apply_stage_end(true, 0, 0);
-        game_state.apply_stage_end(true, 0, 0);
+        game_state.action(crate::game_state::GameStateAction::StageEnd {
+            perfect_clear: true,
+            gold: 0,
+            item_count: 0,
+        });
+        game_state.action(crate::game_state::GameStateAction::StageEnd {
+            perfect_clear: true,
+            gold: 0,
+            item_count: 0,
+        });
 
-        let upgrade_bonuses = game_state
-            .upgrade_state
-            .tower_upgrade_damage_bonuses(&game_state);
+        let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
         let after_damage = tower.calculate_projectile_damage(&upgrade_bonuses, 1.0);
 
         assert!(after_damage > before_damage);
@@ -122,8 +127,10 @@ mod tests {
         let mut gs = support::create_mock_game_state();
         gs.flow =
             crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
-        gs.upgrade_state
-            .upgrade(crate::game_state::upgrade::TrophyUpgrade::into_upgrade());
+        gs.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
+            None,
+        ));
 
         crate::game_state::tick::defense_end::check_defense_end(&mut gs);
 

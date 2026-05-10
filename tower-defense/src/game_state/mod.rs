@@ -1,3 +1,4 @@
+pub(crate) mod action;
 pub mod attack;
 pub mod background;
 mod base;
@@ -9,7 +10,6 @@ mod debug_tools;
 pub mod difficulty;
 pub mod effect;
 pub mod effect_event;
-mod event_handlers;
 pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
@@ -18,6 +18,7 @@ mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
+pub(crate) use action::GameStateAction;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
@@ -686,7 +687,7 @@ fn create_initial_game_state() -> GameState {
 
     // Start with selecting tower flow and default shop mode (normal shop).
     game_state.goto_selecting_tower();
-    game_state.record_game_start();
+    game_state.action(GameStateAction::GameStart);
     game_state
 }
 
@@ -827,7 +828,9 @@ pub fn is_boss_stage(stage: usize) -> bool {
 /// Make sure that the tower can be placed at the given coord.
 pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
     crate::game_state::mutate_game_state(move |game_state| {
-        game_state.place_tower(tower);
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
         game_state.hand.delete_slots(&[placing_tower_slot_id]);
 
         // Auto-select the first card (tower or barricade) if available

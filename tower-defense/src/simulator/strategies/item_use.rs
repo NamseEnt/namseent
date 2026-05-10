@@ -41,7 +41,7 @@ fn use_grant_barricades(game_state: &mut GameState) {
         };
 
         let item = game_state.items.remove(idx);
-        game_state.use_item(&item);
+        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
     }
 }
 
@@ -64,7 +64,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
         };
 
         let item = game_state.items.remove(idx);
-        game_state.use_item(&item);
+        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
     }
 }
 
@@ -80,6 +80,6 @@ fn use_shield_items(game_state: &mut GameState) {
         };
 
         let item = game_state.items.remove(idx);
-        game_state.use_item(&item);
+        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
     }
 }

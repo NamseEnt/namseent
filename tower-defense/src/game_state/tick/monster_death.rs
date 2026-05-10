@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::upgrade::UpgradeBehavior;
 
 pub fn handle_monster_death(
     game_state: &mut GameState,
@@ -51,8 +52,16 @@ pub fn handle_monster_death(
             )),
         ));
 
-    game_state.earn_gold(earn);
-    if game_state.upgrade_state.on_monster_death() {
+    game_state.action(crate::game_state::GameStateAction::EarnGold(earn));
+    let mut recovered = false;
+    let mut index = 0;
+    while index < game_state.upgrade_state.upgrades.len() {
+        let mut upgrade = game_state.upgrade_state.upgrades.remove(index);
+        recovered |= upgrade.on_monster_death(game_state);
+        game_state.upgrade_state.upgrades.insert(index, upgrade);
+        index += 1;
+    }
+    if recovered {
         game_state.hp = (game_state.hp + 1.0).min(game_state.max_hp());
     }
     game_state.monsters.swap_remove(target_idx);

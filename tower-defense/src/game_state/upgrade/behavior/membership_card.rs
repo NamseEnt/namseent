@@ -6,20 +6,14 @@ pub struct MembershipCardUpgrade {
 }
 
 impl UpgradeBehavior for MembershipCardUpgrade {
-    fn apply_on_stage_start(&mut self, _stage: usize, effects: &mut StageStartEffects) {
+    fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.pending_free_shop {
-            effects.free_shop_this_stage = true;
+            game_state.stage_modifiers.set_free_shop_this_stage(true);
             self.pending_free_shop = false;
+            UpgradeUpdateFlags::RESOURCE
+        } else {
+            UpgradeUpdateFlags::NONE
         }
-    }
-
-    fn on_stage_start(
-        &mut self,
-        stage: usize,
-        effects: &mut StageStartEffects,
-    ) -> UpgradeUpdateFlags {
-        self.apply_on_stage_start(stage, effects);
-        UpgradeUpdateFlags::RESOURCE
     }
 
     fn l10n_name<'a>(
@@ -71,9 +65,12 @@ mod tests {
         use crate::shop::ShopSlot;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.upgrade(crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade());
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade(),
+            None,
+        ));
 
-        game_state.apply_stage_start(3);
+        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 3 });
         assert!(game_state.stage_modifiers.is_free_shop_this_stage());
 
         game_state.goto_selecting_tower();
@@ -103,7 +100,9 @@ mod tests {
             panic!("expected selecting tower flow");
         };
 
-        game_state.purchase_shop_item(slot_id);
+        game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            slot_id,
+        ));
         assert_eq!(game_state.gold, initial_gold);
         assert!(
             game_state

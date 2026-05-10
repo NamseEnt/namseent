@@ -13,7 +13,6 @@ impl UpgradeBehavior for MaceUpgrade {
 
     fn tower_upgrade_damage_bonus(
         &self,
-        _game_state: &GameState,
     ) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::Suit {
@@ -23,7 +22,7 @@ impl UpgradeBehavior for MaceUpgrade {
         ))
     }
 
-    fn on_upgrade_acquired(&self, _game_state: &GameState) -> UpgradeUpdateFlags {
+    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
