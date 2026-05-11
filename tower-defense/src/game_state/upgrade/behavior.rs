@@ -4,6 +4,7 @@ use crate::game_state::GameState;
 use crate::game_state::tower::Tower;
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::*;
+use enum_dispatch::enum_dispatch;
 
 // ============================================================================
 // Upgrade Trait and Structs
@@ -49,6 +50,7 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
 }
 
 /// Common trait for all upgrade behaviors
+#[enum_dispatch]
 pub trait UpgradeBehavior {
     fn on_tower_placed(
         &mut self,
@@ -129,7 +131,11 @@ pub trait UpgradeBehavior {
         Self: Sized,
         Upgrade: From<Self>,
     {
-        acquire(game_state, self.into())
+        merge_for_acquire(game_state, self.into())
+    }
+
+    fn merge_for_acquire(&mut self, _incoming: Upgrade) -> bool {
+        false
     }
 
     fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -169,20 +175,6 @@ pub trait UpgradeBehavior {
     );
 }
 
-pub(super) fn acquire(game_state: &mut GameState, incoming: Upgrade) -> UpgradeUpdateFlags {
-    let index = game_state.upgrade_state.upgrades.len();
-    game_state.upgrade_state.upgrades.push(incoming);
-
-    let mut target_upgrade = game_state.upgrade_state.upgrades.remove(index);
-    let flags = target_upgrade.on_upgrade_acquired_effect(game_state)
-        | UpgradeUpdateFlags::REVISION_REQUIRED;
-    game_state
-        .upgrade_state
-        .upgrades
-        .insert(index, target_upgrade);
-    flags
-}
-
 pub(super) fn merge_for_acquire(
     game_state: &mut GameState,
     incoming: Upgrade,
@@ -214,57 +206,6 @@ pub(super) fn merge_for_acquire(
         .insert(index, target_upgrade);
     flags
 }
-
-macro_rules! impl_upgrade_from {
-    ($($ty:ident => $variant:ident),* $(,)?) => {
-        $(impl From<$ty> for Upgrade {
-            fn from(value: $ty) -> Self {
-                Upgrade::$variant(value)
-            }
-        })*
-    };
-}
-
-impl_upgrade_from!(
-    CatUpgrade => Cat,
-    StaffUpgrade => Staff,
-    LongSwordUpgrade => LongSword,
-    MaceUpgrade => Mace,
-    ClubSwordUpgrade => ClubSword,
-    BackpackUpgrade => Backpack,
-    DiceBundleUpgrade => DiceBundle,
-    TricycleUpgrade => Tricycle,
-    EnergyDrinkUpgrade => EnergyDrink,
-    PerfectPotteryUpgrade => PerfectPottery,
-    SingleChopstickUpgrade => SingleChopstick,
-    PairChopsticksUpgrade => PairChopsticks,
-    FountainPenUpgrade => FountainPen,
-    BrushUpgrade => Brush,
-    FourLeafCloverUpgrade => FourLeafClover,
-    RabbitUpgrade => Rabbit,
-    BlackWhiteUpgrade => BlackWhite,
-    TrophyUpgrade => Trophy,
-    CrockUpgrade => Crock,
-    DemolitionHammerUpgrade => DemolitionHammer,
-    MetronomeUpgrade => Metronome,
-    TapeUpgrade => Tape,
-    NameTagUpgrade => NameTag,
-    ShoppingBagUpgrade => ShoppingBag,
-    ResolutionUpgrade => Resolution,
-    MirrorUpgrade => Mirror,
-    IceCreamUpgrade => IceCream,
-    SpannerUpgrade => Spanner,
-    PeaUpgrade => Pea,
-    SlotMachineUpgrade => SlotMachine,
-    PiggyBankUpgrade => PiggyBank,
-    CameraUpgrade => Camera,
-    GiftBoxUpgrade => GiftBox,
-    FangUpgrade => Fang,
-    PopcornUpgrade => Popcorn,
-    MembershipCardUpgrade => MembershipCard,
-    EraserUpgrade => Eraser,
-    BrokenPotteryUpgrade => BrokenPottery,
-);
 
 #[derive(Clone, Copy)]
 pub(super) struct UpgradeDefinition {
@@ -374,6 +315,7 @@ pub use tape::*;
 pub use tricycle::*;
 pub use trophy::*;
 
+#[enum_dispatch(UpgradeBehavior)]
 #[derive(Debug, Clone, Copy, State, PartialEq, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(
     derive(
@@ -478,184 +420,8 @@ impl UpgradeDiscriminants {
 }
 
 impl Upgrade {
-    pub fn behavior_mut(&mut self) -> &mut dyn UpgradeBehavior {
-        match self {
-            Upgrade::Cat(upgrade) => upgrade,
-            Upgrade::Staff(upgrade) => upgrade,
-            Upgrade::LongSword(upgrade) => upgrade,
-            Upgrade::Mace(upgrade) => upgrade,
-            Upgrade::ClubSword(upgrade) => upgrade,
-            Upgrade::Backpack(upgrade) => upgrade,
-            Upgrade::DiceBundle(upgrade) => upgrade,
-            Upgrade::Tricycle(upgrade) => upgrade,
-            Upgrade::EnergyDrink(upgrade) => upgrade,
-            Upgrade::PerfectPottery(upgrade) => upgrade,
-            Upgrade::SingleChopstick(upgrade) => upgrade,
-            Upgrade::PairChopsticks(upgrade) => upgrade,
-            Upgrade::FountainPen(upgrade) => upgrade,
-            Upgrade::Brush(upgrade) => upgrade,
-            Upgrade::FourLeafClover(upgrade) => upgrade,
-            Upgrade::Rabbit(upgrade) => upgrade,
-            Upgrade::BlackWhite(upgrade) => upgrade,
-            Upgrade::Trophy(upgrade) => upgrade,
-            Upgrade::Crock(upgrade) => upgrade,
-            Upgrade::DemolitionHammer(upgrade) => upgrade,
-            Upgrade::Metronome(upgrade) => upgrade,
-            Upgrade::Tape(upgrade) => upgrade,
-            Upgrade::NameTag(upgrade) => upgrade,
-            Upgrade::ShoppingBag(upgrade) => upgrade,
-            Upgrade::Resolution(upgrade) => upgrade,
-            Upgrade::Mirror(upgrade) => upgrade,
-            Upgrade::IceCream(upgrade) => upgrade,
-            Upgrade::Spanner(upgrade) => upgrade,
-            Upgrade::Pea(upgrade) => upgrade,
-            Upgrade::SlotMachine(upgrade) => upgrade,
-            Upgrade::PiggyBank(upgrade) => upgrade,
-            Upgrade::Camera(upgrade) => upgrade,
-            Upgrade::GiftBox(upgrade) => upgrade,
-            Upgrade::Fang(upgrade) => upgrade,
-            Upgrade::Popcorn(upgrade) => upgrade,
-            Upgrade::MembershipCard(upgrade) => upgrade,
-            Upgrade::Eraser(upgrade) => upgrade,
-            Upgrade::BrokenPottery(upgrade) => upgrade,
-        }
-    }
-
-    pub fn behavior(&self) -> &dyn UpgradeBehavior {
-        match self {
-            Upgrade::Cat(upgrade) => upgrade,
-            Upgrade::Staff(upgrade) => upgrade,
-            Upgrade::LongSword(upgrade) => upgrade,
-            Upgrade::Mace(upgrade) => upgrade,
-            Upgrade::ClubSword(upgrade) => upgrade,
-            Upgrade::Backpack(upgrade) => upgrade,
-            Upgrade::DiceBundle(upgrade) => upgrade,
-            Upgrade::Tricycle(upgrade) => upgrade,
-            Upgrade::EnergyDrink(upgrade) => upgrade,
-            Upgrade::PerfectPottery(upgrade) => upgrade,
-            Upgrade::SingleChopstick(upgrade) => upgrade,
-            Upgrade::PairChopsticks(upgrade) => upgrade,
-            Upgrade::FountainPen(upgrade) => upgrade,
-            Upgrade::Brush(upgrade) => upgrade,
-            Upgrade::FourLeafClover(upgrade) => upgrade,
-            Upgrade::Rabbit(upgrade) => upgrade,
-            Upgrade::BlackWhite(upgrade) => upgrade,
-            Upgrade::Trophy(upgrade) => upgrade,
-            Upgrade::Crock(upgrade) => upgrade,
-            Upgrade::DemolitionHammer(upgrade) => upgrade,
-            Upgrade::Metronome(upgrade) => upgrade,
-            Upgrade::Tape(upgrade) => upgrade,
-            Upgrade::NameTag(upgrade) => upgrade,
-            Upgrade::ShoppingBag(upgrade) => upgrade,
-            Upgrade::Resolution(upgrade) => upgrade,
-            Upgrade::Mirror(upgrade) => upgrade,
-            Upgrade::IceCream(upgrade) => upgrade,
-            Upgrade::Spanner(upgrade) => upgrade,
-            Upgrade::Pea(upgrade) => upgrade,
-            Upgrade::SlotMachine(upgrade) => upgrade,
-            Upgrade::PiggyBank(upgrade) => upgrade,
-            Upgrade::Camera(upgrade) => upgrade,
-            Upgrade::GiftBox(upgrade) => upgrade,
-            Upgrade::Fang(upgrade) => upgrade,
-            Upgrade::Popcorn(upgrade) => upgrade,
-            Upgrade::MembershipCard(upgrade) => upgrade,
-            Upgrade::Eraser(upgrade) => upgrade,
-            Upgrade::BrokenPottery(upgrade) => upgrade,
-        }
-    }
-
-    pub fn as_mut(&mut self) -> &mut dyn UpgradeBehavior {
-        self.behavior_mut()
-    }
-
-    pub fn as_ref(&self) -> &dyn UpgradeBehavior {
-        self.behavior()
-    }
-
     pub fn on_upgrade_acquired(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        match self {
-            Upgrade::Cat(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Staff(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::LongSword(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Mace(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::ClubSword(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Backpack(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::DiceBundle(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Tricycle(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::EnergyDrink(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::PerfectPottery(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::SingleChopstick(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::PairChopsticks(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::FountainPen(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Brush(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::FourLeafClover(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Rabbit(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::BlackWhite(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Trophy(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Crock(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::DemolitionHammer(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Metronome(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Tape(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::NameTag(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::ShoppingBag(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Resolution(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Mirror(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::IceCream(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Spanner(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Pea(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::SlotMachine(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::PiggyBank(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Camera(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::GiftBox(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Fang(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Popcorn(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::MembershipCard(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::Eraser(upgrade) => upgrade.on_upgrade_acquired(game_state),
-            Upgrade::BrokenPottery(upgrade) => upgrade.on_upgrade_acquired(game_state),
-        }
-    }
-
-    pub fn on_stage_start(
-        &mut self,
-        game_state: &mut GameState,
-        stage: usize,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_stage_start(game_state, stage)
-    }
-
-    pub fn on_tower_placed(
-        &mut self,
-        game_state: &mut GameState,
-        tower: &Tower,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_placed(game_state, tower)
-    }
-
-    pub fn clear_shield_on_stage_start(&self) -> bool {
-        self.behavior().clear_shield_on_stage_start()
-    }
-
-    pub fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_upgrade_acquired_effect(game_state)
-    }
-
-    pub fn on_stage_end(
-        &mut self,
-        game_state: &mut GameState,
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut()
-            .on_stage_end(game_state, perfect_clear, gold, item_count)
-    }
-
-    pub fn on_item_bought(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_item_bought(game_state)
-    }
-
-    pub fn on_tower_removed(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_removed(game_state)
+        UpgradeBehavior::on_upgrade_acquired(self, game_state)
     }
 
     pub fn name_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
@@ -664,163 +430,6 @@ impl Upgrade {
 
     pub fn description_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
         crate::l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(self)
-    }
-}
-
-impl UpgradeBehavior for Upgrade {
-    fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_stage_start(game_state, stage)
-    }
-
-    fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_placed(game_state, tower)
-    }
-
-    fn on_tower_removed(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_tower_removed(game_state)
-    }
-
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
-        self.behavior().tower_upgrade_damage_bonus()
-    }
-
-    fn on_item_bought(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_item_bought(game_state)
-    }
-
-    fn on_gold_earned(&mut self, game_state: &mut GameState, earned: usize) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_gold_earned(game_state, earned)
-    }
-
-    fn on_gold_spent(&mut self, game_state: &mut GameState, spent: usize) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_gold_spent(game_state, spent)
-    }
-
-    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.behavior_mut().on_upgrade_acquired_effect(game_state)
-    }
-
-    fn on_monster_death(&mut self, game_state: &mut GameState) -> bool {
-        self.behavior_mut().on_monster_death(game_state)
-    }
-
-    fn on_stage_end(
-        &mut self,
-        game_state: &mut GameState,
-        perfect_clear: bool,
-        gold: usize,
-        item_count: usize,
-    ) -> UpgradeUpdateFlags {
-        self.behavior_mut()
-            .on_stage_end(game_state, perfect_clear, gold, item_count)
-    }
-
-    fn max_hp_plus(&self) -> f32 {
-        self.behavior().max_hp_plus()
-    }
-
-    fn gold_earn_plus(&self) -> usize {
-        self.behavior().gold_earn_plus()
-    }
-
-    fn shop_slot_expand(&self) -> usize {
-        self.behavior().shop_slot_expand()
-    }
-
-    fn dice_chance_plus(&self) -> usize {
-        self.behavior().dice_chance_plus()
-    }
-
-    fn shop_item_price_minus(&self) -> usize {
-        self.behavior().shop_item_price_minus()
-    }
-
-    fn shorten_straight_flush_to_4_cards(&self) -> bool {
-        self.behavior().shorten_straight_flush_to_4_cards()
-    }
-
-    fn skip_rank_for_straight(&self) -> bool {
-        self.behavior().skip_rank_for_straight()
-    }
-
-    fn treat_suits_as_same(&self) -> bool {
-        self.behavior().treat_suits_as_same()
-    }
-
-    fn removed_number_rank_count(&self) -> usize {
-        self.behavior().removed_number_rank_count()
-    }
-
-    fn is_tower_damage_upgrade(&self) -> bool {
-        self.behavior().is_tower_damage_upgrade()
-    }
-
-    fn clear_shield_on_stage_start(&self) -> bool {
-        self.behavior().clear_shield_on_stage_start()
-    }
-
-    fn l10n_name<'a>(
-        &self,
-        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
-        locale: &crate::l10n::Locale,
-    ) {
-        self.behavior().l10n_name(builder, locale)
-    }
-
-    fn l10n_description<'a>(
-        &self,
-        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
-        locale: &crate::l10n::Locale,
-    ) {
-        self.behavior().l10n_description(builder, locale)
-    }
-}
-
-impl Upgrade {
-    pub(crate) fn merge_for_acquire(&mut self, incoming: Upgrade) -> bool {
-        match (self, incoming) {
-            (Upgrade::Staff(current), Upgrade::Staff(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::LongSword(current), Upgrade::LongSword(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::Mace(current), Upgrade::Mace(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::ClubSword(current), Upgrade::ClubSword(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::Tricycle(current), Upgrade::Tricycle(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::SingleChopstick(current), Upgrade::SingleChopstick(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::PairChopsticks(current), Upgrade::PairChopsticks(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::FountainPen(current), Upgrade::FountainPen(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::Brush(current), Upgrade::Brush(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            (Upgrade::BrokenPottery(current), Upgrade::BrokenPottery(next)) => {
-                current.damage_bonus_pct += next.damage_bonus_pct;
-                true
-            }
-            _ => false,
-        }
     }
 }
 

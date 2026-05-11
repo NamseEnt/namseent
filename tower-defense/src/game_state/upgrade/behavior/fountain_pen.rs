@@ -11,11 +11,13 @@ impl UpgradeBehavior for FountainPenUpgrade {
         true
     }
 
-    fn on_upgrade_acquired(self, game_state: &mut GameState) -> UpgradeUpdateFlags
-    where
-        Self: Sized,
-    {
-        merge_for_acquire(game_state, self.into())
+    fn merge_for_acquire(&mut self, incoming: Upgrade) -> bool {
+        if let Upgrade::FountainPen(next) = incoming {
+            self.damage_bonus_pct += next.damage_bonus_pct;
+            true
+        } else {
+            false
+        }
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
