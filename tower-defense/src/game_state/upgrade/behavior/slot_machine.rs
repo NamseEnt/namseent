@@ -11,7 +11,7 @@ impl UpgradeBehavior for SlotMachineUpgrade {
         if self.next_round_dice > 0 {
             game_state.left_dice += self.next_round_dice;
             self.next_round_dice = 0;
-            UpgradeUpdateFlags::RESOURCE
+            UpgradeUpdateFlags::NONE
         } else {
             UpgradeUpdateFlags::NONE
         }

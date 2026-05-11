@@ -16,7 +16,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         let bonus_gold = item_count * GIFT_BOX_GOLD_PER_ITEM;
         if bonus_gold > 0 {
             game_state.action(crate::game_state::GameStateAction::EarnGold(bonus_gold));
-            UpgradeUpdateFlags::RESOURCE
+            UpgradeUpdateFlags::NONE
         } else {
             UpgradeUpdateFlags::NONE
         }

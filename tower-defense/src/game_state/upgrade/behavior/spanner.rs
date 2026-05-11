@@ -4,6 +4,11 @@ use super::*;
 pub struct SpannerUpgrade;
 
 impl UpgradeBehavior for SpannerUpgrade {
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::CACHE
+    }
+
     fn clear_shield_on_stage_start(&self) -> bool {
         false
     }

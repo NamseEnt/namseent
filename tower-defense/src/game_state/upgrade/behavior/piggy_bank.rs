@@ -21,7 +21,7 @@ impl UpgradeBehavior for PiggyBankUpgrade {
         };
         if bonus_gold > 0 {
             game_state.action(crate::game_state::GameStateAction::EarnGold(bonus_gold));
-            UpgradeUpdateFlags::RESOURCE
+            UpgradeUpdateFlags::NONE
         } else {
             UpgradeUpdateFlags::NONE
         }

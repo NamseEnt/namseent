@@ -20,7 +20,7 @@ impl CrockUpgrade {
         }
 
         self.current_step = next_step;
-        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION_REQUIRED
+        UpgradeUpdateFlags::TOWER_STATS
     }
 }
 
@@ -34,8 +34,10 @@ impl UpgradeBehavior for CrockUpgrade {
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.upgrade_state.upgrades.push(self.into());
-        UpgradeUpdateFlags::TOWER_STATS
+        let mut upgrade = self;
+        let flags = upgrade.update_step_from_gold(game_state);
+        game_state.upgrade_state.upgrades.push(upgrade.into());
+        flags
     }
 
     fn on_gold_earned(&mut self, game_state: &mut GameState, _earned: usize) -> UpgradeUpdateFlags {

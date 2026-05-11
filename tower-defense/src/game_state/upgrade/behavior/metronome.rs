@@ -7,16 +7,11 @@ pub struct MetronomeUpgrade {
 
 impl UpgradeBehavior for MetronomeUpgrade {
     fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
-        let before = self.start_stage;
         let start = self.start_stage.get_or_insert(stage);
         if stage >= *start && (stage - *start).is_multiple_of(2) {
             _game_state.left_dice += 1;
         }
-        if self.start_stage != before {
-            UpgradeUpdateFlags::REVISION_REQUIRED
-        } else {
-            UpgradeUpdateFlags::NONE
-        }
+        UpgradeUpdateFlags::NONE
     }
 
     fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
@@ -80,7 +75,7 @@ mod tests {
         let first_flags = upgrade.on_stage_start(&mut game_state, 1);
         let second_flags = upgrade.on_stage_start(&mut game_state, 2);
 
-        assert_eq!(first_flags, UpgradeUpdateFlags::REVISION_REQUIRED);
+        assert_eq!(first_flags, UpgradeUpdateFlags::NONE);
         assert_eq!(second_flags, UpgradeUpdateFlags::NONE);
     }
 }

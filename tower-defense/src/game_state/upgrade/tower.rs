@@ -41,7 +41,10 @@ impl TowerUpgradeDamageBonus {
 
 impl TowerUpgradeTarget {
     fn applies_to_tower(&self, tower: &Tower) -> bool {
-        self.applies_to_tower_template(&tower.template)
+        match self {
+            TowerUpgradeTarget::TowerId { tower_id } => tower.id() == *tower_id,
+            _ => self.applies_to_tower_template(&tower.template),
+        }
     }
 
     pub fn applies_to_tower_template(

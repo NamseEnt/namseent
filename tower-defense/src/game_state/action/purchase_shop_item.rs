@@ -19,7 +19,13 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
 
     match &slot_data.slot {
         ShopSlot::Item { item, cost } => {
-            if game_state.gold < *cost {
+            let cost_value = if game_state.stage_modifiers.is_free_shop_this_stage() {
+                0
+            } else {
+                *cost
+            };
+
+            if game_state.gold < cost_value {
                 return;
             }
 
@@ -31,7 +37,6 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             }
 
             let item_clone = item.clone();
-            let cost_value = *cost;
 
             slot_data.purchased = true;
             slot_data.start_exit_animation(Instant::now());
@@ -46,7 +51,13 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             game_state.action(GameStateAction::SpendGold(cost_value));
         }
         ShopSlot::Upgrade { upgrade, cost } => {
-            if game_state.gold < *cost {
+            let cost_value = if game_state.stage_modifiers.is_free_shop_this_stage() {
+                0
+            } else {
+                *cost
+            };
+
+            if game_state.gold < cost_value {
                 return;
             }
 
@@ -58,7 +69,6 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             }
 
             let upgrade_value = *upgrade;
-            let cost_value = *cost;
 
             slot_data.purchased = true;
             slot_data.start_exit_animation(Instant::now());

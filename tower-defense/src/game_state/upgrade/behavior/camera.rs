@@ -8,8 +8,10 @@ const CAMERA_GOLD_REWARD: usize = 50;
 impl UpgradeBehavior for CameraUpgrade {
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if tower.rank().is_face() {
-            game_state.action(crate::game_state::GameStateAction::EarnGold(CAMERA_GOLD_REWARD));
-            UpgradeUpdateFlags::RESOURCE
+            game_state.action(crate::game_state::GameStateAction::EarnGold(
+                CAMERA_GOLD_REWARD,
+            ));
+            UpgradeUpdateFlags::NONE
         } else {
             UpgradeUpdateFlags::NONE
         }
@@ -81,7 +83,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(face_tower)));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            face_tower,
+        )));
 
         assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
     }
@@ -108,7 +112,9 @@ mod tests {
             crate::MapCoord::new(2, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(number_tower)));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            number_tower,
+        )));
 
         assert_eq!(game_state.gold, initial_gold);
     }

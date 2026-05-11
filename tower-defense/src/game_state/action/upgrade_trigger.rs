@@ -31,33 +31,20 @@ pub(super) enum UpgradeTriggerEvent<'a> {
 
 impl GameState {
     fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
-        if flags.requires_revision() {
+        if flags != UpgradeUpdateFlags::NONE {
             self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
             self.upgrade_state.rebuild_cache();
         }
 
         if flags.contains(UpgradeUpdateFlags::TOWER_STATS) {
             let upgrade_bonuses = self.upgrade_state.tower_upgrade_damage_bonuses();
-            let revision = self.upgrade_state.revision;
             for tower in self.towers.iter_mut() {
-                tower.refresh_cached_upgrade_damage(revision, &upgrade_bonuses);
+                tower.refresh_cached_upgrade_damage(self.upgrade_state.revision, &upgrade_bonuses);
             }
-        }
-
-        if flags.contains(UpgradeUpdateFlags::RESOURCE) {
-            crate::shop::refresh_shop(self);
-        }
-
-        if flags.contains(UpgradeUpdateFlags::PLAYER_STATS) {
-            self.hp = self.hp.min(self.max_hp());
         }
 
         if flags.contains(UpgradeUpdateFlags::HEAL_TO_FULL) {
             self.hp = self.max_hp();
-        }
-
-        if flags.contains(UpgradeUpdateFlags::CARD_OPTIONS) {
-            // CARD_OPTIONS is reserved for future card selection / option refresh logic.
         }
     }
 
@@ -116,7 +103,7 @@ mod tests {
     use namui::Instant;
 
     #[test]
-    fn resource_flag_refreshes_shop_when_selecting_tower() {
+    fn camera_gold_earning_does_not_refresh_shop_when_selecting_tower() {
         let mut game_state = create_initial_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             Upgrade::Camera(crate::game_state::upgrade::CameraUpgrade),
@@ -138,31 +125,8 @@ mod tests {
             _ => panic!("expected selecting tower flow"),
         };
 
-        assert!(new_ids.len() >= old_ids.len());
-        assert!(new_ids.iter().any(|id| !old_ids.contains(id)));
+        assert_eq!(new_ids, old_ids);
         assert_eq!(game_state.gold, game_state.config.player.starting_gold + 50);
-    }
-
-    #[test]
-    fn player_stats_flag_clamps_hp_to_max() {
-        let mut game_state = create_initial_game_state();
-        game_state.hp = game_state.max_hp() + 10.0;
-        game_state.refresh_upgrade_trigger_side_effects(
-            crate::game_state::upgrade::UpgradeUpdateFlags::PLAYER_STATS,
-        );
-        assert_eq!(game_state.hp, game_state.max_hp());
-    }
-
-    #[test]
-    fn revision_required_flag_increments_upgrade_revision() {
-        let mut game_state = create_initial_game_state();
-        let before = game_state.upgrade_state.revision;
-
-        game_state.refresh_upgrade_trigger_side_effects(
-            crate::game_state::upgrade::UpgradeUpdateFlags::REVISION_REQUIRED,
-        );
-
-        assert_eq!(game_state.upgrade_state.revision, before + 1);
     }
 
     #[test]

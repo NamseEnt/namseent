@@ -10,7 +10,7 @@ impl UpgradeBehavior for MembershipCardUpgrade {
         if self.pending_free_shop {
             game_state.stage_modifiers.set_free_shop_this_stage(true);
             self.pending_free_shop = false;
-            UpgradeUpdateFlags::RESOURCE
+            UpgradeUpdateFlags::NONE
         } else {
             UpgradeUpdateFlags::NONE
         }

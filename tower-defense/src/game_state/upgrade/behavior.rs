@@ -16,18 +16,11 @@ pub struct UpgradeUpdateFlags(u8);
 impl UpgradeUpdateFlags {
     pub const NONE: Self = Self(0);
     pub const TOWER_STATS: Self = Self(1 << 0);
-    pub const CARD_OPTIONS: Self = Self(1 << 1);
-    pub const RESOURCE: Self = Self(1 << 2);
-    pub const PLAYER_STATS: Self = Self(1 << 3);
-    pub const REVISION_REQUIRED: Self = Self(1 << 4);
-    pub const HEAL_TO_FULL: Self = Self(1 << 5);
+    pub const CACHE: Self = Self(1 << 1);
+    pub const HEAL_TO_FULL: Self = Self(1 << 2);
 
     pub fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
-    }
-
-    pub fn requires_revision(&self) -> bool {
-        self.contains(Self::TOWER_STATS) || self.contains(Self::REVISION_REQUIRED)
     }
 }
 
