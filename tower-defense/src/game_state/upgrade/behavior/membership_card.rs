@@ -70,10 +70,8 @@ mod tests {
             None,
         ));
 
-        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 3 });
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 3 });
         assert!(game_state.stage_modifiers.is_free_shop_this_stage());
-
-        game_state.goto_selecting_tower();
         let initial_gold = game_state.gold;
 
         let slot_id = if let GameFlow::SelectingTower(flow) = &mut game_state.flow {

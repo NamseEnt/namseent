@@ -37,8 +37,8 @@ pub enum HistoryEventType {
         left_top: MapCoord,
     },
 
-    TowerRemoved {
-        left_top: MapCoord,
+    TowerRemovedById {
+        tower_id: usize,
     },
 
     DamageTaken {

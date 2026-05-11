@@ -41,9 +41,13 @@ impl Component for TreasureSelectionUi {
             && modal_scale < 0.02
         {
             mutate_game_state(move |gs| {
-                if let GameFlow::TreasureSelection(_) = gs.flow {
-                    gs.select_treasure(selected_index);
+                if let GameFlow::TreasureSelection(treasure_flow) = &gs.flow
+                    && selected_index < treasure_flow.options.len()
+                {
+                    let upgrade = treasure_flow.options[selected_index];
+                    gs.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
                 }
+                gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
             });
             return;
         }

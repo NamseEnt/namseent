@@ -7,9 +7,7 @@ pub struct ShoppingBagUpgrade {
 }
 
 impl UpgradeBehavior for ShoppingBagUpgrade {
-    fn tower_upgrade_damage_bonus(
-        &self,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stacks > 0 {
             Some((
                 TowerUpgradeTarget::Global,
@@ -124,14 +122,18 @@ mod tests {
             panic!("expected selecting tower flow");
         };
 
-        gs.action(crate::game_state::GameStateAction::PurchaseShopItem(slot_id));
+        gs.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            slot_id,
+        ));
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
             crate::card::Suit::Hearts,
             crate::card::Rank::Two,
         );
-        gs.goto_placing_tower(tower_template);
+        gs.action(crate::game_state::GameStateAction::StartPlacingTower(
+            tower_template,
+        ));
 
         let placed_template = support::first_hand_tower_template(&gs);
         let tower = crate::game_state::tower::Tower::new(
@@ -139,7 +141,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             gs.now(),
         );
-        gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
+        gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
 
         let placed_tower = gs.towers.iter().next().expect("expected tower placed");
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);

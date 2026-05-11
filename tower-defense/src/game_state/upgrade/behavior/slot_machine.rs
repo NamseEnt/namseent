@@ -77,14 +77,14 @@ mod tests {
             None,
         ));
 
-        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 1 });
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 1 });
         assert_eq!(
             game_state.left_dice,
             game_state.max_dice_chance() + 10,
             "slot machine should add extra dice on the first stage start",
         );
 
-        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 2 });
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 2 });
         assert_eq!(
             game_state.left_dice,
             game_state.max_dice_chance(),

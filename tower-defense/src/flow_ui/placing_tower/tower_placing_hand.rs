@@ -76,7 +76,7 @@ impl Component for TowerPlacingHand {
                                                         wh,
                                                         &|| {
                                                             mutate_game_state(|state| {
-                                                                state.goto_defense();
+                                                                state.action(crate::game_state::GameStateAction::FlowDefense);
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {

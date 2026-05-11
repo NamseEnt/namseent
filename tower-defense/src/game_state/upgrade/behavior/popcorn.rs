@@ -100,7 +100,7 @@ mod tests {
             crate::game_state::upgrade::PopcornUpgrade::into_upgrade(5.0, 5, 5),
             None,
         ));
-        game_state.action(crate::game_state::GameStateAction::StageStart { stage: 1 });
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 1 });
 
         game_state.flow = GameFlow::Defense(DefenseFlow::new(&game_state));
         let tower_template = TowerTemplate::new(

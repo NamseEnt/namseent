@@ -161,7 +161,9 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     // Step 2: Place expected tower
     let expected_tower_kind = get_expected_tower_for_stage(gs.stage);
     let template = TowerTemplate::new(expected_tower_kind, Suit::Spades, Rank::Ace);
-    gs.goto_placing_tower(template);
+    gs.action(crate::game_state::GameStateAction::StartPlacingTower(
+        template,
+    ));
 
     // Step 3: Apply expected upgrade
     let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(gs.stage);
@@ -176,7 +178,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     place_selected_tower_in_spiral(gs);
 
     // Step 5: Go to defense
-    gs.goto_defense();
+    gs.action(crate::game_state::GameStateAction::StartDefense);
 
     // Store the hp before defense starts for later comparison
     let mut state = get_balance_state().unwrap();
@@ -262,6 +264,6 @@ pub fn check_and_adjust_hp_balance(gs: &mut crate::game_state::GameState) {
         state.display_text = format!("HP Balance: DONE - final_hp={:.2}", final_hp);
         set_balance_state(Some(state));
         gs.stage += 1;
-        gs.goto_next_stage();
+        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
     }
 }

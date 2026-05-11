@@ -73,7 +73,7 @@ impl CardRerollStrategy for SmartRerollStrategy {
             &game_state.config,
         );
 
-        game_state.goto_placing_tower(tower_template);
+        game_state.action(crate::game_state::GameStateAction::StartPlacingTower(tower_template));
     }
 }
 

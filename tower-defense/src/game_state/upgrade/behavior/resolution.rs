@@ -107,7 +107,9 @@ mod tests {
             crate::card::Suit::Spades,
             crate::card::Rank::Ace,
         );
-        game_state.goto_placing_tower(template);
+        game_state.action(crate::game_state::GameStateAction::StartPlacingTower(
+            template,
+        ));
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::Resolution(upgrade) = upgrade {

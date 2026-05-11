@@ -83,13 +83,13 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
             }
 
             if game_state.hand.is_empty() {
-                game_state.goto_defense();
+                game_state.action(crate::game_state::GameStateAction::StartDefense);
                 break;
             }
         }
 
         if matches!(game_state.flow, GameFlow::PlacingTower) {
-            game_state.goto_defense();
+            game_state.action(crate::game_state::GameStateAction::StartDefense);
         }
     }
 }

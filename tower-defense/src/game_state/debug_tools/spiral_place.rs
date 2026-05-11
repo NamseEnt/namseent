@@ -178,7 +178,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
         }
 
         if gs.hand.is_empty() {
-            gs.goto_defense();
+            gs.action(crate::game_state::GameStateAction::StartDefense);
         }
     } else {
         println!("[Spiral Place] No placement available for this plan iteration.");

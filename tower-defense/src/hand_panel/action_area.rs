@@ -173,14 +173,17 @@ impl Component for HandActionArea {
 
                         game_state.left_dice -= 1;
                         game_state.rerolled_count += 1;
-                        game_state.action(crate::game_state::GameStateAction::TakeDamage(health_cost as f32));
+                        game_state.action(crate::game_state::GameStateAction::TakeDamage(
+                            health_cost as f32,
+                        ));
                     });
                 };
 
                 let use_tower = || {
                     if let Some(template) = tower_template.clone() {
                         mutate_game_state(move |state| {
-                            state.goto_placing_tower(template);
+                            state
+                                .action(crate::game_state::GameStateAction::StartPlacingTower(template));
                         });
                     }
                 };
@@ -229,7 +232,7 @@ impl Component for HandActionArea {
             GameFlow::PlacingTower => {
                 let start_defense = || {
                     mutate_game_state(|state| {
-                        state.goto_defense();
+                        state.action(crate::game_state::GameStateAction::StartDefense);
                     });
                 };
 

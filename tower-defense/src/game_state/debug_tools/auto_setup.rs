@@ -31,7 +31,7 @@ impl Component for AutoSetupButton {
 
                         let expected_tower_kind = get_expected_tower_for_stage(gs.stage);
                         let template = TowerTemplate::new(expected_tower_kind, Suit::Spades, Rank::Ace);
-                        gs.goto_placing_tower(template);
+                        gs.action(crate::game_state::GameStateAction::StartPlacingTower(template));
 
                         let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(gs.stage);
                         let upgrade = if expected_category == UpgradeCategory::Random {
@@ -42,7 +42,7 @@ impl Component for AutoSetupButton {
                         gs.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
                         place_selected_tower_in_spiral(gs);
-                        gs.goto_defense();
+                        gs.action(crate::game_state::GameStateAction::StartDefense);
                     });
                 },
                 &|wh, text_color, ctx| {

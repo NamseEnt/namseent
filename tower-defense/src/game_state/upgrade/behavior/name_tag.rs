@@ -96,7 +96,7 @@ mod tests {
             crate::card::Suit::Spades,
             crate::card::Rank::Ace,
         );
-        game_state.goto_placing_tower(template);
+        game_state.action(crate::game_state::GameStateAction::StartPlacingTower(template));
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::NameTag(upgrade) = upgrade {
@@ -116,7 +116,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
         game_state.hand.delete_slots(&[placing_slot_id]);
 
         let placed_tower = game_state

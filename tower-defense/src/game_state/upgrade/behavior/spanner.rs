@@ -57,7 +57,7 @@ mod tests {
             None,
         ));
 
-        gs.goto_next_stage();
+        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
 
         assert_eq!(gs.shield, 50.0);
     }

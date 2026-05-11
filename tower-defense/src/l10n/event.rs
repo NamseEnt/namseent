@@ -57,10 +57,10 @@ impl HistoryEventType {
                     .static_text("타워 배치: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
-            HistoryEventType::TowerRemoved { left_top } => {
+            HistoryEventType::TowerRemovedById { tower_id } => {
                 builder
-                    .static_text("타워 제거: ")
-                    .text(format!("({}, {})", left_top.x, left_top.y));
+                    .static_text("타워 제거: #")
+                    .text(format!("{}", tower_id));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder
@@ -131,10 +131,10 @@ impl HistoryEventType {
                     .static_text("Tower Placed: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
-            HistoryEventType::TowerRemoved { left_top } => {
+            HistoryEventType::TowerRemovedById { tower_id } => {
                 builder
-                    .static_text("Tower Removed: ")
-                    .text(format!("({}, {})", left_top.x, left_top.y));
+                    .static_text("Tower Removed: #")
+                    .text(format!("{}", tower_id));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder

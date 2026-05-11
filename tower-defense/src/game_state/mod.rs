@@ -686,7 +686,9 @@ fn create_initial_game_state() -> GameState {
     };
 
     // Start with selecting tower flow and default shop mode (normal shop).
-    game_state.goto_selecting_tower();
+    game_state.action(crate::game_state::GameStateAction::StartStage {
+        stage: game_state.stage,
+    });
     game_state.action(GameStateAction::GameStart);
     game_state
 }
@@ -874,7 +876,7 @@ mod tests {
         assert!(gs.shop_panel_forced_open);
 
         // enter selecting tower flow - both hand and shop are allowed in this flow.
-        gs.goto_selecting_tower();
+        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
         assert!(gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());
         // forced flags were true already; both panels open
@@ -892,10 +894,12 @@ mod tests {
         assert!(gs.shop_panel_forced_open);
 
         // go to placing tower flow: hand allowed, shop not
-        gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
-            crate::game_state::tower::TowerKind::Barricade,
-            crate::card::Suit::Spades,
-            crate::card::Rank::Ace,
+        gs.action(crate::game_state::GameStateAction::StartPlacingTower(
+            crate::game_state::tower::TowerTemplate::new(
+                crate::game_state::tower::TowerKind::Barricade,
+                crate::card::Suit::Spades,
+                crate::card::Rank::Ace,
+            ),
         ));
         assert!(gs.can_open_hand_panel());
         assert!(!gs.can_open_shop_panel());

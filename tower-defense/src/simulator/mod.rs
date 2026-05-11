@@ -75,8 +75,11 @@ impl HeadlessGame {
     {
         self.events.push(SimEvent::GameStart);
 
-        // Initialize: go to selecting tower for stage 1
-        self.game_state.goto_selecting_tower();
+        // Initialize: enter stage 1
+        self.game_state
+            .action(crate::game_state::GameStateAction::StartStage {
+                stage: self.game_state.stage,
+            });
         self.events.push(SimEvent::StageStart {
             stage: self.game_state.stage,
         });
@@ -86,7 +89,10 @@ impl HeadlessGame {
         loop {
             match self.game_state.flow.clone() {
                 GameFlow::Initializing => {
-                    self.game_state.goto_selecting_tower();
+                    self.game_state
+                        .action(crate::game_state::GameStateAction::StartStage {
+                            stage: self.game_state.stage,
+                        });
                 }
                 GameFlow::SelectingTower(_) => {
                     let stage = self.game_state.stage;
@@ -123,7 +129,8 @@ impl HeadlessGame {
 
                     // If still in PlacingTower, force defense
                     if matches!(self.game_state.flow, GameFlow::PlacingTower) {
-                        self.game_state.goto_defense();
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartDefense);
                     }
 
                     self.events.push(SimEvent::DefenseStart {
@@ -187,9 +194,20 @@ impl HeadlessGame {
                             stage: self.game_state.stage,
                             upgrade_kind,
                         });
-                        self.game_state.select_treasure(choice);
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::Upgrade(
+                                options[choice],
+                                None,
+                            ));
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartStage {
+                                stage: self.game_state.stage,
+                            });
                     } else {
-                        self.game_state.goto_next_stage();
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartStage {
+                                stage: self.game_state.stage,
+                            });
                     }
 
                     self.events.push(SimEvent::StageStart {

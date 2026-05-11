@@ -3,7 +3,7 @@ use crate::game_state::*;
 use crate::shop::ShopSlot;
 use namui::Instant;
 
-pub(crate) fn purchase_shop_item(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) {
+pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) {
     let shop = match &mut game_state.flow {
         GameFlow::SelectingTower(flow) => &mut flow.shop,
         _ => return,
@@ -62,8 +62,8 @@ pub(crate) fn purchase_shop_item(game_state: &mut GameState, slot_id: crate::sho
 
             slot_data.purchased = true;
             slot_data.start_exit_animation(Instant::now());
-            game_state.action(GameStateAction::Upgrade(upgrade_value, Some(cost_value)));
             game_state.action(GameStateAction::SpendGold(cost_value));
+            game_state.action(GameStateAction::Upgrade(upgrade_value, Some(cost_value)));
         }
     }
 }

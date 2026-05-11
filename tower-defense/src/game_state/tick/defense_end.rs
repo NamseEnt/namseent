@@ -40,14 +40,16 @@ pub fn check_defense_end(game_state: &mut GameState) {
     if game_state.stage > 50 {
         game_state.stage -= 1;
         sound::play_game_end_sound(GameEndKind::Victory);
-        game_state.goto_result();
+        game_state.action(crate::game_state::GameStateAction::GameOver);
         return;
     }
 
     if is_boss_stage {
-        game_state.goto_treasure_selection();
+        game_state.action(crate::game_state::GameStateAction::StartTreasureSelection);
         return;
     }
 
-    game_state.goto_next_stage();
+    game_state.action(crate::game_state::GameStateAction::StartStage {
+        stage: game_state.stage,
+    });
 }
