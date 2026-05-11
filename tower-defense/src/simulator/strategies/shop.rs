@@ -182,16 +182,7 @@ impl SynergyShopStrategy {
         if upgrade.is_tower_damage_upgrade() {
             let current_score = total_tower_score(game_state, &game_state.upgrade_state);
             let mut upgraded_state = game_state.upgrade_state.clone();
-            let mut merged = false;
-            for current in &mut upgraded_state.upgrades {
-                if current.merge_for_acquire(upgrade) {
-                    merged = true;
-                    break;
-                }
-            }
-            if !merged {
-                upgraded_state.upgrades.push(upgrade);
-            }
+            upgraded_state.upgrades.push(upgrade);
             let next_score = total_tower_score(game_state, &upgraded_state);
             let delta = next_score - current_score;
             return delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade));

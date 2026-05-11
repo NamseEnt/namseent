@@ -7,17 +7,20 @@ pub struct LongSwordUpgrade {
 }
 
 impl UpgradeBehavior for LongSwordUpgrade {
-    fn is_tower_damage_upgrade(&self) -> bool {
-        true
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::LongSword(upgrade) = upgrade {
+                upgrade.damage_bonus_pct += self.damage_bonus_pct;
+                return UpgradeUpdateFlags::TOWER_STATS;
+            }
+        }
+
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn merge_for_acquire(&mut self, incoming: Upgrade) -> bool {
-        if let Upgrade::LongSword(next) = incoming {
-            self.damage_bonus_pct += next.damage_bonus_pct;
-            true
-        } else {
-            false
-        }
+    fn is_tower_damage_upgrade(&self) -> bool {
+        true
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
@@ -27,10 +30,6 @@ impl UpgradeBehavior for LongSwordUpgrade {
             },
             self.damage_bonus_pct,
         ))
-    }
-
-    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
-        UpgradeUpdateFlags::TOWER_STATS
     }
 
     fn l10n_name<'a>(

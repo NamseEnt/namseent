@@ -7,11 +7,12 @@ pub struct IceCreamUpgrade {
 }
 
 impl UpgradeBehavior for IceCreamUpgrade {
-    fn on_stage_start(
-        &mut self,
-        _game_state: &mut GameState,
-        _stage: usize,
-    ) -> UpgradeUpdateFlags {
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::TOWER_STATS
+    }
+
+    fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.waves_remaining > 0 {
             UpgradeUpdateFlags::TOWER_STATS
         } else {
@@ -19,13 +20,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         }
     }
 
-    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
-        UpgradeUpdateFlags::TOWER_STATS
-    }
-
-    fn tower_upgrade_damage_bonus(
-        &self,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.waves_remaining > 0 {
             Some((TowerUpgradeTarget::Global, self.damage_bonus_pct))
         } else {
@@ -106,10 +101,7 @@ mod tests {
         let mut game_state = support::create_mock_game_state();
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
         let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.0, 2);
-        game_state.action(crate::game_state::GameStateAction::Upgrade(
-            upgrade,
-            None,
-        ));
+        game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
         let tower_template = TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -121,7 +113,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
 
         let placed_tower = game_state
             .towers

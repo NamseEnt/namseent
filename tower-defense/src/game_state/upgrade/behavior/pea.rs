@@ -6,13 +6,13 @@ const PEA_HP_PLUS: f32 = 10.0;
 pub struct PeaUpgrade;
 
 impl UpgradeBehavior for PeaUpgrade {
-    fn max_hp_plus(&self) -> f32 {
-        PEA_HP_PLUS
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::HEAL_TO_FULL
     }
 
-    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        let _ = game_state;
-        UpgradeUpdateFlags::PLAYER_STATS | UpgradeUpdateFlags::HEAL_TO_FULL
+    fn max_hp_plus(&self) -> f32 {
+        PEA_HP_PLUS
     }
 
     fn l10n_name<'a>(

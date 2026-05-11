@@ -25,9 +25,7 @@ impl CrockUpgrade {
 }
 
 impl UpgradeBehavior for CrockUpgrade {
-    fn tower_upgrade_damage_bonus(
-        &self,
-    ) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.current_step > 0 {
             Some((TowerUpgradeTarget::Global, self.current_damage_bonus()))
         } else {
@@ -35,8 +33,9 @@ impl UpgradeBehavior for CrockUpgrade {
         }
     }
 
-    fn on_upgrade_acquired_effect(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.update_step_from_gold(game_state)
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::TOWER_STATS
     }
 
     fn on_gold_earned(&mut self, game_state: &mut GameState, _earned: usize) -> UpgradeUpdateFlags {
@@ -111,7 +110,9 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower)));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
+            tower,
+        )));
 
         let tower_id = game_state
             .towers
@@ -138,9 +139,7 @@ mod tests {
                 .iter()
                 .find(|tower| tower.id() == tower_id)
                 .expect("expected placed tower");
-            let upgrade_bonuses = game_state
-                .upgrade_state
-                .tower_upgrade_damage_bonuses();
+            let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
             tower.calculate_projectile_damage(&upgrade_bonuses, 1.0)
         };
 

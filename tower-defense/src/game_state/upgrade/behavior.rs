@@ -26,10 +26,6 @@ impl UpgradeUpdateFlags {
         self.0 & other.0 == other.0
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.0 == 0
-    }
-
     pub fn requires_revision(&self) -> bool {
         self.contains(Self::TOWER_STATS) || self.contains(Self::REVISION_REQUIRED)
     }
@@ -126,19 +122,11 @@ pub trait UpgradeBehavior {
         false
     }
 
-    fn on_upgrade_acquired(self, game_state: &mut GameState) -> UpgradeUpdateFlags
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags
     where
-        Self: Sized,
-        Upgrade: From<Self>,
+        Self: Sized + Into<Upgrade>,
     {
-        merge_for_acquire(game_state, self.into())
-    }
-
-    fn merge_for_acquire(&mut self, _incoming: Upgrade) -> bool {
-        false
-    }
-
-    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
         UpgradeUpdateFlags::NONE
     }
 
@@ -173,38 +161,6 @@ pub trait UpgradeBehavior {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     );
-}
-
-pub(super) fn merge_for_acquire(
-    game_state: &mut GameState,
-    incoming: Upgrade,
-) -> UpgradeUpdateFlags {
-    let index = {
-        let upgrades = &mut game_state.upgrade_state.upgrades;
-        let mut merged_index = None;
-        for (index, upgrade) in upgrades.iter_mut().enumerate() {
-            if upgrade.merge_for_acquire(incoming) {
-                merged_index = Some(index);
-                break;
-            }
-        }
-
-        if let Some(index) = merged_index {
-            index
-        } else {
-            upgrades.push(incoming);
-            upgrades.len() - 1
-        }
-    };
-
-    let mut target_upgrade = game_state.upgrade_state.upgrades.remove(index);
-    let flags = target_upgrade.on_upgrade_acquired_effect(game_state)
-        | UpgradeUpdateFlags::REVISION_REQUIRED;
-    game_state
-        .upgrade_state
-        .upgrades
-        .insert(index, target_upgrade);
-    flags
 }
 
 #[derive(Clone, Copy)]
@@ -420,143 +376,11 @@ impl UpgradeDiscriminants {
 }
 
 impl Upgrade {
-    pub fn on_upgrade_acquired(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        UpgradeBehavior::on_upgrade_acquired(self, game_state)
-    }
-
     pub fn name_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
         crate::l10n::upgrade::UpgradeTypeText::Name(self)
     }
 
     pub fn description_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
         crate::l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(self)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::game_state::{GameStateAction, create_initial_game_state};
-
-    fn damage_bonus_pct(upgrade: &Upgrade) -> f32 {
-        match upgrade {
-            Upgrade::Staff(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::LongSword(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::Mace(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::ClubSword(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::Tricycle(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::SingleChopstick(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::PairChopsticks(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::FountainPen(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::Brush(upgrade) => upgrade.damage_bonus_pct,
-            Upgrade::BrokenPottery(upgrade) => upgrade.damage_bonus_pct,
-            _ => panic!("unsupported upgrade for merge damage check"),
-        }
-    }
-
-    #[test]
-    fn merge_for_acquire_merges_same_upgrade_types() {
-        let cases = vec![
-            (
-                Upgrade::Staff(StaffUpgrade {
-                    damage_bonus_pct: 0.1,
-                }),
-                Upgrade::Staff(StaffUpgrade {
-                    damage_bonus_pct: 0.2,
-                }),
-                0.3,
-            ),
-            (
-                Upgrade::LongSword(LongSwordUpgrade {
-                    damage_bonus_pct: 0.15,
-                }),
-                Upgrade::LongSword(LongSwordUpgrade {
-                    damage_bonus_pct: 0.05,
-                }),
-                0.2,
-            ),
-            (
-                Upgrade::Mace(MaceUpgrade {
-                    damage_bonus_pct: 0.12,
-                }),
-                Upgrade::Mace(MaceUpgrade {
-                    damage_bonus_pct: 0.18,
-                }),
-                0.3,
-            ),
-            (
-                Upgrade::ClubSword(ClubSwordUpgrade {
-                    damage_bonus_pct: 0.25,
-                }),
-                Upgrade::ClubSword(ClubSwordUpgrade {
-                    damage_bonus_pct: 0.25,
-                }),
-                0.5,
-            ),
-            (
-                Upgrade::Tricycle(TricycleUpgrade {
-                    damage_bonus_pct: 0.4,
-                }),
-                Upgrade::Tricycle(TricycleUpgrade {
-                    damage_bonus_pct: 0.2,
-                }),
-                0.6,
-            ),
-            (
-                Upgrade::SingleChopstick(SingleChopstickUpgrade {
-                    damage_bonus_pct: 0.3,
-                }),
-                Upgrade::SingleChopstick(SingleChopstickUpgrade {
-                    damage_bonus_pct: 0.2,
-                }),
-                0.5,
-            ),
-            (
-                Upgrade::PairChopsticks(PairChopsticksUpgrade {
-                    damage_bonus_pct: 0.2,
-                }),
-                Upgrade::PairChopsticks(PairChopsticksUpgrade {
-                    damage_bonus_pct: 0.3,
-                }),
-                0.5,
-            ),
-            (
-                Upgrade::FountainPen(FountainPenUpgrade {
-                    damage_bonus_pct: 0.15,
-                }),
-                Upgrade::FountainPen(FountainPenUpgrade {
-                    damage_bonus_pct: 0.35,
-                }),
-                0.5,
-            ),
-            (
-                Upgrade::Brush(BrushUpgrade {
-                    damage_bonus_pct: 0.22,
-                }),
-                Upgrade::Brush(BrushUpgrade {
-                    damage_bonus_pct: 0.28,
-                }),
-                0.5,
-            ),
-            (
-                Upgrade::BrokenPottery(BrokenPotteryUpgrade {
-                    damage_bonus_pct: 0.1,
-                }),
-                Upgrade::BrokenPottery(BrokenPotteryUpgrade {
-                    damage_bonus_pct: 0.2,
-                }),
-                0.3,
-            ),
-        ];
-
-        for (first, second, expected) in cases {
-            let mut game_state = create_initial_game_state();
-            game_state.action(GameStateAction::Upgrade(first, None));
-            game_state.action(GameStateAction::Upgrade(second, None));
-
-            assert_eq!(game_state.upgrade_state.upgrades.len(), 1);
-            let merged = &game_state.upgrade_state.upgrades[0];
-            assert!((damage_bonus_pct(merged) - expected).abs() < f32::EPSILON);
-        }
     }
 }

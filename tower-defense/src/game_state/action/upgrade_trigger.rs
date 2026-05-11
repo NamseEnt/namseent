@@ -79,7 +79,7 @@ impl GameState {
 
     pub(super) fn handle_upgrade_trigger(&mut self, event: UpgradeTriggerEvent<'_>) {
         let flags = match event {
-            UpgradeTriggerEvent::UpgradeAcquired { upgrade } => upgrade.on_upgrade_acquired(self),
+            UpgradeTriggerEvent::UpgradeAcquired { upgrade } => upgrade.acquire(self),
             UpgradeTriggerEvent::TowerPlaced { tower } => self
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_tower_placed(game_state, tower)),
             UpgradeTriggerEvent::StageStart { stage } => self

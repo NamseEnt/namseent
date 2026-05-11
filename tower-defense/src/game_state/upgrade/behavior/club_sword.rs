@@ -11,15 +11,6 @@ impl UpgradeBehavior for ClubSwordUpgrade {
         true
     }
 
-    fn merge_for_acquire(&mut self, incoming: Upgrade) -> bool {
-        if let Upgrade::ClubSword(next) = incoming {
-            self.damage_bonus_pct += next.damage_bonus_pct;
-            true
-        } else {
-            false
-        }
-    }
-
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::Suit {
@@ -29,7 +20,15 @@ impl UpgradeBehavior for ClubSwordUpgrade {
         ))
     }
 
-    fn on_upgrade_acquired_effect(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::ClubSword(upgrade) = upgrade {
+                upgrade.damage_bonus_pct += self.damage_bonus_pct;
+                return UpgradeUpdateFlags::TOWER_STATS;
+            }
+        }
+
+        game_state.upgrade_state.upgrades.push(self.into());
         UpgradeUpdateFlags::TOWER_STATS
     }
 

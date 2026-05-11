@@ -8,6 +8,11 @@ pub struct DemolitionHammerUpgrade {
 }
 
 impl UpgradeBehavior for DemolitionHammerUpgrade {
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.upgrade_state.upgrades.push(self.into());
+        UpgradeUpdateFlags::TOWER_STATS
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stored_damage_bonus > 0.0 {
             Some((TowerUpgradeTarget::Global, self.stored_damage_bonus))
