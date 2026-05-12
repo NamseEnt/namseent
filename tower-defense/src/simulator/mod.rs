@@ -312,7 +312,13 @@ impl HeadlessGame {
     }
 
     fn canonicalize_debug_name(name: String) -> String {
-        name.split(' ').next().unwrap_or(&name).to_owned()
+        let trimmed = name.trim();
+        let token: String = trimmed
+            .chars()
+            .take_while(|c| c.is_alphanumeric())
+            .collect();
+        let token = token.strip_suffix("Upgrade").unwrap_or(&token);
+        token.to_string()
     }
 }
 

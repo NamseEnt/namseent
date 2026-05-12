@@ -41,7 +41,6 @@ const TREASURE_UPGRADES: &[(UpgradeDiscriminants, f32)] = &[
     (UpgradeDiscriminants::Popcorn, 10.0),
     (UpgradeDiscriminants::MembershipCard, 10.0),
     (UpgradeDiscriminants::Eraser, 10.0),
-    (UpgradeDiscriminants::BrokenPottery, 10.0),
 ];
 
 pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
@@ -114,5 +113,14 @@ mod tests {
         ]);
         let upgrade = UpgradeDiscriminants::Cat.generate(&upgrade_state);
         assert!(matches!(upgrade, Upgrade::Cat(..)));
+    }
+
+    #[test]
+    fn treasure_candidate_table_does_not_duplicate_broken_pottery() {
+        let treasure_names: std::collections::HashSet<_> = TREASURE_UPGRADES
+            .iter()
+            .map(|(discriminant, _)| discriminant.as_ref())
+            .collect();
+        assert!(!treasure_names.contains("BrokenPottery"));
     }
 }
