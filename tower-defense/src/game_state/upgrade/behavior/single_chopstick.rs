@@ -19,10 +19,6 @@ impl UpgradeBehavior for SingleChopstickUpgrade {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn is_tower_damage_upgrade(&self) -> bool {
-        true
-    }
-
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::EvenOdd { even: false },

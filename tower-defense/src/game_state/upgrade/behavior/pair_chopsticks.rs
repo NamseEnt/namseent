@@ -7,10 +7,6 @@ pub struct PairChopsticksUpgrade {
 }
 
 impl UpgradeBehavior for PairChopsticksUpgrade {
-    fn is_tower_damage_upgrade(&self) -> bool {
-        true
-    }
-
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::PairChopsticks(upgrade) = upgrade {

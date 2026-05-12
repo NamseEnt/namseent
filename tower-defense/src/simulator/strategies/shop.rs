@@ -5,7 +5,7 @@ use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::item::{Item, ItemKind};
 use crate::game_state::tower::Tower;
-use crate::game_state::upgrade::{Upgrade, UpgradeBehavior, UpgradeState};
+use crate::game_state::upgrade::{Upgrade, UpgradeState};
 use rand::RngCore;
 
 /// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
@@ -179,16 +179,12 @@ impl SynergyShopStrategy {
     }
 
     fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
-        if upgrade.is_tower_damage_upgrade() {
-            let current_score = total_tower_score(game_state, &game_state.upgrade_state);
-            let mut upgraded_state = game_state.upgrade_state.clone();
-            upgraded_state.upgrades.push(upgrade);
-            let next_score = total_tower_score(game_state, &upgraded_state);
-            let delta = next_score - current_score;
-            return delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade));
-        }
-
-        self.evaluate_treasure_upgrade(&upgrade)
+        let current_score = total_tower_score(game_state, &game_state.upgrade_state);
+        let mut upgraded_state = game_state.upgrade_state.clone();
+        upgraded_state.upgrades.push(upgrade);
+        let next_score = total_tower_score(game_state, &upgraded_state);
+        let delta = next_score - current_score;
+        delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade))
     }
 
     fn evaluate_treasure_upgrade(&self, upgrade: &Upgrade) -> f32 {

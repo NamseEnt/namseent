@@ -111,10 +111,6 @@ pub trait UpgradeBehavior {
         0
     }
 
-    fn is_tower_damage_upgrade(&self) -> bool {
-        false
-    }
-
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags
     where
         Self: Sized + Into<Upgrade>,
