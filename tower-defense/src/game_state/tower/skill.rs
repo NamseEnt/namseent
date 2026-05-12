@@ -61,6 +61,15 @@ pub enum TowerStatusEffectKind {
     DamageAdd { add: f32 },
 }
 
+impl TowerStatusEffectKind {
+    pub fn affects_damage(&self) -> bool {
+        matches!(
+            self,
+            TowerStatusEffectKind::DamageMul { .. } | TowerStatusEffectKind::DamageAdd { .. }
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum TowerStatusEffectEnd {
     Time { end_at: Instant },
@@ -68,11 +77,25 @@ pub enum TowerStatusEffectEnd {
 }
 
 pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Instant) {
+    let upgrade_revision = game_state.upgrade_state.revision;
+    let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
+
     for tower in game_state.towers.iter_mut() {
-        tower.status_effects.retain(|e| match e.end_at {
-            TowerStatusEffectEnd::Time { end_at } => now < end_at,
-            TowerStatusEffectEnd::NeverEnd => true,
+        let mut removed_damage_effect = false;
+        tower.status_effects.retain(|e| {
+            let keep = match e.end_at {
+                TowerStatusEffectEnd::Time { end_at } => now < end_at,
+                TowerStatusEffectEnd::NeverEnd => true,
+            };
+            if !keep && e.kind.affects_damage() {
+                removed_damage_effect = true;
+            }
+            keep
         });
+
+        if removed_damage_effect {
+            tower.refresh_cached_upgrade_damage(upgrade_revision, &upgrade_bonuses);
+        }
     }
 }
 
@@ -98,10 +121,17 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
             .unwrap()
             .center_xy_f32();
 
+        let upgrade_revision = game_state.upgrade_state.revision;
+        let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
+
         let mut on_nearby_towers = |range_radius: f32, effect: TowerStatusEffect| {
             for tower in game_state.towers.iter_mut() {
                 if caster_xy.distance(tower.center_xy_f32()) <= range_radius {
+                    let affects_damage = effect.kind.affects_damage();
                     tower.status_effects.push(effect.clone());
+                    if affects_damage {
+                        tower.refresh_cached_upgrade_damage(upgrade_revision, &upgrade_bonuses);
+                    }
                 }
             }
         };
@@ -113,6 +143,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                 }
             }
         };
+
         match skill.kind {
             TowerSkillKind::NearbyTowerDamageMul { mul, range_radius } => {
                 on_nearby_towers(
@@ -146,7 +177,99 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                 );
             }
             TowerSkillKind::MoneyIncomeAdd { .. } => {}
-            TowerSkillKind::TopCardBonus { .. } => {}
+            TowerSkillKind::TopCardBonus { bonus_damage, .. } => {
+                if bonus_damage > 0
+                    && let Some(tower) = game_state
+                        .towers
+                        .iter_mut()
+                        .find(|tower| tower.id == tower_id)
+                {
+                    let effect = TowerStatusEffect {
+                        kind: TowerStatusEffectKind::DamageAdd {
+                            add: bonus_damage as f32,
+                        },
+                        end_at: TowerStatusEffectEnd::Time {
+                            end_at: now + skill.duration,
+                        },
+                    };
+                    tower.status_effects.push(effect.clone());
+                    tower.refresh_cached_upgrade_damage(upgrade_revision, &upgrade_bonuses);
+                }
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Rank, Suit};
+    use crate::game_state::effect::tests_support::make_test_state;
+
+    #[test]
+    fn top_card_bonus_activates_damage_add_status_effect() {
+        let mut game_state = make_test_state();
+        let now = Instant::now();
+
+        let mut tower = Tower::new(
+            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace),
+            MapCoord::new(0, 0),
+            now,
+        );
+
+        tower.skills.push(TowerSkill::new(
+            TowerSkillTemplate {
+                kind: TowerSkillKind::TopCardBonus {
+                    rank: Rank::Ace,
+                    bonus_damage: Rank::Ace.bonus_damage(),
+                },
+                cooldown: Duration::from_secs(1),
+                duration: Duration::from_secs(1),
+            },
+            now - Duration::from_secs(2),
+        ));
+
+        game_state.towers.place_tower(tower);
+        activate_tower_skills(&mut game_state, now);
+
+        let tower = game_state.towers.iter().next().expect("tower should exist");
+        assert!(tower.status_effects.iter().any(|effect| {
+            matches!(
+                effect.kind,
+                TowerStatusEffectKind::DamageAdd { add }
+                if add == Rank::Ace.bonus_damage() as f32
+            )
+        }));
+    }
+
+    #[test]
+    fn top_card_bonus_updates_cached_upgrade_damage() {
+        let mut game_state = make_test_state();
+        let now = Instant::now();
+        let bonus_damage = Rank::Ace.bonus_damage();
+
+        let mut tower = Tower::new(
+            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace),
+            MapCoord::new(0, 0),
+            now,
+        );
+
+        tower.skills.push(TowerSkill::new(
+            TowerSkillTemplate {
+                kind: TowerSkillKind::TopCardBonus {
+                    rank: Rank::Ace,
+                    bonus_damage,
+                },
+                cooldown: Duration::from_secs(1),
+                duration: Duration::from_secs(1),
+            },
+            now - Duration::from_secs(2),
+        ));
+
+        game_state.towers.place_tower(tower);
+        activate_tower_skills(&mut game_state, now);
+
+        let tower = game_state.towers.iter().next().expect("tower should exist");
+        assert_eq!(tower.cached_upgrade_damage(), bonus_damage as f32);
     }
 }

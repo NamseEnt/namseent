@@ -115,7 +115,7 @@ mod tests {
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
             tower,
-        )));
+        ), None));
 
         let expected_multipliers = [5.0, 4.0, 3.0, 2.0, 1.0, 1.0];
         for expected_multiplier in expected_multipliers {

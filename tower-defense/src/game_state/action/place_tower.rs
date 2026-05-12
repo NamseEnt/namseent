@@ -1,7 +1,6 @@
 use crate::game_state::{action::upgrade_trigger::UpgradeTriggerEvent, upgrade::UpgradeState, *};
 
 pub(super) fn prepare_tower_stats(tower: &mut Tower, upgrade_state: &UpgradeState) {
-    tower.refresh_status_effects_from_template();
     tower.refresh_cached_upgrade_damage(
         upgrade_state.revision,
         &upgrade_state.tower_upgrade_damage_bonuses(),
@@ -20,6 +19,18 @@ pub(super) fn record_history_event(game_state: &mut GameState, tower: &Tower) {
             left_top: tower.left_top,
         },
     );
+}
+
+pub(super) fn auto_select_first_tower(game_state: &mut GameState) {
+    if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
+        && game_state
+            .hand
+            .get_item(first_slot_id)
+            .and_then(|item| item.as_tower())
+            .is_some()
+    {
+        game_state.hand.select_slot(first_slot_id);
+    }
 }
 
 pub(super) fn trigger_upgrades(game_state: &mut GameState, tower: &Tower) {

@@ -85,7 +85,7 @@ mod tests {
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
             face_tower,
-        )));
+        ), None));
 
         assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
     }
@@ -114,7 +114,7 @@ mod tests {
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
             number_tower,
-        )));
+        ), None));
 
         assert_eq!(game_state.gold, initial_gold);
     }

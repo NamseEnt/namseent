@@ -114,7 +114,7 @@ mod tests {
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
             tower,
-        )));
+        ), None));
 
         let tower_id = game_state
             .towers

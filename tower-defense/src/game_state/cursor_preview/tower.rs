@@ -3,10 +3,11 @@ use crate::{
     MapCoordF32,
     game_state::{
         MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
+        action::GameStateAction,
         can_place_tower::can_place_tower,
         flow::GameFlow,
         hand::HandSlotId,
-        mutate_game_state, place_tower,
+        mutate_game_state,
         tower::{AnimationKind, Tower, TowerTemplate},
         use_game_state,
     },
@@ -29,6 +30,8 @@ impl Component for TowerCursorPreview<'_> {
 
         let game_state = use_game_state(ctx);
 
+        let tower_template = tower_template.clone();
+        let tower_template_for_placement = tower_template.clone();
         let rounded_left_top_xy =
             ctx.track_eq(&map_coord.map(|f| (f.round() as usize).saturating_sub(1)));
         let placed_tower_coords = ctx.track_eq(&game_state.towers.coords());
@@ -64,10 +67,17 @@ impl Component for TowerCursorPreview<'_> {
 
         let left_top = *rounded_left_top_xy;
         let place_tower = || {
-            place_tower(
-                Tower::new(tower_template, left_top, game_state.now()),
-                placing_tower_slot_id,
-            );
+            let tower_template_for_placement = tower_template_for_placement.clone();
+            mutate_game_state(move |game_state| {
+                game_state.action(GameStateAction::PlaceTower(
+                    Box::new(Tower::new(
+                        &tower_template_for_placement,
+                        left_top,
+                        game_state.now(),
+                    )),
+                    Some(placing_tower_slot_id),
+                ));
+            });
         };
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
@@ -81,9 +91,11 @@ impl Component for TowerCursorPreview<'_> {
             rank: Some(tower_template.rank),
             alpha: 0.5,
         });
-        ctx.add(TowerAttackRange { tower_template });
+        ctx.add(TowerAttackRange {
+            tower_template: &tower_template,
+        });
         // TODO: Add TowerSkillRange
-        // ctx.add(TowerSkillRange { tower_template });
+        // ctx.add(TowerSkillRange { tower_template: &tower_template });
         ctx.add(TowerArea {
             can_place_tower: *can_place_tower,
         });

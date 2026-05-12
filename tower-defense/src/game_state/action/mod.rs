@@ -15,7 +15,7 @@ mod upgrade;
 mod upgrade_trigger;
 mod use_item;
 
-use crate::game_state::{GameState, item, tower::Tower, upgrade::Upgrade};
+use crate::game_state::{GameState, hand::HandSlotId, item, tower::Tower, upgrade::Upgrade};
 
 pub(crate) enum GameStateAction<'a> {
     GameStart,
@@ -25,7 +25,7 @@ pub(crate) enum GameStateAction<'a> {
     EarnGold(usize),
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
-    PlaceTower(Box<Tower>),
+    PlaceTower(Box<Tower>, Option<HandSlotId>),
     RemoveTower(usize),
     PurchaseShopItem(crate::shop::ShopSlotId),
     UseItem(&'a item::Item),
@@ -77,10 +77,13 @@ impl GameState {
                 upgrade::record_history_event(self, upgrade, cost);
                 true
             }
-            GameStateAction::PlaceTower(mut tower) => {
+            GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {
                 place_tower::prepare_tower_stats(&mut tower, &self.upgrade_state);
-                let placed = place_tower::place_tower(self, &tower);
-                if placed {
+                if place_tower::place_tower(self, &tower) {
+                    if let Some(slot_id) = placing_tower_slot_id {
+                        self.hand.delete_slots(&[slot_id]);
+                        place_tower::auto_select_first_tower(self);
+                    }
                     place_tower::recalculate_route(self);
                     place_tower::trigger_upgrades(self, &tower);
                     place_tower::record_history_event(self, &tower);

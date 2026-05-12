@@ -143,7 +143,7 @@ mod tests {
         );
         gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
             tower,
-        )));
+        ), None));
 
         let placed_tower = gs.towers.iter().next().expect("expected tower placed");
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);

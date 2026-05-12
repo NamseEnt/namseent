@@ -36,7 +36,7 @@ use crate::card::Deck;
 use crate::config::GameConfig;
 use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
-use crate::hand::{Hand, HandItem, HandSlotId};
+use crate::hand::{Hand, HandItem};
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
@@ -825,27 +825,6 @@ impl GameState {
 
 pub fn is_boss_stage(stage: usize) -> bool {
     stage.is_multiple_of(5) || (46..=49).contains(&stage)
-}
-
-/// Make sure that the tower can be placed at the given coord.
-pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
-    crate::game_state::mutate_game_state(move |game_state| {
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            tower,
-        )));
-        game_state.hand.delete_slots(&[placing_tower_slot_id]);
-
-        // Auto-select the first card (tower or barricade) if available
-        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
-            && game_state
-                .hand
-                .get_item(first_slot_id)
-                .and_then(|item| item.as_tower())
-                .is_some()
-        {
-            game_state.hand.select_slot(first_slot_id);
-        }
-    });
 }
 
 // Unit tests that exercise panel toggle behavior.

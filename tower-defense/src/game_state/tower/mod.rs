@@ -66,7 +66,12 @@ impl Tower {
             cooldown: Duration::from_secs(0),
             template: template.clone(),
             status_effects: template.default_status_effects.clone(),
-            skills: vec![],
+            skills: template
+                .skill_templates
+                .iter()
+                .cloned()
+                .map(|skill_template| TowerSkill::new(skill_template, now))
+                .collect(),
             cached_upgrade: CachedTowerUpgradeDamage {
                 revision: 0,
                 bonuses: Vec::new(),
@@ -78,10 +83,6 @@ impl Tower {
     }
     pub fn in_cooltime(&self) -> bool {
         self.cooldown > Duration::from_secs(0)
-    }
-
-    pub(crate) fn refresh_status_effects_from_template(&mut self) {
-        self.status_effects = self.template.default_status_effects.clone();
     }
 
     pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
@@ -128,10 +129,10 @@ impl Tower {
     ) {
         if self.cached_upgrade.revision != revision {
             self.cached_upgrade.bonuses = upgrade_bonuses.to_vec();
-            self.cached_upgrade.damage =
-                self.calculate_projectile_damage(&self.cached_upgrade.bonuses, 1.0);
-            self.cached_upgrade.revision = revision;
         }
+        self.cached_upgrade.damage =
+            self.calculate_projectile_damage(&self.cached_upgrade.bonuses, 1.0);
+        self.cached_upgrade.revision = revision;
     }
 
     pub fn cached_upgrade_damage(&self) -> f32 {
@@ -484,4 +485,59 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             tower.cooldown -= dt;
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tower_new_applies_template_skills() {
+        let now = Instant::now();
+        let template = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
+        let tower = Tower::new(&template, MapCoord::new(0, 0), now);
+
+        assert_eq!(tower.skills.len(), template.skill_templates.len());
+        assert!(tower.skills.iter().all(|skill| {
+            template
+                .skill_templates
+                .iter()
+                .any(|template_skill| template_skill == &skill.template)
+        }));
+    }
+
+    #[test]
+    fn refresh_cached_upgrade_damage_preserves_cached_bonuses_when_revision_unchanged() {
+        let now = Instant::now();
+        let mut tower = Tower::new(
+            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Two),
+            MapCoord::new(0, 0),
+            now,
+        );
+
+        tower.cached_upgrade.revision = 1;
+        tower.cached_upgrade.bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+            target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
+            bonus_pct: 0.0,
+        }];
+        tower.cached_upgrade.damage =
+            tower.calculate_projectile_damage(&tower.cached_upgrade.bonuses, 1.0);
+
+        let new_upgrade_bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+            target: crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit: Suit::Hearts },
+            bonus_pct: 1.0,
+        }];
+
+        tower.refresh_cached_upgrade_damage(1, &new_upgrade_bonuses);
+
+        assert_eq!(tower.cached_upgrade.revision, 1);
+        assert_eq!(tower.cached_upgrade.bonuses.len(), 1);
+        assert_eq!(
+            tower.cached_upgrade.bonuses,
+            vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+                target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
+                bonus_pct: 0.0,
+            }]
+        );
+    }
 }
