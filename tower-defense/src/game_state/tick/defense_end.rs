@@ -37,7 +37,8 @@ pub fn check_defense_end(game_state: &mut GameState) {
 
     let is_boss_stage = is_boss_stage(game_state.stage);
     game_state.stage += 1;
-    if game_state.stage > 50 {
+    let max_stage = game_state.config.player.max_stages;
+    if game_state.stage > max_stage {
         game_state.stage -= 1;
         sound::play_game_end_sound(GameEndKind::Victory);
         game_state.action(crate::game_state::GameStateAction::GameOver);

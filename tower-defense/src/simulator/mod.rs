@@ -34,7 +34,7 @@ pub struct HeadlessGame {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
-    pub stage_damage: Vec<f32>,
+    pub stage_damage: Vec<(usize, f32)>,
     pub total_gold_earned: usize,
 }
 
@@ -154,6 +154,7 @@ impl HeadlessGame {
                         };
                     }
 
+                    let stage = self.game_state.stage;
                     let hp_before = self.game_state.hp;
 
                     // Run defense simulation with fixed time ticks
@@ -166,7 +167,7 @@ impl HeadlessGame {
 
                     let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
                     self.total_damage_taken += damage_this_stage;
-                    self.stage_damage.push(damage_this_stage);
+                    self.stage_damage.push((stage, damage_this_stage));
 
                     if !continue_sim {
                         return SimResult {
@@ -339,7 +340,7 @@ pub struct SimResult {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
-    pub stage_damage: Vec<f32>,
+    pub stage_damage: Vec<(usize, f32)>,
     pub total_gold_earned: usize,
 }
 

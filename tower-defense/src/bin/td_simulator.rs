@@ -192,8 +192,8 @@ fn main() -> anyhow::Result<()> {
 
             if let Some(stage_damage_by_round) = &stage_damage_by_round {
                 let mut map = stage_damage_by_round.lock().unwrap();
-                for (idx, &damage) in result.stage_damage.iter().enumerate() {
-                    map.entry(idx + 1).or_default().push(damage);
+                for &(stage, damage) in &result.stage_damage {
+                    map.entry(stage).or_default().push(damage);
                 }
             }
 
