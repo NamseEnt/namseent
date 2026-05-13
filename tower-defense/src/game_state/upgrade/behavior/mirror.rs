@@ -11,7 +11,7 @@ impl UpgradeBehavior for MirrorUpgrade {
             return UpgradeUpdateFlags::NONE;
         }
 
-        let tower_template = (**tower).clone();
+        let tower_template = tower.template.clone();
         game_state
             .hand
             .push(crate::hand::HandItem::Tower(tower_template));

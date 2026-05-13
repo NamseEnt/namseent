@@ -11,6 +11,7 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::DiceBundle(upgrade) = upgrade {
                 upgrade.add += self.add;
+                return UpgradeUpdateFlags::NONE;
             }
         }
 

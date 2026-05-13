@@ -210,7 +210,7 @@ fn calculate_upgrade_state_and_texts(
     tower_template: &TowerTemplate,
 ) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
-    let mut combined_damage_multiplier = 1.0;
+    let mut combined_bonus = 0.0f32;
     let mut texts = UpgradeTexts { damage: vec![] };
 
     for upgrade in &game_state.upgrade_state.upgrades {
@@ -222,19 +222,19 @@ fn calculate_upgrade_state_and_texts(
             continue;
         }
 
-        let damage_multiplier = if target == TowerUpgradeTarget::RerolledTower {
-            (1.0 + bonus_pct).powi(tower_template.rerolled_count as i32)
+        let effective_bonus = if target == TowerUpgradeTarget::RerolledTower {
+            bonus_pct * tower_template.rerolled_count as f32
         } else {
-            1.0 + bonus_pct
+            bonus_pct
         };
 
-        combined_damage_multiplier *= damage_multiplier;
+        combined_bonus += effective_bonus;
 
-        if damage_multiplier > 1.0 {
+        if effective_bonus > 0.0 {
             texts.damage.push(*upgrade);
         }
     }
 
-    state.damage_multiplier = combined_damage_multiplier;
+    state.damage_multiplier = 1.0 + combined_bonus;
     (state, texts)
 }

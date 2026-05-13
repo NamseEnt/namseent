@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{Modal, mutate_game_state, set_modal, use_game_state},
+    game_state::{mutate_game_state, use_game_state},
     hand::{HAND_WH, HandComponent, HandSlotId},
     sound,
     theme::{
@@ -21,13 +21,12 @@ impl Component for TowerPlacingHand {
         let game_state = use_game_state(ctx);
 
         // Only render if we're in PlacingTower flow
-        let (hand, selected_hand_slot_ids) = match &game_state.flow {
-            crate::game_state::flow::GameFlow::PlacingTower { hand } => {
-                let selected_hand_slot_ids = ctx.track_eq(&hand.selected_slot_ids());
-                (hand, selected_hand_slot_ids)
-            }
-            _ => return, // Don't render if not in PlacingTower flow
-        };
+        if !matches!(game_state.flow, crate::game_state::flow::GameFlow::PlacingTower) {
+            return;
+        }
+
+        let hand = &game_state.hand;
+        let selected_hand_slot_ids = ctx.track_eq(&hand.selected_slot_ids());
 
         let select_tower = |slot_id: HandSlotId| {
             if !selected_hand_slot_ids.is_empty() {
@@ -40,10 +39,8 @@ impl Component for TowerPlacingHand {
             };
 
             mutate_game_state(move |game_state| {
-                if let crate::game_state::flow::GameFlow::PlacingTower { hand } =
-                    &mut game_state.flow
-                {
-                    hand.select_slot(slot_id);
+                if matches!(game_state.flow, crate::game_state::flow::GameFlow::PlacingTower) {
+                    game_state.hand.select_slot(slot_id);
                     sound::play_card_selected_sound();
                 }
             });
@@ -76,7 +73,7 @@ impl Component for TowerPlacingHand {
                                                         wh,
                                                         &|| {
                                                             mutate_game_state(|state| {
-                                                                state.action(crate::game_state::GameStateAction::FlowDefense);
+                                                                state.action(crate::game_state::GameStateAction::StartDefense);
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {

@@ -43,6 +43,7 @@ impl TowerUpgradeTarget {
     fn applies_to_tower(&self, tower: &Tower) -> bool {
         match self {
             TowerUpgradeTarget::TowerId { tower_id } => tower.id() == *tower_id,
+            TowerUpgradeTarget::NoRerollTower => tower.rerolled_count() == 0,
             _ => self.applies_to_tower_template(&tower.template),
         }
     }

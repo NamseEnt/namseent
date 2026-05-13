@@ -54,8 +54,8 @@ impl GameState {
                 start_stage::flush_hand(self);
                 start_stage::draw_hand(self);
                 start_stage::open_panels(self);
-                start_stage::set_selecting_tower_flow(self);
                 start_stage::trigger_upgrade_effects(self, stage);
+                start_stage::set_selecting_tower_flow(self);
                 start_stage::record_history_event(self, stage);
                 start_stage::save_debug_snapshot(self);
                 true

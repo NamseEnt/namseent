@@ -11,7 +11,7 @@ pub struct LaserBeam {
     pub end_xy: (f32, f32),
     /// 레이저가 생성된 시간
     pub created_at: Instant,
-    /// 데미지를 적용할 몬스터 ID. None이면 이미 사망한 것으로 간주.
+    /// 데미지를 적용할 몬스터 ID.
     pub target_monster_id: usize,
 }
 

@@ -149,7 +149,12 @@ impl GameState {
 
         match &slot_data.slot {
             ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
-                self.gold >= *cost
+                let effective_cost = if self.stage_modifiers.is_free_shop_this_stage() {
+                    0
+                } else {
+                    *cost
+                };
+                self.gold >= effective_cost
                     && !self
                         .stage_modifiers
                         .is_item_and_upgrade_purchases_disabled()

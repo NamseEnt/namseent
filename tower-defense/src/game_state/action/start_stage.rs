@@ -34,7 +34,8 @@ pub(super) fn renew_game_state(game_state: &mut GameState) {
 pub(super) fn draw_hand(game_state: &mut GameState) {
     let max_slots = (game_state.config.player.base_hand_slots
         + game_state.stage_modifiers.get_max_hand_slots_bonus())
-    .saturating_sub(game_state.stage_modifiers.get_max_hand_slots_penalty());
+    .saturating_sub(game_state.stage_modifiers.get_max_hand_slots_penalty())
+    .max(1);
     for _ in 0..max_slots {
         let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
         game_state.hand.push(HandItem::Card(card));

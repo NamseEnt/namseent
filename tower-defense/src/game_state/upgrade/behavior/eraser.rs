@@ -25,10 +25,7 @@ impl UpgradeBehavior for EraserUpgrade {
                 .with_positive_effect(format!("{} rank", self.add))
                 .static_text(" from the deck"),
             crate::l10n::locale::Language::Korean => {
-                let desc = Box::leak(
-                    format!("덱에서 {}개 숫자카드를 제거합니다", self.add).into_boxed_str(),
-                );
-                builder.static_text(desc)
+                builder.text(format!("덱에서 {}개 숫자카드를 제거합니다", self.add))
             }
         };
     }
