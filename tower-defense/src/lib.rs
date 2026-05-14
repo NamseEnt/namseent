@@ -24,6 +24,7 @@ mod top_bar;
 mod upgrades;
 
 use crate::camera_controller::CameraController;
+use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -148,7 +149,18 @@ impl Component for Game {
         let screen_wh = screen::size().into_type::<Px>();
         let game_state = game_state::init_game_state(ctx);
         let _sound_state = sound::init_sound_state(ctx);
+        let (bgm_started, set_bgm_started) = ctx.state(|| false);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
+
+        if !*bgm_started {
+            sound::emit_sound(EmitSoundParams::looping(
+                crate::asset::sound::BGM,
+                SoundGroup::Music,
+                VolumePreset::High,
+                SpatialMode::NonSpatial,
+            ));
+            set_bgm_started.set(true);
+        }
 
         ctx.compose(|ctx| {
             let Some(modal) = game_state.opened_modal.as_ref() else {
