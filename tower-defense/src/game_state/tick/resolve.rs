@@ -1,5 +1,7 @@
 use super::*;
-use crate::game_state::attack::{HitSound, InFlightAttack, InFlightAttackKind, ProjectileHitEffect};
+use crate::game_state::attack::{
+    HitSound, InFlightAttack, InFlightAttackKind, ProjectileHitEffect,
+};
 use crate::game_state::effect_event::{GameEffectEvent, ParticleSpawnRequest};
 use crate::game_state::projectile::ProjectileBehavior;
 use rand::Rng;
@@ -49,32 +51,40 @@ fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
                         crate::sound::random_knife_slash(),
                         crate::sound::SoundGroup::Sfx,
                         crate::sound::VolumePreset::Low,
-                        crate::sound::SpatialMode::Spatial { position: target_xy },
+                        crate::sound::SpatialMode::Spatial {
+                            position: target_xy,
+                        },
                     ),
                 ));
                 let delay_ms = rng.gen_range(30_i64..=60_i64);
-                game_state.effect_events.push(GameEffectEvent::PlaySoundDelayed(
-                    crate::sound::EmitSoundParams::one_shot(
-                        crate::sound::random_knife_slash(),
-                        crate::sound::SoundGroup::Sfx,
-                        crate::sound::VolumePreset::Low,
-                        crate::sound::SpatialMode::Spatial { position: target_xy },
-                    ),
-                    Duration::from_millis(delay_ms),
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::PlaySoundDelayed(
+                        crate::sound::EmitSoundParams::one_shot(
+                            crate::sound::random_knife_slash(),
+                            crate::sound::SoundGroup::Sfx,
+                            crate::sound::VolumePreset::Low,
+                            crate::sound::SpatialMode::Spatial {
+                                position: target_xy,
+                            },
+                        ),
+                        Duration::from_millis(delay_ms),
+                    ));
             }
         }
 
         if attack.damage > 0.0 {
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::DamageText(
-                    crate::game_state::field_particle::DamageTextParticle::new(
-                        target_xy,
-                        attack.damage,
-                        now,
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::DamageText(
+                        crate::game_state::field_particle::DamageTextParticle::new(
+                            target_xy,
+                            attack.damage,
+                            now,
+                        ),
                     ),
-                ),
-            ));
+                ));
         }
 
         hits.push(MonsterHit {
@@ -133,11 +143,13 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
                 },
             ),
         ));
-        game_state.effect_events.push(GameEffectEvent::SpawnLaserBeam(
-            beam.start_xy,
-            beam.end_xy,
-            beam.created_at,
-        ));
+        game_state
+            .effect_events
+            .push(GameEffectEvent::SpawnLaserBeam(
+                beam.start_xy,
+                beam.end_xy,
+                beam.created_at,
+            ));
 
         let Some(&target_idx) = monster_index_by_id.get(&beam.target_monster_id) else {
             continue;
@@ -145,15 +157,17 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
         let target_xy = game_state.monsters[target_idx].center_xy_tile();
 
         if attack.damage > 0.0 {
-            game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                ParticleSpawnRequest::DamageText(
-                    crate::game_state::field_particle::DamageTextParticle::new(
-                        target_xy,
-                        attack.damage,
-                        now,
+            game_state
+                .effect_events
+                .push(GameEffectEvent::SpawnParticle(
+                    ParticleSpawnRequest::DamageText(
+                        crate::game_state::field_particle::DamageTextParticle::new(
+                            target_xy,
+                            attack.damage,
+                            now,
+                        ),
                     ),
-                ),
-            ));
+                ));
         }
 
         hits.push(MonsterHit {
@@ -193,17 +207,19 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
             let Some(&monster_index) = monster_index_by_indicator.get(&spatial.target_indicator)
             else {
                 // 타겟 몬스터가 이미 사망 → 투사체를 파티클로 흩날림
-                game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                    ParticleSpawnRequest::Projectile(field_particle::ProjectileParticle::new(
-                        spatial.xy,
-                        spatial.projectile_kind,
-                        spatial.rotation,
-                        spatial.rotation_speed,
-                        spatial.velocity,
-                        now,
-                        Duration::from_millis(300),
-                    )),
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SpawnParticle(
+                        ParticleSpawnRequest::Projectile(field_particle::ProjectileParticle::new(
+                            spatial.xy,
+                            spatial.projectile_kind,
+                            spatial.rotation,
+                            spatial.rotation_speed,
+                            spatial.velocity,
+                            now,
+                            Duration::from_millis(300),
+                        )),
+                    ));
                 return false;
             };
 
@@ -221,15 +237,17 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                     ProjectileBehavior::Homing { .. } => spatial.move_homing(dt, monster_xy),
                 }
                 let moved_distance = (spatial.xy - start_xy).length();
-                game_state.effect_events.push(GameEffectEvent::SyncProjectileTrailState {
-                    projectile_id: attack.id,
-                    trail: spatial.trail,
-                    start_xy,
-                    end_xy: spatial.xy,
-                    moved_distance,
-                    dt_secs: dt.as_secs_f32(),
-                    now,
-                });
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SyncProjectileTrailState {
+                        projectile_id: attack.id,
+                        trail: spatial.trail,
+                        start_xy,
+                        end_xy: spatial.xy,
+                        moved_distance,
+                        dt_secs: dt.as_secs_f32(),
+                        now,
+                    });
                 return true;
             }
 
@@ -242,17 +260,21 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                         sound_fn(),
                         sound::SoundGroup::Sfx,
                         sound::VolumePreset::Minimum,
-                        sound::SpatialMode::Spatial { position: monster_xy },
+                        sound::SpatialMode::Spatial {
+                            position: monster_xy,
+                        },
                     ),
                 ));
             }
 
             if damage > 0.0 {
-                game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                    ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
-                        monster_xy, damage, now,
-                    )),
-                ));
+                game_state
+                    .effect_events
+                    .push(GameEffectEvent::SpawnParticle(
+                        ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
+                            monster_xy, damage, now,
+                        )),
+                    ));
             }
 
             match spatial.hit_effect {
@@ -263,17 +285,19 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                         (monster_xy.x, monster_xy.y),
                         now,
                     ) {
-                        game_state.effect_events.push(GameEffectEvent::SpawnParticle(
-                            ParticleSpawnRequest::Trash(p),
-                        ));
+                        game_state
+                            .effect_events
+                            .push(GameEffectEvent::SpawnParticle(ParticleSpawnRequest::Trash(
+                                p,
+                            )));
                     }
                 }
                 hit_effect => {
-                    game_state.effect_events.push(GameEffectEvent::SpawnProjectileHitEffect(
-                        hit_effect,
-                        monster_xy,
-                        now,
-                    ));
+                    game_state
+                        .effect_events
+                        .push(GameEffectEvent::SpawnProjectileHitEffect(
+                            hit_effect, monster_xy, now,
+                        ));
                 }
             }
 
@@ -309,7 +333,9 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
                     crate::sound::random_whoop(),
                     crate::sound::SoundGroup::Sfx,
                     crate::sound::VolumePreset::Minimum,
-                    crate::sound::SpatialMode::Spatial { position: hit.at_xy },
+                    crate::sound::SpatialMode::Spatial {
+                        position: hit.at_xy,
+                    },
                 ),
             ));
 

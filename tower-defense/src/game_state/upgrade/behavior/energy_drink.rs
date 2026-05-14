@@ -11,14 +11,22 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         self.add
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Energy Drink",
             crate::l10n::locale::Language::Korean => "에너지드링크",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Shop price ")
@@ -50,4 +58,3 @@ fn current_and_max(upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
         super::MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
     ))
 }
-

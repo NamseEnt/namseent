@@ -150,9 +150,10 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
                     MAP_SIZE,
                 ) {
                     let tower = Tower::new(&template, left_top, now);
-                    gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-                        tower,
-                    ), None));
+                    gs.action(crate::game_state::GameStateAction::PlaceTower(
+                        Box::new(tower),
+                        None,
+                    ));
                     placed_at = Some(left_top);
                     println!(
                         "[Spiral Place] Placed tower at ({}, {})",

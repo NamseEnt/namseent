@@ -1,4 +1,4 @@
-use crate::game_state::{flow::GameFlow, GameState};
+use crate::game_state::{GameState, flow::GameFlow};
 
 pub(super) fn clear_active_entities(game_state: &mut GameState) {
     game_state.monsters.clear();
