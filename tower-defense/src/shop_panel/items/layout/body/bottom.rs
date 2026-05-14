@@ -31,12 +31,9 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                                 locale,
                             );
                         }
-                        ShopItemDescription::Upgrade {
-                            upgrade_kind,
-                            locale,
-                        } => {
+                        ShopItemDescription::Upgrade { upgrade, locale } => {
                             builder.l10n(
-                                l10n::upgrade::UpgradeKindText::Description(upgrade_kind),
+                                l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(upgrade),
                                 locale,
                             );
                         }
@@ -70,7 +67,7 @@ fn render_cost_bar(wh: Wh<Px>, ctx: ComposeCtx, available: bool, cost: usize) {
 }
 
 pub(crate) fn make_renderer<'a>(
-    name: ShopItemTitle,
+    name: ShopItemTitle<'a>,
     description: ShopItemDescription<'a>,
     cost: usize,
     available: bool,
@@ -91,12 +88,9 @@ pub(crate) fn make_renderer<'a>(
                                         locale,
                                     );
                                 }
-                                ShopItemTitle::Upgrade {
-                                    upgrade_kind,
-                                    locale,
-                                } => {
+                                ShopItemTitle::Upgrade { upgrade, locale } => {
                                     builder.l10n(
-                                        l10n::upgrade::UpgradeKindText::Name(upgrade_kind),
+                                        l10n::upgrade::UpgradeTypeText::Name(upgrade),
                                         locale,
                                     );
                                 }

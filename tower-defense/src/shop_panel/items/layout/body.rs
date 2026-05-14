@@ -14,10 +14,10 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
         cost,
         available,
         item_kind,
-        upgrade_kind,
+        upgrade,
     } = params;
 
-    let rim_image = if let Some(_upgrade) = upgrade_kind {
+    let rim_image = if let Some(_upgrade) = upgrade {
         rim::UPGRADE
     } else {
         rim::ITEM
@@ -40,8 +40,8 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
                                         table::padding_no_clip(padding, |inner_wh, inner_ctx| {
                                             if let Some(kind) = item_kind {
                                                 inner_ctx.add(kind.thumbnail(inner_wh));
-                                            } else if let Some(upgrade) = upgrade_kind {
-                                                inner_ctx.add(upgrade.thumbnail(inner_wh));
+                                            } else if let Some(upgrade) = upgrade {
+                                                inner_ctx.add(upgrade.thumbnail(inner_wh, false));
                                             } else {
                                                 inner_ctx.add(
                                                     crate::thumbnail::render_placeholder_thumbnail(

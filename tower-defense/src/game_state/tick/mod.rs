@@ -1,9 +1,18 @@
-mod attack;
-mod defense_end;
-mod monster_death;
-mod projectile;
+pub(crate) mod defense_end;
+pub(crate) mod monster_death;
+mod resolve;
+mod shoot;
 
 use super::*;
+use crate::game_state::attack::TowerInfo;
+
+/// 공격이 몬스터에 명중했을 때의 정보. 모든 공격 경로(Spatial/Timed/Laser)가 동일한 struct를 사용.
+pub(super) struct MonsterHit {
+    pub target_idx: usize,
+    pub damage: f32,
+    pub at_xy: MapCoordF32,
+    pub source_tower: Option<TowerInfo>,
+}
 
 pub(crate) const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
 
@@ -46,8 +55,8 @@ fn tick_logic(game_state: &mut GameState, dt: Duration, now: Instant) {
 
     monster::move_monsters(game_state, dt);
 
-    projectile::move_projectiles(game_state, dt, now);
-    attack::shoot_attacks(game_state);
+    resolve::update_in_flight_attacks(game_state, dt, now);
+    shoot::shoot_attacks(game_state);
     defense_end::check_defense_end(game_state);
 }
 

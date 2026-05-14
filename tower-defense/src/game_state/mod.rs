@@ -1,3 +1,4 @@
+pub(crate) mod action;
 pub mod attack;
 pub mod background;
 mod base;
@@ -9,7 +10,6 @@ mod debug_tools;
 pub mod difficulty;
 pub mod effect;
 pub mod effect_event;
-mod event_handlers;
 pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
@@ -18,7 +18,8 @@ mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
-pub mod play_history;
+pub(crate) use action::GameStateAction;
+pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
 mod render;
@@ -35,7 +36,7 @@ use crate::card::Deck;
 use crate::config::GameConfig;
 use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
-use crate::hand::{Hand, HandItem, HandSlotId};
+use crate::hand::{Hand, HandItem};
 use crate::route::*;
 use crate::*;
 use background::{Background, generate_backgrounds};
@@ -111,8 +112,7 @@ pub struct GameState {
     pub stage: usize,
     pub left_dice: usize,
     pub monster_spawn_state: MonsterSpawnState,
-    pub projectiles: Vec<Projectile>,
-    pub delayed_hits: Vec<attack::DelayedHit>,
+    pub in_flight_attacks: Vec<attack::InFlightAttack>,
     pub items: Vec<item::Item>,
     pub gold: usize,
     pub cursor_preview: CursorPreview,
@@ -147,34 +147,22 @@ impl GameState {
     }
 
     pub fn max_shop_slot(&self) -> usize {
-        self.upgrade_state.shop_slot_expand + 2
+        self.upgrade_state.shop_slot_expand() + 2
     }
+
+    pub fn max_hp(&self) -> f32 {
+        self.config.player.max_hp + self.upgrade_state.max_hp_plus() as f32
+    }
+
     pub fn max_dice_chance(&self) -> usize {
-        (self.upgrade_state.dice_chance_plus
+        (self.upgrade_state.dice_chance_plus()
             + self.config.player.base_dice_chance
             + self.stage_modifiers.get_max_rerolls_bonus())
         .saturating_sub(self.stage_modifiers.get_max_rerolls_penalty())
     }
 
     pub fn generate_rarity(&self) -> crate::rarity::Rarity {
-        const RARITIES: [crate::rarity::Rarity; 4] = [
-            crate::rarity::Rarity::Common,
-            crate::rarity::Rarity::Rare,
-            crate::rarity::Rarity::Epic,
-            crate::rarity::Rarity::Legendary,
-        ];
-
-        let total_weight: usize = self.config.rarity_weights.iter().sum();
-        let random_value = rand::random::<usize>() % total_weight;
-
-        let mut cumulative_weight = 0;
-        for (i, &weight) in self.config.rarity_weights.iter().enumerate() {
-            cumulative_weight += weight;
-            if random_value < cumulative_weight {
-                return RARITIES[i];
-            }
-        }
-        unreachable!()
+        crate::rarity::Rarity::Common
     }
 
     /// Returns whether the hand panel is allowed to be opened based on current flow.
@@ -216,14 +204,7 @@ impl GameState {
         self.game_now
     }
 
-    pub fn record_tower_damage(
-        &mut self,
-        tower_id: usize,
-        tower_kind: TowerKind,
-        rank: Rank,
-        suit: Suit,
-        damage: f32,
-    ) {
+    pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: f32) {
         if damage <= 0.0 {
             return;
         }
@@ -232,15 +213,15 @@ impl GameState {
             .metrics
             .tower_damage_stats
             .iter_mut()
-            .find(|entry| entry.tower_id == tower_id)
+            .find(|entry| entry.tower_id == tower.id)
         {
             entry.total_damage += damage;
         } else {
             self.metrics.tower_damage_stats.push(TowerDamageStats {
-                tower_id,
-                tower_kind,
-                rank,
-                suit,
+                tower_id: tower.id,
+                tower_kind: tower.kind,
+                rank: tower.rank,
+                suit: tower.suit,
                 total_damage: damage,
             });
         }
@@ -650,18 +631,15 @@ fn create_initial_game_state() -> GameState {
         stage: 1,
         left_dice: config.player.base_dice_chance,
         monster_spawn_state: MonsterSpawnState::idle(),
-        projectiles: Default::default(),
-        delayed_hits: Default::default(),
+        in_flight_attacks: Default::default(),
         items: vec![
             Item {
                 kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
-                value: 0.5.into(),
             },
             Item {
                 kind: ItemKind::LumpSugar,
                 effect: Effect::ExtraDice,
-                value: 0.5.into(),
             },
             Item {
                 kind: ItemKind::GrantBarricades,
@@ -671,7 +649,6 @@ fn create_initial_game_state() -> GameState {
                     rank: Rank::Ace,
                     count: 1,
                 },
-                value: 1.0.into(),
             },
         ],
         gold: config.player.starting_gold,
@@ -709,8 +686,10 @@ fn create_initial_game_state() -> GameState {
     };
 
     // Start with selecting tower flow and default shop mode (normal shop).
-    game_state.goto_selecting_tower();
-    game_state.record_game_start();
+    game_state.action(crate::game_state::GameStateAction::StartStage {
+        stage: game_state.stage,
+    });
+    game_state.action(GameStateAction::GameStart);
     game_state
 }
 
@@ -755,8 +734,7 @@ impl GameState {
             stage: self.stage,
             left_dice: self.left_dice,
             monster_spawn_state: self.monster_spawn_state.clone(),
-            projectiles: self.projectiles.clone(),
-            delayed_hits: self.delayed_hits.clone(),
+            in_flight_attacks: self.in_flight_attacks.clone(),
             items: self.items.clone(),
             gold: self.gold,
             cursor_preview: self.cursor_preview.clone(),
@@ -849,25 +827,6 @@ pub fn is_boss_stage(stage: usize) -> bool {
     stage.is_multiple_of(5) || (46..=49).contains(&stage)
 }
 
-/// Make sure that the tower can be placed at the given coord.
-pub fn place_tower(tower: Tower, placing_tower_slot_id: HandSlotId) {
-    crate::game_state::mutate_game_state(move |game_state| {
-        game_state.place_tower(tower);
-        game_state.hand.delete_slots(&[placing_tower_slot_id]);
-
-        // Auto-select the first card (tower or barricade) if available
-        if let Some(first_slot_id) = game_state.hand.get_slot_id_by_index(0)
-            && game_state
-                .hand
-                .get_item(first_slot_id)
-                .and_then(|item| item.as_tower())
-                .is_some()
-        {
-            game_state.hand.select_slot(first_slot_id);
-        }
-    });
-}
-
 // Unit tests that exercise panel toggle behavior.
 #[cfg(test)]
 mod tests {
@@ -896,7 +855,7 @@ mod tests {
         assert!(gs.shop_panel_forced_open);
 
         // enter selecting tower flow - both hand and shop are allowed in this flow.
-        gs.goto_selecting_tower();
+        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
         assert!(gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());
         // forced flags were true already; both panels open
@@ -914,10 +873,12 @@ mod tests {
         assert!(gs.shop_panel_forced_open);
 
         // go to placing tower flow: hand allowed, shop not
-        gs.goto_placing_tower(crate::game_state::tower::TowerTemplate::new(
-            crate::game_state::tower::TowerKind::Barricade,
-            crate::card::Suit::Spades,
-            crate::card::Rank::Ace,
+        gs.action(crate::game_state::GameStateAction::StartPlacingTower(
+            crate::game_state::tower::TowerTemplate::new(
+                crate::game_state::tower::TowerKind::Barricade,
+                crate::card::Suit::Spades,
+                crate::card::Rank::Ace,
+            ),
         ));
         assert!(gs.can_open_hand_panel());
         assert!(!gs.can_open_shop_panel());

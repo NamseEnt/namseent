@@ -8,14 +8,12 @@ use crate::game_state::{
     },
     mutate_game_state,
     tower::TowerTemplate,
-    upgrade::Upgrade,
 };
 use crate::theme::{
     button::{Button, ButtonVariant},
     typography::memoized_text,
 };
 use namui::*;
-use rand::{Rng, thread_rng};
 use std::sync::{Mutex, OnceLock};
 
 #[derive(Clone, State)]
@@ -163,27 +161,24 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     // Step 2: Place expected tower
     let expected_tower_kind = get_expected_tower_for_stage(gs.stage);
     let template = TowerTemplate::new(expected_tower_kind, Suit::Spades, Rank::Ace);
-    gs.goto_placing_tower(template);
+    gs.action(crate::game_state::GameStateAction::StartPlacingTower(
+        template,
+    ));
 
     // Step 3: Apply expected upgrade
     let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(gs.stage);
     let upgrade = if expected_category == UpgradeCategory::Random {
         crate::game_state::upgrade::generate_treasure_upgrade(gs)
     } else {
-        let kind = expected_category.generate_upgrade_kind(expected_rarity);
-        let value = thread_rng().gen_range(0.0..=1.0);
-        Upgrade {
-            kind,
-            value: value.into(),
-        }
+        expected_category.generate_upgrade_kind(expected_rarity)
     };
-    gs.upgrade_state.upgrade(upgrade);
+    gs.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
     // Step 4: Place towers in spiral
     place_selected_tower_in_spiral(gs);
 
     // Step 5: Go to defense
-    gs.goto_defense();
+    gs.action(crate::game_state::GameStateAction::StartDefense);
 
     // Store the hp before defense starts for later comparison
     let mut state = get_balance_state().unwrap();
@@ -269,6 +264,6 @@ pub fn check_and_adjust_hp_balance(gs: &mut crate::game_state::GameState) {
         state.display_text = format!("HP Balance: DONE - final_hp={:.2}", final_hp);
         set_balance_state(Some(state));
         gs.stage += 1;
-        gs.goto_next_stage();
+        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
     }
 }

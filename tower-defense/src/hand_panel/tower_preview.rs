@@ -136,11 +136,13 @@ impl Component for PreviewEntryComponent {
                         table::fixed_no_clip(24.px(), move |wh, ctx| {
                             let now = game_state.now();
                             let preview_tower = Tower::new(&template, MapCoord::new(0, 0), now);
-                            let tower_upgrades =
-                                game_state.upgrade_state.tower_upgrades(&preview_tower);
-                            let damage_multiplier = tower_upgrades
+                            let tower_upgrade_bonuses =
+                                game_state.upgrade_state.tower_upgrade_damage_bonuses();
+                            let bonus_sum: f32 = tower_upgrade_bonuses
                                 .iter()
-                                .fold(1.0, |acc, state| acc * state.damage_multiplier);
+                                .map(|bonus| bonus.effective_bonus_pct_for_tower(&preview_tower))
+                                .sum();
+                            let damage_multiplier = 1.0 + bonus_sum;
                             let rank_bonus = *game_state
                                 .config
                                 .towers

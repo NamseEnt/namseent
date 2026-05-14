@@ -73,7 +73,9 @@ impl CardRerollStrategy for SmartRerollStrategy {
             &game_state.config,
         );
 
-        game_state.goto_placing_tower(tower_template);
+        game_state.action(crate::game_state::GameStateAction::StartPlacingTower(
+            tower_template,
+        ));
     }
 }
 
@@ -163,7 +165,7 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
 
     if let Some(idx) = best_item_idx {
         let item = game_state.items.remove(idx);
-        game_state.use_item(&item);
+        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
         return true;
     }
 

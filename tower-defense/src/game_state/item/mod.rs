@@ -25,7 +25,6 @@ pub enum ItemKind {
 pub struct Item {
     pub kind: ItemKind,
     pub effect: Effect,
-    pub value: OneZero,
 }
 
 impl ItemKind {
@@ -86,7 +85,6 @@ impl Item {
         Item {
             kind: ItemKind::GrantCard { card },
             effect: Effect::AddCardToHand { card },
-            value: 1.0.into(),
         }
     }
 

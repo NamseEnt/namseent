@@ -74,21 +74,12 @@ const ITEM_NAMES: &[&str] = &[
     "GrantCard",
 ];
 
-const UPGRADE_NAMES: &[&str] = &[
-    "Cat",
-    "Backpack",
-    "DiceBundle",
-    "EnergyDrink",
-    "FourLeafClover",
-    "Rabbit",
-    "BlackWhite",
-    "Eraser",
+const SHOP_UPGRADE_NAMES: &[&str] = &[
     "Staff",
     "LongSword",
     "Mace",
     "ClubSword",
     "Tricycle",
-    "PerfectPottery",
     "SingleChopstick",
     "PairChopsticks",
     "FountainPen",
@@ -117,7 +108,7 @@ impl Database {
 
     pub fn list_upgrades(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
-        Ok(self.build_known_summary(summary, UPGRADE_NAMES))
+        Ok(self.build_known_summary(summary, SHOP_UPGRADE_NAMES))
     }
 
     pub fn list_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
@@ -246,7 +237,13 @@ impl Database {
     }
 
     fn canonicalize_kind_name(kind: String) -> String {
-        kind.split_whitespace().next().unwrap_or(&kind).to_string()
+        let trimmed = kind.trim();
+        let token: String = trimmed
+            .chars()
+            .take_while(|c| c.is_alphanumeric())
+            .collect();
+        let token = token.strip_suffix("Upgrade").unwrap_or(&token);
+        token.to_string()
     }
 
     fn build_summary(
@@ -552,6 +549,120 @@ impl Database {
             clear_rate_distribution,
             distribution: Vec::new(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::simulator::events::SimEvent;
+    use crate::simulator::recording::SimRecorder;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_db_path(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("tower_defense_{}_{}.db", name, nanos))
+    }
+
+    #[test]
+    fn canonicalizes_upgrade_debug_names() {
+        assert_eq!(
+            Database::canonicalize_kind_name("BlackWhite(BlackWhiteUpgrade)".to_string()),
+            "BlackWhite".to_string()
+        );
+        assert_eq!(
+            Database::canonicalize_kind_name("PairChopsticksUpgrade".to_string()),
+            "PairChopsticks".to_string()
+        );
+        assert_eq!(
+            Database::canonicalize_kind_name("RiceBall".to_string()),
+            "RiceBall".to_string()
+        );
+    }
+
+    #[test]
+    fn list_upgrades_counts_shop_purchase_upgrade_names() {
+        let db_path = temp_db_path("shop_purchase_upgrade");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+
+        recorder
+            .record_simulation_start(
+                "sim1",
+                "shop_strategy",
+                "card_reroll_strategy",
+                "tower_placement_strategy",
+                "item_use_strategy",
+                0,
+            )
+            .unwrap();
+        recorder
+            .record_events(
+                "sim1",
+                &[SimEvent::ShopPurchase {
+                    stage: 1,
+                    cost: 0,
+                    item_kind: "Staff(StaffUpgrade)".to_string(),
+                }],
+            )
+            .unwrap();
+        recorder
+            .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
+            .unwrap();
+
+        let db = Database::open(&db_path).unwrap();
+        let upgrades = db.list_upgrades().unwrap();
+        assert!(
+            upgrades
+                .iter()
+                .any(|row| row.name == "Staff" && row.total_purchases == 1)
+        );
+
+        fs::remove_file(&db_path).unwrap();
+    }
+
+    #[test]
+    fn list_upgrades_excludes_treasure_only_names() {
+        let db_path = temp_db_path("shop_upgrade_names");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+
+        recorder
+            .record_simulation_start(
+                "sim1",
+                "shop_strategy",
+                "card_reroll_strategy",
+                "tower_placement_strategy",
+                "item_use_strategy",
+                0,
+            )
+            .unwrap();
+        recorder
+            .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
+            .unwrap();
+
+        let db = Database::open(&db_path).unwrap();
+        let upgrades = db.list_upgrades().unwrap();
+
+        let treasure_only_names = [
+            "Cat",
+            "Backpack",
+            "DiceBundle",
+            "EnergyDrink",
+            "FourLeafClover",
+            "Rabbit",
+            "BlackWhite",
+            "Eraser",
+        ];
+
+        for name in treasure_only_names {
+            assert!(upgrades.iter().all(|row| row.name != name));
+        }
+
+        fs::remove_file(&db_path).unwrap();
     }
 }
 

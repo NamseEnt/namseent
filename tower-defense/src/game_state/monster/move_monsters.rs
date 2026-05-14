@@ -45,6 +45,6 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     damage *= game_state.stage_modifiers.get_incoming_damage_multiplier();
 
     if damage > 0.0 {
-        game_state.take_damage(damage);
+        game_state.action(crate::game_state::GameStateAction::TakeDamage(damage));
     }
 }

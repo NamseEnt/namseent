@@ -12,12 +12,12 @@ pub struct FlushResult {
 }
 
 pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<StraightResult> {
-    let straight_card_count = match upgrade_state.shorten_straight_flush_to_4_cards {
+    let straight_card_count = match upgrade_state.shorten_straight_flush_to_4_cards() {
         true => 4,
         false => 5,
     };
-    let skip_rank_for_straight = upgrade_state.skip_rank_for_straight;
-    let removed_number_rank_count = upgrade_state.removed_number_rank_count;
+    let skip_rank_for_straight = upgrade_state.skip_rank_for_straight();
+    let removed_number_rank_count = upgrade_state.removed_number_rank_count();
 
     if cards.len() < straight_card_count {
         return None;
@@ -163,11 +163,11 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
 }
 
 pub fn check_flush(cards: &[Card], upgrade_state: &UpgradeState) -> Option<FlushResult> {
-    let flush_card_count = match upgrade_state.shorten_straight_flush_to_4_cards {
+    let flush_card_count = match upgrade_state.shorten_straight_flush_to_4_cards() {
         true => 4,
         false => 5,
     };
-    let treat_suits_as_same = upgrade_state.treat_suits_as_same;
+    let treat_suits_as_same = upgrade_state.treat_suits_as_same();
 
     if cards.len() < flush_card_count {
         return None;

@@ -7,21 +7,26 @@ pub const LASER_LIFETIME: Duration = Duration::from_millis(500);
 pub struct LaserBeam {
     /// 레이저 시작점 (타워 위치)
     pub start_xy: (f32, f32),
-    /// 레이저 끝점 (적 위치)
+    /// 레이저 끝점 (발사 시점의 적 위치)
     pub end_xy: (f32, f32),
     /// 레이저가 생성된 시간
     pub created_at: Instant,
-    /// 데미지 (이미 적용됨)
-    pub damage: f32,
+    /// 데미지를 적용할 몬스터 ID.
+    pub target_monster_id: usize,
 }
 
 impl LaserBeam {
-    pub fn new(start_xy: (f32, f32), end_xy: (f32, f32), created_at: Instant, damage: f32) -> Self {
+    pub fn new(
+        start_xy: (f32, f32),
+        end_xy: (f32, f32),
+        created_at: Instant,
+        target_monster_id: usize,
+    ) -> Self {
         Self {
             start_xy,
             end_xy,
             created_at,
-            damage,
+            target_monster_id,
         }
     }
 
@@ -32,7 +37,6 @@ impl LaserBeam {
             return 0.0;
         }
 
-        // 처음에는 밝게, 시간이 지나면서 점점 투명해짐
         let progress = elapsed.as_secs_f32() / LASER_LIFETIME.as_secs_f32();
         1.0 - progress
     }

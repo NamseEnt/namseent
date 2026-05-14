@@ -5,7 +5,7 @@ use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::item::{Item, ItemKind};
 use crate::game_state::tower::Tower;
-use crate::game_state::upgrade::{Upgrade, UpgradeKind, UpgradeState};
+use crate::game_state::upgrade::{Upgrade, UpgradeState};
 use rand::RngCore;
 
 /// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
@@ -23,7 +23,9 @@ impl ShopStrategy for SynergyShopStrategy {
             }
 
             if let Some(slot_id) = self.choose_best_slot(game_state) {
-                game_state.purchase_shop_item(slot_id);
+                game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                    slot_id,
+                ));
                 continue;
             }
 
@@ -42,7 +44,9 @@ impl SynergyShopStrategy {
             && game_state.hp < game_state.config.player.max_hp * 0.75
             && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceBall, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
@@ -51,21 +55,27 @@ impl SynergyShopStrategy {
             && game_state.hp < game_state.config.player.max_hp * 0.85
             && let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
         if count_item_kind(game_state, ItemKind::GrantBarricades) < 1
             && let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
             && let Some(slot_id) = find_item_slot(flow, ItemKind::LumpSugar, game_state.gold)
         {
-            game_state.purchase_shop_item(slot_id);
+            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                slot_id,
+            ));
             return true;
         }
 
@@ -169,30 +179,24 @@ impl SynergyShopStrategy {
     }
 
     fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
-        if upgrade.kind.is_tower_damage_upgrade() {
-            let current_score = total_tower_score(game_state, &game_state.upgrade_state);
-            let mut upgraded_state = game_state.upgrade_state.clone();
-            upgraded_state.upgrade(upgrade);
-            let next_score = total_tower_score(game_state, &upgraded_state);
-            let delta = next_score - current_score;
-            return delta
-                .max(0.0)
-                .max(self.evaluate_treasure_upgrade(upgrade.kind));
-        }
-
-        self.evaluate_treasure_upgrade(upgrade.kind)
+        let current_score = total_tower_score(game_state, &game_state.upgrade_state);
+        let mut upgraded_state = game_state.upgrade_state.clone();
+        upgraded_state.upgrades.push(upgrade);
+        let next_score = total_tower_score(game_state, &upgraded_state);
+        let delta = next_score - current_score;
+        delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade))
     }
 
-    fn evaluate_treasure_upgrade(&self, kind: UpgradeKind) -> f32 {
-        match kind {
-            UpgradeKind::Cat { .. } => 7.0,
-            UpgradeKind::Backpack { .. } => 6.5,
-            UpgradeKind::DiceBundle { .. } => 7.5,
-            UpgradeKind::EnergyDrink { .. } => 6.0,
-            UpgradeKind::FourLeafClover => 5.0,
-            UpgradeKind::Rabbit => 5.0,
-            UpgradeKind::BlackWhite => 5.5,
-            UpgradeKind::Eraser { .. } => 6.0,
+    fn evaluate_treasure_upgrade(&self, upgrade: &Upgrade) -> f32 {
+        match upgrade {
+            Upgrade::Cat(..) => 7.0,
+            Upgrade::Backpack(..) => 6.5,
+            Upgrade::DiceBundle(..) => 7.5,
+            Upgrade::EnergyDrink(..) => 6.0,
+            Upgrade::FourLeafClover(..) => 5.0,
+            Upgrade::Rabbit(..) => 5.0,
+            Upgrade::BlackWhite(..) => 5.5,
+            Upgrade::Eraser(..) => 6.0,
             _ => 3.0,
         }
     }
@@ -237,14 +241,14 @@ fn total_tower_score(game_state: &GameState, upgrade_state: &UpgradeState) -> f3
 }
 
 fn tower_score(tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
-    let tower_upgrade_states = upgrade_state.tower_upgrades(tower);
-    let damage = tower.calculate_projectile_damage(&tower_upgrade_states, 1.0);
+    let tower_upgrade_bonuses = upgrade_state.tower_upgrade_damage_bonuses();
+    let damage = tower.calculate_projectile_damage(&tower_upgrade_bonuses, 1.0);
     if damage <= 0.0 {
         return 0.0;
     }
     let interval = tower.shoot_interval.as_secs_f32().max(0.001);
     let dps = damage / interval;
-    let range = tower.attack_range_radius(&tower_upgrade_states, 1.0);
+    let range = tower.attack_range_radius(1.0);
     let range_factor = (range / 4.0).max(0.5);
     dps * range_factor
 }

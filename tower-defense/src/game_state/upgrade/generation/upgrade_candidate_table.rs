@@ -1,103 +1,63 @@
 use super::*;
-use crate::game_state::upgrade::MAX_REMOVE_NUMBER_RANKS;
+use crate::game_state::upgrade::UpgradeDiscriminants;
 use crate::game_state::{GameState, tower::TowerKind};
-use rand::{Rng, seq::SliceRandom, thread_rng};
-
-type KindGen = Box<dyn Fn() -> UpgradeKind + Send + Sync>;
 
 pub struct CandidateRow {
     pub weight: f32,
-    pub kind_gen: KindGen,
+    pub upgrade: Upgrade,
 }
+
+const TOWER_DAMAGE_UPGRADES: &[(UpgradeDiscriminants, f32)] = &[
+    (UpgradeDiscriminants::Staff, 13.0),
+    (UpgradeDiscriminants::LongSword, 13.0),
+    (UpgradeDiscriminants::Mace, 13.0),
+    (UpgradeDiscriminants::ClubSword, 13.0),
+    (UpgradeDiscriminants::Tricycle, 50.0),
+    (UpgradeDiscriminants::SingleChopstick, 20.0),
+    (UpgradeDiscriminants::PairChopsticks, 20.0),
+    (UpgradeDiscriminants::FountainPen, 20.0),
+    (UpgradeDiscriminants::Brush, 20.0),
+    (UpgradeDiscriminants::BrokenPottery, 20.0),
+];
+
+const TREASURE_UPGRADES: &[(UpgradeDiscriminants, f32)] = &[
+    (UpgradeDiscriminants::Trophy, 10.0),
+    (UpgradeDiscriminants::Crock, 10.0),
+    (UpgradeDiscriminants::DemolitionHammer, 10.0),
+    (UpgradeDiscriminants::Metronome, 10.0),
+    (UpgradeDiscriminants::Tape, 10.0),
+    (UpgradeDiscriminants::NameTag, 10.0),
+    (UpgradeDiscriminants::ShoppingBag, 10.0),
+    (UpgradeDiscriminants::Resolution, 10.0),
+    (UpgradeDiscriminants::Mirror, 10.0),
+    (UpgradeDiscriminants::IceCream, 10.0),
+    (UpgradeDiscriminants::Spanner, 10.0),
+    (UpgradeDiscriminants::Pea, 10.0),
+    (UpgradeDiscriminants::SlotMachine, 10.0),
+    (UpgradeDiscriminants::PiggyBank, 10.0),
+    (UpgradeDiscriminants::Camera, 10.0),
+    (UpgradeDiscriminants::GiftBox, 10.0),
+    (UpgradeDiscriminants::Fang, 10.0),
+    (UpgradeDiscriminants::Popcorn, 10.0),
+    (UpgradeDiscriminants::MembershipCard, 10.0),
+    (UpgradeDiscriminants::Eraser, 10.0),
+];
 
 pub fn generate_tower_damage_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
-    game_state
-        .config
-        .upgrades
-        .tower_damage_upgrades
+    TOWER_DAMAGE_UPGRADES
         .iter()
-        .map(|upgrade| CandidateRow {
-            weight: upgrade.entry.weight,
-            kind_gen: make_tower_damage_upgrade_kind_gen(
-                &upgrade.name,
-                upgrade.entry.damage_multiplier_range,
-            ),
+        .map(|(discriminant, weight)| CandidateRow {
+            weight: *weight,
+            upgrade: discriminant.generate(&game_state.upgrade_state),
         })
         .collect()
-}
-
-fn make_tower_damage_upgrade_kind_gen(name: &str, range: Option<(f32, f32)>) -> KindGen {
-    let range = range.unwrap_or((1.0, 1.0));
-    match name {
-        "Staff" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Staff {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "LongSword" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::LongSword {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Mace" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Mace {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "ClubSword" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::ClubSword {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Tricycle" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Tricycle {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "SingleChopstick" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::SingleChopstick {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "PairChopsticks" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::PairChopsticks {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "FountainPen" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::FountainPen {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "Brush" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::Brush {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "BrokenPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::BrokenPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        other => panic!("Unknown tower damage upgrade kind: {other}"),
-    }
 }
 
 pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<CandidateRow> {
     let upgrade_state = &game_state.upgrade_state;
 
-    let mut rows = Vec::with_capacity(16);
-    let mut push_row = |kind_gen: KindGen, current_and_max: Option<(usize, usize)>, weight: f32| {
+    let mut rows = Vec::with_capacity(TREASURE_UPGRADES.len());
+    let mut push_row = |upgrade: Upgrade, current_and_max: Option<(usize, usize)>, weight: f32| {
         let actual_weight = if let Some((current, max)) = current_and_max {
             if current >= max { 0.0 } else { weight }
         } else {
@@ -105,87 +65,17 @@ pub fn generate_treasure_upgrade_candidate_table(game_state: &GameState) -> Vec<
         };
         rows.push(CandidateRow {
             weight: actual_weight,
-            kind_gen,
+            upgrade,
         });
     };
 
-    for upgrade in &game_state.config.upgrades.treasure_upgrades {
-        let weight = upgrade.entry.weight;
-        let kind_gen = make_treasure_upgrade_kind_gen(
-            &upgrade.name,
-            upgrade.entry.damage_multiplier_range,
-            upgrade_state,
-        );
-        let current_and_max = match upgrade.name.as_str() {
-            "Cat" => Some((upgrade_state.gold_earn_plus, MAX_GOLD_EARN_PLUS)),
-            "Backpack" => Some((upgrade_state.shop_slot_expand, MAX_SHOP_SLOT_EXPAND)),
-            "DiceBundle" => Some((upgrade_state.dice_chance_plus, MAX_DICE_CHANCE_PLUS)),
-            "EnergyDrink" => Some((
-                upgrade_state.shop_item_price_minus,
-                MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE,
-            )),
-            "FourLeafClover" => Some((upgrade_state.shorten_straight_flush_to_4_cards as usize, 1)),
-            "Rabbit" => Some((upgrade_state.skip_rank_for_straight as usize, 1)),
-            "BlackWhite" => Some((upgrade_state.treat_suits_as_same as usize, 1)),
-            "Eraser" => Some((
-                upgrade_state.removed_number_rank_count,
-                MAX_REMOVE_NUMBER_RANKS,
-            )),
-            _ => None,
-        };
-        push_row(kind_gen, current_and_max, weight);
+    for (discriminant, weight) in TREASURE_UPGRADES {
+        let next_upgrade = discriminant.generate(upgrade_state);
+        let current_and_max = discriminant.current_and_max(upgrade_state);
+        push_row(next_upgrade, current_and_max, *weight);
     }
 
     rows
-}
-
-fn make_treasure_upgrade_kind_gen(
-    name: &str,
-    range: Option<(f32, f32)>,
-    upgrade_state: &UpgradeState,
-) -> KindGen {
-    let range = range.unwrap_or((1.0, 1.0));
-    let add = match name {
-        "Cat" => next_cat_add(upgrade_state.gold_earn_plus),
-        "Backpack" => 1,
-        "DiceBundle" => 1,
-        "EnergyDrink" => 5,
-        "Eraser" => 1,
-        _ => 0,
-    };
-    match name {
-        "Cat" => Box::new(move || UpgradeKind::Cat { add }),
-        "Backpack" => Box::new(move || UpgradeKind::Backpack { add }),
-        "DiceBundle" => Box::new(move || UpgradeKind::DiceBundle { add }),
-        "EnergyDrink" => Box::new(move || UpgradeKind::EnergyDrink { add }),
-        "PerfectPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::PerfectPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "BrokenPottery" => {
-            let (min, max) = range;
-            Box::new(move || UpgradeKind::BrokenPottery {
-                damage_multiplier: thread_rng().gen_range(min..max),
-            })
-        }
-        "FourLeafClover" => Box::new(|| UpgradeKind::FourLeafClover),
-        "Rabbit" => Box::new(|| UpgradeKind::Rabbit),
-        "BlackWhite" => Box::new(|| UpgradeKind::BlackWhite),
-        "Eraser" => Box::new(move || UpgradeKind::Eraser { add }),
-        other => panic!("Unknown treasure upgrade kind: {other}"),
-    }
-}
-
-fn next_cat_add(gold_earn_plus: usize) -> usize {
-    match gold_earn_plus {
-        0 | 1 => 1,
-        2 => 2,
-        4 => 4,
-        8 => 8,
-        _ => 0,
-    }
 }
 
 #[allow(dead_code)]
@@ -218,11 +108,19 @@ mod tests {
 
     #[test]
     fn make_treasure_upgrade_kind_gen_maxed_cat_does_not_panic() {
-        let upgrade_state = UpgradeState {
-            gold_earn_plus: MAX_GOLD_EARN_PLUS,
-            ..UpgradeState::default()
-        };
-        let kind_gen = make_treasure_upgrade_kind_gen("Cat", None, &upgrade_state);
-        assert!(matches!((kind_gen)(), UpgradeKind::Cat { add: 0 }));
+        let upgrade_state = UpgradeState::with_upgrades(vec![
+            crate::game_state::upgrade::CatUpgrade::into_upgrade(MAX_GOLD_EARN_PLUS),
+        ]);
+        let upgrade = UpgradeDiscriminants::Cat.generate(&upgrade_state);
+        assert!(matches!(upgrade, Upgrade::Cat(..)));
+    }
+
+    #[test]
+    fn treasure_candidate_table_does_not_duplicate_broken_pottery() {
+        let treasure_names: std::collections::HashSet<_> = TREASURE_UPGRADES
+            .iter()
+            .map(|(discriminant, _)| discriminant.as_ref())
+            .collect();
+        assert!(!treasure_names.contains("BrokenPottery"));
     }
 }

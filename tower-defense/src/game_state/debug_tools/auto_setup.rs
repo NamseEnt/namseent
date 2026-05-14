@@ -8,14 +8,12 @@ use crate::game_state::{
     },
     mutate_game_state,
     tower::TowerTemplate,
-    upgrade::Upgrade,
 };
 use crate::theme::{
     button::{Button, ButtonVariant},
     typography::memoized_text,
 };
 use namui::*;
-use rand::{Rng, thread_rng};
 
 /// Runs: snapshot -> place expected tower -> expected upgrade -> spiral place -> defense
 pub struct AutoSetupButton {
@@ -33,23 +31,18 @@ impl Component for AutoSetupButton {
 
                         let expected_tower_kind = get_expected_tower_for_stage(gs.stage);
                         let template = TowerTemplate::new(expected_tower_kind, Suit::Spades, Rank::Ace);
-                        gs.goto_placing_tower(template);
+                        gs.action(crate::game_state::GameStateAction::StartPlacingTower(template));
 
                         let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(gs.stage);
                         let upgrade = if expected_category == UpgradeCategory::Random {
                             crate::game_state::upgrade::generate_treasure_upgrade(gs)
                         } else {
-                            let kind = expected_category.generate_upgrade_kind(expected_rarity);
-                            let value = thread_rng().gen_range(0.0..=1.0);
-                            Upgrade {
-                                kind,
-                                value: value.into(),
-                            }
+                            expected_category.generate_upgrade_kind(expected_rarity)
                         };
-                        gs.upgrade_state.upgrade(upgrade);
+                        gs.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
                         place_selected_tower_in_spiral(gs);
-                        gs.goto_defense();
+                        gs.action(crate::game_state::GameStateAction::StartDefense);
                     });
                 },
                 &|wh, text_color, ctx| {

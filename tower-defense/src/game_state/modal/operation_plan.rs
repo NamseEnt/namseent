@@ -101,7 +101,7 @@ impl Component for OperationPlanModal {
                                                         event.stop_propagation();
                                                         mutate_game_state(move |gs| {
                                                             option.apply(gs);
-                                                            gs.goto_defense();
+                                                            gs.action(crate::game_state::GameStateAction::StartDefense);
                                                         });
                                                         set_modal(None);
                                                     }

@@ -1,2 +1,0 @@
-mod english;
-mod korean;

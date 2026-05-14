@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn applying_option_runs_effects_on_game_state() {
         let mut game_state = crate::game_state::effect::tests_support::make_test_state();
-        game_state.hp = 80.0;
+        game_state.hp = 40.0;
         game_state.gold = 0;
 
         let option = DifficultyOption {
@@ -159,7 +159,7 @@ mod tests {
 
         option.apply(&mut game_state);
 
-        assert!((game_state.hp - 90.0).abs() < 0.0001);
+        assert!((game_state.hp - 50.0).abs() < 0.0001);
         assert_eq!(game_state.gold, 5);
         assert!((game_state.stage_modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
     }

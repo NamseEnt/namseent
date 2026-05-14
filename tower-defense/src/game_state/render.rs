@@ -174,12 +174,16 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
+    use crate::game_state::attack::InFlightAttackKind;
     game_state.render_stuffs(
         ctx,
-        game_state
-            .projectiles
-            .iter()
-            .map(|projectile| (projectile.xy, projectile)),
+        game_state.in_flight_attacks.iter().filter_map(|attack| {
+            if let InFlightAttackKind::Spatial(spatial) = &attack.kind {
+                Some((spatial.xy, spatial))
+            } else {
+                None
+            }
+        }),
     );
 }
 

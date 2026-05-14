@@ -1,5 +1,6 @@
+use crate::game_state::GameState;
 use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
-use crate::shop::ShopSlotId;
+use crate::shop::{ShopSlot, ShopSlotId};
 use crate::shop_panel::constants::*;
 use crate::shop_panel::slot_layout_calculator::SlotLayoutCalculator;
 use crate::shop_panel::slot_renderer::ShopSlotView;
@@ -24,7 +25,9 @@ impl Component for ShopPaperContent {
         if let Some(shop) = shop_context {
             let purchase_item = |slot_id: ShopSlotId| {
                 mutate_game_state(move |game_state| {
-                    game_state.purchase_shop_item(slot_id);
+                    game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                        slot_id,
+                    ));
                 });
             };
             let can_purchase_item =
@@ -125,6 +128,37 @@ impl Component for ShopPaperContent {
                     })]),
                 )(wh, ctx);
             });
+        }
+    }
+}
+
+impl GameState {
+    fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
+        let shop = match &self.flow {
+            GameFlow::SelectingTower(flow) => &flow.shop,
+            _ => return false,
+        };
+
+        let Some(slot_data) = shop.get_slot_by_id(slot_id) else {
+            return false;
+        };
+
+        if slot_data.purchased {
+            return false;
+        }
+
+        match &slot_data.slot {
+            ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
+                let effective_cost = if self.stage_modifiers.is_free_shop_this_stage() {
+                    0
+                } else {
+                    *cost
+                };
+                self.gold >= effective_cost
+                    && !self
+                        .stage_modifiers
+                        .is_item_and_upgrade_purchases_disabled()
+            }
         }
     }
 }

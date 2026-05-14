@@ -35,7 +35,9 @@ impl Component for RefreshButton {
                     return;
                 }
                 game_state.left_dice -= 1;
-                game_state.take_damage(health_cost as f32);
+                game_state.action(crate::game_state::GameStateAction::TakeDamage(
+                    health_cost as f32,
+                ));
                 refresh_shop(game_state);
             });
         };

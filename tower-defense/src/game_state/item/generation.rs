@@ -1,37 +1,20 @@
 use super::Item;
 use crate::card::Card;
-use crate::config::GameConfig;
 use crate::game_state::effect::Effect;
 use namui::*;
 use rand::{Rng, seq::SliceRandom, thread_rng};
 
-/// 주어진 value(0.0~1.0)를 범위에 맞는 실제 값으로 변환
-fn calculate_amount_from_value(value: f32, min_value: f32, max_value: f32) -> f32 {
-    let clamped_value = value.clamp(0.0, 1.0);
-    min_value + (max_value - min_value) * clamped_value
-}
-
-/// MovementSpeedDebuff나 DamageReduction 같은 역효과 아이템용 변환
-fn calculate_reverse_amount_from_value(value: f32, min_value: f32, max_value: f32) -> f32 {
-    let clamped_value = value.clamp(0.0, 1.0);
-    // value가 높을수록 더 좋은 효과를 원하므로, 더 낮은 amount를 반환
-    max_value - (max_value - min_value) * clamped_value
-}
-
 /// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
-pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig) -> Item {
-    let candidates = generate_item_candidate_table(config);
+pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
+    let candidates = generate_item_candidate_table();
     let candidate = &candidates
         .choose_weighted(rng, |x| x.1)
         .expect("item candidate table should not be empty")
         .0;
 
-    let value = rng.gen_range(0.0..1.0);
-
     let (kind, effect) = match candidate {
         ItemCandidate::Heal => {
-            let range = config.items.heal.min_value..config.items.heal.max_value;
-            let amount = calculate_amount_from_value(value, range.start, range.end);
+            let amount = 14.0;
             (
                 crate::game_state::item::ItemKind::RiceBall,
                 Effect::Heal { amount },
@@ -42,17 +25,14 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig)
             Effect::ExtraDice,
         ),
         ItemCandidate::Shield => {
-            let range = config.items.shield.min_value..config.items.shield.max_value;
-            let amount = calculate_amount_from_value(value, range.start, range.end);
+            let amount = 25.0;
             (
                 crate::game_state::item::ItemKind::Shield,
                 Effect::Shield { amount },
             )
         }
         ItemCandidate::DamageReduction => {
-            let range =
-                config.items.damage_reduction.min_value..config.items.damage_reduction.max_value;
-            let amount = calculate_reverse_amount_from_value(value, range.start, range.end);
+            let amount = 0.85;
             let duration = Duration::from_secs(4);
             (
                 crate::game_state::item::ItemKind::Painkiller,
@@ -63,9 +43,7 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig)
             )
         }
         ItemCandidate::GrantBarricades => {
-            let range =
-                config.items.grant_barricades.min_value..config.items.grant_barricades.max_value;
-            let count = calculate_amount_from_value(value, range.start, range.end) as usize;
+            let count = 10;
             (
                 crate::game_state::item::ItemKind::GrantBarricades,
                 Effect::AddTowerCardToPlacementHand {
@@ -85,36 +63,25 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R, config: &GameConfig)
         }
     };
 
-    Item {
-        kind,
-        effect,
-        value: value.into(),
-    }
+    Item { kind, effect }
 }
 
 /// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
 #[allow(dead_code)]
 pub fn generate_item() -> Item {
     let mut rng = thread_rng();
-    generate_item_with_rng(&mut rng, &GameConfig::default_config())
+    generate_item_with_rng(&mut rng)
 }
 
-fn generate_item_candidate_table(config: &GameConfig) -> Vec<(ItemCandidate, f32)> {
-    let candidate_table = vec![
-        (ItemCandidate::Heal, config.items.heal.weight),
-        (ItemCandidate::ExtraReroll, config.items.extra_reroll.weight),
-        (ItemCandidate::Shield, config.items.shield.weight),
-        (
-            ItemCandidate::DamageReduction,
-            config.items.damage_reduction.weight,
-        ),
-        (
-            ItemCandidate::GrantBarricades,
-            config.items.grant_barricades.weight,
-        ),
-        (ItemCandidate::GrantCard, config.items.grant_card.weight),
-    ];
-    candidate_table
+fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
+    vec![
+        (ItemCandidate::Heal, 100.0),
+        (ItemCandidate::ExtraReroll, 10.0),
+        (ItemCandidate::Shield, 10.0),
+        (ItemCandidate::DamageReduction, 10.0),
+        (ItemCandidate::GrantBarricades, 45.0),
+        (ItemCandidate::GrantCard, 35.0),
+    ]
 }
 
 enum ItemCandidate {
@@ -153,7 +120,7 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(7);
 
         for _ in 0..128 {
-            let item = generate_item_with_rng(&mut rng, &GameConfig::default_config());
+            let item = generate_item_with_rng(&mut rng);
             if let crate::game_state::item::ItemKind::GrantCard { card } = item.kind {
                 assert!(crate::card::SUITS.contains(&card.suit));
                 assert!(crate::card::RANKS.contains(&card.rank));

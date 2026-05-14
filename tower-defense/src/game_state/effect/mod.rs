@@ -135,7 +135,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
 ) {
     match effect {
         Effect::Heal { amount } => {
-            game_state.hp = (game_state.hp + amount).min(game_state.config.player.max_hp);
+            game_state.hp = (game_state.hp + amount).min(game_state.max_hp());
         }
         Effect::Shield { amount } => {
             game_state.shield += amount;
@@ -152,7 +152,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         } => {
             let is_winner = rng.gen_bool(*probability as f64);
             let gold = if is_winner { *amount as usize } else { 0 };
-            game_state.earn_gold(gold);
+            game_state.action(crate::game_state::GameStateAction::EarnGold(gold));
         }
         Effect::DamageReduction {
             damage_multiply,
@@ -190,13 +190,10 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         }
         Effect::GrantUpgrade { rarity: _ } => {
             let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state);
-            game_state.upgrade_state.upgrade(upgrade);
+            game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
         }
         Effect::GrantItem { rarity: _ } => {
-            let item = crate::game_state::item::generation::generate_item_with_rng(
-                rng,
-                &game_state.config,
-            );
+            let item = crate::game_state::item::generation::generate_item_with_rng(rng);
             game_state.items.push(item);
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
@@ -323,7 +320,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             max_amount,
         } => {
             let heal_amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp + heal_amount).min(game_state.config.player.max_hp);
+            game_state.hp = (game_state.hp + heal_amount).min(game_state.max_hp());
         }
         Effect::GainGold {
             min_amount,
@@ -486,8 +483,7 @@ pub mod tests_support {
             stage: 1,
             left_dice: 1,
             monster_spawn_state: MonsterSpawnState::idle(),
-            projectiles: Default::default(),
-            delayed_hits: Default::default(),
+            in_flight_attacks: Default::default(),
             items: vec![],
             gold: 0,
             cursor_preview: Default::default(),

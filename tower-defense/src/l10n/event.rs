@@ -1,6 +1,6 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
 use crate::game_state::play_history::HistoryEventType;
-use crate::l10n::upgrade::UpgradeKindText;
+use crate::l10n::upgrade::UpgradeTypeText;
 use crate::theme::typography::TypographyBuilder;
 
 #[derive(Debug, Clone)]
@@ -57,10 +57,10 @@ impl HistoryEventType {
                     .static_text("타워 배치: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
-            HistoryEventType::TowerRemoved { left_top } => {
+            HistoryEventType::TowerRemovedById { tower_id } => {
                 builder
-                    .static_text("타워 제거: ")
-                    .text(format!("({}, {})", left_top.x, left_top.y));
+                    .static_text("타워 제거: #")
+                    .text(format!("{}", tower_id));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder
@@ -80,18 +80,19 @@ impl HistoryEventType {
                     .static_text("아이템 사용: ")
                     .l10n(item.name_text(), _locale);
             }
-            HistoryEventType::UpgradeSelected { upgrade } => {
-                builder
-                    .static_text("업그레이드 선택: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
-            }
-            HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                builder
-                    .static_text("업그레이드 구매: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
+            HistoryEventType::UpgradeAcquired { upgrade, cost } => {
+                if let Some(cost) = cost {
+                    builder
+                        .static_text("업그레이드 구매: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale)
+                        .static_text(" (")
+                        .with_gold_value(format!("{}G", cost))
+                        .static_text(")");
+                } else {
+                    builder
+                        .static_text("업그레이드 선택: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale);
+                }
             }
             HistoryEventType::GameOver => {
                 builder.static_text("게임 오버");
@@ -130,10 +131,10 @@ impl HistoryEventType {
                     .static_text("Tower Placed: ")
                     .text(format!("{:?} {} {}", tower_kind, rank, suit));
             }
-            HistoryEventType::TowerRemoved { left_top } => {
+            HistoryEventType::TowerRemovedById { tower_id } => {
                 builder
-                    .static_text("Tower Removed: ")
-                    .text(format!("({}, {})", left_top.x, left_top.y));
+                    .static_text("Tower Removed: #")
+                    .text(format!("{}", tower_id));
             }
             HistoryEventType::DamageTaken { amount } => {
                 builder
@@ -153,18 +154,19 @@ impl HistoryEventType {
                     .static_text("Item Used: ")
                     .l10n(item.name_text(), _locale);
             }
-            HistoryEventType::UpgradeSelected { upgrade } => {
-                builder
-                    .static_text("Upgrade Selected: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale);
-            }
-            HistoryEventType::UpgradePurchased { upgrade, cost } => {
-                builder
-                    .static_text("Upgrade Purchased: ")
-                    .l10n(UpgradeKindText::Name(&upgrade.kind), _locale)
-                    .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
-                    .static_text(")");
+            HistoryEventType::UpgradeAcquired { upgrade, cost } => {
+                if let Some(cost) = cost {
+                    builder
+                        .static_text("Upgrade Purchased: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale)
+                        .static_text(" (")
+                        .with_gold_value(format!("{}G", cost))
+                        .static_text(")");
+                } else {
+                    builder
+                        .static_text("Upgrade Selected: ")
+                        .l10n(UpgradeTypeText::Name(upgrade), _locale);
+                }
             }
             HistoryEventType::GameOver => {
                 builder.static_text("Game Over");

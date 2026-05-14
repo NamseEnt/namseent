@@ -1,14 +1,16 @@
 use super::{
     stat::StatPreview,
     tower_skill::{TowerEffectDescription, TowerSkillTemplateIcon},
-    upgrade_helpers::*,
 };
-use crate::format_compact_number;
+use crate::{
+    format_compact_number,
+    game_state::upgrade::{TowerUpgradeState, TowerUpgradeTarget},
+};
 use crate::{
     game_state::{
         self, GameState,
         tower::{TowerSkillTemplate, TowerTemplate},
-        upgrade::{TowerSelectUpgradeTarget, TowerUpgradeState, TowerUpgradeTarget},
+        upgrade::{Upgrade, UpgradeBehavior},
     },
     icon::{Icon, IconKind, IconSize},
     theme::typography::{FontSize, memoized_text},
@@ -39,8 +41,18 @@ impl Component for TowerPreviewContent<'_> {
         let (mouse_hovering_effect, set_mouse_hovering_effect) =
             ctx.state::<Option<MouseHoveringSkill>>(|| None);
         let game_state = game_state::use_game_state(ctx);
-        let upgrade_state_and_texts =
-            ctx.memo(|| calculate_upgrade_state_and_texts(game_state.as_ref(), tower_template));
+        let tracked_upgrade_revision = ctx.track_eq(&game_state.upgrade_state.revision);
+        let tracked_tower_template = ctx.track_eq(&(
+            tower_template.kind,
+            tower_template.suit,
+            tower_template.rank,
+            tower_template.rerolled_count,
+        ));
+        let upgrade_state_and_texts = ctx.memo(|| {
+            tracked_upgrade_revision.record_as_used();
+            tracked_tower_template.record_as_used();
+            calculate_upgrade_state_and_texts(game_state.as_ref(), tower_template)
+        });
         let (upgrade_state, texts) = upgrade_state_and_texts.as_ref();
 
         let on_mouse_move_in_effect_icon = |effect: &TowerSkillTemplate, offset| {
@@ -190,8 +202,7 @@ impl Component for TowerPreviewContent<'_> {
 
 #[derive(State)]
 struct UpgradeTexts {
-    damage: Vec<crate::game_state::upgrade::UpgradeKind>,
-    speed: Vec<crate::game_state::upgrade::UpgradeKind>,
+    damage: Vec<Upgrade>,
 }
 
 fn calculate_upgrade_state_and_texts(
@@ -199,85 +210,31 @@ fn calculate_upgrade_state_and_texts(
     tower_template: &TowerTemplate,
 ) -> (TowerUpgradeState, UpgradeTexts) {
     let mut state = TowerUpgradeState::default();
-    let mut texts = UpgradeTexts {
-        damage: vec![],
-        speed: vec![],
-    };
+    let mut combined_bonus = 0.0f32;
+    let mut texts = UpgradeTexts { damage: vec![] };
 
-    let mut apply_upgrade = |upgrade_state: &TowerUpgradeState, target: &UpgradeTargetType| {
-        state.damage_multiplier *= upgrade_state.damage_multiplier;
+    for upgrade in &game_state.upgrade_state.upgrades {
+        let Some((target, bonus_pct)) = upgrade.tower_upgrade_damage_bonus() else {
+            continue;
+        };
 
-        if upgrade_state.damage_multiplier > 1.0 {
-            let upgrade_kind = match target {
-                UpgradeTargetType::Tower(tower_target) => create_upgrade_kind_for_target(
-                    tower_target,
-                    UpgradeStatType::Damage,
-                    false,
-                    upgrade_state.damage_multiplier,
-                ),
-                UpgradeTargetType::TowerSelect(tower_select_target) => {
-                    create_tower_select_upgrade_kind(
-                        tower_select_target,
-                        UpgradeStatType::Damage,
-                        false,
-                        upgrade_state.damage_multiplier,
-                    )
-                }
-            };
-            texts.damage.push(upgrade_kind);
+        if !target.applies_to_tower_template(tower_template) {
+            continue;
         }
-    };
 
-    let apply_tower_upgrade_target = |target| {
-        let Some(upgrade_state) = game_state.upgrade_state.tower_upgrade_states.get(&target) else {
-            return;
+        let effective_bonus = if target == TowerUpgradeTarget::RerolledTower {
+            bonus_pct * tower_template.rerolled_count as f32
+        } else {
+            bonus_pct
         };
-        apply_upgrade(upgrade_state, &UpgradeTargetType::Tower(target));
-    };
 
-    let targets = [
-        TowerUpgradeTarget::Suit {
-            suit: tower_template.suit,
-        },
-        TowerUpgradeTarget::EvenOdd {
-            even: tower_template.rank.is_even(),
-        },
-        TowerUpgradeTarget::FaceNumber {
-            face: tower_template.rank.is_face(),
-        },
-    ];
-    targets.into_iter().for_each(apply_tower_upgrade_target);
+        combined_bonus += effective_bonus;
 
-    let mut apply_tower_select_upgrade_target = |target| {
-        let Some(upgrade_state) = game_state
-            .upgrade_state
-            .tower_select_upgrade_states
-            .get(&target)
-        else {
-            return;
-        };
-        apply_upgrade(upgrade_state, &UpgradeTargetType::TowerSelect(target));
-    };
-
-    if tower_template.kind.is_low_card_tower() {
-        apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::LowCard);
-    }
-
-    let rerolled_count = game_state.rerolled_count;
-    if rerolled_count == 0 {
-        apply_tower_select_upgrade_target(TowerSelectUpgradeTarget::NoReroll);
-    } else if let Some(upgrade_state) = game_state
-        .upgrade_state
-        .tower_select_upgrade_states
-        .get(&TowerSelectUpgradeTarget::Reroll)
-    {
-        for _ in 0..rerolled_count {
-            apply_upgrade(
-                upgrade_state,
-                &UpgradeTargetType::TowerSelect(TowerSelectUpgradeTarget::Reroll),
-            );
+        if effective_bonus > 0.0 {
+            texts.damage.push(*upgrade);
         }
     }
 
+    state.damage_multiplier = 1.0 + combined_bonus;
     (state, texts)
 }

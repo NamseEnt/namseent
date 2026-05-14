@@ -28,21 +28,24 @@ impl PlacedTowers {
             .collect()
     }
 
-    pub fn place_tower(&mut self, tower: Tower) {
+    pub fn place_tower(&mut self, tower: Tower) -> bool {
         // let's find the right place of tower and insert it
 
         let Some(index) = self.inner.iter().position(|placed_tower| {
             tower.left_top.y < placed_tower.left_top.y || tower.left_top.x < placed_tower.left_top.x
         }) else {
             self.inner.push(tower);
-            return;
+            return true;
         };
 
         self.inner.insert(index, tower);
+        true
     }
 
-    pub fn remove_tower(&mut self, tower_id: usize) {
+    pub fn remove_tower(&mut self, tower_id: usize) -> bool {
+        let before = self.inner.len();
         self.inner.retain(|tower| tower.id() != tower_id);
+        self.inner.len() < before
     }
 
     pub fn find_by_xy(&self, xy: MapCoord) -> Option<&Tower> {

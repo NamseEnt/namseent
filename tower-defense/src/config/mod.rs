@@ -1,14 +1,8 @@
-pub mod items;
 pub mod monsters;
-pub mod shop;
 pub mod towers;
-pub mod upgrades;
 
-use self::items::ItemConfig;
 use self::monsters::MonsterConfig;
-use self::shop::ShopConfig;
 use self::towers::TowerConfig;
-use self::upgrades::UpgradeConfig;
 
 #[cfg(feature = "simulator")]
 use anyhow::Context;
@@ -18,13 +12,9 @@ use namui::*;
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, State)]
 pub struct GameConfig {
-    pub rarity_weights: [usize; 4],
     pub player: PlayerConfig,
     pub monsters: MonsterConfig,
     pub towers: TowerConfig,
-    pub items: ItemConfig,
-    pub shop: ShopConfig,
-    pub upgrades: UpgradeConfig,
 }
 
 #[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
@@ -52,14 +42,6 @@ impl GameConfig {
             },
             monsters: monsters::default_monster_config(),
             towers: towers::default_tower_config(),
-            items: items::default_item_config(),
-            shop: ShopConfig {
-                base_cost: 50.0,
-                value_cost_multiplier: 0.5,
-                slot_type_distribution: [3, 5, 2], // 30% items, 50% tower upgrades, 20% extra
-            },
-            upgrades: upgrades::default_upgrade_config(),
-            rarity_weights: [90, 10, 1, 0],
         }
     }
 

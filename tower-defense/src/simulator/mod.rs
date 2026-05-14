@@ -34,7 +34,7 @@ pub struct HeadlessGame {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
-    pub stage_damage: Vec<f32>,
+    pub stage_damage: Vec<(usize, f32)>,
     pub total_gold_earned: usize,
 }
 
@@ -75,8 +75,11 @@ impl HeadlessGame {
     {
         self.events.push(SimEvent::GameStart);
 
-        // Initialize: go to selecting tower for stage 1
-        self.game_state.goto_selecting_tower();
+        // Initialize: enter stage 1
+        self.game_state
+            .action(crate::game_state::GameStateAction::StartStage {
+                stage: self.game_state.stage,
+            });
         self.events.push(SimEvent::StageStart {
             stage: self.game_state.stage,
         });
@@ -86,7 +89,10 @@ impl HeadlessGame {
         loop {
             match self.game_state.flow.clone() {
                 GameFlow::Initializing => {
-                    self.game_state.goto_selecting_tower();
+                    self.game_state
+                        .action(crate::game_state::GameStateAction::StartStage {
+                            stage: self.game_state.stage,
+                        });
                 }
                 GameFlow::SelectingTower(_) => {
                     let stage = self.game_state.stage;
@@ -123,7 +129,8 @@ impl HeadlessGame {
 
                     // If still in PlacingTower, force defense
                     if matches!(self.game_state.flow, GameFlow::PlacingTower) {
-                        self.game_state.goto_defense();
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartDefense);
                     }
 
                     self.events.push(SimEvent::DefenseStart {
@@ -147,6 +154,7 @@ impl HeadlessGame {
                         };
                     }
 
+                    let stage = self.game_state.stage;
                     let hp_before = self.game_state.hp;
 
                     // Run defense simulation with fixed time ticks
@@ -159,7 +167,7 @@ impl HeadlessGame {
 
                     let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
                     self.total_damage_taken += damage_this_stage;
-                    self.stage_damage.push(damage_this_stage);
+                    self.stage_damage.push((stage, damage_this_stage));
 
                     if !continue_sim {
                         return SimResult {
@@ -182,14 +190,25 @@ impl HeadlessGame {
                         let choice =
                             treasure_strategy.select_treasure(&self.game_state, &options, rng);
                         let upgrade_kind =
-                            Self::canonicalize_debug_name(format!("{:?}", options[choice].kind));
+                            Self::canonicalize_debug_name(format!("{:?}", options[choice]));
                         self.events.push(SimEvent::TreasureSelected {
                             stage: self.game_state.stage,
                             upgrade_kind,
                         });
-                        self.game_state.select_treasure(choice);
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::Upgrade(
+                                options[choice],
+                                None,
+                            ));
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartStage {
+                                stage: self.game_state.stage,
+                            });
                     } else {
-                        self.game_state.goto_next_stage();
+                        self.game_state
+                            .action(crate::game_state::GameStateAction::StartStage {
+                                stage: self.game_state.stage,
+                            });
                     }
 
                     self.events.push(SimEvent::StageStart {
@@ -271,11 +290,14 @@ impl HeadlessGame {
                         item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
                     });
                 }
-                HistoryEventType::UpgradePurchased { upgrade, cost } => {
+                HistoryEventType::UpgradeAcquired {
+                    upgrade,
+                    cost: Some(cost),
+                } => {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade.kind)),
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade)),
                     });
                 }
                 HistoryEventType::ItemUsed { item } => {
@@ -291,7 +313,13 @@ impl HeadlessGame {
     }
 
     fn canonicalize_debug_name(name: String) -> String {
-        name.split(' ').next().unwrap_or(&name).to_owned()
+        let trimmed = name.trim();
+        let token: String = trimmed
+            .chars()
+            .take_while(|c| c.is_alphanumeric())
+            .collect();
+        let token = token.strip_suffix("Upgrade").unwrap_or(&token);
+        token.to_string()
     }
 }
 
@@ -312,7 +340,7 @@ pub struct SimResult {
     pub total_towers_placed: usize,
     pub total_items_used: usize,
     pub total_damage_taken: f32,
-    pub stage_damage: Vec<f32>,
+    pub stage_damage: Vec<(usize, f32)>,
     pub total_gold_earned: usize,
 }
 
@@ -336,8 +364,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         stage: 1,
         left_dice: config.player.base_dice_chance,
         monster_spawn_state: MonsterSpawnState::idle(),
-        projectiles: Default::default(),
-        delayed_hits: Default::default(),
+        in_flight_attacks: Default::default(),
         items: vec![],
         gold: config.player.starting_gold,
         cursor_preview: Default::default(),

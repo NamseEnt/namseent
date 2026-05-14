@@ -2,7 +2,7 @@ pub mod render;
 mod royal_straight_flush;
 mod skill;
 
-use super::{upgrade::TowerUpgradeState, *};
+use super::*;
 use crate::card::{Rank, Suit};
 use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
@@ -26,37 +26,34 @@ pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
     cooldown: Duration,
-    template: TowerTemplate,
+    pub template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
+    cached_upgrade: CachedTowerUpgradeDamage,
     pub(in crate::game_state::tower) animation: Animation,
     pub(self) royal_straight_flush_visual: Option<RoyalStraightFlushVisual>,
 }
 
-pub struct ShootProjectileParams<'a> {
+#[derive(Clone, Debug, PartialEq, State)]
+pub struct CachedTowerUpgradeDamage {
+    pub revision: usize,
+    pub bonuses: Vec<crate::game_state::upgrade::TowerUpgradeDamageBonus>,
+    pub damage: f32,
+}
+
+pub struct ShootProjectileParams {
     pub target_indicator: ProjectileTargetIndicator,
     pub speed: Velocity,
     pub trail: ProjectileTrail,
     pub projectile_group: ProjectileGroup,
     pub hit_effect: attack::ProjectileHitEffect,
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
+    pub damage: f32,
     pub now: Instant,
-    pub source_tower_id: Option<usize>,
-    pub source_tower_info: Option<(TowerKind, Rank, Suit)>,
+    pub source_tower: Option<attack::TowerInfo>,
 }
 
-pub struct ShootLaserParams<'a> {
+pub struct AttackTypeParams {
     pub target_xy: (f32, f32),
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
-    pub now: Instant,
-}
-
-pub struct AttackTypeParams<'a> {
-    pub target_xy: (f32, f32),
-    pub tower_upgrade_states: &'a [TowerUpgradeState],
-    pub contract_multiplier: f32,
     pub now: Instant,
 }
 
@@ -68,8 +65,18 @@ impl Tower {
             left_top,
             cooldown: Duration::from_secs(0),
             template: template.clone(),
-            status_effects: vec![],
-            skills: vec![],
+            status_effects: template.default_status_effects.clone(),
+            skills: template
+                .skill_templates
+                .iter()
+                .cloned()
+                .map(|skill_template| TowerSkill::new(skill_template, now))
+                .collect(),
+            cached_upgrade: CachedTowerUpgradeDamage {
+                revision: 0,
+                bonuses: Vec::new(),
+                damage: template.default_damage,
+            },
             animation: Animation::new(now),
             royal_straight_flush_visual: None,
         }
@@ -78,158 +85,128 @@ impl Tower {
         self.cooldown > Duration::from_secs(0)
     }
 
-    pub fn shoot_projectile(&mut self, params: ShootProjectileParams<'_>) -> Projectile {
-        self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, params.now);
+    pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
+        self.mark_fired(params.now);
 
-        Projectile::new(
-            self.head_xy_tile(),
-            params.projectile_group.random_kind(),
-            params.speed,
-            params.target_indicator,
-            ProjectileParams {
-                damage: self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.contract_multiplier,
-                ),
-                trail: params.trail,
-                hit_effect: params.hit_effect,
-                source_tower_id: params.source_tower_id,
-                source_tower_info: params.source_tower_info,
-            },
+        attack::InFlightAttack::new_spatial(
+            attack::SpatialAttack::new_direct(
+                self.head_xy_tile(),
+                params.target_indicator,
+                params.projectile_group.random_kind(),
+                params.speed,
+                params.trail,
+                params.hit_effect,
+            ),
+            params.damage,
+            params.source_tower,
         )
     }
 
-    pub fn shoot_laser(&mut self, params: ShootLaserParams<'_>) -> (attack::laser::LaserBeam, f32) {
-        self.cooldown = self.shoot_interval;
-        self.animation.transition(AnimationKind::Attack, params.now);
-
-        let damage = self
-            .calculate_projectile_damage(params.tower_upgrade_states, params.contract_multiplier);
+    pub fn shoot_laser(
+        &mut self,
+        target_xy: (f32, f32),
+        target_monster_id: usize,
+        damage: f32,
+        now: Instant,
+        source_tower: Option<attack::TowerInfo>,
+    ) -> attack::InFlightAttack {
+        self.mark_fired(now);
 
         let head_xy = self.head_xy_tile();
-        let laser = attack::laser::LaserBeam::new(
+        let beam = attack::laser::LaserBeam::new(
             (head_xy.x, head_xy.y),
-            params.target_xy,
-            params.now,
-            damage,
+            target_xy,
+            now,
+            target_monster_id,
         );
-
-        (laser, damage)
+        attack::InFlightAttack::new_laser(beam, damage, source_tower)
     }
 
-    pub fn attack_type(&mut self, params: AttackTypeParams<'_>) -> (AttackType, f32) {
-        match self.kind {
-            TowerKind::Barricade => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::High => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::OnePair => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::TwoPair => (
-                AttackType::Projectile {
-                    speed: PROJECTILE_SPEED,
-                    trail: ProjectileTrail::None,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::ThreeOfAKind => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::Burning,
-                    projectile_group: ProjectileGroup::Trash,
-                    hit_effect: attack::ProjectileHitEffect::TrashBounce,
-                },
-                0.0,
-            ),
-            TowerKind::Straight => (AttackType::Laser, 0.0),
-            TowerKind::RoyalFlush => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, params.now);
-
-                let damage = self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.contract_multiplier,
-                );
-
-                (
-                    AttackType::RoyalStraightFlush {
-                        target_xy: params.target_xy,
-                    },
-                    damage,
-                )
-            }
-            TowerKind::StraightFlush => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::LightningSparkle,
-                    projectile_group: ProjectileGroup::Heart,
-                    hit_effect: attack::ProjectileHitEffect::HeartBurst,
-                },
-                0.0,
-            ),
-            TowerKind::Flush => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::Sparkle,
-                    projectile_group: ProjectileGroup::Girl,
-                    hit_effect: attack::ProjectileHitEffect::SparkleBurst,
-                },
-                0.0,
-            ),
-            TowerKind::FullHouse => {
-                self.cooldown = self.shoot_interval;
-                self.animation.transition(AnimationKind::Attack, params.now);
-
-                let damage = self.calculate_projectile_damage(
-                    params.tower_upgrade_states,
-                    params.contract_multiplier,
-                );
-
-                let head_xy = self.head_xy_tile();
-                let tower_xy = (head_xy.x, head_xy.y);
-
-                (
-                    AttackType::FullHouseRain {
-                        tower_xy,
-                        target_xy: params.target_xy,
-                    },
-                    damage,
-                )
-            }
-            TowerKind::FourOfAKind => (
-                AttackType::Projectile {
-                    speed: FAST_PROJECTILE_SPEED,
-                    trail: ProjectileTrail::WindCurve,
-                    projectile_group: ProjectileGroup::Cards,
-                    hit_effect: attack::ProjectileHitEffect::CardBurst,
-                },
-                0.0,
-            ),
+    pub fn refresh_cached_upgrade_damage(
+        &mut self,
+        revision: usize,
+        upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
+    ) {
+        if self.cached_upgrade.revision != revision {
+            self.cached_upgrade.bonuses = upgrade_bonuses.to_vec();
         }
+        self.cached_upgrade.damage =
+            self.calculate_projectile_damage(&self.cached_upgrade.bonuses, 1.0);
+        self.cached_upgrade.revision = revision;
+    }
+
+    pub fn cached_upgrade_damage(&self) -> f32 {
+        self.cached_upgrade.damage
+    }
+
+    pub fn attack_type(&self, params: AttackTypeParams) -> AttackType {
+        match self.kind {
+            TowerKind::Barricade => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::High => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::OnePair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::TwoPair => AttackType::Projectile {
+                speed: PROJECTILE_SPEED,
+                trail: ProjectileTrail::None,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::ThreeOfAKind => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::Burning,
+                projectile_group: ProjectileGroup::Trash,
+                hit_effect: attack::ProjectileHitEffect::TrashBounce,
+            },
+            TowerKind::Straight => AttackType::Laser,
+            TowerKind::RoyalFlush => AttackType::RoyalStraightFlush {
+                target_xy: params.target_xy,
+            },
+            TowerKind::StraightFlush => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::LightningSparkle,
+                projectile_group: ProjectileGroup::Heart,
+                hit_effect: attack::ProjectileHitEffect::HeartBurst,
+            },
+            TowerKind::Flush => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::Sparkle,
+                projectile_group: ProjectileGroup::Girl,
+                hit_effect: attack::ProjectileHitEffect::SparkleBurst,
+            },
+            TowerKind::FullHouse => {
+                let head_xy = self.head_xy_tile();
+                AttackType::FullHouseRain {
+                    tower_xy: (head_xy.x, head_xy.y),
+                }
+            }
+            TowerKind::FourOfAKind => AttackType::Projectile {
+                speed: FAST_PROJECTILE_SPEED,
+                trail: ProjectileTrail::WindCurve,
+                projectile_group: ProjectileGroup::Cards,
+                hit_effect: attack::ProjectileHitEffect::CardBurst,
+            },
+        }
+    }
+
+    /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
+    /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
+    pub fn mark_fired(&mut self, now: Instant) {
+        self.cooldown = self.shoot_interval;
+        self.animation.transition(AnimationKind::Attack, now);
     }
 
     fn center_xy(&self) -> MapCoord {
@@ -255,10 +232,14 @@ impl Tower {
         self.template.suit
     }
 
+    pub fn rerolled_count(&self) -> usize {
+        self.template.rerolled_count
+    }
+
     pub fn calculate_projectile_damage(
         &self,
-        tower_upgrade_states: &[TowerUpgradeState],
-        contract_multiplier: f32,
+        tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
+        stage_damage_multiplier: f32,
     ) -> f32 {
         let mut damage = self.default_damage;
 
@@ -278,20 +259,19 @@ impl Tower {
             }
         });
 
-        tower_upgrade_states.iter().for_each(|tower_upgrade_state| {
-            damage *= tower_upgrade_state.damage_multiplier;
-        });
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
+            .sum();
 
-        damage *= contract_multiplier;
+        damage *= 1.0 + bonus_sum;
+
+        damage *= stage_damage_multiplier;
 
         damage
     }
 
-    pub(crate) fn attack_range_radius(
-        &self,
-        _tower_upgrade_states: &[TowerUpgradeState],
-        contract_range_multiplier: f32,
-    ) -> f32 {
+    pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
@@ -309,6 +289,7 @@ impl Deref for Tower {
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerTemplate {
     pub kind: TowerKind,
+    pub rerolled_count: usize,
     pub shoot_interval: Duration,
     pub default_attack_range_radius: f32,
     pub default_damage: f32,
@@ -321,6 +302,7 @@ impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
         Self {
             kind,
+            rerolled_count: 0,
             shoot_interval: kind.shoot_interval(),
             default_attack_range_radius: kind.default_attack_range_radius(),
             default_damage: kind.default_damage(),
@@ -344,6 +326,7 @@ impl TowerTemplate {
             .expect("missing tower stats for kind");
         Self {
             kind,
+            rerolled_count: 0,
             shoot_interval: Duration::from_millis(stats.cooldown_ms as i64),
             default_attack_range_radius: stats.range,
             default_damage: stats.damage,
@@ -502,4 +485,59 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
             tower.cooldown -= dt;
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tower_new_applies_template_skills() {
+        let now = Instant::now();
+        let template = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
+        let tower = Tower::new(&template, MapCoord::new(0, 0), now);
+
+        assert_eq!(tower.skills.len(), template.skill_templates.len());
+        assert!(tower.skills.iter().all(|skill| {
+            template
+                .skill_templates
+                .iter()
+                .any(|template_skill| template_skill == &skill.template)
+        }));
+    }
+
+    #[test]
+    fn refresh_cached_upgrade_damage_preserves_cached_bonuses_when_revision_unchanged() {
+        let now = Instant::now();
+        let mut tower = Tower::new(
+            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Two),
+            MapCoord::new(0, 0),
+            now,
+        );
+
+        tower.cached_upgrade.revision = 1;
+        tower.cached_upgrade.bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+            target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
+            bonus_pct: 0.0,
+        }];
+        tower.cached_upgrade.damage =
+            tower.calculate_projectile_damage(&tower.cached_upgrade.bonuses, 1.0);
+
+        let new_upgrade_bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+            target: crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit: Suit::Hearts },
+            bonus_pct: 1.0,
+        }];
+
+        tower.refresh_cached_upgrade_damage(1, &new_upgrade_bonuses);
+
+        assert_eq!(tower.cached_upgrade.revision, 1);
+        assert_eq!(tower.cached_upgrade.bonuses.len(), 1);
+        assert_eq!(
+            tower.cached_upgrade.bonuses,
+            vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
+                target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
+                bonus_pct: 0.0,
+            }]
+        );
+    }
 }

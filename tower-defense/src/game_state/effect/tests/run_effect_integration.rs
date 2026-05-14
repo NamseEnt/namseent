@@ -150,15 +150,7 @@ fn grant_upgrade_and_item_via_run_effect() {
         },
     );
     assert!(
-        gs.upgrade_state.gold_earn_plus > 0
-            || gs.upgrade_state.shop_slot_expand > 0
-            || gs.upgrade_state.dice_chance_plus > 0
-            || gs.upgrade_state.shop_item_price_minus > 0
-            || gs.upgrade_state.shorten_straight_flush_to_4_cards
-            || gs.upgrade_state.skip_rank_for_straight
-            || gs.upgrade_state.treat_suits_as_same
-            || !gs.upgrade_state.tower_upgrade_states.is_empty()
-            || !gs.upgrade_state.tower_select_upgrade_states.is_empty(),
+        !gs.upgrade_state.upgrades.is_empty(),
         "업그레이드 상태 변화 확인"
     );
 
