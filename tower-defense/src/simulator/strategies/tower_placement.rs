@@ -52,7 +52,10 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                             MAP_SIZE,
                         ) {
                             let tower = Tower::new(&template, left_top, now);
-                            game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(tower), None));
+                            game_state.action(crate::game_state::GameStateAction::PlaceTower(
+                                Box::new(tower),
+                                None,
+                            ));
                             game_state.hand.delete_slots(&[slot_id]);
 
                             if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
@@ -158,9 +161,10 @@ impl HeuristicPlacementStrategy {
                 MAP_SIZE,
             ) {
                 let tower = Tower::new(template, left_top, now);
-                game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-                    tower,
-                ), None));
+                game_state.action(crate::game_state::GameStateAction::PlaceTower(
+                    Box::new(tower),
+                    None,
+                ));
                 game_state.hand.delete_slots(&[slot_id]);
 
                 if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)

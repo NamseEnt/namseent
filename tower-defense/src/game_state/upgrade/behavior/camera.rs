@@ -83,9 +83,10 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            face_tower,
-        ), None));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(face_tower),
+            None,
+        ));
 
         assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
     }
@@ -112,9 +113,10 @@ mod tests {
             crate::MapCoord::new(2, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            number_tower,
-        ), None));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(number_tower),
+            None,
+        ));
 
         assert_eq!(game_state.gold, initial_gold);
     }

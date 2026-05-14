@@ -141,9 +141,10 @@ mod tests {
             crate::MapCoord::new(0, 0),
             gs.now(),
         );
-        gs.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            tower,
-        ), None));
+        gs.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(tower),
+            None,
+        ));
 
         let placed_tower = gs.towers.iter().next().expect("expected tower placed");
         support::assert_tower_cached_damage_mul(placed_tower, 1.5);

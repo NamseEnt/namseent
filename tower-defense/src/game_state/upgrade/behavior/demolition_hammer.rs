@@ -120,12 +120,14 @@ mod tests {
             game_state.now(),
         );
 
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            first_tower,
-        ), None));
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            second_tower,
-        ), None));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(first_tower),
+            None,
+        ));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(second_tower),
+            None,
+        ));
 
         let first_id = game_state
             .towers
@@ -187,12 +189,14 @@ mod tests {
             game_state.now(),
         );
 
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            first_tower,
-        ), None));
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            second_tower,
-        ), None));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(first_tower),
+            None,
+        ));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(second_tower),
+            None,
+        ));
 
         let first_id = game_state
             .towers

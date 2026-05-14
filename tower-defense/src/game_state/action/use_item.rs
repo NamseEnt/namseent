@@ -15,8 +15,6 @@ pub(super) fn apply_effect(game_state: &mut GameState, item: &item::Item) {
 
 pub(super) fn record_history_event(game_state: &mut GameState, item: &item::Item) {
     game_state.record_event(
-        crate::game_state::play_history::HistoryEventType::ItemUsed {
-            item: item.clone(),
-        },
+        crate::game_state::play_history::HistoryEventType::ItemUsed { item: item.clone() },
     );
 }

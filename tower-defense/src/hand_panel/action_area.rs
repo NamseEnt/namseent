@@ -182,8 +182,9 @@ impl Component for HandActionArea {
                 let use_tower = || {
                     if let Some(template) = tower_template.clone() {
                         mutate_game_state(move |state| {
-                            state
-                                .action(crate::game_state::GameStateAction::StartPlacingTower(template));
+                            state.action(crate::game_state::GameStateAction::StartPlacingTower(
+                                template,
+                            ));
                         });
                     }
                 };

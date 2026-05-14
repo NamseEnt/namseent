@@ -70,10 +70,7 @@ impl ShopPanelLayout {
             // We move the panel higher so the sticky toggle is not visible under top bar.
             Xy::new(center_x, -panel_wh.height - STICKY_HEIGHT)
         };
-        let open_xy = Xy::new(
-            center_x,
-            (screen_wh.height - panel_wh.height) / 2.0,
-        );
+        let open_xy = Xy::new(center_x, (screen_wh.height - panel_wh.height) / 2.0);
         let target_xy = if panel_open { open_xy } else { closed_xy };
 
         ShopPanelLayout {

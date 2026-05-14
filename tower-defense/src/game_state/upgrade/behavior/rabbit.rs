@@ -8,17 +8,27 @@ impl UpgradeBehavior for RabbitUpgrade {
         true
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Rabbit",
             crate::l10n::locale::Language::Korean => "토끼",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Skip one rank in a straight",
-            crate::l10n::locale::Language::Korean => "스트레이트를 만들 때 하나를 건너뛸 수 있습니다",
+            crate::l10n::locale::Language::Korean => {
+                "스트레이트를 만들 때 하나를 건너뛸 수 있습니다"
+            }
         });
     }
 }

@@ -8,14 +8,22 @@ impl UpgradeBehavior for FangUpgrade {
         true
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Fang",
             crate::l10n::locale::Language::Korean => "송곳니",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Recover 1 HP when a monster dies",
             crate::l10n::locale::Language::Korean => "몬스터가 죽을 때마다 1HP를 회복합니다",
@@ -38,7 +46,7 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_state::{monster_spawn, Monster, tick};
+    use crate::game_state::{Monster, monster_spawn, tick};
 
     #[test]
     fn fang_recovers_hp_when_monster_dies() {
@@ -52,7 +60,8 @@ mod tests {
             None,
         ));
 
-        let (template_queue, _) = monster_spawn::monster_template_queue_table(1, &game_state.config);
+        let (template_queue, _) =
+            monster_spawn::monster_template_queue_table(1, &game_state.config);
         let template = template_queue
             .front()
             .expect("expected at least one monster template in stage 1")
@@ -79,7 +88,8 @@ mod tests {
             None,
         ));
 
-        let (template_queue, _) = monster_spawn::monster_template_queue_table(1, &game_state.config);
+        let (template_queue, _) =
+            monster_spawn::monster_template_queue_table(1, &game_state.config);
         let template = template_queue
             .front()
             .expect("expected at least one monster template in stage 1")
@@ -94,4 +104,3 @@ mod tests {
         assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
     }
 }
-

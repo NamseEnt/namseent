@@ -14,14 +14,22 @@ impl UpgradeBehavior for MetronomeUpgrade {
         UpgradeUpdateFlags::NONE
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Metronome",
             crate::l10n::locale::Language::Korean => "메트로놈",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Gain 1 extra dice every 2 stages",
             crate::l10n::locale::Language::Korean => "2스테이지마다 주사위 +1을 얻습니다",
@@ -79,4 +87,3 @@ mod tests {
         assert_eq!(second_flags, UpgradeUpdateFlags::NONE);
     }
 }
-

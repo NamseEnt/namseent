@@ -118,9 +118,10 @@ mod tests {
             crate::MapCoord::new(0, 0),
             game_state.now(),
         );
-        game_state.action(crate::game_state::GameStateAction::PlaceTower(Box::new(
-            tower,
-        ), None));
+        game_state.action(crate::game_state::GameStateAction::PlaceTower(
+            Box::new(tower),
+            None,
+        ));
         game_state.hand.delete_slots(&[placing_slot_id]);
 
         let placed_tower = game_state

@@ -11,14 +11,22 @@ impl UpgradeBehavior for EraserUpgrade {
         self.add
     }
 
-    fn l10n_name<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Eraser",
             crate::l10n::locale::Language::Korean => "지우개",
         });
     }
 
-    fn l10n_description<'a>(&self, builder: &mut crate::theme::typography::TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Remove ")
