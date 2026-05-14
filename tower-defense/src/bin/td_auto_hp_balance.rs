@@ -299,11 +299,11 @@ fn tune_hp_balance(
             println!("Ctrl-C received before iteration {iteration}, finalizing current config...");
             break;
         }
-        if let Some(max_iterations) = cli.max_iterations {
-            if iteration > max_iterations {
-                println!("Reached max_iterations={max_iterations}, stopping auto balance.");
-                break;
-            }
+        if let Some(max_iterations) = cli.max_iterations
+            && iteration > max_iterations
+        {
+            println!("Reached max_iterations={max_iterations}, stopping auto balance.");
+            break;
         }
         let metrics = run_simulations(
             pool,
@@ -332,7 +332,8 @@ fn tune_hp_balance(
         let win_error = metrics.win_rate - TARGET_WIN_RATE;
         let clear_rate_peak_ratio = compute_clear_rate_peak_ratio(&metrics.clear_rates);
         let damage_cv = compute_damage_cv(&metrics.stage_means);
-        let distribution_control = compute_distribution_control(&metrics.clear_rates, cli.cdf_profile);
+        let distribution_control =
+            compute_distribution_control(&metrics.clear_rates, cli.cdf_profile);
         let damage_weight = if damage_cv > DAMAGE_CV_WEIGHT_BOOST_THRESHOLD {
             DAMAGE_ERROR_WEIGHT_MAX
         } else {
@@ -351,8 +352,8 @@ fn tune_hp_balance(
 
         if cli.rough_initial_balance {
             let win_delta = metrics.win_rate - TARGET_WIN_RATE;
-            let tilt_step = win_delta * cli.rough_tilt_update_gain
-                + distribution_control.pressure * 0.20;
+            let tilt_step =
+                win_delta * cli.rough_tilt_update_gain + distribution_control.pressure * 0.20;
             rough_tilt = (rough_tilt + tilt_step).clamp(ROUGH_TILT_MIN, ROUGH_TILT_MAX);
 
             let rough_global_step = (win_delta * cli.rough_global_scale_gain).clamp(-2.0, 2.0);
@@ -362,14 +363,15 @@ fn tune_hp_balance(
             if distribution_control.dominant_bin_idx <= EARLY_DOMINANT_BIN_LIMIT
                 && distribution_control.top_bin_share > DOMINANT_BIN_PIN_THRESHOLD
             {
-                let pin_strength = (distribution_control.top_bin_share - DOMINANT_BIN_PIN_THRESHOLD)
+                let pin_strength = (distribution_control.top_bin_share
+                    - DOMINANT_BIN_PIN_THRESHOLD)
                     / (1.0 - DOMINANT_BIN_PIN_THRESHOLD);
                 let pin_strength = pin_strength.clamp(0.0, 1.0);
                 rough_tilt = (rough_tilt - pin_strength * EARLY_DOMINANT_TILT_DAMP_GAIN)
                     .clamp(ROUGH_TILT_MIN, ROUGH_TILT_MAX);
                 rough_global_scale = (rough_global_scale
                     * (-pin_strength * EARLY_DOMINANT_GLOBAL_DAMP_GAIN).exp())
-                    .clamp(ROUGH_GLOBAL_SCALE_MIN, ROUGH_GLOBAL_SCALE_MAX);
+                .clamp(ROUGH_GLOBAL_SCALE_MIN, ROUGH_GLOBAL_SCALE_MAX);
             }
         }
 
@@ -420,16 +422,15 @@ fn tune_hp_balance(
                     cli,
                 );
                 let stage_ratio = stage as f32 / stages as f32;
-                let bootstrap_signal = if cli.rough_initial_balance
-                    && iteration <= cli.rough_bootstrap_iterations
-                {
-                    let ramp = (stage_ratio - 0.5) * 2.0;
-                    let win_excess = metrics.win_rate - TARGET_WIN_RATE;
-                    (win_excess * cli.rough_bootstrap_gain * ramp)
-                        .clamp(-ROUGH_BOOTSTRAP_SIGNAL_CLAMP, ROUGH_BOOTSTRAP_SIGNAL_CLAMP)
-                } else {
-                    0.0
-                };
+                let bootstrap_signal =
+                    if cli.rough_initial_balance && iteration <= cli.rough_bootstrap_iterations {
+                        let ramp = (stage_ratio - 0.5) * 2.0;
+                        let win_excess = metrics.win_rate - TARGET_WIN_RATE;
+                        (win_excess * cli.rough_bootstrap_gain * ramp)
+                            .clamp(-ROUGH_BOOTSTRAP_SIGNAL_CLAMP, ROUGH_BOOTSTRAP_SIGNAL_CLAMP)
+                    } else {
+                        0.0
+                    };
                 let signal = (signal + bootstrap_signal).clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX);
 
                 let observed_stage_deaths = stage_deaths[stage - 1];
@@ -514,7 +515,11 @@ fn tune_hp_balance(
 
         for (monster_kind, log_sum) in kind_log_scale_sum {
             if let Some(stat) = config.monsters.stats.get_mut(&monster_kind) {
-                let weight = kind_weight_sum.get(&monster_kind).copied().unwrap_or(1.0).max(1.0);
+                let weight = kind_weight_sum
+                    .get(&monster_kind)
+                    .copied()
+                    .unwrap_or(1.0)
+                    .max(1.0);
                 let kind_scale = (log_sum / weight).exp();
                 let base_hp = original_hp
                     .get(&monster_kind)
@@ -566,7 +571,8 @@ fn tune_hp_balance(
         let arrival_rmse = compute_arrival_rmse(&metrics.stage_arrivals, cli.samples, stages);
         let win_stable = (metrics.win_rate - TARGET_WIN_RATE).abs() < 0.03;
         let clear_peak_stable = distribution_control.ks_distance < KS_CONVERGENCE_THRESHOLD;
-        let clear_topbin_stable = distribution_control.top_bin_share < TOP_BIN_CONVERGENCE_THRESHOLD;
+        let clear_topbin_stable =
+            distribution_control.top_bin_share < TOP_BIN_CONVERGENCE_THRESHOLD;
         let arrival_stable = arrival_rmse < 0.05;
         let damage_stable = damage_cv < DAMAGE_CV_STABLE_THRESHOLD;
 
@@ -626,11 +632,11 @@ fn build_initial_stage_scale_curve(stages: usize, cli: &Cli) -> Vec<f32> {
         return curve;
     }
 
-    for stage in 1..=stages {
+    for (stage, curve_value) in curve.iter_mut().enumerate().skip(1) {
         let r = stage as f32 / stages as f32;
         let centered = (r - 0.5) * 2.0;
         let scale = (centered * cli.rough_initial_curve_gain).exp();
-        curve[stage] = scale.clamp(0.55, 1.95);
+        *curve_value = scale.clamp(0.55, 1.95);
     }
     curve
 }
@@ -737,7 +743,7 @@ fn compute_robust_reference_damage(stage_means: &[f32]) -> f32 {
     }
     filtered.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = filtered.len() / 2;
-    if filtered.len() % 2 == 0 {
+    if filtered.len().is_multiple_of(2) {
         (filtered[mid - 1] + filtered[mid]) * 0.5
     } else {
         filtered[mid]
@@ -745,6 +751,7 @@ fn compute_robust_reference_damage(stage_means: &[f32]) -> f32 {
     .max(1.0)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compute_stage_adjustment_signal(
     stage: usize,
     arrival_count: usize,
@@ -835,7 +842,7 @@ fn compute_stage_adjustment_signal(
         + damage_weight * damage_signal
         + distribution_signal
         + anti_pinning_signal)
-    .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
+        .clamp(SIGNAL_CLAMP_MIN, SIGNAL_CLAMP_MAX)
 }
 
 fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> DistributionControl {
@@ -904,19 +911,18 @@ fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> Dis
         1.0
     };
     let dominant_pin_excess = (top_bin_share - DOMINANT_BIN_PIN_THRESHOLD).max(0.0);
-    let dominant_bin_escape_strength = (dominant_pin_excess
-        / (1.0 - DOMINANT_BIN_PIN_THRESHOLD))
+    let dominant_bin_escape_strength = (dominant_pin_excess / (1.0 - DOMINANT_BIN_PIN_THRESHOLD))
         .clamp(0.0, 1.0)
         * DOMINANT_BIN_ESCAPE_GAIN;
 
     let mut spike_overloads = vec![0.0_f32; CLEAR_RATE_BIN_COUNT];
-    for idx in 0..CLEAR_RATE_BIN_COUNT {
+    for (idx, spike_overload) in spike_overloads.iter_mut().enumerate() {
         let start = idx.saturating_sub(SPIKE_DETECT_WINDOW);
         let end = (idx + SPIKE_DETECT_WINDOW).min(CLEAR_RATE_BIN_COUNT - 1);
         let mut local_sum = 0.0_f32;
         let mut local_count = 0usize;
-        for j in start..=end {
-            local_sum += shares[j];
+        for &share in &shares[start..=end] {
+            local_sum += share;
             local_count += 1;
         }
         let local_mean = if local_count > 0 {
@@ -930,12 +936,11 @@ fn compute_distribution_control(clear_rates: &[f32], profile: CdfProfile) -> Dis
             && shares[idx] > target_share * SPIKE_TARGET_MULTIPLIER
         {
             let spike_ratio = (shares[idx] / local_mean - SPIKE_RATIO_THRESHOLD).max(0.0);
-            spike_overloads[idx] = spike_ratio.min(2.5);
+            *spike_overload = spike_ratio.min(2.5);
         }
     }
 
-    for idx in 0..CLEAR_RATE_BIN_COUNT {
-        let spike = spike_overloads[idx];
+    for (idx, &spike) in spike_overloads.iter().enumerate() {
         if spike <= 0.0 {
             continue;
         }
@@ -1050,14 +1055,14 @@ fn compute_stage_deaths(
     stages: usize,
 ) -> Vec<f32> {
     let mut deaths = vec![0.0_f32; stages];
-    for stage in 0..stages {
+    for (stage, death) in deaths.iter_mut().enumerate().take(stages) {
         let current = stage_arrivals.get(stage).copied().unwrap_or(0) as f32;
         let next = if stage + 1 < stages {
             stage_arrivals.get(stage + 1).copied().unwrap_or(0) as f32
         } else {
             win_rate * samples as f32
         };
-        deaths[stage] = (current - next).max(0.0);
+        *death = (current - next).max(0.0);
     }
     deaths
 }
