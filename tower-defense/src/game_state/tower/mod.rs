@@ -419,38 +419,7 @@ impl TowerKind {
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
-        match self {
-            Self::Barricade => vec![],
-            Self::High => vec![],
-            Self::OnePair => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::MoneyIncomeAdd { add: 1 },
-            )],
-            Self::TwoPair => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::MoneyIncomeAdd { add: 2 },
-            )],
-            Self::ThreeOfAKind => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyMonsterSpeedMul {
-                    mul: 0.9,
-                    range_radius: 5.0,
-                },
-            )],
-            Self::Straight => vec![],
-            Self::Flush => vec![],
-            Self::FullHouse => vec![],
-            Self::FourOfAKind => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyMonsterSpeedMul {
-                    mul: 0.75,
-                    range_radius: 4.0,
-                },
-            )],
-            Self::StraightFlush => vec![],
-            Self::RoyalFlush => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyTowerDamageMul {
-                    mul: 2.0,
-                    range_radius: 6.0,
-                },
-            )],
-        }
+        vec![]
     }
     pub fn is_low_card_tower(&self) -> bool {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)
