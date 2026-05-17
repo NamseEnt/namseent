@@ -313,30 +313,6 @@ impl TowerTemplate {
         }
     }
 
-    pub fn new_with_config(
-        kind: TowerKind,
-        suit: Suit,
-        rank: Rank,
-        config: &crate::config::GameConfig,
-    ) -> Self {
-        let stats = config
-            .towers
-            .stats
-            .get(&kind)
-            .expect("missing tower stats for kind");
-        Self {
-            kind,
-            rerolled_count: 0,
-            shoot_interval: Duration::from_millis(stats.cooldown_ms as i64),
-            default_attack_range_radius: stats.range,
-            default_damage: stats.damage,
-            suit,
-            rank,
-            skill_templates: kind.skill_templates(),
-            default_status_effects: vec![],
-        }
-    }
-
     pub fn barricade() -> Self {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
@@ -356,7 +332,19 @@ impl PartialOrd for TowerTemplate {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    State,
+)]
 pub enum TowerKind {
     Barricade,
     High,
