@@ -1,4 +1,3 @@
-use crate::card::Rank;
 use crate::game_state::tower::TowerKind;
 use namui::*;
 use std::collections::BTreeMap;
@@ -13,11 +12,9 @@ pub struct TowerStats {
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct TowerConfig {
     pub stats: BTreeMap<TowerKind, TowerStats>,
-    pub rank_bonus_damage: BTreeMap<Rank, usize>,
 }
 
 pub fn default_tower_config() -> TowerConfig {
-    use crate::card::Rank;
     use TowerKind::*;
 
     let mut stats = BTreeMap::new();
@@ -46,29 +43,5 @@ pub fn default_tower_config() -> TowerConfig {
         );
     }
 
-    let mut rank_bonus = BTreeMap::new();
-    let bonus: Vec<(Rank, usize)> = vec![
-        (Rank::Two, 0),
-        (Rank::Three, 0),
-        (Rank::Four, 0),
-        (Rank::Five, 1),
-        (Rank::Six, 1),
-        (Rank::Seven, 1),
-        (Rank::Eight, 2),
-        (Rank::Nine, 3),
-        (Rank::Ten, 4),
-        (Rank::Jack, 6),
-        (Rank::Queen, 8),
-        (Rank::King, 10),
-        (Rank::Ace, 15),
-    ];
-
-    for (rank, dmg) in bonus {
-        rank_bonus.insert(rank, dmg);
-    }
-
-    TowerConfig {
-        stats,
-        rank_bonus_damage: rank_bonus,
-    }
+    TowerConfig { stats }
 }

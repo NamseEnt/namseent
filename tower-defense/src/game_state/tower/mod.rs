@@ -60,6 +60,7 @@ pub struct AttackTypeParams {
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
+
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             left_top,
@@ -317,8 +318,20 @@ impl TowerTemplate {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    pub fn calculate_rating(&self, damage_multiplier: f32, rank_bonus: usize) -> f32 {
-        (self.default_damage + rank_bonus as f32) * damage_multiplier
+    pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
+        self.default_damage * damage_multiplier
+    }
+
+    pub fn attack_power_with_upgrade_bonuses(
+        &self,
+        tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
+    ) -> f32 {
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self))
+            .sum();
+        let damage_multiplier = 1.0 + bonus_sum;
+        self.calculate_rating(damage_multiplier)
     }
 }
 impl PartialOrd for TowerTemplate {
