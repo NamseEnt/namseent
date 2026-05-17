@@ -3,16 +3,14 @@ use crate::game_state::tower::TowerKind;
 use namui::*;
 use std::collections::BTreeMap;
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, State)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct TowerStats {
     pub damage: f32,
     pub range: f32,
     pub cooldown_ms: u64,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, State)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct TowerConfig {
     pub stats: BTreeMap<TowerKind, TowerStats>,
     pub rank_bonus_damage: BTreeMap<Rank, usize>,

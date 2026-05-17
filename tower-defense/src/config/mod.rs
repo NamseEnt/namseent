@@ -4,21 +4,21 @@ pub mod towers;
 use self::monsters::MonsterConfig;
 use self::towers::TowerConfig;
 
-#[cfg(feature = "simulator")]
 use anyhow::Context;
 
 use namui::*;
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, State)]
+const EMBEDDED_GAMECONFIG_TOML: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/gameconfig.toml"));
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct GameConfig {
     pub player: PlayerConfig,
     pub monsters: MonsterConfig,
     pub towers: TowerConfig,
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, State)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct PlayerConfig {
     pub max_hp: f32,
     pub starting_gold: usize,
@@ -29,23 +29,6 @@ pub struct PlayerConfig {
 }
 
 impl GameConfig {
-    /// Returns the default configuration matching current hardcoded values.
-    pub fn default_config() -> Self {
-        Self {
-            player: PlayerConfig {
-                max_hp: 60.0,
-                starting_gold: 100,
-                starting_hp: 60.0,
-                base_dice_chance: 1,
-                max_stages: 50,
-                base_hand_slots: 5,
-            },
-            monsters: monsters::default_monster_config(),
-            towers: towers::default_tower_config(),
-        }
-    }
-
-    #[cfg(feature = "simulator")]
     pub fn from_toml<P: AsRef<std::path::Path>>(path: P) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path.as_ref())
             .with_context(|| format!("Failed to read config file: {}", path.as_ref().display()))?;
@@ -54,12 +37,26 @@ impl GameConfig {
         Ok(config)
     }
 
-    #[cfg(feature = "simulator")]
+    pub fn from_toml_str(toml_str: &str) -> anyhow::Result<Self> {
+        toml::from_str(toml_str).context("Failed to parse GameConfig TOML")
+    }
+
+    pub fn default_config() -> Self {
+        Self::from_toml_str(EMBEDDED_GAMECONFIG_TOML)
+            .expect("Failed to parse embedded gameconfig.toml")
+    }
+
     pub fn write_toml<P: AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()> {
         let content = toml::to_string_pretty(self).context("Failed to serialize config to TOML")?;
         std::fs::write(path.as_ref(), content)
             .with_context(|| format!("Failed to write config file: {}", path.as_ref().display()))?;
         Ok(())
+    }
+}
+
+impl Default for GameConfig {
+    fn default() -> Self {
+        Self::default_config()
     }
 }
 
