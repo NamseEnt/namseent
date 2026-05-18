@@ -109,47 +109,6 @@ fn read_volume(value: &serde_json::Value, key: &str) -> Option<f32> {
         .map(|value| value as f32)
 }
 
-// mod storage {
-//     #[cfg(target_arch = "wasm32")]
-//     use namui::spawn_local;
-//     #[cfg(not(target_arch = "wasm32"))]
-//     use namui::tokio::runtime::Handle;
-//     use namui::{spawn, system::kv_store};
-
-//     pub fn load(key: &str) -> Option<String> {
-//         #[cfg(target_arch = "wasm32")]
-//         {
-//             None
-//         }
-//         #[cfg(not(target_arch = "wasm32"))]
-//         {
-//             let result = Handle::current().block_on(kv_store::get(key));
-//             result.and_then(|bytes| String::from_utf8(bytes).ok())
-//         }
-//     }
-
-//     pub async fn load_async(key: &str) -> Option<String> {
-//         #[cfg(target_arch = "wasm32")]
-//         {
-//             kv_store::get(key)
-//                 .await
-//                 .and_then(|bytes| String::from_utf8(bytes).ok())
-//         }
-//         #[cfg(not(target_arch = "wasm32"))]
-//         {
-//             load(key)
-//         }
-//     }
-
-//     pub fn save(key: &str, value: &str) {
-//         let key = key.to_string();
-//         let value = value.to_string();
-//         spawn(async move {
-//             namui::system::kv_store::put(key, Some(value.as_bytes())).await;
-//         });
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::Settings;
