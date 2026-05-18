@@ -179,7 +179,7 @@ impl Component for Game {
             sound::emit_sound(EmitSoundParams::looping(
                 crate::asset::sound::BGM,
                 SoundGroup::Music,
-                VolumePreset::High,
+                VolumePreset::Medium,
                 SpatialMode::NonSpatial,
             ));
             set_bgm_started.set(true);
