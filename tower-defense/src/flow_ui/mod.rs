@@ -4,7 +4,6 @@ pub(crate) mod treasure_selection;
 
 use crate::game_state::{flow::GameFlow, use_game_state};
 use namui::*;
-pub use selecting_tower::TowerPreviewContent;
 
 pub struct FlowUi;
 

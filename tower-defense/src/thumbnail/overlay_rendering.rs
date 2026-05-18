@@ -1,4 +1,4 @@
-use super::constants::{OVERLAY_SIZE_RATIO, RANK_OVERLAY_SIZE_RATIO, TEXT_SIZE_RATIO};
+use super::constants::{RANK_OVERLAY_SIZE_RATIO, TEXT_SIZE_RATIO};
 use crate::{
     card::{Rank, Suit},
     icon::{Icon, IconKind, IconSize},
@@ -62,16 +62,6 @@ pub fn render_text_overlay(
         overlay_position.x + text_offset.x,
         overlay_position.y + text_offset.y,
         rendered_text.into_rendering_tree(),
-    )
-}
-
-/// 플러스 아이콘 오버레이를 렌더링하는 함수
-pub fn render_plus_overlay(container_size: Wh<Px>) -> RenderingTree {
-    render_icon_overlay(
-        container_size,
-        IconKind::Add,
-        OverlayPosition::BottomRight,
-        OVERLAY_SIZE_RATIO,
     )
 }
 
