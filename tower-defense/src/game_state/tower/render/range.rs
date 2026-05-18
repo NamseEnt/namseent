@@ -1,5 +1,5 @@
+use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::tower::TowerTemplate;
-use crate::game_state::{TILE_PX_SIZE, use_game_state};
 use crate::palette;
 use namui::*;
 
@@ -11,15 +11,13 @@ impl Component for TowerAttackRange<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let game_state = use_game_state(ctx);
-
         let range_radius_px = TILE_PX_SIZE.width * tower_template.default_attack_range_radius;
 
         const ROTATION_SPEED_PX_PER_SEC: f32 = 120.0;
         const DASH_ON_PX: f32 = 40.0;
         const DASH_OFF_PX: f32 = 24.0;
 
-        let elapsed_secs = (game_state.now() - Instant::new(Duration::ZERO)).as_secs_f32();
+        let elapsed_secs = (Instant::now() - Instant::new(Duration::ZERO)).as_secs_f32();
         let phase_px = (elapsed_secs * ROTATION_SPEED_PX_PER_SEC) % (DASH_ON_PX + DASH_OFF_PX);
 
         let ctx = ctx.translate(TILE_PX_SIZE.to_xy());

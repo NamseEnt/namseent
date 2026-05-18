@@ -81,15 +81,3 @@ impl TowerUpgradeTarget {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct TowerUpgradeState {
-    pub damage_multiplier: f32,
-}
-impl Default for TowerUpgradeState {
-    fn default() -> Self {
-        TowerUpgradeState {
-            damage_multiplier: 1.0,
-        }
-    }
-}
