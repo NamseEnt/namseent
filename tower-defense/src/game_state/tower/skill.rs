@@ -221,7 +221,7 @@ mod tests {
             TowerSkillTemplate {
                 kind: TowerSkillKind::TopCardBonus {
                     rank: Rank::Ace,
-                    bonus_damage: Rank::Ace.bonus_damage(),
+                    bonus_damage: 15,
                 },
                 cooldown: Duration::from_secs(1),
                 duration: Duration::from_secs(1),
@@ -237,7 +237,7 @@ mod tests {
             matches!(
                 effect.kind,
                 TowerStatusEffectKind::DamageAdd { add }
-                if add == Rank::Ace.bonus_damage() as f32
+                if add == 15.0_f32
             )
         }));
     }
@@ -246,7 +246,7 @@ mod tests {
     fn top_card_bonus_updates_cached_upgrade_damage() {
         let mut game_state = make_test_state();
         let now = Instant::now();
-        let bonus_damage = Rank::Ace.bonus_damage();
+        let bonus_damage = 15;
 
         let mut tower = Tower::new(
             &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace),

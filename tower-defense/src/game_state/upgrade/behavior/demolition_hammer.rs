@@ -37,7 +37,7 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             return UpgradeUpdateFlags::NONE;
         }
 
-        self.stored_damage_bonus += self.damage_bonus_pct * self.removed_tower_count as f32;
+        self.stored_damage_bonus = self.damage_bonus_pct * self.removed_tower_count as f32;
         self.removed_tower_count = 0;
         UpgradeUpdateFlags::TOWER_STATS
     }

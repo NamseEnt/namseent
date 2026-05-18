@@ -1,9 +1,8 @@
-use crate::MapCoord;
 use crate::flow_ui::treasure_selection::PADDING;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
-use crate::game_state::tower::{AnimationKind, Tower, TowerKind, TowerTemplate};
+use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
 use crate::icon::IconKind;
 use crate::rarity::Rarity;
 use crate::theme::typography::{FontSize, memoized_text};
@@ -64,12 +63,30 @@ struct PreviewEntryComponent {
 impl Component for PreviewEntryComponent {
     fn render(self, ctx: &RenderCtx) {
         let game_state = crate::game_state::use_game_state(ctx);
+        let this_wh = self.wh;
+        let template = self.template;
+        let tower_upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
+
+        let tracked_upgrade_revision = ctx.track_eq(&game_state.upgrade_state.revision);
+        let tracked_template = ctx.track_eq(&(
+            template.kind,
+            template.suit,
+            template.rank,
+            template.rerolled_count,
+        ));
+
+        let attack_power_text_signal = ctx.memo(|| {
+            tracked_upgrade_revision.record_as_used();
+            tracked_template.record_as_used();
+
+            let attack_power = template.attack_power_with_upgrade_bonuses(&tower_upgrade_bonuses);
+            format_compact_number(attack_power)
+        });
+        let attack_power_text = attack_power_text_signal.as_ref();
 
         let target = if self.active { 1.0 } else { 0.0 };
         let position: f32 = with_spring(ctx, target, 0.0f32, |v| v * v, || 0.0f32);
         let scale = position.max(0.0001);
-        let this_wh = self.wh;
-        let template = self.template;
         let tower_name = game_state.text().tower(template.kind.to_text());
         let flavor = PLACEHOLDER_FLAVOR_TEXT;
 
@@ -134,29 +151,10 @@ impl Component for PreviewEntryComponent {
                     16.px(),
                     table::vertical([
                         table::fixed_no_clip(24.px(), move |wh, ctx| {
-                            let now = game_state.now();
-                            let preview_tower = Tower::new(&template, MapCoord::new(0, 0), now);
-                            let tower_upgrade_bonuses =
-                                game_state.upgrade_state.tower_upgrade_damage_bonuses();
-                            let bonus_sum: f32 = tower_upgrade_bonuses
-                                .iter()
-                                .map(|bonus| bonus.effective_bonus_pct_for_tower(&preview_tower))
-                                .sum();
-                            let damage_multiplier = 1.0 + bonus_sum;
-                            let rank_bonus = *game_state
-                                .config
-                                .towers
-                                .rank_bonus_damage
-                                .get(&template.rank)
-                                .unwrap_or(&template.rank.bonus_damage())
-                                as f32;
-                            let attack_power =
-                                (template.default_damage + rank_bonus) * damage_multiplier;
-                            let attack_power_text = format_compact_number(attack_power);
                             ctx.compose(|ctx| {
                                 let _badge_width = crate::render_attack_power_badge(
                                     &ctx,
-                                    &attack_power_text,
+                                    attack_power_text,
                                     wh.width,
                                     wh.height,
                                 );

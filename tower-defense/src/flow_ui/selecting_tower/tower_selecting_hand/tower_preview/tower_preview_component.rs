@@ -89,15 +89,8 @@ impl Component for TowerPreviewContent<'_> {
                 table::vertical([
                     table::fixed_no_clip(HEADLINE_FONT_SIZE_SMALL, |wh, ctx| {
                         let damage = tower_template.default_damage;
-                        let damage_plus = *game_state
-                            .config
-                            .towers
-                            .rank_bonus_damage
-                            .get(&tower_template.rank)
-                            .unwrap_or(&tower_template.rank.bonus_damage())
-                            as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
-                        let attack_power = (damage + damage_plus) * damage_multiplier;
+                        let attack_power = damage * damage_multiplier;
                         let attack_power_text = format_compact_number(attack_power);
                         ctx.compose(|ctx| {
                             let _badge_width = crate::render_attack_power_badge(
@@ -134,14 +127,8 @@ impl Component for TowerPreviewContent<'_> {
                         ));
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
-                        let rank_bonus = *game_state
-                            .config
-                            .towers
-                            .rank_bonus_damage
-                            .get(&tower_template.rank)
-                            .unwrap_or(&tower_template.rank.bonus_damage());
-                        let rating = tower_template
-                            .calculate_rating(upgrade_state.damage_multiplier, rank_bonus);
+                        let rating =
+                            tower_template.calculate_rating(upgrade_state.damage_multiplier);
 
                         // Follow StatPreview layout: left icon, right-aligned value
                         ctx.add(
@@ -159,19 +146,12 @@ impl Component for TowerPreviewContent<'_> {
                     }),
                     table::fixed_no_clip(PARAGRAPH_FONT_SIZE_LARGE, |wh, ctx| {
                         let damage = tower_template.default_damage;
-                        let damage_plus = *game_state
-                            .config
-                            .towers
-                            .rank_bonus_damage
-                            .get(&tower_template.rank)
-                            .unwrap_or(&tower_template.rank.bonus_damage())
-                            as f32;
                         let damage_multiplier = upgrade_state.damage_multiplier;
 
                         ctx.add(StatPreview {
                             stat_icon_kind: IconKind::Damage,
                             default_stat: damage,
-                            plus_stat: damage_plus,
+                            plus_stat: 0.0,
                             multiplier: damage_multiplier,
                             wh,
                             upgrade_texts: texts.damage.as_slice(),

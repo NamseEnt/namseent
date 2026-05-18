@@ -37,6 +37,23 @@ impl TowerUpgradeDamageBonus {
             _ => self.bonus_pct,
         }
     }
+
+    pub fn effective_bonus_pct_for_tower_template(
+        &self,
+        tower_template: &crate::game_state::tower::TowerTemplate,
+    ) -> f32 {
+        if !self.target.applies_to_tower_template(tower_template) {
+            return 0.0;
+        }
+
+        match self.target {
+            TowerUpgradeTarget::RerolledTower => {
+                let rerolled_count = tower_template.rerolled_count as f32;
+                self.bonus_pct * rerolled_count
+            }
+            _ => self.bonus_pct,
+        }
+    }
 }
 
 impl TowerUpgradeTarget {

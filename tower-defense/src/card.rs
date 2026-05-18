@@ -24,8 +24,19 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+    Hash,
+    Clone,
+    Copy,
+    PartialOrd,
+    Ord,
+    State,
+)]
 pub enum Rank {
     Two,
     Three,
@@ -42,23 +53,6 @@ pub enum Rank {
     Ace,
 }
 impl Rank {
-    pub fn bonus_damage(&self) -> usize {
-        match self {
-            Rank::Two => 0,
-            Rank::Three => 0,
-            Rank::Four => 0,
-            Rank::Five => 1,
-            Rank::Six => 1,
-            Rank::Seven => 1,
-            Rank::Eight => 2,
-            Rank::Nine => 3,
-            Rank::Ten => 4,
-            Rank::Jack => 6,
-            Rank::Queen => 8,
-            Rank::King => 10,
-            Rank::Ace => 15,
-        }
-    }
     pub fn is_even(&self) -> bool {
         matches!(
             self,

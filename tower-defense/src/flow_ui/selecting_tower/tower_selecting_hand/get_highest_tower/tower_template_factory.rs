@@ -7,7 +7,7 @@ pub fn create_tower_template(
     kind: TowerKind,
     suit: Suit,
     rank: Rank,
-    config: &GameConfig,
+    _config: &GameConfig,
 ) -> TowerTemplate {
-    TowerTemplate::new_with_config(kind, suit, rank, config)
+    TowerTemplate::new(kind, suit, rank)
 }

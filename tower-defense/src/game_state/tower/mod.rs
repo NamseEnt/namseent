@@ -60,6 +60,7 @@ pub struct AttackTypeParams {
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
+
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             left_top,
@@ -313,36 +314,24 @@ impl TowerTemplate {
         }
     }
 
-    pub fn new_with_config(
-        kind: TowerKind,
-        suit: Suit,
-        rank: Rank,
-        config: &crate::config::GameConfig,
-    ) -> Self {
-        let stats = config
-            .towers
-            .stats
-            .get(&kind)
-            .expect("missing tower stats for kind");
-        Self {
-            kind,
-            rerolled_count: 0,
-            shoot_interval: Duration::from_millis(stats.cooldown_ms as i64),
-            default_attack_range_radius: stats.range,
-            default_damage: stats.damage,
-            suit,
-            rank,
-            skill_templates: kind.skill_templates(),
-            default_status_effects: vec![],
-        }
-    }
-
     pub fn barricade() -> Self {
         Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
     }
 
-    pub fn calculate_rating(&self, damage_multiplier: f32, rank_bonus: usize) -> f32 {
-        (self.default_damage + rank_bonus as f32) * damage_multiplier
+    pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
+        self.default_damage * damage_multiplier
+    }
+
+    pub fn attack_power_with_upgrade_bonuses(
+        &self,
+        tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
+    ) -> f32 {
+        let bonus_sum: f32 = tower_upgrade_bonuses
+            .iter()
+            .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self))
+            .sum();
+        let damage_multiplier = 1.0 + bonus_sum;
+        self.calculate_rating(damage_multiplier)
     }
 }
 impl PartialOrd for TowerTemplate {
@@ -356,8 +345,19 @@ impl PartialOrd for TowerTemplate {
     }
 }
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    State,
+)]
 pub enum TowerKind {
     Barricade,
     High,
@@ -419,38 +419,7 @@ impl TowerKind {
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
-        match self {
-            Self::Barricade => vec![],
-            Self::High => vec![],
-            Self::OnePair => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::MoneyIncomeAdd { add: 1 },
-            )],
-            Self::TwoPair => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::MoneyIncomeAdd { add: 2 },
-            )],
-            Self::ThreeOfAKind => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyMonsterSpeedMul {
-                    mul: 0.9,
-                    range_radius: 5.0,
-                },
-            )],
-            Self::Straight => vec![],
-            Self::Flush => vec![],
-            Self::FullHouse => vec![],
-            Self::FourOfAKind => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyMonsterSpeedMul {
-                    mul: 0.75,
-                    range_radius: 4.0,
-                },
-            )],
-            Self::StraightFlush => vec![],
-            Self::RoyalFlush => vec![TowerSkillTemplate::new_passive(
-                TowerSkillKind::NearbyTowerDamageMul {
-                    mul: 2.0,
-                    range_radius: 6.0,
-                },
-            )],
-        }
+        vec![]
     }
     pub fn is_low_card_tower(&self) -> bool {
         matches!(self, Self::High | Self::OnePair | Self::ThreeOfAKind)

@@ -1,7 +1,18 @@
 use crate::*;
 
-#[cfg_attr(feature = "simulator", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    State,
+)]
 pub enum MonsterKind {
     Mob01,
     Mob02,
