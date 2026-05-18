@@ -1,5 +1,5 @@
-use crate::game_state::tower::TowerTemplate;
 use crate::game_state::TILE_PX_SIZE;
+use crate::game_state::tower::TowerTemplate;
 use crate::palette;
 use namui::*;
 
