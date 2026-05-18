@@ -21,7 +21,7 @@ pub use game_end::{GameEndKind, play_game_end_sound};
 pub use render::SoundRenderer;
 pub use state::{
     adjust_group_volume, adjust_master_volume, cleanup_expired_sounds, emit_sound,
-    emit_sound_after, init_sound_state, set_group_volume, set_master_volume, stop_sound,
-    update_sound_position, use_sound_state,
+    emit_sound_after, init_sound_state, set_group_volume, set_master_volume, set_volume_settings,
+    stop_sound, update_sound_position, use_sound_state,
 };
 pub use volume::{SoundGroup, VolumePreset, VolumeSettings};

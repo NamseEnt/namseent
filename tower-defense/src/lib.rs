@@ -12,6 +12,7 @@ mod inventory;
 pub mod l10n;
 mod rarity; // private; re-export Rarity only
 mod route;
+mod settings;
 mod shop;
 mod shop_panel;
 #[cfg(feature = "simulator")]
@@ -147,16 +148,38 @@ struct Game {}
 impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
+        let _settings = crate::settings::Settings::init(ctx);
         let game_state = game_state::init_game_state(ctx);
         let _sound_state = sound::init_sound_state(ctx);
+        let (settings_loaded, set_settings_loaded) = ctx.state(|| false);
+        let (settings_load_started, set_settings_load_started) = ctx.state(|| false);
         let (bgm_started, set_bgm_started) = ctx.state(|| false);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
+
+        ctx.effect("load settings", || {
+            if *settings_load_started {
+                return;
+            }
+
+            set_settings_load_started.set(true);
+            spawn(async move {
+                let loaded = crate::settings::Settings::load_async().await;
+                let volume = loaded.audio.volume.clone();
+                loaded.set_settings();
+                crate::sound::set_volume_settings(volume);
+                set_settings_loaded.set(true);
+            });
+        });
+
+        if !*settings_loaded {
+            return;
+        }
 
         if !*bgm_started {
             sound::emit_sound(EmitSoundParams::looping(
                 crate::asset::sound::BGM,
                 SoundGroup::Music,
-                VolumePreset::High,
+                VolumePreset::Medium,
                 SpatialMode::NonSpatial,
             ));
             set_bgm_started.set(true);

@@ -1,4 +1,5 @@
 use namui::*;
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, State)]
 pub enum VolumePreset {
@@ -29,7 +30,7 @@ pub enum SoundGroup {
     Music,
 }
 
-#[derive(Clone, Debug, State)]
+#[derive(Clone, Debug, PartialEq, SerdeSerialize, SerdeDeserialize, State)]
 pub struct VolumeSettings {
     pub master: f32,
     pub sfx: f32,
@@ -41,7 +42,7 @@ pub struct VolumeSettings {
 impl Default for VolumeSettings {
     fn default() -> Self {
         Self {
-            master: 1.0,
+            master: 0.5,
             sfx: 1.0,
             ui: 1.0,
             ambient: 1.0,
@@ -51,6 +52,15 @@ impl Default for VolumeSettings {
 }
 
 impl VolumeSettings {
+    pub fn clamped(mut self) -> Self {
+        self.master = clamp01(self.master);
+        self.sfx = clamp01(self.sfx);
+        self.ui = clamp01(self.ui);
+        self.ambient = clamp01(self.ambient);
+        self.music = clamp01(self.music);
+        self
+    }
+
     pub fn subgroup_volume(&self, group: SoundGroup) -> f32 {
         match group {
             SoundGroup::Sfx => self.sfx,
@@ -60,8 +70,21 @@ impl VolumeSettings {
         }
     }
 
+    fn audio_gain(value: f32) -> f32 {
+        // Use an exponential curve so slider position feels more natural for audio volume.
+        value.clamp(0.0, 1.0).powf(2.0)
+    }
+
+    pub fn master_audio_gain(&self) -> f32 {
+        Self::audio_gain(self.master)
+    }
+
+    pub fn subgroup_audio_gain(&self, group: SoundGroup) -> f32 {
+        Self::audio_gain(self.subgroup_volume(group))
+    }
+
     pub fn group_volume(&self, group: SoundGroup) -> f32 {
-        self.master * self.subgroup_volume(group)
+        self.master_audio_gain() * self.subgroup_audio_gain(group)
     }
 
     pub fn effective_volume(&self, group: SoundGroup, preset: VolumePreset) -> f32 {
