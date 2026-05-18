@@ -22,6 +22,12 @@ pub fn init_sound_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, SoundState> {
     ctx.init_atom(&SOUND_STATE_ATOM, SoundState::default).0
 }
 
+pub fn set_volume_settings(volume: VolumeSettings) {
+    SOUND_STATE_ATOM.mutate(move |sound_state| {
+        sound_state.volume_settings = volume;
+    });
+}
+
 pub fn use_sound_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, SoundState> {
     ctx.atom(&SOUND_STATE_ATOM).0
 }
@@ -93,6 +99,7 @@ pub fn cleanup_expired_sounds(now: Instant) {
 pub fn set_master_volume(volume: f32) {
     SOUND_STATE_ATOM.mutate(move |sound_state| {
         sound_state.volume_settings.master = clamp01(volume);
+        crate::settings::Settings::replace_volume_settings(sound_state.volume_settings.clone());
     });
 }
 
@@ -105,29 +112,35 @@ pub fn set_group_volume(group: SoundGroup, volume: f32) {
             SoundGroup::Ambient => sound_state.volume_settings.ambient = volume,
             SoundGroup::Music => sound_state.volume_settings.music = volume,
         }
+        crate::settings::Settings::replace_volume_settings(sound_state.volume_settings.clone());
     });
 }
 
 pub fn adjust_master_volume(delta: f32) {
     SOUND_STATE_ATOM.mutate(move |sound_state| {
         sound_state.volume_settings.master = clamp01(sound_state.volume_settings.master + delta);
+        crate::settings::Settings::replace_volume_settings(sound_state.volume_settings.clone());
     });
 }
 
 pub fn adjust_group_volume(group: SoundGroup, delta: f32) {
-    SOUND_STATE_ATOM.mutate(move |sound_state| match group {
-        SoundGroup::Sfx => {
-            sound_state.volume_settings.sfx = clamp01(sound_state.volume_settings.sfx + delta)
+    SOUND_STATE_ATOM.mutate(move |sound_state| {
+        match group {
+            SoundGroup::Sfx => {
+                sound_state.volume_settings.sfx = clamp01(sound_state.volume_settings.sfx + delta)
+            }
+            SoundGroup::Ui => {
+                sound_state.volume_settings.ui = clamp01(sound_state.volume_settings.ui + delta)
+            }
+            SoundGroup::Ambient => {
+                sound_state.volume_settings.ambient =
+                    clamp01(sound_state.volume_settings.ambient + delta)
+            }
+            SoundGroup::Music => {
+                sound_state.volume_settings.music =
+                    clamp01(sound_state.volume_settings.music + delta)
+            }
         }
-        SoundGroup::Ui => {
-            sound_state.volume_settings.ui = clamp01(sound_state.volume_settings.ui + delta)
-        }
-        SoundGroup::Ambient => {
-            sound_state.volume_settings.ambient =
-                clamp01(sound_state.volume_settings.ambient + delta)
-        }
-        SoundGroup::Music => {
-            sound_state.volume_settings.music = clamp01(sound_state.volume_settings.music + delta)
-        }
+        crate::settings::Settings::replace_volume_settings(sound_state.volume_settings.clone());
     });
 }

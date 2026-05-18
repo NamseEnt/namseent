@@ -1,4 +1,5 @@
 use namui::*;
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, State)]
 pub enum VolumePreset {
@@ -29,7 +30,7 @@ pub enum SoundGroup {
     Music,
 }
 
-#[derive(Clone, Debug, State)]
+#[derive(Clone, Debug, PartialEq, SerdeSerialize, SerdeDeserialize, State)]
 pub struct VolumeSettings {
     pub master: f32,
     pub sfx: f32,
@@ -51,6 +52,15 @@ impl Default for VolumeSettings {
 }
 
 impl VolumeSettings {
+    pub fn clamped(mut self) -> Self {
+        self.master = clamp01(self.master);
+        self.sfx = clamp01(self.sfx);
+        self.ui = clamp01(self.ui);
+        self.ambient = clamp01(self.ambient);
+        self.music = clamp01(self.music);
+        self
+    }
+
     pub fn subgroup_volume(&self, group: SoundGroup) -> f32 {
         match group {
             SoundGroup::Sfx => self.sfx,
