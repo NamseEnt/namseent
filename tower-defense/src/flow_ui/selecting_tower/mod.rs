@@ -1,7 +1,5 @@
 pub(crate) mod tower_selecting_hand;
 
-pub use tower_selecting_hand::TowerPreviewContent;
-
 use namui::*;
 
 pub struct SelectingTowerUi;

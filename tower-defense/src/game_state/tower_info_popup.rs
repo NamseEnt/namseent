@@ -1,5 +1,4 @@
 use super::{Tower, mutate_game_state};
-use crate::flow_ui::TowerPreviewContent;
 use crate::game_state::GameEffectEvent;
 use crate::theme::{
     button::{Button, ButtonColor, ButtonVariant},
@@ -12,9 +11,9 @@ use crate::{sound, theme};
 use namui::*;
 use namui_prebuilt::table;
 
-const BUBBLE_PADDING: Px = px(12.);
-const BUBBLE_WIDTH: Px = px(280.);
-const BUBBLE_HEIGHT: Px = px(200.);
+const BUBBLE_PADDING: Px = px(8.);
+const BUBBLE_WIDTH: Px = px(180.);
+const BUBBLE_HEIGHT: Px = px(56.);
 
 pub struct TowerInfoPopup<'a> {
     pub tower: &'a Tower,
@@ -28,58 +27,45 @@ impl Component for TowerInfoPopup<'_> {
             .compose(|ctx| {
                 ctx.compose(|ctx| {
                     table::padding_no_clip(BUBBLE_PADDING, |wh, ctx| {
-                        table::vertical([
-                            table::ratio_no_clip(1.0, |wh, ctx| {
-                                ctx.add(TowerPreviewContent {
-                                    wh,
-                                    tower_template: tower,
-                                });
-                            }),
-                            table::fixed_no_clip(36.px(), |wh, ctx| {
-                                let tower_id = tower.id();
-                                ctx.add(
-                                    Button::new(
-                                        wh,
-                                        &move || {
-                                            mutate_game_state(move |game_state| {
-                                                let tower_removed = game_state.action(
-                                                    crate::game_state::GameStateAction::RemoveTower(
-                                                        tower_id,
+                        let tower_id = tower.id();
+                        ctx.add(
+                            Button::new(
+                                wh,
+                                &move || {
+                                    mutate_game_state(move |game_state| {
+                                        let tower_removed = game_state.action(
+                                            crate::game_state::GameStateAction::RemoveTower(
+                                                tower_id,
+                                            ),
+                                        );
+                                        if tower_removed {
+                                            game_state.effect_events.push(
+                                                GameEffectEvent::PlaySound(
+                                                    sound::EmitSoundParams::one_shot(
+                                                        sound::random_paper_crumpling(),
+                                                        sound::SoundGroup::Sfx,
+                                                        sound::VolumePreset::High,
+                                                        sound::SpatialMode::NonSpatial,
                                                     ),
-                                                );
-                                                if tower_removed {
-                                                    game_state.effect_events.push(
-                                                        GameEffectEvent::PlaySound(
-                                                            sound::EmitSoundParams::one_shot(
-                                                                sound::random_paper_crumpling(),
-                                                                sound::SoundGroup::Sfx,
-                                                                sound::VolumePreset::High,
-                                                                sound::SpatialMode::NonSpatial,
-                                                            ),
-                                                        ),
-                                                    );
-                                                }
-                                            });
-                                        },
-                                        &|wh, text_color, ctx| {
-                                            ctx.add(memoized_text(
-                                                (&text_color, &wh),
-                                                |mut builder| {
-                                                    builder
-                                                        .size(FontSize::Medium)
-                                                        .color(text_color)
-                                                        .max_width(wh.width)
-                                                        .text("철거")
-                                                        .render_center(wh)
-                                                },
-                                            ));
-                                        },
-                                    )
-                                    .variant(ButtonVariant::Contained)
-                                    .color(ButtonColor::Error),
-                                );
-                            }),
-                        ])(wh, ctx);
+                                                ),
+                                            );
+                                        }
+                                    });
+                                },
+                                &|wh, text_color, ctx| {
+                                    ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                                        builder
+                                            .size(FontSize::Medium)
+                                            .color(text_color)
+                                            .max_width(wh.width)
+                                            .text("철거")
+                                            .render_center(wh)
+                                    }));
+                                },
+                            )
+                            .variant(ButtonVariant::Contained)
+                            .color(ButtonColor::Error),
+                        );
                     })(Wh::new(BUBBLE_WIDTH, BUBBLE_HEIGHT), ctx);
                 });
 

@@ -36,13 +36,6 @@ impl ThumbnailComposer {
         self
     }
 
-    /// 플러스 오버레이를 추가합니다.
-    pub fn add_plus_overlay(mut self) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_plus_overlay(self.width_height));
-        self
-    }
-
     /// 랭크 오버레이를 추가합니다.
     pub fn add_rank_overlay(mut self, rank: crate::card::Rank) -> Self {
         self.overlay_layers
@@ -59,23 +52,6 @@ impl ThumbnailComposer {
             .push(overlay_rendering::render_suit_overlay(
                 self.width_height,
                 suit,
-            ));
-        self
-    }
-
-    /// 아이콘 오버레이를 추가합니다.
-    pub fn add_icon_overlay(
-        mut self,
-        icon_kind: crate::icon::IconKind,
-        position: overlay_rendering::OverlayPosition,
-        size_ratio: f32,
-    ) -> Self {
-        self.overlay_layers
-            .push(overlay_rendering::render_icon_overlay(
-                self.width_height,
-                icon_kind,
-                position,
-                size_ratio,
             ));
         self
     }
