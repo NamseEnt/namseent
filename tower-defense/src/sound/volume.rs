@@ -42,7 +42,7 @@ pub struct VolumeSettings {
 impl Default for VolumeSettings {
     fn default() -> Self {
         Self {
-            master: 1.0,
+            master: 0.5,
             sfx: 1.0,
             ui: 1.0,
             ambient: 1.0,
