@@ -27,7 +27,7 @@ impl Component for SoundRenderer {
         let volume_settings = sound_state.volume_settings.clone();
 
         ctx.add(AudioGroup {
-            volume: volume_settings.master,
+            volume: volume_settings.master_audio_gain(),
             z: 0.0,
             children: move |ctx: ComposeCtx| {
                 render_spatial_sounds(
@@ -75,7 +75,7 @@ fn render_spatial_sounds(
         });
 
         for group in AUDIO_GROUPS {
-            let subgroup_volume = volume_settings.subgroup_volume(group);
+            let subgroup_volume = volume_settings.subgroup_audio_gain(group);
             world_ctx.add(AudioGroup {
                 volume: subgroup_volume,
                 z: 0.0,
@@ -117,7 +117,7 @@ fn render_non_spatial_sounds(
     now: Instant,
 ) {
     for group in AUDIO_GROUPS {
-        let subgroup_volume = volume_settings.subgroup_volume(group);
+        let subgroup_volume = volume_settings.subgroup_audio_gain(group);
 
         ctx.add(AudioGroup {
             volume: subgroup_volume,

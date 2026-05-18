@@ -70,8 +70,21 @@ impl VolumeSettings {
         }
     }
 
+    fn audio_gain(value: f32) -> f32 {
+        // Use an exponential curve so slider position feels more natural for audio volume.
+        value.clamp(0.0, 1.0).powf(2.0)
+    }
+
+    pub fn master_audio_gain(&self) -> f32 {
+        Self::audio_gain(self.master)
+    }
+
+    pub fn subgroup_audio_gain(&self, group: SoundGroup) -> f32 {
+        Self::audio_gain(self.subgroup_volume(group))
+    }
+
     pub fn group_volume(&self, group: SoundGroup) -> f32 {
-        self.master * self.subgroup_volume(group)
+        self.master_audio_gain() * self.subgroup_audio_gain(group)
     }
 
     pub fn effective_volume(&self, group: SoundGroup, preset: VolumePreset) -> f32 {
