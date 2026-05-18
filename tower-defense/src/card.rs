@@ -24,7 +24,19 @@ impl Display for Suit {
 }
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
+#[derive(
+    serde::Serialize,
+    serde::Deserialize,
+    Debug,
+    Eq,
+    PartialEq,
+    Hash,
+    Clone,
+    Copy,
+    PartialOrd,
+    Ord,
+    State,
+)]
 pub enum Rank {
     Two,
     Three,
