@@ -26,6 +26,8 @@ STEAMCMD_URL="https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.ta
 CONTENT_DIR="$SCRIPT_DIR/content"
 VDF_SRC="$SCRIPT_DIR/app_build_${APP_ID}.vdf"
 VDF_GENERATED="$SCRIPT_DIR/app_build_${APP_ID}.generated.vdf"
+SOURCE_EXE="namui-runtime-x86_64-pc-windows-msvc.exe"
+TARGET_EXE="boxboxdefense.exe"
 
 SKIP_BUILD=0
 PREVIEW=0
@@ -93,6 +95,12 @@ echo "=== Syncing build output -> $CONTENT_DIR ==="
 rm -rf "$CONTENT_DIR"
 mkdir -p "$CONTENT_DIR"
 cp -r "$BUILD_OUTPUT"/. "$CONTENT_DIR"/
+
+if [ ! -f "$CONTENT_DIR/$SOURCE_EXE" ]; then
+    echo "ERROR: expected executable not found: $CONTENT_DIR/$SOURCE_EXE"
+    exit 1
+fi
+mv -f "$CONTENT_DIR/$SOURCE_EXE" "$CONTENT_DIR/$TARGET_EXE"
 
 # 4. Generate VDF with the requested branch / preview flag
 sed -E "s/(\"setlive\"[[:space:]]+)\"[^\"]*\"/\1\"$BRANCH\"/" "$VDF_SRC" > "$VDF_GENERATED"
