@@ -384,40 +384,7 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
 }
 
 fn render_decorations(ctx: &RenderCtx, game_state: &GameState) {
-    let visual_left_top = game_state.camera.visual_left_top();
-    let screen_rect = Rect::from_xy_wh(visual_left_top, {
-        let screen_size = namui::screen::size();
-        Wh::new(
-            screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
-            screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
-        ) / game_state.camera.zoom_level
-    });
-    let outer_margin_tiles = MAP_OUTSIDE_MARGIN_TILES;
-
-    for decoration in game_state.decorations.iter() {
-        let xy = decoration.coord;
-        let tree_tile_w = 2.0f32 * decoration.scale;
-        let tree_tile_h = 3.0f32 * decoration.scale;
-
-        if screen_rect.right() < xy.x || screen_rect.bottom() < xy.y {
-            continue;
-        }
-        if xy.x + tree_tile_w < screen_rect.left() - outer_margin_tiles
-            || xy.y + tree_tile_h < screen_rect.top() - outer_margin_tiles
-        {
-            continue;
-        }
-
-        let px_xy = Xy::new(
-            px(xy.x * TILE_PX_SIZE.width.as_f32()),
-            px(xy.y * TILE_PX_SIZE.height.as_f32()),
-        );
-
-        let decoration = *decoration;
-        ctx.translate(px_xy).compose(move |ctx| {
-            ctx.add(&decoration);
-        });
-    }
+    ctx.add(game_state.decorations.clone());
 }
 
 fn render_map_border_gradient(ctx: &RenderCtx, _game_state: &GameState) {

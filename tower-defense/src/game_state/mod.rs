@@ -14,6 +14,7 @@ pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
+mod map_decoration_atlas;
 mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
@@ -39,8 +40,8 @@ use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
 use crate::*;
-use background::{Background, MapDecoration};
-pub use background::{generate_backgrounds, generate_decorations};
+use background::Background;
+pub use background::generate_backgrounds;
 pub use base::*;
 pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
@@ -107,7 +108,7 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub backgrounds: Vec<Background>,
-    pub decorations: Vec<MapDecoration>,
+    pub decorations: RenderingTree,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     pub hand: Hand<HandItem>,
@@ -623,13 +624,14 @@ static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 fn create_initial_game_state() -> GameState {
     let config = Arc::new(GameConfig::default_config());
     let now = Instant::now();
+    let decorations = background::generate_decoration_rendering_tree();
     let mut game_state = GameState {
         monsters: Default::default(),
         towers: Default::default(),
         camera: Camera::new(),
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         backgrounds: generate_backgrounds(),
-        decorations: generate_decorations(),
+        decorations,
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),

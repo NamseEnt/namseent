@@ -3,33 +3,43 @@ use namui::*;
 use namui_prebuilt::simple_rect;
 use rand::{Rng, thread_rng};
 
-use super::{MAP_OUTSIDE_MARGIN_TILES, MAP_SIZE, TILE_PX_SIZE};
+use super::{MAP_OUTSIDE_MARGIN_TILES, MAP_SIZE, TILE_PX_SIZE, map_decoration_atlas};
 
 #[derive(Clone, Copy, State)]
-pub struct MapDecoration {
-    pub coord: MapCoordF32,
-    pub scale: f32,
+pub enum DecorationKind {
+    Bush,
+    Club,
+    Dia,
+    Flower,
+    Heart,
+    Mushroom,
+    Rock,
+    Spade,
 }
 
-impl Component for &MapDecoration {
-    fn render(self, ctx: &RenderCtx) {
-        // Placeholder: dark green rect (2 tiles wide × 3 tiles tall) with scale variation.
-        let tree_wh = Wh::new(
-            TILE_PX_SIZE.width * 2.0 * self.scale,
-            TILE_PX_SIZE.height * 3.0 * self.scale,
-        );
-        ctx.add(simple_rect(
-            tree_wh,
-            Color::TRANSPARENT,
-            0.px(),
-            Color::from_u8(34, 85, 34, 200),
-        ));
+impl DecorationKind {
+    pub fn src_rect(self) -> Rect<Px> {
+        map_decoration_atlas::decoration_rect(self)
+    }
+
+    pub fn random<R: Rng>(rng: &mut R) -> Self {
+        match rng.gen_range(0..8) {
+            0 => DecorationKind::Bush,
+            1 => DecorationKind::Club,
+            2 => DecorationKind::Dia,
+            3 => DecorationKind::Flower,
+            4 => DecorationKind::Heart,
+            5 => DecorationKind::Mushroom,
+            6 => DecorationKind::Rock,
+            _ => DecorationKind::Spade,
+        }
     }
 }
 
-pub fn generate_decorations() -> Vec<MapDecoration> {
+pub fn generate_decorations() -> Vec<ImageSprite> {
     let mut rng = thread_rng();
     let mut decorations = vec![];
+    let mut placed_boxes: Vec<(MapCoordF32, Wh<f32>)> = vec![];
 
     let map_w = MAP_SIZE.width as f32;
     let map_h = MAP_SIZE.height as f32;
@@ -48,7 +58,7 @@ pub fn generate_decorations() -> Vec<MapDecoration> {
     let bottom_y_max = map_h + MAP_OUTSIDE_MARGIN_TILES;
 
     let max_attempts = 1024;
-    let min_spacing = -0.25f32;
+    let min_spacing = -0.7f32;
 
     for _ in 0..max_attempts {
         if decorations.len() >= 128 {
@@ -56,6 +66,7 @@ pub fn generate_decorations() -> Vec<MapDecoration> {
         }
 
         let scale = rng.gen_range(0.85..max_scale);
+        let kind = DecorationKind::random(&mut rng);
         let band = rng.gen_range(0..4);
         let (mut x, mut y) = match band {
             0 => (
@@ -104,11 +115,11 @@ pub fn generate_decorations() -> Vec<MapDecoration> {
         let new_right = x + scaled_tree_w;
         let new_bottom = y + scaled_tree_h;
 
-        let overlaps_existing = decorations.iter().any(|existing: &MapDecoration| {
-            let existing_w = tree_w * existing.scale;
-            let existing_h = tree_h * existing.scale;
-            let existing_left = existing.coord.x;
-            let existing_top = existing.coord.y;
+        let overlaps_existing = placed_boxes.iter().any(|(existing_coord, existing_wh)| {
+            let existing_w = existing_wh.width;
+            let existing_h = existing_wh.height;
+            let existing_left = existing_coord.x;
+            let existing_top = existing_coord.y;
             let existing_right = existing_left + existing_w;
             let existing_bottom = existing_top + existing_h;
 
@@ -121,13 +132,50 @@ pub fn generate_decorations() -> Vec<MapDecoration> {
             continue;
         }
 
-        decorations.push(MapDecoration {
-            coord: MapCoordF32::new(x, y),
-            scale,
-        });
+        let px_xy = Xy::new(
+            px(x * TILE_PX_SIZE.width.as_f32()),
+            px(y * TILE_PX_SIZE.height.as_f32()),
+        );
+        let sprite_scale = tree_w * scale;
+        let sprite = ImageSprite {
+            src_rect: kind.src_rect(),
+            xform: RSXform::from_scale_and_translate(sprite_scale, px_xy.x, px_xy.y),
+            color: None,
+        };
+        decorations.push(sprite);
+        placed_boxes.push((
+            MapCoordF32::new(x, y),
+            Wh::new(scaled_tree_w, scaled_tree_h),
+        ));
     }
 
     decorations
+}
+
+pub fn generate_decoration_rendering_tree() -> RenderingTree {
+    generate_decoration_rendering_tree_from_decorations(&generate_decorations())
+}
+
+pub fn generate_decoration_rendering_tree_from_decorations(
+    decorations: &[ImageSprite],
+) -> RenderingTree {
+    let image = crate::asset::image::MAP_DECORATIONS_ATLAS;
+    let mut sprites = decorations.to_vec();
+    sprites.sort_by(|a, b| {
+        a.xform
+            .ty
+            .as_f32()
+            .partial_cmp(&b.xform.ty.as_f32())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    RenderingTree::Node(DrawCommand::Image {
+        command: Box::new(ImageDrawCommand {
+            image,
+            sprites,
+            paint: None,
+            sprite_colors_blend_mode: BlendMode::SrcOver,
+        }),
+    })
 }
 
 #[derive(Clone, Copy, State)]
