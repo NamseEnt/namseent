@@ -2,7 +2,7 @@ use super::*;
 use crate::game_state::camera::ShakeIntensity;
 use namui::*;
 
-const BASE_SIZE_TILE: f32 = 1.5;
+const BASE_SIZE_TILE: f32 = 3.0;
 const BASE_TRANSIT_FORCE_DURATION: Duration = Duration::from_millis(33);
 const ENEMY_BASE_SPAWN_FORCE: f32 = -320.0;
 const PLAYER_DAMAGE_FORCE_MULTIPLIER: f32 = 14.0;
@@ -132,7 +132,7 @@ pub fn render_bases(ctx: &RenderCtx, game_state: &GameState) {
 }
 
 fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
-    let center = coord_center_px(TRAVEL_POINTS[0]) + Xy::new(0.px(), TILE_PX_SIZE.height * -0.5);
+    let center = coord_center_px(TRAVEL_POINTS[0]) + Xy::new(0.px(), TILE_PX_SIZE.height * -1.0);
     let animated_scale = game_state
         .base_animation_state
         .enemy_base_animation
@@ -148,7 +148,7 @@ fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
 
 fn render_player_base(ctx: &RenderCtx, game_state: &GameState) {
     let center = coord_center_px(TRAVEL_POINTS[TRAVEL_POINTS.len() - 1])
-        + Xy::new(TILE_PX_SIZE.width * 0.5, 0.px());
+        + Xy::new(TILE_PX_SIZE.width * 1.0, TILE_PX_SIZE.height * -1.0);
     let animated_scale = game_state
         .base_animation_state
         .player_base_animation
