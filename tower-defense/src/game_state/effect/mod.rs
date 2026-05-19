@@ -473,6 +473,7 @@ pub mod tests_support {
             camera: crate::game_state::camera::Camera::new(),
             route: crate::game_state::calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: crate::game_state::generate_backgrounds(),
+            decorations: crate::game_state::generate_decorations(),
             effect_events: crate::game_state::EffectEventQueue::default(),
             upgrade_state: Default::default(),
             flow: GameFlow::Initializing,

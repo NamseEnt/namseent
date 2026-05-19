@@ -3,7 +3,7 @@ pub use shake::ShakeIntensity;
 
 use crate::{
     MapCoordF32,
-    game_state::{MAP_SIZE, TILE_PX_SIZE},
+    game_state::{MAP_OUTSIDE_MARGIN_TILES, MAP_SIZE, TILE_PX_SIZE},
 };
 use namui::*;
 
@@ -58,18 +58,18 @@ impl Camera {
 
     fn constrain_to_map(&mut self) {
         let screen_wh = screen::size().into_type::<Px>() / self.zoom_level;
-        let half_screen_tiles = Xy::new(
-            screen_wh.width.as_f32() / (2.0 * TILE_PX_SIZE.width.as_f32()),
-            screen_wh.height.as_f32() / (2.0 * TILE_PX_SIZE.height.as_f32()),
+        let screen_tiles = Xy::new(
+            screen_wh.width.as_f32() / TILE_PX_SIZE.width.as_f32(),
+            screen_wh.height.as_f32() / TILE_PX_SIZE.height.as_f32(),
         );
 
         self.left_top.x = self.left_top.x.clamp(
-            -half_screen_tiles.x,
-            MAP_SIZE.width as f32 - half_screen_tiles.x,
+            -MAP_OUTSIDE_MARGIN_TILES,
+            MAP_SIZE.width as f32 + MAP_OUTSIDE_MARGIN_TILES - screen_tiles.x,
         );
         self.left_top.y = self.left_top.y.clamp(
-            -half_screen_tiles.y,
-            MAP_SIZE.height as f32 - half_screen_tiles.y,
+            -MAP_OUTSIDE_MARGIN_TILES,
+            MAP_SIZE.height as f32 + MAP_OUTSIDE_MARGIN_TILES - screen_tiles.y,
         );
     }
 }

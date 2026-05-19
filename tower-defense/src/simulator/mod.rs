@@ -358,6 +358,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         camera: Camera::new(),
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         backgrounds: crate::game_state::background::generate_backgrounds(),
+        decorations: crate::game_state::generate_decorations(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),

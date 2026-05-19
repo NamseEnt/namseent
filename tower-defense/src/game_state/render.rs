@@ -23,6 +23,8 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_bases, self.game_state));
                 ctx.add((render_route_guide, self.game_state));
                 ctx.add((render_grid, self.game_state));
+                ctx.add((render_map_border_gradient, self.game_state));
+                ctx.add((render_decorations, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
             });
     }
@@ -379,4 +381,113 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
         sprite_colors_blend_mode: BlendMode::Modulate,
         paint: None,
     });
+}
+
+fn render_decorations(ctx: &RenderCtx, game_state: &GameState) {
+    let visual_left_top = game_state.camera.visual_left_top();
+    let screen_rect = Rect::from_xy_wh(visual_left_top, {
+        let screen_size = namui::screen::size();
+        Wh::new(
+            screen_size.width.as_i32().as_f32() / TILE_PX_SIZE.width.as_f32(),
+            screen_size.height.as_i32().as_f32() / TILE_PX_SIZE.height.as_f32(),
+        ) / game_state.camera.zoom_level
+    });
+    let outer_margin_tiles = MAP_OUTSIDE_MARGIN_TILES;
+
+    for decoration in game_state.decorations.iter() {
+        let xy = decoration.coord;
+        let tree_tile_w = 2.0f32 * decoration.scale;
+        let tree_tile_h = 3.0f32 * decoration.scale;
+
+        if screen_rect.right() < xy.x || screen_rect.bottom() < xy.y {
+            continue;
+        }
+        if xy.x + tree_tile_w < screen_rect.left() - outer_margin_tiles
+            || xy.y + tree_tile_h < screen_rect.top() - outer_margin_tiles
+        {
+            continue;
+        }
+
+        let px_xy = Xy::new(
+            px(xy.x * TILE_PX_SIZE.width.as_f32()),
+            px(xy.y * TILE_PX_SIZE.height.as_f32()),
+        );
+
+        let decoration = *decoration;
+        ctx.translate(px_xy).compose(move |ctx| {
+            ctx.add(&decoration);
+        });
+    }
+}
+
+fn render_map_border_gradient(ctx: &RenderCtx, _game_state: &GameState) {
+    let map_px_w = MAP_SIZE.width as f32 * TILE_PX_SIZE.width.as_f32();
+    let map_px_h = MAP_SIZE.height as f32 * TILE_PX_SIZE.height.as_f32();
+    let grad_px = MAP_OUTSIDE_MARGIN_TILES * TILE_PX_SIZE.width.as_f32(); // 4 tiles of gradient
+    let dark = Color::from_u8(0, 0, 0, 100);
+    let transparent = Color::from_u8(0, 0, 0, 0);
+
+    // Left strip: trapezoid
+    ctx.add(namui::path(
+        Path::new()
+            .move_to(px(-grad_px), px(-grad_px))
+            .line_to(px(0.0), px(0.0))
+            .line_to(px(0.0), px(map_px_h))
+            .line_to(px(-grad_px), px(map_px_h + grad_px))
+            .close(),
+        Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+            start_xy: Xy::new(px(0.0), px(0.0)),
+            end_xy: Xy::new(px(-grad_px), px(0.0)),
+            colors: vec![transparent, dark],
+            tile_mode: TileMode::Clamp,
+        }),
+    ));
+
+    // Right strip: trapezoid
+    ctx.add(namui::path(
+        Path::new()
+            .move_to(px(map_px_w), px(0.0))
+            .line_to(px(map_px_w + grad_px), px(-grad_px))
+            .line_to(px(map_px_w + grad_px), px(map_px_h + grad_px))
+            .line_to(px(map_px_w), px(map_px_h))
+            .close(),
+        Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+            start_xy: Xy::new(px(map_px_w), px(0.0)),
+            end_xy: Xy::new(px(map_px_w + grad_px), px(0.0)),
+            colors: vec![transparent, dark],
+            tile_mode: TileMode::Clamp,
+        }),
+    ));
+
+    // Top strip: trapezoid
+    ctx.add(namui::path(
+        Path::new()
+            .move_to(px(-grad_px), px(-grad_px))
+            .line_to(px(0.0), px(0.0))
+            .line_to(px(map_px_w), px(0.0))
+            .line_to(px(map_px_w + grad_px), px(-grad_px))
+            .close(),
+        Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+            start_xy: Xy::new(px(0.0), px(0.0)),
+            end_xy: Xy::new(px(0.0), px(-grad_px)),
+            colors: vec![transparent, dark],
+            tile_mode: TileMode::Clamp,
+        }),
+    ));
+
+    // Bottom strip: trapezoid
+    ctx.add(namui::path(
+        Path::new()
+            .move_to(px(0.0), px(map_px_h))
+            .line_to(px(map_px_w), px(map_px_h))
+            .line_to(px(map_px_w + grad_px), px(map_px_h + grad_px))
+            .line_to(px(-grad_px), px(map_px_h + grad_px))
+            .close(),
+        Paint::new(Color::WHITE).set_shader(Shader::LinearGradient {
+            start_xy: Xy::new(px(0.0), px(map_px_h)),
+            end_xy: Xy::new(px(0.0), px(map_px_h + grad_px)),
+            colors: vec![transparent, dark],
+            tile_mode: TileMode::Clamp,
+        }),
+    ));
 }

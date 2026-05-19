@@ -39,7 +39,8 @@ use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
 use crate::*;
-use background::{Background, generate_backgrounds};
+use background::{Background, MapDecoration};
+pub use background::{generate_backgrounds, generate_decorations};
 pub use base::*;
 pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
@@ -66,6 +67,8 @@ use user_status_effect::UserStatusEffect;
 /// The size of a tile in pixels, with zoom level 1.0.
 pub const TILE_PX_SIZE: Wh<Px> = Wh::new(px(128.0), px(128.0));
 pub const MAP_SIZE: Wh<BlockUnit> = Wh::new(36, 36);
+pub const MAP_OUTSIDE_MARGIN_TILES: f32 = 4.0;
+
 pub const TRAVEL_POINTS: [MapCoord; 7] = [
     MapCoord::new(5, 0),
     MapCoord::new(5, 17),
@@ -104,6 +107,7 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub backgrounds: Vec<Background>,
+    pub decorations: Vec<MapDecoration>,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     pub hand: Hand<HandItem>,
@@ -625,6 +629,7 @@ fn create_initial_game_state() -> GameState {
         camera: Camera::new(),
         route: calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
         backgrounds: generate_backgrounds(),
+        decorations: generate_decorations(),
         upgrade_state: Default::default(),
         flow: GameFlow::Initializing,
         hand: Hand::new(std::iter::empty::<HandItem>()),
@@ -727,6 +732,7 @@ impl GameState {
             camera: self.camera.clone(),
             route: Arc::clone(&self.route),
             backgrounds: self.backgrounds.clone(),
+            decorations: self.decorations.clone(),
             upgrade_state: self.upgrade_state.clone(),
             flow: self.flow.clone(),
             hand: self.hand.clone(),
