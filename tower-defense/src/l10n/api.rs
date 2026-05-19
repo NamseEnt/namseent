@@ -64,13 +64,6 @@ impl TextManager {
         }
     }
 
-    pub fn operation_plan(&self, text: ui::OperationPlanText) -> &'static str {
-        match self.locale.language {
-            Language::Korean => text.to_korean(),
-            Language::English => text.to_english(),
-        }
-    }
-
     pub fn difficulty_effect_description<'a>(
         &self,
         effect: &crate::game_state::effect::Effect,
