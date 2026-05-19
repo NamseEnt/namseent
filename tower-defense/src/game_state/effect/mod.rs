@@ -467,12 +467,14 @@ pub mod tests_support {
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
     /// - 필요한 최소 필드만 초기화.
     pub fn make_test_state() -> GameState {
+        let decorations = crate::game_state::background::generate_decoration_rendering_tree();
         GameState {
             monsters: Default::default(),
             towers: Default::default(),
             camera: crate::game_state::camera::Camera::new(),
             route: crate::game_state::calculate_routes(&[], &TRAVEL_POINTS, MAP_SIZE).unwrap(),
             backgrounds: crate::game_state::generate_backgrounds(),
+            decorations,
             effect_events: crate::game_state::EffectEventQueue::default(),
             upgrade_state: Default::default(),
             flow: GameFlow::Initializing,

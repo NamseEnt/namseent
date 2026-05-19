@@ -3,6 +3,181 @@ use namui::*;
 use namui_prebuilt::simple_rect;
 use rand::{Rng, thread_rng};
 
+use super::{MAP_OUTSIDE_MARGIN_TILES, MAP_SIZE, TILE_PX_SIZE, map_decoration_atlas};
+
+#[derive(Clone, Copy, State)]
+pub enum DecorationKind {
+    Bush,
+    Club,
+    Dia,
+    Flower,
+    Heart,
+    Mushroom,
+    Rock,
+    Spade,
+}
+
+impl DecorationKind {
+    pub fn src_rect(self) -> Rect<Px> {
+        map_decoration_atlas::decoration_rect(self)
+    }
+
+    pub fn random<R: Rng>(rng: &mut R) -> Self {
+        match rng.gen_range(0..8) {
+            0 => DecorationKind::Bush,
+            1 => DecorationKind::Club,
+            2 => DecorationKind::Dia,
+            3 => DecorationKind::Flower,
+            4 => DecorationKind::Heart,
+            5 => DecorationKind::Mushroom,
+            6 => DecorationKind::Rock,
+            _ => DecorationKind::Spade,
+        }
+    }
+}
+
+pub fn generate_decorations() -> Vec<ImageSprite> {
+    let mut rng = thread_rng();
+    let mut decorations = vec![];
+    let mut placed_boxes: Vec<(MapCoordF32, Wh<f32>)> = vec![];
+
+    let map_w = MAP_SIZE.width as f32;
+    let map_h = MAP_SIZE.height as f32;
+    let tree_w = 2.0f32;
+    let tree_h = 3.0f32;
+    let jitter_range = 1.0f32;
+    let max_scale = 1.75f32;
+
+    let left_x_min = -(MAP_OUTSIDE_MARGIN_TILES + tree_w);
+    let left_x_max = 0.0f32;
+    let right_x_min = map_w;
+    let right_x_max = map_w + MAP_OUTSIDE_MARGIN_TILES;
+    let top_y_min = -(MAP_OUTSIDE_MARGIN_TILES + tree_h);
+    let top_y_max = 0.0f32;
+    let bottom_y_min = map_h;
+    let bottom_y_max = map_h + MAP_OUTSIDE_MARGIN_TILES;
+
+    let max_attempts = 1024;
+    let min_spacing = -0.7f32;
+
+    for _ in 0..max_attempts {
+        if decorations.len() >= 128 {
+            break;
+        }
+
+        let scale = rng.gen_range(0.85..max_scale);
+        let kind = DecorationKind::random(&mut rng);
+        let band = rng.gen_range(0..4);
+        let (mut x, mut y) = match band {
+            0 => (
+                rng.gen_range(left_x_min..=left_x_max),
+                rng.gen_range(top_y_min..=bottom_y_max),
+            ),
+            1 => (
+                rng.gen_range(right_x_min..=right_x_max),
+                rng.gen_range(top_y_min..=bottom_y_max),
+            ),
+            2 => (
+                rng.gen_range(left_x_min..=right_x_max),
+                rng.gen_range(top_y_min..=top_y_max),
+            ),
+            _ => (
+                rng.gen_range(left_x_min..=right_x_max),
+                rng.gen_range(bottom_y_min..=bottom_y_max),
+            ),
+        };
+
+        x += rng.gen_range(-jitter_range..=jitter_range);
+        y += rng.gen_range(-jitter_range..=jitter_range);
+
+        if band == 0 {
+            x = x.clamp(left_x_min, left_x_max);
+        } else if band == 1 {
+            x = x.clamp(right_x_min, right_x_max);
+        }
+        if band == 2 {
+            y = y.clamp(top_y_min, top_y_max);
+        } else if band == 3 {
+            y = y.clamp(bottom_y_min, bottom_y_max);
+        }
+
+        let scaled_tree_w = tree_w * scale;
+        let scaled_tree_h = tree_h * scale;
+
+        let inside_map =
+            x + scaled_tree_w > 0.0 && x < map_w && y + scaled_tree_h > 0.0 && y < map_h;
+        if inside_map {
+            continue;
+        }
+
+        let new_left = x;
+        let new_top = y;
+        let new_right = x + scaled_tree_w;
+        let new_bottom = y + scaled_tree_h;
+
+        let overlaps_existing = placed_boxes.iter().any(|(existing_coord, existing_wh)| {
+            let existing_w = existing_wh.width;
+            let existing_h = existing_wh.height;
+            let existing_left = existing_coord.x;
+            let existing_top = existing_coord.y;
+            let existing_right = existing_left + existing_w;
+            let existing_bottom = existing_top + existing_h;
+
+            new_left < existing_right + min_spacing
+                && new_right + min_spacing > existing_left
+                && new_top < existing_bottom + min_spacing
+                && new_bottom + min_spacing > existing_top
+        });
+        if overlaps_existing {
+            continue;
+        }
+
+        let px_xy = Xy::new(
+            px(x * TILE_PX_SIZE.width.as_f32()),
+            px(y * TILE_PX_SIZE.height.as_f32()),
+        );
+        let sprite_scale = tree_w * scale;
+        let sprite = ImageSprite {
+            src_rect: kind.src_rect(),
+            xform: RSXform::from_scale_and_translate(sprite_scale, px_xy.x, px_xy.y),
+            color: None,
+        };
+        decorations.push(sprite);
+        placed_boxes.push((
+            MapCoordF32::new(x, y),
+            Wh::new(scaled_tree_w, scaled_tree_h),
+        ));
+    }
+
+    decorations
+}
+
+pub fn generate_decoration_rendering_tree() -> RenderingTree {
+    generate_decoration_rendering_tree_from_decorations(&generate_decorations())
+}
+
+pub fn generate_decoration_rendering_tree_from_decorations(
+    decorations: &[ImageSprite],
+) -> RenderingTree {
+    let image = crate::asset::image::MAP_DECORATIONS_ATLAS;
+    let mut sprites = decorations.to_vec();
+    sprites.sort_by(|a, b| {
+        a.xform
+            .ty
+            .as_f32()
+            .partial_cmp(&b.xform.ty.as_f32())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    RenderingTree::Node(DrawCommand::Image {
+        command: Box::new(ImageDrawCommand {
+            image,
+            sprites,
+            paint: None,
+            sprite_colors_blend_mode: BlendMode::SrcOver,
+        }),
+    })
+}
+
 #[derive(Clone, Copy, State)]
 pub struct Background {
     pub coord: MapCoordF32,

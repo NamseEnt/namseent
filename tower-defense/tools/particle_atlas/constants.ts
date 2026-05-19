@@ -16,6 +16,14 @@ export const OUTPUT_RS = path.join(
     "field_particle",
     "atlas.rs",
 );
+export const OUTPUT_MAP_DECORATION_RS = path.join(
+    import.meta.dirname,
+    "..",
+    "..",
+    "src",
+    "game_state",
+    "map_decoration_atlas.rs",
+);
 
 export const CELL = 128;
 export const LINE_H = 16;

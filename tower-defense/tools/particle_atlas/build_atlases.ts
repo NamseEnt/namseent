@@ -202,3 +202,30 @@ export async function createIconsAtlas(): Promise<Atlas> {
     }
     return icons;
 }
+
+export async function createMapDecorationsAtlas(): Promise<Atlas> {
+    const decorations = createAtlas("map_decorations", CELL * 8, 192);
+    const decorationFiles = [
+        "bush.PNG",
+        "club.PNG",
+        "dia.PNG",
+        "flower.PNG",
+        "heart.PNG",
+        "mushroom.PNG",
+        "rock.PNG",
+        "spade.PNG",
+    ];
+
+    for (const fileName of decorationFiles) {
+        const constName = fileName.replace(/\.[^.]+$/, "").toUpperCase();
+        await drawImageRect(
+            decorations,
+            constName,
+            path.join(ASSET_DIR, "map_decorations", fileName),
+            CELL,
+            192,
+        );
+    }
+
+    return decorations;
+}
