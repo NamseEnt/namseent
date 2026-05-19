@@ -330,6 +330,11 @@ impl Component for Game {
                 Event::VisibilityChange if middle_mouse_button_dragging.is_some() => {
                     set_middle_mouse_button_dragging.set(None);
                 }
+                Event::ScreenResize { .. } => {
+                    mutate_game_state(|game_state| {
+                        game_state.camera.on_screen_resize();
+                    });
+                }
                 _ => {}
             };
         });
