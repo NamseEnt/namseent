@@ -25,9 +25,9 @@ pub(crate) fn on_winit_mouse_wheel(delta: winit::event::MouseScrollDelta) -> Raw
     RawEvent::Wheel {
         event: RawWheelEvent {
             delta_xy: match delta {
-                winit::event::MouseScrollDelta::LineDelta(x, y) => Xy::new(x, y),
+                winit::event::MouseScrollDelta::LineDelta(x, y) => Xy::new(-x, -y),
                 winit::event::MouseScrollDelta::PixelDelta(delta) => {
-                    Xy::new(delta.x as f32, delta.y as f32)
+                    Xy::new(-delta.x as f32, -delta.y as f32)
                 }
             },
             mouse_xy,
