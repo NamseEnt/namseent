@@ -86,7 +86,9 @@ struct NestedNode {
 impl Component for NestedNode {
     fn render(self, ctx: &RenderCtx) {
         if self.depth == 0 {
-            ctx.add(Entity { index: self.breadth });
+            ctx.add(Entity {
+                index: self.breadth,
+            });
             return;
         }
         for _ in 0..self.breadth {

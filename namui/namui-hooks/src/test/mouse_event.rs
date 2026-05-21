@@ -28,7 +28,7 @@ fn event_local_xy_in_on_compose_translate() {
                 for y in 0..ROWS {
                     ctx.compose(|ctx| {
                         ctx.translate((RECT_WH.width * x, RECT_WH.height * y))
-                            .add(rect_rt.clone())
+                            .add(rect_rt)
                             .attach_event(|event| {
                                 let Event::MouseMove { event } = event else {
                                     return;
@@ -115,7 +115,7 @@ fn event_local_xy_in_after_translate_at_out() {
                     ctx.compose(|ctx| {
                         ctx.translate((RECT_WH.width * x, RECT_WH.height * y))
                             .compose(|ctx| {
-                                ctx.add(rect_rt.clone()).attach_event(|event| {
+                                ctx.add(rect_rt).attach_event(|event| {
                                     let Event::MouseMove { event } = event else {
                                         return;
                                     };

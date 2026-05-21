@@ -156,11 +156,11 @@ mod tests {
             RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {
                 x: 3.px(),
                 y: 4.px(),
-                rendering_tree: arena_alloc(RenderingTree::Special(
-                    SpecialRenderingNode::OnTop(OnTopNode {
+                rendering_tree: arena_alloc(RenderingTree::Special(SpecialRenderingNode::OnTop(
+                    OnTopNode {
                         rendering_tree: arena_alloc(RenderingTree::Empty),
-                    }),
-                )),
+                    },
+                ))),
             })),
         ]));
 

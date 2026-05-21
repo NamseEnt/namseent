@@ -186,7 +186,7 @@ impl Component for RichText<'_> {
                         continue;
                     };
 
-                    processor.add(ctx, rendering_tree.clone());
+                    processor.add(ctx, *rendering_tree);
                 }
             };
         }
@@ -309,7 +309,7 @@ impl<'a> Processor<'a> {
 
             ctx.compose(|ctx| {
                 ctx.translate((current_x, self.cursor_y + vertical_offset))
-                    .add(item.rendering_tree.clone());
+                    .add(item.rendering_tree);
             });
             current_x += item.width;
         }
