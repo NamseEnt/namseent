@@ -180,8 +180,6 @@ impl BoundingBox for &RenderingTree {
             &mut bounding_box_context,
         );
 
-        
-
         bounding_box_context
             .bounding_boxes_on_top
             .into_iter()

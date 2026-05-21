@@ -358,11 +358,7 @@ impl World {
         }
     }
 
-    pub(crate) fn push_compose_command(
-        &self,
-        parent: Option<u32>,
-        command: ComposeCommand,
-    ) -> u32 {
+    pub(crate) fn push_compose_command(&self, parent: Option<u32>, command: ComposeCommand) -> u32 {
         let mut arena = self.compose_command_arena.borrow_mut();
         let index = arena.len() as u32;
         arena.push(ComposeCommandNode { command, parent });
@@ -425,13 +421,8 @@ impl World {
 
         self.raw_event = event;
 
-        let rendering_tree = render_ctx::run(
-            self,
-            root_component,
-            root_composer,
-            root_instance,
-            None,
-        );
+        let rendering_tree =
+            render_ctx::run(self, root_component, root_composer, root_instance, None);
 
         self.remove_unused_guys();
         self.record_used_sig_ids.get_mut().clear();

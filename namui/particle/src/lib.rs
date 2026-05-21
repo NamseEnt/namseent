@@ -84,8 +84,10 @@ impl<P: Particle> Emitter<P> {
                 particle.tick(now, dt);
             }
             particles.retain(|particle| !particle.is_done(now));
-            let sprites: Vec<ImageSprite> =
-                particles.iter().flat_map(|particle| particle.render()).collect();
+            let sprites: Vec<ImageSprite> = particles
+                .iter()
+                .flat_map(|particle| particle.render())
+                .collect();
             inner.rendered_sprites.store(Arc::new(sprites));
         }
     }

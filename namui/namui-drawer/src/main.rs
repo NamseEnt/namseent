@@ -93,7 +93,7 @@ mod wasi_ffi {
 
                 let mouse_cursor = calculate_mouse_cursor(rendering_tree, mouse_xy);
 
-                rendering_tree.clone().draw(skia);
+                (*rendering_tree).draw(skia);
 
                 draw_mouse_cursor(
                     skia,
