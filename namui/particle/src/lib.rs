@@ -1,10 +1,12 @@
 use arc_swap::ArcSwap;
 use arrayvec::ArrayVec;
+#[cfg(not(target_arch = "wasm32"))]
 use crossbeam_queue::SegQueue;
 use namui_hooks::*;
 use namui_rendering_tree::*;
 use namui_type::*;
 use std::sync::{Arc, OnceLock};
+#[cfg(not(target_arch = "wasm32"))]
 use std::thread::Thread;
 
 pub type ParticleSprites = ArrayVec<ImageSprite, 16>;
@@ -15,6 +17,7 @@ pub trait Particle: Send + Sync + 'static + Sized {
     fn is_done(&self, now: Instant) -> bool;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 enum EmitterMsg<P> {
     Spawn(P),
     Tick { now: Instant, dt: Duration },
@@ -24,9 +27,16 @@ pub struct Emitter<P: Particle> {
     inner: OnceLock<EmitterInner<P>>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 struct EmitterInner<P: Particle> {
     queue: Arc<SegQueue<EmitterMsg<P>>>,
     worker_thread: Thread,
+    rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
+}
+
+#[cfg(target_arch = "wasm32")]
+struct EmitterInner<P: Particle> {
+    particles: std::cell::RefCell<Vec<P>>,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,
 }
 
@@ -46,17 +56,41 @@ impl<P: Particle> Emitter<P> {
     pub fn spawn(&self, particle: P) {
         self.init();
         let inner = self.inner.get().unwrap();
-        inner.queue.push(EmitterMsg::Spawn(particle));
-        inner.worker_thread.unpark();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            inner.queue.push(EmitterMsg::Spawn(particle));
+            inner.worker_thread.unpark();
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        inner.particles.borrow_mut().push(particle);
     }
 
     pub fn tick(&self, now: Instant, dt: Duration) {
         self.init();
         let inner = self.inner.get().unwrap();
-        inner.queue.push(EmitterMsg::Tick { now, dt });
-        inner.worker_thread.unpark();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            inner.queue.push(EmitterMsg::Tick { now, dt });
+            inner.worker_thread.unpark();
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let mut particles = inner.particles.borrow_mut();
+            for particle in particles.iter_mut() {
+                particle.tick(now, dt);
+            }
+            particles.retain(|particle| !particle.is_done(now));
+            let sprites: Vec<ImageSprite> =
+                particles.iter().flat_map(|particle| particle.render()).collect();
+            inner.rendered_sprites.store(Arc::new(sprites));
+        }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn init(&self) {
         self.inner.get_or_init(|| {
             let queue = Arc::new(SegQueue::new());
@@ -77,6 +111,14 @@ impl<P: Particle> Emitter<P> {
                 worker_thread: handle.thread().clone(),
                 rendered_sprites,
             }
+        });
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn init(&self) {
+        self.inner.get_or_init(|| EmitterInner {
+            particles: std::cell::RefCell::new(Vec::with_capacity(256)),
+            rendered_sprites: Arc::new(ArcSwap::from_pointee(Vec::new())),
         });
     }
 
@@ -116,6 +158,7 @@ impl<P: Particle> Component for RenderEmitter<'_, P> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn tick_thread_main<P: Particle>(
     queue: Arc<SegQueue<EmitterMsg<P>>>,
     rendered_sprites: Arc<ArcSwap<Vec<ImageSprite>>>,

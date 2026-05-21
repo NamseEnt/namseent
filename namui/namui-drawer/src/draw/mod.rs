@@ -33,15 +33,15 @@ impl Draw for RenderingTree {
                         skia.surface().canvas().save();
                         skia.surface().canvas().translate(translate.x, translate.y);
 
-                        draw_internal(skia, &translate.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(skia, translate.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Clip(clip) => {
                         skia.surface().canvas().save();
                         skia.surface()
                             .canvas()
-                            .clip_path(&clip.path, clip.clip_op, true);
-                        draw_internal(skia, &clip.rendering_tree, rendering_tree_draw_context);
+                            .clip_path(clip.path, clip.clip_op, true);
+                        draw_internal(skia, clip.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
@@ -52,32 +52,32 @@ impl Draw for RenderingTree {
                                 [1.0, 0.0, absolute.x.as_f32()],
                                 [0.0, 1.0, absolute.y.as_f32()],
                             ]));
-                        draw_internal(skia, &absolute.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(skia, absolute.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Rotate(rotate) => {
                         skia.surface().canvas().save();
                         skia.surface().canvas().rotate(rotate.angle);
-                        draw_internal(skia, &rotate.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(skia, rotate.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Scale(scale) => {
                         skia.surface().canvas().save();
                         skia.surface().canvas().scale(*scale.x, *scale.y);
-                        draw_internal(skia, &scale.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(skia, scale.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::Transform(transform) => {
                         skia.surface().canvas().save();
                         skia.surface().canvas().transform(transform.matrix);
-                        draw_internal(skia, &transform.rendering_tree, rendering_tree_draw_context);
+                        draw_internal(skia, transform.rendering_tree, rendering_tree_draw_context);
                         skia.surface().canvas().restore();
                     }
                     SpecialRenderingNode::OnTop(on_top) => {
                         let matrix = skia.surface().canvas().get_matrix();
                         rendering_tree_draw_context
                             .on_top_node_matrix_tuples
-                            .push((on_top.clone(), matrix));
+                            .push((*on_top, matrix));
                     }
                     SpecialRenderingNode::MouseCursor(_) => {
                         draw_internal(

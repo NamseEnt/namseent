@@ -41,10 +41,10 @@ pub fn redraw(
 
         let mouse_cursor = calculate_mouse_cursor(rendering_tree, mouse_xy);
 
-        rendering_tree.clone().draw(skia);
+        (*rendering_tree).draw(skia);
 
         if let Some(sprite_set) = sprite_set {
-            draw::draw_mouse_cursor(skia, mouse_xy, mouse_cursor.clone(), sprite_set);
+            draw::draw_mouse_cursor(skia, mouse_xy, mouse_cursor, sprite_set);
         }
 
         mouse_cursor

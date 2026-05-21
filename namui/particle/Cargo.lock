@@ -642,6 +642,8 @@ dependencies = [
 name = "namui-rendering-tree"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "bumpalo",
  "dashmap",
  "namui-type",
  "skia-safe",

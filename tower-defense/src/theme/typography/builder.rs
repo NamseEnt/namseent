@@ -38,6 +38,12 @@ pub struct TypographyBuilder<'a> {
     layout_config: super::layout::LayoutConfig,
 }
 
+impl Default for TypographyBuilder<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> TypographyBuilder<'a> {
     pub fn new() -> Self {
         Self {

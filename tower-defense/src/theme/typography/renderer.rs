@@ -146,7 +146,7 @@ impl RichTextRenderer {
                         }));
                     }
                     InlineBox::Atomic { content, .. } => {
-                        items.push(translate(x, box_y, content.clone()));
+                        items.push(translate(x, box_y, *content));
                     }
                     InlineBox::SoftBreak | InlineBox::HardBreak | InlineBox::Space { .. } => {}
                 }

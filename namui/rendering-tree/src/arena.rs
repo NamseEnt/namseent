@@ -1,9 +1,11 @@
 use bumpalo::Bump;
 use std::cell::{RefCell, UnsafeCell};
 
+type DropEntry = (*mut u8, unsafe fn(*mut u8));
+
 struct RenderArena {
     bump: UnsafeCell<Bump>,
-    drops: RefCell<Vec<(*mut u8, unsafe fn(*mut u8))>>,
+    drops: RefCell<Vec<DropEntry>>,
 }
 
 thread_local! {

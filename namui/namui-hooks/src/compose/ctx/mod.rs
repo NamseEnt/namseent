@@ -91,7 +91,7 @@ impl<'a, 'rt> ComposeCtx<'a, 'rt> {
                 }
                 ComposeCommand::MouseCursor { cursor } => {
                     RenderingTree::Special(SpecialRenderingNode::MouseCursor(MouseCursorNode {
-                        cursor: arena_alloc(cursor.clone()),
+                        cursor: arena_alloc(*cursor),
                         rendering_tree: arena_alloc(rendering_tree),
                     }))
                 }
