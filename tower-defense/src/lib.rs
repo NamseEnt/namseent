@@ -18,7 +18,7 @@ mod shop_panel;
 #[cfg(feature = "simulator")]
 pub mod simulator;
 pub mod sound;
-mod theme;
+pub mod theme;
 mod thumbnail;
 mod tooltip;
 mod top_bar;

@@ -1,9 +1,9 @@
 use super::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub struct RotateNode {
     pub angle: Angle,
-    pub rendering_tree: Box<RenderingTree>,
+    pub rendering_tree: &'static RenderingTree,
 }
 
 /// angle is in **cw** direction.
@@ -13,7 +13,7 @@ pub fn rotate(angle: Angle, rendering_tree: RenderingTree) -> RenderingTree {
     }
     RenderingTree::Special(SpecialRenderingNode::Rotate(RotateNode {
         angle,
-        rendering_tree: rendering_tree.into(),
+        rendering_tree: arena_alloc(rendering_tree),
     }))
 }
 

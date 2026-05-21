@@ -1,9 +1,9 @@
 use super::*;
 
 /// `OnTopNode` ignores clip and draw on top of other nodes.
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub struct OnTopNode {
-    pub rendering_tree: Box<RenderingTree>,
+    pub rendering_tree: &'static RenderingTree,
 }
 
 /// `on_top` ignores clip and draw on top of other nodes.
@@ -19,6 +19,6 @@ pub fn on_top(rendering_tree: RenderingTree) -> RenderingTree {
         return RenderingTree::Empty;
     }
     RenderingTree::Special(SpecialRenderingNode::OnTop(OnTopNode {
-        rendering_tree: rendering_tree.into(),
+        rendering_tree: arena_alloc(rendering_tree),
     }))
 }

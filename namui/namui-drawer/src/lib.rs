@@ -65,7 +65,7 @@ fn calculate_mouse_cursor(rendering_tree: &RenderingTree, mouse_xy: Xy<Px>) -> M
             };
             let local_xy = tool.to_local_xy(mouse_xy);
             if rendering_tree.xy_in(local_xy) {
-                mouse_cursor = *cursor.clone();
+                mouse_cursor = **cursor;
             }
             std::ops::ControlFlow::Continue(())
         },

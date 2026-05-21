@@ -59,7 +59,7 @@ impl Component for PathDrawCommand {
     }
     fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
         Ok(RenderingTree::Node(DrawCommand::Path {
-            command: self.into(),
+            command: arena_alloc(self),
         }))
     }
 }
@@ -70,7 +70,7 @@ impl Component for ImageDrawCommand {
     }
     fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
         Ok(RenderingTree::Node(DrawCommand::Image {
-            command: self.into(),
+            command: arena_alloc(self),
         }))
     }
 }
@@ -81,7 +81,7 @@ impl Component for TextDrawCommand {
     }
     fn direct_rendering_tree(self) -> Result<RenderingTree, Self> {
         Ok(RenderingTree::Node(DrawCommand::Text {
-            command: self.into(),
+            command: arena_alloc(self),
         }))
     }
 }

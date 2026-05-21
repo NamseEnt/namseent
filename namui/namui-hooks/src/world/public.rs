@@ -19,6 +19,11 @@ impl World {
             atom_index: Default::default(),
             raw_event: Default::default(),
             is_stop_event_propagation: Default::default(),
+            frame: 0,
+            rendered_instance_count: Default::default(),
+            rendered_composer_count: Default::default(),
+            compose_command_arena: Default::default(),
+            rt_vec_pool: Default::default(),
         }
     }
 

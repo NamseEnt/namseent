@@ -10,3 +10,8 @@ pub enum ComposeCommand {
     Scale { scale_xy: Xy<f32> },
     MouseCursor { cursor: MouseCursor },
 }
+
+pub(crate) struct ComposeCommandNode {
+    pub(crate) command: ComposeCommand,
+    pub(crate) parent: Option<u32>,
+}

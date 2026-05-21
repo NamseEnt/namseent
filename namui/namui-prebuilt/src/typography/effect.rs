@@ -14,7 +14,7 @@ pub fn glow(
     glow_color: Color,
 ) -> RenderingTree {
     let r#gen = |paint: Paint| DrawCommand::Text {
-        command: TextDrawCommand {
+        command: arena_alloc(TextDrawCommand {
             text: text.as_ref().to_string(),
             font: font.clone(),
             x: xy.x,
@@ -25,8 +25,7 @@ pub fn glow(
             max_width: None,
             line_height_percent: 100.percent(),
             underline: None,
-        }
-        .into(),
+        }),
     };
     let front = r#gen(paint.clone().set_blend_mode(BlendMode::HardLight));
     let back_stroke = r#gen(

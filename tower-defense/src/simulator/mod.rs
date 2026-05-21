@@ -352,7 +352,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
     use crate::game_state::UIState;
 
     let now = Instant::now();
-    let decorations = crate::game_state::background::generate_decoration_rendering_tree();
+    let decorations = crate::game_state::background::generate_decorations();
     GameState {
         monsters: Default::default(),
         towers: Default::default(),

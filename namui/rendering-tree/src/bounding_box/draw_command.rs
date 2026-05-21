@@ -22,66 +22,81 @@ impl BoundingBox for &TextDrawCommand {
             return None;
         }
 
-        let paragraph = Paragraph::new(
-            &self.text,
-            self.font.clone(),
-            self.paint.clone(),
-            self.max_width,
-        );
+        // Text measurement (skia font shaping) is expensive. Cache it by the
+        // owned `TextDrawCommand` content. The key holds no arena reference, so
+        // it survives across frames regardless of the render arena reset.
+        static CACHE: LruCache<TextDrawCommand, Option<Rect<Px>>> = LruCache::new();
+        if let Some(cached) = CACHE.get(self) {
+            return *cached;
+        }
 
-        let line_height = self.line_height_px();
-
-        let multiline_y_baseline_offset =
-            get_multiline_y_baseline_offset(self.baseline, line_height, paragraph.line_len());
-
-        paragraph
-            .iter_str()
-            .enumerate()
-            .map(|(index, line_text)| {
-                (
-                    self.y + multiline_y_baseline_offset + line_height * index,
-                    line_text,
-                )
-            })
-            .map(|(y, line_text)| {
-                self.font
-                    .bounds(&line_text, &self.paint)
-                    .iter()
-                    .map(|bound| (bound.top(), bound.bottom()))
-                    .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
-                    .map(|(top, bottom)| {
-                        let widths = self.font.widths(&line_text, &self.paint);
-                        let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
-                        let x_axis_anchor = get_left_in_align(self.x, self.align, width);
-
-                        let metrics = self.font.font_metrics();
-                        let y_axis_anchor = y + get_bottom_of_baseline(self.baseline, metrics);
-
-                        Rect::Ltrb {
-                            left: x_axis_anchor,
-                            top: top + y_axis_anchor,
-                            right: x_axis_anchor + width,
-                            bottom: bottom + y_axis_anchor,
-                        }
-                    })
-            })
-            .fold(None, |acc, rect| {
-                if let Some(rect) = rect {
-                    if let Some(acc) = acc {
-                        Some(Rect::Ltrb {
-                            left: acc.left().min(rect.left()),
-                            top: acc.top().min(rect.top()),
-                            right: acc.right().max(rect.right()),
-                            bottom: acc.bottom().max(rect.bottom()),
-                        })
-                    } else {
-                        Some(rect)
-                    }
-                } else {
-                    acc
-                }
-            })
+        let measured = measure_text(self);
+        CACHE.put(self.clone(), measured);
+        measured
     }
+}
+
+fn measure_text(command: &TextDrawCommand) -> Option<Rect<Px>> {
+    let paragraph = Paragraph::new(
+        &command.text,
+        command.font.clone(),
+        command.paint.clone(),
+        command.max_width,
+    );
+
+    let line_height = command.line_height_px();
+
+    let multiline_y_baseline_offset =
+        get_multiline_y_baseline_offset(command.baseline, line_height, paragraph.line_len());
+
+    paragraph
+        .iter_str()
+        .enumerate()
+        .map(|(index, line_text)| {
+            (
+                command.y + multiline_y_baseline_offset + line_height * index,
+                line_text,
+            )
+        })
+        .map(|(y, line_text)| {
+            command
+                .font
+                .bounds(&line_text, &command.paint)
+                .iter()
+                .map(|bound| (bound.top(), bound.bottom()))
+                .reduce(|acc, (top, bottom)| (acc.0.min(top), acc.1.max(bottom)))
+                .map(|(top, bottom)| {
+                    let widths = command.font.widths(&line_text, &command.paint);
+                    let width = widths.iter().fold(px(0.0), |prev, curr| prev + curr);
+                    let x_axis_anchor = get_left_in_align(command.x, command.align, width);
+
+                    let metrics = command.font.font_metrics();
+                    let y_axis_anchor = y + get_bottom_of_baseline(command.baseline, metrics);
+
+                    Rect::Ltrb {
+                        left: x_axis_anchor,
+                        top: top + y_axis_anchor,
+                        right: x_axis_anchor + width,
+                        bottom: bottom + y_axis_anchor,
+                    }
+                })
+        })
+        .fold(None, |acc, rect| {
+            if let Some(rect) = rect {
+                if let Some(acc) = acc {
+                    Some(Rect::Ltrb {
+                        left: acc.left().min(rect.left()),
+                        top: acc.top().min(rect.top()),
+                        right: acc.right().max(rect.right()),
+                        bottom: acc.bottom().max(rect.bottom()),
+                    })
+                } else {
+                    Some(rect)
+                }
+            } else {
+                acc
+            }
+        })
 }
 
 impl BoundingBox for &ImageDrawCommand {

@@ -1,9 +1,9 @@
 use super::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub struct TransformNode {
     pub matrix: TransformMatrix,
-    pub rendering_tree: Box<RenderingTree>,
+    pub rendering_tree: &'static RenderingTree,
 }
 
 pub fn transform(matrix: TransformMatrix, rendering_tree: RenderingTree) -> RenderingTree {
@@ -12,6 +12,6 @@ pub fn transform(matrix: TransformMatrix, rendering_tree: RenderingTree) -> Rend
     }
     RenderingTree::Special(SpecialRenderingNode::Transform(TransformNode {
         matrix,
-        rendering_tree: rendering_tree.into(),
+        rendering_tree: arena_alloc(rendering_tree),
     }))
 }

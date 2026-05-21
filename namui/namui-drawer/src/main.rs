@@ -121,7 +121,7 @@ mod wasi_ffi {
                 };
                 let local_xy = tool.to_local_xy(mouse_xy);
                 if rendering_tree.xy_in(local_xy) {
-                    mouse_cursor = *cursor.clone();
+                    mouse_cursor = **cursor;
                 }
                 std::ops::ControlFlow::Continue(())
             },

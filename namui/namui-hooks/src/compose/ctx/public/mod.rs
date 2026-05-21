@@ -5,7 +5,7 @@ use super::*;
 use crate::*;
 use std::sync::atomic::Ordering;
 
-impl ComposeCtx<'_, '_> {
+impl<'a, 'rt> ComposeCtx<'a, 'rt> {
     pub fn compose(&self, compose: impl FnOnce(ComposeCtx)) -> &Self {
         self.compose_with_key(None, compose)
     }
@@ -28,9 +28,13 @@ impl ComposeCtx<'_, '_> {
         key: impl Into<AddKey>,
         compose: impl FnOnce(ComposeCtx),
     ) -> RenderingTree {
-        self.ghost_impl(key, compose).into()
+        self.ghost_impl(key, compose).into_rendering_tree()
     }
-    fn ghost_impl(&self, key: impl Into<AddKey>, compose: impl FnOnce(ComposeCtx)) -> RtContainer {
+    fn ghost_impl(
+        &self,
+        key: impl Into<AddKey>,
+        compose: impl FnOnce(ComposeCtx),
+    ) -> RtContainer<'a> {
         let child_key = match key.into() {
             AddKey::String(key) => ChildKey::string(key),
             AddKey::U128(uuid) => ChildKey::u128(uuid),
@@ -40,14 +44,9 @@ impl ComposeCtx<'_, '_> {
         };
         let child_composer = self.world.get_or_create_composer(self.composer, child_key);
 
-        let rt_container = RtContainer::new();
+        let rt_container = RtContainer::new(self.world);
 
-        let ctx = ComposeCtx::new(
-            self.world,
-            child_composer,
-            &rt_container,
-            Cow::Borrowed(self.full_stack.as_ref()),
-        );
+        let ctx = ComposeCtx::new(self.world, child_composer, &rt_container, self.full_stack);
         compose(ctx);
 
         rt_container
@@ -86,7 +85,7 @@ impl ComposeCtx<'_, '_> {
             component,
             child_composer,
             child_instance,
-            Cow::Borrowed(self.full_stack.as_ref()),
+            self.full_stack,
         )
     }
     pub fn set_event_propagation(&self, propagate: bool) -> bool {

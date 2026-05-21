@@ -149,29 +149,22 @@ pub fn generate_decorations() -> Vec<ImageSprite> {
         ));
     }
 
-    decorations
-}
-
-pub fn generate_decoration_rendering_tree() -> RenderingTree {
-    generate_decoration_rendering_tree_from_decorations(&generate_decorations())
-}
-
-pub fn generate_decoration_rendering_tree_from_decorations(
-    decorations: &[ImageSprite],
-) -> RenderingTree {
-    let image = crate::asset::image::MAP_DECORATIONS_ATLAS;
-    let mut sprites = decorations.to_vec();
-    sprites.sort_by(|a, b| {
+    decorations.sort_by(|a, b| {
         a.xform
             .ty
             .as_f32()
             .partial_cmp(&b.xform.ty.as_f32())
             .unwrap_or(std::cmp::Ordering::Equal)
     });
+
+    decorations
+}
+
+pub fn decoration_rendering_tree(decorations: &[ImageSprite]) -> RenderingTree {
     RenderingTree::Node(DrawCommand::Image {
-        command: Box::new(ImageDrawCommand {
-            image,
-            sprites,
+        command: arena_alloc(ImageDrawCommand {
+            image: crate::asset::image::MAP_DECORATIONS_ATLAS,
+            sprites: decorations.to_vec(),
             paint: None,
             sprite_colors_blend_mode: BlendMode::SrcOver,
         }),

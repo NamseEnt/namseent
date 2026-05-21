@@ -1,5 +1,7 @@
+mod arena;
 mod bounding_box;
 mod command;
+mod decode;
 mod event;
 mod paragraph;
 mod rendering_tree;
@@ -7,6 +9,7 @@ mod skia_types;
 mod types;
 mod xy_in;
 
+pub use arena::*;
 pub use bounding_box::*;
 pub use command::*;
 pub use event::*;

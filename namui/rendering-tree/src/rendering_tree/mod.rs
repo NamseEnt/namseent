@@ -3,12 +3,12 @@ mod special;
 use crate::*;
 pub use special::*;
 
-#[derive(Debug, PartialEq, Clone, Default, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Default, Hash, Eq, bincode::Encode)]
 pub enum RenderingTree {
     #[default]
     Empty,
     Node(DrawCommand),
-    Children(Vec<RenderingTree>),
+    Children(&'static [RenderingTree]),
     Special(SpecialRenderingNode),
 }
 
@@ -33,26 +33,15 @@ impl RenderingTree {
     }
 
     pub fn wrap(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
-        let mut iter = rendering_trees.into_iter();
-        let first = 'outer: {
-            for x in iter.by_ref() {
-                if x != RenderingTree::Empty {
-                    break 'outer x;
-                }
-            }
-            return RenderingTree::Empty;
-        };
-        let second = 'outer: {
-            for x in iter.by_ref() {
-                if x != RenderingTree::Empty {
-                    break 'outer x;
-                }
-            }
-            return first;
-        };
+        let children: Vec<RenderingTree> = rendering_trees
+            .into_iter()
+            .filter(|x| *x != RenderingTree::Empty)
+            .collect();
 
-        let mut children = vec![first, second];
-        children.extend(iter.filter(|x| *x != RenderingTree::Empty));
-        RenderingTree::Children(children)
+        match children.len() {
+            0 => RenderingTree::Empty,
+            1 => children[0],
+            _ => RenderingTree::Children(arena_alloc_slice(children)),
+        }
     }
 }

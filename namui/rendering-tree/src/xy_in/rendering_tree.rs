@@ -207,7 +207,7 @@ mod tests {
     // Helper function to create a dummy leaf node
     fn dummy_leaf() -> RenderingTree {
         RenderingTree::Node(crate::DrawCommand::Path {
-            command: Box::new(crate::PathDrawCommand {
+            command: arena_alloc(crate::PathDrawCommand {
                 path: crate::Path::new(),
                 paint: crate::Paint::default(),
             }),
@@ -230,13 +230,13 @@ mod tests {
         */
         let node_8 = RenderingTree::Empty;
         let node_7 = RenderingTree::Empty;
-        let node_6 = RenderingTree::Children(vec![node_8.clone()]);
+        let node_6 = RenderingTree::Children(arena_alloc_slice(vec![node_8.clone()]));
         let node_5 = RenderingTree::Empty;
-        let node_4 = RenderingTree::Children(vec![node_7.clone()]);
+        let node_4 = RenderingTree::Children(arena_alloc_slice(vec![node_7.clone()]));
         let node_3 = RenderingTree::Empty;
-        let node_2 = RenderingTree::Children(vec![node_5.clone(), node_6.clone()]);
-        let node_1 = RenderingTree::Children(vec![node_3.clone(), node_4.clone()]);
-        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
+        let node_2 = RenderingTree::Children(arena_alloc_slice(vec![node_5.clone(), node_6.clone()]));
+        let node_1 = RenderingTree::Children(arena_alloc_slice(vec![node_3.clone(), node_4.clone()]));
+        let node_0 = RenderingTree::Children(arena_alloc_slice(vec![node_1.clone(), node_2.clone()]));
 
         let mut rendering_trees = vec![];
         let _ = node_0.visit_rln(
@@ -271,31 +271,31 @@ mod tests {
         */
 
         let node_10 = crate::translate(px(20.0), px(20.0), dummy_leaf());
-        let node_9 = crate::scale(2.0, 2.0, RenderingTree::Children(vec![node_10.clone()]));
+        let node_9 = crate::scale(2.0, 2.0, RenderingTree::Children(arena_alloc_slice(vec![node_10.clone()])));
         let node_8 = crate::translate(px(20.0), px(20.0), dummy_leaf());
         let node_7 = crate::translate(px(10.0), px(20.0), dummy_leaf());
         let node_6 = crate::absolute(
             px(100.0),
             px(100.0),
-            RenderingTree::Children(vec![node_8.clone()]),
+            RenderingTree::Children(arena_alloc_slice(vec![node_8.clone()])),
         );
         let node_5 = crate::rotate(
             (std::f32::consts::PI / 2.0).rad(),
-            RenderingTree::Children(vec![node_7.clone()]),
+            RenderingTree::Children(arena_alloc_slice(vec![node_7.clone()])),
         );
         let node_4 = crate::translate(px(20.0), px(30.0), dummy_leaf());
-        let node_3 = RenderingTree::Children(vec![node_9.clone()]);
+        let node_3 = RenderingTree::Children(arena_alloc_slice(vec![node_9.clone()]));
         let node_2 = crate::translate(
             px(50.0),
             px(100.0),
-            RenderingTree::Children(vec![node_5.clone(), node_6.clone()]),
+            RenderingTree::Children(arena_alloc_slice(vec![node_5.clone(), node_6.clone()])),
         );
         let node_1 = crate::translate(
             px(100.0),
             px(200.0),
-            RenderingTree::Children(vec![node_3.clone(), node_4.clone()]),
+            RenderingTree::Children(arena_alloc_slice(vec![node_3.clone(), node_4.clone()])),
         );
-        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
+        let node_0 = RenderingTree::Children(arena_alloc_slice(vec![node_1.clone(), node_2.clone()]));
 
         let mut call_count = 0;
 
@@ -588,9 +588,9 @@ mod tests {
         let node_5 = RenderingTree::Empty;
         let node_4 = RenderingTree::Empty;
         let node_3 = RenderingTree::Empty;
-        let node_2 = RenderingTree::Children(vec![node_5.clone()]);
-        let node_1 = RenderingTree::Children(vec![node_3.clone(), node_4.clone()]);
-        let node_0 = RenderingTree::Children(vec![node_1.clone(), node_2.clone()]);
+        let node_2 = RenderingTree::Children(arena_alloc_slice(vec![node_5.clone()]));
+        let node_1 = RenderingTree::Children(arena_alloc_slice(vec![node_3.clone(), node_4.clone()]));
+        let node_0 = RenderingTree::Children(arena_alloc_slice(vec![node_1.clone(), node_2.clone()]));
 
         let mut with_ancestors_call_count = 0;
 

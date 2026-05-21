@@ -18,7 +18,7 @@ fn event_local_xy_in_on_compose_translate() {
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let rect_rt = RenderingTree::Node(DrawCommand::Path {
-                command: Box::new(PathDrawCommand {
+                command: arena_alloc(PathDrawCommand {
                     path: Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), RECT_WH)),
                     paint: Paint::new(Color::WHITE).set_style(PaintStyle::Fill),
                 }),
@@ -104,7 +104,7 @@ fn event_local_xy_in_after_translate_at_out() {
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let rect_rt = RenderingTree::Node(DrawCommand::Path {
-                command: Box::new(PathDrawCommand {
+                command: arena_alloc(PathDrawCommand {
                     path: Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), RECT_WH)),
                     paint: Paint::new(Color::WHITE).set_style(PaintStyle::Fill),
                 }),

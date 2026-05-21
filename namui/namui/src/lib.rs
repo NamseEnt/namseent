@@ -152,7 +152,7 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
 
     let mut children = vec![first, second];
     children.extend(iter.filter(|x| *x != RenderingTree::Empty));
-    RenderingTree::Children(children)
+    RenderingTree::Children(arena_alloc_slice(children))
 }
 
 pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {

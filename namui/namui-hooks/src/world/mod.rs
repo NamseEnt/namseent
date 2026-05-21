@@ -4,13 +4,9 @@ use crate::*;
 use elsa::*;
 use rustc_hash::FxHashSet;
 use std::{
-    borrow::Cow,
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::BTreeMap,
-    sync::{
-        atomic::{AtomicBool, AtomicUsize},
-        mpsc,
-    },
+    sync::{atomic::AtomicBool, mpsc},
 };
 
 pub struct World {
@@ -22,11 +18,16 @@ pub struct World {
     pub(crate) set_state_tx: &'static mpsc::Sender<SetStateItem>,
     updated_sig_ids: FrozenIndexSet<Box<SigId>>,
     get_now: Box<dyn Fn() -> Instant>,
-    record_used_sig_ids: FrozenVec<Box<SigId>>,
+    record_used_sig_ids: RefCell<Vec<SigId>>,
     pub(crate) atom_list: FrozenVec<Box<dyn Value>>,
-    pub(crate) atom_index: AtomicUsize,
+    atom_index: Cell<usize>,
     pub(crate) raw_event: Option<RawEvent>,
     pub(crate) is_stop_event_propagation: AtomicBool,
+    frame: u64,
+    rendered_instance_count: Cell<usize>,
+    rendered_composer_count: Cell<usize>,
+    pub(crate) compose_command_arena: RefCell<Vec<ComposeCommandNode>>,
+    rt_vec_pool: RefCell<Vec<Vec<RenderingTree>>>,
 }
 
 impl World {
@@ -54,39 +55,41 @@ impl World {
 
     pub(crate) fn get_or_create_instance(
         &self,
-        composer: &Composer,
+        parent_composer: &Composer,
         child_key: ChildKey,
     ) -> (&Composer, &Instance) {
-        let child_instance = self.get_or_create_instance_only_internal(composer, &child_key);
-        let child_composer = self.get_or_create_composer(composer, child_key);
-
-        (child_composer, child_instance)
-    }
-
-    fn get_or_create_instance_only_internal(
-        &self,
-        parent_composer: &Composer,
-        child_key: &ChildKey,
-    ) -> &Instance {
-        match parent_composer.instance_id_map.get(child_key) {
-            Some(child_instance_id) => self.instances.get(child_instance_id).unwrap(),
+        match parent_composer.component_child_map.get(&child_key) {
+            Some(ids) => {
+                let child_instance = self.instances.get(&ids.instance_id).unwrap();
+                let child_composer = self.composers.get(&ids.composer_id).unwrap();
+                (child_composer, child_instance)
+            }
             None => {
-                let child_instance_id = InstanceId::generate();
-
-                parent_composer
-                    .instance_id_map
-                    .insert(child_key.clone(), child_instance_id.into());
-
+                let instance_id = InstanceId::generate();
+                let composer_id = ComposerId::generate();
                 let child_key_chain = parent_composer.child_key_chain.append(child_key.clone());
 
-                self.instances.insert(
-                    child_instance_id,
+                parent_composer.component_child_map.insert(
+                    child_key,
+                    Box::new(ComponentChildIds {
+                        instance_id,
+                        composer_id,
+                    }),
+                );
+
+                let child_instance = self.instances.insert(
+                    instance_id,
                     Box::new(Instance::new(
-                        child_instance_id,
+                        instance_id,
                         self.frozen_instances.borrow_mut().remove(&child_key_chain),
-                        child_key_chain,
+                        child_key_chain.clone(),
                     )),
-                )
+                );
+                let child_composer = self
+                    .composers
+                    .insert(composer_id, Composer::new(child_key_chain).into());
+
+                (child_composer, child_instance)
             }
         }
     }
@@ -259,47 +262,47 @@ impl World {
     }
 
     fn remove_unused_guys(&mut self) {
+        let frame = self.frame;
         let mut deleted_instance_ids = FxHashSet::default();
-
-        self.instances.as_mut().retain(|instance_id, instance| {
-            let rendered_flag = instance.take_rendered_flag();
-            if !rendered_flag {
-                deleted_instance_ids.insert(*instance_id);
-            }
-            rendered_flag
-        });
-
         let mut deleted_composer_ids = FxHashSet::default();
 
-        self.composers.as_mut().retain(|composer_id, composer| {
-            let rendered_flag = composer.take_rendered_flag();
-            if !rendered_flag {
-                deleted_composer_ids.insert(*composer_id);
-            }
-            rendered_flag
-        });
+        if self.rendered_instance_count.get() != self.instances.as_mut().len() {
+            self.instances.as_mut().retain(|instance_id, instance| {
+                let rendered = instance.is_rendered_at(frame);
+                if !rendered {
+                    deleted_instance_ids.insert(*instance_id);
+                }
+                rendered
+            });
+        }
+
+        if self.rendered_composer_count.get() != self.composers.as_mut().len() {
+            self.composers.as_mut().retain(|composer_id, composer| {
+                let rendered = composer.is_rendered_at(frame);
+                if !rendered {
+                    deleted_composer_ids.insert(*composer_id);
+                }
+                rendered
+            });
+        }
 
         if deleted_instance_ids.is_empty() && deleted_composer_ids.is_empty() {
             return;
         }
 
         for (_, composer) in self.composers.as_mut() {
-            if deleted_instance_ids.is_empty() && deleted_composer_ids.is_empty() {
-                return;
-            }
-
-            if !deleted_instance_ids.is_empty() {
-                composer
-                    .instance_id_map
-                    .as_mut()
-                    .retain(|_, instance_id| !deleted_instance_ids.remove(instance_id.as_ref()));
-            }
-
             if !deleted_composer_ids.is_empty() {
                 composer
                     .compose_id_map
                     .as_mut()
-                    .retain(|_, composer_id| !deleted_composer_ids.remove(composer_id.as_ref()));
+                    .retain(|_, composer_id| !deleted_composer_ids.contains(composer_id.as_ref()));
+            }
+
+            if !deleted_instance_ids.is_empty() {
+                composer
+                    .component_child_map
+                    .as_mut()
+                    .retain(|_, ids| !deleted_instance_ids.contains(&ids.instance_id));
             }
         }
     }
@@ -320,23 +323,63 @@ impl World {
         (self.get_now)()
     }
 
+    pub(crate) fn frame(&self) -> u64 {
+        self.frame
+    }
+
+    pub(crate) fn count_rendered_instance(&self) {
+        self.rendered_instance_count
+            .set(self.rendered_instance_count.get() + 1);
+    }
+
+    pub(crate) fn count_rendered_composer(&self) {
+        self.rendered_composer_count
+            .set(self.rendered_composer_count.get() + 1);
+    }
+
+    pub(crate) fn next_atom_index(&self) -> usize {
+        let index = self.atom_index.get();
+        self.atom_index.set(index + 1);
+        index
+    }
+
+    pub(crate) fn take_rt_vec(&self) -> Vec<RenderingTree> {
+        self.rt_vec_pool.borrow_mut().pop().unwrap_or_default()
+    }
+
+    pub(crate) fn recycle_rt_vec(&self, mut vec: Vec<RenderingTree>) {
+        if vec.capacity() == 0 {
+            return;
+        }
+        let mut pool = self.rt_vec_pool.borrow_mut();
+        if pool.len() < 1024 {
+            vec.clear();
+            pool.push(vec);
+        }
+    }
+
+    pub(crate) fn push_compose_command(
+        &self,
+        parent: Option<u32>,
+        command: ComposeCommand,
+    ) -> u32 {
+        let mut arena = self.compose_command_arena.borrow_mut();
+        let index = arena.len() as u32;
+        arena.push(ComposeCommandNode { command, parent });
+        index
+    }
+
     pub(crate) fn record_used_sig(&self, id: SigId) {
-        self.record_used_sig_ids.push(id.into());
+        self.record_used_sig_ids.borrow_mut().push(id);
     }
 
     /// Return value is the index, which you can use for `take_record_used_sigs`.
     pub(crate) fn start_record_used_sigs(&self) -> usize {
-        self.record_used_sig_ids.len()
+        self.record_used_sig_ids.borrow().len()
     }
 
     pub(crate) fn take_record_used_sigs(&self, start_index: usize) -> Vec<SigId> {
-        let len = self.record_used_sig_ids.len();
-        let mut vec = vec![];
-
-        for index in start_index..len {
-            vec.push(*self.record_used_sig_ids.get(index).unwrap());
-        }
-        vec
+        self.record_used_sig_ids.borrow()[start_index..].to_vec()
     }
 
     pub(crate) fn is_stop_event_propagation(&self) -> bool {
@@ -351,6 +394,11 @@ impl World {
     ) -> RenderingTree {
         self.is_stop_event_propagation
             .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.frame += 1;
+        self.rendered_instance_count.set(0);
+        self.rendered_composer_count.set(0);
+        self.compose_command_arena.get_mut().clear();
+        reset_render_arena();
         self.reset_updated_sig_ids();
         self.handle_set_states();
 
@@ -382,11 +430,11 @@ impl World {
             root_component,
             root_composer,
             root_instance,
-            Cow::Owned(vec![]),
+            None,
         );
 
         self.remove_unused_guys();
-        self.record_used_sig_ids.as_mut().clear();
+        self.record_used_sig_ids.get_mut().clear();
 
         rendering_tree
     }

@@ -15,7 +15,7 @@ pub struct ImageParam {
 
 pub fn image(ImageParam { image, rect, style }: ImageParam) -> RenderingTree {
     RenderingTree::Node(DrawCommand::Image {
-        command: ImageDrawCommand::from_fit(image, rect, style.fit, style.paint).into(),
+        command: arena_alloc(ImageDrawCommand::from_fit(image, rect, style.fit, style.paint)),
     })
 }
 

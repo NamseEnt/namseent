@@ -5,28 +5,6 @@ use super::token::Token;
 use crate::icon::{Icon, IconSize};
 use namui::*;
 
-/// Rendered rich text result
-/// Contains the rendering tree and dimensions for immediate rendering
-#[derive(State, Clone)]
-pub struct RenderedRichText {
-    rendering_tree: RenderingTree,
-    pub width: Px,
-    pub height: Px,
-}
-
-impl RenderedRichText {
-    /// Convert into the underlying rendering tree
-    pub fn into_rendering_tree(self) -> RenderingTree {
-        self.rendering_tree
-    }
-}
-
-impl Component for RenderedRichText {
-    fn render(self, ctx: &RenderCtx) {
-        ctx.add(self.rendering_tree);
-    }
-}
-
 /// Rich text renderer
 pub struct RichTextRenderer {
     default_style: super::style::StyleContext,
@@ -41,22 +19,15 @@ impl RichTextRenderer {
         }
     }
 
-    /// Render tokens into RenderedRichText
-    pub fn render(&self, tokens: &[Token]) -> RenderedRichText {
+    /// Render tokens into a RenderingTree
+    pub fn render(&self, tokens: &[Token]) -> RenderingTree {
         let mut style_stack = StyleStack::new(self.default_style.clone());
         let boxes = self.tokens_to_boxes(tokens, &mut style_stack);
 
         let layout_engine = LayoutEngine::new(self.layout_config);
         let lines = layout_engine.layout(boxes);
 
-        let (width, height) = self.calculate_dimensions(&lines);
-        let rendering_tree = self.build_rendering_tree(&lines);
-
-        RenderedRichText {
-            rendering_tree,
-            width,
-            height,
-        }
+        self.build_rendering_tree(&lines)
     }
 
     fn tokens_to_boxes(&self, tokens: &[Token], style_stack: &mut StyleStack) -> Vec<InlineBox> {
@@ -184,17 +155,6 @@ impl RichTextRenderer {
             y += line.height;
         }
 
-        RenderingTree::Children(items)
-    }
-
-    fn calculate_dimensions(&self, lines: &[LineBox]) -> (Px, Px) {
-        let total_width = lines
-            .iter()
-            .map(|l| l.content_width)
-            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .unwrap_or(0.px());
-        let total_height = lines.iter().map(|l| l.height).sum();
-
-        (total_width, total_height)
+        RenderingTree::Children(arena_alloc_slice(items))
     }
 }

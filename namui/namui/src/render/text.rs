@@ -71,21 +71,18 @@ fn draw_text(param: &TextParam, font: &Font) -> DrawCommand {
     let text_paint = get_text_paint(param.style.color);
 
     DrawCommand::Text {
-        command: {
-            TextDrawCommand {
-                text: param.text.clone(),
-                font: font.clone(),
-                x: param.x,
-                y: param.y,
-                paint: text_paint,
-                align: param.align,
-                baseline: param.baseline,
-                max_width: param.max_width,
-                line_height_percent: param.style.line_height_percent,
-                underline: param.style.underline.clone().map(Box::new),
-            }
-            .into()
-        },
+        command: arena_alloc(TextDrawCommand {
+            text: param.text.clone(),
+            font: font.clone(),
+            x: param.x,
+            y: param.y,
+            paint: text_paint,
+            align: param.align,
+            baseline: param.baseline,
+            max_width: param.max_width,
+            line_height_percent: param.style.line_height_percent,
+            underline: param.style.underline.clone().map(Box::new),
+        }),
     }
 }
 fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
@@ -98,7 +95,7 @@ fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
         .set_anti_alias(true);
 
     Some(DrawCommand::Text {
-        command: TextDrawCommand {
+        command: arena_alloc(TextDrawCommand {
             text: param.text.clone(),
             font: font.clone(),
             x: param.x,
@@ -109,8 +106,7 @@ fn draw_border(param: &TextParam, font: &Font) -> Option<DrawCommand> {
             max_width: param.max_width,
             line_height_percent: param.style.line_height_percent,
             underline: None,
-        }
-        .into(),
+        }),
     })
 }
 

@@ -106,7 +106,7 @@ impl<P: Particle> Component for RenderEmitter<'_, P> {
         }
         let cloned = Arc::unwrap_or_clone(sprites);
         ctx.add(RenderingTree::Node(DrawCommand::Image {
-            command: Box::new(ImageDrawCommand {
+            command: arena_alloc(ImageDrawCommand {
                 image: self.image,
                 sprites: cloned,
                 paint: self.paint,

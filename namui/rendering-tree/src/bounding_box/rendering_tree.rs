@@ -1,15 +1,8 @@
 use crate::*;
 use namui_type::*;
-use std::borrow::Borrow;
 
 impl BoundingBox for &RenderingTree {
     fn bounding_box(self) -> Option<Rect<Px>> {
-        static CACHE: LruCache<RenderingTree, Rect<Px>> = LruCache::new();
-
-        if let Some(cached) = CACHE.get(self) {
-            return Some(*cached);
-        }
-
         struct BoundingBoxContext {
             bounding_boxes_on_top: Vec<Option<Rect<Px>>>,
         }
@@ -36,7 +29,7 @@ impl BoundingBox for &RenderingTree {
             match rendering_tree {
                 RenderingTree::Children(children) => {
                     get_bounding_box_with_matrix_of_rendering_trees(
-                        children,
+                        children.iter(),
                         matrix,
                         bounding_box_context,
                     )
@@ -48,14 +41,14 @@ impl BoundingBox for &RenderingTree {
                     SpecialRenderingNode::Translate(translate) => {
                         let matrix = matrix * translate.get_matrix();
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [translate.rendering_tree.borrow()],
+                            [translate.rendering_tree],
                             &matrix,
                             bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::Clip(clip) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [clip.rendering_tree.borrow()],
+                            [clip.rendering_tree],
                             matrix,
                             bounding_box_context,
                         )
@@ -123,7 +116,7 @@ impl BoundingBox for &RenderingTree {
                     }
                     SpecialRenderingNode::Absolute(absolute) => {
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [absolute.rendering_tree.borrow()],
+                            [absolute.rendering_tree],
                             &absolute.get_matrix(),
                             bounding_box_context,
                         )
@@ -132,7 +125,7 @@ impl BoundingBox for &RenderingTree {
                         let matrix = matrix * rotate.get_matrix();
 
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [rotate.rendering_tree.borrow()],
+                            [rotate.rendering_tree],
                             &matrix,
                             bounding_box_context,
                         )
@@ -141,7 +134,7 @@ impl BoundingBox for &RenderingTree {
                         let matrix = matrix * scale.get_matrix();
 
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [scale.rendering_tree.borrow()],
+                            [scale.rendering_tree],
                             &matrix,
                             bounding_box_context,
                         )
@@ -150,14 +143,14 @@ impl BoundingBox for &RenderingTree {
                         let matrix = matrix * transform.matrix;
 
                         get_bounding_box_with_matrix_of_rendering_trees(
-                            [transform.rendering_tree.borrow()],
+                            [transform.rendering_tree],
                             &matrix,
                             bounding_box_context,
                         )
                     }
                     SpecialRenderingNode::OnTop(on_top) => {
                         let bounding_box = get_bounding_box_with_matrix_of_rendering_trees(
-                            [on_top.rendering_tree.borrow()],
+                            [on_top.rendering_tree],
                             matrix,
                             bounding_box_context,
                         );
@@ -194,10 +187,6 @@ impl BoundingBox for &RenderingTree {
             .fold(bounding_box, |acc, bounding_box| {
                 acc.map(|acc| Rect::get_minimum_rectangle_containing(&acc, bounding_box))
             });
-
-        if let Some(bounding_box) = bounding_box {
-            CACHE.put(self.clone(), bounding_box);
-        }
 
         bounding_box
     }

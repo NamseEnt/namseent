@@ -3,31 +3,33 @@ mod public_crate;
 
 use crate::*;
 pub use effect_clean_up::*;
-use std::sync::atomic::AtomicUsize;
+use std::cell::Cell;
 
 /// Component state management
 pub struct ComponentCtx<'a> {
     world: &'a World,
     instance: &'a Instance,
-    state_index: AtomicUsize,
-    memo_index: AtomicUsize,
-    track_eq_index: AtomicUsize,
-    track_eq_tuple_index: AtomicUsize,
-    effect_index: AtomicUsize,
-    interval_index: AtomicUsize,
+    state_index: Cell<usize>,
+    memo_index: Cell<usize>,
+    track_eq_index: Cell<usize>,
+    track_eq_tuple_index: Cell<usize>,
+    effect_index: Cell<usize>,
+    interval_index: Cell<usize>,
 }
 impl<'a> ComponentCtx<'a> {
     pub(crate) fn new(world: &'a World, instance: &'a Instance) -> ComponentCtx<'a> {
-        instance.set_rendered_flag();
+        if instance.mark_rendered(world.frame()) {
+            world.count_rendered_instance();
+        }
         Self {
             world,
             instance,
-            state_index: Default::default(),
-            memo_index: Default::default(),
-            track_eq_index: Default::default(),
-            track_eq_tuple_index: Default::default(),
-            effect_index: Default::default(),
-            interval_index: Default::default(),
+            state_index: Cell::new(0),
+            memo_index: Cell::new(0),
+            track_eq_index: Cell::new(0),
+            track_eq_tuple_index: Cell::new(0),
+            effect_index: Cell::new(0),
+            interval_index: Cell::new(0),
         }
     }
 
@@ -38,4 +40,10 @@ impl<'a> ComponentCtx<'a> {
     fn add_sig_updated(&self, sig_id: SigId) {
         self.world.add_sig_updated(sig_id)
     }
+}
+
+fn next_index(cell: &Cell<usize>) -> usize {
+    let index = cell.get();
+    cell.set(index + 1);
+    index
 }

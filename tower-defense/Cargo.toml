@@ -46,6 +46,13 @@ name = "td-stats"
 path = "src/bin/td_stats.rs"
 required-features = ["simulator"]
 
+[dev-dependencies]
+criterion = { version = "0.5", default-features = false }
+
+[[bench]]
+name = "rich_text_benchmark"
+harness = false
+
 [patch.crates-io]
 rayon = { git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }
 rayon-core = { git = "https://github.com/NamseEnt/rayon", branch = "v1.11.0-fork" }

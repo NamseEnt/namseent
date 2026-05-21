@@ -108,7 +108,7 @@ pub struct GameState {
     pub camera: Camera,
     pub route: Arc<Route>,
     pub backgrounds: Vec<Background>,
-    pub decorations: RenderingTree,
+    pub decorations: Vec<ImageSprite>,
     pub upgrade_state: UpgradeState,
     pub flow: GameFlow,
     pub hand: Hand<HandItem>,
@@ -624,7 +624,7 @@ static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 fn create_initial_game_state() -> GameState {
     let config = Arc::new(GameConfig::default_config());
     let now = Instant::now();
-    let decorations = background::generate_decoration_rendering_tree();
+    let decorations = background::generate_decorations();
     let mut game_state = GameState {
         monsters: Default::default(),
         towers: Default::default(),
