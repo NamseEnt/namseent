@@ -1,20 +1,9 @@
 use super::*;
 use crate::*;
 
-impl ComposeCtx<'_, '_> {
-    fn push(&self, command: ComposeCommand) -> Self {
-        Self {
-            composer: self.composer,
-            world: self.world,
-            // NOTE: Optimize point: `stack` can be replace with the index of full_stack.
-            rt_container: self.rt_container,
-            stack_parent_len: self.stack_parent_len,
-            full_stack: {
-                let mut full_stack = self.full_stack.clone().into_owned();
-                full_stack.push(command);
-                Cow::Owned(full_stack)
-            },
-        }
+impl<'a, 'rt> ComposeCtx<'a, 'rt> {
+    fn push(&self, command: ComposeCommand) -> ComposeCtx<'a, 'rt> {
+        self.push_command(command)
     }
     pub fn translate(&self, xy: impl Into<Xy<Px>>) -> Self {
         let xy = xy.into();
@@ -42,7 +31,7 @@ impl ComposeCtx<'_, '_> {
 
     pub fn accumulated_matrix(&self) -> TransformMatrix {
         let mut matrix = TransformMatrix::identity();
-        for command in self.full_stack.iter() {
+        for command in &self.full_stack_commands() {
             match command {
                 ComposeCommand::Translate { xy } => {
                     matrix = matrix * TransformMatrix::from_translate(xy.x.as_f32(), xy.y.as_f32());

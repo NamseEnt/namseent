@@ -14,8 +14,10 @@ unsafe extern "C" {
     );
 }
 
+type GetResponseSender = oneshot::Sender<Option<Vec<u8>>>;
+
 static NEXT_ID: AtomicU32 = AtomicU32::new(1);
-static PENDING_GET: LazyLock<Mutex<HashMap<u32, oneshot::Sender<Option<Vec<u8>>>>>> =
+static PENDING_GET: LazyLock<Mutex<HashMap<u32, GetResponseSender>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 static PENDING_PUT: LazyLock<Mutex<HashMap<u32, oneshot::Sender<()>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -54,6 +56,7 @@ pub async fn put(key: impl AsRef<str>, value: Option<&[u8]>) {
 }
 
 #[unsafe(no_mangle)]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn _on_kv_store_get_response(
     request_id: u32,
     has_data: u32,

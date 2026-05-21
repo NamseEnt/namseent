@@ -100,18 +100,18 @@ pub(crate) fn run<'a>(
     component: impl Component,
     composer: &'a Composer,
     instance: &'a Instance,
-    full_stack: CowFullStack<'a>,
+    parent_stack: Option<u32>,
 ) -> RenderingTree {
-    let rt_container = RtContainer::new();
+    let rt_container = RtContainer::new(world);
 
     {
         let ctx = RenderCtx {
             component_ctx: ComponentCtx::new(world, instance),
-            compose_ctx: ComposeCtx::new(world, composer, &rt_container, full_stack),
+            compose_ctx: ComposeCtx::new(world, composer, &rt_container, parent_stack),
         };
 
         component.render(&ctx);
     }
 
-    rt_container.into()
+    rt_container.into_rendering_tree()
 }

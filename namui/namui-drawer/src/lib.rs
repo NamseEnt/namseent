@@ -41,10 +41,10 @@ pub fn redraw(
 
         let mouse_cursor = calculate_mouse_cursor(rendering_tree, mouse_xy);
 
-        rendering_tree.clone().draw(skia);
+        (*rendering_tree).draw(skia);
 
         if let Some(sprite_set) = sprite_set {
-            draw::draw_mouse_cursor(skia, mouse_xy, mouse_cursor.clone(), sprite_set);
+            draw::draw_mouse_cursor(skia, mouse_xy, mouse_cursor, sprite_set);
         }
 
         mouse_cursor
@@ -65,7 +65,7 @@ fn calculate_mouse_cursor(rendering_tree: &RenderingTree, mouse_xy: Xy<Px>) -> M
             };
             let local_xy = tool.to_local_xy(mouse_xy);
             if rendering_tree.xy_in(local_xy) {
-                mouse_cursor = *cursor.clone();
+                mouse_cursor = **cursor;
             }
             std::ops::ControlFlow::Continue(())
         },

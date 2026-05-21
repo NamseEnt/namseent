@@ -18,7 +18,7 @@ fn event_local_xy_in_on_compose_translate() {
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let rect_rt = RenderingTree::Node(DrawCommand::Path {
-                command: Box::new(PathDrawCommand {
+                command: arena_alloc(PathDrawCommand {
                     path: Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), RECT_WH)),
                     paint: Paint::new(Color::WHITE).set_style(PaintStyle::Fill),
                 }),
@@ -28,7 +28,7 @@ fn event_local_xy_in_on_compose_translate() {
                 for y in 0..ROWS {
                     ctx.compose(|ctx| {
                         ctx.translate((RECT_WH.width * x, RECT_WH.height * y))
-                            .add(rect_rt.clone())
+                            .add(rect_rt)
                             .attach_event(|event| {
                                 let Event::MouseMove { event } = event else {
                                     return;
@@ -104,7 +104,7 @@ fn event_local_xy_in_after_translate_at_out() {
     impl Component for A {
         fn render(self, ctx: &RenderCtx) {
             let rect_rt = RenderingTree::Node(DrawCommand::Path {
-                command: Box::new(PathDrawCommand {
+                command: arena_alloc(PathDrawCommand {
                     path: Path::new().add_rect(Rect::from_xy_wh(Xy::zero(), RECT_WH)),
                     paint: Paint::new(Color::WHITE).set_style(PaintStyle::Fill),
                 }),
@@ -115,7 +115,7 @@ fn event_local_xy_in_after_translate_at_out() {
                     ctx.compose(|ctx| {
                         ctx.translate((RECT_WH.width * x, RECT_WH.height * y))
                             .compose(|ctx| {
-                                ctx.add(rect_rt.clone()).attach_event(|event| {
+                                ctx.add(rect_rt).attach_event(|event| {
                                     let Event::MouseMove { event } = event else {
                                         return;
                                     };

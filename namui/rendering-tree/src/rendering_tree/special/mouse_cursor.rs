@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use super::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub struct MouseCursorNode {
-    pub cursor: Box<MouseCursor>,
-    pub rendering_tree: Box<RenderingTree>,
+    pub cursor: &'static MouseCursor,
+    pub rendering_tree: &'static RenderingTree,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, State)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, bincode::Encode)]
 pub enum MouseCursor {
     Standard(StandardCursor),
     Custom(RenderingTree),

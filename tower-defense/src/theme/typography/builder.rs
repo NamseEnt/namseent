@@ -1,4 +1,4 @@
-use super::renderer::{RenderedRichText, RichTextRenderer};
+use super::renderer::RichTextRenderer;
 use super::style::{StyleContext, StyleDelta};
 use super::token::Token;
 use super::{DEFAULT_TEXT_STYLE, FontSize, palette};
@@ -13,21 +13,21 @@ enum TypographyVariant {
 }
 
 /// Positioned rich text output
-#[derive(State, Clone)]
+#[derive(Clone)]
 pub struct PositionedRichText {
-    pub rich_text: RenderedRichText,
+    pub tree: RenderingTree,
     pub offset: Xy<Px>,
 }
 
 impl PositionedRichText {
-    pub fn new(rich_text: RenderedRichText, offset: Xy<Px>) -> Self {
-        Self { rich_text, offset }
+    pub fn new(tree: RenderingTree, offset: Xy<Px>) -> Self {
+        Self { tree, offset }
     }
 }
 
 impl Component for PositionedRichText {
     fn render(self, ctx: &RenderCtx) {
-        ctx.translate(self.offset).add(self.rich_text);
+        ctx.translate(self.offset).add(self.tree);
     }
 }
 
@@ -36,6 +36,12 @@ pub struct TypographyBuilder<'a> {
     variant: TypographyVariant,
     tokens: Vec<Token<'a>>,
     layout_config: super::layout::LayoutConfig,
+}
+
+impl Default for TypographyBuilder<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> TypographyBuilder<'a> {
@@ -210,7 +216,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Build the typography
-    pub fn render(&mut self) -> RenderedRichText {
+    pub fn render(&mut self) -> RenderingTree {
         let default_style = match self.variant {
             TypographyVariant::Headline => StyleContext::new(
                 super::HEADLINE_FONT_NAME.to_string(),
@@ -237,32 +243,40 @@ impl<'a> TypographyBuilder<'a> {
 
     /// Render and position at left with vertical centering
     pub fn render_left_center(&mut self, height: Px) -> PositionedRichText {
-        let rendered = self.render();
-        let offset_y = (height - rendered.height) / 2.0;
-        PositionedRichText::new(rendered, Xy::new(px(0.0), offset_y))
+        let tree = self.render();
+        let rendered_height = tree.bounding_box().map(|r| r.height()).unwrap_or(0.px());
+        let offset_y = (height - rendered_height) / 2.0;
+        PositionedRichText::new(tree, Xy::new(px(0.0), offset_y))
     }
 
     /// Render and center in the given size
     pub fn render_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
-        let rendered = self.render();
-        let offset_x = (wh.width - rendered.width) / 2.0;
-        let offset_y = (wh.height - rendered.height) / 2.0;
-        PositionedRichText::new(rendered, Xy::new(offset_x, offset_y))
+        let tree = self.render();
+        let bbox = tree.bounding_box();
+        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
+        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
+        let offset_x = (wh.width - rendered_width) / 2.0;
+        let offset_y = (wh.height - rendered_height) / 2.0;
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
     /// Render and position at right-top
     pub fn render_right_top(&mut self, width: Px) -> PositionedRichText {
-        let rendered = self.render();
-        let offset_x = width - rendered.width;
-        PositionedRichText::new(rendered, Xy::new(offset_x, px(0.0)))
+        let tree = self.render();
+        let rendered_width = tree.bounding_box().map(|r| r.width()).unwrap_or(0.px());
+        let offset_x = width - rendered_width;
+        PositionedRichText::new(tree, Xy::new(offset_x, px(0.0)))
     }
 
     /// Render and position at right-center
     pub fn render_right_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
-        let rendered = self.render();
-        let offset_x = wh.width - rendered.width;
-        let offset_y = (wh.height - rendered.height) / 2.0;
-        PositionedRichText::new(rendered, Xy::new(offset_x, offset_y))
+        let tree = self.render();
+        let bbox = tree.bounding_box();
+        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
+        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
+        let offset_x = wh.width - rendered_width;
+        let offset_y = (wh.height - rendered_height) / 2.0;
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 }
 

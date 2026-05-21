@@ -9,6 +9,8 @@ namui-type = { path = "../namui-type" }
 textwrap = "0.16.0"
 unicode-segmentation = "1.10.1"
 dashmap = "6.1.0"
+bumpalo = "3"
+bincode = { version = "2", features = ["derive"] }
 
 [dev-dependencies]
 float-cmp = "0.10.0"

@@ -384,7 +384,9 @@ fn render_field_particles(ctx: &RenderCtx, _game_state: &GameState) {
 }
 
 fn render_decorations(ctx: &RenderCtx, game_state: &GameState) {
-    ctx.add(game_state.decorations.clone());
+    ctx.add(background::decoration_rendering_tree(
+        &game_state.decorations,
+    ));
 }
 
 fn render_map_border_gradient(ctx: &RenderCtx, _game_state: &GameState) {

@@ -22,14 +22,10 @@ where
     F: Fn(TypographyBuilder) -> PositionedRichText,
 {
     fn render(self, ctx: &RenderCtx) {
-        let (rendered, set_rendered) = ctx.state(|| None);
-        let deps_changed = ctx.track_eq_tuple(&self.deps);
-
-        if deps_changed || rendered.is_none() {
-            set_rendered.set(Some((self.builder)(TypographyBuilder::new())));
-        }
-
-        ctx.add(rendered.clone_inner());
+        // arena-no-memo variant: the rendering tree lives in the per-frame
+        // arena, so it cannot be cached across frames. Rebuild every frame.
+        let _ = &self.deps;
+        ctx.add((self.builder)(TypographyBuilder::new()));
     }
 }
 

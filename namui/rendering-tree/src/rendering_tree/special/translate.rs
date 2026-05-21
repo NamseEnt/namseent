@@ -1,10 +1,10 @@
 use super::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub struct TranslateNode {
     pub x: Px,
     pub y: Px,
-    pub rendering_tree: Box<RenderingTree>,
+    pub rendering_tree: &'static RenderingTree,
 }
 impl TranslateNode {
     pub fn get_matrix(&self) -> TransformMatrix {
@@ -20,6 +20,6 @@ pub fn translate(x: Px, y: Px, rendering_tree: RenderingTree) -> RenderingTree {
     RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {
         x,
         y,
-        rendering_tree: rendering_tree.into(),
+        rendering_tree: arena_alloc(rendering_tree),
     }))
 }

@@ -6,9 +6,7 @@ impl ComponentCtx<'_> {
         &self,
         init: impl FnOnce() -> State,
     ) -> (Sig<'_, State>, SetState<State>) {
-        let state_index = self
-            .state_index
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let state_index = next_index(&self.state_index);
 
         let value = self.instance.state_value(state_index, init);
 
@@ -27,9 +25,7 @@ impl ComponentCtx<'_> {
     }
 
     pub(crate) fn memo<T: crate::State>(&self, func: impl FnOnce() -> T) -> Sig<'_, T> {
-        let memo_index = self
-            .memo_index
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let memo_index = next_index(&self.memo_index);
 
         let sig_id = SigId::Memo {
             index: memo_index,
@@ -86,9 +82,7 @@ impl ComponentCtx<'_> {
         &self,
         func: impl FnOnce(Option<T>) -> ControlledMemo<T>,
     ) -> Sig<'_, T> {
-        let memo_index = self
-            .memo_index
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let memo_index = next_index(&self.memo_index);
 
         let sig_id = SigId::Memo {
             index: memo_index,
@@ -165,9 +159,7 @@ impl ComponentCtx<'_> {
     }
 
     pub(crate) fn track_eq<T: State + PartialEq + Clone>(&self, target: &T) -> Sig<'_, T> {
-        let track_eq_index = self
-            .track_eq_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let track_eq_index = next_index(&self.track_eq_index);
 
         let sig_id = SigId::TrackEq {
             instance_id: self.instance.id,
@@ -220,9 +212,7 @@ impl ComponentCtx<'_> {
     where
         P: State,
     {
-        let track_eq_index = self
-            .track_eq_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let track_eq_index = next_index(&self.track_eq_index);
 
         let sig_id = SigId::TrackEq {
             instance_id: self.instance.id,
@@ -268,9 +258,7 @@ impl ComponentCtx<'_> {
     pub(crate) fn track_eq_tuple(&self, track_eq_tuple: &impl TrackEqTuple) -> bool {
         let mut track_eq_tuple_list = self.instance.track_eq_tuple_list.borrow_mut();
 
-        let track_eq_tuple_index = self
-            .track_eq_tuple_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let track_eq_tuple_index = next_index(&self.track_eq_tuple_index);
 
         let first_track = track_eq_tuple_list.len() <= track_eq_tuple_index;
         if first_track {
@@ -291,9 +279,7 @@ impl ComponentCtx<'_> {
 
         let mut effect_list = self.instance.effect_list.borrow_mut();
 
-        let effect_index = self
-            .effect_index
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let effect_index = next_index(&self.effect_index);
 
         let is_first_run = effect_list.len() <= effect_index;
 
@@ -336,9 +322,7 @@ impl ComponentCtx<'_> {
 
         let mut interval_last_call_at_list = self.instance.interval_called_list.borrow_mut();
 
-        let interval_index = self
-            .interval_index
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let interval_index = next_index(&self.interval_index);
 
         let is_first_run = interval_last_call_at_list.len() <= interval_index;
 
@@ -374,12 +358,7 @@ impl ComponentCtx<'_> {
         let atom_list = &self.world.atom_list;
 
         if !atom.is_initialized() {
-            atom.init(
-                self.world.set_state_tx,
-                self.world
-                    .atom_index
-                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-            )
+            atom.init(self.world.set_state_tx, self.world.next_atom_index())
         }
 
         let sig_id = atom.sig_id();

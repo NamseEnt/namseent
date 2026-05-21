@@ -1,15 +1,14 @@
 use super::*;
 use crate::*;
 use std::{
-    cell::{RefCell, UnsafeCell},
+    cell::{Cell, RefCell, UnsafeCell},
     ops::Deref,
-    sync::atomic::AtomicBool,
 };
 
 /// the state of component.
 pub(crate) struct Instance {
     pub(crate) id: InstanceId,
-    rendered_flag: AtomicBool,
+    last_rendered_frame: Cell<u64>,
     pub(crate) state_list: UnsafeCell<Vec<Box<dyn Value>>>,
     pub(crate) memo_list: UnsafeCell<Vec<Memo>>,
     pub(crate) track_eq_list: UnsafeCell<Vec<Box<dyn Value>>>,
@@ -28,7 +27,7 @@ impl Instance {
     ) -> Self {
         Self {
             id,
-            rendered_flag: Default::default(),
+            last_rendered_frame: Cell::new(0),
             state_list: Default::default(),
             memo_list: Default::default(),
             track_eq_list: Default::default(),
@@ -41,14 +40,12 @@ impl Instance {
         }
     }
 
-    pub(crate) fn set_rendered_flag(&self) {
-        self.rendered_flag
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+    pub(crate) fn mark_rendered(&self, frame: u64) -> bool {
+        self.last_rendered_frame.replace(frame) != frame
     }
 
-    pub(crate) fn take_rendered_flag(&mut self) -> bool {
-        self.rendered_flag
-            .swap(false, std::sync::atomic::Ordering::Relaxed)
+    pub(crate) fn is_rendered_at(&self, frame: u64) -> bool {
+        self.last_rendered_frame.get() == frame
     }
 
     pub(crate) fn freeze(self) -> Vec<u8> {

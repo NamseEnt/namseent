@@ -93,7 +93,7 @@ mod wasi_ffi {
 
                 let mouse_cursor = calculate_mouse_cursor(rendering_tree, mouse_xy);
 
-                rendering_tree.clone().draw(skia);
+                (*rendering_tree).draw(skia);
 
                 draw_mouse_cursor(
                     skia,
@@ -121,7 +121,7 @@ mod wasi_ffi {
                 };
                 let local_xy = tool.to_local_xy(mouse_xy);
                 if rendering_tree.xy_in(local_xy) {
-                    mouse_cursor = *cursor.clone();
+                    mouse_cursor = **cursor;
                 }
                 std::ops::ControlFlow::Continue(())
             },

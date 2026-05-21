@@ -113,11 +113,10 @@ pub fn rect(param: RectParam) -> RenderingTree {
             .set_style(PaintStyle::Fill)
             .set_anti_alias(true);
         draw_commands.push(DrawCommand::Path {
-            command: PathDrawCommand {
+            command: arena_alloc(PathDrawCommand {
                 path: rect_path.clone(),
                 paint: fill_paint,
-            }
-            .into(),
+            }),
         });
     };
 
@@ -134,11 +133,10 @@ pub fn rect(param: RectParam) -> RenderingTree {
             .set_anti_alias(true);
 
         draw_commands.push(DrawCommand::Path {
-            command: PathDrawCommand {
+            command: arena_alloc(PathDrawCommand {
                 path: rect_path,
                 paint: stroke_paint,
-            }
-            .into(),
+            }),
         });
     };
 

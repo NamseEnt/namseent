@@ -551,6 +551,8 @@ dependencies = [
 name = "namui-rendering-tree"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "bumpalo",
  "dashmap",
  "float-cmp",
  "namui-type",

@@ -42,7 +42,7 @@ pub fn render_text_overlay(
     let overlay_size = container_size * size_ratio;
     let overlay_position = position.calculate_position(container_size, overlay_size);
 
-    let rendered_text = typography::TypographyBuilder::new()
+    let text_tree = typography::TypographyBuilder::new()
         .headline()
         .size(FontSize::Custom {
             size: overlay_size.height * text_size_ratio,
@@ -52,16 +52,19 @@ pub fn render_text_overlay(
         .static_text(text)
         .render();
 
+    let bbox = text_tree.bounding_box();
+    let text_width = bbox.map(|r| r.width()).unwrap_or(0.px());
+    let text_height = bbox.map(|r| r.height()).unwrap_or(0.px());
+
     let text_offset = Xy {
-        x: (overlay_size.width - rendered_text.width) / 2.0,
-        y: (overlay_size.height - rendered_text.height) / 2.0,
+        x: (overlay_size.width - text_width) / 2.0,
+        y: (overlay_size.height - text_height) / 2.0,
     };
 
-    // RenderedRichText::into_rendering_tree() to get the RenderingTree
     namui::translate(
         overlay_position.x + text_offset.x,
         overlay_position.y + text_offset.y,
-        rendered_text.into_rendering_tree(),
+        text_tree,
     )
 }
 

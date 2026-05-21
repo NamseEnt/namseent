@@ -27,14 +27,15 @@ impl ComposeCtx<'_, '_> {
 
         let is_global_xy_clip_in = |mut global_xy: Xy<Px>| -> bool {
             if self
-                .parent_stack()
+                .parent_stack_commands()
+                .iter()
                 .all(|command| !matches!(command, ComposeCommand::Clip { .. }))
             {
                 return true;
             }
 
             let original_xy = global_xy;
-            for command in self.full_stack.iter() {
+            for command in &self.full_stack_commands() {
                 match command {
                     ComposeCommand::Translate { xy } => global_xy -= xy,
                     ComposeCommand::Absolute { xy } => global_xy = original_xy - xy,
@@ -77,19 +78,21 @@ impl ComposeCtx<'_, '_> {
                         ^-- ctx.attach_event   <= local
         */
 
-        let to_local_xy = |xy| apply_commands_to_xy(xy, self.full_stack.iter());
-        let to_parent_local_xy = |xy| apply_commands_to_xy(xy, self.parent_stack());
+        let to_local_xy = |xy| apply_commands_to_xy(xy, &self.full_stack_commands());
+        let to_parent_local_xy = |xy| apply_commands_to_xy(xy, &self.parent_stack_commands());
 
         let xy_in = |global_xy: Xy<Px>| -> bool {
-            let Some(bounding_box) = self.rt_container.iter().bounding_box() else {
-                return false;
-            };
             let parent_local_xy = to_parent_local_xy(global_xy);
-            if !bounding_box.is_xy_inside(parent_local_xy) {
-                return false;
-            }
+            self.rt_container.with(|rts| {
+                let Some(bounding_box) = rts.iter().bounding_box() else {
+                    return false;
+                };
+                if !bounding_box.is_xy_inside(parent_local_xy) {
+                    return false;
+                }
 
-            self.rt_container.iter().any(|rt| rt.xy_in(parent_local_xy))
+                rts.iter().any(|rt| rt.xy_in(parent_local_xy))
+            })
         };
 
         match raw_event {
@@ -177,10 +180,7 @@ impl ComposeCtx<'_, '_> {
     }
 }
 
-fn apply_commands_to_xy<'a>(
-    mut target_xy: Xy<Px>,
-    commands: impl Iterator<Item = &'a ComposeCommand> + 'a,
-) -> Xy<Px> {
+fn apply_commands_to_xy(mut target_xy: Xy<Px>, commands: &[ComposeCommand]) -> Xy<Px> {
     let original_xy = target_xy;
     for command in commands {
         match command {

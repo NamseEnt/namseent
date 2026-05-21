@@ -17,7 +17,7 @@ pub use scale::*;
 pub use transform::*;
 pub use translate::*;
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq, State)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq, bincode::Encode)]
 pub enum SpecialRenderingNode {
     Translate(TranslateNode),
     Clip(ClipNode),
@@ -32,26 +32,17 @@ pub enum SpecialRenderingNode {
 impl SpecialRenderingNode {
     pub fn inner_rendering_tree_ref(&self) -> &RenderingTree {
         match self {
-            SpecialRenderingNode::Translate(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::Clip(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::Absolute(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::Rotate(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::Scale(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::Transform(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::OnTop(node) => node.rendering_tree.as_ref(),
-            SpecialRenderingNode::MouseCursor(node) => node.rendering_tree.as_ref(),
+            SpecialRenderingNode::Translate(node) => node.rendering_tree,
+            SpecialRenderingNode::Clip(node) => node.rendering_tree,
+            SpecialRenderingNode::Absolute(node) => node.rendering_tree,
+            SpecialRenderingNode::Rotate(node) => node.rendering_tree,
+            SpecialRenderingNode::Scale(node) => node.rendering_tree,
+            SpecialRenderingNode::Transform(node) => node.rendering_tree,
+            SpecialRenderingNode::OnTop(node) => node.rendering_tree,
+            SpecialRenderingNode::MouseCursor(node) => node.rendering_tree,
         }
     }
     pub fn inner_rendering_tree(self) -> RenderingTree {
-        match self {
-            SpecialRenderingNode::Translate(node) => *node.rendering_tree,
-            SpecialRenderingNode::Clip(node) => *node.rendering_tree,
-            SpecialRenderingNode::Absolute(node) => *node.rendering_tree,
-            SpecialRenderingNode::Rotate(node) => *node.rendering_tree,
-            SpecialRenderingNode::Scale(node) => *node.rendering_tree,
-            SpecialRenderingNode::Transform(node) => *node.rendering_tree,
-            SpecialRenderingNode::OnTop(node) => *node.rendering_tree,
-            SpecialRenderingNode::MouseCursor(node) => *node.rendering_tree,
-        }
+        *self.inner_rendering_tree_ref()
     }
 }

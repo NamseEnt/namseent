@@ -31,14 +31,26 @@ pub mod particle {
     pub use namui_particle::{Emitter, Particle, ParticleSprites, RenderEmitter};
 }
 thread_local! {
-    static TOKIO_RUNTIME: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(Some(tokio::runtime::Builder::new_multi_thread()
+    static TOKIO_RUNTIME: RefCell<Option<tokio::runtime::Runtime>> =
+        RefCell::new(Some(build_tokio_runtime()));
+    static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
+    static RESPONSE_BUFFER: RefCell<Vec<u8>> = Default::default();
+}
+
+fn build_tokio_runtime() -> tokio::runtime::Runtime {
+    #[cfg(target_arch = "wasm32")]
+    let result = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build();
+    #[cfg(not(target_arch = "wasm32"))]
+    let result = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_stack_size(2 * 1024 * 1024)
         .max_blocking_threads(32)
-        .build()
-        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e)).unwrap()));
-    static LOOPER: RefCell<Option<Looper>> = const { RefCell::new(None) };
-    static RESPONSE_BUFFER: RefCell<Vec<u8>> = Default::default();
+        .build();
+    result
+        .map_err(|e| anyhow!("Failed to create tokio runtime: {:?}", e))
+        .unwrap()
 }
 
 pub fn start(root_component: RootComponent) {
@@ -68,9 +80,8 @@ pub(crate) fn write_empty_response() -> *const u8 {
 /// - len > 0: new rendering tree data
 fn on_event(event: RawEvent) -> *const u8 {
     thread_local! {
-        static RENDERING_TREE: RefCell<RenderingTree> = Default::default();
+        static PREV_SENT_TREE_BYTES: RefCell<Vec<u8>> = Default::default();
     }
-    static RENDERING_TREE_CHANGED: AtomicBool = AtomicBool::new(false);
     static MOUSE_POSITION_ON_LAST_REDRAW: AtomicU32 = AtomicU32::new(0);
 
     let is_screen_redraw = matches!(event, RawEvent::ScreenRedraw);
@@ -81,44 +92,37 @@ fn on_event(event: RawEvent) -> *const u8 {
         let Some(ref runtime) = *tokio_runtime.borrow() else {
             return; // Already shut down
         };
-        let _guard = runtime.enter();
+        runtime.block_on(async {
+            LOOPER.with_borrow_mut(|looper| {
+                let rendering_tree = looper.as_mut().unwrap().tick(event);
 
-        LOOPER.with_borrow_mut(|looper| {
-            let rendering_tree = looper.as_mut().unwrap().tick(event);
+                system::audio::flush_audio();
 
-            system::audio::flush_audio();
+                if !is_screen_redraw {
+                    return;
+                }
 
-            if !RENDERING_TREE_CHANGED.load(Ordering::Relaxed) {
-                RENDERING_TREE_CHANGED.store(
-                    RENDERING_TREE
-                        .with_borrow(|prev_rendering_tree| prev_rendering_tree != &rendering_tree),
-                    Ordering::Relaxed,
-                );
+                let bytes =
+                    bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap();
+                let tree_changed = PREV_SENT_TREE_BYTES.with_borrow(|prev| prev != &bytes);
+                let mouse_position_changed = MOUSE_POSITION_ON_LAST_REDRAW.load(Ordering::Relaxed)
+                    != system::mouse::mouse_position_u32();
+
+                if tree_changed {
+                    result = write_response(&bytes);
+                    PREV_SENT_TREE_BYTES.replace(bytes);
+                } else if mouse_position_changed {
+                    result = write_empty_response();
+                }
+
+                MOUSE_POSITION_ON_LAST_REDRAW
+                    .store(system::mouse::mouse_position_u32(), Ordering::Relaxed);
+            });
+
+            for _ in 0..16 {
+                tokio::task::yield_now().await;
             }
-
-            RENDERING_TREE.replace(rendering_tree);
-
-            if !is_screen_redraw {
-                return;
-            }
-
-            let rendering_tree_changed = RENDERING_TREE_CHANGED.load(Ordering::Relaxed);
-            let mouse_position_changed = MOUSE_POSITION_ON_LAST_REDRAW.load(Ordering::Relaxed)
-                != system::mouse::mouse_position_u32();
-
-            if rendering_tree_changed {
-                let bytes = RENDERING_TREE.with_borrow(|rendering_tree| {
-                    bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap()
-                });
-                result = write_response(&bytes);
-            } else if mouse_position_changed {
-                result = write_empty_response();
-            }
-
-            RENDERING_TREE_CHANGED.store(false, Ordering::Relaxed);
-            MOUSE_POSITION_ON_LAST_REDRAW
-                .store(system::mouse::mouse_position_u32(), Ordering::Relaxed);
-        })
+        });
     });
 
     result
@@ -152,7 +156,7 @@ pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> Rende
 
     let mut children = vec![first, second];
     children.extend(iter.filter(|x| *x != RenderingTree::Empty));
-    RenderingTree::Children(children)
+    RenderingTree::Children(arena_alloc_slice(children))
 }
 
 pub fn try_render(func: impl FnOnce() -> Option<RenderingTree>) -> RenderingTree {
