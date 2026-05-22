@@ -1,21 +1,20 @@
 use namui::AudioAsset;
 use rand::Rng;
 
-const BUBBLE_POP_ASSETS: [AudioAsset; 14] = [
-    crate::asset::sound::bubble_pop::BUBBLE_POP_00,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_01,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_02,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_03,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_04,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_05,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_06,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_07,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_08,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_09,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_10,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_11,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_12,
-    crate::asset::sound::bubble_pop::BUBBLE_POP_13,
+const SMALL_BUTTON_ASSETS: [AudioAsset; 13] = [
+    crate::asset::sound::small_button::SMALL_BUTTON_00,
+    crate::asset::sound::small_button::SMALL_BUTTON_01,
+    crate::asset::sound::small_button::SMALL_BUTTON_02,
+    crate::asset::sound::small_button::SMALL_BUTTON_03,
+    crate::asset::sound::small_button::SMALL_BUTTON_04,
+    crate::asset::sound::small_button::SMALL_BUTTON_05,
+    crate::asset::sound::small_button::SMALL_BUTTON_06,
+    crate::asset::sound::small_button::SMALL_BUTTON_07,
+    crate::asset::sound::small_button::SMALL_BUTTON_08,
+    crate::asset::sound::small_button::SMALL_BUTTON_09,
+    crate::asset::sound::small_button::SMALL_BUTTON_10,
+    crate::asset::sound::small_button::SMALL_BUTTON_11,
+    crate::asset::sound::small_button::SMALL_BUTTON_12,
 ];
 
 const MURCHUNGA_ASSETS: [AudioAsset; 9] = [
@@ -159,8 +158,8 @@ const COIN_SOUNDS_ASSETS: [AudioAsset; 40] = [
     crate::asset::sound::coin_sounds::COIN_SOUNDS_39,
 ];
 
-pub fn random_bubble_pop() -> AudioAsset {
-    random_one(&BUBBLE_POP_ASSETS)
+pub fn random_small_button() -> AudioAsset {
+    random_one(&SMALL_BUTTON_ASSETS)
 }
 
 pub fn random_murchunga() -> AudioAsset {

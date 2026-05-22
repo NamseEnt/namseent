@@ -434,7 +434,7 @@ fn darken_color(color: Color, factor: f32) -> Color {
 }
 
 fn play_random_button_click_sound() {
-    let asset = sound::random_bubble_pop();
+    let asset = sound::random_small_button();
 
     sound::emit_sound(EmitSoundParams::one_shot(
         asset,
