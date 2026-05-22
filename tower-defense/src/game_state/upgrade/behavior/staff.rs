@@ -7,6 +7,10 @@ pub struct StaffUpgrade {
 }
 
 impl UpgradeBehavior for StaffUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.suit == Some(crate::card::Suit::Diamonds)
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Staff(upgrade) = upgrade {

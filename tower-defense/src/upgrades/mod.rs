@@ -1,9 +1,9 @@
 use crate::{
     animation::{with_spring, xy_with_spring},
-    card::{Card, Rank, Suit},
+    card::Card,
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{
-        tower::{Tower, TowerKind, TowerTemplate},
+        upgrade::{SelectedTowerContext, UpgradeBehavior},
         use_game_state,
     },
     hand::HandSlotId,
@@ -118,38 +118,6 @@ impl Component for Upgrades {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, State)]
-struct SelectedTowerContext {
-    kind: TowerKind,
-    suit: Option<Suit>,
-    rank: Option<Rank>,
-    rerolled_count: Option<usize>,
-}
-
-impl SelectedTowerContext {
-    fn from_tower(tower: &Tower) -> Self {
-        Self {
-            kind: tower.kind,
-            suit: tower.suit,
-            rank: tower.rank,
-            rerolled_count: None,
-        }
-    }
-
-    fn from_template(template: &TowerTemplate, rerolled_count: Option<usize>) -> Self {
-        Self {
-            kind: template.kind,
-            suit: template.suit,
-            rank: template.rank,
-            rerolled_count,
-        }
-    }
-
-    fn is_low_card_tower(&self) -> bool {
-        self.kind.is_low_card_tower()
-    }
-}
-
 fn get_active_tower_context(
     game_state: &crate::game_state::GameState,
     selected_slot_ids: &[HandSlotId],
@@ -206,32 +174,7 @@ fn is_upgrade_applicable(
     upgrade: &crate::game_state::upgrade::Upgrade,
     context: &SelectedTowerContext,
 ) -> bool {
-    match upgrade {
-        crate::game_state::upgrade::Upgrade::Staff(..) => context.suit == Some(Suit::Diamonds),
-        crate::game_state::upgrade::Upgrade::LongSword(..) => context.suit == Some(Suit::Spades),
-        crate::game_state::upgrade::Upgrade::Mace(..) => context.suit == Some(Suit::Hearts),
-        crate::game_state::upgrade::Upgrade::ClubSword(..) => context.suit == Some(Suit::Clubs),
-        crate::game_state::upgrade::Upgrade::SingleChopstick(..) => {
-            context.rank.is_some_and(|rank| !rank.is_even())
-        }
-        crate::game_state::upgrade::Upgrade::PairChopsticks(..) => {
-            context.rank.is_some_and(|rank| rank.is_even())
-        }
-        crate::game_state::upgrade::Upgrade::FountainPen(..) => {
-            context.rank.is_some_and(|rank| !rank.is_face())
-        }
-        crate::game_state::upgrade::Upgrade::Brush(..) => {
-            context.rank.is_some_and(|rank| rank.is_face())
-        }
-        crate::game_state::upgrade::Upgrade::Tricycle(..) => context.is_low_card_tower(),
-        crate::game_state::upgrade::Upgrade::PerfectPottery(..) => {
-            context.rerolled_count == Some(0)
-        }
-        crate::game_state::upgrade::Upgrade::BrokenPottery(..) => {
-            context.rerolled_count.is_some_and(|count| count > 0)
-        }
-        _ => false,
-    }
+    upgrade.is_applicable(context)
 }
 
 fn upgrade_kind_key(upgrade: &crate::game_state::upgrade::Upgrade) -> u128 {

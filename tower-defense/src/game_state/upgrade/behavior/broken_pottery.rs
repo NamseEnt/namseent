@@ -7,6 +7,10 @@ pub struct BrokenPotteryUpgrade {
 }
 
 impl UpgradeBehavior for BrokenPotteryUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rerolled_count.is_some_and(|count| count > 0)
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((TowerUpgradeTarget::RerolledTower, self.damage_bonus_pct))
     }

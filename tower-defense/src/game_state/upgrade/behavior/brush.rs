@@ -7,6 +7,10 @@ pub struct BrushUpgrade {
 }
 
 impl UpgradeBehavior for BrushUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rank.is_some_and(|rank| rank.is_face())
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::FaceNumber { face: true },

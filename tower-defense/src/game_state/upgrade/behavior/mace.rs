@@ -7,6 +7,10 @@ pub struct MaceUpgrade {
 }
 
 impl UpgradeBehavior for MaceUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.suit == Some(crate::card::Suit::Hearts)
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Mace(upgrade) = upgrade {

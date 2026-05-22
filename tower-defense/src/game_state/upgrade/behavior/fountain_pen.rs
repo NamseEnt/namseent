@@ -7,6 +7,10 @@ pub struct FountainPenUpgrade {
 }
 
 impl UpgradeBehavior for FountainPenUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rank.is_some_and(|rank| !rank.is_face())
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::FountainPen(upgrade) = upgrade {

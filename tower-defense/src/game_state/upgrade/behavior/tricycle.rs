@@ -7,6 +7,10 @@ pub struct TricycleUpgrade {
 }
 
 impl UpgradeBehavior for TricycleUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.is_low_card_tower()
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Tricycle(upgrade) = upgrade {

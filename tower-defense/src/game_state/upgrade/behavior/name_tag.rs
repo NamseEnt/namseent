@@ -9,6 +9,16 @@ pub struct NameTagUpgrade {
 }
 
 impl UpgradeBehavior for NameTagUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        match (context.tower_id, self.target_tower_id) {
+            (SelectedTowerId::Placed(selected_tower_id), Some(target_tower_id)) => {
+                selected_tower_id == target_tower_id
+            }
+            (SelectedTowerId::ToBePlaced, None) => true,
+            _ => false,
+        }
+    }
+
     fn on_tower_placed(
         &mut self,
         _game_state: &mut GameState,

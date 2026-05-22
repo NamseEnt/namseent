@@ -7,6 +7,10 @@ pub struct LongSwordUpgrade {
 }
 
 impl UpgradeBehavior for LongSwordUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.suit == Some(crate::card::Suit::Spades)
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::LongSword(upgrade) = upgrade {

@@ -7,6 +7,10 @@ pub struct PerfectPotteryUpgrade {
 }
 
 impl UpgradeBehavior for PerfectPotteryUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rerolled_count == Some(0)
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::PerfectPottery(upgrade) = upgrade {

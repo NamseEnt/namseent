@@ -7,6 +7,10 @@ pub struct ClubSwordUpgrade {
 }
 
 impl UpgradeBehavior for ClubSwordUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.suit == Some(crate::card::Suit::Clubs)
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::Suit {
