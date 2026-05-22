@@ -78,12 +78,9 @@ mod tests {
             crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(0.5),
         ]);
 
-        assert!(
-            state
-                .upgrades
-                .iter()
-                .any(|u| { matches!(u, Upgrade::ShoppingBag(upgrade) if upgrade.stacks == 0) })
-        );
+        assert!(state.upgrades.iter().any(|u| {
+            matches!(u.upgrade, Upgrade::ShoppingBag(upgrade) if upgrade.stacks == 0)
+        }));
     }
 
     #[test]

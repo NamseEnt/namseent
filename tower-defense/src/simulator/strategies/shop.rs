@@ -181,7 +181,7 @@ impl SynergyShopStrategy {
     fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
         let current_score = total_tower_score(game_state, &game_state.upgrade_state);
         let mut upgraded_state = game_state.upgrade_state.clone();
-        upgraded_state.upgrades.push(upgrade);
+        upgraded_state.upgrades.push(upgrade.with_unique_id());
         let next_score = total_tower_score(game_state, &upgraded_state);
         let delta = next_score - current_score;
         delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade))

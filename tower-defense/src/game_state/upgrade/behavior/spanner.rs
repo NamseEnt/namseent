@@ -5,7 +5,7 @@ pub struct SpannerUpgrade;
 
 impl UpgradeBehavior for SpannerUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state.upgrade_state.upgrades.push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::CACHE
     }
 

@@ -111,7 +111,7 @@ mod tests {
         ));
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
-            if let Upgrade::NameTag(upgrade) = upgrade {
+            if let Upgrade::NameTag(upgrade) = &upgrade.upgrade {
                 (upgrade.damage_bonus_pct - 2.0).abs() < f32::EPSILON
             } else {
                 false

@@ -5,6 +5,7 @@ use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::*;
 use enum_dispatch::enum_dispatch;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
 // Upgrade Trait and Structs
@@ -119,7 +120,10 @@ pub trait UpgradeBehavior {
     where
         Self: Sized + Into<Upgrade>,
     {
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(self.into().with_unique_id());
         UpgradeUpdateFlags::NONE
     }
 
@@ -354,6 +358,52 @@ pub enum Upgrade {
     MembershipCard(MembershipCardUpgrade),
     Eraser(EraserUpgrade),
     BrokenPottery(BrokenPotteryUpgrade),
+}
+
+#[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
+pub struct UpgradeId(pub u64);
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct UpgradeWithId {
+    pub id: UpgradeId,
+    pub upgrade: Upgrade,
+}
+
+static NEXT_UPGRADE_ID: AtomicU64 = AtomicU64::new(1);
+
+impl UpgradeWithId {
+    pub fn new(upgrade: Upgrade) -> Self {
+        Self {
+            id: UpgradeId(NEXT_UPGRADE_ID.fetch_add(1, Ordering::Relaxed)),
+            upgrade,
+        }
+    }
+}
+
+impl std::ops::Deref for UpgradeWithId {
+    type Target = Upgrade;
+
+    fn deref(&self) -> &Self::Target {
+        &self.upgrade
+    }
+}
+
+impl std::ops::DerefMut for UpgradeWithId {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.upgrade
+    }
+}
+
+impl PartialEq<Upgrade> for UpgradeWithId {
+    fn eq(&self, other: &Upgrade) -> bool {
+        self.upgrade == *other
+    }
+}
+
+impl Upgrade {
+    pub fn with_unique_id(self) -> UpgradeWithId {
+        UpgradeWithId::new(self)
+    }
 }
 
 impl UpgradeDiscriminants {

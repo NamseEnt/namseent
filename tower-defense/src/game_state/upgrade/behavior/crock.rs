@@ -36,7 +36,7 @@ impl UpgradeBehavior for CrockUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         let mut upgrade = self;
         let flags = upgrade.update_step_from_gold(game_state);
-        game_state.upgrade_state.upgrades.push(upgrade.into());
+        game_state.upgrade_state.upgrades.push(Upgrade::from(upgrade).with_unique_id());
         flags
     }
 

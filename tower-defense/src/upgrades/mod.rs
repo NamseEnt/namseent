@@ -61,13 +61,13 @@ impl Component for Upgrades {
                 .map(|upgrade| {
                     let is_applicable = active_tower_context
                         .as_ref()
-                        .is_some_and(|context| is_upgrade_applicable(upgrade, &context));
-                    (*upgrade, is_applicable)
+                        .is_some_and(|context| is_upgrade_applicable(&upgrade.upgrade, &context));
+                    (upgrade.id.0 as u128, upgrade.upgrade, is_applicable)
                 })
                 .collect::<Vec<_>>();
 
             if active_tower_context.is_some() {
-                upgrade_infos.sort_by(|(_, a), (_, b)| b.cmp(a));
+                upgrade_infos.sort_by(|(_, _, a), (_, _, b)| b.cmp(a));
             }
 
             upgrade_infos
@@ -81,14 +81,13 @@ impl Component for Upgrades {
                 wh,
                 scroll_bar_width: PADDING,
                 content: |ctx| {
-                    for (index, (upgrade_kind, is_applicable)) in
+                    for (index, (upgrade_id, upgrade_kind, is_applicable)) in
                         upgrade_infos.iter().cloned().enumerate()
                     {
-                        let key = upgrade_kind_key(&upgrade_kind);
                         let target_xy = Xy::new(0.px(), item_offset * index as f32);
 
                         ctx.add_with_key(
-                            key,
+                            upgrade_id,
                             UpgradeThumbnailItem {
                                 wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
                                 upgrade_kind,
@@ -175,31 +174,6 @@ fn is_upgrade_applicable(
     context: &SelectedTowerContext,
 ) -> bool {
     upgrade.is_applicable(context)
-}
-
-fn upgrade_kind_key(upgrade: &crate::game_state::upgrade::Upgrade) -> u128 {
-    match upgrade {
-        crate::game_state::upgrade::Upgrade::Cat(..) => 0,
-        crate::game_state::upgrade::Upgrade::Staff(..) => 1,
-        crate::game_state::upgrade::Upgrade::LongSword(..) => 2,
-        crate::game_state::upgrade::Upgrade::Mace(..) => 3,
-        crate::game_state::upgrade::Upgrade::ClubSword(..) => 4,
-        crate::game_state::upgrade::Upgrade::Backpack(..) => 5,
-        crate::game_state::upgrade::Upgrade::DiceBundle(..) => 6,
-        crate::game_state::upgrade::Upgrade::Tricycle(..) => 7,
-        crate::game_state::upgrade::Upgrade::EnergyDrink(..) => 8,
-        crate::game_state::upgrade::Upgrade::PerfectPottery(..) => 9,
-        crate::game_state::upgrade::Upgrade::SingleChopstick(..) => 10,
-        crate::game_state::upgrade::Upgrade::PairChopsticks(..) => 11,
-        crate::game_state::upgrade::Upgrade::FountainPen(..) => 12,
-        crate::game_state::upgrade::Upgrade::Brush(..) => 13,
-        crate::game_state::upgrade::Upgrade::FourLeafClover(..) => 14,
-        crate::game_state::upgrade::Upgrade::Rabbit(..) => 15,
-        crate::game_state::upgrade::Upgrade::BlackWhite(..) => 16,
-        crate::game_state::upgrade::Upgrade::Eraser(..) => 17,
-        crate::game_state::upgrade::Upgrade::BrokenPottery(..) => 18,
-        _ => 1000,
-    }
 }
 
 struct UpgradeThumbnailItem {

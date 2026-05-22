@@ -11,7 +11,7 @@ pub struct TapeUpgrade {
 impl UpgradeBehavior for TapeUpgrade {
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.acquired_stage = game_state.stage;
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state.upgrade_state.upgrades.push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::NONE
     }
 

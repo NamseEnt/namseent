@@ -9,7 +9,10 @@ pub struct DemolitionHammerUpgrade {
 
 impl UpgradeBehavior for DemolitionHammerUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 
@@ -155,11 +158,11 @@ mod tests {
         assert_eq!(upgrade_bonuses.len(), 1);
         assert!((upgrade_bonuses[0].bonus_pct - 4.0).abs() < f32::EPSILON);
         assert!(matches!(
-            game_state.upgrade_state.upgrades[0],
+            game_state.upgrade_state.upgrades[0].upgrade,
             crate::game_state::upgrade::Upgrade::DemolitionHammer(..)
         ));
         if let crate::game_state::upgrade::Upgrade::DemolitionHammer(upgrade) =
-            game_state.upgrade_state.upgrades[0]
+            game_state.upgrade_state.upgrades[0].upgrade
         {
             assert_eq!(upgrade.removed_tower_count, 0);
         }
