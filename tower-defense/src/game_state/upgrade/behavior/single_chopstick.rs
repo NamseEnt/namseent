@@ -19,7 +19,10 @@ impl UpgradeBehavior for SingleChopstickUpgrade {
             }
         }
 
-        game_state.upgrade_state.upgrades.push(Upgrade::from(self).with_unique_id());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 
