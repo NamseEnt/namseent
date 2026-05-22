@@ -8,7 +8,7 @@ use crate::{
         flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state,
-        tower::{AnimationKind, Tower, TowerTemplate},
+        tower::{AnimationKind, TowerTemplate, Tower},
         use_game_state,
     },
     palette,
@@ -87,8 +87,8 @@ impl Component for TowerCursorPreview<'_> {
         ctx.add(TowerSpriteWithOverlay {
             image: tower_image,
             wh: tower_image.info().wh(),
-            suit: Some(tower_template.suit),
-            rank: Some(tower_template.rank),
+            suit: tower_template.suit,
+            rank: tower_template.rank,
             alpha: 0.5,
         });
         ctx.add(TowerAttackRange {

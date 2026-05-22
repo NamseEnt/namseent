@@ -44,6 +44,7 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
         1.0 + tower.animation.y_ratio_offset * -0.5,
         1.0 + tower.animation.y_ratio_offset,
     );
+
     ctx.translate(TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1))
         .translate((image_wh.width * 0.5, image_wh.height))
         .scale(scale)
@@ -51,8 +52,8 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
         .add(TowerSpriteWithOverlay {
             image,
             wh: image_wh,
-            suit: Some(tower.suit),
-            rank: Some(tower.rank),
+            suit: tower.suit,
+            rank: tower.rank,
             alpha,
         });
 }

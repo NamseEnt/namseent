@@ -18,8 +18,8 @@ impl Component for RenderTower<'_> {
         ctx.add(TowerSpriteWithOverlay {
             image: tower_image,
             wh,
-            suit: Some(tower_template.suit),
-            rank: Some(tower_template.rank),
+            suit: tower_template.suit,
+            rank: tower_template.rank,
             alpha: 1.0,
         });
 

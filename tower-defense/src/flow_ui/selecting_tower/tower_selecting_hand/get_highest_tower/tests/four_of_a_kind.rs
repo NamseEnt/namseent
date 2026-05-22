@@ -22,7 +22,7 @@ fn test_four_of_a_kind() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::FourOfAKind);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -43,5 +43,5 @@ fn test_five_of_a_kind_is_treated_as_four_of_a_kind() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::FourOfAKind);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }

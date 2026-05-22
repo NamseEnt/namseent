@@ -121,8 +121,8 @@ impl Component for Upgrades {
 #[derive(Clone, Copy, PartialEq, Eq, State)]
 struct SelectedTowerContext {
     kind: TowerKind,
-    suit: Suit,
-    rank: Rank,
+    suit: Option<Suit>,
+    rank: Option<Rank>,
     rerolled_count: Option<usize>,
 }
 
@@ -207,14 +207,22 @@ fn is_upgrade_applicable(
     context: &SelectedTowerContext,
 ) -> bool {
     match upgrade {
-        crate::game_state::upgrade::Upgrade::Staff(..) => context.suit == Suit::Diamonds,
-        crate::game_state::upgrade::Upgrade::LongSword(..) => context.suit == Suit::Spades,
-        crate::game_state::upgrade::Upgrade::Mace(..) => context.suit == Suit::Hearts,
-        crate::game_state::upgrade::Upgrade::ClubSword(..) => context.suit == Suit::Clubs,
-        crate::game_state::upgrade::Upgrade::SingleChopstick(..) => !context.rank.is_even(),
-        crate::game_state::upgrade::Upgrade::PairChopsticks(..) => context.rank.is_even(),
-        crate::game_state::upgrade::Upgrade::FountainPen(..) => !context.rank.is_face(),
-        crate::game_state::upgrade::Upgrade::Brush(..) => context.rank.is_face(),
+        crate::game_state::upgrade::Upgrade::Staff(..) => context.suit == Some(Suit::Diamonds),
+        crate::game_state::upgrade::Upgrade::LongSword(..) => context.suit == Some(Suit::Spades),
+        crate::game_state::upgrade::Upgrade::Mace(..) => context.suit == Some(Suit::Hearts),
+        crate::game_state::upgrade::Upgrade::ClubSword(..) => context.suit == Some(Suit::Clubs),
+        crate::game_state::upgrade::Upgrade::SingleChopstick(..) => {
+            context.rank.is_some_and(|rank| !rank.is_even())
+        }
+        crate::game_state::upgrade::Upgrade::PairChopsticks(..) => {
+            context.rank.is_some_and(|rank| rank.is_even())
+        }
+        crate::game_state::upgrade::Upgrade::FountainPen(..) => {
+            context.rank.is_some_and(|rank| !rank.is_face())
+        }
+        crate::game_state::upgrade::Upgrade::Brush(..) => {
+            context.rank.is_some_and(|rank| rank.is_face())
+        }
         crate::game_state::upgrade::Upgrade::Tricycle(..) => context.is_low_card_tower(),
         crate::game_state::upgrade::Upgrade::PerfectPottery(..) => {
             context.rerolled_count == Some(0)

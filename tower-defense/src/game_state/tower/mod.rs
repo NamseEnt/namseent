@@ -226,10 +226,11 @@ impl Tower {
         self.id
     }
 
-    pub fn rank(&self) -> Rank {
+    pub fn rank(&self) -> Option<Rank> {
         self.template.rank
     }
-    pub fn suit(&self) -> Suit {
+
+    pub fn suit(&self) -> Option<Suit> {
         self.template.suit
     }
 
@@ -294,13 +295,17 @@ pub struct TowerTemplate {
     pub shoot_interval: Duration,
     pub default_attack_range_radius: f32,
     pub default_damage: f32,
-    pub suit: Suit,
-    pub rank: Rank,
+    pub suit: Option<Suit>,
+    pub rank: Option<Rank>,
     pub skill_templates: Vec<TowerSkillTemplate>,
     pub default_status_effects: Vec<TowerStatusEffect>,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
+        Self::new_optional(kind, Some(suit), Some(rank))
+    }
+
+    pub fn new_optional(kind: TowerKind, suit: Option<Suit>, rank: Option<Rank>) -> Self {
         Self {
             kind,
             rerolled_count: 0,
@@ -315,7 +320,15 @@ impl TowerTemplate {
     }
 
     pub fn barricade() -> Self {
-        Self::new(TowerKind::Barricade, Suit::Spades, Rank::Ace)
+        Self::new_optional(TowerKind::Barricade, None, None)
+    }
+
+    pub fn suit(&self) -> Option<Suit> {
+        self.suit
+    }
+
+    pub fn rank(&self) -> Option<Rank> {
+        self.rank
     }
 
     pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {

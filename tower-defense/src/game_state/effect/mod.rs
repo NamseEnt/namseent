@@ -99,8 +99,8 @@ pub enum Effect {
     },
     AddTowerCardToPlacementHand {
         tower_kind: TowerKind,
-        suit: Suit,
-        rank: Rank,
+        suit: Option<Suit>,
+        rank: Option<Rank>,
         count: usize,
     },
     AddCardToHand {
@@ -290,11 +290,13 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         } => {
             for _ in 0..*count {
                 if matches!(game_state.flow, GameFlow::PlacingTower) {
-                    game_state.hand.push(HandItem::Tower(TowerTemplate::new(
-                        *tower_kind,
-                        *suit,
-                        *rank,
-                    )));
+                    game_state
+                        .hand
+                        .push(HandItem::Tower(TowerTemplate::new_optional(
+                            *tower_kind,
+                            *suit,
+                            *rank,
+                        )));
                 } else {
                     game_state
                         .stage_modifiers

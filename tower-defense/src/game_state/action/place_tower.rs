@@ -14,8 +14,8 @@ pub(super) fn record_history_event(game_state: &mut GameState, tower: &Tower) {
     game_state.record_event(
         crate::game_state::play_history::HistoryEventType::TowerPlaced {
             tower_kind: tower.kind,
-            rank: tower.rank,
-            suit: tower.suit,
+            rank: tower.rank().unwrap_or(Rank::Ace),
+            suit: tower.suit().unwrap_or(Suit::Spades),
             left_top: tower.left_top,
         },
     );

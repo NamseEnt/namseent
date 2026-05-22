@@ -12,13 +12,14 @@ use namui::*;
 use rand::Rng;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-/// 데미지를 가한 타워의 신원 정보. 두 개의 Optional 필드로 분리되지 않도록 단일 struct로 통합.
+/// 데미지를 가한 타워의 신원 정보. rank와 suit는 optional로 둬서
+/// 일부 타워에서 값이 없을 때도 안전하게 처리할 수 있다.
 #[derive(Clone, Copy, Debug, PartialEq, State)]
 pub struct TowerInfo {
     pub id: usize,
     pub kind: crate::game_state::tower::TowerKind,
-    pub rank: Rank,
-    pub suit: Suit,
+    pub rank: Option<Rank>,
+    pub suit: Option<Suit>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]

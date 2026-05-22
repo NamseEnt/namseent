@@ -103,8 +103,8 @@ impl Component for TowerDamageRow {
                     ctx.add(TowerSpriteWithOverlay {
                         image: (stat.tower_kind, AnimationKind::Idle1).image(),
                         wh,
-                        suit: Some(stat.suit),
-                        rank: Some(stat.rank),
+                        suit: stat.suit,
+                        rank: stat.rank,
                         alpha: 1.0,
                     });
                 }),

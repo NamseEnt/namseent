@@ -128,7 +128,7 @@ impl Component for AddTowerCardTool {
                         .push(HandItem::Tower(TowerTemplate::new(kind, suit, rank)));
                 } else {
                     gs.stage_modifiers
-                        .enqueue_extra_tower_card(kind, suit, rank);
+                        .enqueue_extra_tower_card(kind, Some(suit), Some(rank));
                 }
             });
         };

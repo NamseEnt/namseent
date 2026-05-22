@@ -71,9 +71,13 @@ impl TowerUpgradeTarget {
     ) -> bool {
         match self {
             TowerUpgradeTarget::Global => true,
-            TowerUpgradeTarget::Suit { suit } => *suit == tower_template.suit,
-            TowerUpgradeTarget::EvenOdd { even } => *even == tower_template.rank.is_even(),
-            TowerUpgradeTarget::FaceNumber { face } => *face == tower_template.rank.is_face(),
+            TowerUpgradeTarget::Suit { suit } => tower_template.suit == Some(*suit),
+            TowerUpgradeTarget::EvenOdd { even } => tower_template
+                .rank
+                .is_some_and(|rank| *even == rank.is_even()),
+            TowerUpgradeTarget::FaceNumber { face } => tower_template
+                .rank
+                .is_some_and(|rank| *face == rank.is_face()),
             TowerUpgradeTarget::LowCardTower => tower_template.kind.is_low_card_tower(),
             TowerUpgradeTarget::NoRerollTower => true, // NoRerollTower target is only relevant for placed towers, so it applies to all templates.
             TowerUpgradeTarget::RerolledTower => true, // RerolledTower target is only relevant for placed towers, so it applies to all templates.

@@ -137,16 +137,20 @@ impl EffectText {
                     tower_kind,
                 } => {
                     let tower_kind_text = tower_kind.to_text().to_korean();
-                    if tower_kind == crate::game_state::tower::TowerKind::Barricade {
-                        builder.with_style(|b| {
-                            b.bold()
-                                .text(format!("{} {}장 획득", tower_kind_text, count));
-                        })
-                    } else {
-                        builder.with_icon_bold(
+                    match (tower_kind, suit, rank) {
+                        (crate::game_state::tower::TowerKind::Barricade, _, _) => builder
+                            .with_style(|b| {
+                                b.bold()
+                                    .text(format!("{} {}장 획득", tower_kind_text, count));
+                            }),
+                        (_, Some(suit), Some(rank)) => builder.with_icon_bold(
                             IconKind::Suit { suit },
                             format!("{} {} {}장 획득", rank, tower_kind_text, count),
-                        )
+                        ),
+                        _ => builder.with_style(|b| {
+                            b.bold()
+                                .text(format!("{} {}장 획득", tower_kind_text, count));
+                        }),
                     }
                 }
                 Effect::AddCardToHand { card } => builder
@@ -301,16 +305,20 @@ impl EffectText {
                     count,
                 } => {
                     let tower_kind_text = tower_kind.to_text().to_english();
-                    if tower_kind == crate::game_state::tower::TowerKind::Barricade {
-                        builder.with_style(|b| {
-                            b.bold()
-                                .text(format!("{} {} cards", tower_kind_text, count));
-                        })
-                    } else {
-                        builder.text("Get ").with_icon_bold(
+                    match (tower_kind, suit, rank) {
+                        (crate::game_state::tower::TowerKind::Barricade, _, _) => builder
+                            .with_style(|b| {
+                                b.bold()
+                                    .text(format!("{} {} cards", tower_kind_text, count));
+                            }),
+                        (_, Some(suit), Some(rank)) => builder.text("Get ").with_icon_bold(
                             IconKind::Suit { suit },
                             format!("{} {} {} cards", rank, tower_kind_text, count),
-                        )
+                        ),
+                        _ => builder.with_style(|b| {
+                            b.bold()
+                                .text(format!("{} {} cards", tower_kind_text, count));
+                        }),
                     }
                 }
                 Effect::AddCardToHand { card } => builder

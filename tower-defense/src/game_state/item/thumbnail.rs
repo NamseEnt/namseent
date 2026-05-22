@@ -185,16 +185,23 @@ impl Effect {
                 suit,
                 rank,
                 ..
-            } => match tower_kind {
-                crate::TowerKind::Barricade => ThumbnailComposer::new(width_height)
-                    .with_tower_image(*tower_kind)
-                    .build(),
-                _ => ThumbnailComposer::new(width_height)
-                    .with_tower_image(*tower_kind)
-                    .add_rank_overlay(*rank)
-                    .add_suit_overlay(*suit)
-                    .build(),
-            },
+            } => {
+                let suit = *suit;
+                let rank = *rank;
+                match (tower_kind, suit, rank) {
+                    (crate::TowerKind::Barricade, _, _) => ThumbnailComposer::new(width_height)
+                        .with_tower_image(*tower_kind)
+                        .build(),
+                    (_, Some(suit), Some(rank)) => ThumbnailComposer::new(width_height)
+                        .with_tower_image(*tower_kind)
+                        .add_rank_overlay(rank)
+                        .add_suit_overlay(suit)
+                        .build(),
+                    _ => ThumbnailComposer::new(width_height)
+                        .with_tower_image(*tower_kind)
+                        .build(),
+                }
+            }
             Effect::AddCardToHand { card } => {
                 render_card_thumbnail(card, width_height, STICKER_THUMBNAIL_STROKE, false)
             }

@@ -26,8 +26,8 @@ fn test_royal_flush() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert_eq!(template.suit, Suit::Hearts);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.suit.unwrap(), Suit::Hearts);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -68,8 +68,8 @@ fn test_royal_flush_4cards_with_upgrade() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert_eq!(template.suit, Suit::Hearts);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.suit.unwrap(), Suit::Hearts);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -91,8 +91,8 @@ fn test_royal_flush_skip_rank() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::High);
-    assert_eq!(template.suit, Suit::Hearts);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.suit.unwrap(), Suit::Hearts);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -115,8 +115,8 @@ fn test_royal_flush_skip_rank_and_shorten_4cards() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert_eq!(template.suit, Suit::Hearts);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.suit.unwrap(), Suit::Hearts);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -139,8 +139,8 @@ fn test_royal_flush_treat_suits_as_same() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
-    assert_eq!(template.rank, Rank::Ace);
+    assert!(template.suit.unwrap() == Suit::Hearts || template.suit.unwrap() == Suit::Diamonds);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -163,8 +163,8 @@ fn test_royal_flush_treat_suits_as_same_and_shorten_4cards() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
-    assert_eq!(template.rank, Rank::Ace);
+    assert!(template.suit.unwrap() == Suit::Hearts || template.suit.unwrap() == Suit::Diamonds);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
 
 #[test]
@@ -188,6 +188,6 @@ fn test_royal_flush_treat_suits_as_same_and_shorten_4cards_and_skip_rank_for_str
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::RoyalFlush);
-    assert!(template.suit == Suit::Hearts || template.suit == Suit::Diamonds);
-    assert_eq!(template.rank, Rank::Ace);
+    assert!(template.suit.unwrap() == Suit::Hearts || template.suit.unwrap() == Suit::Diamonds);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }
