@@ -393,7 +393,7 @@ fn render_map_border_gradient(ctx: &RenderCtx, _game_state: &GameState) {
     let map_px_w = MAP_SIZE.width as f32 * TILE_PX_SIZE.width.as_f32();
     let map_px_h = MAP_SIZE.height as f32 * TILE_PX_SIZE.height.as_f32();
     let grad_px = MAP_OUTSIDE_MARGIN_TILES * TILE_PX_SIZE.width.as_f32(); // 4 tiles of gradient
-    let dark = Color::from_u8(0, 0, 0, 192);
+    let dark = Color::from_u8(0, 0, 0, 96);
     let transparent = Color::from_u8(0, 0, 0, 0);
 
     // Left strip: trapezoid
