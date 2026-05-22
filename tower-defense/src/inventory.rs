@@ -2,7 +2,7 @@ use crate::animation::with_spring;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::{
     game_state::{item::use_item, mutate_game_state, use_game_state},
-    palette,
+    palette, sound,
     theme::typography::{FontSize, memoized_text},
 };
 use namui::*;
@@ -152,6 +152,12 @@ impl Component for InventoryItem<'_> {
                             }
                         }
                         Event::MouseDown { event } if event.is_local_xy_in() => {
+                            sound::emit_sound(sound::EmitSoundParams::one_shot(
+                                sound::random_small_button(),
+                                sound::SoundGroup::Ui,
+                                sound::VolumePreset::Medium,
+                                sound::SpatialMode::NonSpatial,
+                            ));
                             mutate_game_state(move |game_state| {
                                 let item = game_state.items.remove(index);
                                 use_item(game_state, &item);
