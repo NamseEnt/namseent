@@ -8,7 +8,7 @@ use crate::{
         flow::GameFlow,
         hand::HandSlotId,
         mutate_game_state,
-        tower::{AnimationKind, TowerTemplate, Tower},
+        tower::{AnimationKind, Tower, TowerTemplate},
         use_game_state,
     },
     palette,

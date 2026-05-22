@@ -8,7 +8,10 @@ pub struct IceCreamUpgrade {
 
 impl UpgradeBehavior for IceCreamUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.upgrade_state.upgrades.push(Upgrade::from(self).with_unique_id());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 
