@@ -142,10 +142,7 @@ pub fn reset_render_arena() {
 /// valid until the next `swap_arena_slot` call on the same slot. This is the
 /// pattern for receivers (e.g. the wasm drawer) that need to keep the most
 /// recent decoded tree alive across cheap "redraw with last tree" calls.
-pub fn swap_arena_slot<T>(
-    slot: &'static LocalKey<RefCell<Option<T>>>,
-    build: impl FnOnce() -> T,
-) {
+pub fn swap_arena_slot<T>(slot: &'static LocalKey<RefCell<Option<T>>>, build: impl FnOnce() -> T) {
     slot.with(|cell| {
         *cell.borrow_mut() = None;
     });
