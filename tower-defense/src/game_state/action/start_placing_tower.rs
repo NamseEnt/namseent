@@ -7,7 +7,7 @@ pub(super) fn collect_tower_hand(
 ) -> Vec<TowerTemplate> {
     let mut hand_items = vec![initial_tower];
     for (tower_kind, suit, rank) in game_state.stage_modifiers.drain_extra_tower_cards() {
-        hand_items.push(TowerTemplate::new(tower_kind, suit, rank));
+        hand_items.push(TowerTemplate::new_optional(tower_kind, suit, rank));
     }
     hand_items
 }

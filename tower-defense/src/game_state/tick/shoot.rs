@@ -20,10 +20,16 @@ pub fn shoot_attacks(game_state: &mut GameState) {
             if tower.in_cooltime() {
                 continue;
             }
-            if stage_modifiers.get_disabled_ranks().contains(&tower.rank()) {
+            if tower
+                .rank()
+                .is_some_and(|rank| stage_modifiers.get_disabled_ranks().contains(&rank))
+            {
                 continue;
             }
-            if stage_modifiers.get_disabled_suits().contains(&tower.suit()) {
+            if tower
+                .suit()
+                .is_some_and(|suit| stage_modifiers.get_disabled_suits().contains(&suit))
+            {
                 continue;
             }
 

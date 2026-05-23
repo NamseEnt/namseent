@@ -26,8 +26,8 @@ fn test_flush() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Flush);
-    assert_eq!(template.suit, Suit::Spades);
-    assert_eq!(template.rank, Rank::Queen);
+    assert_eq!(template.suit.unwrap(), Suit::Spades);
+    assert_eq!(template.rank.unwrap(), Rank::Queen);
 }
 
 #[test]
@@ -69,8 +69,8 @@ fn test_flush_4cards_with_upgrade() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Flush);
-    assert_eq!(template.suit, Suit::Spades);
-    assert_eq!(template.rank, Rank::Jack);
+    assert_eq!(template.suit.unwrap(), Suit::Spades);
+    assert_eq!(template.rank.unwrap(), Rank::Jack);
 }
 
 #[test]
@@ -93,8 +93,8 @@ fn test_flush_treat_suits_as_same() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Flush);
-    assert!(template.suit == Suit::Spades || template.suit == Suit::Clubs);
-    assert_eq!(template.rank, Rank::Queen);
+    assert!(template.suit.unwrap() == Suit::Spades || template.suit.unwrap() == Suit::Clubs);
+    assert_eq!(template.rank.unwrap(), Rank::Queen);
 }
 
 #[test]
@@ -117,6 +117,6 @@ fn test_flush_treat_suits_as_same_and_shorten_4cards() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Flush);
-    assert!(template.suit == Suit::Spades || template.suit == Suit::Clubs);
-    assert_eq!(template.rank, Rank::Jack);
+    assert!(template.suit.unwrap() == Suit::Spades || template.suit.unwrap() == Suit::Clubs);
+    assert_eq!(template.rank.unwrap(), Rank::Jack);
 }

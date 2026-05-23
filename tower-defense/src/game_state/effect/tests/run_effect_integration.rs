@@ -174,8 +174,8 @@ fn add_tower_card_to_placement_hand_flow_dependent() {
         &mut gs,
         &Effect::AddTowerCardToPlacementHand {
             tower_kind: crate::game_state::tower::TowerKind::Barricade,
-            suit: crate::card::Suit::Spades,
-            rank: crate::card::Rank::Ace,
+            suit: None,
+            rank: None,
             count: 1,
         },
     );
@@ -191,8 +191,8 @@ fn add_tower_card_to_placement_hand_flow_dependent() {
         &mut gs,
         &Effect::AddTowerCardToPlacementHand {
             tower_kind: crate::game_state::tower::TowerKind::Barricade,
-            suit: crate::card::Suit::Spades,
-            rank: crate::card::Rank::Ace,
+            suit: None,
+            rank: None,
             count: 1,
         },
     );

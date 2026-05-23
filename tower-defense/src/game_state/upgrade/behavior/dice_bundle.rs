@@ -9,13 +9,16 @@ pub struct DiceBundleUpgrade {
 impl UpgradeBehavior for DiceBundleUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
-            if let Upgrade::DiceBundle(upgrade) = upgrade {
+            if let Upgrade::DiceBundle(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
                 return UpgradeUpdateFlags::NONE;
             }
         }
 
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::NONE
     }
 

@@ -7,19 +7,26 @@ pub struct BrokenPotteryUpgrade {
 }
 
 impl UpgradeBehavior for BrokenPotteryUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rerolled_count.is_some_and(|count| count > 0)
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((TowerUpgradeTarget::RerolledTower, self.damage_bonus_pct))
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
-            if let Upgrade::BrokenPottery(upgrade) = upgrade {
+            if let Upgrade::BrokenPottery(upgrade) = &mut upgrade.upgrade {
                 upgrade.damage_bonus_pct += self.damage_bonus_pct;
                 return UpgradeUpdateFlags::TOWER_STATS;
             }
         }
 
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 

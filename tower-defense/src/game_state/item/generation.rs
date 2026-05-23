@@ -48,8 +48,8 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
                 crate::game_state::item::ItemKind::GrantBarricades,
                 Effect::AddTowerCardToPlacementHand {
                     tower_kind: crate::game_state::tower::TowerKind::Barricade,
-                    suit: crate::card::Suit::Spades,
-                    rank: crate::card::Rank::Ace,
+                    suit: None,
+                    rank: None,
                     count,
                 },
             )

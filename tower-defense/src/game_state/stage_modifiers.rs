@@ -59,7 +59,7 @@ pub struct Restrictions {
 
 #[derive(Clone, Debug, Default, State)]
 pub struct StageGrants {
-    pub extra_tower_cards: Vec<(TowerKind, Suit, Rank)>,
+    pub extra_tower_cards: Vec<(TowerKind, Option<Suit>, Option<Rank>)>,
 }
 
 #[derive(Clone, Debug, State)]
@@ -167,7 +167,7 @@ impl StageModifiers {
     pub fn get_disabled_suits(&self) -> &Vec<Suit> {
         &self.restrictions.disabled_suits
     }
-    pub fn drain_extra_tower_cards(&mut self) -> Vec<(TowerKind, Suit, Rank)> {
+    pub fn drain_extra_tower_cards(&mut self) -> Vec<(TowerKind, Option<Suit>, Option<Rank>)> {
         std::mem::take(&mut self.stage_grants.extra_tower_cards)
     }
 
@@ -241,7 +241,12 @@ impl StageModifiers {
         }
     }
 
-    pub fn enqueue_extra_tower_card(&mut self, kind: TowerKind, suit: Suit, rank: Rank) {
+    pub fn enqueue_extra_tower_card(
+        &mut self,
+        kind: TowerKind,
+        suit: Option<Suit>,
+        rank: Option<Rank>,
+    ) {
         self.stage_grants.extra_tower_cards.push((kind, suit, rank));
     }
 }

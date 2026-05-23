@@ -1,10 +1,11 @@
 use super::state::UpgradeState;
 use super::*;
 use crate::game_state::GameState;
-use crate::game_state::tower::Tower;
+use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::*;
 use enum_dispatch::enum_dispatch;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
 // Upgrade Trait and Structs
@@ -41,6 +42,10 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
 /// Common trait for all upgrade behaviors
 #[enum_dispatch]
 pub trait UpgradeBehavior {
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        false
+    }
+
     fn on_tower_placed(
         &mut self,
         _game_state: &mut GameState,
@@ -115,7 +120,10 @@ pub trait UpgradeBehavior {
     where
         Self: Sized + Into<Upgrade>,
     {
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(self.into().with_unique_id());
         UpgradeUpdateFlags::NONE
     }
 
@@ -180,6 +188,47 @@ impl UpgradeDefinition {
 
 pub(super) fn no_current_and_max(_upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
     None
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, State)]
+pub enum SelectedTowerId {
+    Placed(usize),
+    ToBePlaced,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, State)]
+pub struct SelectedTowerContext {
+    pub tower_id: SelectedTowerId,
+    pub kind: TowerKind,
+    pub suit: Option<crate::card::Suit>,
+    pub rank: Option<crate::card::Rank>,
+    pub rerolled_count: Option<usize>,
+}
+
+impl SelectedTowerContext {
+    pub fn from_tower(tower: &Tower) -> Self {
+        Self {
+            tower_id: SelectedTowerId::Placed(tower.id()),
+            kind: tower.kind,
+            suit: tower.suit,
+            rank: tower.rank,
+            rerolled_count: None,
+        }
+    }
+
+    pub fn from_template(template: &TowerTemplate, rerolled_count: Option<usize>) -> Self {
+        Self {
+            tower_id: SelectedTowerId::ToBePlaced,
+            kind: template.kind,
+            suit: template.suit,
+            rank: template.rank,
+            rerolled_count,
+        }
+    }
+
+    pub fn is_low_card_tower(&self) -> bool {
+        self.kind.is_low_card_tower()
+    }
 }
 
 mod backpack;
@@ -309,6 +358,52 @@ pub enum Upgrade {
     MembershipCard(MembershipCardUpgrade),
     Eraser(EraserUpgrade),
     BrokenPottery(BrokenPotteryUpgrade),
+}
+
+#[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
+pub struct UpgradeId(pub u64);
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct UpgradeWithId {
+    pub id: UpgradeId,
+    pub upgrade: Upgrade,
+}
+
+static NEXT_UPGRADE_ID: AtomicU64 = AtomicU64::new(1);
+
+impl UpgradeWithId {
+    pub fn new(upgrade: Upgrade) -> Self {
+        Self {
+            id: UpgradeId(NEXT_UPGRADE_ID.fetch_add(1, Ordering::Relaxed)),
+            upgrade,
+        }
+    }
+}
+
+impl std::ops::Deref for UpgradeWithId {
+    type Target = Upgrade;
+
+    fn deref(&self) -> &Self::Target {
+        &self.upgrade
+    }
+}
+
+impl std::ops::DerefMut for UpgradeWithId {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.upgrade
+    }
+}
+
+impl PartialEq<Upgrade> for UpgradeWithId {
+    fn eq(&self, other: &Upgrade) -> bool {
+        self.upgrade == *other
+    }
+}
+
+impl Upgrade {
+    pub fn with_unique_id(self) -> UpgradeWithId {
+        UpgradeWithId::new(self)
+    }
 }
 
 impl UpgradeDiscriminants {

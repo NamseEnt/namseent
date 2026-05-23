@@ -3,7 +3,7 @@ use crate::{game_state::upgrade::tower::TowerUpgradeDamageBonus, *};
 
 #[derive(Debug, Clone, State, Default)]
 pub struct UpgradeState {
-    pub upgrades: Vec<Upgrade>,
+    pub upgrades: Vec<UpgradeWithId>,
     pub revision: usize,
     cache: UpgradeCache,
 }
@@ -67,7 +67,7 @@ impl UpgradeState {
 
     pub fn with_upgrades(upgrades: Vec<Upgrade>) -> Self {
         let mut state = UpgradeState {
-            upgrades,
+            upgrades: upgrades.into_iter().map(Upgrade::with_unique_id).collect(),
             ..Default::default()
         };
         state.cache = UpgradeCache::from_state(&state);

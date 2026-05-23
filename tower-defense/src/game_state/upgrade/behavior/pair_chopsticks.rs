@@ -7,15 +7,22 @@ pub struct PairChopsticksUpgrade {
 }
 
 impl UpgradeBehavior for PairChopsticksUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.rank.is_some_and(|rank| rank.is_even())
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
-            if let Upgrade::PairChopsticks(upgrade) = upgrade {
+            if let Upgrade::PairChopsticks(upgrade) = &mut upgrade.upgrade {
                 upgrade.damage_bonus_pct += self.damage_bonus_pct;
                 return UpgradeUpdateFlags::TOWER_STATS;
             }
         }
 
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 

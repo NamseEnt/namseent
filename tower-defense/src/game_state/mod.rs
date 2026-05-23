@@ -87,8 +87,8 @@ const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 pub struct TowerDamageStats {
     pub tower_id: usize,
     pub tower_kind: TowerKind,
-    pub rank: Rank,
-    pub suit: Suit,
+    pub rank: Option<Rank>,
+    pub suit: Option<Suit>,
     pub total_damage: f32,
 }
 
@@ -652,8 +652,8 @@ fn create_initial_game_state() -> GameState {
                 kind: ItemKind::GrantBarricades,
                 effect: Effect::AddTowerCardToPlacementHand {
                     tower_kind: TowerKind::Barricade,
-                    suit: Suit::Spades,
-                    rank: Rank::Ace,
+                    suit: None,
+                    rank: None,
                     count: 1,
                 },
             },

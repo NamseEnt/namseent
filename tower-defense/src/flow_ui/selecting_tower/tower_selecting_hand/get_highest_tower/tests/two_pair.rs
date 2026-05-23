@@ -22,5 +22,5 @@ fn test_two_pair() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::TwoPair);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }

@@ -7,7 +7,7 @@ const CAMERA_GOLD_REWARD: usize = 50;
 
 impl UpgradeBehavior for CameraUpgrade {
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
-        if tower.rank().is_face() {
+        if tower.rank().is_some_and(|rank| rank.is_face()) {
             game_state.action(crate::game_state::GameStateAction::EarnGold(
                 CAMERA_GOLD_REWARD,
             ));

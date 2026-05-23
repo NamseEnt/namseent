@@ -112,7 +112,7 @@ mod tests {
         ));
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
-            if let Upgrade::Resolution(upgrade) = upgrade {
+            if let Upgrade::Resolution(upgrade) = &upgrade.upgrade {
                 (upgrade.damage_bonus_pct_per_reroll - 0.25).abs() < f32::EPSILON
             } else {
                 false

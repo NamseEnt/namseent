@@ -22,5 +22,5 @@ fn test_three_of_a_kind() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::ThreeOfAKind);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }

@@ -135,7 +135,7 @@ mod tests {
         crate::game_state::tick::defense_end::check_defense_end(&mut gs);
 
         assert!(gs.upgrade_state.upgrades.iter().any(|upgrade| {
-            matches!(upgrade, crate::game_state::upgrade::Upgrade::Trophy(trophy) if trophy.perfect_clear_stacks == 1)
+            matches!(upgrade.upgrade, crate::game_state::upgrade::Upgrade::Trophy(trophy) if trophy.perfect_clear_stacks == 1)
         }));
     }
 }

@@ -22,5 +22,5 @@ fn test_high_card() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::High);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }

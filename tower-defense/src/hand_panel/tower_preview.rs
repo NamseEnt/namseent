@@ -108,8 +108,8 @@ impl Component for PreviewEntryComponent {
                 ctx.add(TowerSpriteWithOverlay {
                     image: tower_image,
                     wh: img_wh,
-                    suit: Some(template.suit),
-                    rank: Some(template.rank),
+                    suit: template.suit,
+                    rank: template.rank,
                     alpha: 1.0,
                 });
 
@@ -168,15 +168,11 @@ impl Component for PreviewEntryComponent {
                                         .headline()
                                         .size(FontSize::Medium)
                                         .max_width(wh.width);
-                                    if !matches!(
-                                        template.kind,
-                                        crate::game_state::tower::TowerKind::Barricade
-                                    ) {
+                                    if let (Some(suit), Some(rank)) = (template.suit, template.rank)
+                                    {
                                         builder = builder
-                                            .icon(IconKind::Suit {
-                                                suit: template.suit,
-                                            })
-                                            .text(template.rank.to_string())
+                                            .icon(IconKind::Suit { suit })
+                                            .text(rank.to_string())
                                             .space();
                                     }
                                     builder.text(tower_name).render_left_center(wh.height)

@@ -22,5 +22,5 @@ fn test_full_house() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::FullHouse);
-    assert_eq!(template.rank, Rank::Ace);
+    assert_eq!(template.rank.unwrap(), Rank::Ace);
 }

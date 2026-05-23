@@ -7,6 +7,10 @@ pub struct ClubSwordUpgrade {
 }
 
 impl UpgradeBehavior for ClubSwordUpgrade {
+    fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
+        context.suit == Some(crate::card::Suit::Clubs)
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::Suit {
@@ -18,13 +22,16 @@ impl UpgradeBehavior for ClubSwordUpgrade {
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
-            if let Upgrade::ClubSword(upgrade) = upgrade {
+            if let Upgrade::ClubSword(upgrade) = &mut upgrade.upgrade {
                 upgrade.damage_bonus_pct += self.damage_bonus_pct;
                 return UpgradeUpdateFlags::TOWER_STATS;
             }
         }
 
-        game_state.upgrade_state.upgrades.push(self.into());
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
         UpgradeUpdateFlags::TOWER_STATS
     }
 

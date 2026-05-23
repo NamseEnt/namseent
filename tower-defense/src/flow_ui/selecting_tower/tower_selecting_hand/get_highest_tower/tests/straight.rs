@@ -26,7 +26,7 @@ fn test_straight() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Jack);
+    assert_eq!(template.rank.unwrap(), Rank::Jack);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn test_straight_4cards_with_upgrade() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Ten);
+    assert_eq!(template.rank.unwrap(), Rank::Ten);
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn test_straight_skip_rank() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::High);
-    assert_eq!(template.rank, Rank::Jack);
+    assert_eq!(template.rank.unwrap(), Rank::Jack);
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn test_straight_skip_rank_and_shorten_4cards() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Jack);
+    assert_eq!(template.rank.unwrap(), Rank::Jack);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn test_straight_with_removed_two_allows_ace_low() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Six);
+    assert_eq!(template.rank.unwrap(), Rank::Six);
 }
 
 #[test]
@@ -160,7 +160,7 @@ fn test_straight_with_removed_two_and_shorten_4cards_allows_ace_low() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Six);
+    assert_eq!(template.rank.unwrap(), Rank::Six);
 }
 
 #[test]
@@ -183,7 +183,7 @@ fn test_straight_with_removed_two_and_three_allows_ace_low() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Seven);
+    assert_eq!(template.rank.unwrap(), Rank::Seven);
 }
 
 #[test]
@@ -206,7 +206,7 @@ fn test_straight_with_removed_two_still_recognizes_included_two() {
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Six);
+    assert_eq!(template.rank.unwrap(), Rank::Six);
 }
 
 #[test]
@@ -230,5 +230,5 @@ fn test_straight_with_removed_two_and_skip_rank_allows_ace_four_five_six_seven()
         &crate::config::GameConfig::default_config(),
     );
     assert_eq!(template.kind, TowerKind::Straight);
-    assert_eq!(template.rank, Rank::Seven);
+    assert_eq!(template.rank.unwrap(), Rank::Seven);
 }
