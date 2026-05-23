@@ -216,6 +216,7 @@ mod tests {
 
     #[test]
     fn rln_visiting_order_should_be_rln() {
+        let _scope = enter_arena_scope();
         /*
             tree:
                  0
@@ -257,6 +258,7 @@ mod tests {
 
     #[test]
     fn to_local_xy_should_work() {
+        let _scope = enter_arena_scope();
         /*
             tree:
                    0
@@ -364,6 +366,7 @@ mod tests {
     }
     #[test]
     fn to_local_xy_should_work_with_matrix_transform() {
+        let _scope = enter_arena_scope();
         /*
             tree:
                    0
@@ -449,6 +452,7 @@ mod tests {
 
     #[test]
     fn to_local_xy_translate_scale_translate_test() {
+        let _scope = enter_arena_scope();
         let node_2 = crate::translate(px(2.0), px(2.0), dummy_leaf());
         let node_1 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_2]));
         let node_0 = crate::translate(px(2.0), px(2.0), RenderingTree::wrap([node_1]));
@@ -515,6 +519,7 @@ mod tests {
 
     #[test]
     fn to_local_xy_translate_after_scale_test() {
+        let _scope = enter_arena_scope();
         let node_1 = crate::translate(px(2.0), px(2.0), dummy_leaf());
         let node_0 = crate::scale(2.0, 2.0, RenderingTree::wrap([node_1]));
 
@@ -579,6 +584,7 @@ mod tests {
 
     #[test]
     fn with_ancestors_should_give_right_ancestors() {
+        let _scope = enter_arena_scope();
         /*
             tree:
                  0

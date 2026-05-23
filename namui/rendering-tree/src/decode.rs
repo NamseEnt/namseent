@@ -151,6 +151,7 @@ mod tests {
 
     #[test]
     fn rendering_tree_encode_decode_round_trip() {
+        let _scope = enter_arena_scope();
         let tree = RenderingTree::Children(arena_alloc_slice(vec![
             RenderingTree::Empty,
             RenderingTree::Special(SpecialRenderingNode::Translate(TranslateNode {

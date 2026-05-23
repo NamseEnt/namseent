@@ -395,6 +395,7 @@ impl World {
         self.rendered_composer_count.set(0);
         self.compose_command_arena.get_mut().clear();
         reset_render_arena();
+        let _arena_scope = enter_arena_scope();
         self.reset_updated_sig_ids();
         self.handle_set_states();
 
