@@ -41,7 +41,7 @@ impl Component for TopBar {
             let max_dice = game_state.max_dice_chance();
 
             table::horizontal([
-                table::ratio(1, |wh, ctx| {
+                table::ratio_no_clip(1, |wh, ctx| {
                     ctx.add(memoized_text(
                         &(
                             locale, stage, current_hp, max_hp, shield, gold, left_dice, max_dice,
