@@ -1,12 +1,7 @@
 use namui::*;
 
 fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
-    Rect::Xywh {
-        x: px(x),
-        y: px(y),
-        width: px(w),
-        height: px(h),
-    }
+    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }
 }
 
 pub fn centered_sprite(
@@ -98,42 +93,18 @@ pub fn line_sprite_from_rect(
     })
 }
 
-pub fn laser_line_rect() -> Rect<Px> {
-    rect(384.0, 0.0, 256.0, 64.0)
-}
-pub fn burning_tail() -> Rect<Px> {
-    rect(0.0, 0.0, 128.0, 128.0)
-}
-pub fn ember_spark() -> Rect<Px> {
-    rect(128.0, 0.0, 128.0, 128.0)
-}
-pub fn blue_spark() -> Rect<Px> {
-    rect(256.0, 0.0, 128.0, 128.0)
-}
-pub fn lightning_bolt_rect() -> Rect<Px> {
-    rect(640.0, 0.0, 256.0, 64.0)
-}
-pub fn sparkle() -> Rect<Px> {
-    rect(896.0, 0.0, 128.0, 128.0)
-}
-pub fn wind_curve_trail() -> Rect<Px> {
-    rect(1024.0, 0.0, 256.0, 64.0)
-}
-pub fn black_smoke_00() -> Rect<Px> {
-    rect(1280.0, 0.0, 128.0, 128.0)
-}
-pub fn black_smoke_01() -> Rect<Px> {
-    rect(1408.0, 0.0, 128.0, 128.0)
-}
-pub fn red_slash() -> Rect<Px> {
-    rect(1536.0, 0.0, 128.0, 128.0)
-}
-pub fn yellow_explosion() -> Rect<Px> {
-    rect(1664.0, 0.0, 128.0, 128.0)
-}
-pub fn monster_soul() -> Rect<Px> {
-    rect(1280.0, 128.0, 128.0, 192.0)
-}
+pub fn laser_line_rect() -> Rect<Px> { rect(384.0, 0.0, 256.0, 64.0) }
+pub fn burning_tail() -> Rect<Px> { rect(0.0, 0.0, 128.0, 128.0) }
+pub fn ember_spark() -> Rect<Px> { rect(128.0, 0.0, 128.0, 128.0) }
+pub fn blue_spark() -> Rect<Px> { rect(256.0, 0.0, 128.0, 128.0) }
+pub fn lightning_bolt_rect() -> Rect<Px> { rect(640.0, 0.0, 256.0, 64.0) }
+pub fn sparkle() -> Rect<Px> { rect(896.0, 0.0, 128.0, 128.0) }
+pub fn wind_curve_trail() -> Rect<Px> { rect(1024.0, 0.0, 256.0, 64.0) }
+pub fn black_smoke_00() -> Rect<Px> { rect(1280.0, 0.0, 128.0, 128.0) }
+pub fn black_smoke_01() -> Rect<Px> { rect(1408.0, 0.0, 128.0, 128.0) }
+pub fn red_slash() -> Rect<Px> { rect(1536.0, 0.0, 128.0, 128.0) }
+pub fn yellow_explosion() -> Rect<Px> { rect(1664.0, 0.0, 128.0, 128.0) }
+pub fn monster_soul() -> Rect<Px> { rect(0.0, 512.0, 128.0, 192.0) }
 
 pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
     use crate::game_state::MonsterKind;
@@ -153,55 +124,55 @@ pub fn monster_rect(kind: crate::game_state::MonsterKind) -> Rect<Px> {
         MonsterKind::Mob13 => rect(1536.0, 0.0, 128.0, 128.0),
         MonsterKind::Mob14 => rect(1664.0, 0.0, 128.0, 128.0),
         MonsterKind::Mob15 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob16 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob17 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob18 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob19 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob20 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob21 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob22 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob23 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob24 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob25 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob26 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob27 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob28 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob29 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob30 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob31 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob32 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob33 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob34 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob35 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob36 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob37 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob38 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob39 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob40 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob41 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob42 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob43 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob44 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob45 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob46 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob47 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob48 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob49 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Mob50 => rect(1792.0, 0.0, 128.0, 128.0),
-        MonsterKind::Boss01 => rect(1920.0, 0.0, 128.0, 128.0),
-        MonsterKind::Boss02 => rect(0.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss03 => rect(128.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss04 => rect(256.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss05 => rect(384.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss06 => rect(512.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss07 => rect(640.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss08 => rect(768.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss09 => rect(896.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss10 => rect(1024.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss11 => rect(1152.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss12 => rect(1152.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss13 => rect(1152.0, 128.0, 128.0, 128.0),
-        MonsterKind::Boss14 => rect(1152.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob16 => rect(1920.0, 0.0, 128.0, 128.0),
+        MonsterKind::Mob17 => rect(0.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob18 => rect(128.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob19 => rect(256.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob20 => rect(384.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob21 => rect(512.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob22 => rect(640.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob23 => rect(768.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob24 => rect(896.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob25 => rect(1024.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob26 => rect(1152.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob27 => rect(1280.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob28 => rect(1408.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob29 => rect(1536.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob30 => rect(1664.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob31 => rect(1792.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob32 => rect(1920.0, 128.0, 128.0, 128.0),
+        MonsterKind::Mob33 => rect(0.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob34 => rect(128.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob35 => rect(256.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob36 => rect(384.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob37 => rect(512.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob38 => rect(640.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob39 => rect(768.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob40 => rect(896.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob41 => rect(1024.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob42 => rect(1152.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob43 => rect(1280.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob44 => rect(1408.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob45 => rect(1536.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob46 => rect(1664.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob47 => rect(1792.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob48 => rect(1920.0, 256.0, 128.0, 128.0),
+        MonsterKind::Mob49 => rect(0.0, 384.0, 128.0, 128.0),
+        MonsterKind::Mob50 => rect(128.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss01 => rect(256.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss02 => rect(384.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss03 => rect(512.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss04 => rect(640.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss05 => rect(768.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss06 => rect(896.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss07 => rect(1024.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss08 => rect(1152.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss09 => rect(1280.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss10 => rect(1408.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss11 => rect(1536.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss12 => rect(1664.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss13 => rect(1792.0, 384.0, 128.0, 128.0),
+        MonsterKind::Boss14 => rect(1920.0, 384.0, 128.0, 128.0),
     }
 }
 
@@ -232,9 +203,7 @@ pub fn card_particle_rect(kind: crate::game_state::field_particle::particle::Car
     }
 }
 
-pub fn heart_particle_rect(
-    kind: crate::game_state::field_particle::particle::HeartParticleKind,
-) -> Rect<Px> {
+pub fn heart_particle_rect(kind: crate::game_state::field_particle::particle::HeartParticleKind) -> Rect<Px> {
     use crate::game_state::field_particle::particle::HeartParticleKind;
     match kind {
         HeartParticleKind::Heart00 => rect(1920.0, 0.0, 128.0, 128.0),
@@ -245,51 +214,49 @@ pub fn heart_particle_rect(
     }
 }
 
-pub fn projectile_pink_smoke() -> Rect<Px> {
-    rect(256.0, 128.0, 128.0, 128.0)
-}
+pub fn projectile_pink_smoke() -> Rect<Px> { rect(256.0, 128.0, 128.0, 128.0) }
 
 pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
     use crate::icon::IconKind;
     match kind {
         IconKind::Accept => rect(0.0, 0.0, 128.0, 128.0),
         IconKind::Damage => rect(256.0, 0.0, 128.0, 128.0),
-        IconKind::Config => rect(768.0, 0.0, 128.0, 128.0),
-        IconKind::EnemyBoss => rect(1024.0, 0.0, 128.0, 128.0),
-        IconKind::EnemyNamed => rect(1152.0, 0.0, 128.0, 128.0),
-        IconKind::EnemyNormal => rect(1280.0, 0.0, 128.0, 128.0),
-        IconKind::Gold => rect(1408.0, 0.0, 128.0, 128.0),
-        IconKind::Health => rect(1536.0, 0.0, 128.0, 128.0),
-        IconKind::Invincible => rect(1664.0, 0.0, 128.0, 128.0),
-        IconKind::Item => rect(1792.0, 0.0, 128.0, 128.0),
-        IconKind::Lock => rect(0.0, 128.0, 128.0, 128.0),
-        IconKind::MoveSpeed => rect(128.0, 128.0, 128.0, 128.0),
-        IconKind::Refresh => rect(1280.0, 128.0, 128.0, 128.0),
-        IconKind::Reject => rect(1408.0, 128.0, 128.0, 128.0),
-        IconKind::Shield => rect(1536.0, 128.0, 128.0, 128.0),
-        IconKind::Shop => rect(1664.0, 128.0, 128.0, 128.0),
-        IconKind::Speaker => rect(1792.0, 128.0, 128.0, 128.0),
-        IconKind::Treasure => rect(1408.0, 0.0, 128.0, 128.0),
-        IconKind::Up => rect(384.0, 256.0, 128.0, 128.0),
-        IconKind::Down => rect(896.0, 0.0, 128.0, 128.0),
-        IconKind::Play => rect(0.0, 0.0, 128.0, 128.0),
-        IconKind::Card => rect(640.0, 0.0, 128.0, 128.0),
-        IconKind::New => rect(384.0, 128.0, 128.0, 128.0),
+        IconKind::Warning => rect(384.0, 256.0, 128.0, 128.0),
+        IconKind::Config => rect(512.0, 0.0, 128.0, 128.0),
+        IconKind::EnemyBoss => rect(768.0, 0.0, 128.0, 128.0),
+        IconKind::EnemyNamed => rect(896.0, 0.0, 128.0, 128.0),
+        IconKind::EnemyNormal => rect(1024.0, 0.0, 128.0, 128.0),
+        IconKind::Gold => rect(1152.0, 0.0, 128.0, 128.0),
+        IconKind::Health => rect(1280.0, 0.0, 128.0, 128.0),
+        IconKind::Invincible => rect(1408.0, 0.0, 128.0, 128.0),
+        IconKind::Item => rect(1536.0, 0.0, 128.0, 128.0),
+        IconKind::Lock => rect(1664.0, 0.0, 128.0, 128.0),
+        IconKind::MoveSpeed => rect(1792.0, 0.0, 128.0, 128.0),
+        IconKind::Play => rect(256.0, 256.0, 128.0, 128.0),
+        IconKind::Refresh => rect(896.0, 128.0, 128.0, 128.0),
+        IconKind::Reject => rect(1024.0, 128.0, 128.0, 128.0),
+        IconKind::Shield => rect(1152.0, 128.0, 128.0, 128.0),
+        IconKind::Shop => rect(1280.0, 128.0, 128.0, 128.0),
+        IconKind::Speaker => rect(1408.0, 128.0, 128.0, 128.0),
+        IconKind::Treasure => rect(1536.0, 128.0, 128.0, 128.0),
+        IconKind::Up => rect(128.0, 256.0, 128.0, 128.0),
+        IconKind::Down => rect(640.0, 0.0, 128.0, 128.0),
+        IconKind::Card => rect(384.0, 0.0, 128.0, 128.0),
+        IconKind::New => rect(0.0, 128.0, 128.0, 128.0),
         IconKind::Add => rect(128.0, 0.0, 128.0, 128.0),
-        IconKind::Multiply => rect(256.0, 128.0, 128.0, 128.0),
-        IconKind::Rating => rect(1152.0, 128.0, 128.0, 128.0),
-        IconKind::Warning => rect(1920.0, 256.0, 128.0, 128.0),
+        IconKind::Multiply => rect(1920.0, 0.0, 128.0, 128.0),
+        IconKind::Rating => rect(768.0, 128.0, 128.0, 128.0),
         IconKind::Suit { suit } => match suit {
-            crate::Suit::Spades => rect(256.0, 256.0, 128.0, 128.0),
-            crate::Suit::Hearts => rect(128.0, 256.0, 128.0, 128.0),
-            crate::Suit::Diamonds => rect(0.0, 256.0, 128.0, 128.0),
-            crate::Suit::Clubs => rect(1920.0, 128.0, 128.0, 128.0),
+            crate::Suit::Spades => rect(0.0, 256.0, 128.0, 128.0),
+            crate::Suit::Hearts => rect(1920.0, 128.0, 128.0, 128.0),
+            crate::Suit::Diamonds => rect(1792.0, 128.0, 128.0, 128.0),
+            crate::Suit::Clubs => rect(1664.0, 128.0, 128.0, 128.0),
         },
         IconKind::Rarity { rarity } => match rarity {
-            crate::Rarity::Common => rect(640.0, 128.0, 128.0, 128.0),
-            crate::Rarity::Rare => rect(1024.0, 128.0, 128.0, 128.0),
-            crate::Rarity::Epic => rect(768.0, 128.0, 128.0, 128.0),
-            crate::Rarity::Legendary => rect(896.0, 128.0, 128.0, 128.0),
+            crate::Rarity::Common => rect(256.0, 128.0, 128.0, 128.0),
+            crate::Rarity::Rare => rect(640.0, 128.0, 128.0, 128.0),
+            crate::Rarity::Epic => rect(384.0, 128.0, 128.0, 128.0),
+            crate::Rarity::Legendary => rect(512.0, 128.0, 128.0, 128.0),
         },
     }
 }
