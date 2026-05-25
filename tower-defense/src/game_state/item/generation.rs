@@ -42,18 +42,15 @@ pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
                 },
             )
         }
-        ItemCandidate::GrantBarricades => {
-            let count = 10;
-            (
-                crate::game_state::item::ItemKind::GrantBarricades,
-                Effect::AddTowerCardToPlacementHand {
-                    tower_kind: crate::game_state::tower::TowerKind::Barricade,
-                    suit: None,
-                    rank: None,
-                    count,
-                },
-            )
-        }
+        ItemCandidate::GrantBarricades => (
+            crate::game_state::item::ItemKind::GrantBarricades,
+            Effect::AddTowerCardToPlacementHand {
+                tower_kind: crate::game_state::tower::TowerKind::Barricade,
+                suit: None,
+                rank: None,
+                count: 4,
+            },
+        ),
         ItemCandidate::GrantCard => {
             let card = Card::new_random();
             (
