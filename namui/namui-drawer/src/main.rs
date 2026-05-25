@@ -70,10 +70,10 @@ mod wasi_ffi {
         let slice = unsafe {
             std::slice::from_raw_parts(rendering_tree_bytes_ptr, rendering_tree_bytes_len)
         };
-        let (rendering_tree, _): (RenderingTree, usize) =
-            bincode::decode_from_slice(slice, bincode::config::standard()).unwrap();
-        RENDERING_TREE.with(|rendering_tree_cell| {
-            *rendering_tree_cell.borrow_mut() = Some(rendering_tree);
+        swap_arena_slot(&RENDERING_TREE, || {
+            let (rendering_tree, _): (RenderingTree, usize) =
+                bincode::decode_from_slice(slice, bincode::config::standard()).unwrap();
+            rendering_tree
         });
         unsafe { _redraw(mouse_x, mouse_y) };
     }

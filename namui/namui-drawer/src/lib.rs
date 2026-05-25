@@ -12,6 +12,12 @@ thread_local! {
 }
 
 /// Draw a rendering tree directly (for native targets).
+///
+/// The caller (typically a `World::run_impl` frame) owns the arena lifecycle:
+/// the same thread's next `World::run_impl` will reset the arena and any
+/// references the slot still holds become dangling. Callers must guarantee a
+/// fresh `draw_rendering_tree` call follows before the next `redraw`, or
+/// stash the tree somewhere else.
 pub fn draw_rendering_tree(
     skia: &mut NativeSkia,
     rendering_tree: RenderingTree,
