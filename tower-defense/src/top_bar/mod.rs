@@ -122,7 +122,7 @@ impl Component for TopBar {
                 height: TOP_BAR_HEIGHT + BG_OVERSIZE_V * 2.0,
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
-                color: palette::SURFACE_CONTAINER,
+                color: palette::SURFACE_CONTAINER_HIGHEST,
                 shadow: true,
                 arrow: None,
             })
