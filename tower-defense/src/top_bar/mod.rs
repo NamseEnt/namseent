@@ -1,10 +1,8 @@
 mod game_speed_indicator;
-mod run;
 
 use crate::game_state::{Modal, set_modal, use_game_state};
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::top_bar::game_speed_indicator::GameSpeedIndicator;
-use crate::top_bar::run::RunIndicator;
 use crate::{
     icon::{Icon, IconKind, IconSize},
     palette,
@@ -15,7 +13,6 @@ use namui::*;
 use namui_prebuilt::table;
 
 const TOP_BAR_HEIGHT: Px = px(48.);
-const ITEM_WIDTH: Px = px(144.);
 const PADDING: Px = px(8.);
 
 const SETTINGS_BUTTON_SIZE: Px = px(36.);
@@ -33,89 +30,65 @@ impl Component for TopBar {
         let game_state = use_game_state(ctx);
 
         ctx.compose(|ctx| {
+            let locale = game_state.text().locale();
+            let stage = game_state.stage;
+            let current_hp = game_state.hp.clamp(0.0, game_state.max_hp());
+            let max_hp = game_state.max_hp();
+            let shield = game_state.shield;
+            let has_shield = shield > 0.0;
+            let gold = game_state.gold;
+            let left_dice = game_state.left_dice;
+            let max_dice = game_state.max_dice_chance();
+
             table::horizontal([
-                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
-                    ctx.add(RunIndicator {
-                        wh,
-                        stage: game_state.stage,
-                    });
+                table::ratio(1, |wh, ctx| {
+                    ctx.add(memoized_text(
+                        &(
+                            locale, stage, current_hp, max_hp, shield, gold, left_dice, max_dice,
+                        ),
+                        move |mut builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Medium)
+                                .text("  ")
+                                .l10n(crate::l10n::ui::TopBarText::Stage, &locale)
+                                .text(format!(" {stage}"))
+                                .text("      ")
+                                .with_style(|builder| {
+                                    builder
+                                        .size(FontSize::Custom { size: px(40.) })
+                                        .icon(IconKind::Health);
+                                })
+                                .text(format!("{:.0}/{:.0}", current_hp, max_hp));
+
+                            if has_shield {
+                                builder
+                                    .text(" (")
+                                    .icon(IconKind::Shield)
+                                    .text(format!("{:.0}", shield))
+                                    .text(")");
+                            }
+
+                            builder
+                                .text("      ")
+                                .with_style(|builder| {
+                                    builder
+                                        .size(FontSize::Custom { size: px(40.) })
+                                        .icon(IconKind::Gold);
+                                })
+                                .text(format!("{gold}"))
+                                .text("      ")
+                                .with_style(|builder| {
+                                    builder
+                                        .size(FontSize::Custom { size: px(40.) })
+                                        .icon(IconKind::Refresh);
+                                })
+                                .text(format!("{left_dice}/{max_dice}"))
+                                .render_left_center(wh.height)
+                        },
+                    ));
                 }),
                 table::fixed_no_clip(PADDING, |_, _| {}),
-                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
-                    ctx.compose(|ctx| {
-                        let hp_pct = (game_state.hp / 100.0).clamp(0.0, 1.0);
-                        let shield = game_state.shield;
-                        let has_shield = shield > 0.0;
-                        table::horizontal([
-                            table::fixed_no_clip(48.px(), |wh, ctx| {
-                                ctx.add(Icon::new(IconKind::Health).size(IconSize::Large).wh(wh));
-                            }),
-                            table::fixed_no_clip(72.px(), |wh, ctx| {
-                                ctx.add(memoized_text(&(hp_pct, shield), move |mut builder| {
-                                    builder
-                                        .headline()
-                                        .size(FontSize::Medium)
-                                        .text(format!("{:.0}", hp_pct * 100.0));
-
-                                    if has_shield {
-                                        builder
-                                            .text(" (")
-                                            .icon(IconKind::Shield)
-                                            .text(format!("{:.0}", shield))
-                                            .text(")");
-                                    }
-
-                                    builder.render_left_center(wh.height)
-                                }));
-                            }),
-                            table::ratio(1, |_, _| {}),
-                        ])(wh, ctx);
-                    });
-                }),
-                table::fixed_no_clip(PADDING, |_, _| {}),
-                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
-                    ctx.compose(|ctx| {
-                        table::horizontal([
-                            table::fixed_no_clip(48.px(), |wh, ctx| {
-                                ctx.add(Icon::new(IconKind::Gold).size(IconSize::Large).wh(wh));
-                            }),
-                            table::fixed_no_clip(32.px(), |wh, ctx| {
-                                ctx.add(memoized_text(&game_state.gold, |mut builder| {
-                                    builder
-                                        .headline()
-                                        .size(FontSize::Medium)
-                                        .text(format!("{}", game_state.gold))
-                                        .render_center(wh)
-                                }));
-                            }),
-                            table::ratio(1, |_, _| {}),
-                        ])(wh, ctx);
-                    });
-                }),
-                table::fixed_no_clip(ITEM_WIDTH, |wh, ctx| {
-                    ctx.compose(|ctx| {
-                        table::horizontal([
-                            table::fixed_no_clip(48.px(), |wh, ctx| {
-                                ctx.add(Icon::new(IconKind::Refresh).size(IconSize::Large).wh(wh));
-                            }),
-                            table::fixed_no_clip(32.px(), |wh, ctx| {
-                                let this_max = game_state.max_dice_chance();
-                                ctx.add(memoized_text(
-                                    &(game_state.left_dice, this_max),
-                                    |mut builder| {
-                                        builder
-                                            .headline()
-                                            .size(FontSize::Medium)
-                                            .text(format!("{}/{}", game_state.left_dice, this_max))
-                                            .render_center(wh)
-                                    },
-                                ));
-                            }),
-                            table::ratio(1, |_, _| {}),
-                        ])(wh, ctx);
-                    });
-                }),
-                table::ratio(1, |_, _| {}),
                 table::fixed_no_clip(
                     SPEED_INDICATOR_WIDTH,
                     table::padding_no_clip(PADDING, |wh, ctx| {
@@ -130,7 +103,9 @@ impl Component for TopBar {
                                 &|| set_modal(Some(Modal::Settings)),
                                 &|wh, _text_color, ctx| {
                                     ctx.add(
-                                        Icon::new(IconKind::Config).size(IconSize::Large).wh(wh),
+                                        Icon::new(IconKind::Config)
+                                            .size(IconSize::Custom { size: px(40.) })
+                                            .wh(wh),
                                     );
                                 },
                             )

@@ -5,6 +5,7 @@ use crate::*;
 #[derive(Debug, Clone, Copy, State)]
 pub enum TopBarText {
     Run,
+    Stage,
     Quest,
     Refresh,
     Accepted,
@@ -42,6 +43,7 @@ impl TopBarText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
             TopBarText::Run => "런",
+            TopBarText::Stage => "스테이지",
             TopBarText::Quest => "퀘스트",
             TopBarText::Refresh => "새로고침",
             TopBarText::Accepted => "수락됨",
@@ -55,6 +57,7 @@ impl TopBarText {
     pub(super) fn to_english(self) -> &'static str {
         match self {
             TopBarText::Run => "Run",
+            TopBarText::Stage => "Stage",
             TopBarText::Quest => "Quest",
             TopBarText::Refresh => "Refresh",
             TopBarText::Accepted => "Accepted",
