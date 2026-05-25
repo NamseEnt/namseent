@@ -14,7 +14,6 @@ pub fn handle_monster_death(
     let monster_reward = game_state.monsters[target_idx].reward;
     let monster_kind = game_state.monsters[target_idx].kind;
     let rotation = game_state.monsters[target_idx].animation.rotation;
-    let y_offset = game_state.monsters[target_idx].animation.y_offset;
 
     if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
         defense_flow.stage_progress.processed_hp += monster_max_hp;
@@ -25,12 +24,7 @@ pub fn handle_monster_death(
 
     let wh = monster::monster_wh(monster_kind);
 
-    let tile_base_xy = TILE_PX_SIZE.to_xy() * target_xy;
-    let monster_center_offset = Xy::new(
-        TILE_PX_SIZE.width * 0.5,
-        TILE_PX_SIZE.height - wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
-    );
-    let pixel_xy = tile_base_xy + monster_center_offset;
+    let pixel_xy = TILE_PX_SIZE.to_xy() * target_xy;
 
     game_state
         .effect_events
