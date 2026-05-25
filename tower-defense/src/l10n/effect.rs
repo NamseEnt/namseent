@@ -40,11 +40,19 @@ impl EffectText {
                 } => builder
                     .text(format!("{:.0}% ", probability * 100.0))
                     .with_icon_bold(IconKind::Gold, format!("{}", amount)),
-                Effect::DamageReduction { .. } => builder
-                    .with_icon_bold(IconKind::Damage, "-?")
+                Effect::DamageReduction {
+                    damage_multiply, ..
+                } => builder
+                    .with_icon_bold(
+                        IconKind::Damage,
+                        format!("-{:.0}%", (1.0 - damage_multiply) * 100.0),
+                    )
                     .static_text(" 피해"),
-                Effect::UserDamageReduction { .. } => builder
-                    .with_icon_bold(IconKind::Damage, "-?")
+                Effect::UserDamageReduction { multiply, .. } => builder
+                    .with_icon_bold(
+                        IconKind::Damage,
+                        format!("-{:.0}%", (1.0 - multiply) * 100.0),
+                    )
                     .static_text(" 피해"),
                 Effect::LoseHealth { amount } => {
                     builder.with_icon_bold(IconKind::Health, format!("-{:.0}", amount))
