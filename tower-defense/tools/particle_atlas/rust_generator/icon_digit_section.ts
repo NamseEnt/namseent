@@ -4,8 +4,8 @@ import { spriteOrThrow } from "../types.ts";
 export function appendIconAndDigitSection(rs: string, icons: Atlas): string {
     const iconMapping = {
         Accept: "ICON_ACCEPT",
-        AttackDamage: "ICON_ATTACK_DAMAGE",
-        Dopamine: "ICON_DOPAMINE",
+        Damage: "ICON_DAMAGE",
+        Warning: "ICON_WARNING",
         Config: "ICON_CONFIG",
         EnemyBoss: "ICON_ENEMY_BOSS",
         EnemyNamed: "ICON_ENEMY_NAMED",
@@ -14,10 +14,9 @@ export function appendIconAndDigitSection(rs: string, icons: Atlas): string {
         Health: "ICON_HEALTH",
         Invincible: "ICON_INVINCIBLE",
         Item: "ICON_ITEM",
-        Level: "ICON_LEVEL",
         Lock: "ICON_LOCK",
         MoveSpeed: "ICON_MOVE_SPEED",
-        Contract: "ICON_QUEST",
+        Play: "ICON_PLAY",
         Refresh: "ICON_REFRESH",
         Reject: "ICON_REJECT",
         Shield: "ICON_SHIELD",

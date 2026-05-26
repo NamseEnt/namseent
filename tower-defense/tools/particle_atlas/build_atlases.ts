@@ -125,21 +125,31 @@ export async function createProjectilesAtlas(): Promise<Atlas> {
 }
 
 export async function createMonstersAtlas(): Promise<Atlas> {
-    const monsters = createAtlas("monsters", ROW_W, 320);
-    for (let i = 1; i <= 15; i++) {
+    const mobCount = 50;
+    const bossCount = 14;
+    const monsterSpriteCount = mobCount + bossCount;
+    const monstersPerRow = ROW_W / CELL;
+    const monsterRows = Math.ceil(monsterSpriteCount / monstersPerRow);
+    const monsterSoulHeight = 192;
+    const monsters = createAtlas(
+        "monsters",
+        ROW_W,
+        monsterRows * CELL + monsterSoulHeight,
+    );
+    for (let i = 1; i <= mobCount; i++) {
         const num = String(i).padStart(2, "0");
         await drawImage(
             monsters,
             `MOB${num}`,
-            path.join(ASSET_DIR, "monster", `mob${num}.png`),
+            path.join(ASSET_DIR, "monster", `mob_${num}.png`),
         );
     }
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= bossCount; i++) {
         const num = String(i).padStart(2, "0");
         await drawImage(
             monsters,
             `BOSS${num}`,
-            path.join(ASSET_DIR, "monster", `boss${num}.png`),
+            path.join(ASSET_DIR, "monster", `boss_${num}.png`),
         );
     }
     await drawImageRect(
@@ -156,7 +166,7 @@ export async function createIconsAtlas(): Promise<Atlas> {
     const iconFiles = [
         "accept",
         "add",
-        "attack_damage",
+        "damage",
         "card",
         "config",
         "down",
@@ -167,7 +177,6 @@ export async function createIconsAtlas(): Promise<Atlas> {
         "health",
         "invincible",
         "item",
-        "level",
         "lock",
         "move_speed",
         "multiply",
@@ -190,6 +199,7 @@ export async function createIconsAtlas(): Promise<Atlas> {
         "suit_spades",
         "up",
         "play",
+        "warning",
     ];
     const icons = createAtlas("icons", ROW_W, CELL * 3);
     for (const name of iconFiles) {
