@@ -61,7 +61,7 @@ impl Looper {
     fn post_run(&mut self, before_run: Instant) {
         let elapsed = crate::time::now() - before_run;
         if elapsed > 33.ms() {
-            println!("Warning: Rendering took {elapsed:?}. Keep it short as possible.",);
+            tracing::warn!(target: "namui::metrics", "Rendering took {elapsed:?}. Keep it short as possible.");
         }
 
         self.render_time_sum += elapsed;
@@ -81,7 +81,7 @@ impl Looper {
                     *count = 0;
                 }
             }
-            println!("\u{0081}{text}");
+            tracing::info!(target: "namui::metrics", "{text}");
             self.one_sec_render_count = 0;
             self.one_sec_timer = std::time::Instant::now();
             self.render_time_sum = 0.ms();

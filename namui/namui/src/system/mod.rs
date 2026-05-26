@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod keyboard;
 pub mod kv_store;
+pub mod log;
 pub mod mouse;
 pub mod screen;
 pub mod time;
@@ -15,6 +16,7 @@ type InitResult = Result<()>;
 static SYSTEM_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 pub(crate) fn init_system() -> InitResult {
+    log::init_log_plugin_with_default();
     keyboard::init()?;
     screen::init()?;
     time::init()?;
