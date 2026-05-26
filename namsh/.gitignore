@@ -1,0 +1,5 @@
+/.forte/
+/dist/
+/rs/target/
+/fe/node_modules/
+/fe/dist/
