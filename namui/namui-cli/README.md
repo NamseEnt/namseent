@@ -19,6 +19,23 @@ rustup target add x86_64-pc-windows-msvc
 cargo install cargo-xwin
 ```
 
+### macOS → Windows cross-compilation
+
+To cross-compile for `x86_64-pc-windows-msvc` from macOS, install the following:
+
+```bash
+# LLVM (provides clang-cl, llvm-lib, lld-link)
+brew install llvm
+
+# Make clang-cl / llvm-lib / lld-link discoverable on PATH.
+# Add to your shell rc (zshrc/bashrc):
+export PATH="$(brew --prefix llvm)/bin:$PATH"
+
+# Rust target and cargo-xwin
+rustup target add x86_64-pc-windows-msvc
+cargo install cargo-xwin
+```
+
 ## Troubleshooting
 
 -   **If you encounter errors related to `std` or `core` not being found when targeting `wasm32-wasi-web` for `start` or `build` commands:**
