@@ -18,12 +18,13 @@ unsafe extern "C" fn signal_handler(sig: libc::c_int) {
 
 #[cfg(unix)]
 fn install_signal_handlers() {
+    let handler = signal_handler as *const () as libc::sighandler_t;
     unsafe {
-        libc::signal(libc::SIGSEGV, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGBUS, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGABRT, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGILL, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGFPE, signal_handler as libc::sighandler_t);
+        libc::signal(libc::SIGSEGV, handler);
+        libc::signal(libc::SIGBUS, handler);
+        libc::signal(libc::SIGABRT, handler);
+        libc::signal(libc::SIGILL, handler);
+        libc::signal(libc::SIGFPE, handler);
     }
 }
 
@@ -33,9 +34,57 @@ fn install_signal_handlers() {
     // No additional setup needed for the runner.
 }
 
+fn build_crash_config() -> Option<namui_crash_reporter::Config> {
+    let build_id = option_env!("NAMUI_CRASH_BUILD_ID")?;
+    let hmac_key_hex = option_env!("NAMUI_CRASH_HMAC_KEY")?;
+    let namsh_url = option_env!("NAMUI_CRASH_NAMSH_URL")?;
+    if build_id.is_empty() || hmac_key_hex.is_empty() || namsh_url.is_empty() {
+        return None;
+    }
+    Some(namui_crash_reporter::Config {
+        build_id: build_id.into(),
+        hmac_key_hex: hmac_key_hex.into(),
+        namsh_url: namsh_url.trim_end_matches('/').into(),
+        app_name: "namui-game".into(),
+    })
+}
+
 fn main() {
-    install_signal_handlers();
-    let args: Vec<String> = std::env::args().collect();
+    let raw_args: Vec<String> = std::env::args().collect();
+
+    if raw_args.get(1).map(String::as_str) == Some("--namui-crash-server") {
+        let socket_name = raw_args
+            .get(2)
+            .expect("Usage: native-runner --namui-crash-server <socket-path>");
+        let Some(config) = build_crash_config() else {
+            eprintln!("[runner] --namui-crash-server requires NAMSH_* compile-time env");
+            std::process::exit(1);
+        };
+        match namui_crash_reporter::server_main(socket_name, &config) {
+            Ok(()) => std::process::exit(0),
+            Err(e) => {
+                eprintln!("[runner] crash server error: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    let _crash_guard = match build_crash_config() {
+        Some(config) => match namui_crash_reporter::init(&config) {
+            Ok(guard) => Some(guard),
+            Err(e) => {
+                eprintln!("[runner] crash-reporter init failed, falling back: {e}");
+                install_signal_handlers();
+                None
+            }
+        },
+        None => {
+            install_signal_handlers();
+            None
+        }
+    };
+
+    let args = raw_args;
     let dylib_path = args
         .get(1)
         .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");

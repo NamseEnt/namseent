@@ -1,0 +1,26 @@
+[package]
+name = "namui-crash-reporter"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "namui_crash_reporter"
+
+[dependencies]
+crash-handler = "0.7"
+minidumper = "0.9"
+minidump = "0.26"
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+dirs = "5"
+reqwest = { version = "0.12", default-features = false, features = [
+    "blocking",
+    "rustls-tls",
+    "json",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+os_info = "3"
