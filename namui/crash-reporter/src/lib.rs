@@ -11,12 +11,16 @@
 
 mod child;
 mod context;
+mod dump_summary;
 mod error;
+pub mod gpu_info;
 mod install_id;
+mod log_capture;
 mod namsh;
 mod parent;
 mod queue;
-mod stack_hash;
+
+pub use log_capture::{LogCapture, start as start_log_capture};
 
 pub use child::server_main;
 pub use error::Error;

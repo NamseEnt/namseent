@@ -34,6 +34,8 @@ fn install_signal_handlers() {
     // No additional setup needed for the runner.
 }
 
+const CRASH_APP_NAME: &str = "namui-game";
+
 fn build_crash_config() -> Option<namui_crash_reporter::Config> {
     let build_id = option_env!("NAMUI_CRASH_BUILD_ID")?;
     let hmac_key_hex = option_env!("NAMUI_CRASH_HMAC_KEY")?;
@@ -45,7 +47,7 @@ fn build_crash_config() -> Option<namui_crash_reporter::Config> {
         build_id: build_id.into(),
         hmac_key_hex: hmac_key_hex.into(),
         namsh_url: namsh_url.trim_end_matches('/').into(),
-        app_name: "namui-game".into(),
+        app_name: CRASH_APP_NAME.into(),
     })
 }
 
@@ -68,6 +70,20 @@ fn main() {
             }
         }
     }
+
+    namui_crash_reporter::gpu_info::export_to_env();
+
+    let _log_capture = if build_crash_config().is_some() {
+        match namui_crash_reporter::start_log_capture(CRASH_APP_NAME) {
+            Ok(c) => Some(c),
+            Err(e) => {
+                eprintln!("[runner] log_capture start failed: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     let _crash_guard = match build_crash_config() {
         Some(config) => match namui_crash_reporter::init(&config) {

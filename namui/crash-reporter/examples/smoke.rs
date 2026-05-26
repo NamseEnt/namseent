@@ -36,7 +36,14 @@ fn main() {
         return;
     }
 
-    let _guard = namui_crash_reporter::init(&config()).expect("init");
+    let cfg = config();
+    namui_crash_reporter::gpu_info::export_to_env();
+    let _log = namui_crash_reporter::start_log_capture(&cfg.app_name)
+        .map_err(|e| eprintln!("[smoke] log_capture failed: {e}"))
+        .ok();
+    let _guard = namui_crash_reporter::init(&cfg).expect("init");
+    println!("[smoke] hello from stdout (this line should appear in log_tail)");
+    eprintln!("[smoke] hello from stderr (this line too)");
     eprintln!("[smoke] crash-reporter initialized; triggering SIGSEGV in 500ms…");
     std::thread::sleep(std::time::Duration::from_millis(500));
     unsafe {
