@@ -654,7 +654,7 @@ fn create_initial_game_state() -> GameState {
                     tower_kind: TowerKind::Barricade,
                     suit: None,
                     rank: None,
-                    count: 1,
+                    count: 4,
                 },
             },
         ],

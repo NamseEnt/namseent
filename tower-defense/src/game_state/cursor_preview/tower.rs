@@ -32,22 +32,24 @@ impl Component for TowerCursorPreview<'_> {
 
         let tower_template = tower_template.clone();
         let tower_template_for_placement = tower_template.clone();
-        let rounded_left_top_xy =
-            ctx.track_eq(&map_coord.map(|f| (f.round() as usize).saturating_sub(1)));
+        let clamped_left_top_xy = ctx.track_eq(&{
+            let rounded = map_coord.map(|f| (f.round() as usize).saturating_sub(1));
+            let x = rounded.x.min(MAP_SIZE.width.saturating_sub(2));
+            let y = rounded.y.min(MAP_SIZE.height.saturating_sub(2));
+            Xy::new(x, y)
+        });
         let placed_tower_coords = ctx.track_eq(&game_state.towers.coords());
         let route_coords = &game_state.route.iter_coords();
 
         let can_place_tower = ctx.memo(|| {
-            let out_of_map = rounded_left_top_xy.x < 1
-                || rounded_left_top_xy.y < 1
-                || rounded_left_top_xy.x >= MAP_SIZE.width
-                || rounded_left_top_xy.y >= MAP_SIZE.height;
+            let out_of_map =
+                clamped_left_top_xy.x >= MAP_SIZE.width || clamped_left_top_xy.y >= MAP_SIZE.height;
 
             if out_of_map {
                 return false;
             }
             can_place_tower(
-                *rounded_left_top_xy,
+                *clamped_left_top_xy,
                 Wh::single(2),
                 &TRAVEL_POINTS,
                 &placed_tower_coords,
@@ -65,7 +67,7 @@ impl Component for TowerCursorPreview<'_> {
             });
         };
 
-        let left_top = *rounded_left_top_xy;
+        let left_top = *clamped_left_top_xy;
         let place_tower = || {
             let tower_template_for_placement = tower_template_for_placement.clone();
             mutate_game_state(move |game_state| {
