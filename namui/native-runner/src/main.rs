@@ -18,12 +18,13 @@ unsafe extern "C" fn signal_handler(sig: libc::c_int) {
 
 #[cfg(unix)]
 fn install_signal_handlers() {
+    let handler = signal_handler as *const () as libc::sighandler_t;
     unsafe {
-        libc::signal(libc::SIGSEGV, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGBUS, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGABRT, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGILL, signal_handler as libc::sighandler_t);
-        libc::signal(libc::SIGFPE, signal_handler as libc::sighandler_t);
+        libc::signal(libc::SIGSEGV, handler);
+        libc::signal(libc::SIGBUS, handler);
+        libc::signal(libc::SIGABRT, handler);
+        libc::signal(libc::SIGILL, handler);
+        libc::signal(libc::SIGFPE, handler);
     }
 }
 
