@@ -34,6 +34,9 @@ pub async fn start(
                 Target::Aarch64AppleDarwin => {
                     macos::aarch64_apple_darwin::start(&manifest_path, start_option).await?
                 }
+                Target::X86_64PcWindowsMsvc => {
+                    macos::x86_64_pc_windows_msvc::start(&manifest_path, start_option).await?
+                }
                 _ => unimplemented!(),
             }
         }
