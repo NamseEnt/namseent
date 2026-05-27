@@ -63,10 +63,29 @@ pub fn init(config: &Config) -> Result<CrashGuard, Error> {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     handler.set_ptracer(Some(child.id()));
 
+    install_panic_hook();
+
     Ok(CrashGuard {
         _handler: handler,
         _child: child,
     })
+}
+
+/// Translate a Rust `panic!()` into a signal/exception the installed
+/// `CrashHandler` can capture.
+///
+/// Without this, panic starts a Rust unwind that drops `CrashGuard` (and with
+/// it the `CrashHandler` + minidumper child) *before* the process actually
+/// aborts, so the SIGABRT raised at the end of unwind has no handler left to
+/// receive it — and no dump is produced. Calling `process::abort()` from
+/// inside the panic hook skips the unwind entirely, leaving `CrashGuard`
+/// alive when the signal fires.
+fn install_panic_hook() {
+    let prev = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        prev(info);
+        std::process::abort();
+    }));
 }
 
 fn connect_with_retry(

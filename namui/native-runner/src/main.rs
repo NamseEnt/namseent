@@ -71,8 +71,6 @@ fn main() {
         }
     }
 
-    namui_crash_reporter::gpu_info::export_to_env();
-
     let _log_capture = if build_crash_config().is_some() {
         match namui_crash_reporter::start_log_capture(CRASH_APP_NAME) {
             Ok(c) => Some(c),

@@ -32,8 +32,8 @@ crate-type = ["cdylib"]
 [dependencies]
 {app_name} = {{ path = "{app_dep_path}" }}
 namui = {{ path = "{namui_dep_path}" }}
-namui-audio-native = {{ path = "{namui_dep_path}/audio-native" }}
-namui-kv-store-native = {{ path = "{namui_dep_path}/kv-store-native" }}
+namui-audio-native = {{ path = "{namui_dep_path}/../audio-native" }}
+namui-kv-store-native = {{ path = "{namui_dep_path}/../kv-store-native" }}
 
 [profile.dev]
 opt-level = 1

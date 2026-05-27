@@ -43,9 +43,13 @@ fn main() {
     let _guard = namui_crash_reporter::init(&cfg).expect("init");
     println!("[smoke] hello from stdout (this line should appear in log_tail)");
     eprintln!("[smoke] hello from stderr (this line too)");
-    eprintln!("[smoke] crash-reporter initialized; triggering SIGSEGV in 500ms…");
+    let mode = std::env::var("SMOKE_MODE").unwrap_or_default();
+    eprintln!("[smoke] crash-reporter initialized; mode={mode:?}; triggering in 500ms…");
     std::thread::sleep(std::time::Duration::from_millis(500));
-    unsafe {
-        std::ptr::null_mut::<i32>().write_volatile(42);
+    match mode.as_str() {
+        "panic" => panic!("[smoke] intentional panic for crash-reporter test"),
+        _ => unsafe {
+            std::ptr::null_mut::<i32>().write_volatile(42);
+        },
     }
 }
