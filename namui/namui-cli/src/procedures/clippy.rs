@@ -66,6 +66,40 @@ pub async fn clippy(target: Target, manifest_path: PathBuf) -> Result<()> {
                 .wait()
                 .await?;
         }
+        Target::Aarch64PcWindowsMsvc => {
+            let mut args = vec![];
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
+                args.push("xwin");
+            }
+
+            args.extend([
+                "clippy",
+                "--target",
+                "aarch64-pc-windows-msvc",
+                "--manifest-path",
+                manifest_path.to_str().unwrap(),
+                "--tests",
+            ]);
+
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
+                args.extend([
+                    "--xwin-arch",
+                    "aarch64",
+                    "--xwin-version",
+                    "17",
+                    "--cross-compiler",
+                    "clang",
+                ]);
+            }
+
+            Command::new("cargo")
+                .args(args)
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .spawn()?
+                .wait()
+                .await?;
+        }
         Target::X86_64UnknownLinuxGnu => {
             let mut args = vec![];
             args.extend([

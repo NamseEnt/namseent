@@ -21,7 +21,8 @@ cargo install cargo-xwin
 
 ### macOS → Windows cross-compilation
 
-To cross-compile for `x86_64-pc-windows-msvc` from macOS, install the following:
+To cross-compile for `x86_64-pc-windows-msvc` or `aarch64-pc-windows-msvc`
+(Windows 11 on ARM) from macOS, install the following:
 
 ```bash
 # LLVM (provides clang-cl, llvm-lib, lld-link)
@@ -31,8 +32,9 @@ brew install llvm
 # Add to your shell rc (zshrc/bashrc):
 export PATH="$(brew --prefix llvm)/bin:$PATH"
 
-# Rust target and cargo-xwin
+# Rust targets and cargo-xwin (add only the target(s) you need)
 rustup target add x86_64-pc-windows-msvc
+rustup target add aarch64-pc-windows-msvc
 cargo install cargo-xwin
 ```
 

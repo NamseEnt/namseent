@@ -31,6 +31,9 @@ pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
                 Target::X86_64PcWindowsMsvc => {
                     macos::x86_64_pc_windows_msvc::test(&manifest_path)?
                 }
+                Target::Aarch64PcWindowsMsvc => {
+                    macos::aarch64_pc_windows_msvc::test(&manifest_path)?
+                }
                 _ => unimplemented!(),
             }
         }
