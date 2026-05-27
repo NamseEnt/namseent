@@ -102,10 +102,22 @@ fn main() {
     let dylib_path = args
         .get(1)
         .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");
+    let project_path = args
+        .get(2)
+        .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");
     let font_dir = args
         .get(3)
         .expect("Usage: native-runner <dylib-path> <project-path> <font-dir>");
     let font_dir = std::path::Path::new(font_dir);
+
+    // SAFETY: still single-threaded at this point (crash-reporter spawned its
+    // child but not yet any in-process thread that reads the env).
+    unsafe {
+        std::env::set_var(
+            "NAMUI_ASSET_DIR",
+            std::path::Path::new(project_path).join("asset"),
+        );
+    }
 
     #[cfg(unix)]
     let _lib = match unsafe {

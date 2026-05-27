@@ -51,11 +51,15 @@ debug = "line-tables-only"
         format!(
             r#"#[unsafe(no_mangle)]
 pub extern "C" fn namui_main() {{
-    let asset_dir = std::env::current_exe()
-        .expect("Failed to get current exe path")
-        .parent()
-        .unwrap()
-        .join("asset");
+    let asset_dir = std::env::var_os("NAMUI_ASSET_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {{
+            std::env::current_exe()
+                .expect("Failed to get current exe path")
+                .parent()
+                .unwrap()
+                .join("asset")
+        }});
     {project_name_underscored}::asset::init_native_assets(|relative_path| {{
         let path = asset_dir.join(relative_path);
         std::fs::read(&path)
