@@ -28,7 +28,15 @@ pub fn init(config: &Config) -> Result<CrashGuard, Error> {
         })?;
 
     let pid = std::process::id();
-    let socket_name_owned = format!("/tmp/namui-crash-{pid}.sock");
+    // Use the OS temp dir rather than hard-coding `/tmp/…`: on Windows `/tmp`
+    // resolves to `C:\tmp` which usually doesn't exist, so the minidumper
+    // child's AF_UNIX `bind()` fails and `init()` silently degrades to
+    // no-crash-reporting.
+    let socket_path = std::env::temp_dir().join(format!("namui-crash-{pid}.sock"));
+    let socket_arg = socket_path
+        .to_str()
+        .ok_or(Error::ChildConnectTimeout)?
+        .to_string();
 
     let parent_start_unix = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -38,7 +46,7 @@ pub fn init(config: &Config) -> Result<CrashGuard, Error> {
     let exe = std::env::current_exe()?;
     let child = Command::new(exe)
         .arg("--namui-crash-server")
-        .arg(&socket_name_owned)
+        .arg(&socket_arg)
         .env("NAMUI_CRASH_PARENT_PID", pid.to_string())
         .env(
             "NAMUI_CRASH_PARENT_START_UNIX",
@@ -46,7 +54,6 @@ pub fn init(config: &Config) -> Result<CrashGuard, Error> {
         )
         .spawn()?;
 
-    let socket_path: std::path::PathBuf = socket_name_owned.into();
     let client = connect_with_retry(&socket_path, Duration::from_secs(5))?;
     let client = Arc::new(client);
 
@@ -71,20 +78,23 @@ pub fn init(config: &Config) -> Result<CrashGuard, Error> {
     })
 }
 
-/// Translate a Rust `panic!()` into a signal/exception the installed
-/// `CrashHandler` can capture.
+/// Translate a Rust `panic!()` into a signal `CrashHandler` can capture.
 ///
-/// Without this, panic starts a Rust unwind that drops `CrashGuard` (and with
-/// it the `CrashHandler` + minidumper child) *before* the process actually
-/// aborts, so the SIGABRT raised at the end of unwind has no handler left to
-/// receive it — and no dump is produced. Calling `process::abort()` from
-/// inside the panic hook skips the unwind entirely, leaving `CrashGuard`
-/// alive when the signal fires.
+/// Without this, panic unwinds and drops `CrashGuard` (handler + minidumper
+/// child) before the abort signal fires, so the signal lands with no handler
+/// installed. We instead force an immediate abort from the hook.
+///
+/// `libc::abort()` (not `std::process::abort()`) is required on Windows:
+/// Rust's `process::abort()` uses `__fastfail` which bypasses SEH and any
+/// `signal(SIGABRT, …)` handler — including the one `crash_handler` installs
+/// to translate SIGABRT into a captureable exception. The CRT `abort()`
+/// raises SIGABRT first, so the handler runs.
 fn install_panic_hook() {
     let prev = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         prev(info);
-        std::process::abort();
+        // SAFETY: `abort` is signal-safe and never returns.
+        unsafe { libc::abort() };
     }));
 }
 

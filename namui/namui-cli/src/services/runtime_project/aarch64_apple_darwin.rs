@@ -120,7 +120,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn main() {{
     {project_name_underscored}::main();
-    native_runner::run();
+    native_runner::entry();
 }}
 "#
         ),

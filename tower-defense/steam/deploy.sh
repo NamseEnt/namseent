@@ -90,15 +90,22 @@ fi
 open_browser() {
     local url="$1"
     local opener
+    # Prefer powershell.exe over cmd.exe on WSL: cmd.exe interprets `&` in the
+    # OAuth URL as a command separator (even when the URL is bash-quoted, since
+    # WSL interop doesn't always re-quote single-token args before handing the
+    # line to cmd.exe), which silently drops query params like `code_challenge`.
     if command -v wslview >/dev/null 2>&1; then opener="wslview"
     elif command -v xdg-open >/dev/null 2>&1; then opener="xdg-open"
     elif command -v open >/dev/null 2>&1; then opener="open"
-    elif command -v cmd.exe >/dev/null 2>&1; then opener="cmd.exe"
     elif command -v powershell.exe >/dev/null 2>&1; then opener="powershell.exe"
+    elif command -v cmd.exe >/dev/null 2>&1; then opener="cmd.exe"
     else return 1; fi
     case "$opener" in
         cmd.exe)
-            ( nohup cmd.exe /c start "" "$url" </dev/null >/dev/null 2>&1 & ) ;;
+            # Caret-escape `&` so cmd.exe doesn't split the URL into separate
+            # commands when invoked via WSL interop.
+            local cmd_url="${url//&/^&}"
+            ( nohup cmd.exe /c start "" "$cmd_url" </dev/null >/dev/null 2>&1 & ) ;;
         powershell.exe)
             ( nohup powershell.exe -NoProfile -Command "Start-Process '$url'" </dev/null >/dev/null 2>&1 & ) ;;
         *)

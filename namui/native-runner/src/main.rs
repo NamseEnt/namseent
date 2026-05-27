@@ -34,23 +34,6 @@ fn install_signal_handlers() {
     // No additional setup needed for the runner.
 }
 
-const CRASH_APP_NAME: &str = "namui-game";
-
-fn build_crash_config() -> Option<namui_crash_reporter::Config> {
-    let build_id = option_env!("NAMUI_CRASH_BUILD_ID")?;
-    let hmac_key_hex = option_env!("NAMUI_CRASH_HMAC_KEY")?;
-    let namsh_url = option_env!("NAMUI_CRASH_NAMSH_URL")?;
-    if build_id.is_empty() || hmac_key_hex.is_empty() || namsh_url.is_empty() {
-        return None;
-    }
-    Some(namui_crash_reporter::Config {
-        build_id: build_id.into(),
-        hmac_key_hex: hmac_key_hex.into(),
-        namsh_url: namsh_url.trim_end_matches('/').into(),
-        app_name: CRASH_APP_NAME.into(),
-    })
-}
-
 fn main() {
     let raw_args: Vec<String> = std::env::args().collect();
 
@@ -58,7 +41,7 @@ fn main() {
         let socket_name = raw_args
             .get(2)
             .expect("Usage: native-runner --namui-crash-server <socket-path>");
-        let Some(config) = build_crash_config() else {
+        let Some(config) = native_runner::build_crash_config() else {
             eprintln!("[runner] --namui-crash-server requires NAMSH_* compile-time env");
             std::process::exit(1);
         };
@@ -71,32 +54,20 @@ fn main() {
         }
     }
 
-    let _log_capture = if build_crash_config().is_some() {
-        match namui_crash_reporter::start_log_capture(CRASH_APP_NAME) {
-            Ok(c) => Some(c),
-            Err(e) => {
-                eprintln!("[runner] log_capture start failed: {e}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    let _crash_guard = match build_crash_config() {
-        Some(config) => match namui_crash_reporter::init(&config) {
-            Ok(guard) => Some(guard),
-            Err(e) => {
-                eprintln!("[runner] crash-reporter init failed, falling back: {e}");
-                install_signal_handlers();
-                None
-            }
-        },
-        None => {
-            install_signal_handlers();
-            None
-        }
-    };
+    let config = native_runner::build_crash_config();
+    let _log_capture = config.as_ref().and_then(|_| {
+        namui_crash_reporter::start_log_capture(native_runner::CRASH_APP_NAME)
+            .inspect_err(|e| eprintln!("[runner] log_capture start failed: {e}"))
+            .ok()
+    });
+    let _crash_guard = config.as_ref().and_then(|c| {
+        namui_crash_reporter::init(c)
+            .inspect_err(|e| eprintln!("[runner] crash-reporter init failed, falling back: {e}"))
+            .ok()
+    });
+    if _crash_guard.is_none() {
+        install_signal_handlers();
+    }
 
     let args = raw_args;
     let dylib_path = args
@@ -142,13 +113,9 @@ fn main() {
         }
     };
 
-    std::panic::set_hook(Box::new(|info| {
-        eprintln!("[runner] PANIC: {info}");
-    }));
-    let result = std::panic::catch_unwind(|| {
-        native_runner::run_with_font_dir(font_dir);
-    });
-    if let Err(e) = result {
-        eprintln!("[runner] run() panicked: {e:?}");
-    }
+    // Note: do NOT install a panic hook here or wrap `run_with_font_dir` in
+    // `catch_unwind`. crash-reporter::init() installs the panic→abort hook
+    // that ferries Rust panics into the minidumper; overriding it or
+    // swallowing the unwind would prevent the dump from ever being produced.
+    native_runner::run_with_font_dir(font_dir);
 }
