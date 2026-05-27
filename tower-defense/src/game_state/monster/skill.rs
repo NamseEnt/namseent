@@ -1,6 +1,5 @@
-use super::*;
 use crate::game_state::GameState;
-use namui::Instant;
+use namui::*;
 use std::ops::Deref;
 
 #[derive(Clone, Copy, State)]
@@ -110,7 +109,7 @@ pub fn activate_monster_skills(game_state: &mut GameState, now: Instant) {
         };
 
         target_monsters.into_iter().for_each(|monster| {
-            println!("Activating skill for monster {}", monster.max_hp);
+            debug!(target: "td::monster::skill", "Activating skill for monster {}", monster.max_hp);
             let mut push_status_effect = |kind| {
                 monster.status_effects.push(MonsterStatusEffect {
                     kind,

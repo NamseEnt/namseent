@@ -28,6 +28,9 @@ pub fn test(target: Target, manifest_path: PathBuf) -> Result<()> {
             match target {
                 Target::Wasm32WasiWeb => macos::wasm32_wasi_web::test(&manifest_path)?,
                 Target::Aarch64AppleDarwin => macos::aarch64_apple_darwin::test(&manifest_path)?,
+                Target::X86_64PcWindowsMsvc => {
+                    macos::x86_64_pc_windows_msvc::test(&manifest_path)?
+                }
                 _ => unimplemented!(),
             }
         }

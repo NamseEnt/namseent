@@ -6,7 +6,7 @@ impl SkCanvas for skia_safe::Canvas {
     }
     fn draw_text_blob(&self, glyph_ids: GlyphIds, xy: Xy<Px>, font: &Font, paint: &Paint) {
         let Some(text_blob) = NativeTextBlob::from_glyph_ids(glyph_ids, font) else {
-            println!("text_blob not found");
+            tracing::warn!(target: "namui::skia", "text_blob not found for glyph_ids");
             return;
         };
         self.draw_text_blob(text_blob.skia(), xy, NativePaint::get(paint).skia());
