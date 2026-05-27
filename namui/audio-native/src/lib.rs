@@ -77,7 +77,7 @@ pub extern "C" fn _register_audio(audio_id: usize, buffer_ptr: *const u8, buffer
 pub extern "C" fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool) {
     let data_map = SOUND_DATA.lock().unwrap();
     let Some(data) = data_map.get(&audio_id) else {
-        eprintln!("audio_play: unknown audio_id {audio_id}");
+        tracing::warn!(target: "namui::audio", "audio_play: unknown audio_id {audio_id}");
         return;
     };
     let mut sound_data = data.clone().volume(Decibels::SILENCE);
@@ -97,7 +97,7 @@ pub extern "C" fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool)
             );
         }
         Err(e) => {
-            eprintln!("audio_play: failed to play audio {audio_id}: {e}");
+            tracing::error!(target: "namui::audio", "audio_play: failed to play audio {audio_id}: {e}");
         }
     }
 }
@@ -106,7 +106,7 @@ pub extern "C" fn _audio_play(audio_id: usize, playback_id: usize, repeat: bool)
 pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repeat: bool) {
     let data_map = SOUND_DATA.lock().unwrap();
     let Some(data) = data_map.get(&audio_id) else {
-        eprintln!("audio_play_spatial: unknown audio_id {audio_id}");
+        tracing::warn!(target: "namui::audio", "audio_play_spatial: unknown audio_id {audio_id}");
         return;
     };
     let mut sound_data = data.clone().volume(Decibels::SILENCE);
@@ -131,7 +131,7 @@ pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repea
                 *listener_guard = Some(handle);
             }
             Err(e) => {
-                eprintln!("audio_play_spatial: failed to create listener: {e}");
+                tracing::error!(target: "namui::audio", "audio_play_spatial: failed to create listener: {e}");
                 return;
             }
         }
@@ -161,11 +161,11 @@ pub extern "C" fn _audio_play_spatial(audio_id: usize, playback_id: usize, repea
                 );
             }
             Err(e) => {
-                eprintln!("audio_play_spatial: failed to play audio {audio_id}: {e}");
+                tracing::error!(target: "namui::audio", "audio_play_spatial: failed to play audio {audio_id}: {e}");
             }
         },
         Err(e) => {
-            eprintln!("audio_play_spatial: failed to create spatial track: {e}");
+            tracing::error!(target: "namui::audio", "audio_play_spatial: failed to create spatial track: {e}");
         }
     }
 }
