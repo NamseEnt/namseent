@@ -18,18 +18,9 @@ pub struct WebSessionEntry {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CrashContext {
-    pub app_version: String,
     pub build_id: String,
-    pub os: String,
-    pub os_version: String,
-    pub arch: String,
-    pub cpu: Option<String>,
-    pub gpu_adapter: Option<String>,
-    pub gpu_driver: Option<String>,
-    pub locale: Option<String>,
     pub install_id: String,
     pub session_uptime_sec: u64,
-    pub error_message: Option<String>,
     pub log_tail: Option<String>,
 }
 

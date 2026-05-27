@@ -11,7 +11,6 @@ pub struct StackGroupRow {
     pub last_seen: DateTime,
     pub count: u64,
     pub stored_dumps: usize,
-    pub latest_app_version: String,
     pub latest_build_id: String,
 }
 
@@ -42,7 +41,6 @@ pub async fn handler(req: ForteRequest<'_>) -> anyhow::Result<Props> {
             last_seen: g.last_seen,
             count: g.count,
             stored_dumps: g.dump_ids.len(),
-            latest_app_version: g.latest_context.app_version,
             latest_build_id: g.latest_context.build_id,
         })
         .collect();

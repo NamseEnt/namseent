@@ -37,7 +37,6 @@ fn main() {
     }
 
     let cfg = config();
-    namui_crash_reporter::gpu_info::export_to_env();
     let _log = namui_crash_reporter::start_log_capture(&cfg.app_name)
         .map_err(|e| eprintln!("[smoke] log_capture failed: {e}"))
         .ok();

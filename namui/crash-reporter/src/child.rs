@@ -1,4 +1,4 @@
-use crate::{Config, Error, context, dump_summary, log_capture, namsh, queue};
+use crate::{Config, Error, context, log_capture, namsh, queue, stack_hash};
 use minidumper::{LoopAction, MinidumpBinary, Server, ServerHandler, SocketName};
 use std::{
     fs::File,
@@ -82,26 +82,22 @@ impl ServerHandler for Handler {
 
 impl Handler {
     fn process_dump(&self, dump_path: &Path) -> Result<(), Error> {
-        let summary = dump_summary::parse(dump_path)?;
+        let stack_hash = stack_hash::compute(dump_path)?;
         let session_uptime_sec = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs().saturating_sub(self.parent_start_unix))
             .unwrap_or(0);
-        let gpu_adapter = crate::gpu_info::read_from_env();
         let log_tail = log_capture::read_tail();
         let ctx = context::collect(context::CollectArgs {
             config: &self.config,
             install_id: &self.install_id,
             session_uptime_sec,
-            error_message: summary.error_message,
-            gpu_adapter,
-            gpu_driver: None,
             log_tail,
         });
         queue::write_sidecar(
             dump_path,
             &queue::PendingEntry {
-                stack_hash: summary.stack_hash,
+                stack_hash,
                 context: ctx,
             },
         )?;

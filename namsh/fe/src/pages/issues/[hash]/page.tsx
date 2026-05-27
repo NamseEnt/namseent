@@ -83,15 +83,9 @@ function IssueDetail({ data }: { data: OkProps }) {
             <h2 style={{ marginTop: 24 }}>Latest context</h2>
             <table>
                 <tbody>
-                    <Field label="app_version" value={ctx.appVersion} />
                     <Field label="build_id" value={ctx.buildId} />
-                    <Field label="os" value={`${ctx.os} ${ctx.osVersion} ${ctx.arch}`} />
-                    <Field label="cpu" value={ctx.cpu ?? "—"} />
-                    <Field label="gpu" value={`${ctx.gpuAdapter ?? "—"} / ${ctx.gpuDriver ?? "—"}`} />
-                    <Field label="locale" value={ctx.locale ?? "—"} />
                     <Field label="install_id" value={ctx.installId} />
                     <Field label="session_uptime_sec" value={String(ctx.sessionUptimeSec)} />
-                    <Field label="error_message" value={ctx.errorMessage ?? "—"} />
                 </tbody>
             </table>
 

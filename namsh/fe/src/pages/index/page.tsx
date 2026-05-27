@@ -15,7 +15,6 @@ export default function IndexPage(props: Props) {
                             <th style={cell}>Count</th>
                             <th style={cell}>Stored dumps</th>
                             <th style={cell}>Latest build</th>
-                            <th style={cell}>Latest version</th>
                             <th style={cell}>Last seen</th>
                             <th style={cell}>First seen</th>
                         </tr>
@@ -31,7 +30,6 @@ export default function IndexPage(props: Props) {
                                 <td style={cell}>{g.count}</td>
                                 <td style={cell}>{g.storedDumps} / 3</td>
                                 <td style={cell}><code>{g.latestBuildId}</code></td>
-                                <td style={cell}>{g.latestAppVersion}</td>
                                 <td style={cell}>{new Date(g.lastSeen).toLocaleString()}</td>
                                 <td style={cell}>{new Date(g.firstSeen).toLocaleString()}</td>
                             </tr>

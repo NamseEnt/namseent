@@ -81,18 +81,9 @@ CliAuthorizationCodeDoc {
 
 ```rust
 CrashContext {
-  app_version: String,
   build_id: String,
-  os: String,
-  os_version: String,
-  arch: String,
-  cpu: Option<String>,
-  gpu_adapter: Option<String>,
-  gpu_driver: Option<String>,
-  locale: Option<String>,
   install_id: String,              // anonymous, client-generated UUID
   session_uptime_sec: u64,
-  error_message: Option<String>,
   log_tail: Option<String>,        // <= 64 KiB; client truncates
 }
 ```

@@ -8,7 +8,6 @@ export const StackGroupRowSchema = z.object({
     lastSeen: z.coerce.date(),
     count: z.number(),
     storedDumps: z.number(),
-    latestAppVersion: z.string(),
     latestBuildId: z.string(),
   });
 

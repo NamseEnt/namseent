@@ -4,18 +4,9 @@ import { z } from "zod";
 import { callAction } from "@forte/react";
 
 const CrashContextSchema = z.object({
-    appVersion: z.string(),
     buildId: z.string(),
-    os: z.string(),
-    osVersion: z.string(),
-    arch: z.string(),
-    cpu: z.string().optional(),
-    gpuAdapter: z.string().optional(),
-    gpuDriver: z.string().optional(),
-    locale: z.string().optional(),
     installId: z.string(),
     sessionUptimeSec: z.number(),
-    errorMessage: z.string().optional(),
     logTail: z.string().optional(),
   });
 

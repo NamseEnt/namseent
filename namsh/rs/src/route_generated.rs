@@ -57,7 +57,7 @@ mod proxy {
         { inline :
         "package forte:user; world service-export { import wasi:http/types@0.3.0-rc-2026-03-15; export wasi:http/handler@0.3.0-rc-2026-03-15; }",
         path :
-        "/Users/namse/namseent/namsh/rs/target/wasm32-wasip2/release/build/namsh-4f4f352efd6b10c0/out",
+        "/Users/namse/namseent/namsh/rs/target/wasm32-wasip2/debug/build/namsh-e56b966868918e18/out",
         world : "service-export", default_bindings_module :
         "crate::route_generated::proxy", pub_export_macro : true, async : true, features
         : ["clocks-timezone"], with : { "wasi:http/handler@0.3.0-rc-2026-03-15" :

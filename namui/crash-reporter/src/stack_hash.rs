@@ -1,13 +1,7 @@
-//! Parses a minidump and extracts the two pieces of information we feed back
-//! into `CrashContext` / `intake_crash`:
-//!
-//! - `stack_hash` — SPEC §4 recommended algorithm: SHA-256 hex over the
-//!   crashing thread's top-N frames in `module_basename!0x<offset_from_base>`
-//!   form. Symbol-free; uses `minidump-unwind` so we get more than just the
-//!   IP register.
-//! - `error_message` — a human-readable description of *why* the process
-//!   crashed (SIGSEGV / EXCEPTION_ACCESS_VIOLATION / etc.), derived from
-//!   the minidump's exception code via `MinidumpException::get_crash_reason`.
+//! Computes the stable hash namsh uses to group recurrences of the same crash.
+//! SPEC §4's recommended algorithm: SHA-256 hex over the crashing thread's
+//! top-N frames in `module_basename!0x<offset_from_module_base>` form,
+//! joined by `\n`. Symbol-free — walks the stack via `minidump-unwind`.
 
 use crate::Error;
 use minidump::{
@@ -22,12 +16,7 @@ use std::path::Path;
 
 const TOP_N: usize = 10;
 
-pub struct DumpSummary {
-    pub stack_hash: String,
-    pub error_message: Option<String>,
-}
-
-pub fn parse(dump_path: &Path) -> Result<DumpSummary, Error> {
+pub fn compute(dump_path: &Path) -> Result<String, Error> {
     let dump = Minidump::read_path(dump_path)?;
     let exception: MinidumpException = dump.get_stream()?;
     let threads: MinidumpThreadList = dump.get_stream()?;
@@ -89,15 +78,6 @@ pub fn parse(dump_path: &Path) -> Result<DumpSummary, Error> {
             None => lines.push(format!("0x{:x}", frame.instruction)),
         }
     }
-    let stack_hash = hex::encode(Sha256::digest(lines.join("\n").as_bytes()));
 
-    let error_message = Some(format!(
-        "{}",
-        exception.get_crash_reason(mdsi.os, mdsi.cpu)
-    ));
-
-    Ok(DumpSummary {
-        stack_hash,
-        error_message,
-    })
+    Ok(hex::encode(Sha256::digest(lines.join("\n").as_bytes())))
 }
