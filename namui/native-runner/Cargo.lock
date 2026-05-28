@@ -1681,6 +1681,7 @@ dependencies = [
  "namui-type",
  "skia-safe",
  "textwrap",
+ "tracing",
  "unicode-segmentation",
 ]
 
@@ -1701,6 +1702,7 @@ dependencies = [
  "skia-safe",
  "textwrap",
  "tokio 1.38.0",
+ "tracing",
  "unicode-segmentation",
  "windows",
  "winit",

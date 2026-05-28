@@ -36,6 +36,30 @@ rustup target add x86_64-pc-windows-msvc
 cargo install cargo-xwin
 ```
 
+## Project icon
+
+Declare a source PNG in `Cargo.toml`:
+
+```toml
+[package.metadata.namui]
+icon = "asset/image/icon/app.png"   # square PNG, recommended 1024x1024 RGBA
+```
+
+When building `x86_64-pc-windows-msvc`, namui-cli:
+
+-   Generates a multi-size `.ico` (16/32/48/64/128/256) and embeds it into the
+    `.exe` via a `build.rs` using `embed-resource`.
+-   Emits Steam Partner upload assets to `target/namui/steam-assets/`:
+    -   `shortcut-icon-512.png` (Steamworks "Shortcut Icon")
+    -   `app-icon-184.jpg` (Steamworks "App Icon"; transparent pixels composited
+        onto black)
+
+These assets are *not* uploaded automatically — Steamworks does not expose a
+public asset-upload API. Upload them once via the Steamworks Partner web site.
+
+The source PNG must be square and at least 256×256. A warning is printed if it
+is smaller than 1024×1024 (downscaling stays sharp; upscaling does not).
+
 ## Troubleshooting
 
 -   **If you encounter errors related to `std` or `core` not being found when targeting `wasm32-wasi-web` for `start` or `build` commands:**
@@ -45,3 +69,8 @@ cargo install cargo-xwin
     ```bash
     rustup target add wasm32-wasip1-threads
     ```
+
+-   **If `embed-resource` fails to find a Windows resource compiler when cross-compiling:**
+
+    Make sure `llvm-rc` is on PATH (provided by `brew install llvm` on macOS,
+    `apt install llvm` on Linux).

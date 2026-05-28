@@ -17,6 +17,7 @@ pub struct GenerateRuntimeProjectArgs {
     pub project_path: PathBuf,
     pub strip_debug_info: bool,
     pub mode: RuntimeProjectMode,
+    pub icon_path: Option<PathBuf>,
 }
 
 fn get_project_name(project_path: PathBuf) -> String {
@@ -82,6 +83,7 @@ mod tests {
             project_path,
             strip_debug_info: false,
             mode: super::RuntimeProjectMode::Binary,
+            icon_path: None,
         })
         .unwrap();
     }

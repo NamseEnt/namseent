@@ -26,6 +26,7 @@ pub async fn start(
         project_path: project_root_path.clone(),
         strip_debug_info: start_option.strip_debug_info,
         mode: services::runtime_project::RuntimeProjectMode::Binary,
+        icon_path: None,
     })?;
 
     build_status_service

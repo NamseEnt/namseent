@@ -9,6 +9,66 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 
+#[cfg(target_os = "windows")]
+fn apply_windows_app_icon(window: &Window) {
+    use windows::{
+        Win32::{
+            Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
+            System::LibraryLoader::GetModuleHandleW,
+            UI::WindowsAndMessaging::{
+                HICON, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED, LoadImageW,
+                SendMessageW, WM_SETICON,
+            },
+        },
+        core::PCWSTR,
+    };
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+
+    let Ok(window_handle) = window.window_handle() else {
+        return;
+    };
+    let RawWindowHandle::Win32(handle) = window_handle.as_raw() else {
+        return;
+    };
+
+    let hwnd = HWND(handle.hwnd.get() as *mut core::ffi::c_void);
+
+    let Ok(module) = (unsafe { GetModuleHandleW(None) }) else {
+        return;
+    };
+    let hinstance = HINSTANCE(module.0);
+
+    let resource_name: Vec<u16> = "IDI_ICON1\0".encode_utf16().collect();
+    let Ok(icon_handle) = (unsafe {
+        LoadImageW(
+            Some(hinstance),
+            PCWSTR(resource_name.as_ptr()),
+            IMAGE_ICON,
+            0,
+            0,
+            LR_DEFAULTSIZE | LR_SHARED,
+        )
+    }) else {
+        return;
+    };
+    let hicon = HICON(icon_handle.0);
+
+    unsafe {
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_SMALL as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_BIG as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+    }
+}
+
 unsafe extern "C" {
     fn namui_main();
     fn _init_system();
@@ -113,6 +173,9 @@ impl ApplicationHandler for NamuiApp {
             .create_window(window_attributes)
             .expect("Failed to create window");
 
+        #[cfg(target_os = "windows")]
+        apply_windows_app_icon(&window);
+
         let inner_size = window.inner_size();
 
         let window_wh = Wh::new(
@@ -200,13 +263,7 @@ impl ApplicationHandler for NamuiApp {
                     Some(data) if !data.is_empty() => {
                         let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
                             bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
-                        namui_drawer::draw_rendering_tree(
-                            skia,
-                            rendering_tree,
-                            mx,
-                            my,
-                            sprite_set,
-                        );
+                        namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my, sprite_set);
                     }
                     _ => {
                         namui_drawer::redraw(skia, mx, my, sprite_set);
@@ -279,16 +336,12 @@ impl ApplicationHandler for NamuiApp {
                     self.window.as_ref().unwrap().request_redraw();
                 }
             }
-            WindowEvent::Focused(false) => {
-                unsafe {
-                    _on_blur();
-                }
-            }
-            WindowEvent::Occluded(_) => {
-                unsafe {
-                    _on_visibility_change();
-                }
-            }
+            WindowEvent::Focused(false) => unsafe {
+                _on_blur();
+            },
+            WindowEvent::Occluded(_) => unsafe {
+                _on_visibility_change();
+            },
             _ => {}
         }
     }
@@ -409,9 +462,7 @@ pub fn run_with_font_dir(font_dir: &std::path::Path) {
     }
 }
 
-fn load_cursor_sprite_set(
-    system_bundle_dir: &std::path::Path,
-) -> Option<StandardCursorSpriteSet> {
+fn load_cursor_sprite_set(system_bundle_dir: &std::path::Path) -> Option<StandardCursorSpriteSet> {
     let cursor_dir = system_bundle_dir.join("cursor");
     let image_path = cursor_dir.join("capitaine_24.png");
     let metadata_path = cursor_dir.join("capitaine_24.txt");
@@ -431,8 +482,9 @@ fn load_cursor_sprite_set(
         );
     }
 
-    let sprite_set = StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
-        .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
+    let sprite_set =
+        StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
+            .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
 
     Some(sprite_set)
 }
@@ -458,11 +510,7 @@ fn load_fonts(font_dir: &std::path::Path) {
         let rel_path = &rest[..end];
 
         let font_path = font_dir.parent().unwrap().join(rel_path);
-        let name = font_path
-            .file_stem()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let name = font_path.file_stem().unwrap().to_string_lossy().to_string();
         let data = std::fs::read(&font_path)
             .unwrap_or_else(|e| panic!("Failed to read font {:?}: {e}", font_path));
         // Register in runner's own TYPEFACE_MAP (for namui_drawer rendering)
