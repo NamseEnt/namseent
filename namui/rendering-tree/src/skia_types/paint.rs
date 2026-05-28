@@ -41,9 +41,7 @@ fn new_skia_paint(paint: &Paint) -> skia_safe::Paint {
     if let Some(style) = paint_style {
         skia_paint.set_style(style.into());
     }
-    if let Some(anti_alias) = anti_alias {
-        skia_paint.set_anti_alias(anti_alias);
-    }
+    skia_paint.set_anti_alias(anti_alias.unwrap_or(true));
     if stroke_width > 0.px() {
         skia_paint.set_stroke_width(stroke_width.as_f32());
     }

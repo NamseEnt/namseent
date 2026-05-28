@@ -359,6 +359,80 @@ pub fn run() {
     run_with_font_dir(&font_dir);
 }
 
+pub const CRASH_APP_NAME: &str = "namui-game";
+
+/// Build the crash-reporter [`Config`] from compile-time env that
+/// `native-runner/build.rs` forwards (`NAMUI_CRASH_BUILD_ID`,
+/// `NAMUI_CRASH_HMAC_KEY`, `NAMUI_CRASH_NAMSH_URL`).
+///
+/// Returns `None` when any value is missing/empty — i.e. when the binary was
+/// built without `NAMSH_*` env set (dev builds, `cargo run` without the
+/// deploy script). The caller should fall through to the no-crash-reporter
+/// path in that case.
+pub fn build_crash_config() -> Option<namui_crash_reporter::Config> {
+    let build_id = option_env!("NAMUI_CRASH_BUILD_ID")?;
+    let hmac_key_hex = option_env!("NAMUI_CRASH_HMAC_KEY")?;
+    let namsh_url = option_env!("NAMUI_CRASH_NAMSH_URL")?;
+    if build_id.is_empty() || hmac_key_hex.is_empty() || namsh_url.is_empty() {
+        return None;
+    }
+    Some(namui_crash_reporter::Config {
+        build_id: build_id.into(),
+        hmac_key_hex: hmac_key_hex.into(),
+        namsh_url: namsh_url.trim_end_matches('/').into(),
+        app_name: CRASH_APP_NAME.into(),
+    })
+}
+
+/// One-shot entry for the shipped Binary mode `main()`.
+///
+/// 1. If invoked with `--namui-crash-server <socket>` (the minidumper child
+///    re-exec), runs the crash server and exits.
+/// 2. Otherwise, starts log capture + crash-reporter (if `NAMSH_*` compile
+///    env is set; otherwise just runs without crash reporting) and hands off
+///    to [`run`]. The returned `CrashGuard` / `LogCapture` are held for the
+///    full duration of `run()`.
+///
+/// Used by the generated `main` in
+/// `namui-cli/src/services/runtime_project/{aarch64_apple_darwin,
+/// x86_64_pc_windows_msvc}.rs`. Without this call the shipped `.exe` never
+/// initializes the crash-reporter (the equivalent setup in the dev
+/// `bin/native-runner` `main.rs` is not compiled into Binary mode).
+pub fn entry() {
+    let mut args = std::env::args();
+    let _ = args.next();
+    if args.next().as_deref() == Some("--namui-crash-server") {
+        let socket = args
+            .next()
+            .expect("--namui-crash-server requires a socket path argument");
+        let Some(config) = build_crash_config() else {
+            eprintln!("[runner] --namui-crash-server requires NAMSH_* compile-time env");
+            std::process::exit(1);
+        };
+        match namui_crash_reporter::server_main(&socket, &config) {
+            Ok(()) => std::process::exit(0),
+            Err(e) => {
+                eprintln!("[runner] crash server error: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    let config = build_crash_config();
+    let _log_capture = config.as_ref().and_then(|_| {
+        namui_crash_reporter::start_log_capture(CRASH_APP_NAME)
+            .inspect_err(|e| eprintln!("[runner] log_capture start failed: {e}"))
+            .ok()
+    });
+    let _crash_guard = config.as_ref().and_then(|c| {
+        namui_crash_reporter::init(c)
+            .inspect_err(|e| eprintln!("[runner] crash-reporter init failed: {e}"))
+            .ok()
+    });
+
+    run();
+}
+
 /// Entry point for Cdylib mode (hot-reload runner).
 /// Takes an explicit font directory path.
 pub fn run_with_font_dir(font_dir: &std::path::Path) {
