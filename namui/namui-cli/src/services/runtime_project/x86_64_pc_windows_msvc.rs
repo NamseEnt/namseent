@@ -112,8 +112,33 @@ fn generate_binary_project(
     let (build_deps_section, build_rs_body) = if icon_path.is_some() {
         (
             String::new(),
-            "fn main() {\n    println!(\"cargo:rerun-if-changed=app.rc\");\n    println!(\"cargo:rerun-if-changed=icon.ico\");\n\n    let out_dir = std::env::var(\"OUT_DIR\").expect(\"OUT_DIR not set\");\n    let out_res = std::path::Path::new(&out_dir).join(\"app.res\");\n\n    let rc = std::env::var(\"RC_X86_64_PC_WINDOWS_MSVC\")\n        .or_else(|_| std::env::var(\"RC\"))\n        .unwrap_or_else(|_| \"llvm-rc\".to_string());\n\n    let status = std::process::Command::new(&rc)\n        .arg(\"/nologo\")\n        .arg(\"/fo\")\n        .arg(&out_res)\n        .arg(\"app.rc\")\n        .status()\n        .unwrap_or_else(|e| panic!(\"failed to run resource compiler '{rc}': {e}\"));\n\n    if !status.success() {\n        panic!(\"resource compiler failed: {rc} exit={status}\");\n    }\n\n    println!(\"cargo:rustc-link-arg={}\", out_res.display());\n}\n"
-                .to_string(),
+            r#"fn main() {
+    println!("cargo:rerun-if-changed=app.rc");
+    println!("cargo:rerun-if-changed=icon.ico");
+
+    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR not set");
+    let out_res = std::path::Path::new(&out_dir).join("app.res");
+
+    let rc = std::env::var("RC_X86_64_PC_WINDOWS_MSVC")
+        .or_else(|_| std::env::var("RC"))
+        .unwrap_or_else(|_| "llvm-rc".to_string());
+
+    let status = std::process::Command::new(&rc)
+        .arg("/nologo")
+        .arg("/fo")
+        .arg(&out_res)
+        .arg("app.rc")
+        .status()
+        .unwrap_or_else(|e| panic!("failed to run resource compiler '{rc}': {e}"));
+
+    if !status.success() {
+        panic!("resource compiler failed: {rc} exit={status}");
+    }
+
+    println!("cargo:rustc-link-arg={}", out_res.display());
+}
+"#
+            .to_string(),
         )
     } else {
         (String::new(), "fn main() {}\n".to_string())
