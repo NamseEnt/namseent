@@ -9,6 +9,66 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 
+#[cfg(target_os = "windows")]
+fn apply_windows_app_icon(window: &Window) {
+    use windows::{
+        Win32::{
+            Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
+            System::LibraryLoader::GetModuleHandleW,
+            UI::WindowsAndMessaging::{
+                HICON, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED, LoadImageW,
+                SendMessageW, WM_SETICON,
+            },
+        },
+        core::PCWSTR,
+    };
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+
+    let Ok(window_handle) = window.window_handle() else {
+        return;
+    };
+    let RawWindowHandle::Win32(handle) = window_handle.as_raw() else {
+        return;
+    };
+
+    let hwnd = HWND(handle.hwnd.get() as *mut core::ffi::c_void);
+
+    let Ok(module) = (unsafe { GetModuleHandleW(None) }) else {
+        return;
+    };
+    let hinstance = HINSTANCE(module.0);
+
+    let resource_name: Vec<u16> = "IDI_ICON1\0".encode_utf16().collect();
+    let Ok(icon_handle) = (unsafe {
+        LoadImageW(
+            Some(hinstance),
+            PCWSTR(resource_name.as_ptr()),
+            IMAGE_ICON,
+            0,
+            0,
+            LR_DEFAULTSIZE | LR_SHARED,
+        )
+    }) else {
+        return;
+    };
+    let hicon = HICON(icon_handle.0);
+
+    unsafe {
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_SMALL as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_BIG as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+    }
+}
+
 unsafe extern "C" {
     fn namui_main();
     fn _init_system();
@@ -113,6 +173,9 @@ impl ApplicationHandler for NamuiApp {
             .create_window(window_attributes)
             .expect("Failed to create window");
 
+        #[cfg(target_os = "windows")]
+        apply_windows_app_icon(&window);
+
         let inner_size = window.inner_size();
 
         let window_wh = Wh::new(
@@ -200,13 +263,7 @@ impl ApplicationHandler for NamuiApp {
                     Some(data) if !data.is_empty() => {
                         let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
                             bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
-                        namui_drawer::draw_rendering_tree(
-                            skia,
-                            rendering_tree,
-                            mx,
-                            my,
-                            sprite_set,
-                        );
+                        namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my, sprite_set);
                     }
                     _ => {
                         namui_drawer::redraw(skia, mx, my, sprite_set);
@@ -251,8 +308,8 @@ impl ApplicationHandler for NamuiApp {
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let (dx, dy) = match delta {
-                    winit::event::MouseScrollDelta::LineDelta(x, y) => (x * 100.0, y * 100.0),
-                    winit::event::MouseScrollDelta::PixelDelta(d) => (d.x as f32, d.y as f32),
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => (-x * 100.0, -y * 100.0),
+                    winit::event::MouseScrollDelta::PixelDelta(d) => (-d.x as f32, -d.y as f32),
                 };
                 let (mx, my) = MOUSE_STATE.with(|s| {
                     let s = s.borrow();
@@ -279,16 +336,12 @@ impl ApplicationHandler for NamuiApp {
                     self.window.as_ref().unwrap().request_redraw();
                 }
             }
-            WindowEvent::Focused(false) => {
-                unsafe {
-                    _on_blur();
-                }
-            }
-            WindowEvent::Occluded(_) => {
-                unsafe {
-                    _on_visibility_change();
-                }
-            }
+            WindowEvent::Focused(false) => unsafe {
+                _on_blur();
+            },
+            WindowEvent::Occluded(_) => unsafe {
+                _on_visibility_change();
+            },
             _ => {}
         }
     }
@@ -304,6 +357,80 @@ pub fn run() {
         .to_path_buf();
     let font_dir = exe_dir.join("__system__/font");
     run_with_font_dir(&font_dir);
+}
+
+pub const CRASH_APP_NAME: &str = "namui-game";
+
+/// Build the crash-reporter [`Config`] from compile-time env that
+/// `native-runner/build.rs` forwards (`NAMUI_CRASH_BUILD_ID`,
+/// `NAMUI_CRASH_HMAC_KEY`, `NAMUI_CRASH_NAMSH_URL`).
+///
+/// Returns `None` when any value is missing/empty — i.e. when the binary was
+/// built without `NAMSH_*` env set (dev builds, `cargo run` without the
+/// deploy script). The caller should fall through to the no-crash-reporter
+/// path in that case.
+pub fn build_crash_config() -> Option<namui_crash_reporter::Config> {
+    let build_id = option_env!("NAMUI_CRASH_BUILD_ID")?;
+    let hmac_key_hex = option_env!("NAMUI_CRASH_HMAC_KEY")?;
+    let namsh_url = option_env!("NAMUI_CRASH_NAMSH_URL")?;
+    if build_id.is_empty() || hmac_key_hex.is_empty() || namsh_url.is_empty() {
+        return None;
+    }
+    Some(namui_crash_reporter::Config {
+        build_id: build_id.into(),
+        hmac_key_hex: hmac_key_hex.into(),
+        namsh_url: namsh_url.trim_end_matches('/').into(),
+        app_name: CRASH_APP_NAME.into(),
+    })
+}
+
+/// One-shot entry for the shipped Binary mode `main()`.
+///
+/// 1. If invoked with `--namui-crash-server <socket>` (the minidumper child
+///    re-exec), runs the crash server and exits.
+/// 2. Otherwise, starts log capture + crash-reporter (if `NAMSH_*` compile
+///    env is set; otherwise just runs without crash reporting) and hands off
+///    to [`run`]. The returned `CrashGuard` / `LogCapture` are held for the
+///    full duration of `run()`.
+///
+/// Used by the generated `main` in
+/// `namui-cli/src/services/runtime_project/{aarch64_apple_darwin,
+/// x86_64_pc_windows_msvc}.rs`. Without this call the shipped `.exe` never
+/// initializes the crash-reporter (the equivalent setup in the dev
+/// `bin/native-runner` `main.rs` is not compiled into Binary mode).
+pub fn entry() {
+    let mut args = std::env::args();
+    let _ = args.next();
+    if args.next().as_deref() == Some("--namui-crash-server") {
+        let socket = args
+            .next()
+            .expect("--namui-crash-server requires a socket path argument");
+        let Some(config) = build_crash_config() else {
+            eprintln!("[runner] --namui-crash-server requires NAMSH_* compile-time env");
+            std::process::exit(1);
+        };
+        match namui_crash_reporter::server_main(&socket, &config) {
+            Ok(()) => std::process::exit(0),
+            Err(e) => {
+                eprintln!("[runner] crash server error: {e}");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    let config = build_crash_config();
+    let _log_capture = config.as_ref().and_then(|_| {
+        namui_crash_reporter::start_log_capture(CRASH_APP_NAME)
+            .inspect_err(|e| eprintln!("[runner] log_capture start failed: {e}"))
+            .ok()
+    });
+    let _crash_guard = config.as_ref().and_then(|c| {
+        namui_crash_reporter::init(c)
+            .inspect_err(|e| eprintln!("[runner] crash-reporter init failed: {e}"))
+            .ok()
+    });
+
+    run();
 }
 
 /// Entry point for Cdylib mode (hot-reload runner).
@@ -335,9 +462,7 @@ pub fn run_with_font_dir(font_dir: &std::path::Path) {
     }
 }
 
-fn load_cursor_sprite_set(
-    system_bundle_dir: &std::path::Path,
-) -> Option<StandardCursorSpriteSet> {
+fn load_cursor_sprite_set(system_bundle_dir: &std::path::Path) -> Option<StandardCursorSpriteSet> {
     let cursor_dir = system_bundle_dir.join("cursor");
     let image_path = cursor_dir.join("capitaine_24.png");
     let metadata_path = cursor_dir.join("capitaine_24.txt");
@@ -357,8 +482,9 @@ fn load_cursor_sprite_set(
         );
     }
 
-    let sprite_set = StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
-        .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
+    let sprite_set =
+        StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
+            .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
 
     Some(sprite_set)
 }
@@ -384,11 +510,7 @@ fn load_fonts(font_dir: &std::path::Path) {
         let rel_path = &rest[..end];
 
         let font_path = font_dir.parent().unwrap().join(rel_path);
-        let name = font_path
-            .file_stem()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let name = font_path.file_stem().unwrap().to_string_lossy().to_string();
         let data = std::fs::read(&font_path)
             .unwrap_or_else(|e| panic!("Failed to read font {:?}: {e}", font_path));
         // Register in runner's own TYPEFACE_MAP (for namui_drawer rendering)

@@ -46,8 +46,9 @@ export async function startThread(supplies: ThreadStartSupplies) {
     const { module } = supplies;
 
     const env = [
-        "RUST_BACKTRACE=full",
+        `RUST_BACKTRACE=${__NAMUI_RUST_BACKTRACE__ ?? "full"}`,
         `RAYON_NUM_THREADS=${navigator.hardwareConcurrency}`,
+        ...(__NAMUI_RUST_LOG__ ? [`RUST_LOG=${__NAMUI_RUST_LOG__}`] : []),
     ];
 
     const tid = supplies.type === "sub" ? supplies.tid : 0;

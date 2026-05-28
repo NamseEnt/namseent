@@ -33,6 +33,7 @@ pub async fn start(
         project_path: project_root_path.clone(),
         strip_debug_info: start_option.strip_debug_info,
         mode: RuntimeProjectMode::Cdylib,
+        icon_path: None,
     })?;
 
     let build_status_service = BuildStatusService::new();
@@ -94,6 +95,7 @@ pub async fn start(
         bundle_manifest,
         None,
         start_option.release,
+        None,
     )?;
 
     // 5. Find the dylib path

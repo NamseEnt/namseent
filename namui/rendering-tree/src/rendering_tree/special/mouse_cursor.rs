@@ -156,7 +156,7 @@ impl StandardCursorSpriteSet {
                 .next()
                 .ok_or_else(|| anyhow::anyhow!("Missing cursor name"))?;
             let Some(standard_cursor) = StandardCursor::from_css_cursor_value(name) else {
-                println!("Unknown cursor name: {name} at line {index}, skipping.",);
+                tracing::warn!("Unknown cursor name: {name} at line {index}, skipping.");
                 continue;
             };
             let hotspot_xy = Xy::new(

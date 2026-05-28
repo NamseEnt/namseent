@@ -25,6 +25,7 @@ pub async fn build(
         project_path: project_root_path.clone(),
         strip_debug_info: false,
         mode: RuntimeProjectMode::Binary,
+        icon_path: None,
     })?;
 
     let build_status_service = BuildStatusService::new();
@@ -59,6 +60,7 @@ pub async fn build(
         bundle_manifest,
         None,
         release,
+        None,
     )?;
 
     Ok(())

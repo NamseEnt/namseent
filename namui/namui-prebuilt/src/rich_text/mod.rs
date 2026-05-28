@@ -125,8 +125,8 @@ impl Component for RichText<'_> {
             && (self.default_text_align == TextAlign::Center
                 || self.default_text_align == TextAlign::Right)
         {
-            eprintln!(
-                "Warning: RichText with text_align {:?} requires max_width to be set. Falling back to Left alignment.",
+            warn!(
+                "RichText with text_align {:?} requires max_width to be set. Falling back to Left alignment.",
                 self.default_text_align
             );
             TextAlign::Left

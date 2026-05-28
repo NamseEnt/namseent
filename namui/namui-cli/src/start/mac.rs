@@ -30,6 +30,14 @@ pub fn start(project_path: &Path) -> Result<()> {
 
     let runner_binary = native_runner_dir.join("target/release/native-runner");
 
+    let bundle_path = runner_binary
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("runner binary has no parent dir"))?
+        .join("bundle.sqlite");
+    let bundle_manifest =
+        crate::services::bundle::NamuiBundleManifest::parse(project_path.to_path_buf())?;
+    bundle_manifest.bundle_to_sqlite(&bundle_path)?;
+
     // 3. Generate cdylib wrapper and do initial dylib build
     build_dylib_step(project_path)?;
 

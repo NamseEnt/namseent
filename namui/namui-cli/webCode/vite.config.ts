@@ -18,6 +18,12 @@ const serverFsAllow = [
 
 export default defineConfig({
     clearScreen: false,
+    define: {
+        __NAMUI_RUST_LOG__: JSON.stringify(process.env.RUST_LOG ?? null),
+        __NAMUI_RUST_BACKTRACE__: JSON.stringify(
+            process.env.RUST_BACKTRACE ?? null,
+        ),
+    },
     server: {
         host: true,
         headers: {

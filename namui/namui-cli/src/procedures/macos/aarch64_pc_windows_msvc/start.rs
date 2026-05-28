@@ -1,6 +1,7 @@
 use crate::cli::Target;
 use crate::*;
 use services::build_status_service::{BuildStatusCategory, BuildStatusService};
+use services::icon_service;
 use services::runtime_project::{
     GenerateRuntimeProjectArgs, RuntimeProjectMode,
     aarch64_pc_windows_msvc::generate_runtime_project,
@@ -17,6 +18,7 @@ pub async fn start(
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let build_status_service = BuildStatusService::new();
     let runtime_target_dir = project_root_path.join("target/namui");
+    let icon_path = icon_service::read_icon_path(manifest_path)?;
     let bundle_path = {
         let opt_level = match start_option.release {
             true => "release",
@@ -36,6 +38,7 @@ pub async fn start(
         project_path: project_root_path.clone(),
         strip_debug_info: start_option.strip_debug_info,
         mode: RuntimeProjectMode::Binary,
+        icon_path: icon_path.clone(),
     })?;
 
     build_status_service

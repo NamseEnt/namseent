@@ -26,6 +26,8 @@ use std::{
 pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
+pub use tracing;
+pub use tracing::{Level, debug, error, info, instrument, span, trace, warn};
 
 pub mod particle {
     pub use namui_particle::{Emitter, Particle, ParticleSprites, RenderEmitter};
@@ -54,6 +56,12 @@ fn build_tokio_runtime() -> tokio::runtime::Runtime {
 }
 
 pub fn start(root_component: RootComponent) {
+    system::log::init_log_plugin_with_default();
+    LOOPER.set(Some(Looper::new(root_component)));
+}
+
+pub fn start_with_log_config(root_component: RootComponent, log_config: system::log::LogConfig) {
+    system::log::init_log_plugin(log_config);
     LOOPER.set(Some(Looper::new(root_component)));
 }
 
@@ -126,13 +134,6 @@ fn on_event(event: RawEvent) -> *const u8 {
     });
 
     result
-}
-
-#[macro_export]
-macro_rules! log {
-    ($($arg:tt)*) => {{
-        $println!::log(format!($($arg)*));
-    }}
 }
 
 pub fn render(rendering_trees: impl IntoIterator<Item = RenderingTree>) -> RenderingTree {
