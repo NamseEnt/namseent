@@ -38,7 +38,6 @@ fn apply_windows_app_icon(window: &Window) {
     };
     let hinstance = HINSTANCE(module.0);
 
-    // Load named icon resource from app.rc: `IDI_ICON1 ICON "icon.ico"`
     let resource_name: Vec<u16> = "IDI_ICON1\0".encode_utf16().collect();
     let Ok(icon_handle) = (unsafe {
         LoadImageW(
@@ -264,13 +263,7 @@ impl ApplicationHandler for NamuiApp {
                     Some(data) if !data.is_empty() => {
                         let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
                             bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
-                        namui_drawer::draw_rendering_tree(
-                            skia,
-                            rendering_tree,
-                            mx,
-                            my,
-                            sprite_set,
-                        );
+                        namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my, sprite_set);
                     }
                     _ => {
                         namui_drawer::redraw(skia, mx, my, sprite_set);
@@ -343,16 +336,12 @@ impl ApplicationHandler for NamuiApp {
                     self.window.as_ref().unwrap().request_redraw();
                 }
             }
-            WindowEvent::Focused(false) => {
-                unsafe {
-                    _on_blur();
-                }
-            }
-            WindowEvent::Occluded(_) => {
-                unsafe {
-                    _on_visibility_change();
-                }
-            }
+            WindowEvent::Focused(false) => unsafe {
+                _on_blur();
+            },
+            WindowEvent::Occluded(_) => unsafe {
+                _on_visibility_change();
+            },
             _ => {}
         }
     }
@@ -399,9 +388,7 @@ pub fn run_with_font_dir(font_dir: &std::path::Path) {
     }
 }
 
-fn load_cursor_sprite_set(
-    system_bundle_dir: &std::path::Path,
-) -> Option<StandardCursorSpriteSet> {
+fn load_cursor_sprite_set(system_bundle_dir: &std::path::Path) -> Option<StandardCursorSpriteSet> {
     let cursor_dir = system_bundle_dir.join("cursor");
     let image_path = cursor_dir.join("capitaine_24.png");
     let metadata_path = cursor_dir.join("capitaine_24.txt");
@@ -421,8 +408,9 @@ fn load_cursor_sprite_set(
         );
     }
 
-    let sprite_set = StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
-        .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
+    let sprite_set =
+        StandardCursorSpriteSet::parse(Image::STANDARD_CURSOR_SPRITE_SET, &metadata_text)
+            .unwrap_or_else(|e| panic!("Failed to parse cursor metadata: {e}"));
 
     Some(sprite_set)
 }
@@ -448,11 +436,7 @@ fn load_fonts(font_dir: &std::path::Path) {
         let rel_path = &rest[..end];
 
         let font_path = font_dir.parent().unwrap().join(rel_path);
-        let name = font_path
-            .file_stem()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let name = font_path.file_stem().unwrap().to_string_lossy().to_string();
         let data = std::fs::read(&font_path)
             .unwrap_or_else(|e| panic!("Failed to read font {:?}: {e}", font_path));
         // Register in runner's own TYPEFACE_MAP (for namui_drawer rendering)
