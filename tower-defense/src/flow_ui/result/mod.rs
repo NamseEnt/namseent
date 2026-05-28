@@ -161,6 +161,7 @@ impl Component for ResultModal {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Paper,
                 color: palette::SURFACE_CONTAINER,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             });

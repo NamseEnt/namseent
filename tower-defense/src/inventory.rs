@@ -236,6 +236,7 @@ impl InventoryTooltip<'_> {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER,
+            outline_color: None,
             shadow: true,
             arrow: Some(crate::theme::paper_container::PaperArrow {
                 side: crate::theme::paper_container::ArrowSide::Right,

@@ -129,6 +129,7 @@ impl Component for SettingsModal {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
                 color: palette::SURFACE_CONTAINER_HIGH,
+                outline_color: None,
                 shadow: false,
                 arrow: None,
             });
@@ -139,6 +140,7 @@ impl Component for SettingsModal {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
                 color: palette::SURFACE_CONTAINER,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             });

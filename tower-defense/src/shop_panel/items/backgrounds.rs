@@ -15,6 +15,7 @@ impl Component for ShopItemInfoBackground {
             texture: PaperTexture::Rough,
             variant: PaperVariant::PaperSingleLayer,
             color,
+            outline_color: None,
             shadow: false,
             arrow: None,
         });

@@ -76,6 +76,7 @@ impl Component for TowerDamagePanel<'_> {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::PaperSingleLayer,
                 color: palette::SURFACE_CONTAINER_LOWEST,
+                outline_color: None,
                 shadow: false,
                 arrow: None,
             });

@@ -49,6 +49,7 @@ impl Component for Slider<'_> {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Pill,
                 color: palette::WHITE,
+                outline_color: None,
                 shadow: false,
                 arrow: None,
             });
@@ -61,6 +62,7 @@ impl Component for Slider<'_> {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Pill,
                 color: palette::PRIMARY,
+                outline_color: None,
                 shadow: false,
                 arrow: None,
             });
@@ -72,6 +74,7 @@ impl Component for Slider<'_> {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Pill,
             color: palette::SURFACE_CONTAINER_LOWEST,
+            outline_color: None,
             shadow: false,
             arrow: None,
         });

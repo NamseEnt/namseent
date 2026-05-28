@@ -75,6 +75,7 @@ impl Component for TowerInfoPopup<'_> {
                     texture: PaperTexture::Rough,
                     variant: PaperVariant::Sticky,
                     color: theme::palette::SURFACE_CONTAINER_HIGHEST,
+                    outline_color: None,
                     shadow: true,
                     arrow: Some(PaperArrow {
                         side: ArrowSide::Bottom,

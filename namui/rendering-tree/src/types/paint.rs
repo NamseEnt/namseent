@@ -6,6 +6,7 @@ pub struct Paint {
     pub paint_style: Option<PaintStyle>,
     pub anti_alias: Option<bool>,
     pub stroke_width: Px,
+    pub stroke_position: StrokePosition,
     pub stroke_cap: Option<StrokeCap>,
     pub stroke_join: Option<StrokeJoin>,
     pub stroke_miter: Px,
@@ -38,6 +39,10 @@ impl Paint {
     }
     pub fn set_stroke_width(mut self, width: Px) -> Self {
         self.stroke_width = width;
+        self
+    }
+    pub fn set_stroke_position(mut self, position: StrokePosition) -> Self {
+        self.stroke_position = position;
         self
     }
     pub fn set_stroke_cap(mut self, cap: StrokeCap) -> Self {

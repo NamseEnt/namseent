@@ -123,6 +123,7 @@ impl Component for TopBar {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
                 color: palette::SURFACE_CONTAINER_HIGHEST,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             })

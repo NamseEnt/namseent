@@ -333,6 +333,7 @@ impl UpgradeTooltip {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER,
+            outline_color: None,
             shadow: true,
             arrow: Some(PaperArrow {
                 side: ArrowSide::Left,

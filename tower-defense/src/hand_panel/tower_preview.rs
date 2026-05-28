@@ -209,6 +209,7 @@ impl Component for PreviewEntryComponent {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Tape,
                 color: palette::PRIMARY,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             });

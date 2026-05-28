@@ -46,6 +46,7 @@ impl Component for TreasureCardContent {
                             texture: PaperTexture::Rough,
                             variant: PaperVariant::PaperSingleLayer,
                             color: palette::SURFACE_CONTAINER_LOWEST,
+            outline_color: None,
                             shadow: false,
                             arrow: None,
                         });
@@ -159,6 +160,7 @@ impl Component for TreasureCard {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Paper,
             color: palette::SURFACE_CONTAINER_LOW,
+            outline_color: None,
             shadow: true,
             arrow: None,
         });

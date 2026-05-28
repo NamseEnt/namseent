@@ -134,6 +134,7 @@ impl Component for GameSpeedIndicator {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Pill,
             color: palette::SURFACE_CONTAINER_LOWEST,
+            outline_color: None,
             shadow: false,
             arrow: None,
         });

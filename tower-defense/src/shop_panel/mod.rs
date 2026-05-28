@@ -153,6 +153,7 @@ impl Component for ShopPanel {
                     texture: PaperTexture::Rough,
                     variant: PaperVariant::Paper,
                     color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
+                    outline_color: None,
                     shadow: true,
                     arrow: None,
                 });

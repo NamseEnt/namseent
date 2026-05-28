@@ -56,6 +56,7 @@ impl Component for RerollHealthCostWarningTooltip {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE,
+            outline_color: None,
             shadow: true,
             arrow: Some(PaperArrow {
                 side: ArrowSide::Left,

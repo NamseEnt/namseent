@@ -63,6 +63,7 @@ impl Component for ShopItem<'_> {
                     texture: PaperTexture::Rough,
                     variant: PaperVariant::Card,
                     color: palette::SURFACE_CONTAINER_HIGH,
+                    outline_color: None,
                     shadow: true,
                     arrow: None,
                 });

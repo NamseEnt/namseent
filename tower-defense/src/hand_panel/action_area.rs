@@ -270,6 +270,7 @@ impl Component for HandActionArea {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: crate::theme::palette::SURFACE_CONTAINER_LOW,
+            outline_color: None,
             shadow: true,
             arrow: None,
         });
