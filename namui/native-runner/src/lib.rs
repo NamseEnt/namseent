@@ -9,6 +9,67 @@ use winit::{
     window::{Window, WindowAttributes, WindowId},
 };
 
+#[cfg(target_os = "windows")]
+fn apply_windows_app_icon(window: &Window) {
+    use windows::{
+        Win32::{
+            Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
+            System::LibraryLoader::GetModuleHandleW,
+            UI::WindowsAndMessaging::{
+                HICON, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTSIZE, LR_SHARED, LoadImageW,
+                SendMessageW, WM_SETICON,
+            },
+        },
+        core::PCWSTR,
+    };
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+
+    let Ok(window_handle) = window.window_handle() else {
+        return;
+    };
+    let RawWindowHandle::Win32(handle) = window_handle.as_raw() else {
+        return;
+    };
+
+    let hwnd = HWND(handle.hwnd.get() as *mut core::ffi::c_void);
+
+    let Ok(module) = (unsafe { GetModuleHandleW(None) }) else {
+        return;
+    };
+    let hinstance = HINSTANCE(module.0);
+
+    // Load named icon resource from app.rc: `IDI_ICON1 ICON "icon.ico"`
+    let resource_name: Vec<u16> = "IDI_ICON1\0".encode_utf16().collect();
+    let Ok(icon_handle) = (unsafe {
+        LoadImageW(
+            Some(hinstance),
+            PCWSTR(resource_name.as_ptr()),
+            IMAGE_ICON,
+            0,
+            0,
+            LR_DEFAULTSIZE | LR_SHARED,
+        )
+    }) else {
+        return;
+    };
+    let hicon = HICON(icon_handle.0);
+
+    unsafe {
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_SMALL as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+        SendMessageW(
+            hwnd,
+            WM_SETICON,
+            Some(WPARAM(ICON_BIG as usize)),
+            Some(LPARAM(hicon.0 as isize)),
+        );
+    }
+}
+
 unsafe extern "C" {
     fn namui_main();
     fn _init_system();
@@ -112,6 +173,9 @@ impl ApplicationHandler for NamuiApp {
         let window = event_loop
             .create_window(window_attributes)
             .expect("Failed to create window");
+
+        #[cfg(target_os = "windows")]
+        apply_windows_app_icon(&window);
 
         let inner_size = window.inner_size();
 
