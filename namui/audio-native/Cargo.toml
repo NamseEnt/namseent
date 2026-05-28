@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 kira = "0.12"
 mint = "0.5"
+tracing = "0.1"

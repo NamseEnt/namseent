@@ -59,7 +59,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
         }
         Target::X86_64PcWindowsMsvc => {
             let mut args = vec![];
-            if cfg!(target_os = "linux") {
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
                 args.push("xwin");
             }
 
@@ -75,7 +75,7 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 args.push("--release");
             }
 
-            if cfg!(target_os = "linux") {
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
                 args.extend([
                     "--xwin-arch",
                     "x86_64",

@@ -24,3 +24,6 @@ declare module "virtual:audio-asset-list" {
     }
     export const audioAssetList: AudioAssetInfo[];
 }
+
+declare const __NAMUI_RUST_LOG__: string | null;
+declare const __NAMUI_RUST_BACKTRACE__: string | null;

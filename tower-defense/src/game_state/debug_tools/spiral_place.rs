@@ -133,7 +133,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
                         .expect("route should exist after removing a tower");
                     placed_coords = gs.towers.coords();
                     route_coords = gs.route.iter_coords().to_vec();
-                    println!("[Spiral Place] Removed tower at ({}, {})", coord.x, coord.y);
+                    debug!(target: "td::spiral_place", "Removed tower at ({}, {})", coord.x, coord.y);
                 }
             }
             PlanStep::Place(left_top) => {
@@ -155,10 +155,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
                         None,
                     ));
                     placed_at = Some(left_top);
-                    println!(
-                        "[Spiral Place] Placed tower at ({}, {})",
-                        left_top.x, left_top.y
-                    );
+                    debug!(target: "td::spiral_place", "Placed tower at ({}, {})", left_top.x, left_top.y);
                     break;
                 }
             }
@@ -182,7 +179,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
             gs.action(crate::game_state::GameStateAction::StartDefense);
         }
     } else {
-        println!("[Spiral Place] No placement available for this plan iteration.");
+        debug!(target: "td::spiral_place", "No placement available for this plan iteration.");
     }
 }
 
