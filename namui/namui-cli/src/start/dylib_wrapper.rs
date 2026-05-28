@@ -34,6 +34,7 @@ crate-type = ["cdylib"]
 namui = {{ path = "{namui_dep_path}" }}
 namui-audio-native = {{ path = "{namui_dep_path}/../audio-native" }}
 namui-kv-store-native = {{ path = "{namui_dep_path}/../kv-store-native" }}
+rusqlite = {{ version = "0.31.0", features = ["blob", "bundled"] }}
 
 [profile.dev]
 opt-level = 1
@@ -51,19 +52,35 @@ debug = "line-tables-only"
         format!(
             r#"#[unsafe(no_mangle)]
 pub extern "C" fn namui_main() {{
-    let asset_dir = std::env::var_os("NAMUI_ASSET_DIR")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| {{
-            std::env::current_exe()
-                .expect("Failed to get current exe path")
-                .parent()
-                .unwrap()
-                .join("asset")
-        }});
+    let exe_dir = std::env::current_exe()
+        .expect("Failed to get current exe path")
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let bundle_path = exe_dir.join("bundle.sqlite");
     {project_name_underscored}::asset::init_native_assets(|relative_path| {{
-        let path = asset_dir.join(relative_path);
-        std::fs::read(&path)
-            .unwrap_or_else(|e| panic!("Failed to read asset {{}}: {{e}}", path.display()))
+        use std::io::Read;
+        let asset_path = format!("asset/{{}}", relative_path);
+        let conn = rusqlite::Connection::open_with_flags(
+            &bundle_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        ).unwrap_or_else(|e| panic!("Failed to open bundle.sqlite: {{e}}"));
+        let rowid: i64 = conn.query_row(
+            "SELECT rowid FROM bundle WHERE path = ?",
+            [&asset_path],
+            |row| row.get(0),
+        ).unwrap_or_else(|e| panic!("Asset not found in bundle '{{}}': {{e}}", asset_path));
+        let mut blob = conn.blob_open(
+            rusqlite::DatabaseName::Main,
+            "bundle",
+            "data",
+            rowid,
+            true,
+        ).unwrap_or_else(|e| panic!("Failed to open blob for '{{}}': {{e}}", asset_path));
+        let mut data = vec![0u8; blob.len()];
+        blob.read_exact(&mut data)
+            .unwrap_or_else(|e| panic!("Failed to read blob for '{{}}': {{e}}", asset_path));
+        data
     }});
     {project_name_underscored}::main();
 }}
