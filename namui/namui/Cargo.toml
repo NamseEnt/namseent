@@ -33,9 +33,19 @@ tokio = { path = "../third-party-forks/tokio/tokio", features = [
     "rt-multi-thread",
     "fs",
 ] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+    "registry",
+    "fmt",
+    "env-filter",
+    "std",
+] }
+tracing-log = "0.2"
+parking_lot = "0.12"
 
 [target.'cfg(not(target_os="wasi"))'.dependencies]
 bincode = "2.0.0-rc.3"
+tracing-appender = "0.2"
 
 [dev-dependencies]
 float-cmp = "0.9"

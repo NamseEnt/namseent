@@ -30,6 +30,9 @@ pub async fn build(target: Target, manifest_path: PathBuf, release: bool) -> Res
                 Target::Aarch64AppleDarwin => {
                     macos::aarch64_apple_darwin::build(&manifest_path, release).await?
                 }
+                Target::X86_64PcWindowsMsvc => {
+                    macos::x86_64_pc_windows_msvc::build(&manifest_path, release).await?
+                }
                 _ => unimplemented!(),
             }
         }

@@ -11,6 +11,7 @@ unicode-segmentation = "1.10.1"
 dashmap = "6.1.0"
 bumpalo = "3"
 bincode = { version = "2", features = ["derive"] }
+tracing = "0.1"
 
 [dev-dependencies]
 float-cmp = "0.10.0"

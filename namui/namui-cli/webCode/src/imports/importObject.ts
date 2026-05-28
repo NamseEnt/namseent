@@ -42,6 +42,16 @@ export function createImportObject({
           }, {} as Record<string, any>)
         : wasiImport;
 
+    const tidForLog =
+        supplies.type === "sub" ? supplies.tid : 0;
+    const consoleStyles: Record<number, string> = {
+        1: "color: #ff4d4f; font-weight: bold",
+        2: "color: #faad14; font-weight: bold",
+        3: "",
+        4: "color: #888",
+        5: "color: #aaa",
+    };
+
     return {
         env: {
             memory,
@@ -61,6 +71,12 @@ export function createImportObject({
                 memory,
             }),
             _hardware_concurrency: () => navigator.hardwareConcurrency,
+            _namui_console_log: (level: number, ptr: number, len: number) => {
+                const bytes = new Uint8Array(memory.buffer, ptr, len).slice();
+                const msg = new TextDecoder().decode(bytes);
+                const style = consoleStyles[level] ?? "";
+                console.log(`%c[${tidForLog}] ${msg}`, style);
+            },
         },
         wasi_snapshot_preview1: wasiSnapshotPreview1,
         wasi: {

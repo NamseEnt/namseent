@@ -15,7 +15,7 @@ macro_rules! ffi_catch {
                 } else {
                     "unknown panic".to_string()
                 };
-                eprintln!("[namui FFI panic] {msg}");
+                tracing::error!(target: "namui::ffi", "FFI panic: {msg}");
                 std::process::abort();
             }
         }

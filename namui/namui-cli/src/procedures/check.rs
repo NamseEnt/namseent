@@ -33,7 +33,7 @@ pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
         }
         Target::X86_64PcWindowsMsvc => {
             let mut args = vec![];
-            if cfg!(target_os = "linux") {
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
                 args.push("xwin");
             }
 
@@ -46,7 +46,7 @@ pub async fn check(target: Target, manifest_path: PathBuf) -> Result<()> {
                 "--tests",
             ]);
 
-            if cfg!(target_os = "linux") {
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
                 args.extend([
                     "--xwin-arch",
                     "x86_64",
