@@ -112,7 +112,8 @@ fn generate_binary_project(
     let (build_deps_section, build_rs_body) = if icon_path.is_some() {
         (
             "[build-dependencies]\nembed-resource = \"3\"\n".to_string(),
-            "fn main() {\n    embed_resource::compile(\"app.rc\");\n}\n".to_string(),
+            "fn main() {\n    embed_resource::compile(\"app.rc\", embed_resource::NONE);\n}\n"
+                .to_string(),
         )
     } else {
         (
