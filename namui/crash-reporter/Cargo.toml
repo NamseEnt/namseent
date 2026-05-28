@@ -1,0 +1,40 @@
+[package]
+name = "namui-crash-reporter"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "namui_crash_reporter"
+
+[dependencies]
+crash-handler = "0.7"
+minidumper = "0.9"
+minidump = "0.26"
+minidump-unwind = "0.26"
+tokio = { version = "1", features = ["rt"] }
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+dirs = "5"
+reqwest = { version = "0.12", default-features = false, features = [
+    "blocking",
+    "rustls-tls",
+    "json",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+memmap2 = "0.9"
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.1", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Console",
+    "Win32_System_IO",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
+    "Win32_Security",
+] }

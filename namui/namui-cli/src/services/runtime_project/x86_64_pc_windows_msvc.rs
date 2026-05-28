@@ -178,7 +178,7 @@ fn main() {{
         data
     }});
     {project_name_underscored}::main();
-    native_runner::run();
+    native_runner::entry();
 }}
 
 #[unsafe(no_mangle)]
