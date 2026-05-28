@@ -138,3 +138,12 @@ if [ "$PREVIEW" -eq 0 ]; then
         fi
     fi
 fi
+
+STEAM_ASSETS_DIR="$REPO_ROOT/target/namui/steam-assets"
+if [ -d "$STEAM_ASSETS_DIR" ]; then
+    echo ""
+    echo "=== Steam Partner assets ==="
+    echo "Upload these once via https://partner.steamgames.com/apps/community/$APP_ID :"
+    echo "  - $STEAM_ASSETS_DIR/shortcut-icon-512.png  (Shortcut Icon)"
+    echo "  - $STEAM_ASSETS_DIR/app-icon-184.jpg       (App Icon)"
+fi

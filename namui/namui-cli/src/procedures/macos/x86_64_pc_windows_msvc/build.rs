@@ -1,7 +1,7 @@
 use crate::{
     services::{
         build_status_service::{BuildStatusCategory, BuildStatusService},
-        resource_collect_service,
+        icon_service, resource_collect_service,
         runtime_project::{
             RuntimeProjectMode, x86_64_pc_windows_msvc::generate_runtime_project,
         },
@@ -19,12 +19,14 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         .join("namui")
         .join("x86_64-pc-windows-msvc");
     let runtime_target_dir = project_root_path.join("target/namui");
+    let icon_path = icon_service::read_icon_path(manifest_path)?;
 
     generate_runtime_project(services::runtime_project::GenerateRuntimeProjectArgs {
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
         strip_debug_info: true,
         mode: RuntimeProjectMode::Binary,
+        icon_path: icon_path.clone(),
     })?;
 
     let build_status_service = BuildStatusService::new();
@@ -58,6 +60,7 @@ pub async fn build(manifest_path: impl AsRef<std::path::Path>, release: bool) ->
         bundle_manifest,
         None,
         release,
+        icon_path.as_deref(),
     )?;
 
     Ok(())

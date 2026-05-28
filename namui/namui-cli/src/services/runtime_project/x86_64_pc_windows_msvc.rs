@@ -1,5 +1,5 @@
 use super::{GenerateRuntimeProjectArgs, RuntimeProjectMode, get_namui_dep_path, get_project_name};
-use crate::{util::recreate_dir_all, *};
+use crate::{services::icon_service, util::recreate_dir_all, *};
 
 pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> {
     let project_name = get_project_name(args.project_path.clone());
@@ -59,6 +59,7 @@ pub fn generate_runtime_project(args: GenerateRuntimeProjectArgs) -> Result<()> 
                 native_runner_path_in_relative.as_deref(),
                 audio_native_path_in_relative.as_deref(),
                 kv_store_native_path_in_relative.as_deref(),
+                args.icon_path.as_deref(),
             )?;
         }
         RuntimeProjectMode::Cdylib => {
@@ -82,6 +83,7 @@ fn generate_binary_project(
     native_runner_path: Option<&str>,
     audio_native_path: Option<&str>,
     kv_store_native_path: Option<&str>,
+    icon_path: Option<&std::path::Path>,
 ) -> Result<()> {
     let namui_dep = if let Some(path) = namui_path {
         format!(r#"namui = {{ path = "{path}" }}"#)
@@ -107,6 +109,18 @@ fn generate_binary_project(
         String::new()
     };
 
+    let (build_deps_section, build_rs_body) = if icon_path.is_some() {
+        (
+            "[build-dependencies]\nembed-resource = \"3\"\n".to_string(),
+            "fn main() {\n    embed_resource::compile(\"app.rc\");\n}\n".to_string(),
+        )
+    } else {
+        (
+            String::new(),
+            "fn main() {}\n".to_string(),
+        )
+    };
+
     std::fs::write(
         target_dir.join("Cargo.toml"),
         format!(
@@ -114,6 +128,7 @@ fn generate_binary_project(
 name = "namui-runtime-x86_64-pc-windows-msvc"
 version = "0.0.1"
 edition = "2024"
+build = "build.rs"
 
 [dependencies]
 {project_name} = {{ path = "{project_path}" }}
@@ -124,6 +139,7 @@ edition = "2024"
 mimalloc = "0.1.39"
 rusqlite = {{ version = "0.31.0", features = ["blob", "bundled"] }}
 
+{build_deps_section}
 [profile.release]
 opt-level = 3
 
@@ -132,6 +148,17 @@ opt-level = 2
 "#
         ),
     )?;
+
+    std::fs::write(target_dir.join("build.rs"), build_rs_body)?;
+
+    if let Some(icon_src) = icon_path {
+        let image = icon_service::validate_source(icon_src)?;
+        icon_service::generate_ico(&image, &target_dir.join("icon.ico"))?;
+        std::fs::write(
+            target_dir.join("app.rc"),
+            "IDI_ICON1 ICON \"icon.ico\"\n",
+        )?;
+    }
 
     // src
     {

@@ -1,9 +1,10 @@
 use super::bundle::NamuiBundleManifest;
+use super::icon_service;
 use crate::*;
 use crate::{cli::Target, debug_println, util::get_cli_root_path};
 use std::{
     fs::{create_dir_all, remove_dir_all},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 pub fn collect_all(
@@ -13,6 +14,7 @@ pub fn collect_all(
     bundle_manifest: NamuiBundleManifest,
     additional_runtime_path: Option<&PathBuf>,
     release: bool,
+    icon_path: Option<&Path>,
 ) -> Result<()> {
     let mut ops: Vec<CollectOperation> = vec![];
     collect_runtime(&mut ops, additional_runtime_path, target)?;
@@ -23,6 +25,34 @@ pub fn collect_all(
     collect_bundle(&bundle_manifest, &dest_path)?;
 
     bundle_manifest.create_bundle_metadata_file(&dest_path)?;
+
+    collect_steam_assets(&project_path, target, icon_path)?;
+
+    Ok(())
+}
+
+fn collect_steam_assets(
+    project_path: impl AsRef<std::path::Path>,
+    target: Target,
+    icon_path: Option<&Path>,
+) -> Result<()> {
+    if !matches!(target, Target::X86_64PcWindowsMsvc) {
+        return Ok(());
+    }
+    let Some(icon_src) = icon_path else {
+        return Ok(());
+    };
+    let image = icon_service::validate_source(icon_src)?;
+    let dst_dir = project_path
+        .as_ref()
+        .join("target")
+        .join("namui")
+        .join("steam-assets");
+    icon_service::generate_steam_assets(&image, &dst_dir)?;
+    println!(
+        "steam assets generated at {:?} (upload manually to Steamworks Partner site)",
+        dst_dir
+    );
     Ok(())
 }
 

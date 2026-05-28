@@ -1,7 +1,7 @@
 use crate::{
     services::{
         build_status_service::{BuildStatusCategory, BuildStatusService},
-        resource_collect_service,
+        icon_service, resource_collect_service,
         runtime_project::x86_64_pc_windows_msvc::generate_runtime_project,
         rust_build_service::{self, BuildOption, BuildResult},
     },
@@ -11,6 +11,7 @@ use std::path::Path;
 
 /// NOTE: Start on windows doesn't support hot reload.
 pub async fn start(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
+    let manifest_path = manifest_path.as_ref();
     let target = cli::Target::X86_64PcWindowsMsvc;
     let project_root_path = manifest_path.parent().unwrap().to_path_buf();
     let release_path = project_root_path
@@ -18,12 +19,14 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
         .join("namui")
         .join("x86_64-pc-windows-msvc");
     let runtime_target_dir = project_root_path.join("target/namui");
+    let icon_path = icon_service::read_icon_path(manifest_path)?;
 
     generate_runtime_project(services::runtime_project::GenerateRuntimeProjectArgs {
         target_dir: runtime_target_dir.clone(),
         project_path: project_root_path.clone(),
         strip_debug_info: false,
         mode: services::runtime_project::RuntimeProjectMode::Binary,
+        icon_path: icon_path.clone(),
     })?;
 
     let build_status_service = BuildStatusService::new();
@@ -68,6 +71,8 @@ pub async fn start(manifest_path: impl AsRef<std::path::Path>) -> Result<()> {
         target,
         bundle_manifest,
         None,
+        false,
+        icon_path.as_deref(),
     )?;
 
     let exe_path = release_path.join("namui-runtime-x86_64-pc-windows-msvc.exe");
