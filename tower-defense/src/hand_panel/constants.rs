@@ -7,8 +7,9 @@ pub(super) const INNER_PADDING: Px = px(8.0);
 pub(super) const INTERACTION_CONTAINER_PADDING: Px = px(8.0);
 pub(super) const BOTTOM_OUTSIDE_HEIGHT: Px = px(24.0);
 pub(super) const STICKY_WIDTH: Px = px(128.0);
-pub(super) const STICKY_HEIGHT: Px = px(48.0);
+pub(super) const STICKY_HEIGHT: Px = px(72.0);
 pub(super) const STICKY_VISIBLE_HEIGHT: Px = px(24.0);
+pub(super) const STICKY_HIDDEN_BY_PAPER_HEIGHT: Px = px(18.0);
 
 pub(super) const STICKY_SHIFT: Px = px(64.0);
 

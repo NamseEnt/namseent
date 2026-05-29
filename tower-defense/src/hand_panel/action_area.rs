@@ -17,8 +17,26 @@ use namui_prebuilt::{simple_rect, table};
 
 use super::constants::INNER_PADDING;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum HandActionFlow {
+    SelectingTower,
+    PlacingTower,
+}
+
+impl HandActionFlow {
+    pub(super) fn from_game_flow(flow: &GameFlow) -> Option<Self> {
+        match flow {
+            GameFlow::SelectingTower(_) => Some(Self::SelectingTower),
+            GameFlow::PlacingTower => Some(Self::PlacingTower),
+            _ => None,
+        }
+    }
+}
+
 pub(super) struct HandActionArea {
     pub wh: Wh<Px>,
+    pub flow: HandActionFlow,
+    pub active_flow: Option<HandActionFlow>,
     pub selected_slot_ids: Vec<crate::hand::HandSlotId>,
     pub tower_template: Option<crate::game_state::tower::TowerTemplate>,
 }
@@ -123,20 +141,23 @@ impl Component for HandActionArea {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
-            selected_slot_ids: _,
-            tower_template: _,
+            flow,
+            active_flow,
+            selected_slot_ids,
+            tower_template,
         } = self;
         let game_state = use_game_state(ctx);
         let action_padding = INNER_PADDING * 2.0;
+        let is_active_flow = active_flow == Some(flow);
 
-        match &game_state.flow {
-            GameFlow::SelectingTower(_) => {
-                let selected_slot_ids = self.selected_slot_ids.clone();
+        match flow {
+            HandActionFlow::SelectingTower => {
                 let some_selected = !selected_slot_ids.is_empty();
 
-                let tower_template = self.tower_template.clone();
-
                 let reroll_selected = || {
+                    if !is_active_flow {
+                        return;
+                    }
                     if game_state.left_dice == 0 || selected_slot_ids.is_empty() {
                         return;
                     }
@@ -180,6 +201,9 @@ impl Component for HandActionArea {
                 };
 
                 let use_tower = || {
+                    if !is_active_flow {
+                        return;
+                    }
                     if let Some(template) = tower_template.clone() {
                         mutate_game_state(move |state| {
                             state.action(crate::game_state::GameStateAction::StartPlacingTower(
@@ -198,7 +222,8 @@ impl Component for HandActionArea {
                                     game_state.stage_modifiers.get_reroll_health_cost();
                                 let max_dice = game_state.max_dice_chance();
                                 let used_dice = max_dice.saturating_sub(game_state.left_dice);
-                                let disabled = !some_selected
+                                let disabled = !is_active_flow
+                                    || !some_selected
                                     || game_state.left_dice == 0
                                     || (game_state.hp - health_cost as f32) < 1.0;
                                 let locale = game_state.text().locale();
@@ -223,15 +248,18 @@ impl Component for HandActionArea {
                                                 .wh(wh),
                                         );
                                     })
-                                    .disabled(tower_template.is_none()),
+                                    .disabled(!is_active_flow || tower_template.is_none()),
                                 );
                             }),
                         ]),
                     )(wh, ctx);
                 });
             }
-            GameFlow::PlacingTower => {
+            HandActionFlow::PlacingTower => {
                 let start_defense = || {
+                    if !is_active_flow {
+                        return;
+                    }
                     mutate_game_state(|state| {
                         state.action(crate::game_state::GameStateAction::StartDefense);
                     });
@@ -240,28 +268,25 @@ impl Component for HandActionArea {
                 ctx.compose(|ctx| {
                     table::padding_no_clip(
                         action_padding,
-                        table::vertical([
-                            table::ratio_no_clip(1, |_, _| {}),
-                            table::fixed_no_clip(48.px(), |wh, ctx| {
-                                ctx.add(
-                                    Button::new(wh, &start_defense, &|wh, text_color, ctx| {
-                                        ctx.add(memoized_text(&text_color, |mut builder| {
-                                            builder
-                                                .headline()
-                                                .color(text_color)
-                                                .text("START")
-                                                .render_center(wh)
-                                        }));
-                                    })
-                                    .variant(ButtonVariant::Contained)
-                                    .color(ButtonColor::Primary),
-                                );
-                            }),
-                        ]),
+                        table::vertical([table::fixed_no_clip(48.px(), |wh, ctx| {
+                            ctx.add(
+                                Button::new(wh, &start_defense, &|wh, text_color, ctx| {
+                                    ctx.add(memoized_text(&text_color, |mut builder| {
+                                        builder
+                                            .headline()
+                                            .color(text_color)
+                                            .text("START")
+                                            .render_center(wh)
+                                    }));
+                                })
+                                .variant(ButtonVariant::Contained)
+                                .color(ButtonColor::Primary)
+                                .disabled(!is_active_flow),
+                            );
+                        })]),
                     )(wh, ctx);
                 });
             }
-            _ => {}
         }
 
         ctx.add(PaperContainerBackground {
