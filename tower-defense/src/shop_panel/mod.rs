@@ -16,8 +16,8 @@ use crate::shop_panel::action_area::ShopActionArea;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 
 use constants::{
-    ACTION_HEIGHT, ACTION_MARGIN_Y, BG_HEIGHT, PAPER_HEIGHT, STICKY_HEIGHT, STICKY_VISIBLE_HEIGHT,
-    STICKY_WIDTH, TOP_BAR_HEIGHT, action_area_width, shop_panel_wh,
+    ACTION_HEIGHT, ACTION_MARGIN_Y, BG_HEIGHT, PAPER_HEIGHT, STICKY_VISIBLE_HEIGHT, STICKY_WIDTH,
+    TOGGLE_HEIGHT, TOP_BAR_HEIGHT, action_area_width, shop_panel_wh,
 };
 use namui::*;
 
@@ -63,14 +63,14 @@ impl ShopPanelLayout {
         let closed_xy = if can_open {
             Xy::new(
                 center_x,
-                TOP_BAR_HEIGHT - STICKY_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y + ACTION_MARGIN_Y,
+                TOP_BAR_HEIGHT - TOGGLE_HEIGHT + STICKY_VISIBLE_HEIGHT - sticky_y + ACTION_MARGIN_Y,
             )
         } else {
             // Disabled state should be fully hidden above the top bar.
             // We move the panel higher so the sticky toggle is not visible under top bar.
-            Xy::new(center_x, -panel_wh.height - STICKY_HEIGHT)
+            Xy::new(center_x, -panel_wh.height - TOGGLE_HEIGHT)
         };
-        let open_xy = Xy::new(center_x, (screen_wh.height - panel_wh.height) / 2.0);
+        let open_xy = Xy::new(center_x, TOP_BAR_HEIGHT + ACTION_MARGIN_Y);
         let target_xy = if panel_open { open_xy } else { closed_xy };
 
         ShopPanelLayout {
@@ -114,6 +114,7 @@ impl Component for ShopPanel {
         let panel_open = can_open_shop && forced_open;
         let layout = ShopPanelLayout::compute(can_open_shop, panel_open, screen_wh);
         let animated_xy = xy_with_spring(ctx, layout.target_xy, layout.closed_xy);
+        let sticky_wh = Wh::new(STICKY_WIDTH, TOGGLE_HEIGHT);
 
         ctx.absolute(animated_xy).compose(|ctx| {
             ctx.translate((0.px(), layout.paper_y))
@@ -121,13 +122,19 @@ impl Component for ShopPanel {
                     wh: Wh::new(layout.panel_wh.width, PAPER_HEIGHT),
                 });
 
-            let sticky_center = Wh::new(STICKY_WIDTH, STICKY_HEIGHT).to_xy() * 0.5;
+            if layout.show_action_area {
+                ctx.translate(layout.action_xy).add(ShopActionArea {
+                    wh: layout.action_wh,
+                });
+            }
+
+            let sticky_center = sticky_wh.to_xy() * 0.5;
             ctx.translate(layout.sticky_xy)
                 .translate(sticky_center)
                 .rotate((-5.0).deg())
                 .translate(-sticky_center)
                 .add(StickyBar {
-                    wh: Wh::new(STICKY_WIDTH, STICKY_HEIGHT),
+                    wh: sticky_wh,
                     panel_open,
                     disabled: !can_open_shop,
                     on_toggle: &|| {
@@ -139,12 +146,6 @@ impl Component for ShopPanel {
                         });
                     },
                 });
-
-            if layout.show_action_area {
-                ctx.translate(layout.action_xy).add(ShopActionArea {
-                    wh: layout.action_wh,
-                });
-            }
 
             ctx.translate((0.px(), layout.bg_y))
                 .add(PaperContainerBackground {
@@ -189,8 +190,15 @@ mod tests {
         let screen_wh = Wh::new(px(1920.0), px(1080.0));
         let layout = ShopPanelLayout::compute(true, true, screen_wh);
 
-        let panel_center_y = layout.target_xy.y + (layout.panel_wh.height / 2.0);
-        let screen_center_y = screen_wh.height / 2.0;
-        assert!((panel_center_y - screen_center_y).abs() < px(0.1));
+        assert_eq!(layout.target_xy.y, TOP_BAR_HEIGHT + ACTION_MARGIN_Y);
+    }
+
+    #[test]
+    fn shop_panel_action_and_toggle_stay_above_midline() {
+        let screen_wh = Wh::new(px(1920.0), px(1080.0));
+        let layout = ShopPanelLayout::compute(true, true, screen_wh);
+
+        assert!(layout.action_xy.y >= layout.bg_y + BG_HEIGHT - layout.action_wh.height);
+        assert!(layout.sticky_xy.y >= layout.action_xy.y);
     }
 }

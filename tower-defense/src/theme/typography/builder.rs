@@ -260,6 +260,17 @@ impl<'a> TypographyBuilder<'a> {
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
+    /// Render and position at center-bottom
+    pub fn render_center_bottom(&mut self, wh: Wh<Px>) -> PositionedRichText {
+        let tree = self.render();
+        let bbox = tree.bounding_box();
+        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
+        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
+        let offset_x = (wh.width - rendered_width) / 2.0;
+        let offset_y = wh.height - rendered_height;
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
+    }
+
     /// Render and position at right-top
     pub fn render_right_top(&mut self, width: Px) -> PositionedRichText {
         let tree = self.render();
