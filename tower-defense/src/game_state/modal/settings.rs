@@ -37,20 +37,22 @@ impl Component for SettingsModal {
             let ctx = ctx.translate(modal_xy);
             ctx.compose(|ctx| {
                 table::vertical([
-                    table::fixed(
+                    table::fixed_no_clip(
                         TITLE_HEIGHT,
                         table::horizontal([
-                            table::fixed(PADDING, |_, _| {}),
-                            table::ratio(1, |wh, ctx| {
+                            table::fixed_no_clip(PADDING, |_, _| {}),
+                            table::ratio_no_clip(1, |wh, ctx| {
                                 ctx.add(memoized_text((), |mut builder| {
                                     builder
                                         .headline()
                                         .size(typography::FontSize::Medium)
+                                        .color(palette::WHITE)
+                                        .stroke(2.px(), palette::DARK_CHARCOAL)
                                         .text(game_state.text().ui(TopBarText::Settings))
                                         .render_left_center(wh.height)
                                 }));
                             }),
-                            table::fixed(64.px(), |wh, ctx| {
+                            table::fixed_no_clip(64.px(), |wh, ctx| {
                                 ctx.add(
                                     Button::new(
                                         wh,
@@ -68,14 +70,15 @@ impl Component for SettingsModal {
                             }),
                         ]),
                     ),
-                    table::ratio(
+                    table::ratio_no_clip(
                         1,
-                        table::padding(PADDING, |wh, ctx| {
+                        table::padding_no_clip(PADDING, |wh, ctx| {
                             ctx.add(AutoScrollViewWithCtx {
                                 wh,
                                 scroll_bar_width: PADDING,
                                 content: |ctx| {
                                     let content_width = wh.width - PADDING * 3.0;
+                                    let ctx = ctx.translate((PADDING, 0.px()));
                                     render_volume_row(
                                         &ctx,
                                         content_width,
@@ -140,7 +143,7 @@ impl Component for SettingsModal {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
                 color: palette::SURFACE_CONTAINER,
-                outline_color: None,
+                outline_color: Some(palette::SURFACE_CONTAINER_OUTLINE),
                 shadow: true,
                 arrow: None,
             });
@@ -204,6 +207,8 @@ fn render_volume_row(
                 builder
                     .headline()
                     .size(typography::FontSize::Small)
+                    .color(palette::WHITE)
+                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .text(label)
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));
@@ -222,6 +227,8 @@ fn render_volume_row(
                 builder
                     .paragraph()
                     .size(typography::FontSize::Medium)
+                    .color(palette::WHITE)
+                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .text(format!("{}%", value_percent))
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));
