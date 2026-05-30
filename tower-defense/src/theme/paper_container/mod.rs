@@ -7,7 +7,7 @@ mod zigzag_path;
 const SHADOW_OFFSET_Y: Px = px(2.0);
 const SHADOW_ALPHA: u8 = 192;
 const TORN_BORDER_OUTER_BRIGHTER_VALUE: f32 = 0.275;
-const PAPER_OUTLINE_WIDTH: Px = px(4.0);
+const PAPER_OUTLINE_WIDTH: Px = px(3.0);
 const PAPER_OUTLINE_ALPHA: u8 = 220;
 
 use smooth_path::{dual_layer_torn_paper_paths, single_layer_reduced_paper_path};
@@ -266,7 +266,8 @@ fn add_outline(ctx: &RenderCtx, path: Path, outline_color: Option<Color>) {
         Paint::new(outline_color.with_alpha(PAPER_OUTLINE_ALPHA))
             .set_style(PaintStyle::Stroke)
             .set_stroke_width(PAPER_OUTLINE_WIDTH)
-            .set_stroke_position(StrokePosition::Outside),
+            .set_stroke_position(StrokePosition::Outside)
+            .set_stroke_join(StrokeJoin::Round),
     ));
 }
 
