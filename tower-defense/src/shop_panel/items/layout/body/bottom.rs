@@ -11,13 +11,14 @@ use crate::shop_panel::items::description::ShopItemDescription;
 use crate::shop_panel::items::title::ShopItemTitle;
 
 fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescription<'_>) {
+    let wh = wh - Wh::single(PADDING * 2);
     ctx.add(AutoScrollViewWithCtx {
         wh,
         scroll_bar_width: PADDING,
         content: |ctx| {
             let description_key = description.key();
 
-            ctx.add(memoized_text(
+            ctx.translate((PADDING, PADDING)).add(memoized_text(
                 (&description_key, &wh.width),
                 |mut builder| {
                     builder
@@ -112,14 +113,8 @@ pub(crate) fn make_renderer<'a>(
                             table::padding_no_clip(
                                 PADDING,
                                 table::vertical([
-                                    table::ratio(1, move |wh, ctx| {
-                                        ctx.add(AutoScrollViewWithCtx {
-                                            wh,
-                                            scroll_bar_width: PADDING,
-                                            content: |ctx| {
-                                                render_description(wh, ctx, &description);
-                                            },
-                                        });
+                                    table::ratio_no_clip(1, move |wh, ctx| {
+                                        render_description(wh, ctx, &description);
                                     }),
                                     table::fixed_no_clip(PADDING, |_, _| {}),
                                     table::fixed_no_clip(
