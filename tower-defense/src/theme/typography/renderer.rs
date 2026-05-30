@@ -73,7 +73,7 @@ impl RichTextRenderer {
                         .size(IconSize::Custom { size: font_size })
                         .wh(icon_wh)
                         .attributes(icon.attributes.clone())
-                        .to_rendering_tree();
+                        .to_rendering_tree_with_border(style.text_style.border);
 
                     boxes.push(InlineBox::Atomic {
                         content: icon_component,
