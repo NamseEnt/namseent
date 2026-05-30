@@ -130,8 +130,7 @@ fn icon_image_filter(image: Image, width_height: Wh<Px>, border: TextStyleBorder
         OrderedFloat::new(border.width.as_f32() / scale_y),
     );
 
-    let antialiased_outer =
-        dilated_color_filter(source.clone(), total_radius, border.color);
+    let antialiased_outer = dilated_color_filter(source.clone(), total_radius, border.color);
 
     let border_ring = ImageFilter::blend(BlendMode::DstOut, antialiased_outer, source.clone());
     let combined = ImageFilter::blend(BlendMode::SrcOver, border_ring, source.clone());

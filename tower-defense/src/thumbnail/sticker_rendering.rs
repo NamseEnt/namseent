@@ -150,10 +150,8 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
         OrderedFloat::new((stroke_px * 0.4).as_f32() / scale_y),
     );
 
-    let dilated_inner =
-        dilated_color_filter(source.clone(), inner_radius, Color::BLACK);
-    let dilated_total =
-        dilated_color_filter(source.clone(), total_radius, Color::WHITE);
+    let dilated_inner = dilated_color_filter(source.clone(), inner_radius, Color::BLACK);
+    let dilated_total = dilated_color_filter(source.clone(), total_radius, Color::WHITE);
 
     let black_ring = ImageFilter::blend(BlendMode::DstOut, dilated_inner.clone(), source.clone());
 

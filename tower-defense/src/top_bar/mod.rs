@@ -71,7 +71,7 @@ impl Component for TopBar {
                                     builder
                                         .color(palette::RED)
                                         .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
-                                        .text(format!("{:.0}/{:.0}", current_hp, max_hp));
+                                        .text(format!(" {:.0}/{:.0}", current_hp, max_hp));
                                 });
 
                             if has_shield {
@@ -80,7 +80,7 @@ impl Component for TopBar {
                                     .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                     .text(" (")
                                     .icon(IconKind::Shield)
-                                    .text(format!("{:.0}", shield))
+                                    .text(format!(" {:.0}", shield))
                                     .text(")");
                             }
 
@@ -97,7 +97,7 @@ impl Component for TopBar {
                                     builder
                                         .color(palette::YELLOW)
                                         .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
-                                        .text(format!("{gold}"));
+                                        .text(format!(" {gold}"));
                                 })
                                 .text("      ")
                                 .with_style(|builder| {
@@ -111,7 +111,7 @@ impl Component for TopBar {
                                     builder
                                         .color(palette::BLUE)
                                         .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
-                                        .text(format!("{left_dice}/{max_dice}"));
+                                        .text(format!(" {left_dice}/{max_dice}"));
                                 })
                                 .render_left_center(wh.height)
                         },
