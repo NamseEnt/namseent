@@ -16,9 +16,9 @@ use namui::*;
 
 use action_area::{HandActionArea, HandActionFlow};
 use constants::{
-    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, PREVIEW_GAP, PREVIEW_HEIGHT, PREVIEW_WIDTH,
-    STICKY_HEIGHT, STICKY_HIDDEN_BY_PAPER_HEIGHT, STICKY_SHIFT, STICKY_VISIBLE_HEIGHT,
-    STICKY_WIDTH, interaction_width, panel_width,
+    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, PREVIEW_HEIGHT, PREVIEW_RIGHT_OVERLAP,
+    PREVIEW_WIDTH, STICKY_HEIGHT, STICKY_HIDDEN_BY_PAPER_HEIGHT, STICKY_SHIFT,
+    STICKY_VISIBLE_HEIGHT, STICKY_WIDTH, interaction_width, panel_width,
 };
 use paper_content::PaperContent;
 use sticky_bar::StickyBar;
@@ -164,14 +164,6 @@ impl Component for HandPanel {
                 tower_template: tower_template.clone_inner(),
             });
 
-            let preview_x = (content_width - PREVIEW_WIDTH) / 2.0;
-            ctx.translate((preview_x, -PREVIEW_GAP - PREVIEW_HEIGHT))
-                .add(crate::hand_panel::tower_preview::HandTowerPreview {
-                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
-                    tower_template: tower_template.clone_inner(),
-                    panel_open,
-                });
-
             ctx.translate((content_x, paper_y))
                 .add(PaperContainerBackground {
                     width: content_width,
@@ -201,6 +193,16 @@ impl Component for HandPanel {
                         });
                     },
                 });
+
+            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
+            let preview_y = paper_y;
+            ctx.translate((preview_x, preview_y)).add(
+                crate::hand_panel::tower_preview::HandTowerPreview {
+                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
+                    tower_template: tower_template.clone_inner(),
+                    panel_open,
+                },
+            );
         });
     }
 }
