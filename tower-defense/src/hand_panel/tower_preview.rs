@@ -28,6 +28,19 @@ fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
     }
 }
 
+fn rarity_for_tower_kind(kind: TowerKind) -> Rarity {
+    match kind {
+        TowerKind::Barricade | TowerKind::High | TowerKind::OnePair | TowerKind::TwoPair => {
+            Rarity::Common
+        }
+        TowerKind::ThreeOfAKind => Rarity::Rare,
+        TowerKind::Straight | TowerKind::Flush | TowerKind::FullHouse => Rarity::Epic,
+        TowerKind::FourOfAKind | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
+            Rarity::Legendary
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, State)]
 struct ExitAnimation {
     start_time: Instant,
@@ -142,6 +155,8 @@ impl Component for PreviewEntryComponent {
                                 builder
                                     .headline()
                                     .size(FontSize::Medium)
+                                    .color(rarity_for_tower_kind(template.kind).color())
+                                    .stroke(4.px(), palette::DARK_CHARCOAL)
                                     .max_width(wh.width);
                                 builder.text(tower_name).render_center_bottom(wh)
                             }));

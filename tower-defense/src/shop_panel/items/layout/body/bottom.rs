@@ -23,6 +23,9 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                     builder
                         .paragraph()
                         .size(FontSize::Medium)
+                        .bold()
+                        .color(palette::WHITE)
+                        .stroke(4.px(), palette::DARK_CHARCOAL)
                         .max_width(wh.width);
                     match description {
                         ShopItemDescription::Item { item, locale } => {
@@ -46,17 +49,13 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
 }
 
 fn render_cost_bar(wh: Wh<Px>, ctx: ComposeCtx, available: bool, cost: usize) {
-    let color = if available {
-        palette::ON_SURFACE
-    } else {
-        palette::ON_DISABLED_CONTAINER
-    };
     ctx.add(memoized_text((&available, &cost), |mut builder| {
         builder
             .headline()
+            .stroke(4.px(), palette::DARK_CHARCOAL)
+            .color(palette::YELLOW)
             .icon(IconKind::Gold)
             .space()
-            .color(color)
             .text(format!("{cost}"))
             .render_center(wh)
     }));
@@ -77,26 +76,35 @@ pub(crate) fn make_renderer<'a>(
             table::padding_no_clip(
                 PADDING,
                 table::vertical([
-                    table::fit(table::FitAlign::LeftTop, move |ctx| {
+                    table::fixed_no_clip(28.px(), move |title_wh, ctx| {
                         let name_key = name.key();
-                        ctx.add(memoized_text((&name_key, &wh.width), |mut builder| {
-                            builder.headline().size(FontSize::Small).max_width(wh.width);
-                            match &name {
-                                ShopItemTitle::Item { item_kind, locale } => {
-                                    builder.l10n(
-                                        l10n::item_kind::ItemText::Name(item_kind.clone()),
-                                        locale,
-                                    );
-                                }
-                                ShopItemTitle::Upgrade { upgrade, locale } => {
-                                    builder.l10n(
-                                        l10n::upgrade::UpgradeTypeText::Name(upgrade),
-                                        locale,
-                                    );
-                                }
-                            };
-                            builder.render_left_top()
-                        }));
+                        ctx.add(memoized_text(
+                            (&name_key, &title_wh.width),
+                            |mut builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Small)
+                                    .color(palette::WHITE)
+                                    .stroke(4.px(), palette::DARK_CHARCOAL)
+                                    .max_width(title_wh.width)
+                                    .text_align(namui::TextAlign::Center);
+                                match &name {
+                                    ShopItemTitle::Item { item_kind, locale } => {
+                                        builder.l10n(
+                                            l10n::item_kind::ItemText::Name(item_kind.clone()),
+                                            locale,
+                                        );
+                                    }
+                                    ShopItemTitle::Upgrade { upgrade, locale } => {
+                                        builder.l10n(
+                                            l10n::upgrade::UpgradeTypeText::Name(upgrade),
+                                            locale,
+                                        );
+                                    }
+                                };
+                                builder.render_center(title_wh)
+                            },
+                        ));
                     }),
                     table::fixed_no_clip(PADDING, |_, _| {}),
                     table::ratio_no_clip(1, move |wh, ctx| {

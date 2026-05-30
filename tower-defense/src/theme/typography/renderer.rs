@@ -134,6 +134,10 @@ impl RichTextRenderer {
 
                 match &positioned.inline_box {
                     InlineBox::Text(shaped) => {
+                        let mut fill_style = shaped.style.clone();
+                        let line_height_percent = fill_style.line_height_percent;
+                        let border = fill_style.border.take();
+
                         items.push(namui::text(TextParam {
                             text: shaped.text.clone(),
                             x,
@@ -141,9 +145,33 @@ impl RichTextRenderer {
                             align: TextAlign::Left,
                             baseline: positioned.text_baseline,
                             font: shaped.font.clone(),
-                            style: shaped.style.clone(),
+                            style: fill_style,
                             max_width: None,
                         }));
+
+                        if let Some(border) = border {
+                            let stroke_paint = Paint::new(border.color)
+                                .set_style(PaintStyle::Stroke)
+                                .set_stroke_width(border.width)
+                                .set_stroke_position(StrokePosition::Outside)
+                                .set_stroke_join(StrokeJoin::Round)
+                                .set_anti_alias(true);
+
+                            items.push(RenderingTree::Node(DrawCommand::Text {
+                                command: arena_alloc(TextDrawCommand {
+                                    text: shaped.text.clone(),
+                                    font: shaped.font.clone(),
+                                    x,
+                                    y: box_y,
+                                    paint: stroke_paint,
+                                    align: TextAlign::Left,
+                                    baseline: positioned.text_baseline,
+                                    max_width: None,
+                                    line_height_percent,
+                                    underline: None,
+                                }),
+                            }));
+                        }
                     }
                     InlineBox::Atomic { content, .. } => {
                         items.push(translate(x, box_y, *content));
