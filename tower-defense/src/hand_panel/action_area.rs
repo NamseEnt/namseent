@@ -1,5 +1,6 @@
 use crate::animation::with_spring;
 use crate::l10n;
+use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::tooltip::reroll_health_cost_warning_tooltip::RerollHealthCostWarningTooltip;
 use crate::{
@@ -274,7 +275,9 @@ impl Component for HandActionArea {
                                     ctx.add(memoized_text(&text_color, |mut builder| {
                                         builder
                                             .headline()
-                                            .color(text_color)
+                                            .bold()
+                                            .color(palette::WHITE)
+                                            .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
                                             .text("START")
                                             .render_center(wh)
                                     }));
