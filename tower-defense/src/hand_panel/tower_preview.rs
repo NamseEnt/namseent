@@ -156,7 +156,7 @@ impl Component for PreviewEntryComponent {
                                     .headline()
                                     .size(FontSize::Medium)
                                     .color(rarity_for_tower_kind(template.kind).color())
-                                    .stroke(4.px(), palette::DARK_CHARCOAL)
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
                                     .max_width(wh.width);
                                 builder.text(tower_name).render_center_bottom(wh)
                             }));

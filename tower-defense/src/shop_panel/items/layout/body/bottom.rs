@@ -26,7 +26,7 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
                         .size(FontSize::Medium)
                         .bold()
                         .color(palette::WHITE)
-                        .stroke(4.px(), palette::DARK_CHARCOAL)
+                        .stroke(2.px(), palette::DARK_CHARCOAL)
                         .max_width(wh.width);
                     match description {
                         ShopItemDescription::Item { item, locale } => {
@@ -53,7 +53,7 @@ fn render_cost_bar(wh: Wh<Px>, ctx: ComposeCtx, available: bool, cost: usize) {
     ctx.add(memoized_text((&available, &cost), |mut builder| {
         builder
             .headline()
-            .stroke(4.px(), palette::DARK_CHARCOAL)
+            .stroke(2.px(), palette::DARK_CHARCOAL)
             .color(palette::YELLOW)
             .icon(IconKind::Gold)
             .space()
@@ -86,7 +86,7 @@ pub(crate) fn make_renderer<'a>(
                                     .headline()
                                     .size(FontSize::Small)
                                     .color(palette::WHITE)
-                                    .stroke(4.px(), palette::DARK_CHARCOAL)
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
                                     .max_width(title_wh.width)
                                     .text_align(namui::TextAlign::Center);
                                 match &name {

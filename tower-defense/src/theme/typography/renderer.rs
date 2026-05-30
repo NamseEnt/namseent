@@ -152,7 +152,7 @@ impl RichTextRenderer {
                         if let Some(border) = border {
                             let stroke_paint = Paint::new(border.color)
                                 .set_style(PaintStyle::Stroke)
-                                .set_stroke_width(border.width)
+                                .set_stroke_width(border.width * 2.0)
                                 .set_stroke_position(StrokePosition::Outside)
                                 .set_stroke_join(StrokeJoin::Round)
                                 .set_anti_alias(true);

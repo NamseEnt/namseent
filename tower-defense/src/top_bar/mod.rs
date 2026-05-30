@@ -20,7 +20,7 @@ const SPEED_INDICATOR_WIDTH: Px = px(192.);
 
 const BG_OVERSIZE_H: Px = px(4.);
 const BG_OVERSIZE_V: Px = px(4.);
-const TOP_BAR_TEXT_STROKE_WIDTH: Px = px(4.);
+const TOP_BAR_TEXT_STROKE_WIDTH: Px = px(2.);
 
 pub struct TopBar {
     pub wh: Wh<Px>,
