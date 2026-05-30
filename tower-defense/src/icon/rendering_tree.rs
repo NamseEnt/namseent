@@ -1,4 +1,4 @@
-use crate::icon::Icon;
+use crate::{icon::Icon, image_filter_utils::dilated_color_filter};
 use namui::*;
 use namui_prebuilt::simple_rect;
 
@@ -85,8 +85,9 @@ fn render_icon_image_with_stroke(
     border: TextStyleBorder,
 ) -> RenderingTree {
     let paint_color = Color::WHITE.with_alpha((opacity * 255.0).round() as u8);
-    let paint =
-        Paint::new(paint_color).set_image_filter(icon_image_filter(image, rect.wh(), border));
+    let paint = Paint::new(paint_color)
+        .set_anti_alias(true)
+        .set_image_filter(icon_image_filter(image, rect.wh(), border));
 
     namui::image(ImageParam {
         rect,
@@ -129,13 +130,10 @@ fn icon_image_filter(image: Image, width_height: Wh<Px>, border: TextStyleBorder
         OrderedFloat::new(border.width.as_f32() / scale_y),
     );
 
-    let dilated_total = source.clone().dilate(total_radius, None);
-    let outer_color = dilated_total.color_filter(ColorFilter::Blend {
-        color: border.color,
-        blend_mode: BlendMode::SrcIn,
-    });
+    let antialiased_outer =
+        dilated_color_filter(source.clone(), total_radius, border.color);
 
-    let border_ring = ImageFilter::blend(BlendMode::DstOut, outer_color, source.clone());
+    let border_ring = ImageFilter::blend(BlendMode::DstOut, antialiased_outer, source.clone());
     let combined = ImageFilter::blend(BlendMode::SrcOver, border_ring, source.clone());
 
     combined.with_local_matrix(

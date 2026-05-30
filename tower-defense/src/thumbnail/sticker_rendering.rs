@@ -1,4 +1,4 @@
-use crate::{card::Card, icon::IconKind};
+use crate::{card::Card, icon::IconKind, image_filter_utils::dilated_color_filter};
 use namui::*;
 
 pub const STICKER_THUMBNAIL_STROKE: Px = px(8.0);
@@ -150,28 +150,17 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
         OrderedFloat::new((stroke_px * 0.4).as_f32() / scale_y),
     );
 
-    let dilated_total = source.clone().dilate(total_radius, None);
-    let dilated_inner = source.clone().dilate(inner_radius, None);
+    let dilated_inner =
+        dilated_color_filter(source.clone(), inner_radius, Color::BLACK);
+    let dilated_total =
+        dilated_color_filter(source.clone(), total_radius, Color::WHITE);
 
-    let black_ring = ImageFilter::blend(
-        BlendMode::DstOut,
-        dilated_inner.clone().color_filter(ColorFilter::Blend {
-            color: Color::BLACK,
-            blend_mode: BlendMode::SrcIn,
-        }),
-        source.clone(),
-    );
+    let black_ring = ImageFilter::blend(BlendMode::DstOut, dilated_inner.clone(), source.clone());
 
     let white_ring = ImageFilter::blend(
         BlendMode::DstOut,
-        dilated_total.color_filter(ColorFilter::Blend {
-            color: Color::WHITE,
-            blend_mode: BlendMode::SrcIn,
-        }),
-        dilated_inner.clone().color_filter(ColorFilter::Blend {
-            color: Color::WHITE,
-            blend_mode: BlendMode::SrcIn,
-        }),
+        dilated_total,
+        dilated_color_filter(source.clone(), inner_radius, Color::WHITE),
     );
 
     let black_and_source = ImageFilter::blend(BlendMode::SrcOver, black_ring, source.clone());
