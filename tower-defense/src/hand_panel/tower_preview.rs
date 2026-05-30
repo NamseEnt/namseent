@@ -220,11 +220,8 @@ impl Component for HandTowerPreview {
                 .is_none_or(|exit_animation| !exit_animation.is_complete(now))
         });
 
-        let active_id = if self.panel_open
-            && matches!(
-                game_state.flow,
-                GameFlow::SelectingTower(_) | GameFlow::PlacingTower
-            ) {
+        let active_id = if self.panel_open && matches!(game_state.flow, GameFlow::SelectingTower(_))
+        {
             entries
                 .iter()
                 .rev()
