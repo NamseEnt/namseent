@@ -50,11 +50,17 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
 }
 
 fn render_cost_bar(wh: Wh<Px>, ctx: ComposeCtx, available: bool, cost: usize) {
+    let cost_color = if available {
+        palette::YELLOW
+    } else {
+        palette::RED
+    };
+
     ctx.add(memoized_text((&available, &cost), |mut builder| {
         builder
             .headline()
             .stroke(2.px(), palette::DARK_CHARCOAL)
-            .color(palette::YELLOW)
+            .color(cost_color)
             .icon(IconKind::Gold)
             .space()
             .text(format!("{cost}"))
@@ -117,18 +123,9 @@ pub(crate) fn make_renderer<'a>(
                                         render_description(wh, ctx, &description);
                                     }),
                                     table::fixed_no_clip(PADDING, |_, _| {}),
-                                    table::fixed_no_clip(
-                                        if cost == 0 {
-                                            0.0_f32.px()
-                                        } else {
-                                            48.0_f32.px()
-                                        },
-                                        move |wh, ctx| {
-                                            if cost != 0 {
-                                                render_cost_bar(wh, ctx, available, cost);
-                                            }
-                                        },
-                                    ),
+                                    table::fixed_no_clip(48.px(), move |wh, ctx| {
+                                        render_cost_bar(wh, ctx, available, cost);
+                                    }),
                                 ]),
                             )(wh, ctx);
                         });
