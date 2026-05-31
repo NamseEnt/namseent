@@ -59,9 +59,12 @@ impl Component for TreasureCardContent {
                                     ctx.add(memoized_text((), |mut builder| {
                                         builder
                                             .headline()
+                                            .bold()
+                                            .color(palette::WHITE)
+                                            .stroke(2.px(), palette::DARK_CHARCOAL)
                                             .size(FontSize::Large)
                                             .l10n(
-                                                    l10n::upgrade::UpgradeTypeText::Name(&upgrade),
+                                                l10n::upgrade::UpgradeTypeText::Name(&upgrade),
                                                 &locale,
                                             )
                                             .render_left_top()
@@ -76,6 +79,9 @@ impl Component for TreasureCardContent {
                                             ctx.add(memoized_text((), |mut builder| {
                                                 builder
                                                     .paragraph()
+                                                    .bold()
+                                                    .color(palette::WHITE)
+                                                    .stroke(2.px(), palette::DARK_CHARCOAL)
                                                     .size(FontSize::Medium)
                                                     .l10n(
                                                         l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(
