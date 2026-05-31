@@ -14,7 +14,7 @@ impl UpgradeBehavior for EraserUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn removed_number_rank_count(&self) -> usize {
         self.add

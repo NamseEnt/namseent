@@ -11,7 +11,7 @@ impl UpgradeBehavior for SpannerUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state

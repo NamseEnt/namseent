@@ -14,7 +14,7 @@ impl UpgradeBehavior for TrophyUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn thumbnail_overlay(
         &self,
@@ -23,7 +23,12 @@ impl UpgradeBehavior for TrophyUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0),
+            &format!(
+                "+{:.0}%",
+                self.perfect_clear_stacks as f32
+                    * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0)
+                    * 100.0
+            ),
             crate::theme::palette::RED,
         ))
     }
@@ -76,7 +81,10 @@ impl UpgradeBehavior for TrophyUpgrade {
                     .static_text("Perfect clears increase all towers' ")
                     .with_damage_text("damage")
                     .static_text(" by ")
-                    .with_damage_value(format!("{:.0}%", (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0))
+                    .with_damage_value(format!(
+                        "{:.0}%",
+                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
+                    ))
                     .static_text(" each wave (currently ")
                     .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
                     .static_text(")");
@@ -86,7 +94,10 @@ impl UpgradeBehavior for TrophyUpgrade {
                     .static_text("웨이브를 퍼펙트 클리어할 때마다 모든 타워의 ")
                     .with_damage_text("피해")
                     .static_text("가 ")
-                    .with_damage_value(format!("{:.0}%", (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0))
+                    .with_damage_value(format!(
+                        "{:.0}%",
+                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
+                    ))
                     .static_text(" 증가합니다 (현재 ")
                     .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
                     .static_text(")");

@@ -73,16 +73,12 @@ impl UpgradeBehavior for ClubSwordUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder
-                    .static_text("Club tower ")
-                    .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0))
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder
-                    .static_text("클럽 타워 ")
-                    .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0))
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Club tower ")
+                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("클럽 타워 ")
+                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
         };
     }
 }

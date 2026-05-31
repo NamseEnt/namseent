@@ -14,7 +14,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn on_stage_end(
         &mut self,
@@ -49,18 +49,14 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder
-                    .static_text("Earn ")
-                    .with_gold_value(format!("{}", GIFT_BOX_GOLD_PER_ITEM))
-                    .static_text(" gold per item at the end of each stage")
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder
-                    .static_text("스테이지 종료 시 보유한 아이템당 ")
-                    .with_gold_value(format!("{}골드", GIFT_BOX_GOLD_PER_ITEM))
-                    .static_text("를 얻습니다")
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Earn ")
+                .with_gold_value(format!("{}", GIFT_BOX_GOLD_PER_ITEM))
+                .static_text(" gold per item at the end of each stage"),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("스테이지 종료 시 보유한 아이템당 ")
+                .with_gold_value(format!("{}골드", GIFT_BOX_GOLD_PER_ITEM))
+                .static_text("를 얻습니다"),
         };
     }
 }

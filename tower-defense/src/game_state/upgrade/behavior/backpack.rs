@@ -14,7 +14,7 @@ impl UpgradeBehavior for BackpackUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn shop_slot_expand(&self) -> usize {
         self.add

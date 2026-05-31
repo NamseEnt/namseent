@@ -14,7 +14,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn shop_item_price_minus(&self) -> usize {
         self.add

@@ -83,7 +83,10 @@ impl UpgradeBehavior for TapeUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Slow enemies by ")
-                    .with_movement_speed_debuff_value(format!("{:.0}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0))
+                    .with_movement_speed_debuff_value(format!(
+                        "{:.0}%",
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                    ))
                     .static_text(" every ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
                     .static_text(" waves after acquisition");
@@ -93,7 +96,10 @@ impl UpgradeBehavior for TapeUpgrade {
                     .static_text("획득 후 매 ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
                     .static_text("웨이브마다 적의 이동속도가 ")
-                    .with_movement_speed_debuff_value(format!("{:.0}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0))
+                    .with_movement_speed_debuff_value(format!(
+                        "{:.0}%",
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                    ))
                     .static_text(" 느려집니다");
             }
         }
