@@ -15,6 +15,18 @@ impl UpgradeBehavior for TrophyUpgrade {
         )
         }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn on_stage_end(
         &mut self,
         _game_state: &mut GameState,

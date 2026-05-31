@@ -18,6 +18,18 @@ impl UpgradeBehavior for PopcornUpgrade {
         )
         }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.active_stage_damage_bonus * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.active_stage_damage_bonus > 0.0 {
             Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))

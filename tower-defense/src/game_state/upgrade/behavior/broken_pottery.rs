@@ -14,7 +14,21 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        let text = format!("+{:.0}%", self.damage_bonus_pct * 100.0);
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &text,
+            crate::theme::palette::RED,
+        ))
+    }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.rerolled_count.is_some_and(|count| count > 0)

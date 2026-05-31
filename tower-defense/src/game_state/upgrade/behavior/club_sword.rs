@@ -14,7 +14,19 @@ impl UpgradeBehavior for ClubSwordUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.suit == Some(crate::card::Suit::Clubs)

@@ -16,6 +16,18 @@ impl UpgradeBehavior for ResolutionUpgrade {
         )
         }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn on_stage_end(
         &mut self,
         game_state: &mut GameState,

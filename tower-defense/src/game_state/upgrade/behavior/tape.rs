@@ -16,7 +16,31 @@ impl UpgradeBehavior for TapeUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        let cycle = if game_state.stage <= self.acquired_stage {
+            1
+        } else {
+            ((game_state.stage - self.acquired_stage - 1) % 4) + 1
+        };
+        let active = cycle == 4;
+        let color = if active {
+            crate::theme::palette::WHITE
+        } else {
+            crate::theme::palette::DISABLED_TEXT
+        };
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}/4", cycle),
+            color,
+        ))
+    }
 
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.acquired_stage = game_state.stage;

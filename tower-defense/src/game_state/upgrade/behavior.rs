@@ -162,6 +162,14 @@ pub trait UpgradeBehavior {
     );
 
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree;
+
+    fn thumbnail_overlay(
+        &self,
+        _width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        None
+    }
 }
 
 #[derive(Clone, Copy)]

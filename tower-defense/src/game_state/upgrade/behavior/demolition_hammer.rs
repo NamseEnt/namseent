@@ -15,7 +15,19 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.stored_damage_bonus * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state

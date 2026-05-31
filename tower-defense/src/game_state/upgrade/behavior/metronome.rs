@@ -13,7 +13,37 @@ impl UpgradeBehavior for MetronomeUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        let cycle = if let Some(start) = self.start_stage {
+            if game_state.stage <= start {
+                1
+            } else {
+                ((game_state.stage - start) % 2) + 1
+            }
+        } else {
+            1
+        };
+        let active = self.start_stage.is_some_and(|start| {
+            game_state.stage >= start && (game_state.stage - start).is_multiple_of(2)
+        });
+        let color = if active {
+            crate::theme::palette::WHITE
+        } else {
+            crate::theme::palette::DISABLED_TEXT
+        };
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}/2", cycle),
+            color,
+        ))
+    }
 
     fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
         let start = self.start_stage.get_or_insert(stage);
