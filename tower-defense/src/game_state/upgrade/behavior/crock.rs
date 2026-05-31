@@ -5,8 +5,8 @@ pub struct CrockUpgrade {
     pub current_step: usize,
 }
 
-const CROCK_GOLD_PER_DAMAGE: usize = 1000;
-const CROCK_DAMAGE_PER_STEP: f32 = 1.0;
+const CROCK_GOLD_PER_DAMAGE: usize = 100;
+const CROCK_DAMAGE_PER_STEP: f32 = 0.25;
 
 impl CrockUpgrade {
     fn current_damage_bonus(&self) -> f32 {
@@ -91,15 +91,15 @@ impl UpgradeBehavior for CrockUpgrade {
         builder.text(match locale.language {
             crate::l10n::locale::Language::English => format!(
                 "Gain +{:.0}% damage for every {} gold (currently +{:.0}%)",
-                CROCK_DAMAGE_PER_STEP,
+                CROCK_DAMAGE_PER_STEP * 100.0,
                 CROCK_GOLD_PER_DAMAGE,
-                self.current_damage_bonus(),
+                self.current_damage_bonus() * 100.0,
             ),
             crate::l10n::locale::Language::Korean => format!(
-                "골드 {}당 피해 +{:.0}% (현재 +{:.0}%)",
+                "현재 보유 골드 {}당 모든 타워 피해 +{:.0}% (현재 +{:.0}%)",
                 CROCK_GOLD_PER_DAMAGE,
-                CROCK_DAMAGE_PER_STEP,
-                self.current_damage_bonus(),
+                CROCK_DAMAGE_PER_STEP * 100.0,
+                self.current_damage_bonus() * 100.0,
             ),
         });
     }
