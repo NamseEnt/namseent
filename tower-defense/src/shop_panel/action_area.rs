@@ -29,6 +29,7 @@ impl Component for ShopActionArea {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER_LOW,
+            outline_color: None,
             shadow: true,
             arrow: None,
         });

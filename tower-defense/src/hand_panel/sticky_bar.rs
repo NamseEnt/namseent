@@ -22,16 +22,25 @@ impl Component for StickyBar<'_> {
             disabled,
             on_toggle,
         } = self;
+        let icon_size = wh.height - 24.px();
+        let icon_wh = Wh::new(icon_size, icon_size);
+        let icon_x = (wh.width - icon_wh.width) / 2.0;
+        let icon_y = 6.px();
 
         ctx.add(
-            Button::new(wh, on_toggle, &|wh, text_color, ctx| {
-                ctx.add(memoized_text((&text_color, &panel_open), |mut builder| {
-                    builder
-                        .headline()
-                        .size(crate::theme::typography::FontSize::Custom { size: wh.height })
-                        .icon(IconKind::Card)
-                        .render_center(wh)
-                }));
+            Button::new(wh, on_toggle, &|_wh, text_color, ctx| {
+                ctx.translate((icon_x, icon_y)).add(memoized_text(
+                    (&text_color, &panel_open),
+                    |mut builder| {
+                        builder
+                            .headline()
+                            .size(crate::theme::typography::FontSize::Custom {
+                                size: icon_wh.height,
+                            })
+                            .icon(IconKind::Card)
+                            .render_center(icon_wh)
+                    },
+                ));
             })
             .variant(ButtonVariant::Contained)
             .color(ButtonColor::Secondary)

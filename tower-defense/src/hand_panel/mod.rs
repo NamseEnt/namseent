@@ -14,11 +14,11 @@ use crate::{
 };
 use namui::*;
 
-use action_area::HandActionArea;
+use action_area::{HandActionArea, HandActionFlow};
 use constants::{
-    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, PREVIEW_GAP, PREVIEW_HEIGHT, PREVIEW_WIDTH,
-    STICKY_HEIGHT, STICKY_SHIFT, STICKY_VISIBLE_HEIGHT, STICKY_WIDTH, interaction_width,
-    panel_width,
+    BOTTOM_OUTSIDE_HEIGHT, PANEL_PADDING, PAPER_HEIGHT, PREVIEW_HEIGHT, PREVIEW_RIGHT_OVERLAP,
+    PREVIEW_WIDTH, STICKY_HEIGHT, STICKY_HIDDEN_BY_PAPER_HEIGHT, STICKY_SHIFT,
+    STICKY_VISIBLE_HEIGHT, STICKY_WIDTH, interaction_width, panel_width,
 };
 use paper_content::PaperContent;
 use sticky_bar::StickyBar;
@@ -90,6 +90,7 @@ impl Component for HandPanel {
         });
 
         let panel_open = can_open_hand && forced_open;
+        let active_action_flow = HandActionFlow::from_game_flow(&game_state.flow);
         let target_offset = if panel_open {
             Xy::zero()
         } else {
@@ -105,6 +106,36 @@ impl Component for HandPanel {
             panel_width(),
             STICKY_HEIGHT + PAPER_HEIGHT + BOTTOM_OUTSIDE_HEIGHT,
         );
+        let content_x = px(0.0);
+        let content_y = px(0.0);
+        let content_width = panel_wh.width;
+        let paper_y = content_y + STICKY_HEIGHT - STICKY_HIDDEN_BY_PAPER_HEIGHT;
+        let action_x = content_x + content_width - PANEL_PADDING - interaction_width();
+        let action_offscreen_y = paper_y + PAPER_HEIGHT + 8.px();
+        let sticky_x = action_x + interaction_width() - STICKY_WIDTH + STICKY_SHIFT;
+        let sticky_center = Wh::new(STICKY_WIDTH, STICKY_HEIGHT).to_xy() * 0.5;
+        let selecting_target_y = if active_action_flow == Some(HandActionFlow::SelectingTower) {
+            paper_y
+        } else {
+            action_offscreen_y
+        };
+        let placing_target_y = if active_action_flow == Some(HandActionFlow::PlacingTower) {
+            paper_y
+        } else {
+            action_offscreen_y
+        };
+
+        let selecting_action_xy = xy_with_spring(
+            ctx,
+            Xy::new(action_x, selecting_target_y),
+            Xy::new(action_x, action_offscreen_y),
+        );
+        let placing_action_xy = xy_with_spring(
+            ctx,
+            Xy::new(action_x, placing_target_y),
+            Xy::new(action_x, action_offscreen_y),
+        );
+
         let panel_xy = Xy::new(
             (screen_wh.width - panel_wh.width) / 2.0,
             screen_wh.height - (STICKY_HEIGHT + PAPER_HEIGHT)
@@ -113,13 +144,37 @@ impl Component for HandPanel {
         );
 
         ctx.absolute(panel_xy).compose(|ctx| {
-            let content_x = px(0.0);
-            let content_y = px(0.0);
-            let content_width = panel_wh.width;
-            let paper_y = content_y + STICKY_HEIGHT - STICKY_VISIBLE_HEIGHT;
-            let action_x = content_x + content_width - PANEL_PADDING - interaction_width();
-            let sticky_x = action_x + interaction_width() - STICKY_WIDTH + STICKY_SHIFT;
-            let sticky_center = Wh::new(STICKY_WIDTH, STICKY_HEIGHT).to_xy() * 0.5;
+            ctx.translate((0.px(), paper_y)).add(PaperContent {
+                wh: Wh::new(content_width, PAPER_HEIGHT),
+            });
+
+            ctx.translate(selecting_action_xy).add(HandActionArea {
+                wh: Wh::new(interaction_width(), PAPER_HEIGHT),
+                flow: HandActionFlow::SelectingTower,
+                active_flow: active_action_flow,
+                selected_slot_ids: selected_slot_ids.clone_inner(),
+                tower_template: tower_template.clone_inner(),
+            });
+
+            ctx.translate(placing_action_xy).add(HandActionArea {
+                wh: Wh::new(interaction_width(), PAPER_HEIGHT),
+                flow: HandActionFlow::PlacingTower,
+                active_flow: active_action_flow,
+                selected_slot_ids: selected_slot_ids.clone_inner(),
+                tower_template: tower_template.clone_inner(),
+            });
+
+            ctx.translate((content_x, paper_y))
+                .add(PaperContainerBackground {
+                    width: content_width,
+                    height: PAPER_HEIGHT,
+                    texture: PaperTexture::Rough,
+                    variant: PaperVariant::Paper,
+                    color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
+                    outline_color: None,
+                    shadow: true,
+                    arrow: None,
+                });
 
             ctx.translate((sticky_x, 0.px()))
                 .translate(sticky_center)
@@ -139,34 +194,15 @@ impl Component for HandPanel {
                     },
                 });
 
-            ctx.translate((0.px(), paper_y)).add(PaperContent {
-                wh: Wh::new(content_width, PAPER_HEIGHT),
-            });
-
-            ctx.translate((action_x, paper_y)).add(HandActionArea {
-                wh: Wh::new(interaction_width(), PAPER_HEIGHT),
-                selected_slot_ids: selected_slot_ids.clone_inner(),
-                tower_template: tower_template.clone_inner(),
-            });
-
-            let preview_x = (content_width - PREVIEW_WIDTH) / 2.0;
-            ctx.translate((preview_x, -PREVIEW_GAP - PREVIEW_HEIGHT))
-                .add(crate::hand_panel::tower_preview::HandTowerPreview {
+            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
+            let preview_y = paper_y;
+            ctx.translate((preview_x, preview_y)).add(
+                crate::hand_panel::tower_preview::HandTowerPreview {
                     wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
                     tower_template: tower_template.clone_inner(),
                     panel_open,
-                });
-
-            ctx.translate((content_x, paper_y))
-                .add(PaperContainerBackground {
-                    width: content_width,
-                    height: PAPER_HEIGHT,
-                    texture: PaperTexture::Rough,
-                    variant: PaperVariant::Paper,
-                    color: crate::theme::palette::SURFACE_CONTAINER_LOWEST,
-                    shadow: true,
-                    arrow: None,
-                });
+                },
+            );
         });
     }
 }

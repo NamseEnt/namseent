@@ -1,9 +1,7 @@
-use crate::flow_ui::treasure_selection::PADDING;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
 use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
-use crate::icon::IconKind;
 use crate::rarity::Rarity;
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::theme::{
@@ -12,13 +10,11 @@ use crate::theme::{
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
 use namui::*;
-use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, table};
+use namui_prebuilt::table;
 
 use crate::animation::with_spring;
 
 const EXIT_ANIMATION_DURATION: f32 = 0.5;
-
-const PLACEHOLDER_FLAVOR_TEXT: &str = "대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트 대충 긴 플레이버 텍스트";
 
 fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
     match kind {
@@ -29,6 +25,19 @@ fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
         TowerKind::FullHouse => Some((Rarity::Epic.color(), 0.2)),
         TowerKind::FourOfAKind | TowerKind::StraightFlush => Some((Rarity::Legendary.color(), 0.3)),
         TowerKind::RoyalFlush => Some((Rarity::Legendary.color(), 0.4)),
+    }
+}
+
+fn rarity_for_tower_kind(kind: TowerKind) -> Rarity {
+    match kind {
+        TowerKind::Barricade | TowerKind::High | TowerKind::OnePair | TowerKind::TwoPair => {
+            Rarity::Common
+        }
+        TowerKind::ThreeOfAKind => Rarity::Rare,
+        TowerKind::Straight | TowerKind::Flush | TowerKind::FullHouse => Rarity::Epic,
+        TowerKind::FourOfAKind | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
+            Rarity::Legendary
+        }
     }
 }
 
@@ -88,119 +97,72 @@ impl Component for PreviewEntryComponent {
         let position: f32 = with_spring(ctx, target, 0.0f32, |v| v * v, || 0.0f32);
         let scale = position.max(0.0001);
         let tower_name = game_state.text().tower(template.kind.to_text());
-        let flavor = PLACEHOLDER_FLAVOR_TEXT;
 
         ctx.compose(|ctx| {
-            let anchor = Xy::new(this_wh.width / 2.0, this_wh.height);
+            let anchor = Xy::new(this_wh.width, this_wh.height / 2.0);
             let ctx = ctx
                 .translate(anchor)
                 .scale(Xy::single(scale))
                 .translate(-anchor);
 
-            let img_wh = Wh::new(this_wh.height * 2.0, this_wh.height * 2.0);
-            let img_offset = Xy::new(0.px(), -this_wh.height);
             let halo_config = halo_config_for_tower_kind(template.kind);
 
             ctx.compose(|ctx| {
-                let ctx = ctx.translate(img_offset);
-                let tower_image = (template.kind, AnimationKind::Idle1).image();
-
-                ctx.add(TowerSpriteWithOverlay {
-                    image: tower_image,
-                    wh: img_wh,
-                    suit: template.suit,
-                    rank: template.rank,
-                    alpha: 1.0,
-                });
-
-                if let Some((color, strength)) = halo_config {
-                    ctx.add(Halo {
-                        wh: img_wh,
-                        radius: 96.px(),
-                        color,
-                        strength,
-                        rotation_deg_per_sec: 45.0,
-                    });
-                }
-            });
-
-            let divider_x = img_wh.width + px(8.0);
-            let mut path = Path::new();
-            let mut y = px(8.0);
-            let dash = px(16.0);
-            let gap = px(8.0);
-            while y < this_wh.height {
-                if y + dash > this_wh.height {
-                    break;
-                }
-                path = path.move_to(divider_x, y);
-                path = path.line_to(divider_x, y + dash);
-                y += dash + gap;
-            }
-            ctx.add(namui::path(
-                path,
-                Paint::new(palette::ON_PRIMARY.with_alpha(64))
-                    .set_style(PaintStyle::Stroke)
-                    .set_stroke_width(4.px())
-                    .set_stroke_cap(StrokeCap::Round),
-            ));
-
-            let text_region_width = this_wh.width - (divider_x + px(8.0));
-            ctx.compose(|ctx| {
                 table::padding_no_clip(
-                    16.px(),
+                    8.px(),
                     table::vertical([
-                        table::fixed_no_clip(24.px(), move |wh, ctx| {
-                            ctx.compose(|ctx| {
-                                let _badge_width = crate::render_attack_power_badge(
-                                    &ctx,
-                                    attack_power_text,
-                                    wh.width,
-                                    wh.height,
-                                );
-                                let _ = _badge_width;
-                            });
-
-                            ctx.add(memoized_text(
-                                (&wh.width, &template.kind, &template.suit, &template.rank),
-                                |mut builder| {
-                                    let mut builder = builder
-                                        .headline()
-                                        .size(FontSize::Medium)
-                                        .max_width(wh.width);
-                                    if let (Some(suit), Some(rank)) = (template.suit, template.rank)
-                                    {
-                                        builder = builder
-                                            .icon(IconKind::Suit { suit })
-                                            .text(rank.to_string())
-                                            .space();
-                                    }
-                                    builder.text(tower_name).render_left_center(wh.height)
-                                },
-                            ));
-                        }),
-                        table::fixed_no_clip(PADDING, |_, _| {}),
                         table::ratio_no_clip(1, move |wh, ctx| {
-                            ctx.add(AutoScrollViewWithCtx {
-                                wh,
-                                scroll_bar_width: 8.px(),
-                                content: |scroll_ctx| {
-                                    scroll_ctx.add(memoized_text((&wh.width,), |mut builder| {
-                                        builder
-                                            .paragraph()
-                                            .size(FontSize::Medium)
-                                            .max_width(wh.width - 8.px())
-                                            .text(flavor)
-                                            .render_left_top()
-                                    }));
+                            let img_wh = wh * 1.2;
+                            let row_center = wh.to_xy() * 0.5;
+                            let image_center = Xy::new(row_center.x, row_center.y - 8.px());
+
+                            let badge_height = 28.px();
+                            let badge_origin = Xy::new(
+                                image_center.x - (img_wh.width / 2.0) + 16.px(),
+                                image_center.y - (wh.height / 2.0) + 8.px(),
+                            );
+                            let _ = render_attack_power_badge(
+                                &ctx.translate(badge_origin),
+                                attack_power_text,
+                                img_wh.width,
+                                badge_height,
+                            );
+
+                            ctx.translate(image_center - (img_wh.to_xy() * 0.5)).add(
+                                TowerSpriteWithOverlay {
+                                    image: (template.kind, AnimationKind::Idle1).image(),
+                                    wh: img_wh,
+                                    suit: template.suit,
+                                    rank: template.rank,
+                                    alpha: 1.0,
                                 },
-                            });
+                            );
+
+                            if let Some((color, strength)) = halo_config {
+                                ctx.translate(image_center - (img_wh.to_xy() * 0.5))
+                                    .add(Halo {
+                                        wh: img_wh,
+                                        radius: 40.px(),
+                                        color,
+                                        strength,
+                                        rotation_deg_per_sec: 45.0,
+                                    });
+                            }
+                        }),
+                        table::fixed_no_clip(4.px(), |_, _| {}),
+                        table::fixed_no_clip(22.px(), move |wh, ctx| {
+                            ctx.add(memoized_text((&wh.width, &template.kind), |mut builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Medium)
+                                    .color(rarity_for_tower_kind(template.kind).color())
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
+                                    .max_width(wh.width);
+                                builder.text(tower_name).render_center_bottom(wh)
+                            }));
                         }),
                     ]),
-                )(
-                    Wh::new(text_region_width, this_wh.height),
-                    ctx.translate(Xy::new(divider_x + px(8.0), 0.px())),
-                );
+                )(this_wh, ctx);
             });
 
             ctx.add(PaperContainerBackground {
@@ -209,6 +171,7 @@ impl Component for PreviewEntryComponent {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Tape,
                 color: palette::PRIMARY,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             });
@@ -283,4 +246,74 @@ impl Component for HandTowerPreview {
         set_entries.set(entries);
         set_next_id.set(next_id);
     }
+}
+
+fn render_attack_power_badge(
+    ctx: &ComposeCtx<'_, '_>,
+    attack_power_text: &str,
+    container_width: Px,
+    container_height: Px,
+) -> Px {
+    let badge_text_string = attack_power_text.to_string();
+    let badge_text_ref: &String = &badge_text_string;
+
+    let badge_height = container_height;
+    let badge_text = ctx.ghost_add(
+        "attack-power-text",
+        memoized_text((badge_text_ref, &container_width), move |mut builder| {
+            builder
+                .paragraph()
+                .size(FontSize::Custom { size: 14.px() })
+                .bold()
+                .color(palette::WHITE)
+                .text(badge_text_ref.as_str())
+                .render_left_center(badge_height)
+        }),
+    );
+
+    let badge_text_width = badge_text
+        .bounding_box()
+        .map(|rect| rect.width())
+        .unwrap_or_default();
+    let badge_padding = 6.px();
+    let badge_gap = 4.px();
+    let badge_icon_width = 16.px();
+    let badge_width =
+        badge_padding + badge_icon_width + badge_gap + badge_text_width + badge_padding;
+    let badge_x = 0.px();
+    let badge_y = (container_height - badge_height) / 2.0;
+    let badge_rect = Rect::Xywh {
+        x: badge_x,
+        y: badge_y,
+        width: badge_width,
+        height: badge_height,
+    };
+    let badge_radius = badge_height / 2.0;
+    let badge_path = Path::new().add_rrect(badge_rect, badge_radius, badge_radius);
+
+    ctx.translate(Xy::new(
+        badge_x + badge_padding + badge_icon_width + badge_gap,
+        badge_y,
+    ))
+    .add(badge_text);
+
+    ctx.translate(Xy::new(badge_x + badge_padding, badge_y))
+        .add(
+            crate::icon::Icon::new(crate::icon::IconKind::Damage)
+                .size(crate::icon::IconSize::Small)
+                .wh(Wh::new(badge_icon_width, badge_height)),
+        );
+
+    ctx.add(namui::path(
+        badge_path.clone(),
+        Paint::new(palette::WHITE)
+            .set_style(PaintStyle::Stroke)
+            .set_stroke_width(3.px()),
+    ));
+    ctx.add(namui::path(
+        badge_path,
+        Paint::new(palette::RED).set_style(PaintStyle::Fill),
+    ));
+
+    badge_width
 }

@@ -52,11 +52,13 @@ impl Component for TowerInfoPopup<'_> {
                                         }
                                     });
                                 },
-                                &|wh, text_color, ctx| {
-                                    ctx.add(memoized_text((&text_color, &wh), |mut builder| {
+                                &|wh, _text_color, ctx| {
+                                    ctx.add(memoized_text((&wh,), |mut builder| {
                                         builder
                                             .size(FontSize::Medium)
-                                            .color(text_color)
+                                            .bold()
+                                            .color(theme::palette::WHITE)
+                                            .stroke(2.px(), theme::palette::DARK_CHARCOAL)
                                             .max_width(wh.width)
                                             .text("철거")
                                             .render_center(wh)
@@ -75,6 +77,7 @@ impl Component for TowerInfoPopup<'_> {
                     texture: PaperTexture::Rough,
                     variant: PaperVariant::Sticky,
                     color: theme::palette::SURFACE_CONTAINER_HIGHEST,
+                    outline_color: Some(theme::palette::SURFACE_CONTAINER_OUTLINE),
                     shadow: true,
                     arrow: Some(PaperArrow {
                         side: ArrowSide::Bottom,

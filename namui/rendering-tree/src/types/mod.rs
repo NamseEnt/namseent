@@ -279,6 +279,14 @@ impl From<StrokeJoin> for skia_safe::PaintJoin {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy, Default, Hash, Eq, State)]
+pub enum StrokePosition {
+    Inside,
+    Outside,
+    #[default]
+    Middle,
+}
+
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash, State)]
 pub struct StrokeOptions {
     pub width: Option<Px>,

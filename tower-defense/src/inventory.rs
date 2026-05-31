@@ -195,6 +195,8 @@ impl Component for InventoryTooltip<'_> {
                                 .headline()
                                 .size(FontSize::Medium)
                                 .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
                                 .l10n(name_text.clone(), &locale)
                                 .render_left_top()
                         },
@@ -209,6 +211,8 @@ impl Component for InventoryTooltip<'_> {
                                 .paragraph()
                                 .size(FontSize::Large)
                                 .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
                                 .l10n(item.description_text(), &locale)
                                 .render_left_top()
                         },
@@ -236,6 +240,7 @@ impl InventoryTooltip<'_> {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER,
+            outline_color: Some(palette::SURFACE_CONTAINER_OUTLINE),
             shadow: true,
             arrow: Some(crate::theme::paper_container::PaperArrow {
                 side: crate::theme::paper_container::ArrowSide::Right,

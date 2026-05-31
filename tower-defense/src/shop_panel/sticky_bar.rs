@@ -30,7 +30,7 @@ impl Component for StickyBar<'_> {
                         .headline()
                         .size(crate::theme::typography::FontSize::Custom { size: wh.height })
                         .icon(IconKind::Shop)
-                        .render_center(wh)
+                        .render_center_bottom(wh)
                 }));
             })
             .variant(ButtonVariant::Contained)
