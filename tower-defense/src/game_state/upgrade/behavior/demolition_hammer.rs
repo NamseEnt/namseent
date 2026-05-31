@@ -3,7 +3,6 @@ use super::*;
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct DemolitionHammerUpgrade {
     pub damage_bonus_pct: f32,
-    pub removed_tower_count: usize,
     pub stored_damage_bonus: f32,
 }
 
@@ -46,23 +45,7 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
     }
 
     fn on_tower_removed(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
-        self.removed_tower_count += 1;
-        UpgradeUpdateFlags::TOWER_STATS
-    }
-
-    fn on_stage_end(
-        &mut self,
-        _game_state: &mut GameState,
-        _perfect_clear: bool,
-        _gold: usize,
-        _item_count: usize,
-    ) -> UpgradeUpdateFlags {
-        if self.removed_tower_count == 0 {
-            return UpgradeUpdateFlags::NONE;
-        }
-
-        self.stored_damage_bonus = self.damage_bonus_pct * self.removed_tower_count as f32;
-        self.removed_tower_count = 0;
+        self.stored_damage_bonus += self.damage_bonus_pct;
         UpgradeUpdateFlags::TOWER_STATS
     }
 
@@ -86,14 +69,16 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             crate::l10n::locale::Language::English => {
                 let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
                 format!(
-                    "Removing towers increases next stage damage (currently {})",
+                    "Removing towers increases all towers' damage by {:.0}% each time (currently {})",
+                    self.damage_bonus_pct * 100.0,
                     current
                 )
             }
             crate::l10n::locale::Language::Korean => {
                 let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
                 format!(
-                    "타워를 제거하면 다음 스테이지 피해가 증가합니다 (현재 {})",
+                    "타워를 철거할 때마다 모든 타워 데미지 +{:.0}% 증가 (현재 {})",
+                    self.damage_bonus_pct * 100.0,
                     current
                 )
             }
@@ -105,7 +90,6 @@ impl DemolitionHammerUpgrade {
     pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
         Upgrade::DemolitionHammer(DemolitionHammerUpgrade {
             damage_bonus_pct,
-            removed_tower_count: 0,
             stored_damage_bonus: 0.0,
         })
     }
@@ -115,7 +99,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    DemolitionHammerUpgrade::into_upgrade(2.0)
+    DemolitionHammerUpgrade::into_upgrade(0.5)
 }
 #[cfg(test)]
 mod tests {
@@ -182,11 +166,6 @@ mod tests {
             game_state.upgrade_state.upgrades[0].upgrade,
             crate::game_state::upgrade::Upgrade::DemolitionHammer(..)
         ));
-        if let crate::game_state::upgrade::Upgrade::DemolitionHammer(upgrade) =
-            game_state.upgrade_state.upgrades[0].upgrade
-        {
-            assert_eq!(upgrade.removed_tower_count, 0);
-        }
     }
 
     #[test]
