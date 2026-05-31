@@ -56,7 +56,7 @@ impl Component for TreasureCardContent {
                         ctx.compose(|ctx| {
                             table::vertical([
                                 table::fixed_no_clip(24.px(), |_, ctx| {
-                                    ctx.add(memoized_text((), |mut builder| {
+                                    ctx.translate((PADDING, 0.px())).add(memoized_text((), |mut builder| {
                                         builder
                                             .headline()
                                             .bold()
@@ -71,17 +71,19 @@ impl Component for TreasureCardContent {
                                     }));
                                 }),
                                 table::fixed_no_clip(6.px(), |_, _| {}),
-                                table::ratio_no_clip(1, |desc_wh, ctx| {
+                                table::ratio_no_clip(1, |wh, ctx| {
+                                    let width = wh.width - PADDING * 2.0;
                                     ctx.add(AutoScrollViewWithCtx {
-                                        wh: desc_wh,
+                                        wh,
                                         scroll_bar_width: PADDING,
                                         content: |ctx| {
-                                            ctx.add(memoized_text((), |mut builder| {
+                                            ctx.translate((PADDING, 0.px())).add(memoized_text((), |mut builder| {
                                                 builder
                                                     .paragraph()
                                                     .bold()
                                                     .color(palette::WHITE)
                                                     .stroke(2.px(), palette::DARK_CHARCOAL)
+                                                    .max_width(width)
                                                     .size(FontSize::Medium)
                                                     .l10n(
                                                         l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(
