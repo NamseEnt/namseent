@@ -7,6 +7,15 @@ pub struct BrokenPotteryUpgrade {
 }
 
 impl UpgradeBehavior for BrokenPotteryUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::BROKEN_POTTERY,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.rerolled_count.is_some_and(|count| count > 0)
     }

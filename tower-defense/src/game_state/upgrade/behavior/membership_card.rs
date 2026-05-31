@@ -6,6 +6,15 @@ pub struct MembershipCardUpgrade {
 }
 
 impl UpgradeBehavior for MembershipCardUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::MEMBERSHIP_CARD,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.pending_free_shop {
             game_state.stage_modifiers.set_free_shop_this_stage(true);

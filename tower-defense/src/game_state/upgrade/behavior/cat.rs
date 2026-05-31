@@ -7,6 +7,15 @@ pub struct CatUpgrade {
 }
 
 impl UpgradeBehavior for CatUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CAT,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn gold_earn_plus(&self) -> usize {
         self.add
     }

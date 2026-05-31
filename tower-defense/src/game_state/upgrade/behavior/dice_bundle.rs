@@ -7,6 +7,15 @@ pub struct DiceBundleUpgrade {
 }
 
 impl UpgradeBehavior for DiceBundleUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::DICE_BUNDLE,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::DiceBundle(upgrade) = &mut upgrade.upgrade {

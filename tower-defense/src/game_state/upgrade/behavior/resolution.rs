@@ -7,6 +7,15 @@ pub struct ResolutionUpgrade {
 }
 
 impl UpgradeBehavior for ResolutionUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::RESOLUTION,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_stage_end(
         &mut self,
         game_state: &mut GameState,

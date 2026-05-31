@@ -8,6 +8,15 @@ pub struct DemolitionHammerUpgrade {
 }
 
 impl UpgradeBehavior for DemolitionHammerUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::DEMOLITION_HAMMER,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state
             .upgrade_state

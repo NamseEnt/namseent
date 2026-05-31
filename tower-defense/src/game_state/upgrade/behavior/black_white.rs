@@ -4,6 +4,15 @@ use super::*;
 pub struct BlackWhiteUpgrade;
 
 impl UpgradeBehavior for BlackWhiteUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::BLACK_WHITE,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn treat_suits_as_same(&self) -> bool {
         true
     }

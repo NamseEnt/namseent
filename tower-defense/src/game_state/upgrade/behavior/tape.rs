@@ -9,6 +9,15 @@ pub struct TapeUpgrade {
 }
 
 impl UpgradeBehavior for TapeUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::TAPE,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.acquired_stage = game_state.stage;
         game_state

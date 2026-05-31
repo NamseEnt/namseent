@@ -7,6 +7,15 @@ pub struct BrushUpgrade {
 }
 
 impl UpgradeBehavior for BrushUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::BRUSH,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.rank.is_some_and(|rank| rank.is_face())
     }

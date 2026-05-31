@@ -6,6 +6,15 @@ pub struct MetronomeUpgrade {
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::METRONOME,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
         let start = self.start_stage.get_or_insert(stage);
         if stage >= *start && (stage - *start).is_multiple_of(2) {

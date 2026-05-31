@@ -25,6 +25,15 @@ impl CrockUpgrade {
 }
 
 impl UpgradeBehavior for CrockUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CROCK,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.current_step > 0 {
             Some((TowerUpgradeTarget::Global, self.current_damage_bonus()))

@@ -6,6 +6,15 @@ pub struct CameraUpgrade;
 const CAMERA_GOLD_REWARD: usize = 50;
 
 impl UpgradeBehavior for CameraUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CAMERA,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if tower.rank().is_some_and(|rank| rank.is_face()) {
             game_state.action(crate::game_state::GameStateAction::EarnGold(

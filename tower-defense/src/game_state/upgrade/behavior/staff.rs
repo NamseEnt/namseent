@@ -7,6 +7,15 @@ pub struct StaffUpgrade {
 }
 
 impl UpgradeBehavior for StaffUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::STAFF,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.suit == Some(crate::card::Suit::Diamonds)
     }

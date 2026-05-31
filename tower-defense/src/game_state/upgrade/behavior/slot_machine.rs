@@ -7,6 +7,15 @@ pub struct SlotMachineUpgrade {
 }
 
 impl UpgradeBehavior for SlotMachineUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::SLOT_MACHINE,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.next_round_dice > 0 {
             game_state.left_dice += self.next_round_dice;

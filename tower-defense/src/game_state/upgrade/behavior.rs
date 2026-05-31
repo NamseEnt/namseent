@@ -3,8 +3,10 @@ use super::*;
 use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
-use crate::*;
 use enum_dispatch::enum_dispatch;
+use namui::*;
+
+const UPGRADE_STICKER_THUMBNAIL_STROKE: Px = px(6.0);
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================
@@ -158,6 +160,8 @@ pub trait UpgradeBehavior {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     );
+
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree;
 }
 
 #[derive(Clone, Copy)]

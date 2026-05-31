@@ -6,6 +6,15 @@ const PEA_HP_PLUS: f32 = 10.0;
 pub struct PeaUpgrade;
 
 impl UpgradeBehavior for PeaUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::PEA,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state
             .upgrade_state

@@ -7,6 +7,15 @@ pub struct BackpackUpgrade {
 }
 
 impl UpgradeBehavior for BackpackUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::BACKPACK,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn shop_slot_expand(&self) -> usize {
         self.add
     }

@@ -7,6 +7,15 @@ pub struct ShoppingBagUpgrade {
 }
 
 impl UpgradeBehavior for ShoppingBagUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::SHOPPING_BAG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stacks > 0 {
             Some((

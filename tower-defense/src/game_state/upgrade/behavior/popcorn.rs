@@ -9,6 +9,15 @@ pub struct PopcornUpgrade {
 }
 
 impl UpgradeBehavior for PopcornUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::POPCORN,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.active_stage_damage_bonus > 0.0 {
             Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))

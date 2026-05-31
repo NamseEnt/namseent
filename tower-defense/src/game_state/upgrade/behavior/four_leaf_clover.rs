@@ -4,6 +4,15 @@ use super::*;
 pub struct FourLeafCloverUpgrade;
 
 impl UpgradeBehavior for FourLeafCloverUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::FOUR_LEAF_CLOVER,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn shorten_straight_flush_to_4_cards(&self) -> bool {
         true
     }

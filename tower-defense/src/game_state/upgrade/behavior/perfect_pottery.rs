@@ -7,6 +7,15 @@ pub struct PerfectPotteryUpgrade {
 }
 
 impl UpgradeBehavior for PerfectPotteryUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::PERFECT_POTTERY,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.rerolled_count == Some(0)
     }

@@ -6,6 +6,15 @@ const GIFT_BOX_GOLD_PER_ITEM: usize = 10;
 pub struct GiftBoxUpgrade;
 
 impl UpgradeBehavior for GiftBoxUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::GIFT_BOX,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_stage_end(
         &mut self,
         game_state: &mut GameState,

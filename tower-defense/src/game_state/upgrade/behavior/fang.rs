@@ -4,6 +4,15 @@ use super::*;
 pub struct FangUpgrade;
 
 impl UpgradeBehavior for FangUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::FANG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
         true
     }

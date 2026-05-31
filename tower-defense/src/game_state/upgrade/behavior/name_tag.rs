@@ -9,6 +9,15 @@ pub struct NameTagUpgrade {
 }
 
 impl UpgradeBehavior for NameTagUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::NAME_TAG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+        }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         match (context.tower_id, self.target_tower_id) {
             (SelectedTowerId::Placed(selected_tower_id), Some(target_tower_id)) => {
