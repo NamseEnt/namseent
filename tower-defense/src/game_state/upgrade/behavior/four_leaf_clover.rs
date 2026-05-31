@@ -11,7 +11,7 @@ impl UpgradeBehavior for FourLeafCloverUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn shorten_straight_flush_to_4_cards(&self) -> bool {
         true

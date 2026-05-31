@@ -13,7 +13,7 @@ impl UpgradeBehavior for MirrorUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if !self.pending {

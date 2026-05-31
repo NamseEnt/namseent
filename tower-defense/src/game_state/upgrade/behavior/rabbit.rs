@@ -11,7 +11,7 @@ impl UpgradeBehavior for RabbitUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn skip_rank_for_straight(&self) -> bool {
         true

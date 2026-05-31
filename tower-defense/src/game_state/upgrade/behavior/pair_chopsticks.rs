@@ -14,7 +14,7 @@ impl UpgradeBehavior for PairChopsticksUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn thumbnail_overlay(
         &self,
@@ -71,16 +71,12 @@ impl UpgradeBehavior for PairChopsticksUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder
-                    .static_text("Even-card tower ")
-                    .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0))
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder
-                    .static_text("짝수 카드 타워 ")
-                    .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0))
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Even-card tower ")
+                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("짝수 카드 타워 ")
+                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
         };
     }
 }

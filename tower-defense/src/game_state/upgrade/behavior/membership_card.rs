@@ -13,7 +13,7 @@ impl UpgradeBehavior for MembershipCardUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.pending_free_shop {

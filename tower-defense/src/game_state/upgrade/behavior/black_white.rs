@@ -11,7 +11,7 @@ impl UpgradeBehavior for BlackWhiteUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn treat_suits_as_same(&self) -> bool {
         true

@@ -17,7 +17,7 @@ impl UpgradeBehavior for NameTagUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         match (context.tower_id, self.target_tower_id) {
@@ -76,7 +76,10 @@ impl UpgradeBehavior for NameTagUpgrade {
             crate::l10n::locale::Language::Korean => {
                 builder
                     .static_text("다음 배치하는 타워가 ")
-                    .with_damage_text(format!("+{:.0}% 피해를 얻습니다", self.damage_bonus_pct * 100.0));
+                    .with_damage_text(format!(
+                        "+{:.0}% 피해를 얻습니다",
+                        self.damage_bonus_pct * 100.0
+                    ));
             }
         }
     }
