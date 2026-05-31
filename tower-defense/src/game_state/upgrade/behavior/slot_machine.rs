@@ -14,7 +14,7 @@ impl UpgradeBehavior for SlotMachineUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.next_round_dice > 0 {
@@ -45,17 +45,11 @@ impl UpgradeBehavior for SlotMachineUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
-                .with_icon_bold(
-                    crate::icon::IconKind::Refresh,
-                    format!("+{}", self.next_round_dice),
-                )
+                .with_dice_value(format!("+{}", self.next_round_dice))
                 .static_text(" next stage"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("다음 스테이지에 ")
-                .with_icon_bold(
-                    crate::icon::IconKind::Refresh,
-                    format!("+{}", self.next_round_dice),
-                )
+                .with_dice_value(format!("+{}", self.next_round_dice))
                 .static_text(" 주사위를 얻습니다"),
         };
     }

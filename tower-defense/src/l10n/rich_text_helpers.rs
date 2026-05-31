@@ -36,6 +36,10 @@ pub trait RichTextHelpers<'a> {
         &mut self,
         stat_name: S,
     ) -> &mut TypographyBuilder<'a>;
+    fn with_dice_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
+    fn with_dice_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
+    fn with_damage_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
+    fn with_damage_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_movement_speed_debuff_text<S: Into<String>>(
         &mut self,
         text: S,
@@ -146,7 +150,21 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         stat_name: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.bold().text(stat_name.into());
+            b.color(palette::RED).bold().text(stat_name.into());
+        });
+        self
+    }
+
+    fn with_damage_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
+        self.with_style(|b| {
+            b.color(palette::RED).bold().text(text.into());
+        });
+        self
+    }
+
+    fn with_damage_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
+        self.with_style(|b| {
+            b.color(palette::RED).bold().text(value.into());
         });
         self
     }
@@ -156,7 +174,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         text: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.color(palette::RED).text(text.into());
+            b.color(palette::BLUE).bold().text(text.into());
         });
         self
     }
@@ -166,7 +184,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         value: S,
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
-            b.color(palette::RED).text(value.into());
+            b.color(palette::BLUE).bold().text(value.into());
         });
         self
     }
@@ -267,6 +285,20 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     }
 
     fn with_neutral_stat<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
+        self.with_style(|b| {
+            b.color(palette::BLUE).bold().text(value.into());
+        });
+        self
+    }
+
+    fn with_dice_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
+        self.with_style(|b| {
+            b.color(palette::BLUE).bold().text(text.into());
+        });
+        self
+    }
+
+    fn with_dice_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::BLUE).bold().text(value.into());
         });

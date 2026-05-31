@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const PIGGY_BANK_GOLD_STEP: usize = 500;
 const PIGGY_BANK_GOLD_REWARD_PER_STEP: usize = 50;
@@ -52,16 +53,24 @@ impl UpgradeBehavior for PiggyBankUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "At stage end, gain {} gold for every {} gold you hold",
-                PIGGY_BANK_GOLD_REWARD_PER_STEP, PIGGY_BANK_GOLD_STEP,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "스테이지 종료 시 보유한 골드 {}골드당 {}골드를 획득합니다",
-                PIGGY_BANK_GOLD_STEP, PIGGY_BANK_GOLD_REWARD_PER_STEP,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("At stage end, gain ")
+                    .with_gold_value(format!("{}", PIGGY_BANK_GOLD_REWARD_PER_STEP))
+                    .static_text(" gold for every ")
+                    .with_gold_value(format!("{}", PIGGY_BANK_GOLD_STEP))
+                    .static_text(" gold you hold")
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("스테이지 종료 시 보유한 골드 ")
+                    .with_gold_value(format!("{}골드", PIGGY_BANK_GOLD_STEP))
+                    .static_text("당 ")
+                    .with_gold_value(format!("{}골드", PIGGY_BANK_GOLD_REWARD_PER_STEP))
+                    .static_text("를 획득합니다")
+            }
+        };
     }
 }
 

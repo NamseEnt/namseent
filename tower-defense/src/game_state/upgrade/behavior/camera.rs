@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CameraUpgrade;
@@ -13,7 +14,7 @@ impl UpgradeBehavior for CameraUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
-        }
+    }
 
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if tower.rank().is_some_and(|rank| rank.is_face()) {
@@ -42,15 +43,20 @@ impl UpgradeBehavior for CameraUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
+        match locale.language {
             crate::l10n::locale::Language::English => {
-                format!("Gain {} gold when placing a face tower", CAMERA_GOLD_REWARD)
+                builder
+                    .static_text("Gain ")
+                    .with_gold_value(format!("+{}", CAMERA_GOLD_REWARD))
+                    .static_text(" gold when placing a face tower");
             }
-            crate::l10n::locale::Language::Korean => format!(
-                "페이스 타워를 배치하면 {}골드를 얻습니다",
-                CAMERA_GOLD_REWARD
-            ),
-        });
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("페이스 타워를 배치하면 ")
+                    .with_gold_value(format!("{}골드", CAMERA_GOLD_REWARD))
+                    .static_text("를 얻습니다");
+            }
+        }
     }
 }
 

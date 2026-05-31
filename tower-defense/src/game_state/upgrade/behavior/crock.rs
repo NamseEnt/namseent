@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CrockUpgrade {
@@ -88,20 +89,31 @@ impl UpgradeBehavior for CrockUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Gain +{:.0}% damage for every {} gold (currently +{:.0}%)",
-                CROCK_DAMAGE_PER_STEP * 100.0,
-                CROCK_GOLD_PER_DAMAGE,
-                self.current_damage_bonus() * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "현재 보유 골드 {}당 모든 타워 피해 +{:.0}% (현재 +{:.0}%)",
-                CROCK_GOLD_PER_DAMAGE,
-                CROCK_DAMAGE_PER_STEP * 100.0,
-                self.current_damage_bonus() * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Gain ")
+                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .static_text(" ")
+                    .with_damage_text("damage")
+                    .static_text(" for every ")
+                    .text(CROCK_GOLD_PER_DAMAGE.to_string())
+                    .static_text(" gold (currently ")
+                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
+                    .static_text(")");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("현재 보유 골드 ")
+                    .text(CROCK_GOLD_PER_DAMAGE.to_string())
+                    .static_text("당 모든 타워 ")
+                    .with_damage_text("피해 ")
+                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .static_text(" (현재 ")
+                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
+                    .static_text(")");
+            }
+        }
     }
 }
 

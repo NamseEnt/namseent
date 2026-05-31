@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const TAPE_WAVE_INTERVAL: usize = 4;
 const TAPE_ENEMY_SPEED_MULTIPLIER: f32 = 0.75;
@@ -78,18 +79,24 @@ impl UpgradeBehavior for TapeUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Slow enemies by {}% every {} waves after acquisition",
-                (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0,
-                TAPE_WAVE_INTERVAL,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "획득 후 매 {}웨이브마다 적의 이동속도가 {:.0}% 느려집니다",
-                TAPE_WAVE_INTERVAL,
-                (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Slow enemies by ")
+                    .with_movement_speed_debuff_value(format!("{:.0}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0))
+                    .static_text(" every ")
+                    .text(TAPE_WAVE_INTERVAL.to_string())
+                    .static_text(" waves after acquisition");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("획득 후 매 ")
+                    .text(TAPE_WAVE_INTERVAL.to_string())
+                    .static_text("웨이브마다 적의 이동속도가 ")
+                    .with_movement_speed_debuff_value(format!("{:.0}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0))
+                    .static_text(" 느려집니다");
+            }
+        }
     }
 }
 

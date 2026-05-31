@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct DemolitionHammerUpgrade {
@@ -65,24 +66,29 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
+        let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
+        match locale.language {
             crate::l10n::locale::Language::English => {
-                let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
-                format!(
-                    "Removing towers increases all towers' damage by {:.0}% each time (currently {})",
-                    self.damage_bonus_pct * 100.0,
-                    current
-                )
+                builder
+                    .static_text("Removing towers increases all towers' ")
+                    .with_damage_text("damage")
+                    .static_text(" by ")
+                    .with_damage_value(format!("{:.0}%", self.damage_bonus_pct * 100.0))
+                    .static_text(" each time (currently ")
+                    .with_damage_value(current)
+                    .static_text(")");
             }
             crate::l10n::locale::Language::Korean => {
-                let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
-                format!(
-                    "타워를 철거할 때마다 모든 타워 데미지 +{:.0}% 증가 (현재 {})",
-                    self.damage_bonus_pct * 100.0,
-                    current
-                )
+                builder
+                    .static_text("타워를 철거할 때마다 모든 타워 ")
+                    .with_damage_text("데미지")
+                    .static_text(" ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
+                    .static_text(" 증가 (현재 ")
+                    .with_damage_value(current)
+                    .static_text(")");
             }
-        });
+        }
     }
 }
 

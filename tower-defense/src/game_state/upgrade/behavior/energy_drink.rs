@@ -39,10 +39,10 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Shop price ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("-{}", self.add)),
+                .with_gold_loss(format!("-{}", self.add)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("상점 가격 ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("-{}", self.add))
+                .with_gold_loss(format!("-{}", self.add))
                 .static_text(" 할인"),
         };
     }

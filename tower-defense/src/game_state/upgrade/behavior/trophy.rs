@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TrophyUpgrade {
@@ -69,18 +70,28 @@ impl UpgradeBehavior for TrophyUpgrade {
     ) {
         let current_bonus =
             self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0);
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Perfect clears increase all towers' damage by {:.0}% each wave (currently +{:.0}%)",
-                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
-                current_bonus * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "웨이브를 퍼펙트 클리어할 때마다 모든 타워의 공격력이 {:.0}% 증가합니다 (현재 +{:.0}%)",
-                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
-                current_bonus * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Perfect clears increase all towers' ")
+                    .with_damage_text("damage")
+                    .static_text(" by ")
+                    .with_damage_value(format!("{:.0}%", (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0))
+                    .static_text(" each wave (currently ")
+                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
+                    .static_text(")");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("웨이브를 퍼펙트 클리어할 때마다 모든 타워의 ")
+                    .with_damage_text("피해")
+                    .static_text("가 ")
+                    .with_damage_value(format!("{:.0}%", (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0))
+                    .static_text(" 증가합니다 (현재 ")
+                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
+                    .static_text(")");
+            }
+        }
     }
 }
 

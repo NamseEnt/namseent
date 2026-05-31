@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct MetronomeUpgrade {
@@ -69,10 +70,15 @@ impl UpgradeBehavior for MetronomeUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Gain 1 extra dice every 2 stages",
-            crate::l10n::locale::Language::Korean => "2스테이지마다 주사위 +1을 얻습니다",
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Gain ")
+                .with_dice_text("1 extra dice")
+                .static_text(" every 2 stages"),
+            crate::l10n::locale::Language::Korean => builder
+                .with_dice_text("주사위 +1")
+                .static_text("을 얻습니다"),
+        };
     }
 }
 
