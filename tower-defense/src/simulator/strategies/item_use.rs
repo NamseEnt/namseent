@@ -2,8 +2,7 @@
 
 use super::ItemUseStrategy;
 use crate::game_state::GameState;
-use crate::game_state::effect::Effect;
-use crate::game_state::item::ItemKind;
+use crate::game_state::item::Item;
 
 /// Heuristic item use strategy that immediately uses barricade grant items and preserves heal/shield.
 pub struct HeuristicItemUseStrategy;
@@ -34,7 +33,7 @@ fn use_grant_barricades(game_state: &mut GameState) {
         let barricade_idx = game_state
             .items
             .iter()
-            .position(|item| matches!(item.kind, ItemKind::GrantBarricades));
+            .position(|item| matches!(item, Item::GrantBarricades(..)));
 
         let Some(idx) = barricade_idx else {
             break;
@@ -49,14 +48,11 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     let max_hp = game_state.config.player.max_hp;
 
     loop {
-        let heal_item_idx = game_state.items.iter().position(|item| {
-            matches!(item.kind, ItemKind::RiceBall)
-                && match &item.effect {
-                    Effect::Heal { amount } => {
-                        game_state.hp + amount > max_hp || game_state.hp < max_hp * 0.5
-                    }
-                    _ => false,
-                }
+        let heal_item_idx = game_state.items.iter().position(|item| match item {
+            Item::RiceBall(rice_ball) => {
+                game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5
+            }
+            _ => false,
         });
 
         let Some(idx) = heal_item_idx else {
@@ -73,7 +69,7 @@ fn use_shield_items(game_state: &mut GameState) {
         let shield_idx = game_state
             .items
             .iter()
-            .position(|item| matches!(item.kind, ItemKind::Shield));
+            .position(|item| matches!(item, Item::Shield(..)));
 
         let Some(idx) = shield_idx else {
             break;

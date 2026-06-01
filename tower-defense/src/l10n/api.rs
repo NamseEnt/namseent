@@ -85,15 +85,6 @@ impl TextManager {
         builder
     }
 
-    pub fn effect_execution_error<'a>(
-        &self,
-        error: &crate::game_state::effect::EffectExecutionError,
-        mut builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        let text = effect::EffectExecutionErrorText(error.clone());
-        text.apply_to_builder(&mut builder, &self.locale);
-        builder
-    }
 }
 
 /// 타워 텍스트 처리

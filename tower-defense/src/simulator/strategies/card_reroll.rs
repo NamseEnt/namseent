@@ -5,7 +5,7 @@ use crate::card::Card;
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 use crate::game_state::GameState;
-use crate::game_state::item::ItemKind;
+use crate::game_state::item::Item;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
 use crate::hand::HandItem;
@@ -82,7 +82,7 @@ impl CardRerollStrategy for SmartRerollStrategy {
 /// Uses card-granting items when they complete or improve a strong combo, then falls back to smart rerolling.
 ///
 /// **행동 수칙 (Behavioral Principles):**
-/// - 주사위를 굴리기 전, 손패에 카드를 제공하는 아이템(`ItemKind::GrantCard`)이 있다면 아이템 사용 가능성을 평가합니다.
+/// - 주사위를 굴리기 전, 손패에 카드를 제공하는 아이템(`Item::GrantCard`)이 있다면 아이템 사용 가능성을 평가합니다.
 /// - 현재 손패가 Straight 미만이면서, 해당 아이템을 썼을 때 **Straight (스트레이트) 이상의 족보**가 완성되거나 향상되면 주사위 소모 없이 즉시 사용합니다.
 /// - 아이템을 사용해 조건을 충족했다면, 다시 타워를 배치하는 흐름으로 전환(종료)합니다.
 /// - 위 조건에 맞는 아이템이 없거나 주사위가 남아있다면 `SmartRerollStrategy`로 전환(위임)하여 스마트 리롤(일부 남기기)을 굴립니다.
@@ -144,9 +144,9 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
     let straight_threshold = tower_kind_rating(TowerKind::Straight);
 
     for (idx, item) in game_state.items.iter().enumerate() {
-        if let ItemKind::GrantCard { card } = &item.kind {
+        if let Item::GrantCard(grant_card_item) = item {
             let mut candidate_cards = cards.to_vec();
-            candidate_cards.push(*card);
+            candidate_cards.push(grant_card_item.card);
 
             let candidate_template = get_highest_tower_template(
                 &candidate_cards,

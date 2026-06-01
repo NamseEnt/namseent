@@ -1,10 +1,10 @@
-use crate::game_state::item::ItemKind;
+use crate::game_state::item::Item;
 use crate::game_state::upgrade::Upgrade;
 use crate::l10n;
 
 pub enum ShopItemTitle<'a> {
     Item {
-        item_kind: ItemKind,
+        item: &'a Item,
         locale: l10n::Locale,
     },
     Upgrade {
@@ -16,8 +16,8 @@ pub enum ShopItemTitle<'a> {
 impl<'a> ShopItemTitle<'a> {
     pub(crate) fn key(&self) -> String {
         match self {
-            ShopItemTitle::Item { item_kind, locale } => {
-                format!("{:?}:{:?}", locale.language, item_kind)
+            ShopItemTitle::Item { item, locale } => {
+                format!("{:?}:{:?}", locale.language, item.discriminant())
             }
             ShopItemTitle::Upgrade { upgrade, locale } => {
                 format!("{:?}:{:?}", locale.language, upgrade)

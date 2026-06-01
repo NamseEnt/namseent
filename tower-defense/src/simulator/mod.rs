@@ -287,7 +287,7 @@ impl HeadlessGame {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item)),
                     });
                 }
                 HistoryEventType::UpgradeAcquired {
@@ -303,7 +303,7 @@ impl HeadlessGame {
                 HistoryEventType::ItemUsed { item } => {
                     self.events.push(SimEvent::ItemUsed {
                         stage: event.stage,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item.kind)),
+                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item)),
                     });
                 }
                 _ => {}

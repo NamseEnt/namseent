@@ -68,8 +68,7 @@ mod tests {
     #[test]
     fn membership_card_grants_free_shop_next_stage() {
         use crate::game_state::GameFlow;
-        use crate::game_state::effect::Effect;
-        use crate::game_state::item::ItemKind;
+        use crate::game_state::item::{ItemDiscriminants, LumpSugarItem};
         use crate::game_state::upgrade::tests::support;
         use crate::shop::ShopSlot;
 
@@ -88,10 +87,7 @@ mod tests {
                 matches!(slot_data.slot, ShopSlot::Item { .. }) && !slot_data.purchased
             }) {
                 flow.shop.push(ShopSlot::Item {
-                    item: crate::game_state::item::Item {
-                        kind: ItemKind::LumpSugar,
-                        effect: Effect::ExtraDice,
-                    },
+                    item: LumpSugarItem::standard().into_item(),
                     cost: 0,
                 });
             }
@@ -115,11 +111,7 @@ mod tests {
             game_state
                 .items
                 .iter()
-                .any(|item| item.kind == ItemKind::LumpSugar)
-                || game_state
-                    .items
-                    .iter()
-                    .any(|item| item.effect == Effect::ExtraDice)
+                .any(|item| item.discriminant() == ItemDiscriminants::LumpSugar)
         );
     }
 }
