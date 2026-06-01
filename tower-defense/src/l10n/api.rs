@@ -84,7 +84,6 @@ impl TextManager {
             .apply_to_builder(&mut builder, &self.locale);
         builder
     }
-
 }
 
 /// 타워 텍스트 처리
