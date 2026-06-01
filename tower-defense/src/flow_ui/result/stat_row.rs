@@ -1,5 +1,6 @@
 use crate::icon::IconKind;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::theme::palette;
 use crate::theme::typography::{self, memoized_text};
 use namui::*;
 use namui_prebuilt::table;
@@ -28,6 +29,8 @@ impl Component for StatRow {
                             .paragraph()
                             .size(typography::FontSize::Medium)
                             .bold()
+                            .stroke(2.px(), palette::DARK_CHARCOAL)
+                            .color(palette::WHITE)
                             .text(&label_string)
                             .render_left_center(wh.height)
                     }));
@@ -38,7 +41,9 @@ impl Component for StatRow {
                         builder
                             .paragraph()
                             .size(typography::FontSize::Medium)
-                            .bold();
+                            .bold()
+                            .stroke(2.px(), palette::DARK_CHARCOAL)
+                            .color(palette::WHITE);
                         if let Some(kind) = icon_kind {
                             builder.with_icon_bold(kind, value_string.clone());
                         } else {

@@ -16,24 +16,40 @@ impl Component for ClearProgress {
         let fill_width_with_spring =
             with_spring(ctx, fill_width, 0.px(), |px| px.as_f32(), || 0.px());
 
-        // 프로그레스바
         let progress_bar_height = wh.height;
         const PROGRESS_BAR_BG_COLOR: Color = palette::SURFACE_CONTAINER_HIGH;
         const PROGRESS_BAR_FILL_COLOR: Color = palette::PRIMARY;
         const PROGRESS_BAR_BORDER_COLOR: Color = palette::OUTLINE;
 
-        // 클리어율 텍스트
         ctx.add(memoized_text(&clear_rate, |mut builder| {
             builder
                 .headline()
                 .size(typography::FontSize::Medium)
-                .color(palette::ON_SURFACE)
-                .stroke(1.px(), palette::ON_PRIMARY)
+                .bold()
+                .color(palette::WHITE)
+                .stroke(2.px(), palette::DARK_CHARCOAL)
                 .text(format!("{:.2}%", clear_rate))
                 .render_center(wh)
         }));
 
-        // 진행률 바
+        ctx.add(rect(RectParam {
+            rect: Rect::Xywh {
+                x: px(0.0),
+                y: (wh.height - progress_bar_height) * 0.5,
+                width: wh.width,
+                height: progress_bar_height,
+            },
+            style: RectStyle {
+                fill: None,
+                stroke: Some(RectStroke {
+                    color: palette::OUTLINE,
+                    width: px(2.0),
+                    border_position: BorderPosition::Outside,
+                }),
+                round: Some(RectRound { radius: px(4.0) }),
+            },
+        }));
+
         if fill_width_with_spring > px(0.0) {
             ctx.add(rect(RectParam {
                 rect: Rect::Xywh {
@@ -52,7 +68,6 @@ impl Component for ClearProgress {
             }));
         }
 
-        // 배경
         ctx.add(rect(RectParam {
             rect: Rect::Xywh {
                 x: px(0.0),

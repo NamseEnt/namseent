@@ -21,7 +21,7 @@ use namui_prebuilt::{simple_rect, table};
 
 const TITLE_HEIGHT: Px = px(36.);
 const PADDING: Px = px(16.);
-const PROGRESS_BAR_HEIGHT: Px = px(24.);
+const PROGRESS_BAR_HEIGHT: Px = px(32.);
 const TOWER_DAMAGE_ITEM_HEIGHT: Px = px(64.);
 
 pub struct ResultModal;
@@ -51,6 +51,9 @@ impl Component for ResultModal {
                             ctx.add(memoized_text((), |mut builder| {
                                 builder
                                     .headline()
+                                    .bold()
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
+                                    .color(palette::WHITE)
                                     .size(typography::FontSize::Large)
                                     .text(game_state.text().result_modal(ResultModalText::Title))
                                     .render_center(wh)
@@ -136,8 +139,10 @@ impl Component for ResultModal {
                                         ctx.add(memoized_text(&text_color, |mut builder| {
                                             builder
                                                 .headline()
+                                                .bold()
+                                                .stroke(2.px(), palette::DARK_CHARCOAL)
+                                                .color(palette::WHITE)
                                                 .size(typography::FontSize::Medium)
-                                                .color(text_color)
                                                 .text(
                                                     game_state.text().result_modal(
                                                         ResultModalText::RestartButton,
@@ -160,7 +165,7 @@ impl Component for ResultModal {
                 height: result_modal_wh.height,
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Paper,
-                color: palette::SURFACE_CONTAINER,
+                color: palette::SURFACE_CONTAINER_LOWEST,
                 outline_color: None,
                 shadow: true,
                 arrow: None,
