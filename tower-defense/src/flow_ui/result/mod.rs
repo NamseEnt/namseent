@@ -16,6 +16,7 @@ use crate::theme::{
     palette,
     typography::{self, memoized_text},
 };
+use crate::upgrades;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -64,68 +65,102 @@ impl Component for ResultModal {
                             ctx.add(ClearProgress { wh, clear_rate });
                         }),
                         table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
-                        table::fixed_no_clip(24.px(), |wh, ctx| {
-                            ctx.add(StatRow {
-                                wh,
-                                label: game_state
-                                    .text()
-                                    .result_modal(ResultModalText::MaxPerfectClearLabel),
-                                value: format!(
-                                    "{}회",
-                                    game_state.metrics.max_consecutive_perfect_clears
+                        table::ratio_no_clip(
+                            1,
+                            table::horizontal([
+                                table::ratio_no_clip(
+                                    1,
+                                    table::vertical([
+                                        table::fixed_no_clip(24.px(), |wh, ctx| {
+                                            ctx.add(StatRow {
+                                                wh,
+                                                label: game_state.text().result_modal(
+                                                    ResultModalText::MaxPerfectClearLabel,
+                                                ),
+                                                value: format!(
+                                                    "{}",
+                                                    game_state
+                                                        .metrics
+                                                        .max_consecutive_perfect_clears
+                                                ),
+                                                icon_kind: None,
+                                            });
+                                        }),
+                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
+                                        table::fixed_no_clip(24.px(), |wh, ctx| {
+                                            ctx.add(StatRow {
+                                                wh,
+                                                label: game_state
+                                                    .text()
+                                                    .result_modal(ResultModalText::TotalGoldLabel),
+                                                value: format!(
+                                                    "{}",
+                                                    game_state.metrics.total_gold_earned
+                                                ),
+                                                icon_kind: Some(IconKind::Gold),
+                                            });
+                                        }),
+                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
+                                        table::fixed_no_clip(24.px(), |wh, ctx| {
+                                            let total_damage = game_state
+                                                .metrics
+                                                .tower_damage_stats
+                                                .iter()
+                                                .map(|stat| stat.total_damage)
+                                                .sum::<f32>();
+                                            ctx.add(StatRow {
+                                                wh,
+                                                label: game_state.text().result_modal(
+                                                    ResultModalText::TotalDamageLabel,
+                                                ),
+                                                value: format!("{:.0}", total_damage),
+                                                icon_kind: Some(IconKind::Damage),
+                                            });
+                                        }),
+                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
+                                        table::fixed_no_clip(24.px(), |wh, ctx| {
+                                            ctx.add(StatRow {
+                                                wh,
+                                                label: game_state.text().result_modal(
+                                                    ResultModalText::RerollCountLabel,
+                                                ),
+                                                value: format!("{}", game_state.rerolled_count),
+                                                icon_kind: None,
+                                            });
+                                        }),
+                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
+                                        table::ratio_no_clip(1, |wh, ctx| {
+                                            ctx.add(TowerDamagePanel {
+                                                wh,
+                                                tower_stats: &game_state.metrics.tower_damage_stats,
+                                                empty_text: game_state
+                                                    .text()
+                                                    .result_modal(ResultModalText::NoTowerDamage),
+                                            });
+                                        }),
+                                    ]),
                                 ),
-                                icon_kind: None,
-                            });
-                        }),
-                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
-                        table::fixed_no_clip(24.px(), |wh, ctx| {
-                            ctx.add(StatRow {
-                                wh,
-                                label: game_state
-                                    .text()
-                                    .result_modal(ResultModalText::TotalGoldLabel),
-                                value: format!("{}", game_state.metrics.total_gold_earned),
-                                icon_kind: Some(IconKind::Gold),
-                            });
-                        }),
-                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
-                        table::fixed_no_clip(24.px(), |wh, ctx| {
-                            let total_damage = game_state
-                                .metrics
-                                .tower_damage_stats
-                                .iter()
-                                .map(|stat| stat.total_damage)
-                                .sum::<f32>();
-                            ctx.add(StatRow {
-                                wh,
-                                label: game_state
-                                    .text()
-                                    .result_modal(ResultModalText::TotalDamageLabel),
-                                value: format!("{:.0}", total_damage),
-                                icon_kind: Some(IconKind::Damage),
-                            });
-                        }),
-                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
-                        table::fixed_no_clip(24.px(), |wh, ctx| {
-                            ctx.add(StatRow {
-                                wh,
-                                label: game_state
-                                    .text()
-                                    .result_modal(ResultModalText::RerollCountLabel),
-                                value: format!("{}회", game_state.rerolled_count),
-                                icon_kind: None,
-                            });
-                        }),
-                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
-                        table::ratio_no_clip(1, |wh, ctx| {
-                            ctx.add(TowerDamagePanel {
-                                wh,
-                                tower_stats: &game_state.metrics.tower_damage_stats,
-                                empty_text: game_state
-                                    .text()
-                                    .result_modal(ResultModalText::NoTowerDamage),
-                            });
-                        }),
+                                table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
+                                table::fixed_no_clip(PADDING, |wh, ctx| {
+                                    let path = Path::new()
+                                        .move_to(0.px(), 0.px())
+                                        .line_to(0.px(), wh.height);
+                                    let paint = Paint::new(palette::OUTLINE)
+                                        .set_style(PaintStyle::Stroke)
+                                        .set_stroke_width(4.px())
+                                        .set_stroke_cap(StrokeCap::Round)
+                                        .set_path_effect(PathEffect::Dash {
+                                            on: 8.0,
+                                            off: 8.0,
+                                            phase: 0.0,
+                                        });
+                                    ctx.add(namui::path(path, paint));
+                                }),
+                                table::fixed_no_clip(112.px(), |wh, ctx| {
+                                    ctx.add(upgrades::Upgrades { wh });
+                                }),
+                            ]),
+                        ),
                         table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                         table::fixed_no_clip(48.px(), |wh, ctx| {
                             ctx.add(
