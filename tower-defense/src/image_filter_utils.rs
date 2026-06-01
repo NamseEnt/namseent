@@ -1,4 +1,4 @@
-use namui::{BlendMode, Color, ColorFilter, ImageFilter, OrderedFloat, Xy};
+use namui::{BlendMode, Color, ColorFilter, ImageFilter, OrderedFloat, Ratio, Xy};
 
 /// Create an antialiased dilated color mask from an image filter source.
 ///
@@ -9,6 +9,13 @@ pub(crate) fn dilated_color_filter(
     radius_xy: Xy<OrderedFloat>,
     color: Color,
 ) -> ImageFilter {
+    let radius_x = radius_xy.x.as_f32();
+    let radius_y = radius_xy.y.as_f32();
+
+    if !radius_x.is_finite() || !radius_y.is_finite() || radius_x <= 0.0 || radius_y <= 0.0 {
+        return source;
+    }
+
     let dilated = source.dilate(radius_xy, None);
     let colored = dilated.color_filter(ColorFilter::Blend {
         color,
