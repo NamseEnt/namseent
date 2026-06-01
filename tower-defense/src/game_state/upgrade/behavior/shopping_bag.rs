@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ShoppingBagUpgrade {
@@ -7,6 +8,30 @@ pub struct ShoppingBagUpgrade {
 }
 
 impl UpgradeBehavior for ShoppingBagUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::SHOPPING_BAG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!(
+                "+{:.0}%",
+                self.stacks as f32 * self.damage_bonus_pct * 100.0
+            ),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.stacks > 0 {
             Some((
@@ -39,16 +64,23 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Each purchased item increases all towers' damage by +{:.0}%",
-                self.damage_bonus_pct * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "아이템을 구매할 때마다 모든 타워의 피해가 +{:.0}% 증가합니다",
-                self.damage_bonus_pct * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Each purchased item increases all towers' ")
+                    .with_damage_text("damage")
+                    .static_text(" by ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("아이템을 구매할 때마다 모든 타워의 ")
+                    .with_damage_text("피해")
+                    .static_text("가 ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
+                    .static_text(" 증가합니다");
+            }
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TrophyUpgrade {
@@ -6,6 +7,32 @@ pub struct TrophyUpgrade {
 }
 
 impl UpgradeBehavior for TrophyUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::TROPHY,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!(
+                "+{:.0}%",
+                self.perfect_clear_stacks as f32
+                    * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0)
+                    * 100.0
+            ),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn on_stage_end(
         &mut self,
         _game_state: &mut GameState,
@@ -48,18 +75,34 @@ impl UpgradeBehavior for TrophyUpgrade {
     ) {
         let current_bonus =
             self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0);
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Perfect clears increase all towers' damage by {:.0}% each wave (currently +{:.0}%)",
-                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
-                current_bonus * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "웨이브를 퍼펙트 클리어할 때마다 모든 타워의 공격력이 {:.0}% 증가합니다 (현재 +{:.0}%)",
-                (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0,
-                current_bonus * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Perfect clears increase all towers' ")
+                    .with_damage_text("damage")
+                    .static_text(" by ")
+                    .with_damage_value(format!(
+                        "{:.0}%",
+                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
+                    ))
+                    .static_text(" each wave (currently ")
+                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
+                    .static_text(")");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("웨이브를 퍼펙트 클리어할 때마다 모든 타워의 ")
+                    .with_damage_text("피해")
+                    .static_text("가 ")
+                    .with_damage_value(format!(
+                        "{:.0}%",
+                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
+                    ))
+                    .static_text(" 증가합니다 (현재 ")
+                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
+                    .static_text(")");
+            }
+        }
     }
 }
 

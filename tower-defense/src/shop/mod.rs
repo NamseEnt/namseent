@@ -105,10 +105,14 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
         }
         5..=9 => {
             let upgrade = generate_tower_damage_upgrade(game_state);
-            let cost = item_cost(
-                OneZero::default(),
-                game_state.upgrade_state.shop_item_price_minus(),
-            );
+            let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
+                0
+            } else {
+                item_cost(
+                    OneZero::default(),
+                    game_state.upgrade_state.shop_item_price_minus(),
+                )
+            };
             ShopSlot::Upgrade { upgrade, cost }
         }
         _ => unreachable!(),

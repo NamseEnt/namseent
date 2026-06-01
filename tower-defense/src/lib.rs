@@ -134,7 +134,7 @@ impl Component for Game {
                     table::padding_no_clip(
                         8.px(),
                         table::horizontal([
-                            table::fixed_no_clip(px(92.), |wh, ctx| {
+                            table::fixed_no_clip(px(128.), |wh, ctx| {
                                 ctx.add(Upgrades { wh });
                             }),
                             table::ratio_no_clip(1, |_, _| {}),

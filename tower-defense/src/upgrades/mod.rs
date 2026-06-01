@@ -194,6 +194,7 @@ impl Component for UpgradeThumbnailItem {
             target_xy,
         } = self;
 
+        let game_state = use_game_state(ctx);
         let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
         let tooltip_scale = with_spring(
@@ -255,10 +256,15 @@ impl Component for UpgradeThumbnailItem {
 
         ctx.translate(Xy::single(PADDING)).compose(|ctx| {
             let pivot = Xy::new(thumbnail_wh.width * 0.5, thumbnail_wh.height * 0.5);
-            ctx.translate(pivot)
+            let ctx = ctx
+                .translate(pivot)
                 .rotate(hover_rotation.deg())
-                .translate(Xy::new(-pivot.x, -pivot.y))
-                .add(upgrade_kind.thumbnail(thumbnail_wh, true));
+                .translate(Xy::new(-pivot.x, -pivot.y));
+
+            if let Some(overlay) = upgrade_kind.thumbnail_overlay(thumbnail_wh, &game_state) {
+                ctx.add(overlay);
+            }
+            ctx.add(upgrade_kind.thumbnail(thumbnail_wh, true));
         });
 
         ctx.add(

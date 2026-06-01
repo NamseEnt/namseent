@@ -292,6 +292,19 @@ impl<'a> TypographyBuilder<'a> {
             (wh.height - rendered_height) / 2.0 - bbox.map(|r| r.top()).unwrap_or(0.px());
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
+
+    /// Render and position at right-bottom
+    pub fn render_right_bottom(&mut self, wh: Wh<Px>) -> PositionedRichText {
+        let tree = self.render();
+        let bbox = tree.bounding_box();
+        let offset_x = bbox
+            .map(|r| wh.width - (r.left() + r.width() / 2.0))
+            .unwrap_or(px(0.0));
+        let offset_y = bbox
+            .map(|r| wh.height - (r.top() + r.height() / 2.0))
+            .unwrap_or(px(0.0));
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -1,9 +1,19 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FangUpgrade;
 
 impl UpgradeBehavior for FangUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::FANG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
         true
     }
@@ -24,10 +34,16 @@ impl UpgradeBehavior for FangUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Recover 1 HP when a monster dies",
-            crate::l10n::locale::Language::Korean => "몬스터가 죽을 때마다 1HP를 회복합니다",
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Recover ")
+                .with_health_value("1 HP")
+                .static_text(" when a monster dies"),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("몬스터가 죽을 때마다 ")
+                .with_health_value("1HP")
+                .static_text("를 회복합니다"),
+        };
     }
 }
 

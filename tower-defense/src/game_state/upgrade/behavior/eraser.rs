@@ -7,6 +7,15 @@ pub struct EraserUpgrade {
 }
 
 impl UpgradeBehavior for EraserUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::ERASER,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn removed_number_rank_count(&self) -> usize {
         self.add
     }

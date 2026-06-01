@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const TAPE_WAVE_INTERVAL: usize = 4;
 const TAPE_ENEMY_SPEED_MULTIPLIER: f32 = 0.75;
@@ -9,6 +10,39 @@ pub struct TapeUpgrade {
 }
 
 impl UpgradeBehavior for TapeUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::TAPE,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        let cycle = if game_state.stage <= self.acquired_stage {
+            1
+        } else {
+            ((game_state.stage - self.acquired_stage - 1) % 4) + 1
+        };
+        let active = cycle == 4;
+        let color = if active {
+            crate::theme::palette::WHITE
+        } else {
+            crate::theme::palette::DISABLED_TEXT
+        };
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}/4", cycle),
+            color,
+        ))
+    }
+
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.acquired_stage = game_state.stage;
         game_state
@@ -45,18 +79,30 @@ impl UpgradeBehavior for TapeUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Slow enemies by {}% every {} waves after acquisition",
-                (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0,
-                TAPE_WAVE_INTERVAL,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "획득 후 매 {}웨이브마다 적의 이동속도가 {:.0}% 느려집니다",
-                TAPE_WAVE_INTERVAL,
-                (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Slow enemies by ")
+                    .with_movement_speed_debuff_value(format!(
+                        "{:.0}%",
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                    ))
+                    .static_text(" every ")
+                    .text(TAPE_WAVE_INTERVAL.to_string())
+                    .static_text(" waves after acquisition");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("획득 후 매 ")
+                    .text(TAPE_WAVE_INTERVAL.to_string())
+                    .static_text("웨이브마다 적의 이동속도가 ")
+                    .with_movement_speed_debuff_value(format!(
+                        "{:.0}%",
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                    ))
+                    .static_text(" 느려집니다");
+            }
+        }
     }
 }
 

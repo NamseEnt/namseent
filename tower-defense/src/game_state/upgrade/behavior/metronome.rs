@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct MetronomeUpgrade {
@@ -6,6 +7,45 @@ pub struct MetronomeUpgrade {
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::METRONOME,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        let cycle = if let Some(start) = self.start_stage {
+            if game_state.stage <= start {
+                1
+            } else {
+                ((game_state.stage - start) % 2) + 1
+            }
+        } else {
+            1
+        };
+        let active = self.start_stage.is_some_and(|start| {
+            game_state.stage >= start && (game_state.stage - start).is_multiple_of(2)
+        });
+        let color = if active {
+            crate::theme::palette::WHITE
+        } else {
+            crate::theme::palette::DISABLED_TEXT
+        };
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}/2", cycle),
+            color,
+        ))
+    }
+
     fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
         let start = self.start_stage.get_or_insert(stage);
         if stage >= *start && (stage - *start).is_multiple_of(2) {
@@ -30,10 +70,15 @@ impl UpgradeBehavior for MetronomeUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Gain 1 extra dice every 2 stages",
-            crate::l10n::locale::Language::Korean => "2스테이지마다 주사위 +1을 얻습니다",
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Gain ")
+                .with_dice_text("1 extra dice")
+                .static_text(" every 2 stages"),
+            crate::l10n::locale::Language::Korean => builder
+                .with_dice_text("주사위 +1")
+                .static_text("을 얻습니다"),
+        };
     }
 }
 

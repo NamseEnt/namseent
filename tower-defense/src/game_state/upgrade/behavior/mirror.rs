@@ -6,6 +6,15 @@ pub struct MirrorUpgrade {
 }
 
 impl UpgradeBehavior for MirrorUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::MIRROR,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if !self.pending {
             return UpgradeUpdateFlags::NONE;

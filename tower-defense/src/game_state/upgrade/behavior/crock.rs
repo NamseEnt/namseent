@@ -1,12 +1,13 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CrockUpgrade {
     pub current_step: usize,
 }
 
-const CROCK_GOLD_PER_DAMAGE: usize = 1000;
-const CROCK_DAMAGE_PER_STEP: f32 = 1.0;
+const CROCK_GOLD_PER_DAMAGE: usize = 100;
+const CROCK_DAMAGE_PER_STEP: f32 = 0.25;
 
 impl CrockUpgrade {
     fn current_damage_bonus(&self) -> f32 {
@@ -25,6 +26,27 @@ impl CrockUpgrade {
 }
 
 impl UpgradeBehavior for CrockUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CROCK,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.current_damage_bonus() * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.current_step > 0 {
             Some((TowerUpgradeTarget::Global, self.current_damage_bonus()))
@@ -67,20 +89,31 @@ impl UpgradeBehavior for CrockUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Gain +{:.0}% damage for every {} gold (currently +{:.0}%)",
-                CROCK_DAMAGE_PER_STEP,
-                CROCK_GOLD_PER_DAMAGE,
-                self.current_damage_bonus(),
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "골드 {}당 피해 +{:.0}% (현재 +{:.0}%)",
-                CROCK_GOLD_PER_DAMAGE,
-                CROCK_DAMAGE_PER_STEP,
-                self.current_damage_bonus(),
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Gain ")
+                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .static_text(" ")
+                    .with_damage_text("damage")
+                    .static_text(" for every ")
+                    .text(CROCK_GOLD_PER_DAMAGE.to_string())
+                    .static_text(" gold (currently ")
+                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
+                    .static_text(")");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("현재 보유 골드 ")
+                    .text(CROCK_GOLD_PER_DAMAGE.to_string())
+                    .static_text("당 모든 타워 ")
+                    .with_damage_text("피해 ")
+                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .static_text(" (현재 ")
+                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
+                    .static_text(")");
+            }
+        }
     }
 }
 
