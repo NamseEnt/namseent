@@ -138,6 +138,19 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
     let image_height = image_wh.height.as_f32();
     let target_width = width_height.width.as_f32();
     let target_height = width_height.height.as_f32();
+
+    if !image_width.is_finite()
+        || !image_height.is_finite()
+        || !target_width.is_finite()
+        || !target_height.is_finite()
+        || image_width <= 0.0
+        || image_height <= 0.0
+        || target_width <= 0.0
+        || target_height <= 0.0
+    {
+        return source;
+    }
+
     let target_ratio = target_width / target_height;
     let image_ratio = image_width / image_height;
 
@@ -157,6 +170,11 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
 
     let scale_x = dest_rect.width().as_f32() / image_width;
     let scale_y = dest_rect.height().as_f32() / image_height;
+
+    if !scale_x.is_finite() || !scale_y.is_finite() || scale_x <= 0.0 || scale_y <= 0.0 {
+        return source;
+    }
+
     let total_radius = Xy::new(
         OrderedFloat::new(stroke_px.as_f32() / scale_x),
         OrderedFloat::new(stroke_px.as_f32() / scale_y),
