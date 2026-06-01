@@ -86,7 +86,6 @@ impl Component for ResultModal {
                                                 icon_kind: None,
                                             });
                                         }),
-                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                                         table::fixed_no_clip(24.px(), |wh, ctx| {
                                             ctx.add(StatRow {
                                                 wh,
@@ -100,7 +99,6 @@ impl Component for ResultModal {
                                                 icon_kind: Some(IconKind::Gold),
                                             });
                                         }),
-                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                                         table::fixed_no_clip(24.px(), |wh, ctx| {
                                             let total_damage = game_state
                                                 .metrics
@@ -117,7 +115,6 @@ impl Component for ResultModal {
                                                 icon_kind: Some(IconKind::Damage),
                                             });
                                         }),
-                                        table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                                         table::fixed_no_clip(24.px(), |wh, ctx| {
                                             ctx.add(StatRow {
                                                 wh,
