@@ -97,8 +97,10 @@ pub(crate) fn make_renderer<'a>(
                                     .text_align(namui::TextAlign::Center);
                                 match &name {
                                     ShopItemTitle::Item { item, locale } => {
-                                        builder
-                                            .l10n(l10n::item_kind::ItemText::Name((*item).clone()), locale);
+                                        builder.l10n(
+                                            l10n::item_kind::ItemText::Name((*item).clone()),
+                                            locale,
+                                        );
                                     }
                                     ShopItemTitle::Upgrade { upgrade, locale } => {
                                         builder.l10n(
