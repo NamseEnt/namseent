@@ -28,7 +28,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
 
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            &format!("{:.0}%", self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -91,9 +91,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .with_damage_text("Damage")
-                    .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
+                    .with_damage_value(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
                     .static_text(" for ")
                     .text(self.waves_remaining.to_string())
                     .static_text(" waves");
@@ -101,10 +99,8 @@ impl UpgradeBehavior for IceCreamUpgrade {
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.waves_remaining.to_string())
-                    .static_text("웨이브 동안 ")
-                    .with_damage_text("피해")
-                    .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+                    .static_text("웨이브 동안 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }

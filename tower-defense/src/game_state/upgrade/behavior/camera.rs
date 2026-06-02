@@ -16,6 +16,18 @@ impl UpgradeBehavior for CameraUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", CAMERA_GOLD_REWARD),
+            crate::theme::palette::YELLOW,
+        ))
+    }
+
     fn on_tower_placed(&mut self, game_state: &mut GameState, tower: &Tower) -> UpgradeUpdateFlags {
         if tower.rank().is_some_and(|rank| rank.is_face()) {
             game_state.action(crate::game_state::GameStateAction::EarnGold(
@@ -47,14 +59,13 @@ impl UpgradeBehavior for CameraUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_gold_value(format!("+{}", CAMERA_GOLD_REWARD))
-                    .static_text(" gold when placing a face tower");
+                    .with_gold_value(format!("gold +{}", CAMERA_GOLD_REWARD))
+                    .static_text(" when placing a face tower");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("페이스 타워를 배치하면 ")
-                    .with_gold_value(format!("{}골드", CAMERA_GOLD_REWARD))
-                    .static_text("를 얻습니다");
+                    .static_text("그림 카드 타워를 배치 시 ")
+                    .with_gold_value(format!("골드 +{}", CAMERA_GOLD_REWARD));
             }
         }
     }

@@ -16,6 +16,33 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("-{}", self.add),
+            crate::theme::palette::YELLOW,
+        ))
+    }
+
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::EnergyDrink(upgrade) = &mut upgrade.upgrade {
+                upgrade.add += self.add;
+                return UpgradeUpdateFlags::NONE;
+            }
+        }
+
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::NONE
+    }
+
     fn shop_item_price_minus(&self) -> usize {
         self.add
     }
@@ -42,8 +69,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
                 .with_gold_loss(format!("-{}", self.add)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("상점 가격 ")
-                .with_gold_loss(format!("-{}", self.add))
-                .static_text(" 할인"),
+                .with_gold_loss(format!("-{}", self.add)),
         };
     }
 }

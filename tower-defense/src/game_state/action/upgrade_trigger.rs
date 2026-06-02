@@ -22,6 +22,7 @@ pub(super) enum UpgradeTriggerEvent<'a> {
     GoldSpent {
         amount: usize,
     },
+    CardReroll,
     StageEnd {
         perfect_clear: bool,
         gold: usize,
@@ -81,6 +82,9 @@ impl GameState {
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_gold_earned(game_state, amount)),
             UpgradeTriggerEvent::GoldSpent { amount } => self
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_gold_spent(game_state, amount)),
+            UpgradeTriggerEvent::CardReroll => {
+                self.foreach_upgrades(|upgrade, game_state| upgrade.on_card_reroll(game_state))
+            }
             UpgradeTriggerEvent::StageEnd {
                 perfect_clear,
                 gold,

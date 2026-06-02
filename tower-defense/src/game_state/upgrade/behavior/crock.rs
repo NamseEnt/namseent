@@ -42,7 +42,7 @@ impl UpgradeBehavior for CrockUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.current_damage_bonus() * 100.0),
+            &format!("{:.0}%", self.current_damage_bonus() * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -93,25 +93,17 @@ impl UpgradeBehavior for CrockUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
-                    .static_text(" ")
-                    .with_damage_text("damage")
+                    .with_damage_value(format!("damage +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
                     .static_text(" for every ")
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
-                    .static_text(" gold (currently ")
-                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
-                    .static_text(")");
+                    .static_text(" gold");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("현재 보유 골드 ")
+                    .static_text("보유 골드 ")
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text("당 모든 타워 ")
-                    .with_damage_text("피해 ")
-                    .with_damage_value(format!("+{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
-                    .static_text(" (현재 ")
-                    .with_damage_value(format!("+{:.0}%", self.current_damage_bonus() * 100.0))
-                    .static_text(")");
+                    .with_damage_value(format!("데미지 +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0));
             }
         }
     }

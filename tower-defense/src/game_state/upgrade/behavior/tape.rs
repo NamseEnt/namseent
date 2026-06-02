@@ -30,17 +30,24 @@ impl UpgradeBehavior for TapeUpgrade {
             ((game_state.stage - self.acquired_stage - 1) % 4) + 1
         };
         let active = cycle == 4;
-        let color = if active {
+        let stage_color = if active {
             crate::theme::palette::WHITE
         } else {
             crate::theme::palette::DISABLED_TEXT
         };
 
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{}/4", cycle),
-            color,
-        ))
+        Some(render([
+            crate::thumbnail::render_right_top_overlay(
+                width_height.width,
+                &format!("{}/4", cycle),
+                stage_color,
+            ),
+            crate::thumbnail::render_right_bottom_overlay(
+                width_height,
+                &format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0),
+                crate::theme::palette::BLUE,
+            ),
+        ]))
     }
 
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -84,23 +91,22 @@ impl UpgradeBehavior for TapeUpgrade {
                 builder
                     .static_text("Slow enemies by ")
                     .with_movement_speed_debuff_value(format!(
-                        "{:.0}%",
+                        "-{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
                     ))
                     .static_text(" every ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
-                    .static_text(" waves after acquisition");
+                    .static_text(" stages");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("획득 후 매 ")
+                    .static_text("매 ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
-                    .static_text("웨이브마다 적의 이동속도가 ")
+                    .static_text("스테이지마다 적 ")
                     .with_movement_speed_debuff_value(format!(
-                        "{:.0}%",
+                        "이동속도 -{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
-                    ))
-                    .static_text(" 느려집니다");
+                    ));
             }
         }
     }

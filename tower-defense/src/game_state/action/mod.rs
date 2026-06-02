@@ -1,4 +1,5 @@
 mod apply_user_status_effect;
+mod card_reroll;
 mod earn_gold;
 mod gain_rerolls;
 mod gain_shield;
@@ -39,6 +40,7 @@ pub(crate) enum GameStateAction<'a> {
     EarnGold(usize),
     Heal(f32),
     GainRerolls(usize),
+    CardReroll,
     GainShield(f32),
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
@@ -100,6 +102,10 @@ impl GameState {
             }
             GameStateAction::GainShield(amount) => {
                 gain_shield::apply(self, amount);
+                true
+            }
+            GameStateAction::CardReroll => {
+                card_reroll::trigger_upgrades(self);
                 true
             }
             GameStateAction::SpendGold(amount) => {

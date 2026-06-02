@@ -1,5 +1,4 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct EraserUpgrade {
@@ -14,6 +13,33 @@ impl UpgradeBehavior for EraserUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::WHITE,
+        ))
+    }
+
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::Eraser(upgrade) = &mut upgrade.upgrade {
+                upgrade.add += self.add;
+                return UpgradeUpdateFlags::NONE;
+            }
+        }
+
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::NONE
     }
 
     fn removed_number_rank_count(&self) -> usize {
@@ -37,12 +63,11 @@ impl UpgradeBehavior for EraserUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder
-                .static_text("Remove ")
-                .with_positive_effect(format!("{} rank", self.add))
-                .static_text(" from the deck"),
+            crate::l10n::locale::Language::English => {
+                builder.text(format!("Remove {} rank from the deck", self.add))
+            }
             crate::l10n::locale::Language::Korean => {
-                builder.text(format!("덱에서 {}개 숫자카드를 제거합니다", self.add))
+                builder.text(format!("덱에서 {}개 숫자를 제거합니다", self.add))
             }
         };
     }

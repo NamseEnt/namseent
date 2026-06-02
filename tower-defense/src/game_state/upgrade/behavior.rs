@@ -82,6 +82,10 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
+    fn on_card_reroll(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
+    }
+
     fn max_hp_plus(&self) -> f32 {
         0.0
     }

@@ -107,15 +107,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn make_treasure_upgrade_kind_gen_maxed_cat_does_not_panic() {
-        let upgrade_state = UpgradeState::with_upgrades(vec![
-            crate::game_state::upgrade::CatUpgrade::into_upgrade(MAX_GOLD_EARN_PLUS),
-        ]);
-        let upgrade = UpgradeDiscriminants::Cat.generate(&upgrade_state);
-        assert!(matches!(upgrade, Upgrade::Cat(..)));
-    }
-
-    #[test]
     fn treasure_candidate_table_does_not_duplicate_broken_pottery() {
         let treasure_names: std::collections::HashSet<_> = TREASURE_UPGRADES
             .iter()

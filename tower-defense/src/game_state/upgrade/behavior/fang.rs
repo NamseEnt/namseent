@@ -2,7 +2,9 @@ use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct FangUpgrade;
+pub struct FangUpgrade {
+    add: usize,
+}
 
 impl UpgradeBehavior for FangUpgrade {
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
@@ -12,6 +14,33 @@ impl UpgradeBehavior for FangUpgrade {
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
         )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::RED,
+        ))
+    }
+
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::Fang(upgrade) = &mut upgrade.upgrade {
+                upgrade.add += self.add;
+                return UpgradeUpdateFlags::NONE;
+            }
+        }
+
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::NONE
     }
 
     fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
@@ -36,20 +65,18 @@ impl UpgradeBehavior for FangUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .static_text("Recover ")
-                .with_health_value("1 HP")
+                .with_health_value(format!("HP +{}", self.add))
                 .static_text(" when a monster dies"),
             crate::l10n::locale::Language::Korean => builder
-                .static_text("몬스터가 죽을 때마다 ")
-                .with_health_value("1HP")
-                .static_text("를 회복합니다"),
+                .static_text("적 처시 시 ")
+                .with_health_value(format!("체력 +{}", self.add)),
         };
     }
 }
 
 impl FangUpgrade {
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::Fang(FangUpgrade)
+        Upgrade::Fang(FangUpgrade { add: 1 })
     }
 }
 

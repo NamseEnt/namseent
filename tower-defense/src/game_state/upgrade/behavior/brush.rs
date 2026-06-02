@@ -21,7 +21,7 @@ impl UpgradeBehavior for BrushUpgrade {
         width_height: Wh<Px>,
         _game_state: &GameState,
     ) -> Option<RenderingTree> {
-        let text = format!("+{:.0}%", self.damage_bonus_pct * 100.0);
+        let text = format!("{:.0}%", self.damage_bonus_pct * 100.0);
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
             &text,
@@ -74,10 +74,10 @@ impl UpgradeBehavior for BrushUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Face-card tower ")
-                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+                .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("그림 카드 타워 ")
-                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
+                .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
         };
     }
 }
@@ -92,5 +92,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
     UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    BrushUpgrade::into_upgrade(0.4)
+    BrushUpgrade::into_upgrade(0.75)
 }

@@ -21,7 +21,7 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
         width_height: Wh<Px>,
         _game_state: &GameState,
     ) -> Option<RenderingTree> {
-        let text = format!("+{:.0}%", self.damage_bonus_pct * 100.0);
+        let text = format!("{:.0}%", self.damage_bonus_pct * 100.0);
 
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
@@ -71,11 +71,11 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .static_text("Every rerolled tower ")
-                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+                .static_text("Every card rerolled tower ")
+                .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
             crate::l10n::locale::Language::Korean => builder
-                .static_text("리롤할때마다 타워 ")
-                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
+                .static_text("카드 리롤 시 타워 ")
+                .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
         };
     }
 }

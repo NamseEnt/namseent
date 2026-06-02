@@ -1,10 +1,10 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const GIFT_BOX_GOLD_PER_ITEM: usize = 10;
-
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct GiftBoxUpgrade;
+pub struct GiftBoxUpgrade {
+    add: usize,
+}
 
 impl UpgradeBehavior for GiftBoxUpgrade {
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
@@ -16,6 +16,33 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::YELLOW,
+        ))
+    }
+
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::GiftBox(upgrade) = &mut upgrade.upgrade {
+                upgrade.add += self.add;
+                return UpgradeUpdateFlags::NONE;
+            }
+        }
+
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::NONE
+    }
+
     fn on_stage_end(
         &mut self,
         game_state: &mut GameState,
@@ -23,7 +50,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         _gold: usize,
         item_count: usize,
     ) -> UpgradeUpdateFlags {
-        let bonus_gold = item_count * GIFT_BOX_GOLD_PER_ITEM;
+        let bonus_gold = item_count * self.add;
         if bonus_gold > 0 {
             game_state.action(crate::game_state::GameStateAction::EarnGold(bonus_gold));
             UpgradeUpdateFlags::NONE
@@ -50,20 +77,18 @@ impl UpgradeBehavior for GiftBoxUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .static_text("Earn ")
-                .with_gold_value(format!("{}", GIFT_BOX_GOLD_PER_ITEM))
-                .static_text(" gold per item at the end of each stage"),
+                .with_gold_value(format!("gold +{}", self.add))
+                .static_text(" per item at the end of each stage"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("스테이지 종료 시 보유한 아이템당 ")
-                .with_gold_value(format!("{}골드", GIFT_BOX_GOLD_PER_ITEM))
-                .static_text("를 얻습니다"),
+                .with_gold_value(format!("골드 +{}", self.add)),
         };
     }
 }
 
 impl GiftBoxUpgrade {
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::GiftBox(GiftBoxUpgrade)
+        Upgrade::GiftBox(GiftBoxUpgrade { add: 10 })
     }
 }
 

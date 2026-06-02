@@ -24,10 +24,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!(
-                "+{:.0}%",
-                self.stacks as f32 * self.damage_bonus_pct * 100.0
-            ),
+            &format!("{:.0}%", self.stacks as f32 * self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -68,17 +65,12 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Each purchased item increases all towers' ")
-                    .with_damage_text("damage")
-                    .static_text(" by ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("아이템을 구매할 때마다 모든 타워의 ")
-                    .with_damage_text("피해")
-                    .static_text("가 ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
-                    .static_text(" 증가합니다");
+                    .static_text("아이템을 구매할 때마다 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }

@@ -71,15 +71,12 @@ impl UpgradeBehavior for NameTagUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("The next tower you place gains ")
-                    .with_damage_text(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0));
+                    .with_damage_text(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("다음 배치하는 타워가 ")
-                    .with_damage_text(format!(
-                        "+{:.0}% 피해를 얻습니다",
-                        self.damage_bonus_pct * 100.0
-                    ));
+                    .static_text("다음 배치하는 타워 ")
+                    .with_damage_text(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }

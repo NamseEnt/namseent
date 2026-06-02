@@ -1,3 +1,5 @@
+use crate::{Suit, icon::IconKind};
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -31,14 +33,18 @@ impl UpgradeBehavior for BlackWhiteUpgrade {
     fn l10n_description<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
-        locale: &crate::l10n::Locale,
+        _locale: &crate::l10n::Locale,
     ) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Treat all suits as one",
-            crate::l10n::locale::Language::Korean => {
-                "하트와 다이아를, 클럽과 스페이드를 같은 문양으로 간주합니다"
-            }
-        });
+        builder
+            .icon(IconKind::Suit { suit: Suit::Spades })
+            .static_text("=")
+            .icon(IconKind::Suit { suit: Suit::Clubs })
+            .static_text(", ")
+            .icon(IconKind::Suit { suit: Suit::Hearts })
+            .static_text("=")
+            .icon(IconKind::Suit {
+                suit: Suit::Diamonds,
+            });
     }
 }
 

@@ -16,6 +16,18 @@ impl UpgradeBehavior for CatUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::YELLOW,
+        ))
+    }
+
     fn gold_earn_plus(&self) -> usize {
         self.add
     }
@@ -39,11 +51,11 @@ impl UpgradeBehavior for CatUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
-                .with_gold_value(format!("+{}", self.add))
+                .with_gold_value(format!("gold +{}", self.add))
                 .static_text(" on monster kills"),
             crate::l10n::locale::Language::Korean => builder
-                .static_text("몬스터 처치 시 ")
-                .with_gold_value(format!("{}골드", self.add)),
+                .static_text("적 처치 시 ")
+                .with_gold_value(format!("골드 +{}", self.add)),
         };
     }
 }
@@ -55,22 +67,8 @@ impl CatUpgrade {
 }
 
 pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, current_and_max);
+    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
 
-fn generate_upgrade(upgrade_state: &UpgradeState) -> Upgrade {
-    CatUpgrade::into_upgrade(next_cat_add(upgrade_state.gold_earn_plus()))
-}
-
-fn current_and_max(upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
-    Some((upgrade_state.gold_earn_plus(), super::MAX_GOLD_EARN_PLUS))
-}
-
-fn next_cat_add(gold_earn_plus: usize) -> usize {
-    match gold_earn_plus {
-        0 | 1 => 1,
-        2 => 2,
-        4 => 4,
-        8 => 8,
-        _ => 0,
-    }
+fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
+    CatUpgrade::into_upgrade(1)
 }

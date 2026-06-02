@@ -37,6 +37,18 @@ pub fn render_right_bottom_overlay(
     namui::translate(overlay.offset.x, overlay.offset.y, overlay.tree)
 }
 
+pub fn render_right_top_overlay(width: Px, text: &str, text_color: Color) -> RenderingTree {
+    let overlay = crate::theme::typography::TypographyBuilder::new()
+        .headline()
+        .size(crate::theme::typography::FontSize::Medium)
+        .color(text_color)
+        .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
+        .static_text(text)
+        .render_right_top(width);
+
+    namui::translate(overlay.offset.x, overlay.offset.y, overlay.tree)
+}
+
 pub fn render_placeholder_thumbnail(
     width_height: Wh<Px>,
     stroke_px: Px,
