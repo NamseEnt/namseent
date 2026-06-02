@@ -3,6 +3,7 @@ use super::*;
 use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
+use crate::rarity::Rarity;
 use enum_dispatch::enum_dispatch;
 use namui::*;
 
@@ -174,23 +175,35 @@ pub trait UpgradeBehavior {
     ) -> Option<RenderingTree> {
         None
     }
+
+    #[allow(dead_code)]
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Common
+    }
 }
 
 #[derive(Clone, Copy)]
 pub(super) struct UpgradeDefinition {
     generate: fn(&UpgradeState) -> Upgrade,
     current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+    rarity: fn() -> Rarity,
 }
 
 impl UpgradeDefinition {
     pub(super) const fn new(
         generate: fn(&UpgradeState) -> Upgrade,
         current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+        rarity: fn() -> Rarity,
     ) -> Self {
         Self {
             generate,
             current_and_max,
+            rarity,
         }
+    }
+
+    const fn common_rarity() -> Rarity {
+        Rarity::Common
     }
 
     pub(super) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
@@ -199,6 +212,10 @@ impl UpgradeDefinition {
 
     pub(super) fn current_and_max(self, upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
         (self.current_and_max)(upgrade_state)
+    }
+
+    pub(super) fn rarity(self) -> Rarity {
+        (self.rarity)()
     }
 }
 
@@ -472,6 +489,10 @@ impl UpgradeDiscriminants {
 
     pub(crate) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
         self.definition().generate(upgrade_state)
+    }
+
+    pub(crate) fn rarity(self) -> Rarity {
+        self.definition().rarity()
     }
 }
 

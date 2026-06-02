@@ -1,7 +1,7 @@
 mod shop_slot;
 
 use crate::{
-    game_state::{GameState, flow::GameFlow, upgrade::generate_tower_damage_upgrade},
+    game_state::{GameState, flow::GameFlow, upgrade::generate_shop_upgrade},
     *,
 };
 use namui::OneZero;
@@ -104,7 +104,7 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             ShopSlot::Item { item, cost }
         }
         5..=9 => {
-            let upgrade = generate_tower_damage_upgrade(game_state);
+            let upgrade = generate_shop_upgrade(game_state);
             let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
                 0
             } else {

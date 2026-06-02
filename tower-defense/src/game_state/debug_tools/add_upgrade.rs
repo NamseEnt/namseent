@@ -298,7 +298,7 @@ impl Component for AddUpgradeTool {
             let rarity = *selected_rarity;
             if selection_idx == RANDOM_SELECTION_IDX {
                 mutate_game_state(move |gs| {
-                    let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(gs);
+                    let upgrade = crate::game_state::upgrade::generate_boss_reward_upgrade(gs);
                     gs.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
                 });
             } else {

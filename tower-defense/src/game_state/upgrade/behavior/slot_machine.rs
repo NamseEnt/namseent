@@ -59,8 +59,11 @@ impl SlotMachineUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::common_rarity,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     SlotMachineUpgrade::into_upgrade(10)

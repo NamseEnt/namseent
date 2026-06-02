@@ -21,7 +21,7 @@ pub struct TreasureSelectionFlow {
 impl TreasureSelectionFlow {
     pub fn new(game_state: &GameState) -> Self {
         let options = (0..3)
-            .map(|_| crate::game_state::upgrade::generate_treasure_upgrade(game_state))
+            .map(|_| crate::game_state::upgrade::generate_boss_reward_upgrade(game_state))
             .collect();
         TreasureSelectionFlow {
             options,
