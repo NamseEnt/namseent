@@ -12,6 +12,7 @@ pub const SURFACE_CONTAINER_LOW: Color = Color::from_u8(208, 175, 124, 255);
 pub const SURFACE_CONTAINER: Color = Color::from_u8(223, 166, 155, 255);
 pub const SURFACE_CONTAINER_HIGH: Color = Color::from_u8(230, 216, 185, 255);
 pub const SURFACE_CONTAINER_HIGHEST: Color = Color::from_u8(239, 221, 191, 255);
+pub const SURFACE_CONTAINER_OUTLINE: Color = Color::from_u8(153, 115, 71, 192);
 pub const ON_SURFACE: Color = Color::from_u8(37, 26, 31, 255);
 pub const ON_SURFACE_VARIANT: Color = Color::from_u8(72, 0, 1, 255);
 pub const OUTLINE: Color = Color::from_u8(132, 108, 80, 255);
@@ -27,6 +28,8 @@ pub const YELLOW: Color = Color::from_u8(255, 193, 7, 255);
 
 pub const WHITE: Color = Color::from_u8(255, 255, 255, 255);
 pub const BLACK: Color = Color::from_u8(0, 0, 0, 255);
+pub const DARK_CHARCOAL: Color = Color::from_u8(43, 43, 43, 196);
+pub const DISABLED_TEXT: Color = Color::from_u8(160, 160, 160, 255);
 
 pub const DISABLED_CONTAINER: Color = Color::from_u8(115, 85, 80, 255);
 pub const ON_DISABLED_CONTAINER: Color = Color::from_u8(141, 121, 95, 255);

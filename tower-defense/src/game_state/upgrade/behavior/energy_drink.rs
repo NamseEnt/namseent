@@ -7,6 +7,15 @@ pub struct EnergyDrinkUpgrade {
 }
 
 impl UpgradeBehavior for EnergyDrinkUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::ENERGY_DRINK,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn shop_item_price_minus(&self) -> usize {
         self.add
     }
@@ -30,10 +39,10 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Shop price ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("-{}", self.add)),
+                .with_gold_loss(format!("-{}", self.add)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("상점 가격 ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("-{}", self.add))
+                .with_gold_loss(format!("-{}", self.add))
                 .static_text(" 할인"),
         };
     }

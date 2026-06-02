@@ -3,8 +3,8 @@ use namui::*;
 pub(super) const TOP_BAR_HEIGHT: Px = px(48.0);
 
 pub(super) const STICKY_WIDTH: Px = px(128.0);
-pub(super) const STICKY_HEIGHT: Px = px(48.0);
 pub(super) const STICKY_VISIBLE_HEIGHT: Px = px(24.0);
+pub(super) const TOGGLE_HEIGHT: Px = px(64.0);
 
 pub(super) const PAPER_HEIGHT: Px = px(480.0);
 pub(super) const PAPER_WIDTH: Px = px(960.0);
@@ -42,7 +42,7 @@ pub(super) fn panel_width() -> Px {
 pub(super) fn shop_panel_wh() -> Wh<Px> {
     Wh::new(
         panel_width(),
-        STICKY_HEIGHT + PAPER_HEIGHT + TOP_OUTSIDE_HEIGHT,
+        TOGGLE_HEIGHT + PAPER_HEIGHT + TOP_OUTSIDE_HEIGHT,
     )
 }
 

@@ -1,4 +1,4 @@
-use crate::game_state::item::{Item, ItemKind};
+use crate::game_state::item::Item;
 use crate::game_state::upgrade::Upgrade;
 
 use namui::{Px, Wh};
@@ -21,7 +21,7 @@ pub(crate) struct ShopItemLayoutParams<'a> {
     pub description: ShopItemDescription<'a>,
     pub cost: usize,
     pub available: bool,
-    pub item_kind: Option<&'a ItemKind>,
+    pub item: Option<&'a Item>,
     pub upgrade: Option<&'a Upgrade>,
 }
 
@@ -54,14 +54,11 @@ fn make_item_params<'a>(
 ) -> ShopItemLayoutParams<'a> {
     ShopItemLayoutParams {
         wh,
-        name: ShopItemTitle::Item {
-            item_kind: item.kind.clone(),
-            locale,
-        },
+        name: ShopItemTitle::Item { item, locale },
         description: ShopItemDescription::Item { item, locale },
         cost,
         available,
-        item_kind: Some(&item.kind),
+        item: Some(item),
         upgrade: None,
     }
 }
@@ -80,7 +77,7 @@ fn make_upgrade_params<'a>(
         description: ShopItemDescription::Upgrade { upgrade, locale },
         cost,
         available,
-        item_kind: None,
+        item: None,
         upgrade: Some(upgrade),
     }
 }
@@ -90,8 +87,7 @@ pub(crate) use render::ShopItemLayout;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::effect::Effect;
-    use crate::game_state::item::Item;
+    use crate::game_state::item::RiceBallItem;
     use crate::l10n::Locale;
     use namui::{Wh, px};
 
@@ -100,10 +96,7 @@ mod tests {
         let wh = Wh::new(px(1.0), px(1.0));
         let locale = Locale::default();
 
-        let item = Item {
-            kind: crate::game_state::item::ItemKind::RiceBall,
-            effect: Effect::Heal { amount: 1.0 },
-        };
+        let item = RiceBallItem::standard().into_item();
 
         let params = make_item_params(wh, &item, 5, true, locale);
         assert!(params.available);

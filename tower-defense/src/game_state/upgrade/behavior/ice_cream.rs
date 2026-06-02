@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct IceCreamUpgrade {
@@ -7,6 +8,31 @@ pub struct IceCreamUpgrade {
 }
 
 impl UpgradeBehavior for IceCreamUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::ICE_CREAM,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        if self.waves_remaining == 0 {
+            return None;
+        }
+
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state
             .upgrade_state
@@ -62,18 +88,25 @@ impl UpgradeBehavior for IceCreamUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Damage +{:.0}% for {} waves",
-                self.damage_bonus_pct * 100.0,
-                self.waves_remaining,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "{}웨이브 동안 피해 +{:.0}%",
-                self.waves_remaining,
-                self.damage_bonus_pct * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .with_damage_text("Damage")
+                    .static_text(" ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
+                    .static_text(" for ")
+                    .text(self.waves_remaining.to_string())
+                    .static_text(" waves");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .text(self.waves_remaining.to_string())
+                    .static_text("웨이브 동안 ")
+                    .with_damage_text("피해")
+                    .static_text(" ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+            }
+        }
     }
 }
 

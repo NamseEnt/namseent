@@ -194,6 +194,7 @@ impl Component for UpgradeThumbnailItem {
             target_xy,
         } = self;
 
+        let game_state = use_game_state(ctx);
         let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
         let tooltip_scale = with_spring(
@@ -255,10 +256,15 @@ impl Component for UpgradeThumbnailItem {
 
         ctx.translate(Xy::single(PADDING)).compose(|ctx| {
             let pivot = Xy::new(thumbnail_wh.width * 0.5, thumbnail_wh.height * 0.5);
-            ctx.translate(pivot)
+            let ctx = ctx
+                .translate(pivot)
                 .rotate(hover_rotation.deg())
-                .translate(Xy::new(-pivot.x, -pivot.y))
-                .add(upgrade_kind.thumbnail(thumbnail_wh, true));
+                .translate(Xy::new(-pivot.x, -pivot.y));
+
+            if let Some(overlay) = upgrade_kind.thumbnail_overlay(thumbnail_wh, &game_state) {
+                ctx.add(overlay);
+            }
+            ctx.add(upgrade_kind.thumbnail(thumbnail_wh, true));
         });
 
         ctx.add(
@@ -298,19 +304,39 @@ impl Component for UpgradeTooltip {
         let text_max = max_width - (tooltip::PADDING * 2.0);
 
         let content = ctx.ghost_compose("tooltip-content", |ctx| {
-            table::vertical([table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                compose_ctx.add(memoized_text(
-                    (&upgrade_kind, &text_max, &locale.language),
-                    |mut builder| {
-                        builder
-                            .paragraph()
-                            .size(FontSize::Large)
-                            .max_width(text_max)
-                            .l10n(upgrade_kind.description_text(), &locale)
-                            .render_left_top()
-                    },
-                ));
-            })])(Wh::new(text_max, f32::MAX.px()), ctx);
+            table::vertical([
+                table::fit(table::FitAlign::LeftTop, |compose_ctx| {
+                    compose_ctx.add(memoized_text(
+                        (&upgrade_kind, &text_max, &locale.language),
+                        |mut builder| {
+                            builder
+                                .headline()
+                                .size(FontSize::Medium)
+                                .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
+                                .l10n(upgrade_kind.name_text(), &locale)
+                                .render_left_top()
+                        },
+                    ));
+                }),
+                table::fixed(tooltip::PADDING, |_, _| {}),
+                table::fit(table::FitAlign::LeftTop, |compose_ctx| {
+                    compose_ctx.add(memoized_text(
+                        (&upgrade_kind, &text_max, &locale.language),
+                        |mut builder| {
+                            builder
+                                .paragraph()
+                                .size(FontSize::Large)
+                                .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
+                                .l10n(upgrade_kind.description_text(), &locale)
+                                .render_left_top()
+                        },
+                    ));
+                }),
+            ])(Wh::new(text_max, f32::MAX.px()), ctx);
         });
 
         let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
@@ -333,6 +359,7 @@ impl UpgradeTooltip {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER,
+            outline_color: Some(palette::SURFACE_CONTAINER_OUTLINE),
             shadow: true,
             arrow: Some(PaperArrow {
                 side: ArrowSide::Left,

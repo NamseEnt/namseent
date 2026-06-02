@@ -20,6 +20,7 @@ const SPEED_INDICATOR_WIDTH: Px = px(192.);
 
 const BG_OVERSIZE_H: Px = px(4.);
 const BG_OVERSIZE_V: Px = px(4.);
+const TOP_BAR_TEXT_STROKE_WIDTH: Px = px(2.);
 
 pub struct TopBar {
     pub wh: Wh<Px>,
@@ -51,21 +52,35 @@ impl Component for TopBar {
                                 .headline()
                                 .size(FontSize::Medium)
                                 .text("  ")
-                                .l10n(crate::l10n::ui::TopBarText::Stage, &locale)
-                                .text(format!(" {stage}"))
+                                .with_style(|builder| {
+                                    builder
+                                        .color(palette::WHITE)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
+                                        .l10n(crate::l10n::ui::TopBarText::Stage, &locale)
+                                        .text(format!(" {stage}"));
+                                })
                                 .text("      ")
                                 .with_style(|builder| {
                                     builder
+                                        .color(palette::RED)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                         .size(FontSize::Custom { size: px(40.) })
                                         .icon(IconKind::Health);
                                 })
-                                .text(format!("{:.0}/{:.0}", current_hp, max_hp));
+                                .with_style(|builder| {
+                                    builder
+                                        .color(palette::RED)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
+                                        .text(format!(" {:.0}/{:.0}", current_hp, max_hp));
+                                });
 
                             if has_shield {
                                 builder
+                                    .color(palette::RED)
+                                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                     .text(" (")
                                     .icon(IconKind::Shield)
-                                    .text(format!("{:.0}", shield))
+                                    .text(format!(" {:.0}", shield))
                                     .text(")");
                             }
 
@@ -73,17 +88,31 @@ impl Component for TopBar {
                                 .text("      ")
                                 .with_style(|builder| {
                                     builder
+                                        .color(palette::YELLOW)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                         .size(FontSize::Custom { size: px(40.) })
                                         .icon(IconKind::Gold);
                                 })
-                                .text(format!("{gold}"))
+                                .with_style(|builder| {
+                                    builder
+                                        .color(palette::YELLOW)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
+                                        .text(format!(" {gold}"));
+                                })
                                 .text("      ")
                                 .with_style(|builder| {
                                     builder
+                                        .color(palette::BLUE)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                         .size(FontSize::Custom { size: px(40.) })
                                         .icon(IconKind::Refresh);
                                 })
-                                .text(format!("{left_dice}/{max_dice}"))
+                                .with_style(|builder| {
+                                    builder
+                                        .color(palette::BLUE)
+                                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
+                                        .text(format!(" {left_dice}/{max_dice}"));
+                                })
                                 .render_left_center(wh.height)
                         },
                     ));
@@ -123,6 +152,7 @@ impl Component for TopBar {
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Sticky,
                 color: palette::SURFACE_CONTAINER_HIGHEST,
+                outline_color: None,
                 shadow: true,
                 arrow: None,
             })

@@ -11,18 +11,22 @@ use crate::shop_panel::items::description::ShopItemDescription;
 use crate::shop_panel::items::title::ShopItemTitle;
 
 fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescription<'_>) {
+    let wh = wh - Wh::single(PADDING * 2);
     ctx.add(AutoScrollViewWithCtx {
         wh,
         scroll_bar_width: PADDING,
         content: |ctx| {
             let description_key = description.key();
 
-            ctx.add(memoized_text(
+            ctx.translate((PADDING, PADDING)).add(memoized_text(
                 (&description_key, &wh.width),
                 |mut builder| {
                     builder
                         .paragraph()
                         .size(FontSize::Medium)
+                        .bold()
+                        .color(palette::WHITE)
+                        .stroke(2.px(), palette::DARK_CHARCOAL)
                         .max_width(wh.width);
                     match description {
                         ShopItemDescription::Item { item, locale } => {
@@ -46,17 +50,19 @@ fn render_description(wh: Wh<Px>, ctx: ComposeCtx, description: &ShopItemDescrip
 }
 
 fn render_cost_bar(wh: Wh<Px>, ctx: ComposeCtx, available: bool, cost: usize) {
-    let color = if available {
-        palette::ON_SURFACE
+    let cost_color = if available {
+        palette::YELLOW
     } else {
-        palette::ON_DISABLED_CONTAINER
+        palette::RED
     };
+
     ctx.add(memoized_text((&available, &cost), |mut builder| {
         builder
             .headline()
+            .stroke(2.px(), palette::DARK_CHARCOAL)
+            .color(cost_color)
             .icon(IconKind::Gold)
             .space()
-            .color(color)
             .text(format!("{cost}"))
             .render_center(wh)
     }));
@@ -77,26 +83,35 @@ pub(crate) fn make_renderer<'a>(
             table::padding_no_clip(
                 PADDING,
                 table::vertical([
-                    table::fit(table::FitAlign::LeftTop, move |ctx| {
+                    table::fixed_no_clip(28.px(), move |title_wh, ctx| {
                         let name_key = name.key();
-                        ctx.add(memoized_text((&name_key, &wh.width), |mut builder| {
-                            builder.headline().size(FontSize::Small).max_width(wh.width);
-                            match &name {
-                                ShopItemTitle::Item { item_kind, locale } => {
-                                    builder.l10n(
-                                        l10n::item_kind::ItemText::Name(item_kind.clone()),
-                                        locale,
-                                    );
-                                }
-                                ShopItemTitle::Upgrade { upgrade, locale } => {
-                                    builder.l10n(
-                                        l10n::upgrade::UpgradeTypeText::Name(upgrade),
-                                        locale,
-                                    );
-                                }
-                            };
-                            builder.render_left_top()
-                        }));
+                        ctx.add(memoized_text(
+                            (&name_key, &title_wh.width),
+                            |mut builder| {
+                                builder
+                                    .headline()
+                                    .size(FontSize::Small)
+                                    .color(palette::WHITE)
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
+                                    .max_width(title_wh.width)
+                                    .text_align(namui::TextAlign::Center);
+                                match &name {
+                                    ShopItemTitle::Item { item, locale } => {
+                                        builder.l10n(
+                                            l10n::item_kind::ItemText::Name((*item).clone()),
+                                            locale,
+                                        );
+                                    }
+                                    ShopItemTitle::Upgrade { upgrade, locale } => {
+                                        builder.l10n(
+                                            l10n::upgrade::UpgradeTypeText::Name(upgrade),
+                                            locale,
+                                        );
+                                    }
+                                };
+                                builder.render_center(title_wh)
+                            },
+                        ));
                     }),
                     table::fixed_no_clip(PADDING, |_, _| {}),
                     table::ratio_no_clip(1, move |wh, ctx| {
@@ -104,28 +119,13 @@ pub(crate) fn make_renderer<'a>(
                             table::padding_no_clip(
                                 PADDING,
                                 table::vertical([
-                                    table::ratio(1, move |wh, ctx| {
-                                        ctx.add(AutoScrollViewWithCtx {
-                                            wh,
-                                            scroll_bar_width: PADDING,
-                                            content: |ctx| {
-                                                render_description(wh, ctx, &description);
-                                            },
-                                        });
+                                    table::ratio_no_clip(1, move |wh, ctx| {
+                                        render_description(wh, ctx, &description);
                                     }),
                                     table::fixed_no_clip(PADDING, |_, _| {}),
-                                    table::fixed_no_clip(
-                                        if cost == 0 {
-                                            0.0_f32.px()
-                                        } else {
-                                            48.0_f32.px()
-                                        },
-                                        move |wh, ctx| {
-                                            if cost != 0 {
-                                                render_cost_bar(wh, ctx, available, cost);
-                                            }
-                                        },
-                                    ),
+                                    table::fixed_no_clip(48.px(), move |wh, ctx| {
+                                        render_cost_bar(wh, ctx, available, cost);
+                                    }),
                                 ]),
                             )(wh, ctx);
                         });

@@ -24,7 +24,7 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
     // suit에 따른 색상 결정
     let text_color = get_suit_color(suit);
 
-    let ctx = ctx.translate(Xy::new(padding, padding));
+    let ctx = ctx.translate(Xy::new(padding, padding + 4.px()));
 
     ctx.add(memoized_text((&rank, &text_color), |mut builder| {
         builder

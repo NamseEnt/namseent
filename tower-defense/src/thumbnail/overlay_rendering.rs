@@ -1,6 +1,4 @@
-use super::constants::{RANK_OVERLAY_SIZE_RATIO, TEXT_SIZE_RATIO};
 use crate::{
-    card::{Rank, Suit},
     icon::{Icon, IconKind, IconSize},
     theme::typography::{self, FontSize},
 };
@@ -87,26 +85,5 @@ pub fn render_icon_overlay(
                 size: overlay_size.width,
             })
             .to_rendering_tree(),
-    )
-}
-
-/// 랭크 오버레이를 렌더링하는 함수
-pub fn render_rank_overlay(container_size: Wh<Px>, rank: Rank) -> RenderingTree {
-    render_text_overlay(
-        container_size,
-        &rank.to_string(),
-        OverlayPosition::TopLeft,
-        RANK_OVERLAY_SIZE_RATIO,
-        TEXT_SIZE_RATIO,
-    )
-}
-
-/// 슈트 오버레이를 렌더링하는 함수
-pub fn render_suit_overlay(container_size: Wh<Px>, suit: Suit) -> RenderingTree {
-    render_icon_overlay(
-        container_size,
-        IconKind::Suit { suit },
-        OverlayPosition::TopLeft,
-        RANK_OVERLAY_SIZE_RATIO,
     )
 }

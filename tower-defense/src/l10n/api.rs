@@ -64,6 +64,13 @@ impl TextManager {
         }
     }
 
+    pub fn tower_info_popup(&self, text: ui::TowerInfoPopupText) -> &'static str {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
+
     pub fn difficulty_effect_description<'a>(
         &self,
         effect: &crate::game_state::effect::Effect,
@@ -82,16 +89,6 @@ impl TextManager {
     ) -> crate::theme::typography::TypographyBuilder<'a> {
         effect::EffectText::Description(effect.clone())
             .apply_to_builder(&mut builder, &self.locale);
-        builder
-    }
-
-    pub fn effect_execution_error<'a>(
-        &self,
-        error: &crate::game_state::effect::EffectExecutionError,
-        mut builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        let text = effect::EffectExecutionErrorText(error.clone());
-        text.apply_to_builder(&mut builder, &self.locale);
         builder
     }
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PopcornUpgrade {
@@ -9,6 +10,27 @@ pub struct PopcornUpgrade {
 }
 
 impl UpgradeBehavior for PopcornUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::POPCORN,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.active_stage_damage_bonus * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         if self.active_stage_damage_bonus > 0.0 {
             Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))
@@ -53,18 +75,26 @@ impl UpgradeBehavior for PopcornUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Damage lasts for {} waves with a max multiplier of {:.0}%, decreasing each wave",
-                self.duration,
-                self.max_multiplier * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "{}웨이브 동안 데미지 최대 {:.0}%까지 증가하며, 웨이브가 지날수록 증가치가 감소합니다",
-                self.duration,
-                self.max_multiplier * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .with_damage_text("Damage")
+                    .static_text(" lasts for ")
+                    .text(self.duration.to_string())
+                    .static_text(" waves with a max multiplier of ")
+                    .with_damage_value(format!("{:.0}%", self.max_multiplier * 100.0))
+                    .static_text(", decreasing each wave");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .text(self.duration.to_string())
+                    .static_text("웨이브 동안 ")
+                    .with_damage_text("데미지")
+                    .static_text(" 최대 ")
+                    .with_damage_value(format!("{:.0}%", self.max_multiplier * 100.0))
+                    .static_text("까지 증가하며, 웨이브가 지날수록 증가치가 감소합니다");
+            }
+        }
     }
 }
 

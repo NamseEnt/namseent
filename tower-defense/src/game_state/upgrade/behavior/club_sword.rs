@@ -7,6 +7,27 @@ pub struct ClubSwordUpgrade {
 }
 
 impl UpgradeBehavior for ClubSwordUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CLUB_SWORD,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         context.suit == Some(crate::card::Suit::Clubs)
     }
@@ -52,18 +73,12 @@ impl UpgradeBehavior for ClubSwordUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Club tower ").with_icon_bold(
-                    crate::icon::IconKind::Damage,
-                    format!("+{:.0}%", self.damage_bonus_pct * 100.0),
-                )
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder.static_text("클럽 타워 ").with_icon_bold(
-                    crate::icon::IconKind::Damage,
-                    format!("+{:.0}%", self.damage_bonus_pct * 100.0),
-                )
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Club tower ")
+                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("클럽 타워 ")
+                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
         };
     }
 }

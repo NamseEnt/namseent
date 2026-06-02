@@ -132,7 +132,7 @@ impl Component for InventoryItem<'_> {
                     .rotate(hover_rotation.deg())
                     .translate(Xy::new(-pivot.x, -pivot.y))
                     .translate(Xy::new(PADDING, PADDING))
-                    .add(item.kind.thumbnail_with_shadow(
+                    .add(item.thumbnail_with_shadow(
                         inner_wh,
                         INVENTORY_STICKER_THUMBNAIL_STROKE,
                         true,
@@ -178,9 +178,9 @@ struct InventoryTooltip<'a> {
 impl Component for InventoryTooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
         let InventoryTooltip { item, locale } = self;
-        let name_text = item.kind.name_text();
-        let name_key = format!("{:?}:name", item.kind);
-        let desc_key = format!("{:?}:{:?}:desc", item.kind, item.effect);
+        let name_text = item.name_text();
+        let name_key = format!("{:?}:name", item.discriminant());
+        let desc_key = format!("{:?}:desc", item);
 
         let max_width = tooltip::MAX_WIDTH;
         let text_max = max_width - (tooltip::PADDING * 2.0);
@@ -195,6 +195,8 @@ impl Component for InventoryTooltip<'_> {
                                 .headline()
                                 .size(FontSize::Medium)
                                 .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
                                 .l10n(name_text.clone(), &locale)
                                 .render_left_top()
                         },
@@ -209,6 +211,8 @@ impl Component for InventoryTooltip<'_> {
                                 .paragraph()
                                 .size(FontSize::Large)
                                 .max_width(text_max)
+                                .color(palette::WHITE)
+                                .stroke(2.px(), palette::DARK_CHARCOAL)
                                 .l10n(item.description_text(), &locale)
                                 .render_left_top()
                         },
@@ -236,6 +240,7 @@ impl InventoryTooltip<'_> {
             texture: PaperTexture::Rough,
             variant: PaperVariant::Sticky,
             color: palette::SURFACE_CONTAINER,
+            outline_color: Some(palette::SURFACE_CONTAINER_OUTLINE),
             shadow: true,
             arrow: Some(crate::theme::paper_container::PaperArrow {
                 side: crate::theme::paper_container::ArrowSide::Right,

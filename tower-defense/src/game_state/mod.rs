@@ -35,7 +35,6 @@ mod user_status_effect;
 
 use crate::card::Deck;
 use crate::config::GameConfig;
-use crate::game_state::item::ItemKind;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
@@ -48,7 +47,7 @@ use cursor_preview::CursorPreview;
 pub use effect_event::*;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
-use item::{Effect, Item};
+use item::{GrantBarricadesItem, LumpSugarItem};
 pub use modal::Modal;
 pub use monster::*;
 use monster_spawn::*;
@@ -640,23 +639,9 @@ fn create_initial_game_state() -> GameState {
         monster_spawn_state: MonsterSpawnState::idle(),
         in_flight_attacks: Default::default(),
         items: vec![
-            Item {
-                kind: ItemKind::LumpSugar,
-                effect: Effect::ExtraDice,
-            },
-            Item {
-                kind: ItemKind::LumpSugar,
-                effect: Effect::ExtraDice,
-            },
-            Item {
-                kind: ItemKind::GrantBarricades,
-                effect: Effect::AddTowerCardToPlacementHand {
-                    tower_kind: TowerKind::Barricade,
-                    suit: None,
-                    rank: None,
-                    count: 4,
-                },
-            },
+            LumpSugarItem::standard().into_item(),
+            LumpSugarItem::standard().into_item(),
+            GrantBarricadesItem::standard().into_item(),
         ],
         gold: config.player.starting_gold,
         cursor_preview: Default::default(),
@@ -680,7 +665,7 @@ fn create_initial_game_state() -> GameState {
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
         metrics: GameMetrics {
-            total_gold_earned: config.player.starting_gold,
+            total_gold_earned: 0,
             total_gold_spent: 0,
             current_consecutive_perfect_clears: 0,
             max_consecutive_perfect_clears: 0,

@@ -1,14 +1,10 @@
-use crate::{card::Card, icon::IconKind};
+use crate::{card::Card, icon::IconKind, image_filter_utils::dilated_color_filter};
 use namui::*;
 
 pub const STICKER_THUMBNAIL_STROKE: Px = px(8.0);
 const STICKER_SHADOW_ALPHA: u8 = 192;
 const STICKER_SHADOW_BLUR: Px = px(2.5);
 const STICKER_SHADOW_OFFSET_Y: Px = px(2.0);
-
-pub fn render_sticker_image(image: Image, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
-    render_sticker_image_with_shadow(image, width_height, stroke_px, false)
-}
 
 pub fn render_sticker_image_with_shadow(
     image: Image,
@@ -23,6 +19,22 @@ pub fn render_sticker_image_with_shadow(
 
     let shadow_tree = render_sticker_shadow(image, width_height, stroke_px);
     namui::render(vec![image_tree, shadow_tree])
+}
+
+pub fn render_right_bottom_overlay(
+    width_height: Wh<Px>,
+    text: &str,
+    text_color: Color,
+) -> RenderingTree {
+    let overlay = crate::theme::typography::TypographyBuilder::new()
+        .headline()
+        .size(crate::theme::typography::FontSize::Medium)
+        .color(text_color)
+        .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
+        .static_text(text)
+        .render_right_bottom(width_height);
+
+    namui::translate(overlay.offset.x, overlay.offset.y, overlay.tree)
 }
 
 pub fn render_placeholder_thumbnail(
@@ -122,6 +134,19 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
     let image_height = image_wh.height.as_f32();
     let target_width = width_height.width.as_f32();
     let target_height = width_height.height.as_f32();
+
+    if !image_width.is_finite()
+        || !image_height.is_finite()
+        || !target_width.is_finite()
+        || !target_height.is_finite()
+        || image_width <= 0.0
+        || image_height <= 0.0
+        || target_width <= 0.0
+        || target_height <= 0.0
+    {
+        return source;
+    }
+
     let target_ratio = target_width / target_height;
     let image_ratio = image_width / image_height;
 
@@ -141,6 +166,11 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
 
     let scale_x = dest_rect.width().as_f32() / image_width;
     let scale_y = dest_rect.height().as_f32() / image_height;
+
+    if !scale_x.is_finite() || !scale_y.is_finite() || scale_x <= 0.0 || scale_y <= 0.0 {
+        return source;
+    }
+
     let total_radius = Xy::new(
         OrderedFloat::new(stroke_px.as_f32() / scale_x),
         OrderedFloat::new(stroke_px.as_f32() / scale_y),
@@ -150,28 +180,15 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
         OrderedFloat::new((stroke_px * 0.4).as_f32() / scale_y),
     );
 
-    let dilated_total = source.clone().dilate(total_radius, None);
-    let dilated_inner = source.clone().dilate(inner_radius, None);
+    let dilated_inner = dilated_color_filter(source.clone(), inner_radius, Color::BLACK);
+    let dilated_total = dilated_color_filter(source.clone(), total_radius, Color::WHITE);
 
-    let black_ring = ImageFilter::blend(
-        BlendMode::DstOut,
-        dilated_inner.clone().color_filter(ColorFilter::Blend {
-            color: Color::BLACK,
-            blend_mode: BlendMode::SrcIn,
-        }),
-        source.clone(),
-    );
+    let black_ring = ImageFilter::blend(BlendMode::DstOut, dilated_inner.clone(), source.clone());
 
     let white_ring = ImageFilter::blend(
         BlendMode::DstOut,
-        dilated_total.color_filter(ColorFilter::Blend {
-            color: Color::WHITE,
-            blend_mode: BlendMode::SrcIn,
-        }),
-        dilated_inner.clone().color_filter(ColorFilter::Blend {
-            color: Color::WHITE,
-            blend_mode: BlendMode::SrcIn,
-        }),
+        dilated_total,
+        dilated_color_filter(source.clone(), inner_radius, Color::WHITE),
     );
 
     let black_and_source = ImageFilter::blend(BlendMode::SrcOver, black_ring, source.clone());

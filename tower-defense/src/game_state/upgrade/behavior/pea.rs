@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const PEA_HP_PLUS: f32 = 10.0;
 
@@ -6,6 +7,15 @@ const PEA_HP_PLUS: f32 = 10.0;
 pub struct PeaUpgrade;
 
 impl UpgradeBehavior for PeaUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::PEA,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         game_state
             .upgrade_state
@@ -34,14 +44,24 @@ impl UpgradeBehavior for PeaUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
+        match locale.language {
             crate::l10n::locale::Language::English => {
-                format!("Increase max HP by {:.0} and heal to full", PEA_HP_PLUS)
+                builder
+                    .static_text("Increase max ")
+                    .with_health_value("HP")
+                    .static_text(" by ")
+                    .with_health_value(format!("{:.0}", PEA_HP_PLUS))
+                    .static_text(" and heal to full");
             }
             crate::l10n::locale::Language::Korean => {
-                format!("최대 체력이 {:.0} 증가하고 즉시 회복합니다", PEA_HP_PLUS)
+                builder
+                    .static_text("최대 ")
+                    .with_health_value("체력")
+                    .static_text("이 ")
+                    .with_health_value(format!("{:.0}", PEA_HP_PLUS))
+                    .static_text(" 증가하고 즉시 회복합니다");
             }
-        });
+        };
     }
 }
 

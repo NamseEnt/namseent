@@ -333,6 +333,7 @@ impl Component for Button<'_> {
                 } else {
                     Color::TRANSPARENT
                 },
+                outline_color: None,
                 shadow: variant != ButtonVariant::Text,
                 arrow: None,
             })

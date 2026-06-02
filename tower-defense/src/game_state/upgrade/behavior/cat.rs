@@ -7,6 +7,15 @@ pub struct CatUpgrade {
 }
 
 impl UpgradeBehavior for CatUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::CAT,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn gold_earn_plus(&self) -> usize {
         self.add
     }
@@ -30,11 +39,11 @@ impl UpgradeBehavior for CatUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("+{}", self.add))
+                .with_gold_value(format!("+{}", self.add))
                 .static_text(" on monster kills"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("몬스터 처치 시 ")
-                .with_icon_bold(crate::icon::IconKind::Gold, format!("{}", self.add)),
+                .with_gold_value(format!("{}골드", self.add)),
         };
     }
 }

@@ -26,6 +26,15 @@ pub enum ResultModalText {
     NoTowerDamage,
 }
 
+#[derive(Debug, Clone, Copy, State)]
+pub enum TowerInfoPopupText {
+    DamageLabel,
+    AttackSpeedLabel,
+    RangeLabel,
+    TotalDamageLabel,
+    RemoveButton,
+}
+
 impl LocalizedText for TopBarText {
     fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
         match locale.language {
@@ -104,6 +113,28 @@ impl ResultModalText {
             ResultModalText::TotalDamageLabel => "Total Damage",
             ResultModalText::RerollCountLabel => "Reroll Count",
             ResultModalText::NoTowerDamage => "No tower contribution recorded",
+        }
+    }
+}
+
+impl TowerInfoPopupText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            TowerInfoPopupText::DamageLabel => "데미지",
+            TowerInfoPopupText::AttackSpeedLabel => "공격속도",
+            TowerInfoPopupText::RangeLabel => "사거리",
+            TowerInfoPopupText::TotalDamageLabel => "누적 데미지",
+            TowerInfoPopupText::RemoveButton => "철거",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            TowerInfoPopupText::DamageLabel => "Damage",
+            TowerInfoPopupText::AttackSpeedLabel => "Attack Speed",
+            TowerInfoPopupText::RangeLabel => "Range",
+            TowerInfoPopupText::TotalDamageLabel => "Total Damage",
+            TowerInfoPopupText::RemoveButton => "Remove",
         }
     }
 }

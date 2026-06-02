@@ -6,6 +6,15 @@ pub struct MembershipCardUpgrade {
 }
 
 impl UpgradeBehavior for MembershipCardUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::MEMBERSHIP_CARD,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
         if self.pending_free_shop {
             game_state.stage_modifiers.set_free_shop_this_stage(true);
@@ -59,8 +68,7 @@ mod tests {
     #[test]
     fn membership_card_grants_free_shop_next_stage() {
         use crate::game_state::GameFlow;
-        use crate::game_state::effect::Effect;
-        use crate::game_state::item::ItemKind;
+        use crate::game_state::item::{ItemDiscriminants, LumpSugarItem};
         use crate::game_state::upgrade::tests::support;
         use crate::shop::ShopSlot;
 
@@ -79,10 +87,7 @@ mod tests {
                 matches!(slot_data.slot, ShopSlot::Item { .. }) && !slot_data.purchased
             }) {
                 flow.shop.push(ShopSlot::Item {
-                    item: crate::game_state::item::Item {
-                        kind: ItemKind::LumpSugar,
-                        effect: Effect::ExtraDice,
-                    },
+                    item: LumpSugarItem::standard().into_item(),
                     cost: 0,
                 });
             }
@@ -106,11 +111,7 @@ mod tests {
             game_state
                 .items
                 .iter()
-                .any(|item| item.kind == ItemKind::LumpSugar)
-                || game_state
-                    .items
-                    .iter()
-                    .any(|item| item.effect == Effect::ExtraDice)
+                .any(|item| item.discriminant() == ItemDiscriminants::LumpSugar)
         );
     }
 }

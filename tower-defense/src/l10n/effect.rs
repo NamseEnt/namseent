@@ -30,7 +30,6 @@ impl EffectText {
                 Effect::Shield { amount } => {
                     builder.with_icon_bold(IconKind::Shield, format!("{:.0}", amount))
                 }
-                Effect::ExtraDice => builder.with_icon_bold(IconKind::Refresh, "+1"),
                 Effect::EarnGold { amount } => {
                     builder.with_icon_bold(IconKind::Gold, format!("+{}", amount))
                 }
@@ -46,12 +45,6 @@ impl EffectText {
                     .with_icon_bold(
                         IconKind::Damage,
                         format!("-{:.0}%", (1.0 - damage_multiply) * 100.0),
-                    )
-                    .static_text(" 피해"),
-                Effect::UserDamageReduction { multiply, .. } => builder
-                    .with_icon_bold(
-                        IconKind::Damage,
-                        format!("-{:.0}%", (1.0 - multiply) * 100.0),
                     )
                     .static_text(" 피해"),
                 Effect::LoseHealth { amount } => {
@@ -138,32 +131,6 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => builder
                     .with_icon_bold(IconKind::Suit { suit }, format!("{}", suit))
                     .static_text(" 타워"),
-                Effect::AddTowerCardToPlacementHand {
-                    suit,
-                    rank,
-                    count,
-                    tower_kind,
-                } => {
-                    let tower_kind_text = tower_kind.to_text().to_korean();
-                    match (tower_kind, suit, rank) {
-                        (crate::game_state::tower::TowerKind::Barricade, _, _) => builder
-                            .with_style(|b| {
-                                b.bold()
-                                    .text(format!("{} {}장 획득", tower_kind_text, count));
-                            }),
-                        (_, Some(suit), Some(rank)) => builder.with_icon_bold(
-                            IconKind::Suit { suit },
-                            format!("{} {} {}장 획득", rank, tower_kind_text, count),
-                        ),
-                        _ => builder.with_style(|b| {
-                            b.bold()
-                                .text(format!("{} {}장 획득", tower_kind_text, count));
-                        }),
-                    }
-                }
-                Effect::AddCardToHand { card } => builder
-                    .with_icon_bold(IconKind::Suit { suit: card.suit }, format!("{}", card.rank))
-                    .static_text(" 획득"),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -196,9 +163,6 @@ impl EffectText {
                 Effect::Shield { amount } => builder
                     .with_icon_bold(IconKind::Shield, format!("+{:.0}", amount))
                     .static_text(" shield"),
-                Effect::ExtraDice => builder
-                    .with_icon_bold(IconKind::Refresh, "+1")
-                    .static_text(" reroll"),
                 Effect::EarnGold { amount } => builder
                     .with_icon_bold(IconKind::Gold, format!("{}", amount))
                     .static_text(" gold"),
@@ -214,12 +178,6 @@ impl EffectText {
                     .with_icon_bold(
                         IconKind::Damage,
                         format!("-{:.0}%", (1.0 - damage_multiply) * 100.0),
-                    )
-                    .static_text(" damage"),
-                Effect::UserDamageReduction { multiply, .. } => builder
-                    .with_icon_bold(
-                        IconKind::Damage,
-                        format!("-{:.0}%", (1.0 - multiply) * 100.0),
                     )
                     .static_text(" damage"),
                 Effect::LoseHealth { amount } => builder
@@ -306,32 +264,6 @@ impl EffectText {
                 Effect::SuitTowerDisable { suit } => builder
                     .with_icon_bold(IconKind::Suit { suit }, format!("{}", suit))
                     .static_text(" tower"),
-                Effect::AddTowerCardToPlacementHand {
-                    tower_kind,
-                    suit,
-                    rank,
-                    count,
-                } => {
-                    let tower_kind_text = tower_kind.to_text().to_english();
-                    match (tower_kind, suit, rank) {
-                        (crate::game_state::tower::TowerKind::Barricade, _, _) => builder
-                            .with_style(|b| {
-                                b.bold()
-                                    .text(format!("{} {} cards", tower_kind_text, count));
-                            }),
-                        (_, Some(suit), Some(rank)) => builder.text("Get ").with_icon_bold(
-                            IconKind::Suit { suit },
-                            format!("{} {} {} cards", rank, tower_kind_text, count),
-                        ),
-                        _ => builder.with_style(|b| {
-                            b.bold()
-                                .text(format!("{} {} cards", tower_kind_text, count));
-                        }),
-                    }
-                }
-                Effect::AddCardToHand { card } => builder
-                    .with_icon_bold(IconKind::Suit { suit: card.suit }, format!("{}", card.rank))
-                    .static_text(" card"),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -353,49 +285,5 @@ impl EffectText {
                 _ => builder.text(""),
             },
         };
-    }
-}
-/// Effect 실행 에러 메시지 다국어 지원
-#[derive(Clone, State)]
-pub struct EffectExecutionErrorText(pub crate::game_state::effect::EffectExecutionError);
-
-impl LocalizedText for EffectExecutionErrorText {
-    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
-        match locale.language {
-            Language::Korean => self.apply_korean(builder),
-            Language::English => self.apply_english(builder),
-        }
-    }
-}
-
-impl EffectExecutionErrorText {
-    fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
-        use crate::game_state::effect::EffectExecutionError;
-        match &self.0 {
-            EffectExecutionError::ItemUseDisabled => {
-                builder.text("아이템을 사용할 수 없습니다");
-            }
-            EffectExecutionError::InvalidFlow { required } => {
-                builder
-                    .text("잘못된 단계입니다 (필요: ")
-                    .text(required)
-                    .text(")");
-            }
-        }
-    }
-
-    fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
-        use crate::game_state::effect::EffectExecutionError;
-        match &self.0 {
-            EffectExecutionError::ItemUseDisabled => {
-                builder.text("Cannot use items");
-            }
-            EffectExecutionError::InvalidFlow { required } => {
-                builder
-                    .text("Invalid game flow (required: ")
-                    .text(required)
-                    .text(")");
-            }
-        }
     }
 }

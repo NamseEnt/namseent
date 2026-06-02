@@ -4,6 +4,15 @@ use super::*;
 pub struct RabbitUpgrade;
 
 impl UpgradeBehavior for RabbitUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::RABBIT,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn skip_rank_for_straight(&self) -> bool {
         true
     }

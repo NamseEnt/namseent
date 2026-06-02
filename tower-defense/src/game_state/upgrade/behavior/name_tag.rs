@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const NAME_TAG_DAMAGE_BONUS_PCT: f32 = 2.0;
 
@@ -9,6 +10,15 @@ pub struct NameTagUpgrade {
 }
 
 impl UpgradeBehavior for NameTagUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::NAME_TAG,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
         match (context.tower_id, self.target_tower_id) {
             (SelectedTowerId::Placed(selected_tower_id), Some(target_tower_id)) => {
@@ -57,16 +67,21 @@ impl UpgradeBehavior for NameTagUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "The next tower you place gains +{:.0}% damage",
-                self.damage_bonus_pct * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "다음 배치하는 타워가 +{:.0}% 피해를 얻습니다",
-                self.damage_bonus_pct * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("The next tower you place gains ")
+                    .with_damage_text(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0));
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("다음 배치하는 타워가 ")
+                    .with_damage_text(format!(
+                        "+{:.0}% 피해를 얻습니다",
+                        self.damage_bonus_pct * 100.0
+                    ));
+            }
+        }
     }
 }
 

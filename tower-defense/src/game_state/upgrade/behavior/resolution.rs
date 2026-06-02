@@ -1,4 +1,5 @@
 use super::*;
+use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ResolutionUpgrade {
@@ -7,6 +8,30 @@ pub struct ResolutionUpgrade {
 }
 
 impl UpgradeBehavior for ResolutionUpgrade {
+    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::RESOLUTION,
+            width_height,
+            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
+    }
+
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!(
+                "+{:.0}%",
+                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
+            ),
+            crate::theme::palette::RED,
+        ))
+    }
+
     fn on_stage_end(
         &mut self,
         game_state: &mut GameState,
@@ -50,18 +75,32 @@ impl UpgradeBehavior for ResolutionUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.text(match locale.language {
-            crate::l10n::locale::Language::English => format!(
-                "Remaining rerolls add +{:.0}% damage to the next tower (currently +{:.0}%)",
-                self.damage_bonus_pct_per_reroll * 100.0,
-                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0,
-            ),
-            crate::l10n::locale::Language::Korean => format!(
-                "남은 리롤마다 피해 +{:.0}% (현재 +{:.0}%)",
-                self.damage_bonus_pct_per_reroll * 100.0,
-                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0,
-            ),
-        });
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Remaining rerolls add ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct_per_reroll * 100.0))
+                    .static_text(" damage to the next tower (currently ")
+                    .with_damage_value(format!(
+                        "+{:.0}%",
+                        self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
+                    ))
+                    .static_text(")");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("남은 리롤마다 ")
+                    .with_damage_text("피해")
+                    .static_text(" ")
+                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct_per_reroll * 100.0))
+                    .static_text(" (현재 ")
+                    .with_damage_value(format!(
+                        "+{:.0}%",
+                        self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
+                    ))
+                    .static_text(")");
+            }
+        }
     }
 }
 
