@@ -18,7 +18,7 @@ impl UpgradeBehavior for RabbitUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn skip_rank_for_straight(&self) -> bool {

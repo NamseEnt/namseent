@@ -62,7 +62,7 @@ impl UpgradeBehavior for CrockUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(upgrade).with_unique_id());
-        flags
+        flags | UpgradeUpdateFlags::REVISION
     }
 
     fn on_gold_earned(&mut self, game_state: &mut GameState, _earned: usize) -> UpgradeUpdateFlags {

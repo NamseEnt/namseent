@@ -34,7 +34,7 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::TOWER_STATS
+        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {

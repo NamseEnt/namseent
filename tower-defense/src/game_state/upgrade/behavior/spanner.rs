@@ -18,7 +18,7 @@ impl UpgradeBehavior for SpannerUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn clear_shield_on_stage_start(&self) -> bool {

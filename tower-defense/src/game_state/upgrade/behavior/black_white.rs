@@ -20,7 +20,7 @@ impl UpgradeBehavior for BlackWhiteUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn treat_suits_as_same(&self) -> bool {

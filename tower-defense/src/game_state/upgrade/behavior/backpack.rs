@@ -32,7 +32,7 @@ impl UpgradeBehavior for BackpackUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Backpack(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::CACHE;
+                return UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -40,7 +40,7 @@ impl UpgradeBehavior for BackpackUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn shop_slot_expand(&self) -> usize {

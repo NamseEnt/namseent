@@ -32,7 +32,7 @@ impl UpgradeBehavior for FangUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Fang(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::NONE;
+                return UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -40,7 +40,7 @@ impl UpgradeBehavior for FangUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::REVISION
     }
 
     fn on_monster_death(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {

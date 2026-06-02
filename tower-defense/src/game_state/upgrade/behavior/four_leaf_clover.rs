@@ -18,7 +18,7 @@ impl UpgradeBehavior for FourLeafCloverUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn shorten_straight_flush_to_4_cards(&self) -> bool {

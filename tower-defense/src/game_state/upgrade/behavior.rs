@@ -22,6 +22,7 @@ impl UpgradeUpdateFlags {
     pub const TOWER_STATS: Self = Self(1 << 0);
     pub const CACHE: Self = Self(1 << 1);
     pub const HEAL_TO_FULL: Self = Self(1 << 2);
+    pub const REVISION: Self = Self(1 << 3);
 
     pub fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
@@ -127,7 +128,7 @@ pub trait UpgradeBehavior {
             .upgrade_state
             .upgrades
             .push(self.into().with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::REVISION
     }
 
     fn on_item_bought(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {

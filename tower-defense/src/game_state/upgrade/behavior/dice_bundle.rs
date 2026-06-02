@@ -34,7 +34,7 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::DiceBundle(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::CACHE;
+                return UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -42,7 +42,7 @@ impl UpgradeBehavior for DiceBundleUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn dice_chance_plus(&self) -> usize {

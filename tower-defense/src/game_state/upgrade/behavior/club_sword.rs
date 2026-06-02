@@ -45,7 +45,7 @@ impl UpgradeBehavior for ClubSwordUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::ClubSword(upgrade) = &mut upgrade.upgrade {
                 upgrade.damage_bonus_pct += self.damage_bonus_pct;
-                return UpgradeUpdateFlags::TOWER_STATS;
+                return UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -53,7 +53,7 @@ impl UpgradeBehavior for ClubSwordUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::TOWER_STATS
+        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
     fn l10n_name<'a>(
