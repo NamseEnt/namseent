@@ -91,5 +91,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    PerfectPotteryUpgrade::into_upgrade(50.0)
+    PerfectPotteryUpgrade::into_upgrade(0.5)
 }
