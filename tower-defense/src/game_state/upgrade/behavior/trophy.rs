@@ -57,6 +57,13 @@ impl UpgradeBehavior for TrophyUpgrade {
         }
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.perfect_clear_stacks == 0 {
+            return false;
+        }
+        true
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,

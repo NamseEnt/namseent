@@ -51,6 +51,13 @@ impl UpgradeBehavior for ResolutionUpgrade {
         }
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.stored_rerolls > 0 {
+            return true;
+        }
+        false
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,

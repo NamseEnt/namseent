@@ -50,6 +50,13 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.stored_damage_bonus > 0.0 {
+            return true;
+        }
+        false
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,

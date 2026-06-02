@@ -72,6 +72,13 @@ impl UpgradeBehavior for IceCreamUpgrade {
         }
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.waves_remaining == 0 {
+            return false;
+        }
+        true
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
