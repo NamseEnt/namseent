@@ -446,6 +446,49 @@ impl Upgrade {
     pub fn with_unique_id(self) -> UpgradeWithId {
         UpgradeWithId::new(self)
     }
+
+    pub fn discriminant(&self) -> UpgradeDiscriminants {
+        match self {
+            Upgrade::Cat(_) => UpgradeDiscriminants::Cat,
+            Upgrade::Staff(_) => UpgradeDiscriminants::Staff,
+            Upgrade::LongSword(_) => UpgradeDiscriminants::LongSword,
+            Upgrade::Mace(_) => UpgradeDiscriminants::Mace,
+            Upgrade::ClubSword(_) => UpgradeDiscriminants::ClubSword,
+            Upgrade::Backpack(_) => UpgradeDiscriminants::Backpack,
+            Upgrade::DiceBundle(_) => UpgradeDiscriminants::DiceBundle,
+            Upgrade::Tricycle(_) => UpgradeDiscriminants::Tricycle,
+            Upgrade::EnergyDrink(_) => UpgradeDiscriminants::EnergyDrink,
+            Upgrade::PerfectPottery(_) => UpgradeDiscriminants::PerfectPottery,
+            Upgrade::SingleChopstick(_) => UpgradeDiscriminants::SingleChopstick,
+            Upgrade::PairChopsticks(_) => UpgradeDiscriminants::PairChopsticks,
+            Upgrade::FountainPen(_) => UpgradeDiscriminants::FountainPen,
+            Upgrade::Brush(_) => UpgradeDiscriminants::Brush,
+            Upgrade::FourLeafClover(_) => UpgradeDiscriminants::FourLeafClover,
+            Upgrade::Rabbit(_) => UpgradeDiscriminants::Rabbit,
+            Upgrade::BlackWhite(_) => UpgradeDiscriminants::BlackWhite,
+            Upgrade::Trophy(_) => UpgradeDiscriminants::Trophy,
+            Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
+            Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
+            Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
+            Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
+            Upgrade::NameTag(_) => UpgradeDiscriminants::NameTag,
+            Upgrade::ShoppingBag(_) => UpgradeDiscriminants::ShoppingBag,
+            Upgrade::Resolution(_) => UpgradeDiscriminants::Resolution,
+            Upgrade::Mirror(_) => UpgradeDiscriminants::Mirror,
+            Upgrade::IceCream(_) => UpgradeDiscriminants::IceCream,
+            Upgrade::Spanner(_) => UpgradeDiscriminants::Spanner,
+            Upgrade::Pea(_) => UpgradeDiscriminants::Pea,
+            Upgrade::SlotMachine(_) => UpgradeDiscriminants::SlotMachine,
+            Upgrade::PiggyBank(_) => UpgradeDiscriminants::PiggyBank,
+            Upgrade::Camera(_) => UpgradeDiscriminants::Camera,
+            Upgrade::GiftBox(_) => UpgradeDiscriminants::GiftBox,
+            Upgrade::Fang(_) => UpgradeDiscriminants::Fang,
+            Upgrade::Popcorn(_) => UpgradeDiscriminants::Popcorn,
+            Upgrade::MembershipCard(_) => UpgradeDiscriminants::MembershipCard,
+            Upgrade::Eraser(_) => UpgradeDiscriminants::Eraser,
+            Upgrade::BrokenPottery(_) => UpgradeDiscriminants::BrokenPottery,
+        }
+    }
 }
 
 impl UpgradeDiscriminants {
