@@ -29,6 +29,8 @@ impl UpgradeBehavior for DiceBundleUpgrade {
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.left_dice += self.add;
+
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::DiceBundle(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
