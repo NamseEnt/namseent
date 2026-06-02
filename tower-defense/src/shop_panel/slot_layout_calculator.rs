@@ -66,16 +66,12 @@ impl SlotLayoutCalculator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::effect::Effect;
-    use crate::game_state::item::Item;
+    use crate::game_state::item::RiceBallItem;
     use crate::shop::{Shop, ShopSlot, ShopSlotData};
     use namui::{Wh, px};
 
     fn make_dummy_slot() -> ShopSlotData {
-        let item = Item {
-            kind: crate::game_state::item::ItemKind::RiceBall,
-            effect: Effect::Heal { amount: 0.0 },
-        };
+        let item = RiceBallItem::standard().into_item();
         ShopSlotData::new(ShopSlot::Item { item, cost: 0 })
     }
 

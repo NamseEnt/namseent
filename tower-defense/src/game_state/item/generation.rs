@@ -1,66 +1,21 @@
 use super::Item;
 use crate::card::Card;
-use crate::game_state::effect::Effect;
-use namui::*;
+use crate::game_state::item::{
+    GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, PainkillerItem,
+    RiceBallItem, ShieldItem,
+};
 use rand::{Rng, seq::SliceRandom, thread_rng};
+use strum::IntoEnumIterator;
 
 /// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
 pub fn generate_item_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Item {
     let candidates = generate_item_candidate_table();
-    let candidate = &candidates
+    let candidate = candidates
         .choose_weighted(rng, |x| x.1)
         .expect("item candidate table should not be empty")
         .0;
 
-    let (kind, effect) = match candidate {
-        ItemCandidate::Heal => {
-            let amount = 14.0;
-            (
-                crate::game_state::item::ItemKind::RiceBall,
-                Effect::Heal { amount },
-            )
-        }
-        ItemCandidate::ExtraReroll => (
-            crate::game_state::item::ItemKind::LumpSugar,
-            Effect::ExtraDice,
-        ),
-        ItemCandidate::Shield => {
-            let amount = 25.0;
-            (
-                crate::game_state::item::ItemKind::Shield,
-                Effect::Shield { amount },
-            )
-        }
-        ItemCandidate::DamageReduction => {
-            let amount = 0.85;
-            let duration = Duration::from_secs(4);
-            (
-                crate::game_state::item::ItemKind::Painkiller,
-                Effect::UserDamageReduction {
-                    multiply: amount,
-                    duration,
-                },
-            )
-        }
-        ItemCandidate::GrantBarricades => (
-            crate::game_state::item::ItemKind::GrantBarricades,
-            Effect::AddTowerCardToPlacementHand {
-                tower_kind: crate::game_state::tower::TowerKind::Barricade,
-                suit: None,
-                rank: None,
-                count: 4,
-            },
-        ),
-        ItemCandidate::GrantCard => {
-            let card = Card::new_random();
-            (
-                crate::game_state::item::ItemKind::GrantCard { card },
-                Effect::AddCardToHand { card },
-            )
-        }
-    };
-
-    Item { kind, effect }
+    generate_item_from_discriminant(candidate, rng)
 }
 
 /// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
@@ -70,30 +25,46 @@ pub fn generate_item() -> Item {
     generate_item_with_rng(&mut rng)
 }
 
-fn generate_item_candidate_table() -> Vec<(ItemCandidate, f32)> {
-    vec![
-        (ItemCandidate::Heal, 100.0),
-        (ItemCandidate::ExtraReroll, 10.0),
-        (ItemCandidate::Shield, 10.0),
-        (ItemCandidate::DamageReduction, 10.0),
-        (ItemCandidate::GrantBarricades, 45.0),
-        (ItemCandidate::GrantCard, 35.0),
-    ]
+fn generate_item_candidate_table() -> Vec<(ItemDiscriminants, f32)> {
+    ItemDiscriminants::iter()
+        .map(|item| (item, item_generation_weight(item)))
+        .collect()
 }
 
-enum ItemCandidate {
-    Heal,
-    ExtraReroll,
-    Shield,
-    DamageReduction,
-    GrantBarricades,
-    GrantCard,
+fn item_generation_weight(item: ItemDiscriminants) -> f32 {
+    match item {
+        ItemDiscriminants::RiceBall => 100.0,
+        ItemDiscriminants::LumpSugar => 10.0,
+        ItemDiscriminants::Shield => 10.0,
+        ItemDiscriminants::Painkiller => 10.0,
+        ItemDiscriminants::GrantBarricades => 45.0,
+        ItemDiscriminants::GrantCard => 35.0,
+    }
+}
+
+fn generate_item_from_discriminant<R: Rng + ?Sized>(item: ItemDiscriminants, rng: &mut R) -> Item {
+    match item {
+        ItemDiscriminants::RiceBall => RiceBallItem::standard().into_item(),
+        ItemDiscriminants::LumpSugar => LumpSugarItem::standard().into_item(),
+        ItemDiscriminants::Shield => ShieldItem::standard().into_item(),
+        ItemDiscriminants::Painkiller => PainkillerItem::standard().into_item(),
+        ItemDiscriminants::GrantBarricades => GrantBarricadesItem::standard().into_item(),
+        ItemDiscriminants::GrantCard => generate_grant_card_item(rng),
+    }
+}
+
+fn generate_grant_card_item<R: Rng + ?Sized>(rng: &mut R) -> Item {
+    let suit = crate::card::SUITS[rng.gen_range(0..crate::card::SUITS.len())];
+    let rank = crate::card::RANKS[rng.gen_range(0..crate::card::RANKS.len())];
+    let card = Card { suit, rank };
+    GrantCardItem::new(card).into_item()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::card::{Rank, Suit};
+    use crate::game_state::item::GrantCardItem;
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
@@ -103,13 +74,12 @@ mod tests {
             rank: Rank::Queen,
         };
 
-        let item = Item::grant_card(card);
+        let item = GrantCardItem::new(card).into_item();
 
         assert_eq!(
-            item.kind,
-            crate::game_state::item::ItemKind::GrantCard { card }
+            item,
+            crate::game_state::item::Item::GrantCard(GrantCardItem { card })
         );
-        assert_eq!(item.effect, Effect::AddCardToHand { card });
     }
 
     #[test]
@@ -118,10 +88,9 @@ mod tests {
 
         for _ in 0..128 {
             let item = generate_item_with_rng(&mut rng);
-            if let crate::game_state::item::ItemKind::GrantCard { card } = item.kind {
+            if let crate::game_state::item::Item::GrantCard(GrantCardItem { card }) = item {
                 assert!(crate::card::SUITS.contains(&card.suit));
                 assert!(crate::card::RANKS.contains(&card.rank));
-                assert_eq!(item.effect, Effect::AddCardToHand { card });
             }
         }
     }

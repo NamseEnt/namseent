@@ -2,7 +2,6 @@
 //! 개별 필드 조작이 아닌 실제 매핑(match) 로직을 검증한다.
 
 use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_state};
-use crate::hand::HandItem;
 
 #[test]
 fn increase_shop_reroll_via_run_effect() {
@@ -89,14 +88,6 @@ fn heal_and_shield_and_earngold_via_run_effect() {
 }
 
 #[test]
-fn extra_dice_via_run_effect() {
-    let mut gs = make_test_state();
-    gs.left_dice = 1;
-    run_effect(&mut gs, &Effect::ExtraDice);
-    assert_eq!(gs.left_dice, 2, "추가 주사위 1증가");
-}
-
-#[test]
 fn lose_health_and_lose_gold_via_run_effect() {
     let mut gs = make_test_state();
     gs.hp = 20.0;
@@ -129,15 +120,6 @@ fn damage_reduction_effects_add_status_effects() {
         },
     );
     assert_eq!(gs.user_status_effects.len(), 1);
-
-    run_effect(
-        &mut gs,
-        &Effect::UserDamageReduction {
-            multiply: 0.7,
-            duration: namui::Duration::from_secs(3),
-        },
-    );
-    assert_eq!(gs.user_status_effects.len(), 2);
 }
 
 #[test]
@@ -163,62 +145,6 @@ fn grant_upgrade_and_item_via_run_effect() {
         },
     );
     assert!(!gs.items.is_empty(), "아이템 획득 확인");
-}
-
-#[test]
-fn add_tower_card_to_placement_hand_flow_dependent() {
-    let mut gs = make_test_state();
-    gs.flow =
-        crate::game_state::flow::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
-    run_effect(
-        &mut gs,
-        &Effect::AddTowerCardToPlacementHand {
-            tower_kind: crate::game_state::tower::TowerKind::Barricade,
-            suit: None,
-            rank: None,
-            count: 1,
-        },
-    );
-    assert_eq!(
-        gs.stage_modifiers.drain_extra_tower_cards().len(),
-        1,
-        "비배치 플로우에서는 stage grant로 들어감"
-    );
-
-    let mut gs = make_test_state();
-    gs.flow = crate::game_state::flow::GameFlow::PlacingTower;
-    run_effect(
-        &mut gs,
-        &Effect::AddTowerCardToPlacementHand {
-            tower_kind: crate::game_state::tower::TowerKind::Barricade,
-            suit: None,
-            rank: None,
-            count: 1,
-        },
-    );
-    assert!(
-        !gs.hand.active_slot_ids().is_empty(),
-        "배치 플로우에서는 즉시 핸드 추가"
-    );
-}
-
-#[test]
-fn add_card_to_hand_via_run_effect() {
-    let mut gs = make_test_state();
-    let card = crate::card::Card {
-        suit: crate::card::Suit::Spades,
-        rank: crate::card::Rank::Two,
-    };
-
-    run_effect(&mut gs, &Effect::AddCardToHand { card });
-
-    assert!(gs.hand.active_slot_ids().len() == 1);
-    let slot_id = gs.hand.get_slot_id_by_index(0).unwrap();
-    let added_card = gs.hand.get_item(slot_id).and_then(|item| match item {
-        HandItem::Card(card) => Some(*card),
-        HandItem::Tower(_) => None,
-    });
-    assert_eq!(added_card, Some(card));
 }
 
 #[test]

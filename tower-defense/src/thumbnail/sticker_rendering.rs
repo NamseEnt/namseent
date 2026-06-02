@@ -6,10 +6,6 @@ const STICKER_SHADOW_ALPHA: u8 = 192;
 const STICKER_SHADOW_BLUR: Px = px(2.5);
 const STICKER_SHADOW_OFFSET_Y: Px = px(2.0);
 
-pub fn render_sticker_image(image: Image, width_height: Wh<Px>, stroke_px: Px) -> RenderingTree {
-    render_sticker_image_with_shadow(image, width_height, stroke_px, false)
-}
-
 pub fn render_sticker_image_with_shadow(
     image: Image,
     width_height: Wh<Px>,

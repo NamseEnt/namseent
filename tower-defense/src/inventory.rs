@@ -132,7 +132,7 @@ impl Component for InventoryItem<'_> {
                     .rotate(hover_rotation.deg())
                     .translate(Xy::new(-pivot.x, -pivot.y))
                     .translate(Xy::new(PADDING, PADDING))
-                    .add(item.kind.thumbnail_with_shadow(
+                    .add(item.thumbnail_with_shadow(
                         inner_wh,
                         INVENTORY_STICKER_THUMBNAIL_STROKE,
                         true,
@@ -178,9 +178,9 @@ struct InventoryTooltip<'a> {
 impl Component for InventoryTooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
         let InventoryTooltip { item, locale } = self;
-        let name_text = item.kind.name_text();
-        let name_key = format!("{:?}:name", item.kind);
-        let desc_key = format!("{:?}:{:?}:desc", item.kind, item.effect);
+        let name_text = item.name_text();
+        let name_key = format!("{:?}:name", item.discriminant());
+        let desc_key = format!("{:?}:desc", item);
 
         let max_width = tooltip::MAX_WIDTH;
         let text_max = max_width - (tooltip::PADDING * 2.0);

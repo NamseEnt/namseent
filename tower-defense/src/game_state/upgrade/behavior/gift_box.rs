@@ -78,21 +78,14 @@ mod tests {
 
     #[test]
     fn gift_box_awards_gold_per_item_on_stage_end() {
-        use crate::game_state::item::ItemKind;
         use crate::game_state::upgrade::tests::support;
 
         let mut gs = support::create_mock_game_state();
         gs.flow =
             crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.items = vec![
-            crate::game_state::item::Item {
-                kind: ItemKind::LumpSugar,
-                effect: crate::game_state::item::Effect::ExtraDice,
-            },
-            crate::game_state::item::Item {
-                kind: ItemKind::LumpSugar,
-                effect: crate::game_state::item::Effect::ExtraDice,
-            },
+            crate::game_state::item::LumpSugarItem::standard().into_item(),
+            crate::game_state::item::LumpSugarItem::standard().into_item(),
         ];
         gs.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade(),
