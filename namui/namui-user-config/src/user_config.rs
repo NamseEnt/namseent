@@ -29,6 +29,7 @@ pub type NamuiCfgMap = HashMap<String, String>;
 pub enum Target {
     Wasm32WasiWeb,
     X86_64PcWindowsMsvc,
+    Aarch64PcWindowsMsvc,
     X86_64UnknownLinuxGnu,
     Aarch64AppleDarwin,
 }

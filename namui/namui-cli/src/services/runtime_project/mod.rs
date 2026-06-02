@@ -1,4 +1,5 @@
 pub mod aarch64_apple_darwin;
+pub mod aarch64_pc_windows_msvc;
 pub mod wasm;
 pub mod x86_64_pc_windows_msvc;
 

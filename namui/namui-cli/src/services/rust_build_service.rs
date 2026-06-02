@@ -93,6 +93,42 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 .output()
                 .await?)
         }
+        Target::Aarch64PcWindowsMsvc => {
+            let mut args = vec![];
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
+                args.push("xwin");
+            }
+
+            args.extend([
+                "build",
+                "--target",
+                "aarch64-pc-windows-msvc",
+                "--message-format",
+                "json",
+            ]);
+
+            if build_option.release {
+                args.push("--release");
+            }
+
+            if cfg!(any(target_os = "linux", target_os = "macos")) {
+                args.extend([
+                    "--xwin-arch",
+                    "aarch64",
+                    "--xwin-version",
+                    "17",
+                    "--cross-compiler",
+                    "clang-cl",
+                ]);
+            }
+
+            Ok(Command::new("cargo")
+                .args(args)
+                .current_dir(&build_option.project_root_path)
+                .envs(get_envs(build_option))
+                .output()
+                .await?)
+        }
         Target::X86_64UnknownLinuxGnu => todo!(),
         Target::Aarch64AppleDarwin => {
             let mut args = vec![
@@ -126,6 +162,11 @@ fn get_envs(build_option: &BuildOption) -> Vec<(&str, String)> {
         ],
         Target::X86_64PcWindowsMsvc => vec![
             ("NAMUI_CFG_TARGET_ARCH", "x86_64".to_string()),
+            ("NAMUI_CFG_TARGET_OS", "windows".to_string()),
+            ("NAMUI_CFG_TARGET_ENV", "msvc".to_string()),
+        ],
+        Target::Aarch64PcWindowsMsvc => vec![
+            ("NAMUI_CFG_TARGET_ARCH", "aarch64".to_string()),
             ("NAMUI_CFG_TARGET_OS", "windows".to_string()),
             ("NAMUI_CFG_TARGET_ENV", "msvc".to_string()),
         ],

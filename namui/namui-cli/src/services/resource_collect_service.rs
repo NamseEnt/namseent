@@ -86,6 +86,7 @@ fn collect_runtime(
             ));
         }
         Target::X86_64PcWindowsMsvc
+        | Target::Aarch64PcWindowsMsvc
         | Target::X86_64UnknownLinuxGnu
         | Target::Aarch64AppleDarwin => {
             // Copy system bundle files (fonts, cursors) for native targets
@@ -158,6 +159,20 @@ fn collect_rust_build(
                 PathBuf::from(""),
             ));
         }
+        Target::Aarch64PcWindowsMsvc => {
+            let build_dist_path = project_path.join(format!(
+                "target/namui/target/aarch64-pc-windows-msvc/{}",
+                if release { "release" } else { "debug" }
+            ));
+            ops.push(CollectOperation::new(
+                build_dist_path.join("namui-runtime-aarch64-pc-windows-msvc.exe"),
+                PathBuf::from(""),
+            ));
+            ops.push(CollectOperation::new(
+                build_dist_path.join("namui_runtime_aarch64_pc_windows_msvc.pdb"),
+                PathBuf::from(""),
+            ));
+        }
         Target::X86_64UnknownLinuxGnu => {
             let build_dist_path = project_path.join(format!(
                 "target/namui/target/x86_64-unknown-linux-gnu/{}",
@@ -200,6 +215,7 @@ fn collect_deep_link_manifest(
     match target {
         Target::Wasm32WasiWeb => {}
         Target::X86_64PcWindowsMsvc
+        | Target::Aarch64PcWindowsMsvc
         | Target::X86_64UnknownLinuxGnu
         | Target::Aarch64AppleDarwin => {
             // TODO, but not priority

@@ -71,6 +71,8 @@ pub enum Target {
     Wasm32WasiWeb,
     #[value(name = "x86_64-pc-windows-msvc")]
     X86_64PcWindowsMsvc,
+    #[value(name = "aarch64-pc-windows-msvc")]
+    Aarch64PcWindowsMsvc,
     #[value(name = "x86_64-unknown-linux-gnu")]
     X86_64UnknownLinuxGnu,
     #[value(name = "aarch64-apple-darwin")]
@@ -84,6 +86,7 @@ impl Display for Target {
             match self {
                 Target::Wasm32WasiWeb => "wasm32-wasi-web",
                 Target::X86_64PcWindowsMsvc => "x86_64-pc-windows-msvc",
+                Target::Aarch64PcWindowsMsvc => "aarch64-pc-windows-msvc",
                 Target::X86_64UnknownLinuxGnu => "x86_64-unknown-linux-gnu",
                 Target::Aarch64AppleDarwin => "aarch64-apple-darwin",
             }
@@ -95,6 +98,7 @@ impl From<namui_user_config::Target> for Target {
         match target {
             namui_user_config::Target::Wasm32WasiWeb => Target::Wasm32WasiWeb,
             namui_user_config::Target::X86_64PcWindowsMsvc => Target::X86_64PcWindowsMsvc,
+            namui_user_config::Target::Aarch64PcWindowsMsvc => Target::Aarch64PcWindowsMsvc,
             namui_user_config::Target::X86_64UnknownLinuxGnu => Target::X86_64UnknownLinuxGnu,
             namui_user_config::Target::Aarch64AppleDarwin => Target::Aarch64AppleDarwin,
         }
@@ -105,6 +109,7 @@ impl From<Target> for namui_user_config::Target {
         match val {
             Target::Wasm32WasiWeb => namui_user_config::Target::Wasm32WasiWeb,
             Target::X86_64PcWindowsMsvc => namui_user_config::Target::X86_64PcWindowsMsvc,
+            Target::Aarch64PcWindowsMsvc => namui_user_config::Target::Aarch64PcWindowsMsvc,
             Target::X86_64UnknownLinuxGnu => namui_user_config::Target::X86_64UnknownLinuxGnu,
             Target::Aarch64AppleDarwin => namui_user_config::Target::Aarch64AppleDarwin,
         }
