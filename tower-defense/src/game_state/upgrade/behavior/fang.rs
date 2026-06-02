@@ -43,8 +43,9 @@ impl UpgradeBehavior for FangUpgrade {
         UpgradeUpdateFlags::NONE
     }
 
-    fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
-        true
+    fn on_monster_death(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.hp = (game_state.hp + self.add as f32).min(game_state.max_hp());
+        UpgradeUpdateFlags::NONE
     }
 
     fn l10n_name<'a>(

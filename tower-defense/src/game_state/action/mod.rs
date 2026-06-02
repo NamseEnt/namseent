@@ -46,6 +46,7 @@ pub(crate) enum GameStateAction<'a> {
     Upgrade(Upgrade, Option<usize>),
     PlaceTower(Box<Tower>, Option<HandSlotId>),
     RemoveTower(usize),
+    MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantHandItem(HandItem),
     GrantTowerCard {
@@ -117,6 +118,12 @@ impl GameState {
             GameStateAction::Upgrade(upgrade, cost) => {
                 upgrade::trigger_upgrades(self, upgrade);
                 upgrade::record_history_event(self, upgrade, cost);
+                true
+            }
+            GameStateAction::MonsterDeath => {
+                self.handle_upgrade_trigger(
+                    crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent::MonsterDeath,
+                );
                 true
             }
             GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {

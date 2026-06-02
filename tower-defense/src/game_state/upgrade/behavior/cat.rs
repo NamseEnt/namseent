@@ -28,8 +28,9 @@ impl UpgradeBehavior for CatUpgrade {
         ))
     }
 
-    fn gold_earn_plus(&self) -> usize {
-        self.add
+    fn on_monster_death(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.gold += self.add;
+        UpgradeUpdateFlags::NONE
     }
 
     fn l10n_name<'a>(

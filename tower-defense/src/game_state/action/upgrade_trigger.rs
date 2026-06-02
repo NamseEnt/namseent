@@ -28,6 +28,7 @@ pub(super) enum UpgradeTriggerEvent<'a> {
         gold: usize,
         item_count: usize,
     },
+    MonsterDeath,
 }
 
 impl GameState {
@@ -95,6 +96,9 @@ impl GameState {
             } => self.foreach_upgrades(|upgrade, game_state| {
                 upgrade.on_stage_end(game_state, perfect_clear, gold, item_count)
             }),
+            UpgradeTriggerEvent::MonsterDeath => {
+                self.foreach_upgrades(|upgrade, game_state| upgrade.on_monster_death(game_state))
+            }
         };
         self.refresh_upgrade_trigger_side_effects(flags);
     }

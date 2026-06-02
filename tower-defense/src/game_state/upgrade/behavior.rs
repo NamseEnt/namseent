@@ -65,8 +65,8 @@ pub trait UpgradeBehavior {
         None
     }
 
-    fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
-        false
+    fn on_monster_death(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
     }
 
     fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
@@ -89,10 +89,6 @@ pub trait UpgradeBehavior {
 
     fn max_hp_plus(&self) -> f32 {
         0.0
-    }
-
-    fn gold_earn_plus(&self) -> usize {
-        0
     }
 
     fn shop_slot_expand(&self) -> usize {
