@@ -202,8 +202,17 @@ impl UpgradeDefinition {
         }
     }
 
-    const fn common_rarity() -> Rarity {
+    const fn rarity_common() -> Rarity {
         Rarity::Common
+    }
+    const fn rarity_rare() -> Rarity {
+        Rarity::Rare
+    }
+    const fn rarity_epic() -> Rarity {
+        Rarity::Epic
+    }
+    const fn rarity_legendary() -> Rarity {
+        Rarity::Legendary
     }
 
     pub(super) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
