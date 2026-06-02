@@ -228,7 +228,7 @@ impl SelectedTowerContext {
             kind: tower.kind,
             suit: tower.suit,
             rank: tower.rank,
-            rerolled_count: None,
+            rerolled_count: Some(tower.rerolled_count),
         }
     }
 
