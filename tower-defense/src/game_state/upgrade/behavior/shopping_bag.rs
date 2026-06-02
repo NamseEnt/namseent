@@ -138,10 +138,7 @@ mod tests {
                 }) {
                 Some(id) => id,
                 None => {
-                    let item = crate::game_state::item::Item {
-                        kind: crate::game_state::item::ItemKind::LumpSugar,
-                        effect: crate::game_state::effect::Effect::ExtraDice,
-                    };
+                    let item = crate::game_state::item::LumpSugarItem::standard().into_item();
                     let cost = 0;
                     flow.shop.push(ShopSlot::Item { item, cost });
                     flow.shop.slots.last().unwrap().id

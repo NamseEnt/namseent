@@ -3,7 +3,7 @@
 use super::ShopStrategy;
 use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::item::{Item, ItemKind};
+use crate::game_state::item::{Item, ItemDiscriminants};
 use crate::game_state::tower::Tower;
 use crate::game_state::upgrade::{Upgrade, UpgradeState};
 use rand::RngCore;
@@ -40,9 +40,10 @@ impl SynergyShopStrategy {
             return false;
         };
 
-        if count_item_kind(game_state, ItemKind::RiceBall) < 1
+        if count_item_kind(game_state, ItemDiscriminants::RiceBall) < 1
             && game_state.hp < game_state.config.player.max_hp * 0.75
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::RiceBall, game_state.gold)
+            && let Some(slot_id) =
+                find_item_slot(flow, ItemDiscriminants::RiceBall, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
@@ -50,10 +51,10 @@ impl SynergyShopStrategy {
             return true;
         }
 
-        if count_item_kind(game_state, ItemKind::Shield) < 1
+        if count_item_kind(game_state, ItemDiscriminants::Shield) < 1
             && game_state.shield <= 0.0
             && game_state.hp < game_state.config.player.max_hp * 0.85
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::Shield, game_state.gold)
+            && let Some(slot_id) = find_item_slot(flow, ItemDiscriminants::Shield, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
@@ -61,8 +62,9 @@ impl SynergyShopStrategy {
             return true;
         }
 
-        if count_item_kind(game_state, ItemKind::GrantBarricades) < 1
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::GrantBarricades, game_state.gold)
+        if count_item_kind(game_state, ItemDiscriminants::GrantBarricades) < 1
+            && let Some(slot_id) =
+                find_item_slot(flow, ItemDiscriminants::GrantBarricades, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
@@ -71,7 +73,8 @@ impl SynergyShopStrategy {
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
-            && let Some(slot_id) = find_item_slot(flow, ItemKind::LumpSugar, game_state.gold)
+            && let Some(slot_id) =
+                find_item_slot(flow, ItemDiscriminants::LumpSugar, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
@@ -126,8 +129,8 @@ impl SynergyShopStrategy {
     }
 
     fn evaluate_item_slot(&self, game_state: &GameState, item: &Item) -> f32 {
-        match item.kind {
-            ItemKind::GrantBarricades => {
+        match item {
+            Item::GrantBarricades(..) => {
                 if game_state.towers.iter().count() < 3
                     || game_state.hp < game_state.config.player.max_hp * 0.85
                 {
@@ -136,14 +139,14 @@ impl SynergyShopStrategy {
                     4.0
                 }
             }
-            ItemKind::RiceBall => {
+            Item::RiceBall(..) => {
                 if game_state.hp < game_state.config.player.max_hp * 0.6 {
                     6.0
                 } else {
                     2.5
                 }
             }
-            ItemKind::Shield => {
+            Item::Shield(..) => {
                 if game_state.shield <= 0.0
                     && game_state.hp < game_state.config.player.max_hp * 0.85
                 {
@@ -152,20 +155,20 @@ impl SynergyShopStrategy {
                     2.0
                 }
             }
-            ItemKind::LumpSugar => {
+            Item::LumpSugar(..) => {
                 let missing_dice = game_state
                     .max_dice_chance()
                     .saturating_sub(game_state.left_dice) as f32;
                 3.0 + missing_dice * 1.5
             }
-            ItemKind::Painkiller => {
+            Item::Painkiller(..) => {
                 if game_state.hp < game_state.config.player.max_hp * 0.7 {
                     4.0
                 } else {
                     2.0
                 }
             }
-            ItemKind::GrantCard { .. } => {
+            Item::GrantCard(..) => {
                 let hand_count = game_state.hand.active_slot_ids().len() as f32;
                 if hand_count <= 2.0 {
                     6.0
@@ -204,7 +207,7 @@ impl SynergyShopStrategy {
 
 fn find_item_slot(
     flow: &crate::game_state::flow::SelectingTowerFlow,
-    kind: ItemKind,
+    kind: ItemDiscriminants,
     max_cost: usize,
 ) -> Option<crate::shop::ShopSlotId> {
     let mut best: Option<(crate::shop::ShopSlotId, usize)> = None;
@@ -214,7 +217,7 @@ fn find_item_slot(
         }
 
         if let crate::shop::ShopSlot::Item { item, cost } = &slot.slot
-            && item.kind == kind
+            && item.discriminant() == kind
             && *cost <= max_cost
             && (best.is_none() || *cost < best.unwrap().1)
         {
@@ -224,11 +227,11 @@ fn find_item_slot(
     best.map(|(id, _)| id)
 }
 
-fn count_item_kind(game_state: &GameState, kind: ItemKind) -> usize {
+fn count_item_kind(game_state: &GameState, kind: ItemDiscriminants) -> usize {
     game_state
         .items
         .iter()
-        .filter(|item| item.kind == kind)
+        .filter(|item| item.discriminant() == kind)
         .count()
 }
 

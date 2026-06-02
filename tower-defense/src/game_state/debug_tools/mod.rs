@@ -5,11 +5,7 @@ pub mod monster_hp_balance;
 mod route_length_info;
 pub mod state_snapshot;
 
-use crate::game_state::{
-    effect::Effect,
-    item::{Item, ItemKind},
-    mutate_game_state, set_modal,
-};
+use crate::game_state::{item::LumpSugarItem, mutate_game_state, set_modal};
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::{
@@ -134,10 +130,10 @@ impl Component for DebugToolsModal {
                                                         Wh::new(_wh.width - PADDING * 2.0, 40.px()),
                                                         &|| {
                                                             mutate_game_state(|gs| {
-                                                                gs.items.push(Item {
-                                                                    kind: ItemKind::LumpSugar,
-                                                                    effect: Effect::ExtraDice,
-                                                                });
+                                                                gs.items.push(
+                                                                    LumpSugarItem::standard()
+                                                                        .into_item(),
+                                                                );
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
@@ -165,10 +161,10 @@ impl Component for DebugToolsModal {
                                                         Wh::new(_wh.width - PADDING * 2.0, 40.px()),
                                                         &|| {
                                                             mutate_game_state(|gs| {
-                                                                gs.items.push(Item {
-                                                                    kind: ItemKind::LumpSugar,
-                                                                    effect: Effect::ExtraDice,
-                                                                });
+                                                                gs.items.push(
+                                                                    LumpSugarItem::standard()
+                                                                        .into_item(),
+                                                                );
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {

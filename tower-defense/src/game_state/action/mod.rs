@@ -1,6 +1,12 @@
+mod apply_user_status_effect;
 mod earn_gold;
+mod gain_rerolls;
+mod gain_shield;
 mod game_over;
 mod game_start;
+mod grant_hand_item;
+mod grant_tower_card;
+mod heal;
 mod place_tower;
 mod purchase_shop_item;
 mod remove_tower;
@@ -15,7 +21,15 @@ mod upgrade;
 mod upgrade_trigger;
 mod use_item;
 
-use crate::game_state::{GameState, hand::HandSlotId, item, tower::Tower, upgrade::Upgrade};
+use crate::card::{Rank, Suit};
+use crate::game_state::{
+    GameState,
+    hand::{HandItem, HandSlotId},
+    item,
+    tower::{Tower, TowerKind},
+    upgrade::Upgrade,
+    user_status_effect::UserStatusEffect,
+};
 
 pub(crate) enum GameStateAction<'a> {
     GameStart,
@@ -23,11 +37,21 @@ pub(crate) enum GameStateAction<'a> {
         stage: usize,
     },
     EarnGold(usize),
+    Heal(f32),
+    GainRerolls(usize),
+    GainShield(f32),
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
     PlaceTower(Box<Tower>, Option<HandSlotId>),
     RemoveTower(usize),
     PurchaseShopItem(crate::shop::ShopSlotId),
+    GrantHandItem(HandItem),
+    GrantTowerCard {
+        tower_kind: TowerKind,
+        suit: Option<Suit>,
+        rank: Option<Rank>,
+    },
+    ApplyUserStatusEffect(UserStatusEffect),
     UseItem(&'a item::Item),
     TakeDamage(f32),
     StageEnd {
@@ -64,6 +88,18 @@ impl GameState {
                 earn_gold::add_to_balance(self, amount);
                 earn_gold::trigger_upgrades(self, amount);
                 earn_gold::play_earn_sound(self, amount);
+                true
+            }
+            GameStateAction::Heal(amount) => {
+                heal::apply(self, amount);
+                true
+            }
+            GameStateAction::GainRerolls(amount) => {
+                gain_rerolls::apply(self, amount);
+                true
+            }
+            GameStateAction::GainShield(amount) => {
+                gain_shield::apply(self, amount);
                 true
             }
             GameStateAction::SpendGold(amount) => {
@@ -105,8 +141,24 @@ impl GameState {
                 purchase_shop_item::try_purchase(self, slot_id);
                 true
             }
+            GameStateAction::GrantHandItem(item) => {
+                grant_hand_item::apply(self, item);
+                true
+            }
+            GameStateAction::GrantTowerCard {
+                tower_kind,
+                suit,
+                rank,
+            } => {
+                grant_tower_card::apply(self, tower_kind, suit, rank);
+                true
+            }
+            GameStateAction::ApplyUserStatusEffect(status_effect) => {
+                apply_user_status_effect::apply(self, status_effect);
+                true
+            }
             GameStateAction::UseItem(item) => {
-                if use_item::can_use(self) {
+                if use_item::can_use(self, item) {
                     use_item::mark_as_used(self);
                     use_item::apply_effect(self, item);
                     use_item::record_history_event(self, item);

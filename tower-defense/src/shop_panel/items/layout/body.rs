@@ -13,7 +13,7 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
         description,
         cost,
         available,
-        item_kind,
+        item,
         upgrade,
     } = params;
 
@@ -38,8 +38,8 @@ pub(crate) fn render_body<'a>(ctx: &RenderCtx, params: super::ShopItemLayoutPara
 
                                     ctx.compose(|ctx| {
                                         table::padding_no_clip(padding, |inner_wh, inner_ctx| {
-                                            if let Some(kind) = item_kind {
-                                                inner_ctx.add(kind.thumbnail(inner_wh));
+                                            if let Some(item) = item {
+                                                inner_ctx.add(item.thumbnail(inner_wh));
                                             } else if let Some(upgrade) = upgrade {
                                                 inner_ctx.add(upgrade.thumbnail(inner_wh, false));
                                             } else {

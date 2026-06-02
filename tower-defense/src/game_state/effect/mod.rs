@@ -1,13 +1,10 @@
 use crate::card::{Rank, Suit};
-use crate::game_state::flow::GameFlow;
 use crate::game_state::{
     GameState,
     stage_modifiers::StageModifiers,
-    tower::{TowerKind, TowerTemplate},
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
 
-use crate::hand::HandItem;
 use crate::rarity::Rarity;
 use namui::*;
 
@@ -19,7 +16,6 @@ pub enum Effect {
     Shield {
         amount: f32,
     },
-    ExtraDice,
     EarnGold {
         amount: usize,
     },
@@ -29,10 +25,6 @@ pub enum Effect {
     },
     DamageReduction {
         damage_multiply: f32,
-        duration: Duration,
-    },
-    UserDamageReduction {
-        multiply: f32,
         duration: Duration,
     },
     LoseHealth {
@@ -97,15 +89,6 @@ pub enum Effect {
     SuitTowerDisable {
         suit: Suit,
     },
-    AddTowerCardToPlacementHand {
-        tower_kind: TowerKind,
-        suit: Option<Suit>,
-        rank: Option<Rank>,
-        count: usize,
-    },
-    AddCardToHand {
-        card: crate::card::Card,
-    },
     GainShield {
         min_amount: f32,
         max_amount: f32,
@@ -140,9 +123,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::Shield { amount } => {
             game_state.shield += amount;
         }
-        Effect::ExtraDice => {
-            game_state.left_dice += 1;
-        }
         Effect::EarnGold { amount } => {
             game_state.gold = game_state.gold.saturating_add(*amount);
         }
@@ -161,15 +141,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             let status_effect = UserStatusEffect {
                 kind: UserStatusEffectKind::DamageReduction {
                     damage_multiply: *damage_multiply,
-                },
-                end_at: game_state.now() + *duration,
-            };
-            game_state.user_status_effects.push(status_effect);
-        }
-        Effect::UserDamageReduction { multiply, duration } => {
-            let status_effect = UserStatusEffect {
-                kind: UserStatusEffectKind::DamageReduction {
-                    damage_multiply: *multiply,
                 },
                 end_at: game_state.now() + *duration,
             };
@@ -282,31 +253,6 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
         Effect::SuitTowerDisable { suit } => {
             game_state.stage_modifiers.disable_suit(*suit);
         }
-        Effect::AddTowerCardToPlacementHand {
-            tower_kind,
-            suit,
-            rank,
-            count,
-        } => {
-            for _ in 0..*count {
-                if matches!(game_state.flow, GameFlow::PlacingTower) {
-                    game_state
-                        .hand
-                        .push(HandItem::Tower(TowerTemplate::new_optional(
-                            *tower_kind,
-                            *suit,
-                            *rank,
-                        )));
-                } else {
-                    game_state
-                        .stage_modifiers
-                        .enqueue_extra_tower_card(*tower_kind, *suit, *rank);
-                }
-            }
-        }
-        Effect::AddCardToHand { card } => {
-            game_state.hand.push(HandItem::Card(*card));
-        }
         Effect::GainShield {
             min_amount,
             max_amount,
@@ -343,7 +289,6 @@ impl Effect {
             | Effect::EarnGold { .. }
             | Effect::Lottery { .. }
             | Effect::DamageReduction { .. }
-            | Effect::UserDamageReduction { .. }
             | Effect::GrantUpgrade { .. }
             | Effect::GrantItem { .. }
             | Effect::IncreaseAllTowersDamage { .. }
@@ -353,13 +298,10 @@ impl Effect {
             | Effect::IncreaseMaxRerolls { .. }
             | Effect::DecreaseEnemyHealthPercent { .. }
             | Effect::DecreaseEnemySpeed { .. }
-            | Effect::AddTowerCardToPlacementHand { .. }
-            | Effect::AddCardToHand { .. }
             | Effect::GainShield { .. }
             | Effect::HealHealth { .. }
             | Effect::GainGold { .. } => true,
-            Effect::ExtraDice
-            | Effect::LoseHealth { .. }
+            Effect::LoseHealth { .. }
             | Effect::LoseGold { .. }
             | Effect::DecreaseAllTowersDamage { .. }
             | Effect::IncreaseIncomingDamage { .. }
@@ -420,39 +362,6 @@ impl Effect {
             _ => {}
         }
     }
-
-    pub fn can_execute(&self, game_state: &GameState) -> Result<(), EffectExecutionError> {
-        if game_state.stage_modifiers.is_item_use_disabled() {
-            return Err(EffectExecutionError::ItemUseDisabled);
-        }
-
-        if self == &Effect::ExtraDice && !matches!(game_state.flow, GameFlow::SelectingTower(_)) {
-            return Err(EffectExecutionError::InvalidFlow {
-                required: "SelectingTower".to_string(),
-            });
-        }
-
-        Ok(())
-    }
-
-    /// Effect 실행 불가능한 이유를 사용자가 읽을 수 있는 메시지로 변환
-    pub fn execution_error_message<'a>(
-        &self,
-        error: &EffectExecutionError,
-        text_manager: &crate::l10n::TextManager,
-        builder: crate::theme::typography::TypographyBuilder<'a>,
-    ) -> crate::theme::typography::TypographyBuilder<'a> {
-        text_manager.effect_execution_error(error, builder)
-    }
-}
-
-/// Effect 실행 불가능 사유
-#[derive(Clone, Debug, PartialEq, State)]
-pub enum EffectExecutionError {
-    /// 아이템 사용이 비활성화됨
-    ItemUseDisabled,
-    /// 잘못된 게임 흐름 단계
-    InvalidFlow { required: String },
 }
 
 // ============================= Test Helpers =============================
@@ -527,7 +436,6 @@ pub mod tests_support {
 #[cfg(test)]
 mod tests {
     mod card_selection_reroll_and_slots;
-    mod effect_can_execute;
     mod random_effects_deterministic;
     mod run_effect_integration;
     mod shop_reroll;
