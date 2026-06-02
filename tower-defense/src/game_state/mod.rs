@@ -665,7 +665,7 @@ fn create_initial_game_state() -> GameState {
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
         metrics: GameMetrics {
-            total_gold_earned: config.player.starting_gold,
+            total_gold_earned: 0,
             total_gold_spent: 0,
             current_consecutive_perfect_clears: 0,
             max_consecutive_perfect_clears: 0,

@@ -37,6 +37,9 @@ impl Component for TowerDamagePanel<'_> {
                     builder
                         .headline()
                         .size(typography::FontSize::Medium)
+                        .bold()
+                        .stroke(2.px(), palette::DARK_CHARCOAL)
+                        .color(palette::WHITE)
                         .text(empty_text)
                         .render_center(wh)
                 }));
@@ -75,7 +78,7 @@ impl Component for TowerDamagePanel<'_> {
                 height: wh.height,
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::PaperSingleLayer,
-                color: palette::SURFACE_CONTAINER_LOWEST,
+                color: palette::SURFACE_CONTAINER,
                 outline_color: None,
                 shadow: false,
                 arrow: None,
@@ -121,6 +124,8 @@ impl Component for TowerDamageRow {
                                         .paragraph()
                                         .size(typography::FontSize::Medium)
                                         .bold()
+                                        .stroke(2.px(), palette::DARK_CHARCOAL)
+                                        .color(palette::WHITE)
                                         .with_icon_bold(
                                             IconKind::Damage,
                                             format!("{:.0}", stat.total_damage),
@@ -134,6 +139,35 @@ impl Component for TowerDamageRow {
                                 const PROGRESS_BAR_FILL_COLOR: Color = palette::PRIMARY;
                                 const PROGRESS_BAR_BORDER_COLOR: Color = palette::OUTLINE;
                                 let bar_width = wh.width * bar_ratio;
+
+                                ctx.add(memoized_text(&bar_ratio, |mut builder| {
+                                    builder
+                                        .headline()
+                                        .size(typography::FontSize::Medium)
+                                        .bold()
+                                        .color(palette::WHITE)
+                                        .stroke(2.px(), palette::DARK_CHARCOAL)
+                                        .text(format!("{:.2}%", bar_ratio * 100.0))
+                                        .render_center(wh)
+                                }));
+
+                                ctx.add(rect(RectParam {
+                                    rect: Rect::Xywh {
+                                        x: px(0.0),
+                                        y: px(0.0),
+                                        width: wh.width,
+                                        height: wh.height,
+                                    },
+                                    style: RectStyle {
+                                        fill: None,
+                                        stroke: Some(RectStroke {
+                                            color: palette::OUTLINE,
+                                            width: px(2.0),
+                                            border_position: BorderPosition::Outside,
+                                        }),
+                                        round: Some(RectRound { radius: px(4.0) }),
+                                    },
+                                }));
 
                                 if bar_width > px(0.0) {
                                     ctx.add(rect(RectParam {
