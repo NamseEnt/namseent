@@ -34,6 +34,9 @@ impl GameState {
     fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
         if flags != UpgradeUpdateFlags::NONE {
             self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
+        }
+
+        if flags.contains(UpgradeUpdateFlags::CACHE) {
             self.upgrade_state.rebuild_cache();
         }
 

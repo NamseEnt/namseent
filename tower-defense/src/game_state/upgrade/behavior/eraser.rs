@@ -31,7 +31,7 @@ impl UpgradeBehavior for EraserUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Eraser(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::NONE;
+                return UpgradeUpdateFlags::CACHE;
             }
         }
 
@@ -39,7 +39,7 @@ impl UpgradeBehavior for EraserUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::CACHE
     }
 
     fn removed_number_rank_count(&self) -> usize {

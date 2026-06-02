@@ -13,6 +13,14 @@ impl UpgradeBehavior for FourLeafCloverUpgrade {
         )
     }
 
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::CACHE
+    }
+
     fn shorten_straight_flush_to_4_cards(&self) -> bool {
         true
     }

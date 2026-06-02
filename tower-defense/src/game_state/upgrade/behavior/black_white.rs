@@ -15,6 +15,14 @@ impl UpgradeBehavior for BlackWhiteUpgrade {
         )
     }
 
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::CACHE
+    }
+
     fn treat_suits_as_same(&self) -> bool {
         true
     }

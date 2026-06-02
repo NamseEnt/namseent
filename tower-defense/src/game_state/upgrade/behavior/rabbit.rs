@@ -13,6 +13,14 @@ impl UpgradeBehavior for RabbitUpgrade {
         )
     }
 
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::CACHE
+    }
+
     fn skip_rank_for_straight(&self) -> bool {
         true
     }

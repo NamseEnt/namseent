@@ -32,7 +32,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::EnergyDrink(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::NONE;
+                return UpgradeUpdateFlags::CACHE;
             }
         }
 
@@ -40,7 +40,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::CACHE
     }
 
     fn shop_item_price_minus(&self) -> usize {
