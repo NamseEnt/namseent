@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{game_state::flow::GameFlow, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct EnergyDrinkUpgrade {
@@ -29,6 +29,16 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        if let GameFlow::SelectingTower(flow) = &mut game_state.flow {
+            for slot in &mut flow.shop.slots {
+                let cost = match &mut slot.slot {
+                    crate::shop::ShopSlot::Item { cost, .. } => cost,
+                    crate::shop::ShopSlot::Upgrade { cost, .. } => cost,
+                };
+                *cost = cost.saturating_sub(self.add);
+            }
+        };
+
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::EnergyDrink(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
