@@ -24,10 +24,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!(
-                "+{:.0}%",
-                self.stacks as f32 * self.damage_bonus_pct * 100.0
-            ),
+            &format!("{:.0}%", self.stacks as f32 * self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -46,6 +43,13 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
     fn on_item_bought(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.stacks += 1;
         UpgradeUpdateFlags::TOWER_STATS
+    }
+
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.stacks == 0 {
+            return false;
+        }
+        true
     }
 
     fn l10n_name<'a>(
@@ -68,17 +72,12 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Each purchased item increases all towers' ")
-                    .with_damage_text("damage")
-                    .static_text(" by ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("아이템을 구매할 때마다 모든 타워의 ")
-                    .with_damage_text("피해")
-                    .static_text("가 ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
-                    .static_text(" 증가합니다");
+                    .static_text("아이템을 구매할 때마다 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }
@@ -93,8 +92,11 @@ impl ShoppingBagUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_legendary,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     ShoppingBagUpgrade::into_upgrade(0.5)

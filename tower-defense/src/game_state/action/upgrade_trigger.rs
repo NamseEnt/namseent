@@ -22,17 +22,22 @@ pub(super) enum UpgradeTriggerEvent<'a> {
     GoldSpent {
         amount: usize,
     },
+    CardReroll,
     StageEnd {
         perfect_clear: bool,
         gold: usize,
         item_count: usize,
     },
+    MonsterDeath,
 }
 
 impl GameState {
     fn refresh_upgrade_trigger_side_effects(&mut self, flags: UpgradeUpdateFlags) {
         if flags != UpgradeUpdateFlags::NONE {
             self.upgrade_state.revision = self.upgrade_state.revision.wrapping_add(1);
+        }
+
+        if flags.contains(UpgradeUpdateFlags::CACHE) {
             self.upgrade_state.rebuild_cache();
         }
 
@@ -81,6 +86,9 @@ impl GameState {
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_gold_earned(game_state, amount)),
             UpgradeTriggerEvent::GoldSpent { amount } => self
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_gold_spent(game_state, amount)),
+            UpgradeTriggerEvent::CardReroll => {
+                self.foreach_upgrades(|upgrade, game_state| upgrade.on_card_reroll(game_state))
+            }
             UpgradeTriggerEvent::StageEnd {
                 perfect_clear,
                 gold,
@@ -88,6 +96,9 @@ impl GameState {
             } => self.foreach_upgrades(|upgrade, game_state| {
                 upgrade.on_stage_end(game_state, perfect_clear, gold, item_count)
             }),
+            UpgradeTriggerEvent::MonsterDeath => {
+                self.foreach_upgrades(|upgrade, game_state| upgrade.on_monster_death(game_state))
+            }
         };
         self.refresh_upgrade_trigger_side_effects(flags);
     }

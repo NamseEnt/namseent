@@ -24,7 +24,7 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.stored_damage_bonus * 100.0),
+            &format!("{:.0}%", self.stored_damage_bonus * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -34,7 +34,7 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::TOWER_STATS
+        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
@@ -48,6 +48,13 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
     fn on_tower_removed(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
         self.stored_damage_bonus += self.damage_bonus_pct;
         UpgradeUpdateFlags::TOWER_STATS
+    }
+
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.stored_damage_bonus > 0.0 {
+            return true;
+        }
+        false
     }
 
     fn l10n_name<'a>(
@@ -66,27 +73,17 @@ impl UpgradeBehavior for DemolitionHammerUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        let current = format!("+{:.0}%", self.stored_damage_bonus * 100.0);
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Removing towers increases all towers' ")
-                    .with_damage_text("damage")
-                    .static_text(" by ")
-                    .with_damage_value(format!("{:.0}%", self.damage_bonus_pct * 100.0))
-                    .static_text(" each time (currently ")
-                    .with_damage_value(current)
-                    .static_text(")");
+                    .static_text("Removing towers increases all towers by")
+                    .with_damage_value(format!("damage {:.0}%", self.damage_bonus_pct * 100.0))
+                    .static_text(" each time");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("타워를 철거할 때마다 모든 타워 ")
-                    .with_damage_text("데미지")
-                    .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
-                    .static_text(" 증가 (현재 ")
-                    .with_damage_value(current)
-                    .static_text(")");
+                    .static_text("타워 철거 시 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }
@@ -101,8 +98,11 @@ impl DemolitionHammerUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_legendary,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     DemolitionHammerUpgrade::into_upgrade(0.5)

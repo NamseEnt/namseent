@@ -238,27 +238,34 @@ impl<'a> TypographyBuilder<'a> {
 
     /// Render and position at top-left
     pub fn render_left_top(&mut self) -> PositionedRichText {
-        PositionedRichText::new(self.render(), Xy::zero())
+        let tree = self.render();
+        let bbox = tree.bounding_box();
+        let offset_x = bbox.map(|r| -r.left()).unwrap_or(px(0.0));
+        let offset_y = bbox.map(|r| -r.top()).unwrap_or(px(0.0));
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
     /// Render and position at left with vertical centering
     pub fn render_left_center(&mut self, height: Px) -> PositionedRichText {
         let tree = self.render();
         let bbox = tree.bounding_box();
-        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
-        let offset_y = (height - rendered_height) / 2.0 - bbox.map(|r| r.top()).unwrap_or(0.px());
-        PositionedRichText::new(tree, Xy::new(px(0.0), offset_y))
+        let offset_x = bbox.map(|r| -r.left()).unwrap_or(px(0.0));
+        let offset_y = bbox
+            .map(|r| (height - r.height()) * 0.5 - r.top())
+            .unwrap_or(px(0.0));
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
     /// Render and center in the given size
     pub fn render_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
         let tree = self.render();
         let bbox = tree.bounding_box();
-        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
-        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
-        let offset_x = (wh.width - rendered_width) / 2.0 - bbox.map(|r| r.left()).unwrap_or(0.px());
-        let offset_y =
-            (wh.height - rendered_height) / 2.0 - bbox.map(|r| r.top()).unwrap_or(0.px());
+        let offset_x = bbox
+            .map(|r| (wh.width - r.width()) * 0.5 - r.left())
+            .unwrap_or(px(0.0));
+        let offset_y = bbox
+            .map(|r| (wh.height - r.height()) * 0.5 - r.top())
+            .unwrap_or(px(0.0));
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
@@ -266,30 +273,36 @@ impl<'a> TypographyBuilder<'a> {
     pub fn render_center_bottom(&mut self, wh: Wh<Px>) -> PositionedRichText {
         let tree = self.render();
         let bbox = tree.bounding_box();
-        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
-        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
-        let offset_x = (wh.width - rendered_width) / 2.0 - bbox.map(|r| r.left()).unwrap_or(0.px());
-        let offset_y = wh.height - rendered_height - bbox.map(|r| r.top()).unwrap_or(0.px());
+        let offset_x = bbox
+            .map(|r| (wh.width - r.width()) * 0.5 - r.left())
+            .unwrap_or(px(0.0));
+        let offset_y = bbox
+            .map(|r| wh.height - r.top() - r.height())
+            .unwrap_or(px(0.0));
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
     /// Render and position at right-top
     pub fn render_right_top(&mut self, width: Px) -> PositionedRichText {
         let tree = self.render();
-        let rendered_width = tree.bounding_box().map(|r| r.width()).unwrap_or(0.px());
-        let offset_x = width - rendered_width;
-        PositionedRichText::new(tree, Xy::new(offset_x, px(0.0)))
+        let bbox = tree.bounding_box();
+        let offset_x = bbox
+            .map(|r| width - r.left() - r.width())
+            .unwrap_or(px(0.0));
+        let offset_y = bbox.map(|r| -r.top()).unwrap_or(px(0.0));
+        PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
     /// Render and position at right-center
     pub fn render_right_center(&mut self, wh: Wh<Px>) -> PositionedRichText {
         let tree = self.render();
         let bbox = tree.bounding_box();
-        let rendered_width = bbox.map(|r| r.width()).unwrap_or(0.px());
-        let rendered_height = bbox.map(|r| r.height()).unwrap_or(0.px());
-        let offset_x = wh.width - rendered_width - bbox.map(|r| r.left()).unwrap_or(0.px());
-        let offset_y =
-            (wh.height - rendered_height) / 2.0 - bbox.map(|r| r.top()).unwrap_or(0.px());
+        let offset_x = bbox
+            .map(|r| wh.width - r.left() - r.width())
+            .unwrap_or(px(0.0));
+        let offset_y = bbox
+            .map(|r| (wh.height - r.height()) * 0.5 - r.top())
+            .unwrap_or(px(0.0));
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }
 
@@ -298,10 +311,10 @@ impl<'a> TypographyBuilder<'a> {
         let tree = self.render();
         let bbox = tree.bounding_box();
         let offset_x = bbox
-            .map(|r| wh.width - (r.left() + r.width() / 2.0))
+            .map(|r| wh.width - r.left() - r.width())
             .unwrap_or(px(0.0));
         let offset_y = bbox
-            .map(|r| wh.height - (r.top() + r.height() / 2.0))
+            .map(|r| wh.height - r.top() - r.height())
             .unwrap_or(px(0.0));
         PositionedRichText::new(tree, Xy::new(offset_x, offset_y))
     }

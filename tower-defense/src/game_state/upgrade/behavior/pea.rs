@@ -21,7 +21,7 @@ impl UpgradeBehavior for PeaUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::HEAL_TO_FULL
+        UpgradeUpdateFlags::HEAL_TO_FULL | UpgradeUpdateFlags::REVISION
     }
 
     fn max_hp_plus(&self) -> f32 {
@@ -47,19 +47,13 @@ impl UpgradeBehavior for PeaUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Increase max ")
-                    .with_health_value("HP")
-                    .static_text(" by ")
-                    .with_health_value(format!("{:.0}", PEA_HP_PLUS))
-                    .static_text(" and heal to full");
+                    .with_health_value(format!("Max HP +{:.0}", PEA_HP_PLUS))
+                    .static_text(", heal to full");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("최대 ")
-                    .with_health_value("체력")
-                    .static_text("이 ")
-                    .with_health_value(format!("{:.0}", PEA_HP_PLUS))
-                    .static_text(" 증가하고 즉시 회복합니다");
+                    .with_health_value(format!("최대 체력 +{:.0}", PEA_HP_PLUS))
+                    .static_text(", 체력을 최대치로 회복");
             }
         };
     }
@@ -71,8 +65,11 @@ impl PeaUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     PeaUpgrade::into_upgrade()

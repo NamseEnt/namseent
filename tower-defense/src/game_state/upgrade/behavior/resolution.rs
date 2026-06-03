@@ -25,27 +25,19 @@ impl UpgradeBehavior for ResolutionUpgrade {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
             &format!(
-                "+{:.0}%",
+                "{:.0}%",
                 self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
             ),
             crate::theme::palette::RED,
         ))
     }
 
-    fn on_stage_end(
-        &mut self,
-        game_state: &mut GameState,
-        _perfect_clear: bool,
-        _gold: usize,
-        _item_count: usize,
-    ) -> UpgradeUpdateFlags {
-        let before = self.stored_rerolls;
-        self.stored_rerolls = game_state.left_dice;
-        if self.stored_rerolls != before {
-            UpgradeUpdateFlags::TOWER_STATS
-        } else {
-            UpgradeUpdateFlags::NONE
-        }
+    fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
+        self.update_stored_rerolls(game_state)
+    }
+
+    fn on_card_reroll(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.update_stored_rerolls(game_state)
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
@@ -57,6 +49,13 @@ impl UpgradeBehavior for ResolutionUpgrade {
         } else {
             None
         }
+    }
+
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.stored_rerolls > 0 {
+            return true;
+        }
+        false
     }
 
     fn l10n_name<'a>(
@@ -78,27 +77,21 @@ impl UpgradeBehavior for ResolutionUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Remaining rerolls add ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct_per_reroll * 100.0))
-                    .static_text(" damage to the next tower (currently ")
+                    .static_text("Remaining rerolls give ")
                     .with_damage_value(format!(
-                        "+{:.0}%",
-                        self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
+                        "damage +{:.0}%",
+                        self.damage_bonus_pct_per_reroll * 100.0
                     ))
-                    .static_text(")");
+                    .static_text("for all towers");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("남은 리롤마다 ")
-                    .with_damage_text("피해")
+                    .static_text("남은 리롤마다 모든 타워")
                     .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct_per_reroll * 100.0))
-                    .static_text(" (현재 ")
                     .with_damage_value(format!(
-                        "+{:.0}%",
-                        self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
-                    ))
-                    .static_text(")");
+                        "데미지 +{:.0}%",
+                        self.damage_bonus_pct_per_reroll * 100.0
+                    ));
             }
         }
     }
@@ -111,10 +104,22 @@ impl ResolutionUpgrade {
             stored_rerolls: 0,
         })
     }
+
+    fn update_stored_rerolls(&mut self, game_state: &GameState) -> UpgradeUpdateFlags {
+        if self.stored_rerolls != game_state.left_dice {
+            self.stored_rerolls = game_state.left_dice;
+            UpgradeUpdateFlags::TOWER_STATS
+        } else {
+            UpgradeUpdateFlags::NONE
+        }
+    }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     ResolutionUpgrade::into_upgrade(0.25)
@@ -212,5 +217,22 @@ mod tests {
         let flags = upgrade.on_stage_end(&mut game_state, false, 0, 0);
 
         assert_eq!(flags, UpgradeUpdateFlags::NONE);
+    }
+
+    #[test]
+    fn resolution_updates_tower_stats_on_card_reroll() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let mut upgrade = ResolutionUpgrade {
+            damage_bonus_pct_per_reroll: 0.25,
+            stored_rerolls: 2,
+        };
+        game_state.left_dice = 1;
+
+        let flags = upgrade.on_card_reroll(&mut game_state);
+
+        assert!(flags.contains(UpgradeUpdateFlags::TOWER_STATS));
+        assert_eq!(upgrade.stored_rerolls, 1);
     }
 }

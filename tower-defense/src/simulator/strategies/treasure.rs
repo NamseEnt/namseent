@@ -1,7 +1,6 @@
 use crate::game_state::GameState;
 use crate::game_state::upgrade::Upgrade;
 use rand::RngCore;
-use std::cmp::Ordering;
 
 /// Strategy for selecting treasure options.
 pub trait TreasureStrategy: Send + Sync {
@@ -24,87 +23,46 @@ impl TreasureStrategy for SynergyTreasureStrategy {
 
     fn select_treasure(
         &self,
-        game_state: &GameState,
+        _game_state: &GameState,
         options: &[Upgrade],
-        _rng: &mut dyn RngCore,
+        rng: &mut dyn RngCore,
     ) -> usize {
-        options
-            .iter()
-            .enumerate()
-            .max_by(|(_, a), (_, b)| {
-                self.score_option(game_state, a)
-                    .partial_cmp(&self.score_option(game_state, b))
-                    .unwrap_or(Ordering::Equal)
-            })
-            .map(|(idx, _)| idx)
-            .unwrap_or(0)
+        if options.is_empty() {
+            return 0;
+        }
+
+        let mut total_weight = 0u32;
+        let mut weights = Vec::with_capacity(options.len());
+
+        for option in options {
+            let weight = Self::rarity_weight(option);
+            weights.push(weight);
+            total_weight += weight;
+        }
+
+        if total_weight == 0 {
+            return 0;
+        }
+
+        let mut choice = (rng.next_u64() % total_weight as u64) as u32;
+        for (idx, weight) in weights.iter().enumerate() {
+            if choice < *weight {
+                return idx;
+            }
+            choice -= *weight;
+        }
+
+        options.len() - 1
     }
 }
 
 impl SynergyTreasureStrategy {
-    fn score_option(&self, game_state: &GameState, option: &Upgrade) -> f32 {
-        let stage = game_state.stage as f32;
-        let base_value = match option {
-            Upgrade::Cat(..) => 7.0 + (8 - game_state.upgrade_state.gold_earn_plus()) as f32 * 0.8,
-            Upgrade::Backpack(..) => {
-                6.5 + (2 - game_state.upgrade_state.shop_slot_expand()) as f32 * 1.2
-            }
-            Upgrade::DiceBundle(..) => {
-                7.5 + (4 - game_state.upgrade_state.dice_chance_plus()) as f32 * 1.3
-            }
-            Upgrade::EnergyDrink(..) => {
-                6.5 + (15 - game_state.upgrade_state.shop_item_price_minus()) as f32 * 0.2
-            }
-            Upgrade::FourLeafClover(..) => {
-                if game_state.upgrade_state.shorten_straight_flush_to_4_cards() {
-                    3.0
-                } else {
-                    5.5
-                }
-            }
-            Upgrade::Rabbit(..) => {
-                if game_state.upgrade_state.skip_rank_for_straight() {
-                    3.0
-                } else {
-                    5.0
-                }
-            }
-            Upgrade::BlackWhite(..) => {
-                if game_state.upgrade_state.treat_suits_as_same() {
-                    3.0
-                } else {
-                    5.0
-                }
-            }
-            Upgrade::Eraser(..) => {
-                5.5 + (5 - game_state.upgrade_state.removed_number_rank_count()) as f32 * 0.7
-            }
-            _ => 4.0,
-        };
-
-        let mut score = base_value;
-
-        if game_state.stage <= 12
-            && matches!(
-                option,
-                Upgrade::Backpack(..) | Upgrade::DiceBundle(..) | Upgrade::Cat(..)
-            )
-        {
-            score += 1.5;
+    fn rarity_weight(option: &Upgrade) -> u32 {
+        match option.discriminant().rarity() {
+            crate::Rarity::Legendary => 50,
+            crate::Rarity::Epic => 25,
+            crate::Rarity::Rare => 10,
+            crate::Rarity::Common => 5,
         }
-
-        if game_state.hp < game_state.config.player.max_hp * 0.5
-            && matches!(option, Upgrade::EnergyDrink(..) | Upgrade::Cat(..))
-        {
-            score += 1.5;
-        }
-
-        if game_state.upgrade_state.shop_item_price_minus() == 0
-            && matches!(option, Upgrade::EnergyDrink(..))
-        {
-            score += 1.0;
-        }
-
-        score * (1.0 + (stage / 50.0).min(0.8))
     }
 }

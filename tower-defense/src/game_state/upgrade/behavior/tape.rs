@@ -24,23 +24,26 @@ impl UpgradeBehavior for TapeUpgrade {
         width_height: Wh<Px>,
         game_state: &GameState,
     ) -> Option<RenderingTree> {
-        let cycle = if game_state.stage <= self.acquired_stage {
-            1
-        } else {
-            ((game_state.stage - self.acquired_stage - 1) % 4) + 1
-        };
-        let active = cycle == 4;
-        let color = if active {
+        let cycle = self.cycle(game_state.stage);
+        let active = cycle == TAPE_WAVE_INTERVAL;
+        let stage_color = if active {
             crate::theme::palette::WHITE
         } else {
             crate::theme::palette::DISABLED_TEXT
         };
 
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{}/4", cycle),
-            color,
-        ))
+        Some(render([
+            crate::thumbnail::render_right_top_overlay(
+                width_height.width,
+                &format!("{}/{}", cycle, TAPE_WAVE_INTERVAL),
+                stage_color,
+            ),
+            crate::thumbnail::render_right_bottom_overlay(
+                width_height,
+                &format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0),
+                crate::theme::palette::BLUE,
+            ),
+        ]))
     }
 
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -49,13 +52,14 @@ impl UpgradeBehavior for TapeUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::REVISION
     }
 
     fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
-        if stage > self.acquired_stage
-            && (stage - self.acquired_stage - 1).is_multiple_of(TAPE_WAVE_INTERVAL)
-        {
+        let cycle = self.cycle(stage);
+        let active = cycle == TAPE_WAVE_INTERVAL;
+
+        if active {
             game_state
                 .stage_modifiers
                 .apply_enemy_speed_multiplier(TAPE_ENEMY_SPEED_MULTIPLIER);
@@ -84,23 +88,22 @@ impl UpgradeBehavior for TapeUpgrade {
                 builder
                     .static_text("Slow enemies by ")
                     .with_movement_speed_debuff_value(format!(
-                        "{:.0}%",
+                        "-{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
                     ))
                     .static_text(" every ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
-                    .static_text(" waves after acquisition");
+                    .static_text(" stages");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("획득 후 매 ")
+                    .static_text("매 ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
-                    .static_text("웨이브마다 적의 이동속도가 ")
+                    .static_text("스테이지마다 적 ")
                     .with_movement_speed_debuff_value(format!(
-                        "{:.0}%",
+                        "이동속도 -{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
-                    ))
-                    .static_text(" 느려집니다");
+                    ));
             }
         }
     }
@@ -110,10 +113,17 @@ impl TapeUpgrade {
     pub fn into_upgrade(acquired_stage: usize) -> Upgrade {
         Upgrade::Tape(TapeUpgrade { acquired_stage })
     }
+
+    fn cycle(&self, stage: usize) -> usize {
+        (stage - self.acquired_stage) % TAPE_WAVE_INTERVAL + 1
+    }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_epic,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     TapeUpgrade::into_upgrade(0)

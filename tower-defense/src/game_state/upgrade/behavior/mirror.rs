@@ -57,8 +57,11 @@ impl MirrorUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     MirrorUpgrade::into_upgrade()

@@ -16,11 +16,25 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::BLUE,
+        ))
+    }
+
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state.left_dice += self.add;
+
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::DiceBundle(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
-                return UpgradeUpdateFlags::NONE;
+                return UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -28,7 +42,7 @@ impl UpgradeBehavior for DiceBundleUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn dice_chance_plus(&self) -> usize {
@@ -52,12 +66,12 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder
-                .static_text("Dice ")
-                .with_dice_value(format!("+{}", self.add)),
-            crate::l10n::locale::Language::Korean => builder
-                .with_dice_text("주사위 ")
-                .with_dice_value(format!("+{}", self.add)),
+            crate::l10n::locale::Language::English => {
+                builder.with_dice_value(format!("Dice +{}", self.add))
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder.with_dice_value(format!("주사위 +{}", self.add))
+            }
         };
     }
 }
@@ -68,16 +82,12 @@ impl DiceBundleUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     DiceBundleUpgrade::into_upgrade(1)
-}
-
-fn current_and_max(upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
-    Some((
-        upgrade_state.dice_chance_plus(),
-        super::MAX_DICE_CHANCE_PLUS,
-    ))
 }

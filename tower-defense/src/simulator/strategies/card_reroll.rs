@@ -279,6 +279,7 @@ fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
     game_state.deck.put_back(old_cards);
     game_state.left_dice = game_state.left_dice.saturating_sub(1);
     game_state.rerolled_count += 1;
+    game_state.action(crate::game_state::GameStateAction::CardReroll);
 
     for _ in 0..reroll_ids.len() {
         let card = game_state.deck.draw().unwrap_or_else(Card::new_random);

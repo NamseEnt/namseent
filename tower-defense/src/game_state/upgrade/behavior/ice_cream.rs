@@ -28,7 +28,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
 
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            &format!("{:.0}%", self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -38,7 +38,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::TOWER_STATS
+        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
     fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
@@ -72,6 +72,13 @@ impl UpgradeBehavior for IceCreamUpgrade {
         }
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.waves_remaining == 0 {
+            return false;
+        }
+        true
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
@@ -91,9 +98,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .with_damage_text("Damage")
-                    .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0))
+                    .with_damage_value(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
                     .static_text(" for ")
                     .text(self.waves_remaining.to_string())
                     .static_text(" waves");
@@ -101,10 +106,8 @@ impl UpgradeBehavior for IceCreamUpgrade {
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.waves_remaining.to_string())
-                    .static_text("웨이브 동안 ")
-                    .with_damage_text("피해")
-                    .static_text(" ")
-                    .with_damage_value(format!("+{:.0}%", self.damage_bonus_pct * 100.0));
+                    .static_text("웨이브 동안 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }
@@ -119,11 +122,14 @@ impl IceCreamUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    IceCreamUpgrade::into_upgrade(2.0, 5)
+    IceCreamUpgrade::into_upgrade(3.0, 5)
 }
 #[cfg(test)]
 mod tests {

@@ -13,6 +13,14 @@ impl UpgradeBehavior for RabbitUpgrade {
         )
     }
 
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
+    }
+
     fn skip_rank_for_straight(&self) -> bool {
         true
     }
@@ -48,8 +56,11 @@ impl RabbitUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     RabbitUpgrade::into_upgrade()

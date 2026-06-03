@@ -24,9 +24,12 @@ impl UpgradeBehavior for PopcornUpgrade {
         width_height: Wh<Px>,
         _game_state: &GameState,
     ) -> Option<RenderingTree> {
+        if self.active_stage_damage_bonus <= 0.0 {
+            return None;
+        }
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.active_stage_damage_bonus * 100.0),
+            &format!("{:.0}%", self.active_stage_damage_bonus * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -59,6 +62,13 @@ impl UpgradeBehavior for PopcornUpgrade {
         }
     }
 
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.waves_remaining == 0 {
+            return false;
+        }
+        true
+    }
+
     fn l10n_name<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
@@ -78,21 +88,18 @@ impl UpgradeBehavior for PopcornUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .with_damage_text("Damage")
-                    .static_text(" lasts for ")
+                    .static_text("For ")
                     .text(self.duration.to_string())
-                    .static_text(" waves with a max multiplier of ")
-                    .with_damage_value(format!("{:.0}%", self.max_multiplier * 100.0))
-                    .static_text(", decreasing each wave");
+                    .static_text(" stages, all tower")
+                    .with_damage_value(format!("damage +{:.0}%", self.max_multiplier * 100.0))
+                    .static_text(", decreasing each stage");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.duration.to_string())
-                    .static_text("웨이브 동안 ")
-                    .with_damage_text("데미지")
-                    .static_text(" 최대 ")
-                    .with_damage_value(format!("{:.0}%", self.max_multiplier * 100.0))
-                    .static_text("까지 증가하며, 웨이브가 지날수록 증가치가 감소합니다");
+                    .static_text("스테이지 동안 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", self.max_multiplier * 100.0))
+                    .static_text(", 스테이지가 지날수록 감소합니다");
             }
         }
     }
@@ -109,8 +116,11 @@ impl PopcornUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     PopcornUpgrade::into_upgrade(5.0, 5, 5)

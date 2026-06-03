@@ -11,7 +11,6 @@ pub struct UpgradeState {
 #[derive(Debug, Clone, State)]
 pub struct UpgradeCache {
     pub max_hp_plus: usize,
-    pub gold_earn_plus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
     pub shop_item_price_minus: usize,
@@ -26,7 +25,6 @@ impl Default for UpgradeCache {
     fn default() -> Self {
         UpgradeCache {
             max_hp_plus: 0,
-            gold_earn_plus: 0,
             shop_slot_expand: 0,
             dice_chance_plus: 0,
             shop_item_price_minus: 0,
@@ -45,7 +43,6 @@ impl UpgradeCache {
 
         for upgrade in &state.upgrades {
             cache.max_hp_plus += upgrade.max_hp_plus() as usize;
-            cache.gold_earn_plus += upgrade.gold_earn_plus();
             cache.shop_slot_expand += upgrade.shop_slot_expand();
             cache.dice_chance_plus += upgrade.dice_chance_plus();
             cache.shop_item_price_minus += upgrade.shop_item_price_minus();
@@ -84,10 +81,6 @@ impl UpgradeState {
 
     pub fn max_hp_plus(&self) -> usize {
         self.cache().max_hp_plus
-    }
-
-    pub fn gold_earn_plus(&self) -> usize {
-        self.cache().gold_earn_plus
     }
 
     pub fn shop_slot_expand(&self) -> usize {

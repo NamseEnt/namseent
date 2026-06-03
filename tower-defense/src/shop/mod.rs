@@ -1,14 +1,15 @@
 mod shop_slot;
 
 use crate::{
-    game_state::{GameState, flow::GameFlow, upgrade::generate_tower_damage_upgrade},
+    game_state::{GameState, flow::GameFlow, upgrade::generate_shop_upgrade},
     *,
 };
 use namui::OneZero;
 use rand::{Rng, thread_rng};
 pub use shop_slot::*;
 
-const SHOP_BASE_COST: f32 = 50.0;
+const SHOP_ITEM_BASE_COST: f32 = 20.0;
+const SHOP_UPGRADE_BASE_COST: f32 = 40.0;
 const SHOP_VALUE_COST_MULTIPLIER: f32 = 0.5;
 
 #[derive(Clone, Debug, State)]
@@ -104,11 +105,11 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
             ShopSlot::Item { item, cost }
         }
         5..=9 => {
-            let upgrade = generate_tower_damage_upgrade(game_state);
+            let upgrade = generate_shop_upgrade(game_state);
             let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
                 0
             } else {
-                item_cost(
+                item_upgrade_cost(
                     OneZero::default(),
                     game_state.upgrade_state.shop_item_price_minus(),
                 )
@@ -120,14 +121,14 @@ fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
 }
 
 fn random_item_cost<R: Rng + ?Sized>(rng: &mut R, discount: usize) -> usize {
-    let base_cost = SHOP_BASE_COST;
+    let base_cost = SHOP_ITEM_BASE_COST;
     let additional_cost = rng.gen_range(0.0..=base_cost * SHOP_VALUE_COST_MULTIPLIER);
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize
 }
 
-fn item_cost(value: OneZero, discount: usize) -> usize {
-    let base_cost = SHOP_BASE_COST;
+fn item_upgrade_cost(value: OneZero, discount: usize) -> usize {
+    let base_cost = SHOP_UPGRADE_BASE_COST;
     let additional_cost = value.as_f32() * base_cost * SHOP_VALUE_COST_MULTIPLIER;
     let cost = base_cost + additional_cost - discount as f32;
     cost.max(0.0) as usize

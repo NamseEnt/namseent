@@ -3,6 +3,7 @@ use super::*;
 use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
+use crate::rarity::Rarity;
 use enum_dispatch::enum_dispatch;
 use namui::*;
 
@@ -21,6 +22,7 @@ impl UpgradeUpdateFlags {
     pub const TOWER_STATS: Self = Self(1 << 0);
     pub const CACHE: Self = Self(1 << 1);
     pub const HEAL_TO_FULL: Self = Self(1 << 2);
+    pub const REVISION: Self = Self(1 << 3);
 
     pub fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
@@ -64,8 +66,8 @@ pub trait UpgradeBehavior {
         None
     }
 
-    fn on_monster_death(&mut self, _game_state: &mut GameState) -> bool {
-        false
+    fn on_monster_death(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
     }
 
     fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
@@ -82,12 +84,12 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        0.0
+    fn on_card_reroll(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+        UpgradeUpdateFlags::NONE
     }
 
-    fn gold_earn_plus(&self) -> usize {
-        0
+    fn max_hp_plus(&self) -> f32 {
+        0.0
     }
 
     fn shop_slot_expand(&self) -> usize {
@@ -126,7 +128,7 @@ pub trait UpgradeBehavior {
             .upgrade_state
             .upgrades
             .push(self.into().with_unique_id());
-        UpgradeUpdateFlags::NONE
+        UpgradeUpdateFlags::REVISION
     }
 
     fn on_item_bought(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -170,23 +172,44 @@ pub trait UpgradeBehavior {
     ) -> Option<RenderingTree> {
         None
     }
+
+    #[allow(dead_code)]
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Common
+    }
 }
 
 #[derive(Clone, Copy)]
 pub(super) struct UpgradeDefinition {
     generate: fn(&UpgradeState) -> Upgrade,
     current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+    rarity: fn() -> Rarity,
 }
 
 impl UpgradeDefinition {
     pub(super) const fn new(
         generate: fn(&UpgradeState) -> Upgrade,
         current_and_max: fn(&UpgradeState) -> Option<(usize, usize)>,
+        rarity: fn() -> Rarity,
     ) -> Self {
         Self {
             generate,
             current_and_max,
+            rarity,
         }
+    }
+
+    const fn rarity_common() -> Rarity {
+        Rarity::Common
+    }
+    const fn rarity_rare() -> Rarity {
+        Rarity::Rare
+    }
+    const fn rarity_epic() -> Rarity {
+        Rarity::Epic
+    }
+    const fn rarity_legendary() -> Rarity {
+        Rarity::Legendary
     }
 
     pub(super) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
@@ -195,6 +218,10 @@ impl UpgradeDefinition {
 
     pub(super) fn current_and_max(self, upgrade_state: &UpgradeState) -> Option<(usize, usize)> {
         (self.current_and_max)(upgrade_state)
+    }
+
+    pub(super) fn rarity(self) -> Rarity {
+        (self.rarity)()
     }
 }
 
@@ -224,7 +251,7 @@ impl SelectedTowerContext {
             kind: tower.kind,
             suit: tower.suit,
             rank: tower.rank,
-            rerolled_count: None,
+            rerolled_count: Some(tower.rerolled_count),
         }
     }
 
@@ -416,6 +443,49 @@ impl Upgrade {
     pub fn with_unique_id(self) -> UpgradeWithId {
         UpgradeWithId::new(self)
     }
+
+    pub fn discriminant(&self) -> UpgradeDiscriminants {
+        match self {
+            Upgrade::Cat(_) => UpgradeDiscriminants::Cat,
+            Upgrade::Staff(_) => UpgradeDiscriminants::Staff,
+            Upgrade::LongSword(_) => UpgradeDiscriminants::LongSword,
+            Upgrade::Mace(_) => UpgradeDiscriminants::Mace,
+            Upgrade::ClubSword(_) => UpgradeDiscriminants::ClubSword,
+            Upgrade::Backpack(_) => UpgradeDiscriminants::Backpack,
+            Upgrade::DiceBundle(_) => UpgradeDiscriminants::DiceBundle,
+            Upgrade::Tricycle(_) => UpgradeDiscriminants::Tricycle,
+            Upgrade::EnergyDrink(_) => UpgradeDiscriminants::EnergyDrink,
+            Upgrade::PerfectPottery(_) => UpgradeDiscriminants::PerfectPottery,
+            Upgrade::SingleChopstick(_) => UpgradeDiscriminants::SingleChopstick,
+            Upgrade::PairChopsticks(_) => UpgradeDiscriminants::PairChopsticks,
+            Upgrade::FountainPen(_) => UpgradeDiscriminants::FountainPen,
+            Upgrade::Brush(_) => UpgradeDiscriminants::Brush,
+            Upgrade::FourLeafClover(_) => UpgradeDiscriminants::FourLeafClover,
+            Upgrade::Rabbit(_) => UpgradeDiscriminants::Rabbit,
+            Upgrade::BlackWhite(_) => UpgradeDiscriminants::BlackWhite,
+            Upgrade::Trophy(_) => UpgradeDiscriminants::Trophy,
+            Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
+            Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
+            Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
+            Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
+            Upgrade::NameTag(_) => UpgradeDiscriminants::NameTag,
+            Upgrade::ShoppingBag(_) => UpgradeDiscriminants::ShoppingBag,
+            Upgrade::Resolution(_) => UpgradeDiscriminants::Resolution,
+            Upgrade::Mirror(_) => UpgradeDiscriminants::Mirror,
+            Upgrade::IceCream(_) => UpgradeDiscriminants::IceCream,
+            Upgrade::Spanner(_) => UpgradeDiscriminants::Spanner,
+            Upgrade::Pea(_) => UpgradeDiscriminants::Pea,
+            Upgrade::SlotMachine(_) => UpgradeDiscriminants::SlotMachine,
+            Upgrade::PiggyBank(_) => UpgradeDiscriminants::PiggyBank,
+            Upgrade::Camera(_) => UpgradeDiscriminants::Camera,
+            Upgrade::GiftBox(_) => UpgradeDiscriminants::GiftBox,
+            Upgrade::Fang(_) => UpgradeDiscriminants::Fang,
+            Upgrade::Popcorn(_) => UpgradeDiscriminants::Popcorn,
+            Upgrade::MembershipCard(_) => UpgradeDiscriminants::MembershipCard,
+            Upgrade::Eraser(_) => UpgradeDiscriminants::Eraser,
+            Upgrade::BrokenPottery(_) => UpgradeDiscriminants::BrokenPottery,
+        }
+    }
 }
 
 impl UpgradeDiscriminants {
@@ -468,6 +538,10 @@ impl UpgradeDiscriminants {
 
     pub(crate) fn generate(self, upgrade_state: &UpgradeState) -> Upgrade {
         self.definition().generate(upgrade_state)
+    }
+
+    pub(crate) fn rarity(self) -> Rarity {
+        self.definition().rarity()
     }
 }
 

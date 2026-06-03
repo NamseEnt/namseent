@@ -1,9 +1,11 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
+const DICE_BONUS: usize = 2;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct MetronomeUpgrade {
-    pub start_stage: Option<usize>,
+    acquired_stage: usize,
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
@@ -21,35 +23,42 @@ impl UpgradeBehavior for MetronomeUpgrade {
         width_height: Wh<Px>,
         game_state: &GameState,
     ) -> Option<RenderingTree> {
-        let cycle = if let Some(start) = self.start_stage {
-            if game_state.stage <= start {
-                1
-            } else {
-                ((game_state.stage - start) % 2) + 1
-            }
-        } else {
-            1
-        };
-        let active = self.start_stage.is_some_and(|start| {
-            game_state.stage >= start && (game_state.stage - start).is_multiple_of(2)
-        });
-        let color = if active {
+        let cycle = self.cycle(game_state.stage);
+        let active = cycle == 2;
+        let stage_color = if active {
             crate::theme::palette::WHITE
         } else {
             crate::theme::palette::DISABLED_TEXT
         };
 
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{}/2", cycle),
-            color,
-        ))
+        Some(render([
+            crate::thumbnail::render_right_top_overlay(
+                width_height.width,
+                &format!("{}/2", cycle),
+                stage_color,
+            ),
+            crate::thumbnail::render_right_bottom_overlay(
+                width_height,
+                &format!("{}", DICE_BONUS),
+                crate::theme::palette::BLUE,
+            ),
+        ]))
     }
 
-    fn on_stage_start(&mut self, _game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
-        let start = self.start_stage.get_or_insert(stage);
-        if stage >= *start && (stage - *start).is_multiple_of(2) {
-            _game_state.left_dice += 1;
+    fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        self.acquired_stage = game_state.stage;
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::REVISION
+    }
+
+    fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
+        let cycle = self.cycle(stage);
+        let active = cycle == 2;
+        if active {
+            game_state.left_dice += DICE_BONUS;
         }
         UpgradeUpdateFlags::NONE
     }
@@ -72,24 +81,30 @@ impl UpgradeBehavior for MetronomeUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .static_text("Gain ")
-                .with_dice_text("1 extra dice")
+                .with_dice_text("Dice +2")
                 .static_text(" every 2 stages"),
             crate::l10n::locale::Language::Korean => builder
-                .with_dice_text("주사위 +1")
-                .static_text("을 얻습니다"),
+                .static_text("2 스테이지마다")
+                .with_dice_text("주사위 +2"),
         };
     }
 }
 
 impl MetronomeUpgrade {
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::Metronome(MetronomeUpgrade { start_stage: None })
+        Upgrade::Metronome(MetronomeUpgrade { acquired_stage: 0 })
+    }
+
+    fn cycle(&self, stage: usize) -> usize {
+        (stage - self.acquired_stage) % 2 + 1
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_common,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     MetronomeUpgrade::into_upgrade()
@@ -97,38 +112,28 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::upgrade::{UpgradeBehavior, UpgradeUpdateFlags};
+    use crate::game_state::upgrade::UpgradeBehavior;
 
     #[test]
     fn metronome_grants_extra_dice_every_two_waves() {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        let mut upgrade = MetronomeUpgrade { start_stage: None };
+        let mut upgrade = MetronomeUpgrade { acquired_stage: 1 };
 
         game_state.left_dice = game_state.max_dice_chance();
         upgrade.on_stage_start(&mut game_state, 1);
-        assert_eq!(game_state.left_dice, game_state.max_dice_chance() + 1);
-
-        game_state.left_dice = game_state.max_dice_chance();
-        upgrade.on_stage_start(&mut game_state, 2);
         assert_eq!(game_state.left_dice, game_state.max_dice_chance());
 
         game_state.left_dice = game_state.max_dice_chance();
+        upgrade.on_stage_start(&mut game_state, 2);
+        assert_eq!(
+            game_state.left_dice,
+            game_state.max_dice_chance() + DICE_BONUS
+        );
+
+        game_state.left_dice = game_state.max_dice_chance();
         upgrade.on_stage_start(&mut game_state, 3);
-        assert_eq!(game_state.left_dice, game_state.max_dice_chance() + 1);
-    }
-
-    #[test]
-    fn metronome_returns_revision_required_only_on_first_stage_start() {
-        let mut upgrade = MetronomeUpgrade { start_stage: None };
-        use crate::game_state::upgrade::tests::support;
-        let mut game_state = support::create_mock_game_state();
-
-        let first_flags = upgrade.on_stage_start(&mut game_state, 1);
-        let second_flags = upgrade.on_stage_start(&mut game_state, 2);
-
-        assert_eq!(first_flags, UpgradeUpdateFlags::NONE);
-        assert_eq!(second_flags, UpgradeUpdateFlags::NONE);
+        assert_eq!(game_state.left_dice, game_state.max_dice_chance());
     }
 }

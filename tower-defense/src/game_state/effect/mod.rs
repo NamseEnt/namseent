@@ -160,7 +160,7 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             }
         }
         Effect::GrantUpgrade { rarity: _ } => {
-            let upgrade = crate::game_state::upgrade::generate_treasure_upgrade(game_state);
+            let upgrade = crate::game_state::upgrade::generate_boss_reward_upgrade(game_state);
             game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
         }
         Effect::GrantItem { rarity: _ } => {

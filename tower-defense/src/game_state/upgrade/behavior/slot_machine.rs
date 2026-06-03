@@ -44,13 +44,11 @@ impl UpgradeBehavior for SlotMachineUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .static_text("Gain ")
-                .with_dice_value(format!("+{}", self.next_round_dice))
+                .with_dice_value(format!("Dice +{}", self.next_round_dice))
                 .static_text(" next stage"),
             crate::l10n::locale::Language::Korean => builder
-                .static_text("다음 스테이지에 ")
-                .with_dice_value(format!("+{}", self.next_round_dice))
-                .static_text(" 주사위를 얻습니다"),
+                .static_text("다음 스테이지 ")
+                .with_dice_value(format!("주사위 +{}", self.next_round_dice)),
         };
     }
 }
@@ -61,8 +59,11 @@ impl SlotMachineUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_rare,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     SlotMachineUpgrade::into_upgrade(10)

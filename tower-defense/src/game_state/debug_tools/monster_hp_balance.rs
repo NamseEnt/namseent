@@ -168,7 +168,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
     // Step 3: Apply expected upgrade
     let (expected_rarity, expected_category) = get_expected_upgrade_for_stage(gs.stage);
     let upgrade = if expected_category == UpgradeCategory::Random {
-        crate::game_state::upgrade::generate_treasure_upgrade(gs)
+        crate::game_state::upgrade::generate_boss_reward_upgrade(gs)
     } else {
         expected_category.generate_upgrade_kind(expected_rarity)
     };

@@ -6,6 +6,8 @@ pub struct TrophyUpgrade {
     pub perfect_clear_stacks: usize,
 }
 
+const DAMAGE_BONUS_PCT: f32 = 1.0;
+
 impl UpgradeBehavior for TrophyUpgrade {
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
@@ -24,10 +26,8 @@ impl UpgradeBehavior for TrophyUpgrade {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
             &format!(
-                "+{:.0}%",
-                self.perfect_clear_stacks as f32
-                    * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0)
-                    * 100.0
+                "{:.0}%",
+                self.perfect_clear_stacks as f32 * (DAMAGE_BONUS_PCT) * 100.0
             ),
             crate::theme::palette::RED,
         ))
@@ -50,11 +50,18 @@ impl UpgradeBehavior for TrophyUpgrade {
         if self.perfect_clear_stacks > 0 {
             Some((
                 TowerUpgradeTarget::Global,
-                self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0),
+                self.perfect_clear_stacks as f32 * (DAMAGE_BONUS_PCT),
             ))
         } else {
             None
         }
+    }
+
+    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
+        if self.perfect_clear_stacks == 0 {
+            return false;
+        }
+        true
     }
 
     fn l10n_name<'a>(
@@ -73,34 +80,16 @@ impl UpgradeBehavior for TrophyUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        let current_bonus =
-            self.perfect_clear_stacks as f32 * (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0);
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Perfect clears increase all towers' ")
-                    .with_damage_text("damage")
-                    .static_text(" by ")
-                    .with_damage_value(format!(
-                        "{:.0}%",
-                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
-                    ))
-                    .static_text(" each wave (currently ")
-                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
-                    .static_text(")");
+                    .static_text("Stage perfect clears increase all towers' ")
+                    .with_damage_value(format!("damage +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("웨이브를 퍼펙트 클리어할 때마다 모든 타워의 ")
-                    .with_damage_text("피해")
-                    .static_text("가 ")
-                    .with_damage_value(format!(
-                        "{:.0}%",
-                        (super::super::TROPHY_DAMAGE_MULTIPLIER - 1.0) * 100.0
-                    ))
-                    .static_text(" 증가합니다 (현재 ")
-                    .with_damage_value(format!("+{:.0}%", current_bonus * 100.0))
-                    .static_text(")");
+                    .static_text("스테이지 퍼펙트 클리어 시 모든 타워 ")
+                    .with_damage_value(format!("데미지 +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
             }
         }
     }
@@ -114,8 +103,11 @@ impl TrophyUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_legendary,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     TrophyUpgrade::into_upgrade()

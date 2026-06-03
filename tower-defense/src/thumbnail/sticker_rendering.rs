@@ -21,6 +21,7 @@ pub fn render_sticker_image_with_shadow(
     namui::render(vec![image_tree, shadow_tree])
 }
 
+const OVERLAY_OVERLAP: Px = px(8.0);
 pub fn render_right_bottom_overlay(
     width_height: Wh<Px>,
     text: &str,
@@ -34,7 +35,27 @@ pub fn render_right_bottom_overlay(
         .static_text(text)
         .render_right_bottom(width_height);
 
-    namui::translate(overlay.offset.x, overlay.offset.y, overlay.tree)
+    namui::translate(
+        overlay.offset.x + OVERLAY_OVERLAP,
+        overlay.offset.y + OVERLAY_OVERLAP,
+        overlay.tree,
+    )
+}
+
+pub fn render_right_top_overlay(width: Px, text: &str, text_color: Color) -> RenderingTree {
+    let overlay = crate::theme::typography::TypographyBuilder::new()
+        .headline()
+        .size(crate::theme::typography::FontSize::Medium)
+        .color(text_color)
+        .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
+        .static_text(text)
+        .render_right_top(width);
+
+    namui::translate(
+        overlay.offset.x + OVERLAY_OVERLAP,
+        overlay.offset.y - OVERLAY_OVERLAP,
+        overlay.tree,
+    )
 }
 
 pub fn render_placeholder_thumbnail(

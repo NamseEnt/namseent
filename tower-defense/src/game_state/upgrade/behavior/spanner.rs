@@ -18,7 +18,7 @@ impl UpgradeBehavior for SpannerUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::CACHE
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
     }
 
     fn clear_shield_on_stage_start(&self) -> bool {
@@ -54,8 +54,11 @@ impl SpannerUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_epic,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     SpannerUpgrade::into_upgrade()

@@ -15,7 +15,9 @@ use std::io::{self, Stdout};
 use std::path::PathBuf;
 use std::time::Duration;
 use tower_defense::set_headless;
-use tower_defense::simulator::stats::{Database, DetailStats, StrategyStats, SummaryRow};
+use tower_defense::simulator::stats::{
+    Database, DetailStats, StrategyStats, SummaryRow, upgrade_rarity_prefix,
+};
 
 #[derive(Parser)]
 #[command(
@@ -32,13 +34,12 @@ struct Cli {
 enum Tab {
     Items,
     Upgrades,
-    Treasures,
     Strategies,
 }
 
 impl Tab {
-    fn titles() -> [&'static str; 4] {
-        ["Items", "Upgrades", "Treasures", "Strategies"]
+    fn titles() -> [&'static str; 3] {
+        ["Items", "Upgrades", "Strategies"]
     }
 }
 
@@ -47,7 +48,6 @@ struct App {
     selection: usize,
     items: Vec<SummaryRow>,
     upgrades: Vec<SummaryRow>,
-    treasures: Vec<SummaryRow>,
     strategies: Vec<StrategyStats>,
     detail: Option<DetailStats>,
     list_state: ListState,
@@ -56,8 +56,7 @@ struct App {
 impl App {
     fn new(db: &Database) -> Result<Self> {
         let items = db.list_items()?;
-        let upgrades = db.list_upgrades()?;
-        let treasures = db.list_treasures()?;
+        let upgrades = db.list_upgrades_and_treasures()?;
         let strategies = db.list_strategy_win_rates()?;
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -66,7 +65,6 @@ impl App {
             selection: 0,
             items,
             upgrades,
-            treasures,
             strategies,
             detail: None,
             list_state,
@@ -79,7 +77,6 @@ impl App {
         match self.tab {
             Tab::Items => &self.items,
             Tab::Upgrades => &self.upgrades,
-            Tab::Treasures => &self.treasures,
             Tab::Strategies => &[],
         }
     }
@@ -92,7 +89,6 @@ impl App {
         match self.tab {
             Tab::Items => self.items.len(),
             Tab::Upgrades => self.upgrades.len(),
-            Tab::Treasures => self.treasures.len(),
             Tab::Strategies => self.strategies.len(),
         }
     }
@@ -107,15 +103,15 @@ impl App {
             self.list_state.select(Some(self.selection));
         }
         self.detail = match self.tab {
-            Tab::Items | Tab::Upgrades => self
+            Tab::Items => self
                 .current_list()
                 .get(self.selection)
                 .map(|row| db.detail_for_shop_purchase(&row.name))
                 .transpose()?,
-            Tab::Treasures => self
+            Tab::Upgrades => self
                 .current_list()
                 .get(self.selection)
-                .map(|row| db.detail_for_treasure(&row.name))
+                .map(|row| db.detail_for_upgrade(&row.name))
                 .transpose()?,
             Tab::Strategies => self
                 .current_strategy()
@@ -128,8 +124,7 @@ impl App {
     fn next_tab(&mut self) {
         self.tab = match self.tab {
             Tab::Items => Tab::Upgrades,
-            Tab::Upgrades => Tab::Treasures,
-            Tab::Treasures => Tab::Strategies,
+            Tab::Upgrades => Tab::Strategies,
             Tab::Strategies => Tab::Items,
         };
         self.selection = 0;
@@ -188,8 +183,7 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
         .select(match app.tab {
             Tab::Items => 0,
             Tab::Upgrades => 1,
-            Tab::Treasures => 2,
-            Tab::Strategies => 3,
+            Tab::Strategies => 2,
         })
         .block(Block::default().borders(Borders::ALL).title("Tabs"))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
@@ -229,9 +223,19 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
             .iter()
             .enumerate()
             .map(|(idx, row)| {
+                let name_label = match app.tab {
+                    Tab::Upgrades => {
+                        if let Some(prefix) = upgrade_rarity_prefix(&row.name) {
+                            format!("{} {}", prefix, row.name)
+                        } else {
+                            row.name.clone()
+                        }
+                    }
+                    _ => row.name.clone(),
+                };
                 let label = format!(
                     "{}  avg {:.1}%  win {:.1}%",
-                    row.name,
+                    name_label,
                     row.avg_clear_rate,
                     row.win_rate * 100.0
                 );
@@ -272,8 +276,13 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
 
 fn build_detail_text(detail: &DetailStats) -> Vec<Line<'_>> {
     let mut lines = Vec::new();
+    let detail_name = if let Some(prefix) = upgrade_rarity_prefix(&detail.name) {
+        format!("{} {}", prefix, detail.name)
+    } else {
+        detail.name.to_string()
+    };
     lines.push(Line::from(Span::styled(
-        detail.name.to_string(),
+        detail_name,
         Style::default().add_modifier(Modifier::BOLD),
     )));
     lines.push(Line::from(Span::raw(format!(

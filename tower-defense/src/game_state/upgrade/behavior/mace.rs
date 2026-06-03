@@ -23,7 +23,7 @@ impl UpgradeBehavior for MaceUpgrade {
     ) -> Option<RenderingTree> {
         Some(crate::thumbnail::render_right_bottom_overlay(
             width_height,
-            &format!("+{:.0}%", self.damage_bonus_pct * 100.0),
+            &format!("{:.0}%", self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
         ))
     }
@@ -36,7 +36,7 @@ impl UpgradeBehavior for MaceUpgrade {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Mace(upgrade) = &mut upgrade.upgrade {
                 upgrade.damage_bonus_pct += self.damage_bonus_pct;
-                return UpgradeUpdateFlags::TOWER_STATS;
+                return UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION;
             }
         }
 
@@ -44,7 +44,7 @@ impl UpgradeBehavior for MaceUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::TOWER_STATS
+        UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
@@ -75,10 +75,10 @@ impl UpgradeBehavior for MaceUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Heart tower ")
-                .with_damage_value(format!("+{:.0}% damage", self.damage_bonus_pct * 100.0)),
+                .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("하트 타워 ")
-                .with_damage_value(format!("+{:.0}% 피해", self.damage_bonus_pct * 100.0)),
+                .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
         };
     }
 }
@@ -89,8 +89,11 @@ impl MaceUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, no_current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    no_current_and_max,
+    UpgradeDefinition::rarity_common,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     MaceUpgrade::into_upgrade(0.5)

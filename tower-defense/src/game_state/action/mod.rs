@@ -1,4 +1,5 @@
 mod apply_user_status_effect;
+mod card_reroll;
 mod earn_gold;
 mod gain_rerolls;
 mod gain_shield;
@@ -39,11 +40,13 @@ pub(crate) enum GameStateAction<'a> {
     EarnGold(usize),
     Heal(f32),
     GainRerolls(usize),
+    CardReroll,
     GainShield(f32),
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
     PlaceTower(Box<Tower>, Option<HandSlotId>),
     RemoveTower(usize),
+    MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantHandItem(HandItem),
     GrantTowerCard {
@@ -102,6 +105,10 @@ impl GameState {
                 gain_shield::apply(self, amount);
                 true
             }
+            GameStateAction::CardReroll => {
+                card_reroll::trigger_upgrades(self);
+                true
+            }
             GameStateAction::SpendGold(amount) => {
                 spend_gold::deduct_from_balance(self, amount);
                 spend_gold::trigger_upgrades(self, amount);
@@ -111,6 +118,12 @@ impl GameState {
             GameStateAction::Upgrade(upgrade, cost) => {
                 upgrade::trigger_upgrades(self, upgrade);
                 upgrade::record_history_event(self, upgrade, cost);
+                true
+            }
+            GameStateAction::MonsterDeath => {
+                self.handle_upgrade_trigger(
+                    crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent::MonsterDeath,
+                );
                 true
             }
             GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {

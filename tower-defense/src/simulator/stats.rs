@@ -117,6 +117,15 @@ impl Database {
         Ok(self.build_summary(rows, &outcome))
     }
 
+    pub fn list_upgrades_and_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
+        let outcome = self.load_simulation_outcomes()?;
+        let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
+        let valid_names: HashSet<&str> = SHOP_UPGRADE_NAMES.iter().copied().collect();
+        rows.retain(|(_, kind)| valid_names.contains(kind.as_str()));
+        rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
+        Ok(self.build_summary(rows, &outcome))
+    }
+
     pub fn list_strategy_win_rates(&self) -> anyhow::Result<Vec<StrategyStats>> {
         let mut result = Vec::new();
         for (category, column) in STRATEGY_COLUMNS {
@@ -175,6 +184,13 @@ impl Database {
 
     pub fn detail_for_treasure(&self, kind: &str) -> anyhow::Result<DetailStats> {
         self.detail_for_event("treasure_selected", "$.TreasureSelected.upgrade_kind", kind)
+    }
+
+    pub fn detail_for_upgrade(&self, kind: &str) -> anyhow::Result<DetailStats> {
+        let outcome = self.load_simulation_outcomes()?;
+        let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
+        rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
+        self.detail_for_rows(&outcome, rows, kind)
     }
 
     fn list_shop_purchase_summaries(&self) -> anyhow::Result<Vec<SummaryRow>> {
@@ -345,8 +361,17 @@ impl Database {
         kind: &str,
     ) -> anyhow::Result<DetailStats> {
         let outcome = self.load_simulation_outcomes()?;
-        let total_simulations = outcome.len();
         let rows = self.query_event_kind(event_type, json_path)?;
+        self.detail_for_rows(&outcome, rows, kind)
+    }
+
+    fn detail_for_rows(
+        &self,
+        outcome: &HashMap<String, SimulationOutcome>,
+        rows: Vec<(String, String)>,
+        kind: &str,
+    ) -> anyhow::Result<DetailStats> {
+        let total_simulations = outcome.len();
 
         let mut counts: HashMap<String, usize> = HashMap::new();
         for (simulation_id, row_kind) in rows {
@@ -388,7 +413,7 @@ impl Database {
 
         let mut zero_pick_samples = 0;
         let mut zero_pick_win_count = 0;
-        for (simulation_id, outcome_value) in &outcome {
+        for (simulation_id, outcome_value) in outcome {
             if !counts.contains_key(simulation_id) {
                 zero_pick_samples += 1;
                 if outcome_value.victory {
@@ -552,6 +577,20 @@ impl Database {
     }
 }
 
+pub fn upgrade_rarity_prefix(name: &str) -> Option<&'static str> {
+    use crate::Rarity;
+    use crate::game_state::upgrade::UpgradeDiscriminants;
+    use std::str::FromStr;
+
+    let discriminant = UpgradeDiscriminants::from_str(name).ok()?;
+    match discriminant.rarity() {
+        Rarity::Common => Some("[C]"),
+        Rarity::Rare => Some("[R]"),
+        Rarity::Epic => Some("[E]"),
+        Rarity::Legendary => Some("[L]"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -620,6 +659,52 @@ mod tests {
             upgrades
                 .iter()
                 .any(|row| row.name == "Staff" && row.total_purchases == 1)
+        );
+
+        fs::remove_file(&db_path).unwrap();
+    }
+
+    #[test]
+    fn list_upgrades_and_treasures_combines_shop_and_treasure_counts() {
+        let db_path = temp_db_path("upgrades_and_treasures");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+
+        recorder
+            .record_simulation_start(
+                "sim1",
+                "shop_strategy",
+                "card_reroll_strategy",
+                "tower_placement_strategy",
+                "item_use_strategy",
+                0,
+            )
+            .unwrap();
+        recorder
+            .record_events(
+                "sim1",
+                &[
+                    SimEvent::ShopPurchase {
+                        stage: 1,
+                        cost: 0,
+                        item_kind: "Staff(StaffUpgrade)".to_string(),
+                    },
+                    SimEvent::TreasureSelected {
+                        stage: 1,
+                        upgrade_kind: "Staff(StaffUpgrade)".to_string(),
+                    },
+                ],
+            )
+            .unwrap();
+        recorder
+            .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
+            .unwrap();
+
+        let db = Database::open(&db_path).unwrap();
+        let upgrades = db.list_upgrades_and_treasures().unwrap();
+        assert!(
+            upgrades
+                .iter()
+                .any(|row| row.name == "Staff" && row.total_purchases == 2)
         );
 
         fs::remove_file(&db_path).unwrap();

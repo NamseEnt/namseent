@@ -3,9 +3,8 @@
 use super::ShopStrategy;
 use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::item::{Item, ItemDiscriminants};
-use crate::game_state::tower::Tower;
-use crate::game_state::upgrade::{Upgrade, UpgradeState};
+use crate::game_state::item::ItemDiscriminants;
+use crate::game_state::upgrade::Upgrade;
 use rand::RngCore;
 
 /// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
@@ -22,7 +21,7 @@ impl ShopStrategy for SynergyShopStrategy {
                 continue;
             }
 
-            if let Some(slot_id) = self.choose_best_slot(game_state) {
+            if let Some(slot_id) = self.choose_best_slot(game_state, _rng) {
                 game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                     slot_id,
                 ));
@@ -85,13 +84,17 @@ impl SynergyShopStrategy {
         false
     }
 
-    fn choose_best_slot(&self, game_state: &GameState) -> Option<crate::shop::ShopSlotId> {
+    fn choose_best_slot(
+        &self,
+        game_state: &GameState,
+        rng: &mut dyn RngCore,
+    ) -> Option<crate::shop::ShopSlotId> {
         let GameFlow::SelectingTower(flow) = &game_state.flow else {
             return None;
         };
 
-        let mut best_score = 0.0;
-        let mut best_slot = None;
+        let mut total_weight = 0u32;
+        let mut weighted_slots: Vec<(crate::shop::ShopSlotId, u32)> = Vec::new();
 
         for slot in &flow.shop.slots {
             if slot.purchased || slot.exit_animation.is_some() {
@@ -105,102 +108,45 @@ impl SynergyShopStrategy {
                 continue;
             }
 
-            let value = match &slot.slot {
-                crate::shop::ShopSlot::Item { item, .. } => {
-                    self.evaluate_item_slot(game_state, item)
-                }
+            let weight = match &slot.slot {
+                crate::shop::ShopSlot::Item { .. } => Self::rarity_weight_common(),
                 crate::shop::ShopSlot::Upgrade { upgrade, .. } => {
-                    self.evaluate_upgrade_slot(game_state, *upgrade)
+                    Self::rarity_weight_upgrade(*upgrade)
                 }
             };
-
-            if value <= 0.0 {
+            if weight == 0 {
                 continue;
             }
 
-            let score = value / (cost as f32).max(1.0);
-            if score > best_score {
-                best_score = score;
-                best_slot = Some(slot.id);
-            }
+            total_weight += weight;
+            weighted_slots.push((slot.id, weight));
         }
 
-        best_slot
-    }
-
-    fn evaluate_item_slot(&self, game_state: &GameState, item: &Item) -> f32 {
-        match item {
-            Item::GrantBarricades(..) => {
-                if game_state.towers.iter().count() < 3
-                    || game_state.hp < game_state.config.player.max_hp * 0.85
-                {
-                    7.0
-                } else {
-                    4.0
-                }
-            }
-            Item::RiceBall(..) => {
-                if game_state.hp < game_state.config.player.max_hp * 0.6 {
-                    6.0
-                } else {
-                    2.5
-                }
-            }
-            Item::Shield(..) => {
-                if game_state.shield <= 0.0
-                    && game_state.hp < game_state.config.player.max_hp * 0.85
-                {
-                    5.5
-                } else {
-                    2.0
-                }
-            }
-            Item::LumpSugar(..) => {
-                let missing_dice = game_state
-                    .max_dice_chance()
-                    .saturating_sub(game_state.left_dice) as f32;
-                3.0 + missing_dice * 1.5
-            }
-            Item::Painkiller(..) => {
-                if game_state.hp < game_state.config.player.max_hp * 0.7 {
-                    4.0
-                } else {
-                    2.0
-                }
-            }
-            Item::GrantCard(..) => {
-                let hand_count = game_state.hand.active_slot_ids().len() as f32;
-                if hand_count <= 2.0 {
-                    6.0
-                } else if hand_count <= 4.0 {
-                    3.5
-                } else {
-                    1.5
-                }
-            }
+        if total_weight == 0 {
+            return None;
         }
+
+        let mut choice = (rng.next_u64() % total_weight as u64) as u32;
+        for (slot_id, weight) in &weighted_slots {
+            if choice < *weight {
+                return Some(*slot_id);
+            }
+            choice -= *weight;
+        }
+
+        weighted_slots.last().map(|(slot_id, _)| *slot_id)
     }
 
-    fn evaluate_upgrade_slot(&self, game_state: &GameState, upgrade: Upgrade) -> f32 {
-        let current_score = total_tower_score(game_state, &game_state.upgrade_state);
-        let mut upgraded_state = game_state.upgrade_state.clone();
-        upgraded_state.upgrades.push(upgrade.with_unique_id());
-        let next_score = total_tower_score(game_state, &upgraded_state);
-        let delta = next_score - current_score;
-        delta.max(0.0).max(self.evaluate_treasure_upgrade(&upgrade))
+    fn rarity_weight_common() -> u32 {
+        5
     }
 
-    fn evaluate_treasure_upgrade(&self, upgrade: &Upgrade) -> f32 {
-        match upgrade {
-            Upgrade::Cat(..) => 7.0,
-            Upgrade::Backpack(..) => 6.5,
-            Upgrade::DiceBundle(..) => 7.5,
-            Upgrade::EnergyDrink(..) => 6.0,
-            Upgrade::FourLeafClover(..) => 5.0,
-            Upgrade::Rabbit(..) => 5.0,
-            Upgrade::BlackWhite(..) => 5.5,
-            Upgrade::Eraser(..) => 6.0,
-            _ => 3.0,
+    fn rarity_weight_upgrade(upgrade: Upgrade) -> u32 {
+        match upgrade.discriminant().rarity() {
+            crate::Rarity::Legendary => 50,
+            crate::Rarity::Epic => 25,
+            crate::Rarity::Rare => 10,
+            crate::Rarity::Common => 5,
         }
     }
 }
@@ -233,25 +179,4 @@ fn count_item_kind(game_state: &GameState, kind: ItemDiscriminants) -> usize {
         .iter()
         .filter(|item| item.discriminant() == kind)
         .count()
-}
-
-fn total_tower_score(game_state: &GameState, upgrade_state: &UpgradeState) -> f32 {
-    game_state
-        .towers
-        .iter()
-        .map(|tower| tower_score(tower, upgrade_state))
-        .sum()
-}
-
-fn tower_score(tower: &Tower, upgrade_state: &UpgradeState) -> f32 {
-    let tower_upgrade_bonuses = upgrade_state.tower_upgrade_damage_bonuses();
-    let damage = tower.calculate_projectile_damage(&tower_upgrade_bonuses, 1.0);
-    if damage <= 0.0 {
-        return 0.0;
-    }
-    let interval = tower.shoot_interval.as_secs_f32().max(0.001);
-    let dps = damage / interval;
-    let range = tower.attack_range_radius(1.0);
-    let range_factor = (range / 4.0).max(0.5);
-    dps * range_factor
 }

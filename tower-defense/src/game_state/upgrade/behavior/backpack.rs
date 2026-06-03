@@ -16,6 +16,33 @@ impl UpgradeBehavior for BackpackUpgrade {
         )
     }
 
+    fn thumbnail_overlay(
+        &self,
+        width_height: Wh<Px>,
+        _game_state: &GameState,
+    ) -> Option<RenderingTree> {
+        Some(crate::thumbnail::render_right_bottom_overlay(
+            width_height,
+            &format!("{}", self.add),
+            crate::theme::palette::WHITE,
+        ))
+    }
+
+    fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
+            if let Upgrade::Backpack(upgrade) = &mut upgrade.upgrade {
+                upgrade.add += self.add;
+                return UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION;
+            }
+        }
+
+        game_state
+            .upgrade_state
+            .upgrades
+            .push(Upgrade::from(self).with_unique_id());
+        UpgradeUpdateFlags::CACHE | UpgradeUpdateFlags::REVISION
+    }
+
     fn shop_slot_expand(&self) -> usize {
         self.add
     }
@@ -37,9 +64,10 @@ impl UpgradeBehavior for BackpackUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder
-                .static_text("Shop slot ")
-                .with_icon_bold(crate::icon::IconKind::Shop, format!("+{}", self.add)),
+            crate::l10n::locale::Language::English => builder.with_icon_bold(
+                crate::icon::IconKind::Shop,
+                format!("Shop slot +{}", self.add),
+            ),
             crate::l10n::locale::Language::Korean => {
                 builder.with_icon_bold(crate::icon::IconKind::Shop, "상점 슬롯 +1")
             }
@@ -53,8 +81,11 @@ impl BackpackUpgrade {
     }
 }
 
-pub(super) const UPGRADE_DEFINITION: UpgradeDefinition =
-    UpgradeDefinition::new(generate_upgrade, current_and_max);
+pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
+    generate_upgrade,
+    current_and_max,
+    UpgradeDefinition::rarity_common,
+);
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     BackpackUpgrade::into_upgrade(1)
