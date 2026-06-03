@@ -82,7 +82,7 @@ impl EraserUpgrade {
 pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
     generate_upgrade,
     current_and_max,
-    UpgradeDefinition::rarity_rare,
+    UpgradeDefinition::rarity_epic,
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {

@@ -125,11 +125,11 @@ impl IceCreamUpgrade {
 pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
     generate_upgrade,
     no_current_and_max,
-    UpgradeDefinition::rarity_legendary,
+    UpgradeDefinition::rarity_rare,
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    IceCreamUpgrade::into_upgrade(2.0, 5)
+    IceCreamUpgrade::into_upgrade(3.0, 5)
 }
 #[cfg(test)]
 mod tests {
