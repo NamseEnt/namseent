@@ -24,12 +24,8 @@ impl UpgradeBehavior for TapeUpgrade {
         width_height: Wh<Px>,
         game_state: &GameState,
     ) -> Option<RenderingTree> {
-        let cycle = if game_state.stage <= self.acquired_stage {
-            1
-        } else {
-            ((game_state.stage - self.acquired_stage - 1) % 4) + 1
-        };
-        let active = cycle == 4;
+        let cycle = self.cycle(game_state.stage);
+        let active = cycle == TAPE_WAVE_INTERVAL;
         let stage_color = if active {
             crate::theme::palette::WHITE
         } else {
@@ -39,7 +35,7 @@ impl UpgradeBehavior for TapeUpgrade {
         Some(render([
             crate::thumbnail::render_right_top_overlay(
                 width_height.width,
-                &format!("{}/4", cycle),
+                &format!("{}/{}", cycle, TAPE_WAVE_INTERVAL),
                 stage_color,
             ),
             crate::thumbnail::render_right_bottom_overlay(
@@ -60,9 +56,10 @@ impl UpgradeBehavior for TapeUpgrade {
     }
 
     fn on_stage_start(&mut self, game_state: &mut GameState, stage: usize) -> UpgradeUpdateFlags {
-        if stage > self.acquired_stage
-            && (stage - self.acquired_stage - 1).is_multiple_of(TAPE_WAVE_INTERVAL)
-        {
+        let cycle = self.cycle(stage);
+        let active = cycle == TAPE_WAVE_INTERVAL;
+
+        if active {
             game_state
                 .stage_modifiers
                 .apply_enemy_speed_multiplier(TAPE_ENEMY_SPEED_MULTIPLIER);
@@ -115,6 +112,10 @@ impl UpgradeBehavior for TapeUpgrade {
 impl TapeUpgrade {
     pub fn into_upgrade(acquired_stage: usize) -> Upgrade {
         Upgrade::Tape(TapeUpgrade { acquired_stage })
+    }
+
+    fn cycle(&self, stage: usize) -> usize {
+        (stage - self.acquired_stage) % TAPE_WAVE_INTERVAL + 1
     }
 }
 
