@@ -22,7 +22,8 @@ pub enum ResultModalText {
     MaxPerfectClearLabel,
     TotalGoldLabel,
     TotalDamageLabel,
-    RerollCountLabel,
+    CardRerollCountLabel,
+    ShopRerollCountLabel,
     NoTowerDamage,
 }
 
@@ -99,7 +100,8 @@ impl ResultModalText {
             ResultModalText::MaxPerfectClearLabel => "최대 연속 퍼펙트 클리어",
             ResultModalText::TotalGoldLabel => "총 획득 골드",
             ResultModalText::TotalDamageLabel => "총 데미지",
-            ResultModalText::RerollCountLabel => "리롤 횟수",
+            ResultModalText::CardRerollCountLabel => "카드 리롤 횟수",
+            ResultModalText::ShopRerollCountLabel => "상점 리롤 횟수",
             ResultModalText::NoTowerDamage => "타워 기여 기록이 없습니다",
         }
     }
@@ -111,7 +113,8 @@ impl ResultModalText {
             ResultModalText::MaxPerfectClearLabel => "Max Perfect Streak",
             ResultModalText::TotalGoldLabel => "Total Gold Earned",
             ResultModalText::TotalDamageLabel => "Total Damage",
-            ResultModalText::RerollCountLabel => "Reroll Count",
+            ResultModalText::CardRerollCountLabel => "Card Reroll Count",
+            ResultModalText::ShopRerollCountLabel => "Shop Reroll Count",
             ResultModalText::NoTowerDamage => "No tower contribution recorded",
         }
     }

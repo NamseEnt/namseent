@@ -35,6 +35,7 @@ impl Component for RefreshButton {
                     return;
                 }
                 game_state.left_dice -= 1;
+                game_state.shop_rerolled_count += 1;
                 game_state.action(crate::game_state::GameStateAction::TakeDamage(
                     health_cost as f32,
                 ));
