@@ -5,7 +5,7 @@ use namui::Instant;
 
 pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) {
     let shop = match &mut game_state.flow {
-        GameFlow::SelectingTower(flow) => &mut flow.shop,
+        GameFlow::Shopping(flow) => &mut flow.shop,
         _ => return,
     };
 

@@ -15,6 +15,7 @@ mod spend_gold;
 mod stage_end;
 mod start_defense;
 mod start_placing_tower;
+mod start_selecting_tower;
 mod start_stage;
 mod start_treasure_selection;
 mod take_damage;
@@ -63,6 +64,7 @@ pub(crate) enum GameStateAction<'a> {
         item_count: usize,
     },
     StartPlacingTower(crate::game_state::tower::TowerTemplate),
+    StartSelectingTower,
     StartDefense,
     StartTreasureSelection,
     GameOver,
@@ -82,7 +84,7 @@ impl GameState {
                 start_stage::draw_hand(self);
                 start_stage::open_panels(self);
                 start_stage::trigger_upgrade_effects(self, stage);
-                start_stage::set_selecting_tower_flow(self);
+                start_stage::set_shopping_flow(self);
                 start_stage::record_history_event(self, stage);
                 start_stage::save_debug_snapshot(self);
                 true
@@ -201,6 +203,10 @@ impl GameState {
                 start_placing_tower::fill_tower_hand(self, towers);
                 start_placing_tower::select_first_tower(self);
                 start_placing_tower::set_placing_flow(self);
+                true
+            }
+            GameStateAction::StartSelectingTower => {
+                start_selecting_tower::set_selecting_tower_flow(self);
                 true
             }
             GameStateAction::StartDefense => {

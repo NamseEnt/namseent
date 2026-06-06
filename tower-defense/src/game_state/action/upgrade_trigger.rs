@@ -116,13 +116,14 @@ mod tests {
     #[test]
     fn camera_gold_earning_does_not_refresh_shop_when_selecting_tower() {
         let mut game_state = create_initial_game_state();
+        game_state.action(crate::game_state::GameStateAction::StartSelectingTower);
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             Upgrade::Camera(crate::game_state::upgrade::CameraUpgrade),
             None,
         ));
 
         let old_ids: Vec<_> = match &game_state.flow {
-            GameFlow::SelectingTower(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
+            GameFlow::Shopping(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
             _ => panic!("expected selecting tower flow"),
         };
 
@@ -132,7 +133,7 @@ mod tests {
         game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlaced { tower: &tower });
 
         let new_ids: Vec<_> = match &game_state.flow {
-            GameFlow::SelectingTower(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
+            GameFlow::Shopping(flow) => flow.shop.slots.iter().map(|slot| slot.id).collect(),
             _ => panic!("expected selecting tower flow"),
         };
 

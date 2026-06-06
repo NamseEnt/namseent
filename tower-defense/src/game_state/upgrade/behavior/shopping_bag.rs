@@ -129,7 +129,7 @@ mod tests {
             None,
         ));
 
-        let slot_id = if let GameFlow::SelectingTower(flow) = &mut gs.flow {
+        let slot_id = if let GameFlow::Shopping(flow) = &mut gs.flow {
             match flow
                 .shop
                 .slots
@@ -147,7 +147,7 @@ mod tests {
                 }
             }
         } else {
-            panic!("expected selecting tower flow");
+            panic!("expected shopping flow");
         };
 
         gs.action(crate::game_state::GameStateAction::PurchaseShopItem(

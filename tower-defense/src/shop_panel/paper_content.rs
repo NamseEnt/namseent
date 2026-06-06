@@ -18,7 +18,7 @@ impl Component for ShopPaperContent {
         let game_state = use_game_state(ctx);
 
         let shop_context = match &game_state.flow {
-            GameFlow::SelectingTower(flow) => Some(&flow.shop),
+            GameFlow::Shopping(flow) => Some(&flow.shop),
             _ => None,
         };
 
@@ -135,7 +135,7 @@ impl Component for ShopPaperContent {
 impl GameState {
     fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
         let shop = match &self.flow {
-            GameFlow::SelectingTower(flow) => &flow.shop,
+            GameFlow::Shopping(flow) => &flow.shop,
             _ => return false,
         };
 
