@@ -93,13 +93,15 @@ impl Component for HandPanel {
         let active_action_flow = HandActionFlow::from_game_flow(&game_state.flow);
         let target_offset = if panel_open {
             Xy::zero()
-        } else {
+        } else if can_open_hand {
             Xy::new(px(0.0), PAPER_HEIGHT - STICKY_VISIBLE_HEIGHT)
+        } else {
+            Xy::new(px(0.0), PAPER_HEIGHT + STICKY_HEIGHT)
         };
         let animated_offset = xy_with_spring(
             ctx,
             target_offset,
-            Xy::new(px(0.0), PAPER_HEIGHT - STICKY_VISIBLE_HEIGHT),
+            Xy::new(px(0.0), PAPER_HEIGHT + STICKY_HEIGHT),
         );
 
         let panel_wh = Wh::new(
