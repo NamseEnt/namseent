@@ -182,7 +182,7 @@ impl GameState {
 
     /// Returns whether the shop panel is allowed to be opened based on current flow.
     pub fn can_open_shop_panel(&self) -> bool {
-        matches!(self.flow, GameFlow::SelectingTower(_))
+        matches!(self.flow, GameFlow::Shopping(_))
     }
 
     /// Toggle panels according to rules described in UI feature request.
@@ -838,12 +838,11 @@ mod tests {
     fn toggle_panels_basic_scenarios() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is SelectingTower (round 0 default shop pick)
-        assert!(gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel()); // shop panel is allowed in selecting tower flow
+        // initially flow is Shopping after StartStage, so only shop is allowed.
+        assert!(!gs.can_open_hand_panel());
+        assert!(gs.can_open_shop_panel());
 
-        // selecting tower flow: hand and shop panels are both allowed
-        assert!(gs.hand_panel_forced_open);
+        // shopping flow: hand is disallowed, shop is allowed
         assert!(gs.shop_panel_forced_open);
 
         gs.toggle_panels();
@@ -851,28 +850,31 @@ mod tests {
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // reopening when none open should open both allowed panels again
+        // reopening when none open should open only the allowed shop panel
+        gs.toggle_panels();
+        assert!(!gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        // enter selecting tower flow from shopping - hand now allowed, shop no longer allowed
+        gs.action(crate::game_state::GameStateAction::StartSelectingTower);
+        assert!(gs.can_open_hand_panel());
+        assert!(!gs.can_open_shop_panel());
+        assert!(!gs.hand_panel_forced_open);
+        assert!(gs.shop_panel_forced_open);
+
+        // space should open the available hand panel in SelectingTower since shop is no longer allowed.
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
         assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow - both hand and shop are allowed in this flow.
-        gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
-        assert!(gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel());
-        // forced flags were true already; both panels open
-        assert!(gs.hand_panel_forced_open && gs.can_open_hand_panel());
-        assert!(gs.shop_panel_forced_open && gs.can_open_shop_panel());
-
-        // space should close both allowed panels
+        // toggle again should close both flags, then reopening will only open hand again.
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
         assert!(!gs.shop_panel_forced_open);
 
-        // closing again should reopen both panels since they are allowed
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
 
         // go to placing tower flow: hand allowed, shop not
         gs.action(crate::game_state::GameStateAction::StartPlacingTower(
@@ -886,9 +888,8 @@ mod tests {
         assert!(!gs.can_open_shop_panel());
 
         // forced flags remain whatever they were; toggle logic should respect permissions
-        // shop is not allowed in placing flow, so it may still be forced open in state
         assert!(gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
+        assert!(!gs.shop_panel_forced_open);
 
         // space when hand is open should close both (shop will be closed but can't open anyway)
         gs.toggle_panels();
@@ -902,9 +903,9 @@ mod tests {
     }
 
     #[test]
-    fn selecting_tower_allows_shop_panel() {
+    fn shopping_allows_shop_panel() {
         let mut gs = create_initial_game_state();
-        gs.flow = GameFlow::SelectingTower(crate::game_state::flow::SelectingTowerFlow::new(&gs));
+        gs.flow = GameFlow::Shopping(crate::game_state::flow::ShoppingFlow::new(&gs));
         assert!(gs.can_open_shop_panel());
     }
 

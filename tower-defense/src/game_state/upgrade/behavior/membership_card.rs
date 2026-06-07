@@ -85,7 +85,7 @@ mod tests {
         assert!(game_state.stage_modifiers.is_free_shop_this_stage());
         let initial_gold = game_state.gold;
 
-        let slot_id = if let GameFlow::SelectingTower(flow) = &mut game_state.flow {
+        let slot_id = if let GameFlow::Shopping(flow) = &mut game_state.flow {
             if !flow.shop.slots.iter().any(|slot_data| {
                 matches!(slot_data.slot, ShopSlot::Item { .. }) && !slot_data.purchased
             }) {
@@ -103,7 +103,7 @@ mod tests {
                 })
                 .expect("expected at least one item slot in shop")
         } else {
-            panic!("expected selecting tower flow");
+            panic!("expected shopping flow");
         };
 
         game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(

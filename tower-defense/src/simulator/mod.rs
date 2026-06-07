@@ -94,14 +94,18 @@ impl HeadlessGame {
                             stage: self.game_state.stage,
                         });
                 }
+                GameFlow::Shopping(_) => {
+                    // Execute shop strategy in Shopping flow, then move to card selection.
+                    shop_strategy.execute_shop(&mut self.game_state, rng);
+                    self.drain_play_history_events(&mut last_history_event_index);
+
+                    self.game_state
+                        .action(crate::game_state::GameStateAction::StartSelectingTower);
+                }
                 GameFlow::SelectingTower(_) => {
                     let stage = self.game_state.stage;
                     let _gold_before = self.game_state.gold;
                     let _hp_before = self.game_state.hp;
-
-                    // Execute shop strategy
-                    shop_strategy.execute_shop(&mut self.game_state, rng);
-                    self.drain_play_history_events(&mut last_history_event_index);
 
                     // Execute item use strategy before card selection
                     item_use_strategy.on_before_defense(&mut self.game_state);

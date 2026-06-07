@@ -3,7 +3,7 @@ use crate::{
     game_state::{
         self, GameState,
         action::upgrade_trigger::UpgradeTriggerEvent,
-        flow::{GameFlow, SelectingTowerFlow},
+        flow::{GameFlow, ShoppingFlow},
     },
     hand::HandItem,
     sound::play_card_draw_sounds,
@@ -58,8 +58,8 @@ pub(super) fn open_panels(game_state: &mut GameState) {
     game_state.shop_panel_forced_open = true;
 }
 
-pub(super) fn set_selecting_tower_flow(game_state: &mut GameState) {
-    game_state.flow = GameFlow::SelectingTower(SelectingTowerFlow::new(game_state));
+pub(super) fn set_shopping_flow(game_state: &mut GameState) {
+    game_state.flow = GameFlow::Shopping(ShoppingFlow::new(game_state));
 }
 
 pub(super) fn trigger_upgrade_effects(game_state: &mut GameState, stage: usize) {

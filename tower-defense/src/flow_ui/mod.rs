@@ -13,6 +13,7 @@ impl Component for FlowUi {
 
         match &game_state.flow {
             GameFlow::Initializing => {}
+            GameFlow::Shopping(_) => {}
             GameFlow::SelectingTower(_) => {
                 ctx.add(selecting_tower::SelectingTowerUi);
             }

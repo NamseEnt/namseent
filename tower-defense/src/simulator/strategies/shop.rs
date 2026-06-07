@@ -35,7 +35,7 @@ impl ShopStrategy for SynergyShopStrategy {
 
 impl SynergyShopStrategy {
     fn buy_priority_item(&self, game_state: &mut GameState) -> bool {
-        let GameFlow::SelectingTower(flow) = &game_state.flow else {
+        let GameFlow::Shopping(flow) = &game_state.flow else {
             return false;
         };
 
@@ -89,7 +89,7 @@ impl SynergyShopStrategy {
         game_state: &GameState,
         rng: &mut dyn RngCore,
     ) -> Option<crate::shop::ShopSlotId> {
-        let GameFlow::SelectingTower(flow) = &game_state.flow else {
+        let GameFlow::Shopping(flow) = &game_state.flow else {
             return None;
         };
 
@@ -152,7 +152,7 @@ impl SynergyShopStrategy {
 }
 
 fn find_item_slot(
-    flow: &crate::game_state::flow::SelectingTowerFlow,
+    flow: &crate::game_state::flow::ShoppingFlow,
     kind: ItemDiscriminants,
     max_cost: usize,
 ) -> Option<crate::shop::ShopSlotId> {

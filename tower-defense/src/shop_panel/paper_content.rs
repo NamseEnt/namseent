@@ -18,7 +18,7 @@ impl Component for ShopPaperContent {
         let game_state = use_game_state(ctx);
 
         let shop_context = match &game_state.flow {
-            GameFlow::SelectingTower(flow) => Some(&flow.shop),
+            GameFlow::Shopping(flow) => Some(&flow.shop),
             _ => None,
         };
 
@@ -51,7 +51,7 @@ impl Component for ShopPaperContent {
                         };
 
                         let calculator = SlotLayoutCalculator::new(items_area_wh);
-                        let (slot_positions, slot_wh) = calculator.calculate_positions(shop);
+                        let slot_positions = calculator.calculate_positions(shop);
 
                         let rendering_data =
                             SlotRenderingData::from_shop(shop, slot_positions.clone());
@@ -73,7 +73,10 @@ impl Component for ShopPaperContent {
                                 ctx.translate((PADDING, PADDING)).add_with_key(
                                     hovered_id,
                                     ShopSlotView {
-                                        wh: slot_wh,
+                                        wh: Wh {
+                                            width: SHOP_SLOT_WIDTH,
+                                            height: SHOP_SLOT_HEIGHT,
+                                        },
                                         slot_data,
                                         purchase_item: &purchase_item,
                                         can_purchase_item: can_purchase_item(hovered_id),
@@ -93,7 +96,10 @@ impl Component for ShopPaperContent {
                                     ctx.translate((PADDING, PADDING)).add_with_key(
                                         slot_id,
                                         ShopSlotView {
-                                            wh: slot_wh,
+                                            wh: Wh {
+                                                width: SHOP_SLOT_WIDTH,
+                                                height: SHOP_SLOT_HEIGHT,
+                                            },
                                             slot_data,
                                             purchase_item: &purchase_item,
                                             can_purchase_item: can_purchase_item(slot_id),
@@ -114,7 +120,10 @@ impl Component for ShopPaperContent {
                                 ctx.translate((PADDING, PADDING)).add_with_key(
                                     slot_id,
                                     ShopSlotView {
-                                        wh: slot_wh,
+                                        wh: Wh {
+                                            width: SHOP_SLOT_WIDTH,
+                                            height: SHOP_SLOT_HEIGHT,
+                                        },
                                         slot_data,
                                         purchase_item: &purchase_item,
                                         can_purchase_item: can_purchase_item(slot_id),
@@ -135,7 +144,7 @@ impl Component for ShopPaperContent {
 impl GameState {
     fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
         let shop = match &self.flow {
-            GameFlow::SelectingTower(flow) => &flow.shop,
+            GameFlow::Shopping(flow) => &flow.shop,
             _ => return false,
         };
 

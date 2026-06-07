@@ -5,6 +5,7 @@ use crate::{shop::Shop, *};
 #[allow(clippy::large_enum_variant)]
 pub enum GameFlow {
     Initializing,
+    Shopping(ShoppingFlow),
     SelectingTower(SelectingTowerFlow),
     PlacingTower,
     Defense(DefenseFlow),
@@ -34,6 +35,7 @@ impl TreasureSelectionFlow {
 impl GameFlow {
     pub(crate) fn update(&mut self) {
         match self {
+            GameFlow::Shopping(shopping_flow) => shopping_flow.update(),
             GameFlow::SelectingTower(selecting_tower) => selecting_tower.update(),
             GameFlow::TreasureSelection(treasure_flow) => treasure_flow.update(),
             _ => {}
@@ -42,19 +44,30 @@ impl GameFlow {
 }
 
 #[derive(Clone, Debug, State)]
-pub struct SelectingTowerFlow {
+pub struct ShoppingFlow {
     pub shop: Shop,
 }
 
-impl SelectingTowerFlow {
+impl ShoppingFlow {
     pub fn new(game_state: &GameState) -> Self {
         let shop = Shop::new(game_state);
-        SelectingTowerFlow { shop }
+        ShoppingFlow { shop }
     }
 
     fn update(&mut self) {
         self.shop.update();
     }
+}
+
+#[derive(Clone, Debug, State)]
+pub struct SelectingTowerFlow {}
+
+impl SelectingTowerFlow {
+    pub fn new(_game_state: &GameState) -> Self {
+        SelectingTowerFlow {}
+    }
+
+    fn update(&mut self) {}
 }
 
 #[derive(Clone, Debug, State)]

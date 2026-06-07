@@ -66,20 +66,19 @@ impl Shop {
 }
 
 pub fn refresh_shop(game_state: &mut GameState) {
-    let (unpurchased_slot_ids, refresh_count) =
-        if let GameFlow::SelectingTower(flow) = &game_state.flow {
-            let ids = flow.shop.get_unpurchased_slot_ids();
-            let count = ids.len();
-            (ids, count)
-        } else {
-            return;
-        };
+    let (unpurchased_slot_ids, refresh_count) = if let GameFlow::Shopping(flow) = &game_state.flow {
+        let ids = flow.shop.get_unpurchased_slot_ids();
+        let count = ids.len();
+        (ids, count)
+    } else {
+        return;
+    };
 
     let new_slots: Vec<ShopSlot> = (0..refresh_count)
         .map(|_| generate_shop_slot(game_state))
         .collect();
 
-    let GameFlow::SelectingTower(flow) = &mut game_state.flow else {
+    let GameFlow::Shopping(flow) = &mut game_state.flow else {
         unreachable!()
     };
 

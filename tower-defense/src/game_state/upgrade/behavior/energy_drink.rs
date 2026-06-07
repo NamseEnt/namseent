@@ -29,7 +29,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        if let GameFlow::SelectingTower(flow) = &mut game_state.flow {
+        if let GameFlow::Shopping(flow) = &mut game_state.flow {
             for slot in &mut flow.shop.slots {
                 let cost = match &mut slot.slot {
                     crate::shop::ShopSlot::Item { cost, .. } => cost,
