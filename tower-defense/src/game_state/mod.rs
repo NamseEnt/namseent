@@ -98,6 +98,8 @@ pub struct GameMetrics {
     pub current_consecutive_perfect_clears: usize,
     pub max_consecutive_perfect_clears: usize,
     pub tower_damage_stats: Vec<TowerDamageStats>,
+    pub total_rerolled_count: usize,
+    pub total_shop_rerolled_count: usize,
 }
 
 #[derive(State)]
@@ -128,6 +130,7 @@ pub struct GameState {
     pub(crate) game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
+    pub shop_rerolled_count: usize,
     pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
@@ -653,6 +656,7 @@ fn create_initial_game_state() -> GameState {
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
+        shop_rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(0),
         play_history: PlayHistory::new(),
@@ -670,6 +674,8 @@ fn create_initial_game_state() -> GameState {
             current_consecutive_perfect_clears: 0,
             max_consecutive_perfect_clears: 0,
             tower_damage_stats: Vec::new(),
+            total_rerolled_count: 0,
+            total_shop_rerolled_count: 0,
         },
 
         // start panels in opened state by default (if flow allows later)
@@ -739,6 +745,7 @@ impl GameState {
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
+            shop_rerolled_count: self.shop_rerolled_count,
             locale: self.locale,
             play_history: self.play_history.clone(),
             config: Arc::clone(&self.config),
@@ -755,6 +762,8 @@ impl GameState {
                 current_consecutive_perfect_clears: self.metrics.current_consecutive_perfect_clears,
                 max_consecutive_perfect_clears: self.metrics.max_consecutive_perfect_clears,
                 tower_damage_stats: self.metrics.tower_damage_stats.clone(),
+                total_rerolled_count: self.metrics.total_rerolled_count,
+                total_shop_rerolled_count: self.metrics.total_shop_rerolled_count,
             },
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,
