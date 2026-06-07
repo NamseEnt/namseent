@@ -179,13 +179,18 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
         return source;
     }
 
+    let source = source.with_local_matrix(
+        TransformMatrix::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
+            * TransformMatrix::from_scale(scale_x, scale_y),
+    );
+
     let total_radius = Xy::new(
-        OrderedFloat::new(stroke_px.as_f32() / scale_x),
-        OrderedFloat::new(stroke_px.as_f32() / scale_y),
+        OrderedFloat::new(stroke_px.as_f32()),
+        OrderedFloat::new(stroke_px.as_f32()),
     );
     let inner_radius = Xy::new(
-        OrderedFloat::new((stroke_px * 0.4).as_f32() / scale_x),
-        OrderedFloat::new((stroke_px * 0.4).as_f32() / scale_y),
+        OrderedFloat::new((stroke_px * 0.4).as_f32()),
+        OrderedFloat::new((stroke_px * 0.4).as_f32()),
     );
 
     let dilated_inner = dilated_color_filter(source.clone(), inner_radius, Color::BLACK);
@@ -200,10 +205,5 @@ fn sticker_image_filter(image: Image, width_height: Wh<Px>, stroke_px: Px) -> Im
     );
 
     let black_and_source = ImageFilter::blend(BlendMode::SrcOver, black_ring, source.clone());
-    let filter = ImageFilter::blend(BlendMode::SrcOver, white_ring, black_and_source);
-
-    filter.with_local_matrix(
-        TransformMatrix::from_translate(dest_rect.x().as_f32(), dest_rect.y().as_f32())
-            * TransformMatrix::from_scale(scale_x, scale_y),
-    )
+    ImageFilter::blend(BlendMode::SrcOver, white_ring, black_and_source)
 }
