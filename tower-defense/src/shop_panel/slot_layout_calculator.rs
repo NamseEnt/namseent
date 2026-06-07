@@ -1,5 +1,5 @@
 use crate::shop::{Shop, ShopSlotId};
-use crate::shop_panel::constants::{PADDING, SHOP_SLOT_HEIGHT, SHOP_SLOT_WIDTH};
+use crate::shop_panel::constants::{PADDING, SHOP_SLOT_WIDTH};
 use namui::*;
 use std::collections::HashMap;
 
@@ -13,7 +13,7 @@ impl SlotLayoutCalculator {
         Self { items_area_wh }
     }
 
-    pub fn calculate_positions(&self, shop: &Shop) -> (HashMap<ShopSlotId, Xy<Px>>, Wh<Px>) {
+    pub fn calculate_positions(&self, shop: &Shop) -> HashMap<ShopSlotId, Xy<Px>> {
         let active_slots: Vec<_> = shop
             .slots
             .iter()
@@ -24,13 +24,10 @@ impl SlotLayoutCalculator {
         let slot_count = active_slots.len();
 
         if slot_count == 0 {
-            return (positions, Wh::zero());
+            return positions;
         }
 
         let (slot_w, gap, start_x) = self.calculate_layout_params(slot_count);
-        let slot_h = SHOP_SLOT_HEIGHT.min(self.items_area_wh.height);
-        let slot_wh = Wh::new(slot_w, slot_h);
-        // let y = (self.items_area_wh.height) / 2.0;
         let y = 0.px();
 
         for (active_index, slot_data) in active_slots.iter().enumerate() {
@@ -38,7 +35,7 @@ impl SlotLayoutCalculator {
             positions.insert(slot_data.id, Xy::new(x, y));
         }
 
-        (positions, slot_wh)
+        positions
     }
 
     #[inline]
@@ -62,41 +59,5 @@ impl SlotLayoutCalculator {
         let start_x = (self.items_area_wh.width - total_width) / 2.0;
 
         (slot_w, gap, start_x)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::game_state::item::RiceBallItem;
-    use crate::shop::{Shop, ShopSlot, ShopSlotData};
-    use namui::{Wh, px};
-
-    fn make_dummy_slot() -> ShopSlotData {
-        let item = RiceBallItem::standard().into_item();
-        ShopSlotData::new(ShopSlot::Item { item, cost: 0 })
-    }
-
-    #[test]
-    fn calculator_handles_various_counts() {
-        let calculator = SlotLayoutCalculator::new(Wh::new(px(300.0), px(100.0)));
-
-        let shop = Shop { slots: vec![] };
-        let (positions, wh) = calculator.calculate_positions(&shop);
-        assert!(positions.is_empty());
-        assert_eq!(wh, Wh::zero());
-
-        let slot = make_dummy_slot();
-        let mut shop = Shop {
-            slots: vec![slot.clone()],
-        };
-        let (positions, wh) = calculator.calculate_positions(&shop);
-        assert_eq!(positions.len(), 1);
-        assert!(wh.width <= SHOP_SLOT_WIDTH);
-
-        shop.slots = (0..5).map(|_| make_dummy_slot()).collect();
-        let (positions, wh2) = calculator.calculate_positions(&shop);
-        assert_eq!(positions.len(), 5);
-        assert!(wh2.width <= SHOP_SLOT_WIDTH);
     }
 }

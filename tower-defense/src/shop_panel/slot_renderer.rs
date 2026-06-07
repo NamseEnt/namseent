@@ -52,7 +52,7 @@ impl Component for ShopSlotView<'_> {
             |v| v * v,
             || 0.0,
         );
-        let ctx = apply_slot_transform(ctx, wh, slot_data, target_xy, hovering);
+        let ctx: ComposeCtx<'_, '_> = apply_slot_transform(ctx, wh, slot_data, target_xy, hovering);
 
         let cursor = if can_purchase_item {
             MouseCursor::Standard(StandardCursor::Pointer)
@@ -92,6 +92,7 @@ impl Component for ShopSlotView<'_> {
                             Event::MouseMove { event } => {
                                 if event.is_local_xy_in() {
                                     set_hovered_slot_id(Some(slot_id));
+                                    event.stop_propagation();
                                 } else if hovering {
                                     set_hovered_slot_id(None);
                                 }
