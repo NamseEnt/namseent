@@ -51,6 +51,7 @@ impl Component for TowerDamagePanel<'_> {
                 .map(|entry| entry.total_damage)
                 .unwrap_or(1.0)
                 .max(1.0);
+            let total_damage: f32 = towers.iter().map(|t| t.total_damage).sum();
             let scroll_bar_width = px(4.0);
             let item_wh = Wh {
                 width: wh.width - scroll_bar_width,
@@ -69,6 +70,7 @@ impl Component for TowerDamagePanel<'_> {
                         wh: item_wh,
                         stat,
                         max_damage,
+                        total_damage,
                     });
                 },
             });
@@ -91,6 +93,7 @@ struct TowerDamageRow {
     wh: Wh<Px>,
     stat: TowerDamageStats,
     max_damage: f32,
+    total_damage: f32,
 }
 
 impl Component for TowerDamageRow {
@@ -99,8 +102,10 @@ impl Component for TowerDamageRow {
             wh,
             stat,
             max_damage,
+            total_damage,
         } = self;
         let bar_ratio = (stat.total_damage / max_damage).clamp(0.0, 1.0);
+        let damage_ratio = (stat.total_damage / total_damage.max(1.0)).clamp(0.0, 1.0);
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed_no_clip(wh.height, |wh, ctx| {
@@ -140,14 +145,14 @@ impl Component for TowerDamageRow {
                                 const PROGRESS_BAR_BORDER_COLOR: Color = palette::OUTLINE;
                                 let bar_width = wh.width * bar_ratio;
 
-                                ctx.add(memoized_text(&bar_ratio, |mut builder| {
+                                ctx.add(memoized_text(&damage_ratio, |mut builder| {
                                     builder
                                         .headline()
                                         .size(typography::FontSize::Medium)
                                         .bold()
                                         .color(palette::WHITE)
                                         .stroke(2.px(), palette::DARK_CHARCOAL)
-                                        .text(format!("{:.2}%", bar_ratio * 100.0))
+                                        .text(format!("{:.2}%", damage_ratio * 100.0))
                                         .render_center(wh)
                                 }));
 

@@ -119,9 +119,25 @@ impl Component for ResultModal {
                                             ctx.add(StatRow {
                                                 wh,
                                                 label: game_state.text().result_modal(
-                                                    ResultModalText::RerollCountLabel,
+                                                    ResultModalText::CardRerollCountLabel,
                                                 ),
-                                                value: format!("{}", game_state.rerolled_count),
+                                                value: format!(
+                                                    "{}",
+                                                    game_state.metrics.total_rerolled_count
+                                                ),
+                                                icon_kind: None,
+                                            });
+                                        }),
+                                        table::fixed_no_clip(24.px(), |wh, ctx| {
+                                            ctx.add(StatRow {
+                                                wh,
+                                                label: game_state.text().result_modal(
+                                                    ResultModalText::ShopRerollCountLabel,
+                                                ),
+                                                value: format!(
+                                                    "{}",
+                                                    game_state.metrics.total_shop_rerolled_count
+                                                ),
                                                 icon_kind: None,
                                             });
                                         }),
