@@ -24,19 +24,21 @@ impl Component for ShopActionArea {
 
         ctx.compose(|ctx| {
             table::padding_no_clip(
-                INNER_PADDING + ACTION_MARGIN_Y * 0.5,
-                table::horizontal([
-                    table::ratio_no_clip(1, |wh, ctx| {
+                INNER_PADDING,
+                table::vertical([
+                    table::fixed_no_clip(ACTION_HEIGHT, |wh, ctx| {
                         ctx.add(super::refresh_button::RefreshButton::new(wh));
                     }),
-                    table::fixed_no_clip(8.px(), |_, _| {}),
-                    table::ratio_no_clip(1, |wh, ctx| {
+                    table::fixed_no_clip(ACTION_GAP, |_, _| {}),
+                    table::fixed_no_clip(ACTION_HEIGHT, |wh, ctx| {
                         ctx.add(
                             Button::new(wh, &start_selecting, &|wh, _text_color, ctx| {
                                 ctx.add(memoized_text(&(), |mut builder| {
                                     builder
                                         .headline()
                                         .bold()
+                                        .color(palette::WHITE)
+                                        .stroke(2.px(), palette::DARK_CHARCOAL)
                                         .text("START")
                                         .render_center(wh)
                                 }));

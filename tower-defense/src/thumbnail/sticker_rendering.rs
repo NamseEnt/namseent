@@ -58,19 +58,6 @@ pub fn render_right_top_overlay(width: Px, text: &str, text_color: Color) -> Ren
     )
 }
 
-pub fn render_placeholder_thumbnail(
-    width_height: Wh<Px>,
-    stroke_px: Px,
-    shadow: bool,
-) -> RenderingTree {
-    render_sticker_image_with_shadow(
-        crate::asset::image::ui::PLACEHOLDER,
-        width_height,
-        stroke_px,
-        shadow,
-    )
-}
-
 pub fn render_card_thumbnail(
     card: &Card,
     width_height: Wh<Px>,

@@ -1,5 +1,5 @@
 use crate::shop::{Shop, ShopSlotId};
-use crate::shop_panel::constants::{PADDING, SHOP_SLOT_WIDTH};
+use crate::shop_panel::constants::{PADDING, SHOP_SLOT_HEIGHT, SHOP_SLOT_WIDTH};
 use namui::*;
 use std::collections::HashMap;
 
@@ -28,11 +28,13 @@ impl SlotLayoutCalculator {
         }
 
         let (slot_w, gap, start_x) = self.calculate_layout_params(slot_count);
-        let slot_wh = Wh::new(slot_w, self.items_area_wh.height);
+        let slot_h = SHOP_SLOT_HEIGHT.min(self.items_area_wh.height);
+        let slot_wh = Wh::new(slot_w, slot_h);
+        // let y = (self.items_area_wh.height) / 2.0;
+        let y = 0.px();
 
         for (active_index, slot_data) in active_slots.iter().enumerate() {
             let x = start_x + (slot_w + gap) * active_index as f32;
-            let y = px(0.0);
             positions.insert(slot_data.id, Xy::new(x, y));
         }
 
