@@ -103,6 +103,8 @@ pub fn wasi_cargo_envs(wasi_type: WasiType) -> [(&'static str, String); 10] {
                 ),
                 "-Clink-arg=-lwasi-emulated-process-clocks".to_string(),
                 "-Clink-arg=-lwasi-emulated-signal".to_string(),
+                "-Clink-arg=-Wl,--allow-undefined".to_string(),
+                "-Clink-arg=-Wl,--import-undefined".to_string(),
                 "-Clink-arg=-Wl,--initial-memory=8388608".to_string(),
                 "-Clink-arg=-Wl,--max-memory=4294967296".to_string(),
                 "-Clink-arg=-Wl,--stack-first".to_string(),
