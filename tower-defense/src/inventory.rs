@@ -162,6 +162,7 @@ impl Component for InventoryItem<'_> {
                                 let item = game_state.items.remove(index);
                                 use_item(game_state, &item);
                             });
+                            event.stop_propagation();
                         }
                         _ => {}
                     },

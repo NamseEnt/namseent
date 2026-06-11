@@ -174,6 +174,14 @@ impl Component for HandPanel {
                     outline_color: None,
                     shadow: true,
                     arrow: None,
+                })
+                .attach_event(|event| {
+                    let Event::MouseDown { event } = event else {
+                        return;
+                    };
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
                 });
 
             ctx.translate((sticky_x, 0.px()))
