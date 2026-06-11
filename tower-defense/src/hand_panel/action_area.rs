@@ -4,10 +4,8 @@ use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::tooltip::reroll_health_cost_warning_tooltip::RerollHealthCostWarningTooltip;
 use crate::{
-    card::Card,
     game_state::{flow::GameFlow, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
-    sound,
     theme::{
         button::{Button, ButtonColor, ButtonVariant},
         typography::memoized_text,
@@ -38,7 +36,6 @@ pub(super) struct HandActionArea {
     pub wh: Wh<Px>,
     pub flow: HandActionFlow,
     pub active_flow: Option<HandActionFlow>,
-    pub selected_slot_ids: Vec<crate::hand::HandSlotId>,
     pub tower_template: Option<crate::game_state::tower::TowerTemplate>,
 }
 
@@ -144,7 +141,6 @@ impl Component for HandActionArea {
             wh,
             flow,
             active_flow,
-            selected_slot_ids,
             tower_template,
         } = self;
         let game_state = use_game_state(ctx);
@@ -153,52 +149,12 @@ impl Component for HandActionArea {
 
         match flow {
             HandActionFlow::SelectingTower => {
-                let some_selected = !selected_slot_ids.is_empty();
-
                 let reroll_selected = || {
                     if !is_active_flow {
                         return;
                     }
-                    if game_state.left_dice == 0 || selected_slot_ids.is_empty() {
-                        return;
-                    }
-                    let selected_slot_ids = selected_slot_ids.clone();
                     mutate_game_state(move |game_state| {
-                        if game_state.left_dice == 0 || selected_slot_ids.is_empty() {
-                            return;
-                        }
-                        let health_cost = game_state.stage_modifiers.get_reroll_health_cost();
-                        if (game_state.hp - health_cost as f32) < 1.0 {
-                            return;
-                        }
-
-                        let selected_cards: Vec<Card> = selected_slot_ids
-                            .iter()
-                            .filter_map(|slot_id| {
-                                game_state
-                                    .hand
-                                    .get_item(*slot_id)
-                                    .and_then(|item| item.as_card())
-                                    .copied()
-                            })
-                            .collect();
-                        let select_count = selected_slot_ids.len();
-                        game_state.hand.delete_slots(&selected_slot_ids);
-                        if !selected_cards.is_empty() {
-                            game_state.deck.put_back(selected_cards);
-                        }
-                        (0..select_count).for_each(|_| {
-                            let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
-                            game_state.hand.push(crate::hand::HandItem::Card(card));
-                        });
-                        sound::play_card_draw_sounds(select_count);
-
-                        game_state.left_dice -= 1;
-                        game_state.rerolled_count += 1;
                         game_state.action(crate::game_state::GameStateAction::CardReroll);
-                        game_state.action(crate::game_state::GameStateAction::TakeDamage(
-                            health_cost as f32,
-                        ));
                     });
                 };
 
@@ -225,7 +181,6 @@ impl Component for HandActionArea {
                                 let max_dice = game_state.max_dice_chance();
                                 let used_dice = max_dice.saturating_sub(game_state.left_dice);
                                 let disabled = !is_active_flow
-                                    || !some_selected
                                     || game_state.left_dice == 0
                                     || (game_state.hp - health_cost as f32) < 1.0;
                                 let locale = game_state.text().locale();

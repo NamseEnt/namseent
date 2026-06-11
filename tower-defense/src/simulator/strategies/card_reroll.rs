@@ -260,25 +260,13 @@ fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
             }
         })
         .collect();
-
-    if reroll_ids.is_empty() {
-        return;
+    for id in game_state.hand.selected_slot_ids() {
+        game_state.hand.deselect_slot(id);
+    }
+    for id in &reroll_ids {
+        game_state.hand.select_slot(*id);
     }
 
-    let old_cards: Vec<Card> = reroll_ids
-        .iter()
-        .filter_map(|id| {
-            game_state
-                .hand
-                .get_item(*id)
-                .and_then(|item| item.as_card().copied())
-        })
-        .collect();
-
-    game_state.hand.delete_slots(&reroll_ids);
-    game_state.deck.put_back(old_cards);
-    game_state.left_dice = game_state.left_dice.saturating_sub(1);
-    game_state.rerolled_count += 1;
     game_state.action(crate::game_state::GameStateAction::CardReroll);
 
     for _ in 0..reroll_ids.len() {

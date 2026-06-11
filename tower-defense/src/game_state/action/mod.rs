@@ -108,7 +108,13 @@ impl GameState {
                 true
             }
             GameStateAction::CardReroll => {
-                card_reroll::trigger_upgrades(self);
+                let health_cost = self.stage_modifiers.get_reroll_health_cost();
+                if (self.left_dice > 0) || (self.hp - health_cost as f32) > 1.0 {
+                    let rerolled = card_reroll::reroll(self);
+                    crate::sound::play_card_draw_sounds(rerolled);
+                    card_reroll::apply_cost(self, health_cost);
+                    card_reroll::trigger_upgrades(self);
+                }
                 true
             }
             GameStateAction::SpendGold(amount) => {
