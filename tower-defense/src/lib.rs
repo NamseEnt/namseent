@@ -213,14 +213,19 @@ impl Component for Game {
                     let Some(button) = event.button else {
                         return;
                     };
-                    if button == MouseButton::Middle {
+                    if (button == MouseButton::Left)
+                        | (button == MouseButton::Middle)
+                        | (button == MouseButton::Right)
+                    {
                         set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
                             last_global_xy: event.global_xy,
                         }));
                     };
                 }
                 Event::MouseMove { event } => {
-                    if event.pressing_buttons.contains(&MouseButton::Middle)
+                    if event.pressing_buttons.contains(&MouseButton::Left)
+                        | event.pressing_buttons.contains(&MouseButton::Middle)
+                        | event.pressing_buttons.contains(&MouseButton::Right)
                         && let Some(middle_mouse_button_dragging) =
                             middle_mouse_button_dragging.as_ref()
                     {
