@@ -13,4 +13,3 @@ pub use tower::*;
 
 pub const MAX_SHOP_SLOT_EXPAND: usize = 2;
 pub const MAX_SHOP_ITEM_PRICE_MINUS_UPGRADE: usize = 15;
-pub const MAX_REMOVE_NUMBER_RANKS: usize = 5;

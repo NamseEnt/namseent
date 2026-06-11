@@ -267,7 +267,6 @@ fn generate_mock_upgrade(
         UpgradeDiscriminants::MembershipCard => {
             crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade()
         }
-        UpgradeDiscriminants::Eraser => crate::game_state::upgrade::EraserUpgrade::into_upgrade(1),
         UpgradeDiscriminants::BrokenPottery => {
             crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_bonus_pct)
         }

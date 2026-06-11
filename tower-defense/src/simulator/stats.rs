@@ -740,7 +740,6 @@ mod tests {
             "FourLeafClover",
             "Rabbit",
             "BlackWhite",
-            "Eraser",
         ];
 
         for name in treasure_only_names {

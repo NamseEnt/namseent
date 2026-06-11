@@ -281,7 +281,6 @@ mod crock;
 mod demolition_hammer;
 mod dice_bundle;
 mod energy_drink;
-mod eraser;
 mod fang;
 mod fountain_pen;
 mod four_leaf_clover;
@@ -320,7 +319,6 @@ pub use crock::*;
 pub use demolition_hammer::*;
 pub use dice_bundle::*;
 pub use energy_drink::*;
-pub use eraser::*;
 pub use fang::*;
 pub use fountain_pen::*;
 pub use four_leaf_clover::*;
@@ -395,7 +393,6 @@ pub enum Upgrade {
     Fang(FangUpgrade),
     Popcorn(PopcornUpgrade),
     MembershipCard(MembershipCardUpgrade),
-    Eraser(EraserUpgrade),
     BrokenPottery(BrokenPotteryUpgrade),
 }
 
@@ -482,7 +479,6 @@ impl Upgrade {
             Upgrade::Fang(_) => UpgradeDiscriminants::Fang,
             Upgrade::Popcorn(_) => UpgradeDiscriminants::Popcorn,
             Upgrade::MembershipCard(_) => UpgradeDiscriminants::MembershipCard,
-            Upgrade::Eraser(_) => UpgradeDiscriminants::Eraser,
             Upgrade::BrokenPottery(_) => UpgradeDiscriminants::BrokenPottery,
         }
     }
@@ -527,7 +523,6 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::Fang => fang::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Popcorn => popcorn::UPGRADE_DEFINITION,
             UpgradeDiscriminants::MembershipCard => membership_card::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::Eraser => eraser::UPGRADE_DEFINITION,
             UpgradeDiscriminants::BrokenPottery => broken_pottery::UPGRADE_DEFINITION,
         }
     }
