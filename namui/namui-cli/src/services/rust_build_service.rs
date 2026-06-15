@@ -18,18 +18,36 @@ pub fn build(build_option: BuildOption) -> tokio::task::JoinHandle<Result<CargoB
     tokio::spawn(async move {
         let output = run_build_process(&build_option).await?;
 
-        let stderr = String::from_utf8(output.stderr)?;
-
-        let mut build_result = parse_cargo_build_result(&output.stdout).map_err(|err| {
-            anyhow!("Failed to parse build result: stderr: {stderr} \n cargo err:  {err}")
-        })?;
+        let mut build_result = parse_cargo_build_result(&output.stdout)
+            .map_err(|err| anyhow!("Failed to parse build result: {err}"))?;
 
         if !output.status.success() {
             build_result.is_successful = false;
-            println!("Build error: {stderr}");
         }
 
         Ok(build_result)
+    })
+}
+
+async fn run_command_streaming_stderr(command: &mut Command) -> Result<Output> {
+    use tokio::io::AsyncReadExt;
+
+    let mut child = command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::inherit())
+        .spawn()?;
+
+    let mut stdout_buf = Vec::new();
+    if let Some(mut stdout) = child.stdout.take() {
+        stdout.read_to_end(&mut stdout_buf).await?;
+    }
+
+    let status = child.wait().await?;
+
+    Ok(Output {
+        status,
+        stdout: stdout_buf,
+        stderr: Vec::new(),
     })
 }
 
@@ -50,12 +68,13 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 args.push("--release");
             }
 
-            Ok(Command::new("cargo")
-                .args(args)
-                .current_dir(&build_option.project_root_path)
-                .envs(get_envs(build_option))
-                .output()
-                .await?)
+            run_command_streaming_stderr(
+                Command::new("cargo")
+                    .args(args)
+                    .current_dir(&build_option.project_root_path)
+                    .envs(get_envs(build_option)),
+            )
+            .await
         }
         Target::X86_64PcWindowsMsvc => {
             let mut args = vec![];
@@ -86,12 +105,13 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 ]);
             }
 
-            Ok(Command::new("cargo")
-                .args(args)
-                .current_dir(&build_option.project_root_path)
-                .envs(get_envs(build_option))
-                .output()
-                .await?)
+            run_command_streaming_stderr(
+                Command::new("cargo")
+                    .args(args)
+                    .current_dir(&build_option.project_root_path)
+                    .envs(get_envs(build_option)),
+            )
+            .await
         }
         Target::Aarch64PcWindowsMsvc => {
             let mut args = vec![];
@@ -122,12 +142,13 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 ]);
             }
 
-            Ok(Command::new("cargo")
-                .args(args)
-                .current_dir(&build_option.project_root_path)
-                .envs(get_envs(build_option))
-                .output()
-                .await?)
+            run_command_streaming_stderr(
+                Command::new("cargo")
+                    .args(args)
+                    .current_dir(&build_option.project_root_path)
+                    .envs(get_envs(build_option)),
+            )
+            .await
         }
         Target::X86_64UnknownLinuxGnu => todo!(),
         Target::Aarch64AppleDarwin => {
@@ -143,12 +164,13 @@ async fn run_build_process(build_option: &BuildOption) -> Result<Output> {
                 args.push("--release");
             }
 
-            Ok(Command::new("cargo")
-                .args(args)
-                .current_dir(&build_option.project_root_path)
-                .envs(get_envs(build_option))
-                .output()
-                .await?)
+            run_command_streaming_stderr(
+                Command::new("cargo")
+                    .args(args)
+                    .current_dir(&build_option.project_root_path)
+                    .envs(get_envs(build_option)),
+            )
+            .await
         }
     }
 }
@@ -267,6 +289,16 @@ fn convert_compiler_message_to_namui_error_message(
                 text: message.message.message.clone(),
             })
         }
-        None => Err(()),
+        None => Ok(ErrorMessage {
+            relative_file: String::new(),
+            absolute_file: String::new(),
+            line: 0,
+            column: 0,
+            text: message
+                .message
+                .rendered
+                .clone()
+                .unwrap_or_else(|| message.message.message.clone()),
+        }),
     }
 }
