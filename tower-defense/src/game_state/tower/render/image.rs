@@ -4,31 +4,12 @@ use namui::*;
 
 /// Returns the overlay image corresponding to the given suit.
 pub(super) fn tower_overlay_suit_image(suit: Suit) -> Image {
-    match suit {
-        Suit::Spades => crate::asset::image::tower::suit_rank::SUIT_SPADE,
-        Suit::Hearts => crate::asset::image::tower::suit_rank::SUIT_HEART,
-        Suit::Diamonds => crate::asset::image::tower::suit_rank::SUIT_DIAMOND,
-        Suit::Clubs => crate::asset::image::tower::suit_rank::SUIT_CLUB,
-    }
+    suit.hand_drawn_image()
 }
 
 /// Returns the overlay image corresponding to the given rank.
 pub(super) fn tower_overlay_rank_image(rank: Rank) -> Image {
-    match rank {
-        Rank::Two => crate::asset::image::tower::suit_rank::RANK_2,
-        Rank::Three => crate::asset::image::tower::suit_rank::RANK_3,
-        Rank::Four => crate::asset::image::tower::suit_rank::RANK_4,
-        Rank::Five => crate::asset::image::tower::suit_rank::RANK_5,
-        Rank::Six => crate::asset::image::tower::suit_rank::RANK_6,
-        Rank::Seven => crate::asset::image::tower::suit_rank::RANK_7,
-        Rank::Eight => crate::asset::image::tower::suit_rank::RANK_8,
-        Rank::Nine => crate::asset::image::tower::suit_rank::RANK_9,
-        Rank::Ten => crate::asset::image::tower::suit_rank::RANK_10,
-        Rank::Jack => crate::asset::image::tower::suit_rank::RANK_J,
-        Rank::Queen => crate::asset::image::tower::suit_rank::RANK_Q,
-        Rank::King => crate::asset::image::tower::suit_rank::RANK_K,
-        Rank::Ace => crate::asset::image::tower::suit_rank::RANK_A,
-    }
+    rank.hand_drawn_image()
 }
 
 /// Converts a tower kind + animation kind into the correct sprite image.
