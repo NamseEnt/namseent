@@ -20,10 +20,6 @@ pub fn position() -> Xy<Px> {
     )
 }
 
-pub(crate) fn mouse_position_u32() -> u32 {
-    MOUSE_POSITION.load(std::sync::atomic::Ordering::SeqCst)
-}
-
 fn update_mouse_position(x: f32, y: f32) {
     MOUSE_POSITION.store(
         (x as u16 as u32) << 16 | y as u16 as u32,

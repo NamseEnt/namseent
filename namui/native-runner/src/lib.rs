@@ -261,6 +261,8 @@ impl ApplicationHandler for NamuiApp {
 
                 match response {
                     Some(data) if !data.is_empty() => {
+                        let _arena_scope = (!namui_rendering_tree::is_arena_scope_active())
+                            .then(namui_rendering_tree::enter_arena_scope);
                         let (rendering_tree, _): (namui_rendering_tree::RenderingTree, usize) =
                             bincode::decode_from_slice(data, bincode::config::standard()).unwrap();
                         namui_drawer::draw_rendering_tree(skia, rendering_tree, mx, my, sprite_set);
