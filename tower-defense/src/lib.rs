@@ -83,7 +83,8 @@ impl Component for Game {
         let (settings_loaded, set_settings_loaded) = ctx.state(|| false);
         let (settings_load_started, set_settings_load_started) = ctx.state(|| false);
         let (bgm_started, set_bgm_started) = ctx.state(|| false);
-        let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) = ctx.state(|| None);
+        let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) =
+            ctx.state::<Option<MiddleMouseButtonDragging>>(|| None);
 
         ctx.effect("load settings", || {
             if *settings_load_started {
@@ -113,6 +114,56 @@ impl Component for Game {
             ));
             set_bgm_started.set(true);
         }
+
+        ctx.add(
+            simple_rect(screen_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                |event| match event {
+                    Event::MouseMove { event } => {
+                        if event.pressing_buttons.contains(&MouseButton::Left)
+                            | event.pressing_buttons.contains(&MouseButton::Middle)
+                            | event.pressing_buttons.contains(&MouseButton::Right)
+                            && let Some(middle_mouse_button_dragging) =
+                                middle_mouse_button_dragging.as_ref()
+                        {
+                            let global_xy = event.global_xy;
+                            let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
+                            mutate_game_state(move |game_state| {
+                                game_state.camera.move_by(delta * -1.0);
+                            });
+                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                                last_global_xy: global_xy,
+                            }));
+                        }
+                        if game_state.cursor_preview.should_update_position()
+                            || matches!(
+                                game_state.flow,
+                                crate::game_state::flow::GameFlow::PlacingTower
+                            )
+                        {
+                            let local_xy_tile = (event.global_xy / game_state.camera.zoom_level)
+                                / TILE_PX_SIZE.to_xy();
+                            let map_coord = game_state.camera.visual_left_top() + local_xy_tile;
+                            mutate_game_state(move |game_state| {
+                                game_state.cursor_preview.update_position(map_coord);
+                            });
+                        }
+                    }
+                    Event::MouseUp { event } => {
+                        let Some(button) = event.button else {
+                            return;
+                        };
+
+                        if (button == MouseButton::Left)
+                            | (button == MouseButton::Middle)
+                            | (button == MouseButton::Right)
+                        {
+                            set_middle_mouse_button_dragging.set(None);
+                        }
+                    }
+                    _ => {}
+                },
+            ),
+        );
 
         ctx.compose(|ctx| {
             let Some(modal) = game_state.opened_modal.as_ref() else {
@@ -213,49 +264,16 @@ impl Component for Game {
                     let Some(button) = event.button else {
                         return;
                     };
-                    if button == MouseButton::Middle {
+                    if (button == MouseButton::Left)
+                        | (button == MouseButton::Middle)
+                        | (button == MouseButton::Right)
+                    {
                         set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
                             last_global_xy: event.global_xy,
                         }));
                     };
                 }
-                Event::MouseMove { event } => {
-                    if event.pressing_buttons.contains(&MouseButton::Middle)
-                        && let Some(middle_mouse_button_dragging) =
-                            middle_mouse_button_dragging.as_ref()
-                    {
-                        let global_xy = event.global_xy;
-                        let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
-                        mutate_game_state(move |game_state| {
-                            game_state.camera.move_by(delta * -1.0);
-                        });
-                        set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
-                            last_global_xy: global_xy,
-                        }));
-                    }
-                    if game_state.cursor_preview.should_update_position()
-                        || matches!(
-                            game_state.flow,
-                            crate::game_state::flow::GameFlow::PlacingTower
-                        )
-                    {
-                        let local_xy_tile =
-                            (event.global_xy / game_state.camera.zoom_level) / TILE_PX_SIZE.to_xy();
-                        let map_coord = game_state.camera.visual_left_top() + local_xy_tile;
-                        mutate_game_state(move |game_state| {
-                            game_state.cursor_preview.update_position(map_coord);
-                        });
-                    }
-                }
-                Event::MouseUp { event } => {
-                    let Some(button) = event.button else {
-                        return;
-                    };
 
-                    if button == MouseButton::Middle {
-                        set_middle_mouse_button_dragging.set(None);
-                    }
-                }
                 Event::VisibilityChange if middle_mouse_button_dragging.is_some() => {
                     set_middle_mouse_button_dragging.set(None);
                 }

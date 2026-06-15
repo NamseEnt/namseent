@@ -154,7 +154,6 @@ impl Component for HandPanel {
                 wh: Wh::new(interaction_width(), PAPER_HEIGHT),
                 flow: HandActionFlow::SelectingTower,
                 active_flow: active_action_flow,
-                selected_slot_ids: selected_slot_ids.clone_inner(),
                 tower_template: tower_template.clone_inner(),
             });
 
@@ -162,7 +161,6 @@ impl Component for HandPanel {
                 wh: Wh::new(interaction_width(), PAPER_HEIGHT),
                 flow: HandActionFlow::PlacingTower,
                 active_flow: active_action_flow,
-                selected_slot_ids: selected_slot_ids.clone_inner(),
                 tower_template: tower_template.clone_inner(),
             });
 
@@ -176,6 +174,14 @@ impl Component for HandPanel {
                     outline_color: None,
                     shadow: true,
                     arrow: None,
+                })
+                .attach_event(|event| {
+                    let Event::MouseDown { event } = event else {
+                        return;
+                    };
+                    if event.is_local_xy_in() {
+                        event.stop_propagation();
+                    }
                 });
 
             ctx.translate((sticky_x, 0.px()))
