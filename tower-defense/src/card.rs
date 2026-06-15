@@ -22,6 +22,16 @@ impl Display for Suit {
         write!(f, "{s}")
     }
 }
+impl Suit {
+    pub fn hand_drawn_image(self) -> Image {
+        match self {
+            Suit::Spades => crate::asset::image::tower::suit_rank::SUIT_SPADE,
+            Suit::Hearts => crate::asset::image::tower::suit_rank::SUIT_HEART,
+            Suit::Diamonds => crate::asset::image::tower::suit_rank::SUIT_DIAMOND,
+            Suit::Clubs => crate::asset::image::tower::suit_rank::SUIT_CLUB,
+        }
+    }
+}
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
 #[derive(
@@ -105,6 +115,23 @@ impl Rank {
             13
         } else {
             self.ordinal() + 1
+        }
+    }
+    pub fn hand_drawn_image(&self) -> Image {
+        match self {
+            Rank::Two => crate::asset::image::tower::suit_rank::RANK_2,
+            Rank::Three => crate::asset::image::tower::suit_rank::RANK_3,
+            Rank::Four => crate::asset::image::tower::suit_rank::RANK_4,
+            Rank::Five => crate::asset::image::tower::suit_rank::RANK_5,
+            Rank::Six => crate::asset::image::tower::suit_rank::RANK_6,
+            Rank::Seven => crate::asset::image::tower::suit_rank::RANK_7,
+            Rank::Eight => crate::asset::image::tower::suit_rank::RANK_8,
+            Rank::Nine => crate::asset::image::tower::suit_rank::RANK_9,
+            Rank::Ten => crate::asset::image::tower::suit_rank::RANK_10,
+            Rank::Jack => crate::asset::image::tower::suit_rank::RANK_J,
+            Rank::Queen => crate::asset::image::tower::suit_rank::RANK_Q,
+            Rank::King => crate::asset::image::tower::suit_rank::RANK_K,
+            Rank::Ace => crate::asset::image::tower::suit_rank::RANK_A,
         }
     }
 }

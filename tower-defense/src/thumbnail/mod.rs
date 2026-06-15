@@ -1,4 +1,3 @@
-pub mod overlay_rendering;
 pub mod sticker_rendering;
 
 pub use sticker_rendering::{
