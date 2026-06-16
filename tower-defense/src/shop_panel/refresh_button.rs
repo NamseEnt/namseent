@@ -93,6 +93,5 @@ impl Component for RefreshButton {
             .variant(ButtonVariant::Fab)
             .disabled(disabled),
         );
-
     }
 }

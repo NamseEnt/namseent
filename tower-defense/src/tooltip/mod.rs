@@ -131,13 +131,10 @@ impl TooltipContent {
                     body: SectionText {
                         key: format!("reroll:{health_cost}"),
                         apply: Box::new(move |builder| {
-                            builder
-                                .icon(IconKind::Warning)
-                                .space()
-                                .l10n(
-                                    l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
-                                    &locale,
-                                );
+                            builder.icon(IconKind::Warning).space().l10n(
+                                l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
+                                &locale,
+                            );
                         }),
                     },
                 }]
@@ -168,13 +165,7 @@ impl Component for TooltipLayer {
             }
         }
 
-        let scale = with_spring(
-            ctx,
-            if showing { 1.0 } else { 0.0 },
-            0.0,
-            |v| v * v,
-            || 0.0,
-        );
+        let scale = with_spring(ctx, if showing { 1.0 } else { 0.0 }, 0.0, |v| v * v, || 0.0);
         if scale < 0.01 {
             return;
         }

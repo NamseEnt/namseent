@@ -16,7 +16,6 @@ const ITEM_SIZE: Px = px(64.);
 const ITEM_GAP: Px = px(12.);
 const ITEM_MARGIN: Px = px(6.);
 
-
 pub struct Upgrades {
     pub wh: Wh<Px>,
 }
@@ -242,4 +241,3 @@ impl Component for UpgradeThumbnailItem {
         );
     }
 }
-

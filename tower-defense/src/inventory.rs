@@ -135,4 +135,3 @@ impl Component for InventoryItem<'_> {
             );
     }
 }
-
