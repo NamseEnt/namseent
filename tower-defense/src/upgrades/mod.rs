@@ -1,5 +1,5 @@
 use crate::{
-    animation::{with_spring, xy_with_spring},
+    animation::xy_with_spring,
     card::Card,
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{
@@ -7,14 +7,6 @@ use crate::{
         use_game_state,
     },
     hand::HandSlotId,
-    l10n::Locale,
-    palette,
-    theme::{
-        paper_container::{
-            ArrowSide, PaperArrow, PaperContainerBackground, PaperTexture, PaperVariant,
-        },
-        typography::{FontSize, memoized_text},
-    },
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -24,14 +16,6 @@ const ITEM_SIZE: Px = px(64.);
 const ITEM_GAP: Px = px(12.);
 const ITEM_MARGIN: Px = px(6.);
 
-mod tooltip {
-    use namui::*;
-    pub const PADDING: Px = px(12.0);
-    pub const MAX_WIDTH: Px = px(320.0);
-    pub const ARROW_WIDTH: Px = px(10.0);
-    pub const ARROW_HEIGHT: Px = px(18.0);
-    pub const OFFSET_X: Px = px(4.0);
-}
 
 pub struct Upgrades {
     pub wh: Wh<Px>,
@@ -42,7 +26,6 @@ impl Component for Upgrades {
         let Self { wh } = self;
 
         let game_state = use_game_state(ctx);
-        let locale = game_state.text().locale();
         let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
         let active_slot_ids = ctx.track_eq(&game_state.hand.active_slot_ids());
         let active_tower_context = ctx.track_eq(&get_active_tower_context(
@@ -91,7 +74,6 @@ impl Component for Upgrades {
                             UpgradeThumbnailItem {
                                 wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
                                 upgrade_kind,
-                                locale,
                                 is_applicable,
                                 target_xy,
                             },
@@ -179,7 +161,6 @@ fn is_upgrade_applicable(
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
     upgrade_kind: crate::game_state::upgrade::Upgrade,
-    locale: Locale,
     is_applicable: bool,
     target_xy: Xy<Px>,
 }
@@ -189,7 +170,6 @@ impl Component for UpgradeThumbnailItem {
         let Self {
             wh,
             upgrade_kind,
-            locale,
             is_applicable,
             target_xy,
         } = self;
@@ -197,13 +177,7 @@ impl Component for UpgradeThumbnailItem {
         let game_state = use_game_state(ctx);
         let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
-        let tooltip_scale = with_spring(
-            ctx,
-            if *hovering { 1.0 } else { 0.0 },
-            0.0,
-            |v| v * v,
-            || 0.0,
-        );
+        let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
 
         let animated_xy = xy_with_spring(ctx, target_xy, target_xy);
         let ctx = ctx.translate(animated_xy);
@@ -221,35 +195,6 @@ impl Component for UpgradeThumbnailItem {
         } else {
             0.0
         };
-
-        ctx.compose(|ctx| {
-            if tooltip_scale > 0.01 {
-                let tooltip = ctx.ghost_add(
-                    "upgrade-tooltip",
-                    UpgradeTooltip {
-                        upgrade_kind,
-                        locale,
-                    },
-                );
-                if let Some(tooltip_wh) = tooltip.bounding_box().map(|rect| rect.wh()) {
-                    let y = (wh.height - tooltip_wh.height) / 2.0;
-                    let pivot = Xy::new(0.px(), tooltip_wh.height / 2.0);
-                    let base = Xy::new(
-                        wh.width
-                            + tooltip::OFFSET_X
-                            + tooltip::ARROW_WIDTH
-                            + ITEM_MARGIN * 2.0
-                            + PADDING,
-                        y,
-                    );
-                    ctx.translate(base + pivot)
-                        .scale(Xy::new(tooltip_scale, tooltip_scale))
-                        .translate(Xy::new(-pivot.x, -pivot.y))
-                        .on_top()
-                        .add(tooltip);
-                }
-            }
-        });
 
         let ctx = ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN));
         let thumbnail_wh = Wh::new(ITEM_SIZE - PADDING * 2.0, ITEM_SIZE - PADDING * 2.0);
@@ -279,94 +224,22 @@ impl Component for UpgradeThumbnailItem {
                     return;
                 };
                 if event.is_local_xy_in() {
-                    set_hovering.set(true);
-                } else {
+                    if !*hovering {
+                        set_hovering.set(true);
+                        let origin = event.global_xy - event.local_xy();
+                        crate::tooltip::show_tooltip(
+                            *tooltip_id,
+                            Rect::from_xy_wh(origin, wh),
+                            crate::tooltip::TooltipPlacement::RightOf,
+                            crate::tooltip::TooltipContent::Upgrade(upgrade_kind),
+                        );
+                    }
+                } else if *hovering {
                     set_hovering.set(false);
+                    crate::tooltip::hide_tooltip(*tooltip_id);
                 }
             }),
         );
     }
 }
 
-struct UpgradeTooltip {
-    upgrade_kind: crate::game_state::upgrade::Upgrade,
-    locale: Locale,
-}
-
-impl Component for UpgradeTooltip {
-    fn render(self, ctx: &RenderCtx) {
-        let UpgradeTooltip {
-            upgrade_kind,
-            locale,
-        } = self;
-
-        let max_width = tooltip::MAX_WIDTH;
-        let text_max = max_width - (tooltip::PADDING * 2.0);
-
-        let content = ctx.ghost_compose("tooltip-content", |ctx| {
-            table::vertical([
-                table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                    compose_ctx.add(memoized_text(
-                        (&upgrade_kind, &text_max, &locale.language),
-                        |mut builder| {
-                            builder
-                                .headline()
-                                .size(FontSize::Medium)
-                                .max_width(text_max)
-                                .color(palette::WHITE)
-                                .stroke(2.px(), palette::DARK_CHARCOAL)
-                                .l10n(upgrade_kind.name_text(), &locale)
-                                .render_left_top()
-                        },
-                    ));
-                }),
-                table::fixed(tooltip::PADDING, |_, _| {}),
-                table::fit(table::FitAlign::LeftTop, |compose_ctx| {
-                    compose_ctx.add(memoized_text(
-                        (&upgrade_kind, &text_max, &locale.language),
-                        |mut builder| {
-                            builder
-                                .paragraph()
-                                .size(FontSize::Large)
-                                .max_width(text_max)
-                                .color(palette::WHITE)
-                                .stroke(2.px(), palette::DARK_CHARCOAL)
-                                .l10n(upgrade_kind.description_text(), &locale)
-                                .render_left_top()
-                        },
-                    ));
-                }),
-            ])(Wh::new(text_max, f32::MAX.px()), ctx);
-        });
-
-        let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
-            return;
-        };
-
-        let container_wh = content_wh + Wh::single(tooltip::PADDING * 2.0);
-
-        ctx.translate((tooltip::PADDING, tooltip::PADDING))
-            .add(content);
-        Self::render_background(ctx, container_wh);
-    }
-}
-
-impl UpgradeTooltip {
-    fn render_background(ctx: &RenderCtx, wh: Wh<Px>) {
-        ctx.add(PaperContainerBackground {
-            width: wh.width,
-            height: wh.height,
-            texture: PaperTexture::Rough,
-            variant: PaperVariant::Sticky,
-            color: palette::SURFACE_CONTAINER,
-            outline_color: Some(palette::SURFACE_CONTAINER_OUTLINE),
-            shadow: true,
-            arrow: Some(PaperArrow {
-                side: ArrowSide::Left,
-                width: tooltip::ARROW_WIDTH,
-                height: tooltip::ARROW_HEIGHT,
-                offset: wh.height / 2.0,
-            }),
-        });
-    }
-}
