@@ -46,6 +46,7 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     Reroll { health_cost: usize },
+    // Word (),
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
