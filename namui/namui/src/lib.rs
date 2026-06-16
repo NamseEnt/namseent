@@ -19,10 +19,7 @@ pub use namui_type::*;
 pub use rand;
 pub use render::*;
 pub use shader_macro::shader;
-use std::{
-    cell::RefCell,
-    sync::atomic::{AtomicBool, AtomicU32, Ordering},
-};
+use std::cell::RefCell;
 pub use system::*;
 pub use tokio;
 pub use tokio::task::{spawn, spawn_local};
@@ -66,7 +63,7 @@ pub fn start_with_log_config(root_component: RootComponent, log_config: system::
 }
 
 /// Write response data in `[len: u32 LE][data...]` format into RESPONSE_BUFFER.
-/// Returns pointer to the buffer. Valid until the next call to write_response/write_empty_response.
+/// Returns pointer to the buffer. Valid until the next call to write_response.
 pub(crate) fn write_response(data: &[u8]) -> *const u8 {
     RESPONSE_BUFFER.with_borrow_mut(|buf| {
         buf.clear();
@@ -77,21 +74,13 @@ pub(crate) fn write_response(data: &[u8]) -> *const u8 {
     })
 }
 
-/// Write empty response `[len: u32 = 0]`, signals "redraw with previous data".
-pub(crate) fn write_empty_response() -> *const u8 {
-    write_response(&[])
-}
-
-/// Returns null for no change, or pointer to `[len: u32 LE][data...]`.
-/// - null: no change
-/// - len == 0: mouse position changed, redraw with previous rendering tree
-/// - len > 0: new rendering tree data
+/// Returns null when no draw is needed, or pointer to `[len: u32 LE][data...]`
+/// holding the current frame's rendering tree.
+///
+/// The render arena is reset on every `tick`, so the drawer can never safely
+/// reuse a previously sent tree. We therefore always send the full tree on a
+/// screen redraw rather than signalling "redraw with previous data".
 fn on_event(event: RawEvent) -> *const u8 {
-    thread_local! {
-        static PREV_SENT_TREE_BYTES: RefCell<Vec<u8>> = Default::default();
-    }
-    static MOUSE_POSITION_ON_LAST_REDRAW: AtomicU32 = AtomicU32::new(0);
-
     let is_screen_redraw = matches!(event, RawEvent::ScreenRedraw);
 
     let mut result: *const u8 = std::ptr::null();
@@ -112,19 +101,7 @@ fn on_event(event: RawEvent) -> *const u8 {
 
                 let bytes =
                     bincode::encode_to_vec(rendering_tree, bincode::config::standard()).unwrap();
-                let tree_changed = PREV_SENT_TREE_BYTES.with_borrow(|prev| prev != &bytes);
-                let mouse_position_changed = MOUSE_POSITION_ON_LAST_REDRAW.load(Ordering::Relaxed)
-                    != system::mouse::mouse_position_u32();
-
-                if tree_changed {
-                    result = write_response(&bytes);
-                    PREV_SENT_TREE_BYTES.replace(bytes);
-                } else if mouse_position_changed {
-                    result = write_empty_response();
-                }
-
-                MOUSE_POSITION_ON_LAST_REDRAW
-                    .store(system::mouse::mouse_position_u32(), Ordering::Relaxed);
+                result = write_response(&bytes);
             });
 
             for _ in 0..16 {

@@ -10,6 +10,7 @@ use crate::*;
 pub use audio::AudioAsset;
 pub use audio::AudioGroup;
 pub use audio::{Audio, AudioListener};
+use std::sync::atomic::AtomicBool;
 
 type InitResult = Result<()>;
 

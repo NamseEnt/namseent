@@ -58,6 +58,11 @@ impl Drop for ArenaScopeGuard {
     }
 }
 
+/// Whether the current thread is currently inside an arena scope.
+pub fn is_arena_scope_active() -> bool {
+    SCOPE_ACTIVE.with(|s| s.get())
+}
+
 /// Opens an arena scope on the current thread. Nested scopes panic.
 ///
 /// Pair this with a prior `reset_render_arena()` if the caller wants a fresh
