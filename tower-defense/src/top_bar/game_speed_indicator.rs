@@ -45,7 +45,7 @@ impl Component for GameSpeedIndicator {
             FastForwardMultiplier::X1 => 1,
             FastForwardMultiplier::X2 => 2,
             FastForwardMultiplier::X4 => 3,
-            FastForwardMultiplier::X8 | FastForwardMultiplier::X16 => 4,
+            FastForwardMultiplier::X8 => 4,
         };
 
         const BUTTON_SIZE: Px = px(28.);
@@ -120,7 +120,7 @@ impl Component for GameSpeedIndicator {
                             })
                             .variant(ButtonVariant::Text)
                             .disabled(
-                                game_state.fast_forward_multiplier == FastForwardMultiplier::X16,
+                                game_state.fast_forward_multiplier == FastForwardMultiplier::X8,
                             ),
                         );
                     }),
