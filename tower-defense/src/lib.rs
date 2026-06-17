@@ -115,6 +115,8 @@ impl Component for Game {
             set_bgm_started.set(true);
         }
 
+        ctx.add(tooltip::TooltipLayer);
+
         ctx.add(
             simple_rect(screen_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
                 |event| match event {
