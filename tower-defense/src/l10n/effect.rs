@@ -125,12 +125,12 @@ impl EffectText {
                         format!("-{:.0}%", (1.0 - multiplier) * 100.0),
                     )
                     .static_text(" 적속도"),
-                Effect::RankTowerDisable { rank } => builder
-                    .with_icon_bold(IconKind::Damage, format!("{}", rank))
-                    .static_text(" 랭크 타워"),
-                Effect::SuitTowerDisable { suit } => builder
-                    .with_icon_bold(IconKind::Suit { suit }, format!("{}", suit))
-                    .static_text(" 타워"),
+                Effect::RankTowerDisable { rank } => {
+                    builder.card_rank(rank).static_text(" 랭크 타워")
+                }
+                Effect::SuitTowerDisable { suit } => {
+                    builder.card_suit(suit).static_text(" 타워")
+                }
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -258,12 +258,12 @@ impl EffectText {
                         format!("-{:.0}%", (1.0 - multiplier) * 100.0),
                     )
                     .static_text(" speed"),
-                Effect::RankTowerDisable { rank } => builder
-                    .with_icon_bold(IconKind::Damage, format!("{}", rank))
-                    .static_text(" rank tower"),
-                Effect::SuitTowerDisable { suit } => builder
-                    .with_icon_bold(IconKind::Suit { suit }, format!("{}", suit))
-                    .static_text(" tower"),
+                Effect::RankTowerDisable { rank } => {
+                    builder.card_rank(rank).static_text(" rank tower")
+                }
+                Effect::SuitTowerDisable { suit } => {
+                    builder.card_suit(suit).static_text(" tower")
+                }
                 Effect::GainShield {
                     min_amount,
                     max_amount,

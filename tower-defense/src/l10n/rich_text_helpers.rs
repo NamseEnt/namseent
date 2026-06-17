@@ -11,7 +11,7 @@ pub trait RichTextHelpers<'a> {
     -> &mut TypographyBuilder<'a>;
     fn with_value_increase<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_multiplier<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
-    fn with_card_rank<S: Into<String>>(&mut self, rank: S) -> &mut TypographyBuilder<'a>;
+    fn with_card_rank(&mut self, rank: crate::card::Rank) -> &mut TypographyBuilder<'a>;
     fn with_heal_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_shield_value<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
     fn with_special_item_text<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
@@ -100,11 +100,8 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
         self
     }
 
-    fn with_card_rank<S: Into<String>>(&mut self, rank: S) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::EPIC).text(rank.into());
-        });
-        self
+    fn with_card_rank(&mut self, rank: crate::card::Rank) -> &mut TypographyBuilder<'a> {
+        self.card_rank(rank)
     }
 
     fn with_heal_icon<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a> {
