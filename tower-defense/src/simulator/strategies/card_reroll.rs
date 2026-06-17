@@ -138,13 +138,13 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
         return false;
     }
 
-    let mut best_item_idx = None;
+    let mut best_item_id = None;
     let mut best_item_rating = current_rating;
 
     let straight_threshold = tower_kind_rating(TowerKind::Straight);
 
-    for (idx, item) in game_state.items.iter().enumerate() {
-        if let Item::GrantCard(grant_card_item) = item {
+    for item in game_state.items.iter() {
+        if let Item::GrantCard(grant_card_item) = item.item {
             let mut candidate_cards = cards.to_vec();
             candidate_cards.push(grant_card_item.card);
 
@@ -158,14 +158,13 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
             let candidate_rating = tower_kind_rating(candidate_template.kind);
             if candidate_rating >= straight_threshold && candidate_rating > best_item_rating {
                 best_item_rating = candidate_rating;
-                best_item_idx = Some(idx);
+                best_item_id = Some(item.id);
             }
         }
     }
 
-    if let Some(idx) = best_item_idx {
-        let item = game_state.items.remove(idx);
-        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
+    if let Some(id) = best_item_id {
+        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
         return true;
     }
 

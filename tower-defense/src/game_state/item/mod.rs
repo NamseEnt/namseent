@@ -1,9 +1,7 @@
 mod behavior;
 pub mod generation;
-mod usage;
 
 pub use behavior::*;
-pub use usage::*;
 
 impl Item {
     pub fn name_text(&self) -> crate::l10n::item_kind::ItemText {

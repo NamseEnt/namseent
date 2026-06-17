@@ -132,7 +132,8 @@ impl Component for DebugToolsModal {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(
                                                                     LumpSugarItem::standard()
-                                                                        .into_item(),
+                                                                        .into_item()
+                                                                        .with_unique_id(),
                                                                 );
                                                             });
                                                         },
@@ -163,7 +164,8 @@ impl Component for DebugToolsModal {
                                                             mutate_game_state(|gs| {
                                                                 gs.items.push(
                                                                     LumpSugarItem::standard()
-                                                                        .into_item(),
+                                                                        .into_item()
+                                                                        .with_unique_id(),
                                                                 );
                                                             });
                                                         },

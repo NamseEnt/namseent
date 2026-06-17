@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{item::use_item, mutate_game_state, use_game_state},
+    game_state::{mutate_game_state, use_game_state},
     sound,
 };
 use namui::*;
@@ -27,11 +27,8 @@ impl Component for Inventory {
                 wh,
                 scroll_bar_width: PADDING,
                 content: |mut ctx| {
-                    for (item_index, item) in game_state.items.iter().enumerate() {
-                        ctx.add(InventoryItem {
-                            item,
-                            index: item_index,
-                        });
+                    for item in game_state.items.iter() {
+                        ctx.add(InventoryItem { item });
                         // advance by button height plus original gap
                         ctx = ctx.translate(Xy::new(0.px(), ITEM_SIZE + ITEM_GAP));
                     }
@@ -49,13 +46,12 @@ impl Component for Inventory {
 }
 
 struct InventoryItem<'a> {
-    item: &'a crate::game_state::item::Item,
-    index: usize,
+    item: &'a crate::game_state::item::ItemWithId,
 }
 
 impl Component for InventoryItem<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { item, index } = self;
+        let Self { item } = self;
 
         let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
@@ -108,7 +104,7 @@ impl Component for InventoryItem<'_> {
                                         *tooltip_id,
                                         Rect::from_xy_wh(origin, item_wh),
                                         crate::tooltip::TooltipPlacement::LeftOf,
-                                        crate::tooltip::TooltipContent::Item(item.clone()),
+                                        crate::tooltip::TooltipContent::Item(item.item.clone()),
                                     );
                                 }
                             } else if *hovering {
@@ -123,9 +119,11 @@ impl Component for InventoryItem<'_> {
                                 sound::VolumePreset::Medium,
                                 sound::SpatialMode::NonSpatial,
                             ));
+                            let id = item.id;
                             mutate_game_state(move |game_state| {
-                                let item = game_state.items.remove(index);
-                                use_item(game_state, &item);
+                                game_state.action(
+                                    crate::game_state::GameStateAction::UseInventoryItem(id),
+                                );
                             });
                             event.stop_propagation();
                         }

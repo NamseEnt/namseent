@@ -36,15 +36,14 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
                 return;
             }
 
-            let item_clone = item.clone();
-
+            let item = item.clone();
             slot_data.purchased = true;
             slot_data.start_exit_animation(Instant::now());
-            game_state.items.push(item_clone.clone());
+            game_state.items.push(item.clone().with_unique_id());
             game_state.handle_upgrade_trigger(UpgradeTriggerEvent::ItemBought);
             game_state.record_event(
                 crate::game_state::play_history::HistoryEventType::ItemPurchased {
-                    item: item_clone,
+                    item: item.clone(),
                     cost: cost_value,
                 },
             );
