@@ -1,4 +1,5 @@
 use crate::theme::typography::TypographyIcon;
+use crate::theme::typography::card_chip::CardChipContent;
 
 /// Token system for rich text rendering
 /// Supports both static (const-compatible) and dynamic (runtime-allocated) tokens
@@ -17,6 +18,8 @@ pub enum Token<'a> {
     Restore,
     /// Static icon by name (scales with current font size)
     Icon(TypographyIcon),
+    /// Card-shaped chip showing a suit or rank (scales with current font size)
+    CardChip(CardChipContent),
     /// Space character
     Space,
     /// Hard line break

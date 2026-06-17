@@ -2,6 +2,7 @@
 #![allow(clippy::extra_unused_type_parameters)]
 
 mod builder;
+mod card_chip;
 mod inline_box;
 mod layout;
 mod memoization;
@@ -11,6 +12,7 @@ mod token;
 
 use super::palette;
 pub use builder::*;
+pub use card_chip::CardChipContent;
 pub use memoization::memoized_text;
 use namui::*;
 

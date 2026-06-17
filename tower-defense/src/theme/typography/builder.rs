@@ -155,6 +155,24 @@ impl<'a> TypographyBuilder<'a> {
         self
     }
 
+    /// Add a card-shaped chip showing a suit (scales with current font size)
+    pub fn card_suit(&mut self, suit: crate::card::Suit) -> &mut Self {
+        self.tokens
+            .push(Token::CardChip(super::card_chip::CardChipContent::Suit(
+                suit,
+            )));
+        self
+    }
+
+    /// Add a card-shaped chip showing a rank (scales with current font size)
+    pub fn card_rank(&mut self, rank: crate::card::Rank) -> &mut Self {
+        self.tokens
+            .push(Token::CardChip(super::card_chip::CardChipContent::Rank(
+                rank,
+            )));
+        self
+    }
+
     pub fn icon_with_attribute<F>(&mut self, icon_kind: IconKind, build: F) -> &mut Self
     where
         F: FnOnce(&mut TypographyIcon),

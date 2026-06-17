@@ -1,8 +1,5 @@
 use super::*;
 
-use crate::icon::IconKind;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub struct GrantCardItem {
     pub card: Card,
@@ -49,12 +46,14 @@ impl ItemBehavior for GrantCardItem {
         match locale.language {
             crate::l10n::Language::Korean => {
                 builder
-                    .with_icon_bold(IconKind::Suit { suit: card.suit }, format!("{}", card.rank))
+                    .card_rank(card.rank)
+                    .card_suit(card.suit)
                     .static_text(" 카드 획득");
             }
             crate::l10n::Language::English => {
                 builder
-                    .with_icon_bold(IconKind::Suit { suit: card.suit }, format!("{}", card.rank))
+                    .card_rank(card.rank)
+                    .card_suit(card.suit)
                     .static_text(" card");
             }
         }

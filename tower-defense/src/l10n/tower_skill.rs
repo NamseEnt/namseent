@@ -10,11 +10,25 @@ pub enum TowerSkillText {
     NearbyMonsterSpeedMulTitle,
     MoneyIncomeAddTitle,
     TopCardBonusTitle,
-    NearbyTowerDamageMulDesc { mul: f32, range_radius: usize },
-    NearbyTowerDamageAddDesc { add: f32, range_radius: usize },
-    NearbyMonsterSpeedMulDesc { mul: f32, range_radius: usize },
-    MoneyIncomeAddDesc { add: u32 },
-    TopCardBonusDesc { rank: String, bonus_damage: usize },
+    NearbyTowerDamageMulDesc {
+        mul: f32,
+        range_radius: usize,
+    },
+    NearbyTowerDamageAddDesc {
+        add: f32,
+        range_radius: usize,
+    },
+    NearbyMonsterSpeedMulDesc {
+        mul: f32,
+        range_radius: usize,
+    },
+    MoneyIncomeAddDesc {
+        add: u32,
+    },
+    TopCardBonusDesc {
+        rank: crate::card::Rank,
+        bonus_damage: usize,
+    },
 }
 
 impl LocalizedText for TowerSkillText {
@@ -81,7 +95,7 @@ impl TowerSkillText {
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
                 builder
                     .static_text("탑 카드 보너스: ")
-                    .with_card_rank(&rank)
+                    .with_card_rank(rank)
                     .static_text(" (")
                     .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
                     .static_text(")");
@@ -143,7 +157,7 @@ impl TowerSkillText {
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
                 builder
                     .static_text("Top Card Bonus: ")
-                    .with_card_rank(&rank)
+                    .with_card_rank(rank)
                     .static_text(" (")
                     .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
                     .static_text(")");
