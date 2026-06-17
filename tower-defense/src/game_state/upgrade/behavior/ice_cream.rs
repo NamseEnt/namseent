@@ -8,6 +8,10 @@ pub struct IceCreamUpgrade {
 }
 
 impl UpgradeBehavior for IceCreamUpgrade {
+    fn key(&self) -> &'static str {
+        "ice_cream"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::ICE_CREAM,
@@ -101,12 +105,12 @@ impl UpgradeBehavior for IceCreamUpgrade {
                     .with_damage_value(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
                     .static_text(" for ")
                     .text(self.waves_remaining.to_string())
-                    .static_text(" waves");
+                    .static_text(" stages");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.waves_remaining.to_string())
-                    .static_text("웨이브 동안 모든 타워 ")
+                    .static_text("스테이지 동안 모든 타워 ")
                     .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }

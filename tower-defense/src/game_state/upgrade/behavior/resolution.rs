@@ -8,6 +8,10 @@ pub struct ResolutionUpgrade {
 }
 
 impl UpgradeBehavior for ResolutionUpgrade {
+    fn key(&self) -> &'static str {
+        "resolution"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::RESOLUTION,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct DiceBundleUpgrade {
@@ -7,6 +7,10 @@ pub struct DiceBundleUpgrade {
 }
 
 impl UpgradeBehavior for DiceBundleUpgrade {
+    fn key(&self) -> &'static str {
+        "dice_bundle"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::DICE_BUNDLE,
@@ -66,12 +70,12 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.with_dice_value(format!("Dice +{}", self.add))
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder.with_dice_value(format!("주사위 +{}", self.add))
-            }
+            crate::l10n::locale::Language::English => builder
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_value(format!(" +{}", self.add)),
+            crate::l10n::locale::Language::Korean => builder
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_value(format!(" +{}", self.add)),
         };
     }
 }

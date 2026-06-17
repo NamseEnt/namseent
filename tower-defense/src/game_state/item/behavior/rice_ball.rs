@@ -1,7 +1,6 @@
 use super::*;
-
-use crate::icon::IconKind;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct RiceBallItem {
@@ -23,6 +22,10 @@ impl RiceBallItem {
 }
 
 impl ItemBehavior for RiceBallItem {
+    fn key(&self) -> &'static str {
+        "rice_ball"
+    }
+
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
         game_state.action(crate::game_state::GameStateAction::Heal(self.heal_amount));
     }
@@ -46,13 +49,13 @@ impl ItemBehavior for RiceBallItem {
         match locale.language {
             crate::l10n::Language::Korean => {
                 builder
-                    .with_icon_bold(IconKind::Health, format!("+{:.0}", self.heal_amount))
-                    .static_text(" 체력 회복");
+                    .l10n(Word::Health.name(), locale)
+                    .with_health_value(format!(" +{:.0}", self.heal_amount));
             }
             crate::l10n::Language::English => {
                 builder
-                    .with_icon_bold(IconKind::Health, format!("+{:.0}", self.heal_amount))
-                    .static_text(" HP");
+                    .l10n(Word::Health.name(), locale)
+                    .with_health_value(format!(" +{:.0}", self.heal_amount));
             }
         }
     }

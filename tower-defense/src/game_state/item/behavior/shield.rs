@@ -1,7 +1,6 @@
 use super::*;
-
-use crate::icon::IconKind;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct ShieldItem {
@@ -23,6 +22,10 @@ impl ShieldItem {
 }
 
 impl ItemBehavior for ShieldItem {
+    fn key(&self) -> &'static str {
+        "shield"
+    }
+
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
         game_state.action(crate::game_state::GameStateAction::GainShield(
             self.shield_amount,
@@ -35,7 +38,7 @@ impl ItemBehavior for ShieldItem {
         locale: &crate::l10n::Locale,
     ) {
         builder.static_text(match locale.language {
-            crate::l10n::Language::Korean => "방어막",
+            crate::l10n::Language::Korean => "보호막",
             crate::l10n::Language::English => "Shield",
         });
     }
@@ -48,13 +51,13 @@ impl ItemBehavior for ShieldItem {
         match locale.language {
             crate::l10n::Language::Korean => {
                 builder
-                    .with_icon_bold(IconKind::Shield, format!("+{:.0}", self.shield_amount))
-                    .static_text(" 보호막");
+                    .l10n(Word::Shield.name(), locale)
+                    .with_shield_value(format!(" +{:.0}", self.shield_amount));
             }
             crate::l10n::Language::English => {
                 builder
-                    .with_icon_bold(IconKind::Shield, format!("+{:.0}", self.shield_amount))
-                    .static_text(" shield");
+                    .l10n(Word::Shield.name(), locale)
+                    .with_shield_value(format!(" +{:.0}", self.shield_amount));
             }
         }
     }

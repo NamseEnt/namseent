@@ -1,12 +1,16 @@
+mod hover_area;
+mod word;
+
 use crate::animation::with_spring;
-use crate::game_state::item::Item;
-use crate::game_state::upgrade::Upgrade;
+use crate::game_state::item::{Item, ItemBehavior};
+use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
 use crate::l10n::{self, Locale};
 use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, TypographyBuilder, memoized_text};
+pub use hover_area::WithHoverArea;
 use namui::*;
 use namui_prebuilt::table;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -46,6 +50,7 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     Reroll { health_cost: usize },
+    Word(crate::l10n::word::Word),
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -83,47 +88,22 @@ pub fn hide_tooltip(id: TooltipId) {
 }
 
 /// 한 section의 제목/본문 텍스트를 빌더에 적용하는 클로저 + 캐시 키.
-struct SectionText<'a> {
-    key: String,
-    apply: Box<dyn Fn(&mut TypographyBuilder) + 'a>,
+pub struct SectionText<'a> {
+    pub key: String,
+    pub apply: Box<dyn Fn(&mut TypographyBuilder) + 'a>,
 }
 
 /// stacked tooltip의 박스 1개.
-struct TooltipSection<'a> {
-    title: Option<SectionText<'a>>,
-    body: SectionText<'a>,
+pub struct TooltipSection<'a> {
+    pub title: Option<SectionText<'a>>,
+    pub body: SectionText<'a>,
 }
 
 impl TooltipContent {
     fn sections(&self, locale: Locale) -> Vec<TooltipSection<'_>> {
         match self {
-            TooltipContent::Item(item) => vec![TooltipSection {
-                title: Some(SectionText {
-                    key: format!("item:{:?}:name", item.discriminant()),
-                    apply: Box::new(move |builder| item.l10n_name(builder, &locale)),
-                }),
-                body: SectionText {
-                    key: format!("item:{item:?}:desc"),
-                    apply: Box::new(move |builder| item.l10n_description(builder, &locale)),
-                },
-            }],
-            TooltipContent::Upgrade(upgrade) => vec![TooltipSection {
-                title: Some(SectionText {
-                    key: format!("upgrade:{upgrade:?}:name"),
-                    apply: Box::new(move |builder| {
-                        builder.l10n(l10n::upgrade::UpgradeTypeText::Name(upgrade), &locale);
-                    }),
-                }),
-                body: SectionText {
-                    key: format!("upgrade:{upgrade:?}:desc"),
-                    apply: Box::new(move |builder| {
-                        builder.l10n(
-                            l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(upgrade),
-                            &locale,
-                        );
-                    }),
-                },
-            }],
+            TooltipContent::Item(item) => item.tooltip_sections(locale),
+            TooltipContent::Upgrade(upgrade) => upgrade.tooltip_sections(locale),
             TooltipContent::Reroll { health_cost } => {
                 let health_cost = *health_cost;
                 vec![TooltipSection {
@@ -138,6 +118,10 @@ impl TooltipContent {
                         }),
                     },
                 }]
+            }
+            TooltipContent::Word(word) => {
+                let word = *word;
+                word.tooltip_sections(locale)
             }
         }
     }

@@ -7,6 +7,10 @@ pub struct BackpackUpgrade {
 }
 
 impl UpgradeBehavior for BackpackUpgrade {
+    fn key(&self) -> &'static str {
+        "backpack"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::BACKPACK,

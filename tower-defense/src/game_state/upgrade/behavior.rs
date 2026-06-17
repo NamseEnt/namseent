@@ -46,6 +46,8 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
 /// Common trait for all upgrade behaviors
 #[enum_dispatch]
 pub trait UpgradeBehavior {
+    fn key(&self) -> &'static str;
+
     fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
         false
     }
@@ -176,6 +178,30 @@ pub trait UpgradeBehavior {
     #[allow(dead_code)]
     fn rarity(&self) -> crate::Rarity {
         crate::Rarity::Common
+    }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![self.tooltip_section(locale)]
+    }
+
+    fn tooltip_section(&self, locale: crate::l10n::Locale) -> crate::tooltip::TooltipSection<'_> {
+        crate::tooltip::TooltipSection {
+            title: Some(crate::tooltip::SectionText {
+                key: format!("upgrade:{}:name", self.key()),
+                apply: Box::new(move |builder| {
+                    self.l10n_name(builder, &locale);
+                }),
+            }),
+            body: crate::tooltip::SectionText {
+                key: format!("upgrade:{}:desc", self.key()),
+                apply: Box::new(move |builder| {
+                    self.l10n_description(builder, &locale);
+                }),
+            },
+        }
     }
 }
 

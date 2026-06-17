@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 const DICE_BONUS: usize = 2;
 
@@ -9,6 +9,10 @@ pub struct MetronomeUpgrade {
 }
 
 impl UpgradeBehavior for MetronomeUpgrade {
+    fn key(&self) -> &'static str {
+        "metronome"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::METRONOME,
@@ -81,11 +85,13 @@ impl UpgradeBehavior for MetronomeUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .with_dice_text("Dice +2")
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_text(" +2")
                 .static_text(" every 2 stages"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("2 스테이지마다")
-                .with_dice_text("주사위 +2"),
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_text(" +2"),
         };
     }
 }

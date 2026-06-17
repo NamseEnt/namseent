@@ -6,6 +6,10 @@ pub struct MembershipCardUpgrade {
 }
 
 impl UpgradeBehavior for MembershipCardUpgrade {
+    fn key(&self) -> &'static str {
+        "membership_card"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::MEMBERSHIP_CARD,
@@ -43,7 +47,9 @@ impl UpgradeBehavior for MembershipCardUpgrade {
     ) {
         builder.static_text(match locale.language {
             crate::l10n::locale::Language::English => "Get a free shop next stage",
-            crate::l10n::locale::Language::Korean => "다음 스테이지 상점이 무료가 됩니다",
+            crate::l10n::locale::Language::Korean => {
+                "다음 스테이지 상점의 모든 상품이 무료가 됩니다"
+            }
         });
     }
 }

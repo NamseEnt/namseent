@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ShoppingBagUpgrade {
@@ -8,6 +8,10 @@ pub struct ShoppingBagUpgrade {
 }
 
 impl UpgradeBehavior for ShoppingBagUpgrade {
+    fn key(&self) -> &'static str {
+        "shopping_bag"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::SHOPPING_BAG,
@@ -71,12 +75,19 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Each purchased item increases all towers' ")
+                    .static_text("Each purchased ")
+                    .l10n(Word::Item.name(), locale)
+                    .static_text("/")
+                    .l10n(Word::Treasure.name(), locale)
+                    .static_text(" increases all towers' ")
                     .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("아이템을 구매할 때마다 모든 타워 ")
+                    .l10n(Word::Item.name(), locale)
+                    .static_text("/")
+                    .l10n(Word::Treasure.name(), locale)
+                    .static_text(" 을 구매할 때마다 모든 타워 ")
                     .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }

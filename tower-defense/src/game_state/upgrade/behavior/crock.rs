@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CrockUpgrade {
@@ -26,6 +26,10 @@ impl CrockUpgrade {
 }
 
 impl UpgradeBehavior for CrockUpgrade {
+    fn key(&self) -> &'static str {
+        "crock"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::CROCK,
@@ -103,11 +107,13 @@ impl UpgradeBehavior for CrockUpgrade {
                     .with_damage_value(format!("damage +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
                     .static_text(" for every ")
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
-                    .static_text(" gold");
+                    .static_text(" ")
+                    .l10n(Word::Gold.name(), locale);
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("보유 골드 ")
+                    .static_text("보유 ")
+                    .l10n(Word::Gold.name(), locale)
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text("당 모든 타워 ")
                     .with_damage_value(format!("데미지 +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0));

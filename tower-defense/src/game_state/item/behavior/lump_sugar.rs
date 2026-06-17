@@ -1,7 +1,6 @@
 use super::*;
-
-use crate::icon::IconKind;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub struct LumpSugarItem {
@@ -23,6 +22,10 @@ impl LumpSugarItem {
 }
 
 impl ItemBehavior for LumpSugarItem {
+    fn key(&self) -> &'static str {
+        "lump_sugar"
+    }
+
     fn can_use(&self, game_state: &crate::game_state::GameState) -> Result<(), ItemUseError> {
         if game_state.stage_modifiers.is_item_use_disabled() {
             return Err(ItemUseError::ItemUseDisabled);
@@ -63,13 +66,13 @@ impl ItemBehavior for LumpSugarItem {
         match locale.language {
             crate::l10n::Language::Korean => {
                 builder
-                    .with_icon_bold(IconKind::Refresh, format!("+{}", self.reroll_amount))
-                    .static_text(" 리롤");
+                    .l10n(Word::Dice.name(), locale)
+                    .with_dice_value(format!(" +{}", self.reroll_amount));
             }
             crate::l10n::Language::English => {
                 builder
-                    .with_icon_bold(IconKind::Refresh, format!("+{}", self.reroll_amount))
-                    .static_text(" reroll");
+                    .l10n(Word::Dice.name(), locale)
+                    .with_dice_value(format!(" +{}", self.reroll_amount));
             }
         }
     }
