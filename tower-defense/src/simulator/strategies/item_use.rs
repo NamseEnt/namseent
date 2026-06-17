@@ -30,17 +30,19 @@ impl ItemUseStrategy for HeuristicItemUseStrategy {
 
 fn use_grant_barricades(game_state: &mut GameState) {
     loop {
-        let barricade_idx = game_state
-            .items
-            .iter()
-            .position(|item| matches!(item, Item::GrantBarricades(..)));
+        let barricade_id = game_state.items.iter().find_map(|item| {
+            if matches!(item.item, Item::GrantBarricades(..)) {
+                Some(item.id)
+            } else {
+                None
+            }
+        });
 
-        let Some(idx) = barricade_idx else {
+        let Some(id) = barricade_id else {
             break;
         };
 
-        let item = game_state.items.remove(idx);
-        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
+        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
     }
 }
 
@@ -48,34 +50,39 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     let max_hp = game_state.config.player.max_hp;
 
     loop {
-        let heal_item_idx = game_state.items.iter().position(|item| match item {
+        let heal_item_id = game_state.items.iter().find_map(|item| match item.item {
             Item::RiceBall(rice_ball) => {
-                game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5
+                if game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
+                    Some(item.id)
+                } else {
+                    None
+                }
             }
-            _ => false,
+            _ => None,
         });
 
-        let Some(idx) = heal_item_idx else {
+        let Some(id) = heal_item_id else {
             break;
         };
 
-        let item = game_state.items.remove(idx);
-        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
+        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
     }
 }
 
 fn use_shield_items(game_state: &mut GameState) {
     loop {
-        let shield_idx = game_state
-            .items
-            .iter()
-            .position(|item| matches!(item, Item::Shield(..)));
+        let shield_id = game_state.items.iter().find_map(|item| {
+            if matches!(item.item, Item::Shield(..)) {
+                Some(item.id)
+            } else {
+                None
+            }
+        });
 
-        let Some(idx) = shield_idx else {
+        let Some(id) = shield_id else {
             break;
         };
 
-        let item = game_state.items.remove(idx);
-        game_state.action(crate::game_state::GameStateAction::UseItem(&item));
+        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
     }
 }

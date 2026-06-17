@@ -33,7 +33,7 @@ use crate::game_state::{
     user_status_effect::UserStatusEffect,
 };
 
-pub(crate) enum GameStateAction<'a> {
+pub(crate) enum GameStateAction {
     GameStart,
     StartStage {
         stage: usize,
@@ -56,7 +56,7 @@ pub(crate) enum GameStateAction<'a> {
         rank: Option<Rank>,
     },
     ApplyUserStatusEffect(UserStatusEffect),
-    UseItem(&'a item::Item),
+    UseInventoryItem(item::ItemId),
     TakeDamage(f32),
     StageEnd {
         perfect_clear: bool,
@@ -71,7 +71,7 @@ pub(crate) enum GameStateAction<'a> {
 }
 
 impl GameState {
-    pub(crate) fn action(&mut self, action: GameStateAction<'_>) -> bool {
+    pub(crate) fn action(&mut self, action: GameStateAction) -> bool {
         match action {
             GameStateAction::GameStart => {
                 game_start::record_history_event(self);
@@ -178,12 +178,25 @@ impl GameState {
                 apply_user_status_effect::apply(self, status_effect);
                 true
             }
-            GameStateAction::UseItem(item) => {
-                if use_item::can_use(self, item) {
-                    use_item::mark_as_used(self);
-                    use_item::apply_effect(self, item);
-                    use_item::record_history_event(self, item);
+            GameStateAction::UseInventoryItem(item_id) => {
+                let Some((item_index, item)) = self
+                    .items
+                    .iter()
+                    .enumerate()
+                    .find(|(_index, item)| item.id == item_id)
+                else {
+                    return true;
+                };
+
+                if !use_item::can_use(self, item) {
+                    return true;
                 }
+
+                let item = self.items.remove(item_index);
+
+                use_item::mark_as_used(self);
+                use_item::apply_effect(self, &item);
+                use_item::record_history_event(self, &item);
                 true
             }
             GameStateAction::TakeDamage(damage) => {

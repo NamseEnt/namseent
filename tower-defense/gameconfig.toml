@@ -2,7 +2,7 @@
 max_hp = 60.0
 starting_gold = 100
 starting_hp = 60.0
-base_dice_chance = 1
+base_dice_chance = 3
 max_stages = 50
 base_hand_slots = 5
 

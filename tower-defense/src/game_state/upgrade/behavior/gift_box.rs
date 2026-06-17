@@ -122,8 +122,12 @@ mod tests {
         gs.flow =
             crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
         gs.items = vec![
-            crate::game_state::item::LumpSugarItem::standard().into_item(),
-            crate::game_state::item::LumpSugarItem::standard().into_item(),
+            crate::game_state::item::LumpSugarItem::standard()
+                .into_item()
+                .with_unique_id(),
+            crate::game_state::item::LumpSugarItem::standard()
+                .into_item()
+                .with_unique_id(),
         ];
         gs.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade(),

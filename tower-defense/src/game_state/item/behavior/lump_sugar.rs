@@ -33,6 +33,7 @@ impl ItemBehavior for LumpSugarItem {
         if !matches!(
             game_state.flow,
             crate::game_state::flow::GameFlow::SelectingTower(_)
+                | crate::game_state::flow::GameFlow::Shopping(_)
         ) {
             return Err(ItemUseError::InvalidFlow {
                 required: "SelectingTower".to_string(),
