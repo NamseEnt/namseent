@@ -7,6 +7,10 @@ pub struct FountainPenUpgrade {
 }
 
 impl UpgradeBehavior for FountainPenUpgrade {
+    fn key(&self) -> &'static str {
+        "fountain_pen"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::FOUNTAIN_PEN,

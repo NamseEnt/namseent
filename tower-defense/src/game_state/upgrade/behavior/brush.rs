@@ -7,6 +7,10 @@ pub struct BrushUpgrade {
 }
 
 impl UpgradeBehavior for BrushUpgrade {
+    fn key(&self) -> &'static str {
+        "brush"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::BRUSH,

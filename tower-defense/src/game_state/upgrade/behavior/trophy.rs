@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TrophyUpgrade {
@@ -9,6 +9,10 @@ pub struct TrophyUpgrade {
 const DAMAGE_BONUS_PCT: f32 = 1.0;
 
 impl UpgradeBehavior for TrophyUpgrade {
+    fn key(&self) -> &'static str {
+        "trophy"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::TROPHY,
@@ -83,15 +87,27 @@ impl UpgradeBehavior for TrophyUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .static_text("Stage perfect clears increase all towers' ")
+                    .l10n(Word::PerfectClear.name(), locale)
+                    .static_text(" increase all towers' ")
                     .with_damage_value(format!("damage +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
-                    .static_text("스테이지 퍼펙트 클리어 시 모든 타워 ")
+                    .l10n(Word::PerfectClear.name(), locale)
+                    .static_text(" 시 모든 타워 ")
                     .with_damage_value(format!("데미지 +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
             }
         }
+    }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            Word::PerfectClear.tooltip_section(locale),
+        ]
     }
 }
 

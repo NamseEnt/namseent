@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 const PIGGY_BANK_GOLD_STEP: usize = 100;
 const PIGGY_BANK_GOLD_REWARD_PER_STEP: usize = 10;
@@ -8,6 +8,10 @@ const PIGGY_BANK_GOLD_REWARD_PER_STEP: usize = 10;
 pub struct PiggyBankUpgrade;
 
 impl UpgradeBehavior for PiggyBankUpgrade {
+    fn key(&self) -> &'static str {
+        "piggy_bank"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::PIGGY_BANK,
@@ -52,15 +56,19 @@ impl UpgradeBehavior for PiggyBankUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("At stage end, gain ")
-                .with_gold_value(format!("gold +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP))
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP))
                 .static_text(" for every ")
-                .with_gold_value(format!("gold {}", PIGGY_BANK_GOLD_STEP))
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" {}", PIGGY_BANK_GOLD_STEP))
                 .static_text(" you hold"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("스테이지 종료 시 보유한 ")
-                .with_gold_value(format!("골드 {}", PIGGY_BANK_GOLD_STEP))
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" {}", PIGGY_BANK_GOLD_STEP))
                 .static_text("당 ")
-                .with_gold_value(format!("골드 +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP)),
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP)),
         };
     }
 }

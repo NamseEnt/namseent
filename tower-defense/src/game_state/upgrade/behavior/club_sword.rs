@@ -7,6 +7,10 @@ pub struct ClubSwordUpgrade {
 }
 
 impl UpgradeBehavior for ClubSwordUpgrade {
+    fn key(&self) -> &'static str {
+        "club_sword"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::CLUB_SWORD,

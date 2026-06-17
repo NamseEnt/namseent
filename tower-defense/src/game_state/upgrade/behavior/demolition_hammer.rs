@@ -8,6 +8,10 @@ pub struct DemolitionHammerUpgrade {
 }
 
 impl UpgradeBehavior for DemolitionHammerUpgrade {
+    fn key(&self) -> &'static str {
+        "demolition_hammer"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::DEMOLITION_HAMMER,

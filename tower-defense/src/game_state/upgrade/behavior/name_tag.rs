@@ -10,6 +10,10 @@ pub struct NameTagUpgrade {
 }
 
 impl UpgradeBehavior for NameTagUpgrade {
+    fn key(&self) -> &'static str {
+        "name_tag"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::NAME_TAG,

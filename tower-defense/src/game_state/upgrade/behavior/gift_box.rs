@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct GiftBoxUpgrade {
@@ -7,6 +7,10 @@ pub struct GiftBoxUpgrade {
 }
 
 impl UpgradeBehavior for GiftBoxUpgrade {
+    fn key(&self) -> &'static str {
+        "gift_box"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::GIFT_BOX,
@@ -77,11 +81,17 @@ impl UpgradeBehavior for GiftBoxUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .with_gold_value(format!("gold +{}", self.add))
-                .static_text(" per item at the end of each stage"),
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", self.add))
+                .static_text(" per ")
+                .l10n(Word::Item.name(), locale)
+                .static_text(" at the end of each stage"),
             crate::l10n::locale::Language::Korean => builder
-                .static_text("스테이지 종료 시 보유한 아이템당 ")
-                .with_gold_value(format!("골드 +{}", self.add)),
+                .static_text("스테이지 종료 시 보유한 ")
+                .l10n(Word::Item.name(), locale)
+                .static_text(" 1개당 ")
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", self.add)),
         };
     }
 }

@@ -4,6 +4,10 @@ use super::*;
 pub struct RabbitUpgrade;
 
 impl UpgradeBehavior for RabbitUpgrade {
+    fn key(&self) -> &'static str {
+        "rabbit"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::RABBIT,

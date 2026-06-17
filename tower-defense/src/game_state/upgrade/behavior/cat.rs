@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CatUpgrade {
@@ -7,6 +7,10 @@ pub struct CatUpgrade {
 }
 
 impl UpgradeBehavior for CatUpgrade {
+    fn key(&self) -> &'static str {
+        "cat"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::CAT,
@@ -52,11 +56,13 @@ impl UpgradeBehavior for CatUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
-                .with_gold_value(format!("gold +{}", self.add))
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", self.add))
                 .static_text(" on monster kills"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("적 처치 시 ")
-                .with_gold_value(format!("골드 +{}", self.add)),
+                .l10n(Word::Gold.name(), locale)
+                .with_gold_value(format!(" +{}", self.add)),
         };
     }
 }
