@@ -1,3 +1,6 @@
+mod hover_area;
+mod word;
+
 use crate::animation::with_spring;
 use crate::game_state::item::Item;
 use crate::game_state::upgrade::Upgrade;
@@ -7,6 +10,7 @@ use crate::l10n::{self, Locale};
 use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, TypographyBuilder, memoized_text};
+pub use hover_area::WithHoverArea;
 use namui::*;
 use namui_prebuilt::table;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -46,7 +50,7 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     Reroll { health_cost: usize },
-    // Word (),
+    Word(crate::l10n::word::Word),
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -139,6 +143,10 @@ impl TooltipContent {
                         }),
                     },
                 }]
+            }
+            TooltipContent::Word(word) => {
+                let word = *word;
+                word.tooltip_sections(locale)
             }
         }
     }

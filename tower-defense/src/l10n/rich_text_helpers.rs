@@ -265,7 +265,7 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     ) -> &mut TypographyBuilder<'a> {
         self.icon(icon_kind);
         self.with_style(|b| {
-            b.bold().text(value.into());
+            b.bold().static_text(" ").text(value.into());
         });
         self
     }

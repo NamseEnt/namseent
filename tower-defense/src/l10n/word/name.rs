@@ -19,7 +19,7 @@ impl WordName {
             super::Word::Health => builder.with_style(|builder| {
                 builder
                     .color(crate::theme::palette::RED)
-                    .with_icon_bold(IconKind::Refresh, "체력");
+                    .with_icon_bold(IconKind::Health, "체력");
             }),
             super::Word::Gold => builder.with_style(|builder| {
                 builder
@@ -35,12 +35,12 @@ impl WordName {
                 builder.with_icon_bold(IconKind::Item, "아이템");
             }),
             super::Word::Treasure => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Refresh, "보물");
+                builder.with_icon_bold(IconKind::Treasure, "보물");
             }),
             super::Word::Shield => builder.with_style(|builder| {
                 builder
                     .color(crate::theme::palette::GREEN)
-                    .with_icon_bold(IconKind::Refresh, "보호막");
+                    .with_icon_bold(IconKind::Shield, "보호막");
             }),
         };
     }

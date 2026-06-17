@@ -1,7 +1,9 @@
 mod description;
 mod name;
 
-#[derive(Clone, Copy)]
+use namui::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum Word {
     Health,
     Gold,
@@ -11,11 +13,11 @@ pub enum Word {
     Shield,
 }
 
-#[derive(Clone, Copy)]
-pub struct WordName(Word);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub struct WordName(pub Word);
 
-#[derive(Clone, Copy)]
-pub struct WordDescription(Word);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub struct WordDescription(pub Word);
 
 impl Word {
     pub fn name(&self) -> WordName {
