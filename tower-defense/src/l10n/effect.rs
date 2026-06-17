@@ -128,9 +128,7 @@ impl EffectText {
                 Effect::RankTowerDisable { rank } => {
                     builder.card_rank(rank).static_text(" 랭크 타워")
                 }
-                Effect::SuitTowerDisable { suit } => {
-                    builder.card_suit(suit).static_text(" 타워")
-                }
+                Effect::SuitTowerDisable { suit } => builder.card_suit(suit).static_text(" 타워"),
                 Effect::GainShield {
                     min_amount,
                     max_amount,
@@ -261,9 +259,7 @@ impl EffectText {
                 Effect::RankTowerDisable { rank } => {
                     builder.card_rank(rank).static_text(" rank tower")
                 }
-                Effect::SuitTowerDisable { suit } => {
-                    builder.card_suit(suit).static_text(" tower")
-                }
+                Effect::SuitTowerDisable { suit } => builder.card_suit(suit).static_text(" tower"),
                 Effect::GainShield {
                     min_amount,
                     max_amount,

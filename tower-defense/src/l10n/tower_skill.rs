@@ -10,10 +10,21 @@ pub enum TowerSkillText {
     NearbyMonsterSpeedMulTitle,
     MoneyIncomeAddTitle,
     TopCardBonusTitle,
-    NearbyTowerDamageMulDesc { mul: f32, range_radius: usize },
-    NearbyTowerDamageAddDesc { add: f32, range_radius: usize },
-    NearbyMonsterSpeedMulDesc { mul: f32, range_radius: usize },
-    MoneyIncomeAddDesc { add: u32 },
+    NearbyTowerDamageMulDesc {
+        mul: f32,
+        range_radius: usize,
+    },
+    NearbyTowerDamageAddDesc {
+        add: f32,
+        range_radius: usize,
+    },
+    NearbyMonsterSpeedMulDesc {
+        mul: f32,
+        range_radius: usize,
+    },
+    MoneyIncomeAddDesc {
+        add: u32,
+    },
     TopCardBonusDesc {
         rank: crate::card::Rank,
         bonus_damage: usize,
