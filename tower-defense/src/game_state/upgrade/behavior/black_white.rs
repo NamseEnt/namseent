@@ -1,4 +1,4 @@
-use crate::{Suit, icon::IconKind};
+use crate::Suit;
 
 use super::*;
 
@@ -44,15 +44,13 @@ impl UpgradeBehavior for BlackWhiteUpgrade {
         _locale: &crate::l10n::Locale,
     ) {
         builder
-            .icon(IconKind::Suit { suit: Suit::Spades })
+            .card_suit(Suit::Spades)
             .static_text("=")
-            .icon(IconKind::Suit { suit: Suit::Clubs })
+            .card_suit(Suit::Clubs)
             .static_text(", ")
-            .icon(IconKind::Suit { suit: Suit::Hearts })
+            .card_suit(Suit::Hearts)
             .static_text("=")
-            .icon(IconKind::Suit {
-                suit: Suit::Diamonds,
-            });
+            .card_suit(Suit::Diamonds);
     }
 }
 

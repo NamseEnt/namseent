@@ -83,6 +83,23 @@ impl RichTextRenderer {
                         vertical_align: style.vertical_align,
                     });
                 }
+                Token::CardChip(content) => {
+                    let style = style_stack.current();
+                    let font_size: Px = style.font_size.into_px();
+                    let height = font_size * 1.25;
+                    let width = height * super::card_chip::CARD_CHIP_RATIO;
+                    let chip_wh = Wh::new(width, height);
+
+                    let chip = super::card_chip::render_card_chip(*content, chip_wh);
+
+                    boxes.push(InlineBox::Atomic {
+                        content: chip,
+                        width,
+                        height,
+                        baseline: height * 0.82,
+                        vertical_align: style.vertical_align,
+                    });
+                }
                 Token::Space => {
                     let style = style_stack.current();
                     let space_shaped = ShapedText::shape(
