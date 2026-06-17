@@ -19,6 +19,10 @@ impl GrantCardItem {
 }
 
 impl ItemBehavior for GrantCardItem {
+    fn key(&self) -> &'static str {
+        "grant_card"
+    }
+
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
         game_state.action(crate::game_state::GameStateAction::GrantHandItem(
             crate::hand::HandItem::Card(self.card),

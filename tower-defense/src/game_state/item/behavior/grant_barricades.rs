@@ -23,6 +23,10 @@ impl GrantBarricadesItem {
 }
 
 impl ItemBehavior for GrantBarricadesItem {
+    fn key(&self) -> &'static str {
+        "grant_barricades"
+    }
+
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
         for _ in 0..self.count {
             game_state.action(crate::game_state::GameStateAction::GrantTowerCard {
@@ -53,12 +57,12 @@ impl ItemBehavior for GrantBarricadesItem {
             crate::l10n::Language::Korean => {
                 builder
                     .with_icon_bold(IconKind::Card, format!("{}", self.count))
-                    .static_text(" 바리케이드 카드");
+                    .static_text(" 바리케이드 타워");
             }
             crate::l10n::Language::English => {
                 builder
                     .with_icon_bold(IconKind::Card, format!("{}", self.count))
-                    .static_text(" barricade cards");
+                    .static_text(" barricade towers");
             }
         }
     }

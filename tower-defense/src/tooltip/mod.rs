@@ -2,7 +2,7 @@ mod hover_area;
 mod word;
 
 use crate::animation::with_spring;
-use crate::game_state::item::Item;
+use crate::game_state::item::{Item, ItemBehavior};
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
@@ -102,16 +102,7 @@ pub struct TooltipSection<'a> {
 impl TooltipContent {
     fn sections(&self, locale: Locale) -> Vec<TooltipSection<'_>> {
         match self {
-            TooltipContent::Item(item) => vec![TooltipSection {
-                title: Some(SectionText {
-                    key: format!("item:{:?}:name", item.discriminant()),
-                    apply: Box::new(move |builder| item.l10n_name(builder, &locale)),
-                }),
-                body: SectionText {
-                    key: format!("item:{item:?}:desc"),
-                    apply: Box::new(move |builder| item.l10n_description(builder, &locale)),
-                },
-            }],
+            TooltipContent::Item(item) => item.tooltip_sections(locale),
             TooltipContent::Upgrade(upgrade) => upgrade.tooltip_sections(locale),
             TooltipContent::Reroll { health_cost } => {
                 let health_cost = *health_cost;

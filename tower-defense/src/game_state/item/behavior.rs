@@ -21,6 +21,8 @@ pub use shield::*;
 
 #[enum_dispatch]
 pub trait ItemBehavior {
+    fn key(&self) -> &'static str;
+
     fn can_use(&self, game_state: &crate::game_state::GameState) -> Result<(), ItemUseError> {
         if game_state.stage_modifiers.is_item_use_disabled() {
             return Err(ItemUseError::ItemUseDisabled);
@@ -48,6 +50,30 @@ pub trait ItemBehavior {
         stroke_px: Px,
         shadow: bool,
     ) -> RenderingTree;
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![self.tooltip_section(locale)]
+    }
+
+    fn tooltip_section(&self, locale: crate::l10n::Locale) -> crate::tooltip::TooltipSection<'_> {
+        crate::tooltip::TooltipSection {
+            title: Some(crate::tooltip::SectionText {
+                key: format!("item:{}:name", self.key()),
+                apply: Box::new(move |builder| {
+                    self.l10n_name(builder, &locale);
+                }),
+            }),
+            body: crate::tooltip::SectionText {
+                key: format!("item:{}:desc", self.key()),
+                apply: Box::new(move |builder| {
+                    self.l10n_description(builder, &locale);
+                }),
+            },
+        }
+    }
 }
 
 #[enum_dispatch(ItemBehavior)]

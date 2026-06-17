@@ -27,6 +27,10 @@ impl PainkillerItem {
 }
 
 impl ItemBehavior for PainkillerItem {
+    fn key(&self) -> &'static str {
+        "painkiller"
+    }
+
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
         let status_effect = crate::game_state::user_status_effect::UserStatusEffect {
             kind: crate::game_state::user_status_effect::UserStatusEffectKind::DamageReduction {
