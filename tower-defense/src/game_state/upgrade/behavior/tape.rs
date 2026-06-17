@@ -10,6 +10,10 @@ pub struct TapeUpgrade {
 }
 
 impl UpgradeBehavior for TapeUpgrade {
+    fn key(&self) -> &'static str {
+        "tape"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::TAPE,

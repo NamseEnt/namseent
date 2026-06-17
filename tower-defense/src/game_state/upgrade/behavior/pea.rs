@@ -7,6 +7,10 @@ const PEA_HP_PLUS: f32 = 10.0;
 pub struct PeaUpgrade;
 
 impl UpgradeBehavior for PeaUpgrade {
+    fn key(&self) -> &'static str {
+        "pea"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::PEA,

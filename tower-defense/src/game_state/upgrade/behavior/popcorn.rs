@@ -10,6 +10,10 @@ pub struct PopcornUpgrade {
 }
 
 impl UpgradeBehavior for PopcornUpgrade {
+    fn key(&self) -> &'static str {
+        "popcorn"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::POPCORN,

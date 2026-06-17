@@ -39,6 +39,7 @@ impl WordDescription {
             super::Word::Shield => builder.with_style(|builder| {
                 builder.static_text("체력 대신 감소합니다. 보호막은 스테이지 종료 시 사라집니다");
             }),
+            super::Word::PerfectClear => builder.static_text("데미지를 입지않고 스테이지를 클리어"),
         };
     }
 
@@ -68,6 +69,7 @@ impl WordDescription {
             super::Word::Shield => builder.with_style(|builder| {
                 builder.static_text("Decreases instead of health. Shields disappear at the end of each stage");
             }),
+            super::Word::PerfectClear => builder.static_text("Clearing a stage without taking any damage"),
         };
     }
 }

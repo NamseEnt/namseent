@@ -1,9 +1,15 @@
+use crate::l10n::word::Word;
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct SpannerUpgrade;
 
 impl UpgradeBehavior for SpannerUpgrade {
+    fn key(&self) -> &'static str {
+        "spanner"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::SPANNER,
@@ -41,10 +47,16 @@ impl UpgradeBehavior for SpannerUpgrade {
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
         locale: &crate::l10n::Locale,
     ) {
-        builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Keep shield across stage transitions",
-            crate::l10n::locale::Language::Korean => "스테이지 전환 시 보호막을 유지합니다",
-        });
+        match locale.language {
+            crate::l10n::Language::Korean => builder
+                .static_text("스테이지 종료 시 ")
+                .l10n(Word::Shield.name(), locale)
+                .static_text("이 사라지지 않습니다"),
+            crate::l10n::Language::English => builder
+                .static_text("Keep ")
+                .l10n(Word::Shield.name(), locale)
+                .static_text(" on stage ends"),
+        };
     }
 }
 

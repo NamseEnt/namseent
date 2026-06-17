@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CameraUpgrade;
@@ -7,6 +7,10 @@ pub struct CameraUpgrade;
 const CAMERA_GOLD_REWARD: usize = 50;
 
 impl UpgradeBehavior for CameraUpgrade {
+    fn key(&self) -> &'static str {
+        "camera"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::CAMERA,
@@ -59,13 +63,15 @@ impl UpgradeBehavior for CameraUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_gold_value(format!("gold +{}", CAMERA_GOLD_REWARD))
+                    .l10n(Word::Gold.name(), locale)
+                    .with_gold_value(format!(" +{}", CAMERA_GOLD_REWARD))
                     .static_text(" when placing a face tower");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .static_text("그림 카드 타워를 배치 시 ")
-                    .with_gold_value(format!("골드 +{}", CAMERA_GOLD_REWARD));
+                    .l10n(Word::Gold.name(), locale)
+                    .with_gold_value(format!(" +{}", CAMERA_GOLD_REWARD));
             }
         }
     }

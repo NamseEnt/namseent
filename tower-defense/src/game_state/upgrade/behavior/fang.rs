@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FangUpgrade {
@@ -7,6 +7,10 @@ pub struct FangUpgrade {
 }
 
 impl UpgradeBehavior for FangUpgrade {
+    fn key(&self) -> &'static str {
+        "fang"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::FANG,
@@ -66,11 +70,13 @@ impl UpgradeBehavior for FangUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .with_health_value(format!("HP +{}", self.add))
+                .l10n(Word::Health.name(), locale)
+                .with_health_value(format!(" +{}", self.add))
                 .static_text(" when a monster dies"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("적 처시 시 ")
-                .with_health_value(format!("체력 +{}", self.add)),
+                .l10n(Word::Health.name(), locale)
+                .with_health_value(format!(" +{}", self.add)),
         };
     }
 }

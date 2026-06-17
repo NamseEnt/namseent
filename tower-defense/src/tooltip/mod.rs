@@ -3,7 +3,7 @@ mod word;
 
 use crate::animation::with_spring;
 use crate::game_state::item::Item;
-use crate::game_state::upgrade::Upgrade;
+use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
 use crate::l10n::{self, Locale};
@@ -88,15 +88,15 @@ pub fn hide_tooltip(id: TooltipId) {
 }
 
 /// 한 section의 제목/본문 텍스트를 빌더에 적용하는 클로저 + 캐시 키.
-struct SectionText<'a> {
-    key: String,
-    apply: Box<dyn Fn(&mut TypographyBuilder) + 'a>,
+pub struct SectionText<'a> {
+    pub key: String,
+    pub apply: Box<dyn Fn(&mut TypographyBuilder) + 'a>,
 }
 
 /// stacked tooltip의 박스 1개.
-struct TooltipSection<'a> {
-    title: Option<SectionText<'a>>,
-    body: SectionText<'a>,
+pub struct TooltipSection<'a> {
+    pub title: Option<SectionText<'a>>,
+    pub body: SectionText<'a>,
 }
 
 impl TooltipContent {
@@ -112,23 +112,7 @@ impl TooltipContent {
                     apply: Box::new(move |builder| item.l10n_description(builder, &locale)),
                 },
             }],
-            TooltipContent::Upgrade(upgrade) => vec![TooltipSection {
-                title: Some(SectionText {
-                    key: format!("upgrade:{upgrade:?}:name"),
-                    apply: Box::new(move |builder| {
-                        builder.l10n(l10n::upgrade::UpgradeTypeText::Name(upgrade), &locale);
-                    }),
-                }),
-                body: SectionText {
-                    key: format!("upgrade:{upgrade:?}:desc"),
-                    apply: Box::new(move |builder| {
-                        builder.l10n(
-                            l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(upgrade),
-                            &locale,
-                        );
-                    }),
-                },
-            }],
+            TooltipContent::Upgrade(upgrade) => upgrade.tooltip_sections(locale),
             TooltipContent::Reroll { health_cost } => {
                 let health_cost = *health_cost;
                 vec![TooltipSection {

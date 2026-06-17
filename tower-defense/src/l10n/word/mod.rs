@@ -11,6 +11,7 @@ pub enum Word {
     Item,
     Treasure,
     Shield,
+    PerfectClear,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]

@@ -12,10 +12,11 @@ impl Word {
             Word::Item => vec![self.tooltip_section(locale)],
             Word::Treasure => vec![self.tooltip_section(locale)],
             Word::Shield => vec![self.tooltip_section(locale)],
+            Word::PerfectClear => vec![self.tooltip_section(locale)],
         }
     }
 
-    fn tooltip_section(
+    pub fn tooltip_section(
         self,
         locale: crate::l10n::Locale,
     ) -> crate::tooltip::TooltipSection<'static> {

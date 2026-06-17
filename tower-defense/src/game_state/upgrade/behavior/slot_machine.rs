@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct SlotMachineUpgrade {
@@ -7,6 +7,10 @@ pub struct SlotMachineUpgrade {
 }
 
 impl UpgradeBehavior for SlotMachineUpgrade {
+    fn key(&self) -> &'static str {
+        "slot_machine"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::SLOT_MACHINE,
@@ -44,11 +48,13 @@ impl UpgradeBehavior for SlotMachineUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .with_dice_value(format!("Dice +{}", self.next_round_dice))
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_value(format!(" +{}", self.next_round_dice))
                 .static_text(" next stage"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("다음 스테이지 ")
-                .with_dice_value(format!("주사위 +{}", self.next_round_dice)),
+                .l10n(Word::Dice.name(), locale)
+                .with_dice_value(format!(" +{}", self.next_round_dice)),
         };
     }
 }

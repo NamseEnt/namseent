@@ -7,6 +7,10 @@ pub struct SingleChopstickUpgrade {
 }
 
 impl UpgradeBehavior for SingleChopstickUpgrade {
+    fn key(&self) -> &'static str {
+        "single_chopstick"
+    }
+
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::SINGLE_CHOPSTICK,

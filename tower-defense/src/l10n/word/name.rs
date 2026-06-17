@@ -42,6 +42,7 @@ impl WordName {
                     .color(crate::theme::palette::GREEN)
                     .with_icon_bold(IconKind::Shield, "보호막");
             }),
+            super::Word::PerfectClear => builder.bold().static_text("퍼펙트 클리어"),
         };
     }
 
@@ -73,6 +74,7 @@ impl WordName {
                     .color(crate::theme::palette::GREEN)
                     .with_icon_bold(IconKind::Refresh, "Shield");
             }),
+            super::Word::PerfectClear => builder.bold().static_text("Perfect clear"),
         };
     }
 }
