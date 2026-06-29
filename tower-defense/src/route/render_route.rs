@@ -1,59 +1,10 @@
 use super::*;
-use crate::game_state::{
-    can_place_tower::can_place_tower,
-    flow::GameFlow,
-    tower::{Tower, TowerTemplate},
-    *,
-};
+use crate::game_state::TRAVEL_POINTS;
 use namui::*;
 
-pub fn render_route_guide(ctx: &RenderCtx, game_state: &GameState) {
-    // Route texture is fixed to 1.jpg (previously cycled with F8)
-    let cursor_coord = ctx.track_eq(
-        &game_state
-            .cursor_preview
-            .map_coord
-            .map(|f| f.round() as usize),
-    );
-    let game_state_route = ctx.track_eq(&game_state.route);
-    let towers = ctx.track_eq(&game_state.towers);
-    let is_tower_placing = ctx.track_eq(&if matches!(game_state.flow, GameFlow::PlacingTower) {
-        !game_state.hand.selected_slot_ids().is_empty()
-    } else {
-        false
-    });
-
-    let route = ctx.memo(|| {
-        'placing_tower: {
-            if cursor_coord.x == 0 || cursor_coord.y == 0 || !*is_tower_placing {
-                break 'placing_tower;
-            }
-            let cursor_tower_coord = cursor_coord.as_ref().map(|v| v - 1);
-            if !can_place_tower(
-                cursor_tower_coord,
-                Wh::single(2),
-                &TRAVEL_POINTS,
-                &towers.coords(),
-                game_state_route.iter_coords(),
-                MAP_SIZE,
-            ) {
-                break 'placing_tower;
-            }
-            let mut towers = towers.clone_inner();
-            towers.place_tower(Tower::new(
-                &TowerTemplate::barricade(),
-                cursor_tower_coord,
-                game_state.now(),
-            ));
-            return calculate_routes(&towers.coords(), &TRAVEL_POINTS, MAP_SIZE).unwrap();
-        };
-        game_state_route.as_ref().clone()
-    });
-
-    // Removed F8 key handler that changed route texture.
-
+pub fn render_route_guide(ctx: &RenderCtx) {
     let mut path = Path::new();
-    for coord in route.iter_coords() {
+    for coord in TRAVEL_POINTS.iter() {
         let xy = Xy::new(
             (coord.x.as_f32() + 0.5) * TILE_PX_SIZE.width.as_f32(),
             (coord.y.as_f32() + 0.5) * TILE_PX_SIZE.height.as_f32(),
