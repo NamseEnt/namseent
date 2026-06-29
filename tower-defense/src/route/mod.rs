@@ -1,11 +1,13 @@
 mod move_on_route;
 mod render_route;
+mod render_route_flag;
 mod route_find;
 
 use crate::*;
 pub use move_on_route::*;
 use namui::State;
 pub use render_route::*;
+pub use render_route_flag::*;
 pub use route_find::*;
 use std::sync::Arc;
 
