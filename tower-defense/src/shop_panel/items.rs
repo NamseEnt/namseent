@@ -2,6 +2,7 @@ use super::constants::PADDING;
 use crate::icon::IconKind;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData};
+use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -87,5 +88,18 @@ fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available
                     .text(format!("{cost}"))
                     .render_center(price_wh)
             },
-        ));
+        ))
+        .add(PaperContainerBackground {
+            width: price_wh.width,
+            height: price_wh.height,
+            texture: PaperTexture::Rough,
+            variant: PaperVariant::Tape,
+            color: match slot_data.slot {
+                ShopSlot::Item { .. } => palette::GREEN,
+                ShopSlot::Upgrade { .. } => palette::BLUE,
+            },
+            outline_color: Some(palette::WHITE),
+            shadow: true,
+            arrow: None,
+        });
 }
