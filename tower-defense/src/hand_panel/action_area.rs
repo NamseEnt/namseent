@@ -210,6 +210,7 @@ impl Component for HandActionArea {
                                 })
                                 .variant(ButtonVariant::Contained)
                                 .color(ButtonColor::Primary)
+                                .long_press_time(Duration::from_millis(500))
                                 .disabled(!is_active_flow),
                             );
                         })]),
