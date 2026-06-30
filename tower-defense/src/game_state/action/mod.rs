@@ -55,6 +55,8 @@ pub(crate) enum GameStateAction {
         suit: Option<Suit>,
         rank: Option<Rank>,
     },
+    // Apply a user status effect to the player. maybe useful for treasure in near future.
+    #[allow(dead_code)]
     ApplyUserStatusEffect(UserStatusEffect),
     UseInventoryItem(item::ItemId),
     TakeDamage(f32),

@@ -10,14 +10,12 @@ use namui::*;
 mod grant_barricades;
 mod grant_card;
 mod lump_sugar;
-mod painkiller;
 mod rice_ball;
 mod shield;
 
 pub use grant_barricades::*;
 pub use grant_card::*;
 pub use lump_sugar::*;
-pub use painkiller::*;
 pub use rice_ball::*;
 pub use shield::*;
 
@@ -85,7 +83,6 @@ pub enum Item {
     RiceBall(RiceBallItem),
     LumpSugar(LumpSugarItem),
     Shield(ShieldItem),
-    Painkiller(PainkillerItem),
     GrantBarricades(GrantBarricadesItem),
     GrantCard(GrantCardItem),
 }
