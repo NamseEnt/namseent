@@ -20,6 +20,7 @@ pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) use action::GameStateAction;
+pub(crate) mod card;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
@@ -33,8 +34,8 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::card::Deck;
 use crate::config::GameConfig;
+use crate::game_state::card::{Deck, Rank, Suit};
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
@@ -832,6 +833,8 @@ pub fn is_boss_stage(stage: usize) -> bool {
 // Unit tests that exercise panel toggle behavior.
 #[cfg(test)]
 mod tests {
+    use crate::game_state::card::{Rank, Suit};
+
     use super::*;
 
     #[test]
@@ -880,8 +883,8 @@ mod tests {
         gs.action(crate::game_state::GameStateAction::StartPlacingTower(
             crate::game_state::tower::TowerTemplate::new(
                 crate::game_state::tower::TowerKind::Barricade,
-                crate::card::Suit::Spades,
-                crate::card::Rank::Ace,
+                Suit::Spades,
+                Rank::Ace,
             ),
         ));
         assert!(gs.can_open_hand_panel());

@@ -4,7 +4,7 @@ mod render_tower;
 pub mod shared;
 
 pub use crate::animation::xy_with_spring;
-use crate::{card::Card, game_state::tower::TowerTemplate};
+use crate::game_state::{card::Card, tower::TowerTemplate};
 use hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;

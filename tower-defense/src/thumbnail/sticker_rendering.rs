@@ -1,5 +1,5 @@
 use crate::{
-    card::{Card, Suit},
+    game_state::card::{Card, Suit},
     image_filter_utils::dilated_color_filter,
 };
 use namui::*;

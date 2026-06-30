@@ -1,6 +1,7 @@
 use super::state::UpgradeState;
 use super::*;
 use crate::game_state::GameState;
+use crate::game_state::card::{Rank, Suit};
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::rarity::Rarity;
@@ -265,8 +266,8 @@ pub enum SelectedTowerId {
 pub struct SelectedTowerContext {
     pub tower_id: SelectedTowerId,
     pub kind: TowerKind,
-    pub suit: Option<crate::card::Suit>,
-    pub rank: Option<crate::card::Rank>,
+    pub suit: Option<Suit>,
+    pub rank: Option<Rank>,
     pub rerolled_count: Option<usize>,
 }
 

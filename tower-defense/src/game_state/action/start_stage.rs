@@ -1,8 +1,8 @@
 use crate::{
-    Card,
     game_state::{
         self, GameState,
         action::upgrade_trigger::UpgradeTriggerEvent,
+        card::{Card, Deck},
         flow::{GameFlow, ShoppingFlow},
     },
     hand::HandItem,
@@ -30,7 +30,7 @@ pub(super) fn renew_game_state(game_state: &mut GameState) {
     game_state.metrics.total_shop_rerolled_count += game_state.shop_rerolled_count;
     game_state.rerolled_count = 0;
     game_state.shop_rerolled_count = 0;
-    game_state.deck = crate::card::Deck::new(game_state.upgrade_state.removed_number_rank_count());
+    game_state.deck = Deck::new(game_state.upgrade_state.removed_number_rank_count());
     game_state.left_dice = game_state.max_dice_chance();
 }
 

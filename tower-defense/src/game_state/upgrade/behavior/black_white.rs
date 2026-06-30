@@ -1,5 +1,3 @@
-use crate::Suit;
-
 use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]

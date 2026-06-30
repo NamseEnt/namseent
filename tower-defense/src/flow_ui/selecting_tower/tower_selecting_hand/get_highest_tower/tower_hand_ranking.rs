@@ -1,5 +1,7 @@
-use crate::card::{Card, Rank, Suit};
-use crate::game_state::upgrade::UpgradeState;
+use crate::game_state::{
+    card::{Card, Rank, Suit},
+    upgrade::UpgradeState,
+};
 use std::collections::HashMap;
 
 pub struct StraightResult {

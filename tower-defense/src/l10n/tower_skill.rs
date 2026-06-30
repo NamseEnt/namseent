@@ -1,4 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::game_state::card::Rank;
 use crate::icon::IconKind;
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
@@ -26,7 +27,7 @@ pub enum TowerSkillText {
         add: u32,
     },
     TopCardBonusDesc {
-        rank: crate::card::Rank,
+        rank: Rank,
         bonus_damage: usize,
     },
 }

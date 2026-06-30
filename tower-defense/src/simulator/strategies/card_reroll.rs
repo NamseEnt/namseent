@@ -1,10 +1,10 @@
 //! Card reroll and tower selection strategies.
 
 use super::CardRerollStrategy;
-use crate::card::Card;
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 use crate::game_state::GameState;
+use crate::game_state::card::{Card, Deck};
 use crate::game_state::item::Item;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
@@ -173,7 +173,7 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
 
 fn choose_best_hold_indices(
     cards: &[Card],
-    deck: &crate::card::Deck,
+    deck: &Deck,
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
     config: &std::sync::Arc<GameConfig>,
@@ -220,7 +220,7 @@ fn choose_best_hold_indices(
 fn estimate_expected_rating(
     hold_cards: &[Card],
     draw_count: usize,
-    deck: &crate::card::Deck,
+    deck: &Deck,
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
     config: &std::sync::Arc<GameConfig>,

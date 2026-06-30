@@ -113,6 +113,8 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::game_state::card::{Rank, Suit};
+
 
     #[test]
     fn demolition_hammer_stage_end_stores_removed_tower_damage_bonus() {
@@ -124,8 +126,8 @@ mod tests {
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Two,
+            Suit::Hearts,
+            Rank::Two,
         );
         let first_tower = crate::game_state::tower::Tower::new(
             &tower_template,
@@ -188,8 +190,8 @@ mod tests {
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Two,
+            Suit::Hearts,
+            Rank::Two,
         );
         let first_tower = crate::game_state::tower::Tower::new(
             &tower_template,

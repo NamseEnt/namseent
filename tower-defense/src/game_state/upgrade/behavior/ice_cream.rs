@@ -137,6 +137,7 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::game_state::card::{Rank, Suit};
 
     #[test]
     fn ice_cream_effect_applies_to_placed_tower_and_expires_after_waves() {
@@ -151,8 +152,8 @@ mod tests {
 
         let tower_template = TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Two,
+            Suit::Hearts,
+            Rank::Two,
         );
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,

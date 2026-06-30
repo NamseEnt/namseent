@@ -1,7 +1,7 @@
 mod component;
 mod rendering_tree;
 
-use crate::{card::Suit, rarity::Rarity};
+use crate::{game_state::card::Suit, rarity::Rarity};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]

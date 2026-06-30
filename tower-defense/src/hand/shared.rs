@@ -1,5 +1,5 @@
 use crate::{
-    card::{Rank, Suit},
+    game_state::card::{Rank, Suit},
     icon::{Icon, IconKind, IconSize},
     theme::{
         palette,

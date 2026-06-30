@@ -1,5 +1,8 @@
 use super::*;
-use crate::{card::Card, game_state::tower::TowerTemplate, hand::HandItem};
+use crate::{
+    game_state::{card::Card, tower::TowerTemplate},
+    hand::HandItem,
+};
 use namui::*;
 use std::{any::Any, sync::atomic::AtomicUsize};
 

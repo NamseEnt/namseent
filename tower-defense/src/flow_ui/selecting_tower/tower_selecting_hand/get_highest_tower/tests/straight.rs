@@ -1,6 +1,6 @@
 use super::super::get_highest_tower_template;
 use super::make_card;
-use crate::card::{Rank, Suit};
+use crate::game_state::card::{Rank, Suit};
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::{Upgrade, UpgradeState};
 

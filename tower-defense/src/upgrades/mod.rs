@@ -1,8 +1,8 @@
 use crate::{
     animation::xy_with_spring,
-    card::Card,
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
     game_state::{
+        card::Card,
         upgrade::{SelectedTowerContext, UpgradeBehavior},
         use_game_state,
     },

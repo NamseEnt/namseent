@@ -7,7 +7,8 @@ use super::projectile::{
     ProjectileTargetIndicator, ProjectileTrail, random_rotation_speed,
 };
 use crate::game_state::TILE_PX_SIZE;
-use crate::{MapCoordF32, Rank, Suit};
+use crate::game_state::card::Suit;
+use crate::{MapCoordF32, game_state::card::Rank};
 use namui::*;
 use rand::Rng;
 use std::sync::atomic::{AtomicU64, Ordering};

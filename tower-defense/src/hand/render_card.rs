@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    card::{Card, FaceCardImage, Rank},
+    game_state::card::{FaceCardImage, Rank},
     icon::{Icon, IconKind, IconSize},
 };
 use namui::*;

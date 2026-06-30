@@ -107,7 +107,8 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::card::{Rank, Suit};
+
+    use crate::game_state::card::{Rank, Suit};
     use crate::game_state::create_initial_game_state;
     use crate::game_state::flow::GameFlow;
     use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};

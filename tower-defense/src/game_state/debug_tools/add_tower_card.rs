@@ -1,4 +1,4 @@
-use crate::card::{REVERSED_RANKS, Rank, SUITS, Suit};
+use crate::game_state::card::{REVERSED_RANKS, Rank, SUITS, Suit};
 use crate::game_state::tower::{TowerKind, TowerTemplate};
 use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
 use crate::hand::HandItem;

@@ -1,4 +1,9 @@
-use crate::game_state::{action::upgrade_trigger::UpgradeTriggerEvent, upgrade::UpgradeState, *};
+use crate::game_state::{
+    action::upgrade_trigger::UpgradeTriggerEvent,
+    card::{Rank, Suit},
+    upgrade::UpgradeState,
+    *,
+};
 
 pub(super) fn prepare_tower_stats(tower: &mut Tower, upgrade_state: &UpgradeState) {
     tower.refresh_cached_upgrade_damage(

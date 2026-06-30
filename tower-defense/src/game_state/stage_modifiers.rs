@@ -21,7 +21,7 @@
 //! - Add incremental (additive) shield / barricade accumulation helpers
 //! - Introduce a generic stacking abstraction if new modifier categories grow
 
-use crate::card::{Rank, Suit};
+use crate::game_state::card::{Rank, Suit};
 use crate::game_state::tower::TowerKind;
 use crate::*;
 

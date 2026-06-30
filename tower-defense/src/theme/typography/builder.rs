@@ -2,6 +2,7 @@ use super::renderer::RichTextRenderer;
 use super::style::{StyleContext, StyleDelta};
 use super::token::Token;
 use super::{DEFAULT_TEXT_STYLE, FontSize, palette};
+use crate::game_state::card::{Rank, Suit};
 use crate::icon::{IconAttribute, IconAttributePosition, IconKind};
 use namui::*;
 
@@ -156,7 +157,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Add a card-shaped chip showing a suit (scales with current font size)
-    pub fn card_suit(&mut self, suit: crate::card::Suit) -> &mut Self {
+    pub fn card_suit(&mut self, suit: Suit) -> &mut Self {
         self.tokens
             .push(Token::CardChip(super::card_chip::CardChipContent::Suit(
                 suit,
@@ -165,7 +166,7 @@ impl<'a> TypographyBuilder<'a> {
     }
 
     /// Add a card-shaped chip showing a rank (scales with current font size)
-    pub fn card_rank(&mut self, rank: crate::card::Rank) -> &mut Self {
+    pub fn card_rank(&mut self, rank: Rank) -> &mut Self {
         self.tokens
             .push(Token::CardChip(super::card_chip::CardChipContent::Rank(
                 rank,

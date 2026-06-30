@@ -1,5 +1,7 @@
 use namui::*;
 
+use crate::game_state::card::Suit;
+
 fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
     Rect::Xywh {
         x: px(x),
@@ -280,10 +282,10 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
         IconKind::Multiply => rect(1920.0, 0.0, 128.0, 128.0),
         IconKind::Rating => rect(768.0, 128.0, 128.0, 128.0),
         IconKind::Suit { suit } => match suit {
-            crate::Suit::Spades => rect(0.0, 256.0, 128.0, 128.0),
-            crate::Suit::Hearts => rect(1920.0, 128.0, 128.0, 128.0),
-            crate::Suit::Diamonds => rect(1792.0, 128.0, 128.0, 128.0),
-            crate::Suit::Clubs => rect(1664.0, 128.0, 128.0, 128.0),
+            Suit::Spades => rect(0.0, 256.0, 128.0, 128.0),
+            Suit::Hearts => rect(1920.0, 128.0, 128.0, 128.0),
+            Suit::Diamonds => rect(1792.0, 128.0, 128.0, 128.0),
+            Suit::Clubs => rect(1664.0, 128.0, 128.0, 128.0),
         },
         IconKind::Rarity { rarity } => match rarity {
             crate::Rarity::Common => rect(256.0, 128.0, 128.0, 128.0),

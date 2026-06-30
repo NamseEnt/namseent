@@ -1,5 +1,7 @@
-use crate::card::{Rank, Suit};
-use crate::theme::palette;
+use crate::{
+    game_state::card::{Rank, Suit},
+    theme::palette,
+};
 use namui::*;
 
 #[derive(Debug, Clone, Copy)]

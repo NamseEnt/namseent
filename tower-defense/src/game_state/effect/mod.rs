@@ -1,6 +1,6 @@
-use crate::card::{Rank, Suit};
 use crate::game_state::{
     GameState,
+    card::{Rank, Suit},
     stage_modifiers::StageModifiers,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
@@ -367,6 +367,7 @@ impl Effect {
 // ============================= Test Helpers =============================
 #[cfg(test)]
 pub mod tests_support {
+    use crate::game_state::card::Deck;
     use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
         GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
@@ -402,7 +403,7 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
-            deck: crate::card::Deck::new(0),
+            deck: Deck::new(0),
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,

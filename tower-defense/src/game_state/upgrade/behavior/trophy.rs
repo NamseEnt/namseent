@@ -130,6 +130,8 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::game_state::card::{Rank, Suit};
+
 
     #[test]
     fn trophy_uses_perfect_clear_stacks_for_global_damage() {
@@ -143,8 +145,8 @@ mod tests {
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Two,
+            Suit::Hearts,
+            Rank::Two,
         );
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,

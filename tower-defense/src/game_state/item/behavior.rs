@@ -1,11 +1,12 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-
-use crate::card::Card;
-use crate::thumbnail::{
-    STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
+use crate::{
+    game_state::card::Card,
+    thumbnail::{
+        STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
+    },
 };
 use enum_dispatch::enum_dispatch;
 use namui::*;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 mod grant_barricades;
 mod grant_card;

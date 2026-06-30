@@ -1,6 +1,5 @@
 mod animation;
 mod camera_controller;
-mod card;
 pub mod config;
 mod flow_ui;
 mod game_state;
@@ -296,7 +295,6 @@ struct MiddleMouseButtonDragging {
 }
 // --- Public API Surface (narrow) -------------------------------------------------
 // Re-export only the symbols required by integration tests / external consumers.
-pub use card::{Card, Rank, Suit};
 pub use game_state::tower::TowerKind;
 pub use game_state::upgrade::UpgradeState;
 pub use rarity::Rarity;

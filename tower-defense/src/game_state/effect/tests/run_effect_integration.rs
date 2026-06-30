@@ -1,7 +1,10 @@
 //! run_effect 경로를 통한 Effect 적용 통합 테스트
 //! 개별 필드 조작이 아닌 실제 매핑(match) 로직을 검증한다.
 
-use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_state};
+use crate::game_state::{
+    card::{Rank, Suit},
+    effect::{Effect, run_effect, tests_support::make_test_state},
+};
 
 #[test]
 fn increase_shop_reroll_via_run_effect() {
@@ -180,26 +183,12 @@ fn stage_modifiers_via_run_effect() {
     run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 2 });
     assert_eq!(gs.max_dice_chance(), 2);
 
-    run_effect(
-        &mut gs,
-        &Effect::RankTowerDisable {
-            rank: crate::card::Rank::Ace,
-        },
-    );
-    run_effect(
-        &mut gs,
-        &Effect::SuitTowerDisable {
-            suit: crate::card::Suit::Spades,
-        },
-    );
-    assert!(
-        gs.stage_modifiers
-            .get_disabled_ranks()
-            .contains(&crate::card::Rank::Ace)
-    );
+    run_effect(&mut gs, &Effect::RankTowerDisable { rank: Rank::Ace });
+    run_effect(&mut gs, &Effect::SuitTowerDisable { suit: Suit::Spades });
+    assert!(gs.stage_modifiers.get_disabled_ranks().contains(&Rank::Ace));
     assert!(
         gs.stage_modifiers
             .get_disabled_suits()
-            .contains(&crate::card::Suit::Spades)
+            .contains(&Suit::Spades)
     );
 }

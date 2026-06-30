@@ -23,9 +23,9 @@ mod upgrade;
 mod upgrade_trigger;
 mod use_item;
 
-use crate::card::{Rank, Suit};
 use crate::game_state::{
     GameState,
+    card::{Rank, Suit},
     hand::{HandItem, HandSlotId},
     item,
     tower::{Tower, TowerKind},
