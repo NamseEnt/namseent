@@ -6,6 +6,7 @@ use crate::game_state::item::{Item, ItemBehavior};
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
+use crate::l10n::word::Word;
 use crate::l10n::{self, Locale};
 use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
@@ -102,8 +103,16 @@ pub struct TooltipSection<'a> {
 impl TooltipContent {
     fn sections(&self, locale: Locale) -> Vec<TooltipSection<'_>> {
         match self {
-            TooltipContent::Item(item) => item.tooltip_sections(locale),
-            TooltipContent::Upgrade(upgrade) => upgrade.tooltip_sections(locale),
+            TooltipContent::Item(item) => {
+                let mut sections = Word::Item.tooltip_sections(locale);
+                sections.extend(item.tooltip_sections(locale));
+                sections
+            }
+            TooltipContent::Upgrade(upgrade) => {
+                let mut sections = Word::Treasure.tooltip_sections(locale);
+                sections.extend(upgrade.tooltip_sections(locale));
+                sections
+            }
             TooltipContent::Reroll { health_cost } => {
                 let health_cost = *health_cost;
                 vec![TooltipSection {

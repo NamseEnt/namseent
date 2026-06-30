@@ -1,8 +1,7 @@
 use super::Item;
 use crate::card::Card;
 use crate::game_state::item::{
-    GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, PainkillerItem,
-    RiceBallItem, ShieldItem,
+    GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, RiceBallItem, ShieldItem,
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 use strum::IntoEnumIterator;
@@ -36,7 +35,6 @@ fn item_generation_weight(item: ItemDiscriminants) -> f32 {
         ItemDiscriminants::RiceBall => 100.0,
         ItemDiscriminants::LumpSugar => 10.0,
         ItemDiscriminants::Shield => 10.0,
-        ItemDiscriminants::Painkiller => 10.0,
         ItemDiscriminants::GrantBarricades => 45.0,
         ItemDiscriminants::GrantCard => 35.0,
     }
@@ -47,7 +45,6 @@ fn generate_item_from_discriminant<R: Rng + ?Sized>(item: ItemDiscriminants, rng
         ItemDiscriminants::RiceBall => RiceBallItem::standard().into_item(),
         ItemDiscriminants::LumpSugar => LumpSugarItem::standard().into_item(),
         ItemDiscriminants::Shield => ShieldItem::standard().into_item(),
-        ItemDiscriminants::Painkiller => PainkillerItem::standard().into_item(),
         ItemDiscriminants::GrantBarricades => GrantBarricadesItem::standard().into_item(),
         ItemDiscriminants::GrantCard => generate_grant_card_item(rng),
     }
