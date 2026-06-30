@@ -33,6 +33,8 @@ impl UpgradeBehavior for BackpackUpgrade {
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
+        crate::shop::add_shop_slots(game_state, self.add);
+
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::Backpack(upgrade) = &mut upgrade.upgrade {
                 upgrade.add += self.add;
