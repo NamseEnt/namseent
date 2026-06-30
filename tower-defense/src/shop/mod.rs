@@ -89,6 +89,16 @@ pub fn refresh_shop(game_state: &mut GameState) {
     }
 }
 
+pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
+    for _ in 0..count {
+        let slot = generate_shop_slot(game_state);
+        let GameFlow::Shopping(flow) = &mut game_state.flow else {
+            return;
+        };
+        flow.shop.push(slot);
+    }
+}
+
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
     let slot_type = thread_rng().gen_range(0..10);
 
