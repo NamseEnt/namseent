@@ -659,7 +659,7 @@ fn create_initial_game_state() -> GameState {
         rerolled_count: 0,
         shop_rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
-        deck: Deck::new(0),
+        deck: Deck::new(),
         play_history: PlayHistory::new(),
         config: Arc::clone(&config),
         opened_modal: None,

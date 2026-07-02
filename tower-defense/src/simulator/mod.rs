@@ -393,7 +393,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
             total_shop_rerolled_count: 0,
         },
         locale: crate::l10n::Locale::KOREAN,
-        deck: Deck::new(0),
+        deck: Deck::new(),
         play_history: PlayHistory::new(),
         opened_modal: None,
         stage_modifiers: StageModifiers::new(),

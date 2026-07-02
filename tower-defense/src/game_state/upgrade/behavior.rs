@@ -119,10 +119,6 @@ pub trait UpgradeBehavior {
         false
     }
 
-    fn removed_number_rank_count(&self) -> usize {
-        0
-    }
-
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags
     where
         Self: Sized + Into<Upgrade>,

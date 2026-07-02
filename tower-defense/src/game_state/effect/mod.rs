@@ -403,7 +403,7 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
-            deck: Deck::new(0),
+            deck: Deck::new(),
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
