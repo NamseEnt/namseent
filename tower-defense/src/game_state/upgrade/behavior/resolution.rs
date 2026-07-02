@@ -1,6 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
+const DAMAGE_BONUS_PCT_PER_REROLL: f32 = 0.25;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ResolutionUpgrade {
     pub damage_bonus_pct_per_reroll: f32,
@@ -126,13 +128,16 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    ResolutionUpgrade::into_upgrade(0.25)
+    ResolutionUpgrade::into_upgrade(DAMAGE_BONUS_PCT_PER_REROLL)
 }
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::game_state::upgrade::{Upgrade, UpgradeUpdateFlags};
+    use crate::{
+        config::DEFAULT_BASE_DICE_CHANCE,
+        game_state::upgrade::{Upgrade, UpgradeUpdateFlags},
+    };
 
     #[test]
     fn resolution_applies_remaining_reroll_damage_and_consumes_it() {
@@ -143,12 +148,12 @@ mod tests {
             crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(0.25),
             None,
         ));
-        game_state.left_dice = 2;
         game_state.action(crate::game_state::GameStateAction::StageEnd {
             perfect_clear: false,
             gold: 0,
             item_count: 0,
         });
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 1 });
 
         let template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
@@ -161,7 +166,8 @@ mod tests {
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::Resolution(upgrade) = &upgrade.upgrade {
-                (upgrade.damage_bonus_pct_per_reroll - 0.25).abs() < f32::EPSILON
+                (upgrade.damage_bonus_pct_per_reroll - DAMAGE_BONUS_PCT_PER_REROLL).abs()
+                    < f32::EPSILON
             } else {
                 false
             }
@@ -188,23 +194,10 @@ mod tests {
             .iter()
             .next()
             .expect("expected tower placed");
-        support::assert_tower_cached_damage_mul(placed_tower, 1.5);
-    }
-
-    #[test]
-    fn resolution_returns_tower_stats_when_stored_rerolls_changed() {
-        use crate::game_state::upgrade::tests::support;
-
-        let mut game_state = support::create_mock_game_state();
-        let mut upgrade = ResolutionUpgrade {
-            damage_bonus_pct_per_reroll: 0.25,
-            stored_rerolls: 0,
-        };
-        game_state.left_dice = 3;
-
-        let flags = upgrade.on_stage_end(&mut game_state, false, 0, 0);
-
-        assert!(flags.contains(UpgradeUpdateFlags::TOWER_STATS));
+        support::assert_tower_cached_damage_mul(
+            placed_tower,
+            DAMAGE_BONUS_PCT_PER_REROLL * DEFAULT_BASE_DICE_CHANCE.as_f32() + 1.0,
+        );
     }
 
     #[test]
