@@ -6,30 +6,46 @@ use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_sta
 #[test]
 fn card_selection_reroll_baseline_is_two() {
     let gs = make_test_state();
+    let default_dice = gs.config.player.base_dice_chance;
     assert_eq!(
         gs.max_dice_chance(),
-        1,
-        "기본 카드 선택 핸드 reroll chance 는 1"
+        default_dice,
+        "기본 카드 선택 핸드 reroll chance 는 {}",
+        default_dice
     );
 }
 
 #[test]
 fn increase_card_selection_reroll_via_run_effect() {
     let mut gs = make_test_state();
+    let default_dice = gs.config.player.base_dice_chance;
     run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 2 });
-    assert_eq!(gs.max_dice_chance(), 3, "+2 보너스 => 1 + 2 = 3");
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice + 2,
+        "+2 보너스 => {} + 2 = {}",
+        default_dice,
+        default_dice + 2
+    );
 }
 
 #[test]
 fn decrease_card_selection_reroll_via_run_effect() {
     let mut gs = make_test_state();
+    let default_dice = gs.config.player.base_dice_chance;
     run_effect(&mut gs, &Effect::DecreaseMaxRerolls { penalty: 1 });
-    assert_eq!(gs.max_dice_chance(), 0, "-1 패널티 포화감산 => 0");
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice.saturating_sub(1),
+        "-1 패널티 포화감산 => {}",
+        default_dice.saturating_sub(1)
+    );
 }
 
 #[test]
 fn card_selection_reroll_penalty_then_bonus_sequence() {
     let mut gs = make_test_state();
+    let default_dice = gs.config.player.base_dice_chance;
     for _ in 0..3 {
         run_effect(&mut gs, &Effect::DecreaseMaxRerolls { penalty: 1 });
     }
@@ -37,8 +53,12 @@ fn card_selection_reroll_penalty_then_bonus_sequence() {
     for _ in 0..5 {
         run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 1 });
     }
-    // baseline 1, -3 => 0, +5 => (1 +5) -3 = 3
-    assert_eq!(gs.max_dice_chance(), 3, "-3 +5 => +2 (최종 3)");
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice + 2,
+        "-3 +5 => +2 (최종 {})",
+        default_dice + 2
+    );
 }
 
 #[test]
