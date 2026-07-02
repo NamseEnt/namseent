@@ -263,7 +263,6 @@ pub fn check_and_adjust_hp_balance(gs: &mut crate::game_state::GameState) {
         let final_hp = state.base_max_hp + state.hp_offset;
         state.display_text = format!("HP Balance: DONE - final_hp={:.2}", final_hp);
         set_balance_state(Some(state));
-        gs.stage += 1;
         gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
     }
 }

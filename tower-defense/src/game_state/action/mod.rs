@@ -81,7 +81,7 @@ impl GameState {
             }
             GameStateAction::StartStage { stage } => {
                 start_stage::reset_stage_state(self);
-                start_stage::renew_game_state(self);
+                start_stage::renew_game_state(self, stage);
                 start_stage::flush_hand(self);
                 start_stage::draw_hand(self);
                 start_stage::open_panels(self);

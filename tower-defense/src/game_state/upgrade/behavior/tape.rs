@@ -135,34 +135,29 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::upgrade::UpgradeBehavior;
 
     #[test]
     fn tape_applies_enemy_speed_reduction_every_four_waves() {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.stage = 3;
-        let mut upgrade = TapeUpgrade { acquired_stage: 3 };
-
-        upgrade.on_stage_start(&mut game_state, 3);
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 3 });
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            TapeUpgrade::into_upgrade(0),
+            None,
+        ));
         assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
 
-        upgrade.on_stage_start(&mut game_state, 4);
-        assert_eq!(
-            game_state.stage_modifiers.get_enemy_speed_multiplier(),
-            0.75
-        );
-
-        game_state.stage_modifiers = crate::game_state::StageModifiers::default();
-        upgrade.on_stage_start(&mut game_state, 5);
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 4 });
         assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
 
-        game_state.stage_modifiers = crate::game_state::StageModifiers::default();
-        upgrade.on_stage_start(&mut game_state, 8);
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 5 });
+        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
+
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 6 });
         assert_eq!(
             game_state.stage_modifiers.get_enemy_speed_multiplier(),
-            0.75
+            TAPE_ENEMY_SPEED_MULTIPLIER
         );
     }
 }

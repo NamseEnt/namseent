@@ -21,7 +21,7 @@ pub(super) fn reset_stage_state(game_state: &mut GameState) {
     game_state.stage_modifiers.reset_stage_state();
 }
 
-pub(super) fn renew_game_state(game_state: &mut GameState) {
+pub(super) fn renew_game_state(game_state: &mut GameState, stage: usize) {
     if game_state.upgrade_state.clear_shield_on_stage_start() {
         game_state.shield = 0.0;
     }
@@ -32,6 +32,7 @@ pub(super) fn renew_game_state(game_state: &mut GameState) {
     game_state.shop_rerolled_count = 0;
     game_state.deck = Deck::new();
     game_state.left_dice = game_state.max_dice_chance();
+    game_state.stage = stage;
 }
 
 pub(super) fn draw_hand(game_state: &mut GameState) {
