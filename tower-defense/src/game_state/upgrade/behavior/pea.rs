@@ -25,7 +25,7 @@ impl UpgradeBehavior for PeaUpgrade {
             .upgrade_state
             .upgrades
             .push(Upgrade::from(self).with_unique_id());
-        UpgradeUpdateFlags::HEAL_TO_FULL | UpgradeUpdateFlags::REVISION
+        UpgradeUpdateFlags::HEAL_TO_FULL | UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
     fn max_hp_plus(&self) -> f32 {
