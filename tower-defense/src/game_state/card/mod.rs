@@ -1,7 +1,8 @@
+mod deck;
+
 use crate::*;
+pub use deck::*;
 use rand::Rng;
-use rand::RngCore;
-use rand::seq::SliceRandom;
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
@@ -216,55 +217,6 @@ impl Card {
     }
     pub fn face_image(&self) -> Image {
         (self.rank, self.suit).image()
-    }
-}
-
-#[derive(Debug, Clone, State)]
-pub struct Deck {
-    reference_cards: Vec<Card>,
-    playing_cards: Vec<Card>,
-}
-
-impl Deck {
-    pub fn new() -> Self {
-        let mut reference_cards = Vec::with_capacity(SUITS.len() * RANKS.len());
-        for &rank in &RANKS {
-            for &suit in &SUITS {
-                reference_cards.push(Card { suit, rank });
-            }
-        }
-        Self {
-            reference_cards,
-            playing_cards: Vec::new(),
-        }
-    }
-
-    pub fn draw(&mut self) -> Option<Card> {
-        self.reference_cards.pop()
-    }
-
-    pub fn put_back(&mut self, cards: impl IntoIterator<Item = Card>) {
-        self.reference_cards.extend(cards);
-        self.reference_cards.shuffle(&mut rand::thread_rng());
-    }
-
-    pub fn sample<R: RngCore + ?Sized>(&self, count: usize, rng: &mut R) -> Vec<Card> {
-        let available = self.reference_cards.len().min(count);
-        let mut cards = self
-            .reference_cards
-            .choose_multiple(rng, available)
-            .copied()
-            .collect::<Vec<_>>();
-
-        for _ in available..count {
-            cards.push(Card::new_random());
-        }
-
-        cards
-    }
-
-    pub fn remaining(&self) -> usize {
-        self.reference_cards.len()
     }
 }
 

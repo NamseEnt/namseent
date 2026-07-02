@@ -2,7 +2,6 @@ use crate::{
     game_state::{
         self, GameState,
         action::upgrade_trigger::UpgradeTriggerEvent,
-        card::{Card, Deck},
         flow::{GameFlow, ShoppingFlow},
     },
     hand::HandItem,
@@ -30,7 +29,7 @@ pub(super) fn renew_game_state(game_state: &mut GameState, stage: usize) {
     game_state.metrics.total_shop_rerolled_count += game_state.shop_rerolled_count;
     game_state.rerolled_count = 0;
     game_state.shop_rerolled_count = 0;
-    game_state.deck = Deck::new();
+    game_state.deck.prepare_draw_pile(&mut rand::thread_rng());
     game_state.left_dice = game_state.max_dice_chance();
     game_state.stage = stage;
 }
@@ -40,8 +39,9 @@ pub(super) fn draw_hand(game_state: &mut GameState) {
         + game_state.stage_modifiers.get_max_hand_slots_bonus())
     .saturating_sub(game_state.stage_modifiers.get_max_hand_slots_penalty())
     .max(1);
-    for _ in 0..max_slots {
-        let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
+
+    let cards = game_state.deck.draw(&mut rand::thread_rng(), max_slots);
+    for card in cards {
         game_state.hand.push(HandItem::Card(card));
     }
     play_card_draw_sounds(max_slots);

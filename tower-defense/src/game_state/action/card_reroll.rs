@@ -23,12 +23,15 @@ pub(super) fn reroll(game_state: &mut GameState) -> usize {
         })
         .collect();
     game_state.hand.delete_slots(&target_slot_ids);
-    game_state.deck.put_back(target_cards);
-    (0..target_count).for_each(|_| {
-        let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
+    game_state.deck.discard(target_cards);
+
+    let cards = game_state.deck.draw(&mut rand::thread_rng(), target_count);
+    let draw_count = cards.len();
+    for card in cards {
         game_state.hand.push(crate::hand::HandItem::Card(card));
-    });
-    target_count
+    }
+
+    draw_count
 }
 
 pub(super) fn apply_cost(game_state: &mut GameState, health_cost: usize) {
