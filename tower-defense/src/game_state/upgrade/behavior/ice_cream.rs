@@ -139,7 +139,6 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 mod tests {
     use crate::card::{Rank, Suit};
 
-
     #[test]
     fn ice_cream_effect_applies_to_placed_tower_and_expires_after_waves() {
         use crate::game_state::flow::DefenseFlow;

@@ -133,8 +133,6 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 mod tests {
     use crate::card::{Rank, Suit};
 
-
-
     #[test]
     fn popcorn_effect_decrements_over_waves_and_expires() {
         use crate::game_state::GameFlow;

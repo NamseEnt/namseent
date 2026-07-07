@@ -1,5 +1,6 @@
 use crate::{
-    card::{Card, Suit}, image_filter_utils::dilated_color_filter,
+    card::{Card, Suit},
+    image_filter_utils::dilated_color_filter,
 };
 use namui::*;
 

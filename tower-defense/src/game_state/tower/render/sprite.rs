@@ -1,9 +1,9 @@
-use crate::card::{Rank, Suit};
 use super::image::{tower_overlay_rank_image, tower_overlay_suit_image};
 use super::{
     TOWER_OVERLAY_ICON_SCALE, TOWER_OVERLAY_RANK_X_RATIO, TOWER_OVERLAY_ROTATION_DEG,
     TOWER_OVERLAY_SIDE_Y_RATIO, TOWER_OVERLAY_SUIT_X_RATIO,
 };
+use crate::card::{Rank, Suit};
 use namui::*;
 
 pub struct TowerSuitRankOverlay {

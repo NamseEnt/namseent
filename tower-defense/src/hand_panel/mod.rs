@@ -5,7 +5,12 @@ mod sticky_bar;
 mod tower_preview;
 
 use crate::{
-    card::Card, flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template, game_state::{flow::GameFlow, use_game_state}, hand::xy_with_spring, mutate_game_state, theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
+    card::Card,
+    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
+    game_state::{flow::GameFlow, use_game_state},
+    hand::xy_with_spring,
+    mutate_game_state,
+    theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
 use namui::*;
 

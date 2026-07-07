@@ -107,7 +107,10 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_state::{card::{Rank, Suit}, upgrade::Upgrade};
+    use crate::game_state::{
+        card::{Rank, Suit},
+        upgrade::Upgrade,
+    };
 
     #[test]
     fn name_tag_applies_to_next_tower_and_consumes_it() {

@@ -141,7 +141,6 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 mod tests {
     use crate::card::{Rank, Suit};
 
-
     #[test]
     fn crock_increases_tower_damage_for_existing_towers() {
         use crate::game_state::upgrade::tests::support;

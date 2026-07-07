@@ -1,5 +1,6 @@
 use crate::{
-    card::{Rank, Suit}, theme::palette,
+    card::{Rank, Suit},
+    theme::palette,
 };
 use namui::*;
 
