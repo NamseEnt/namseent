@@ -131,6 +131,7 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::card::{Rank, Suit};
 
     #[test]
     fn popcorn_effect_decrements_over_waves_and_expires() {
@@ -149,8 +150,8 @@ mod tests {
         game_state.flow = GameFlow::Defense(DefenseFlow::new(&game_state));
         let tower_template = TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Two,
+            Suit::Hearts,
+            Rank::Two,
         );
         let tower = Tower::new(
             &tower_template,

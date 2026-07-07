@@ -1,4 +1,4 @@
-use crate::{Suit, game_state::tower::Tower};
+use crate::game_state::{card::Suit, tower::Tower};
 use namui::*;
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, PartialOrd, Ord, State)]

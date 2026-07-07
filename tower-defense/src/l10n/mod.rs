@@ -1,6 +1,7 @@
 // 통합 l10n 모듈 - 모든 다국어 기능의 중앙 진입점
 
 pub mod api;
+pub mod card_service;
 pub mod effect;
 pub mod event;
 pub mod item_kind;

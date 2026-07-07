@@ -1,7 +1,10 @@
+mod deck;
+mod render;
+
 use crate::*;
+pub use deck::*;
 use rand::Rng;
-use rand::RngCore;
-use rand::seq::SliceRandom;
+pub use render::{RenderCard, RenderTowerCard};
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
@@ -219,57 +222,6 @@ impl Card {
     }
 }
 
-#[derive(Debug, Clone, State)]
-pub struct Deck {
-    cards: Vec<Card>,
-}
-
-impl Deck {
-    pub fn new(removed_number_rank_count: usize) -> Self {
-        let removed_number_rank_count = removed_number_rank_count.min(5);
-        let mut cards = Vec::with_capacity(SUITS.len() * RANKS.len());
-
-        for &rank in &RANKS {
-            if rank.ordinal() < removed_number_rank_count {
-                continue;
-            }
-            for &suit in &SUITS {
-                cards.push(Card { suit, rank });
-            }
-        }
-        cards.shuffle(&mut rand::thread_rng());
-        Self { cards }
-    }
-
-    pub fn draw(&mut self) -> Option<Card> {
-        self.cards.pop()
-    }
-
-    pub fn put_back(&mut self, cards: impl IntoIterator<Item = Card>) {
-        self.cards.extend(cards);
-        self.cards.shuffle(&mut rand::thread_rng());
-    }
-
-    pub fn sample<R: RngCore + ?Sized>(&self, count: usize, rng: &mut R) -> Vec<Card> {
-        let available = self.cards.len().min(count);
-        let mut cards = self
-            .cards
-            .choose_multiple(rng, available)
-            .copied()
-            .collect::<Vec<_>>();
-
-        for _ in available..count {
-            cards.push(Card::new_random());
-        }
-
-        cards
-    }
-
-    pub fn remaining(&self) -> usize {
-        self.cards.len()
-    }
-}
-
 pub trait FaceCardImage {
     fn image(self) -> Image;
 }
@@ -292,33 +244,5 @@ impl FaceCardImage for (Rank, Suit) {
             (Rank::King, Suit::Clubs) => crate::asset::image::face::clubs::KING,
             _ => panic!("Not a face card: {:?} {:?}", rank, suit),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_deck_removes_two_rank_when_level_one() {
-        let mut deck = Deck::new(1);
-        let cards: Vec<Card> = std::iter::from_fn(|| deck.draw()).collect();
-
-        assert_eq!(cards.len(), 48);
-        assert!(cards.iter().all(|card| card.rank != Rank::Two));
-    }
-
-    #[test]
-    fn test_deck_removes_two_through_six_when_level_five() {
-        let mut deck = Deck::new(5);
-        let cards: Vec<Card> = std::iter::from_fn(|| deck.draw()).collect();
-
-        assert_eq!(cards.len(), 32);
-        assert!(cards.iter().all(|card| {
-            !matches!(
-                card.rank,
-                Rank::Two | Rank::Three | Rank::Four | Rank::Five | Rank::Six
-            )
-        }));
     }
 }

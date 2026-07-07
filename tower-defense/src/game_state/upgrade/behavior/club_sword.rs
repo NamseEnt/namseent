@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{card::Suit, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ClubSwordUpgrade {
@@ -33,14 +33,12 @@ impl UpgradeBehavior for ClubSwordUpgrade {
     }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
-        context.suit == Some(crate::card::Suit::Clubs)
+        context.suit == Some(Suit::Clubs)
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
-            TowerUpgradeTarget::Suit {
-                suit: crate::card::Suit::Clubs,
-            },
+            TowerUpgradeTarget::Suit { suit: Suit::Clubs },
             self.damage_bonus_pct,
         ))
     }

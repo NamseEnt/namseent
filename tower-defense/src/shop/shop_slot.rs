@@ -1,5 +1,5 @@
 use crate::{
-    game_state::{item::Item, upgrade::Upgrade},
+    game_state::{card_service::CardService, item::Item, upgrade::Upgrade},
     *,
 };
 use std::sync::atomic::AtomicUsize;
@@ -74,6 +74,16 @@ impl ShopSlotData {
 
 #[derive(Debug, Clone, State)]
 pub enum ShopSlot {
-    Item { item: Item, cost: usize },
-    Upgrade { upgrade: Upgrade, cost: usize },
+    Item {
+        item: Item,
+        cost: usize,
+    },
+    Upgrade {
+        upgrade: Upgrade,
+        cost: usize,
+    },
+    CardService {
+        card_service: CardService,
+        cost: usize,
+    },
 }

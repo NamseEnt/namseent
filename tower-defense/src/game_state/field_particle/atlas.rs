@@ -279,6 +279,7 @@ pub fn icon_rect(kind: &crate::icon::IconKind) -> Rect<Px> {
         IconKind::Add => rect(128.0, 0.0, 128.0, 128.0),
         IconKind::Multiply => rect(1920.0, 0.0, 128.0, 128.0),
         IconKind::Rating => rect(768.0, 128.0, 128.0, 128.0),
+        IconKind::Deck => rect(512.0, 256.0, 128.0, 128.0),
         IconKind::Suit { suit } => match suit {
             crate::Suit::Spades => rect(0.0, 256.0, 128.0, 128.0),
             crate::Suit::Hearts => rect(1920.0, 128.0, 128.0, 128.0),

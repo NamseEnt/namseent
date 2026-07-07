@@ -1,4 +1,5 @@
-use crate::card::{Rank, Suit};
+use crate::card::Rank;
+use crate::card::Suit;
 use crate::config::GameConfig;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::tower::TowerTemplate;

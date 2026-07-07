@@ -1,11 +1,11 @@
 use super::*;
 use crate::{
-    card::{Card, FaceCardImage, Rank},
+    card::{Card, FaceCardImage},
     icon::{Icon, IconKind, IconSize},
 };
 use namui::*;
 
-pub(super) struct RenderCard<'a> {
+pub struct RenderCard<'a> {
     pub wh: Wh<Px>,
     pub card: &'a Card,
 }

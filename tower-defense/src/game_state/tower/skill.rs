@@ -203,7 +203,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::card::{Rank, Suit};
+
     use crate::game_state::effect::tests_support::make_test_state;
 
     #[test]

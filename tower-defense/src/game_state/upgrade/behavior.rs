@@ -1,5 +1,6 @@
 use super::state::UpgradeState;
 use super::*;
+use crate::card::{Rank, Suit};
 use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
@@ -116,10 +117,6 @@ pub trait UpgradeBehavior {
 
     fn treat_suits_as_same(&self) -> bool {
         false
-    }
-
-    fn removed_number_rank_count(&self) -> usize {
-        0
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags
@@ -265,8 +262,8 @@ pub enum SelectedTowerId {
 pub struct SelectedTowerContext {
     pub tower_id: SelectedTowerId,
     pub kind: TowerKind,
-    pub suit: Option<crate::card::Suit>,
-    pub rank: Option<crate::card::Rank>,
+    pub suit: Option<Suit>,
+    pub rank: Option<Rank>,
     pub rerolled_count: Option<usize>,
 }
 

@@ -1,19 +1,28 @@
 //! run_effect 경로를 통한 Effect 적용 통합 테스트
 //! 개별 필드 조작이 아닌 실제 매핑(match) 로직을 검증한다.
 
-use crate::game_state::effect::{Effect, run_effect, tests_support::make_test_state};
+use crate::game_state::{
+    card::{Rank, Suit},
+    effect::{Effect, run_effect, tests_support::make_test_state},
+};
 
 #[test]
 fn increase_shop_reroll_via_run_effect() {
     let mut gs = make_test_state();
-    assert_eq!(gs.max_dice_chance(), 1);
+    let default_dice = gs.config.player.base_dice_chance;
+    assert_eq!(gs.max_dice_chance(), default_dice);
     run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 1 });
-    assert_eq!(gs.max_dice_chance(), 2, "run_effect 경로로 +1 반영");
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice + 1,
+        "run_effect 경로로 +1 반영"
+    );
 }
 
 #[test]
 fn shop_reroll_penalty_then_bonus_via_run_effect() {
     let mut gs = make_test_state();
+    let default_dice = gs.config.player.base_dice_chance;
     for _ in 0..4 {
         run_effect(&mut gs, &Effect::DecreaseMaxRerolls { penalty: 1 });
     }
@@ -21,7 +30,13 @@ fn shop_reroll_penalty_then_bonus_via_run_effect() {
     for _ in 0..6 {
         run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 1 });
     }
-    assert_eq!(gs.max_dice_chance(), 3, "-4 +6 => +2 (기본 1 → 3)");
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice + 2,
+        "-4 +6 => +2 (기본 {} → {})",
+        default_dice,
+        default_dice + 2
+    );
 }
 
 #[test]
@@ -176,30 +191,22 @@ fn stage_modifiers_via_run_effect() {
     run_effect(&mut gs, &Effect::DecreaseMaxHandSlots { penalty: 1 });
     assert_eq!(gs.stage_modifiers.get_max_hand_slots_delta(), 1);
 
+    let default_dice = gs.config.player.base_dice_chance;
     run_effect(&mut gs, &Effect::DecreaseMaxRerolls { penalty: 1 });
     run_effect(&mut gs, &Effect::IncreaseMaxRerolls { bonus: 2 });
-    assert_eq!(gs.max_dice_chance(), 2);
+    assert_eq!(
+        gs.max_dice_chance(),
+        default_dice + 1,
+        "-1 +2 => {}",
+        default_dice + 1
+    );
 
-    run_effect(
-        &mut gs,
-        &Effect::RankTowerDisable {
-            rank: crate::card::Rank::Ace,
-        },
-    );
-    run_effect(
-        &mut gs,
-        &Effect::SuitTowerDisable {
-            suit: crate::card::Suit::Spades,
-        },
-    );
-    assert!(
-        gs.stage_modifiers
-            .get_disabled_ranks()
-            .contains(&crate::card::Rank::Ace)
-    );
+    run_effect(&mut gs, &Effect::RankTowerDisable { rank: Rank::Ace });
+    run_effect(&mut gs, &Effect::SuitTowerDisable { suit: Suit::Spades });
+    assert!(gs.stage_modifiers.get_disabled_ranks().contains(&Rank::Ace));
     assert!(
         gs.stage_modifiers
             .get_disabled_suits()
-            .contains(&crate::card::Suit::Spades)
+            .contains(&Suit::Spades)
     );
 }

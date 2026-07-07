@@ -1,4 +1,5 @@
 use super::constants::PADDING;
+use crate::game_state::card_service::CardServiceBehavior;
 use crate::icon::IconKind;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData};
@@ -50,6 +51,9 @@ fn render_thumbnail(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData) {
             ShopSlot::Upgrade { upgrade, .. } => {
                 ctx.add(upgrade.thumbnail(thumbnail_wh, true));
             }
+            ShopSlot::CardService { card_service, .. } => {
+                ctx.add(card_service.thumbnail(thumbnail_wh, THUMBNAIL_STROKE, true));
+            }
         }
 
         if slot_data.purchased {
@@ -65,7 +69,9 @@ fn render_thumbnail(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData) {
 
 fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available: bool) {
     let cost = match &slot_data.slot {
-        ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => *cost,
+        ShopSlot::Item { cost, .. }
+        | ShopSlot::Upgrade { cost, .. }
+        | ShopSlot::CardService { cost, .. } => *cost,
     };
     let cost_color = if available {
         palette::YELLOW
@@ -97,6 +103,7 @@ fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available
             color: match slot_data.slot {
                 ShopSlot::Item { .. } => palette::GREEN,
                 ShopSlot::Upgrade { .. } => palette::BLUE,
+                ShopSlot::CardService { .. } => palette::YELLOW,
             },
             outline_color: Some(palette::WHITE),
             shadow: true,

@@ -1,11 +1,11 @@
 mod animation;
 mod camera_controller;
-mod card;
 pub mod config;
 mod flow_ui;
 mod game_state;
 mod image_filter_utils; // now private; selective re-exports below
 pub use game_state::monster::MonsterKind;
+pub mod card;
 mod hand;
 mod hand_panel;
 mod icon;
@@ -27,6 +27,7 @@ mod upgrades;
 
 use crate::camera_controller::CameraController;
 use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
+use card::*;
 use game_state::{TILE_PX_SIZE, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
@@ -296,7 +297,6 @@ struct MiddleMouseButtonDragging {
 }
 // --- Public API Surface (narrow) -------------------------------------------------
 // Re-export only the symbols required by integration tests / external consumers.
-pub use card::{Card, Rank, Suit};
 pub use game_state::tower::TowerKind;
 pub use game_state::upgrade::UpgradeState;
 pub use rarity::Rarity;

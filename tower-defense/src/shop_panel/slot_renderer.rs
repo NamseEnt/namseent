@@ -63,6 +63,11 @@ impl Component for ShopSlotView<'_> {
                                             ShopSlot::Upgrade { upgrade, .. } => {
                                                 crate::tooltip::TooltipContent::Upgrade(*upgrade)
                                             }
+                                            ShopSlot::CardService { card_service, .. } => {
+                                                crate::tooltip::TooltipContent::CardService(
+                                                    card_service.clone(),
+                                                )
+                                            }
                                         };
                                         crate::tooltip::show_tooltip(
                                             *tooltip_id,

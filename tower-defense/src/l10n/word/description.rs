@@ -40,6 +40,7 @@ impl WordDescription {
                 builder.static_text("체력 대신 감소합니다. 보호막은 스테이지 종료 시 사라집니다");
             }),
             super::Word::PerfectClear => builder.static_text("데미지를 입지않고 스테이지를 클리어"),
+            super::Word::CardService => builder.static_text("덱에 카드를 추가/제거/강화하는 등 덱을 편집할 수 있는 기능을 제공합니다"),
         };
     }
 
@@ -70,6 +71,7 @@ impl WordDescription {
                 builder.static_text("Decreases instead of health. Shields disappear at the end of each stage");
             }),
             super::Word::PerfectClear => builder.static_text("Clearing a stage without taking any damage"),
+            super::Word::CardService => builder.static_text("Provides features to edit your deck, such as adding, removing, or enhancing cards"),
         };
     }
 }

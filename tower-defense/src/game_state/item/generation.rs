@@ -1,7 +1,10 @@
 use super::Item;
-use crate::card::Card;
-use crate::game_state::item::{
-    GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, RiceBallItem, ShieldItem,
+use crate::game_state::{
+    card::{Card, RANKS, SUITS},
+    item::{
+        GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, RiceBallItem,
+        ShieldItem,
+    },
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
 use strum::IntoEnumIterator;
@@ -51,8 +54,8 @@ fn generate_item_from_discriminant<R: Rng + ?Sized>(item: ItemDiscriminants, rng
 }
 
 fn generate_grant_card_item<R: Rng + ?Sized>(rng: &mut R) -> Item {
-    let suit = crate::card::SUITS[rng.gen_range(0..crate::card::SUITS.len())];
-    let rank = crate::card::RANKS[rng.gen_range(0..crate::card::RANKS.len())];
+    let suit = SUITS[rng.gen_range(0..SUITS.len())];
+    let rank = RANKS[rng.gen_range(0..RANKS.len())];
     let card = Card { suit, rank };
     GrantCardItem::new(card).into_item()
 }
@@ -60,8 +63,10 @@ fn generate_grant_card_item<R: Rng + ?Sized>(rng: &mut R) -> Item {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::card::{Rank, Suit};
-    use crate::game_state::item::GrantCardItem;
+    use crate::game_state::{
+        card::{Rank, Suit},
+        item::GrantCardItem,
+    };
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
@@ -86,8 +91,8 @@ mod tests {
         for _ in 0..128 {
             let item = generate_item_with_rng(&mut rng);
             if let crate::game_state::item::Item::GrantCard(GrantCardItem { card }) = item {
-                assert!(crate::card::SUITS.contains(&card.suit));
-                assert!(crate::card::RANKS.contains(&card.rank));
+                assert!(SUITS.contains(&card.suit));
+                assert!(RANKS.contains(&card.rank));
             }
         }
     }

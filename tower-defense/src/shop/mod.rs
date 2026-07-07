@@ -1,15 +1,18 @@
 mod shop_slot;
 
 use crate::{
-    game_state::{GameState, flow::GameFlow, upgrade::generate_shop_upgrade},
+    game_state::{
+        GameState, card_service::generate_shop_card_service, flow::GameFlow,
+        upgrade::generate_shop_upgrade,
+    },
     *,
 };
-use namui::OneZero;
 use rand::{Rng, thread_rng};
 pub use shop_slot::*;
 
-const SHOP_ITEM_BASE_COST: f32 = 20.0;
-const SHOP_UPGRADE_BASE_COST: f32 = 40.0;
+const BASE_COST_ITEM: f32 = 20.0;
+const BASE_COST_TREASURE: f32 = 100.0;
+const BASE_COST_CARD_SERVICE: f32 = 50.0;
 const SHOP_VALUE_COST_MULTIPLIER: f32 = 0.5;
 
 #[derive(Clone, Debug, State)]
@@ -100,45 +103,55 @@ pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
 }
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
+    let mut rng = thread_rng();
     let slot_type = thread_rng().gen_range(0..10);
+    let free = game_state.stage_modifiers.is_free_shop_this_stage();
+    let discount = game_state.upgrade_state.shop_item_price_minus();
 
-    match slot_type {
+    let slot = match slot_type {
         0..=4 => {
             let mut rng = thread_rng();
             let item = crate::game_state::item::generation::generate_item_with_rng(&mut rng);
-            let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
-                0
-            } else {
-                random_item_cost(&mut rng, game_state.upgrade_state.shop_item_price_minus())
-            };
-            ShopSlot::Item { item, cost }
+            ShopSlot::Item { item, cost: 0 }
         }
-        5..=9 => {
+        5..=7 => {
+            let card_service = generate_shop_card_service();
+            ShopSlot::CardService {
+                card_service,
+                cost: 0,
+            }
+        }
+        8..=9 => {
             let upgrade = generate_shop_upgrade(game_state);
-            let cost = if game_state.stage_modifiers.is_free_shop_this_stage() {
-                0
-            } else {
-                item_upgrade_cost(
-                    OneZero::default(),
-                    game_state.upgrade_state.shop_item_price_minus(),
-                )
-            };
-            ShopSlot::Upgrade { upgrade, cost }
+            ShopSlot::Upgrade { upgrade, cost: 0 }
         }
         _ => unreachable!(),
-    }
+    };
+    apply_random_cost(&mut rng, slot, free, discount)
 }
 
-fn random_item_cost<R: Rng + ?Sized>(rng: &mut R, discount: usize) -> usize {
-    let base_cost = SHOP_ITEM_BASE_COST;
+fn apply_random_cost<R: Rng + ?Sized>(
+    rng: &mut R,
+    mut slot: ShopSlot,
+    free: bool,
+    discount: usize,
+) -> ShopSlot {
+    let base_cost = match slot {
+        ShopSlot::Item { .. } => BASE_COST_ITEM,
+        ShopSlot::Upgrade { .. } => BASE_COST_TREASURE,
+        ShopSlot::CardService { .. } => BASE_COST_CARD_SERVICE,
+    };
     let additional_cost = rng.gen_range(0.0..=base_cost * SHOP_VALUE_COST_MULTIPLIER);
-    let cost = base_cost + additional_cost - discount as f32;
-    cost.max(0.0) as usize
-}
 
-fn item_upgrade_cost(value: OneZero, discount: usize) -> usize {
-    let base_cost = SHOP_UPGRADE_BASE_COST;
-    let additional_cost = value.as_f32() * base_cost * SHOP_VALUE_COST_MULTIPLIER;
-    let cost = base_cost + additional_cost - discount as f32;
-    cost.max(0.0) as usize
+    let cost = match slot {
+        ShopSlot::Item { ref mut cost, .. } => cost,
+        ShopSlot::Upgrade { ref mut cost, .. } => cost,
+        ShopSlot::CardService { ref mut cost, .. } => cost,
+    };
+    *cost = match free {
+        true => 0,
+        false => (base_cost + additional_cost - discount as f32).max(0.0) as usize,
+    };
+
+    slot
 }

@@ -1,6 +1,6 @@
-use crate::card::{Rank, Suit};
 use crate::game_state::{
     GameState,
+    card::{Rank, Suit},
     stage_modifiers::StageModifiers,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
@@ -367,6 +367,7 @@ impl Effect {
 // ============================= Test Helpers =============================
 #[cfg(test)]
 pub mod tests_support {
+    use crate::card::Deck;
     use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
         GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
@@ -379,6 +380,7 @@ pub mod tests_support {
     /// - 필요한 최소 필드만 초기화.
     pub fn make_test_state() -> GameState {
         let decorations = crate::game_state::background::generate_decorations();
+        let config = std::sync::Arc::new(crate::config::GameConfig::default_config());
         GameState {
             monsters: Default::default(),
             towers: Default::default(),
@@ -391,7 +393,7 @@ pub mod tests_support {
             flow: GameFlow::Initializing,
             hand: Hand::new(std::iter::empty::<HandItem>()),
             stage: 1,
-            left_dice: 1,
+            left_dice: config.player.base_dice_chance,
             monster_spawn_state: MonsterSpawnState::idle(),
             in_flight_attacks: Default::default(),
             items: vec![],
@@ -402,7 +404,7 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
-            deck: crate::card::Deck::new(0),
+            deck: Deck::new(),
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
@@ -427,7 +429,7 @@ pub mod tests_support {
                 ),
             black_smoke_sources: Default::default(),
             base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
-            config: std::sync::Arc::new(crate::config::GameConfig::default_config()),
+            config: config.clone(),
 
             hand_panel_forced_open: true,
             shop_panel_forced_open: true,
@@ -441,5 +443,4 @@ mod tests {
     mod card_selection_reroll_and_slots;
     mod random_effects_deterministic;
     mod run_effect_integration;
-    mod shop_reroll;
 }

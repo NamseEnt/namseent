@@ -94,7 +94,10 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
-    use crate::game_state::upgrade::behavior::camera::CAMERA_GOLD_REWARD;
+    use crate::game_state::{
+        card::{Rank, Suit},
+        upgrade::behavior::camera::CAMERA_GOLD_REWARD,
+    };
 
     #[test]
     fn camera_grants_gold_when_face_tower_is_placed() {
@@ -110,8 +113,8 @@ mod tests {
 
         let face_tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Spades,
-            crate::card::Rank::King,
+            Suit::Spades,
+            Rank::King,
         );
         let face_tower = crate::game_state::tower::Tower::new(
             &face_tower_template,
@@ -140,8 +143,8 @@ mod tests {
 
         let number_tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Spades,
-            crate::card::Rank::Ten,
+            Suit::Spades,
+            Rank::Ten,
         );
         let number_tower = crate::game_state::tower::Tower::new(
             &number_tower_template,

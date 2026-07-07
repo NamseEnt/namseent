@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn camera_gold_earning_does_not_refresh_shop_when_selecting_tower() {
         let mut game_state = create_initial_game_state();
-        game_state.action(crate::game_state::GameStateAction::StartSelectingTower);
+        game_state.action(crate::game_state::GameStateAction::StartStage { stage: 0 });
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             Upgrade::Camera(crate::game_state::upgrade::CameraUpgrade),
             None,

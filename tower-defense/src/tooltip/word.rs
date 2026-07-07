@@ -13,6 +13,7 @@ impl Word {
             Word::Treasure => vec![self.tooltip_section(locale)],
             Word::Shield => vec![self.tooltip_section(locale)],
             Word::PerfectClear => vec![self.tooltip_section(locale)],
+            Word::CardService => vec![self.tooltip_section(locale)],
         }
     }
 

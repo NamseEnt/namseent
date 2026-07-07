@@ -1,5 +1,7 @@
-use crate::card::{Rank, Suit};
-use crate::game_state::tower::TowerKind;
+use crate::game_state::{
+    card::{Rank, Suit},
+    tower::TowerKind,
+};
 use namui::*;
 
 /// Returns the overlay image corresponding to the given suit.

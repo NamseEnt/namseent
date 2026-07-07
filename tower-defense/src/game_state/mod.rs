@@ -14,12 +14,14 @@ pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
+#[allow(unused)]
 mod map_decoration_atlas;
 mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) use action::GameStateAction;
+pub mod card_service;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
@@ -33,7 +35,7 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
-use crate::card::Deck;
+use crate::card::{Deck, Rank, Suit};
 use crate::config::GameConfig;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
@@ -658,7 +660,7 @@ fn create_initial_game_state() -> GameState {
         rerolled_count: 0,
         shop_rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
-        deck: Deck::new(0),
+        deck: Deck::new(),
         play_history: PlayHistory::new(),
         config: Arc::clone(&config),
         opened_modal: None,
@@ -880,8 +882,8 @@ mod tests {
         gs.action(crate::game_state::GameStateAction::StartPlacingTower(
             crate::game_state::tower::TowerTemplate::new(
                 crate::game_state::tower::TowerKind::Barricade,
-                crate::card::Suit::Spades,
-                crate::card::Rank::Ace,
+                Suit::Spades,
+                Rank::Ace,
             ),
         ));
         assert!(gs.can_open_hand_panel());

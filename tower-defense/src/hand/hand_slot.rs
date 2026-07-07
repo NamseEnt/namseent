@@ -1,5 +1,9 @@
 use super::*;
-use crate::{card::Card, game_state::tower::TowerTemplate, hand::HandItem};
+use crate::{
+    card::{RenderCard, RenderTowerCard},
+    game_state::tower::TowerTemplate,
+    hand::HandItem,
+};
 use namui::*;
 use std::{any::Any, sync::atomic::AtomicUsize};
 
@@ -116,7 +120,7 @@ where
                     });
                 }
                 HandItem::Tower(tower_template) => {
-                    ctx.add(RenderTower {
+                    ctx.add(RenderTowerCard {
                         wh: HAND_SLOT_WH,
                         tower_template,
                     });
@@ -130,7 +134,7 @@ where
         } else if let Some(tower_template) =
             (&self.item as &dyn Any).downcast_ref::<TowerTemplate>()
         {
-            ctx.add(RenderTower {
+            ctx.add(RenderTowerCard {
                 wh: HAND_SLOT_WH,
                 tower_template,
             });

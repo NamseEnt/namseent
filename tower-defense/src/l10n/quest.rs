@@ -1,6 +1,7 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
+use crate::card::Suit;
 use crate::icon::IconKind;
-use crate::{card::Suit, theme::typography::TypographyBuilder, *};
+use crate::{theme::typography::TypographyBuilder, *};
 
 #[derive(Debug, Clone, State)]
 pub enum QuestText {
