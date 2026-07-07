@@ -2,6 +2,7 @@ mod hover_area;
 mod word;
 
 use crate::animation::with_spring;
+use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::item::{Item, ItemBehavior};
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
@@ -50,6 +51,7 @@ pub enum TooltipPlacement {
 pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
+    CardService(crate::game_state::card_service::CardService),
     Reroll { health_cost: usize },
     Word(crate::l10n::word::Word),
 }
@@ -111,6 +113,11 @@ impl TooltipContent {
             TooltipContent::Upgrade(upgrade) => {
                 let mut sections = Word::Treasure.tooltip_sections(locale);
                 sections.extend(upgrade.tooltip_sections(locale));
+                sections
+            }
+            TooltipContent::CardService(card_service) => {
+                let mut sections = Word::CardService.tooltip_sections(locale);
+                sections.extend(card_service.tooltip_sections(locale));
                 sections
             }
             TooltipContent::Reroll { health_cost } => {

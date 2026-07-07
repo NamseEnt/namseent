@@ -14,6 +14,7 @@ pub mod tower_skill;
 pub mod ui;
 pub mod upgrade;
 pub mod word;
+pub mod card_service;
 
 // 핵심 타입들 재export
 pub use locale::{Language, Locale, LocalizedText};

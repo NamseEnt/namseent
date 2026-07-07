@@ -21,6 +21,7 @@ mod start_treasure_selection;
 mod take_damage;
 mod upgrade;
 mod upgrade_trigger;
+mod use_card_service;
 mod use_item;
 
 use crate::game_state::{
@@ -69,6 +70,7 @@ pub(crate) enum GameStateAction {
     StartSelectingTower,
     StartDefense,
     StartTreasureSelection,
+    UseCardService(crate::game_state::card_service::CardService),
     GameOver,
 }
 
@@ -244,6 +246,10 @@ impl GameState {
                 game_over::clear_active_entities(self);
                 game_over::record_history_event(self);
                 game_over::set_result_flow(self);
+                true
+            }
+            GameStateAction::UseCardService(card_service) => {
+                use_card_service::use_card_service(self, card_service);
                 true
             }
         }

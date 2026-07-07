@@ -157,7 +157,9 @@ impl GameState {
         }
 
         match &slot_data.slot {
-            ShopSlot::Item { cost, .. } | ShopSlot::Upgrade { cost, .. } => {
+            ShopSlot::Item { cost, .. }
+            | ShopSlot::Upgrade { cost, .. }
+            | ShopSlot::CardService { cost, .. } => {
                 let effective_cost = if self.stage_modifiers.is_free_shop_this_stage() {
                     0
                 } else {

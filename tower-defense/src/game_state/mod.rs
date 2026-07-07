@@ -21,6 +21,7 @@ pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) use action::GameStateAction;
+pub mod card_service;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;

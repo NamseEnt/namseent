@@ -38,6 +38,7 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
                 let cost = match &mut slot.slot {
                     crate::shop::ShopSlot::Item { cost, .. } => cost,
                     crate::shop::ShopSlot::Upgrade { cost, .. } => cost,
+                    crate::shop::ShopSlot::CardService { cost, .. } => cost,
                 };
                 *cost = cost.saturating_sub(self.add);
             }
