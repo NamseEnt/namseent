@@ -132,8 +132,6 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 mod tests {
     use crate::card::{Rank, Suit};
 
-
-
     #[test]
     fn trophy_uses_perfect_clear_stacks_for_global_damage() {
         use crate::game_state::upgrade::tests::support;

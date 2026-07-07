@@ -115,7 +115,10 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_state::{card::{Rank, Suit}, upgrade::*};
+    use crate::game_state::{
+        card::{Rank, Suit},
+        upgrade::*,
+    };
 
     #[test]
     fn shopping_bag_upgrade_activates_without_stacks() {

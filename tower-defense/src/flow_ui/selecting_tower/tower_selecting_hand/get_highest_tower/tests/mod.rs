@@ -1,6 +1,5 @@
 use crate::card::{Card, Rank, Suit};
 
-
 mod flush;
 mod four_of_a_kind;
 mod full_house;

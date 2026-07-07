@@ -115,8 +115,6 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 mod tests {
     use crate::card::{Rank, Suit};
 
-
-
     #[test]
     fn demolition_hammer_stage_end_stores_removed_tower_damage_bonus() {
         use crate::game_state::upgrade::tests::support;

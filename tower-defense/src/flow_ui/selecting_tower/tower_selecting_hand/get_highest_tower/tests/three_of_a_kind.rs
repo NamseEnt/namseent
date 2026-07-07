@@ -7,7 +7,8 @@ use crate::game_state::upgrade::UpgradeState;
 #[test]
 fn test_three_of_a_kind() {
     let cards = vec![
-        make_card(Suit::Spades, Rank::Ace),        make_card(Suit::Hearts, Rank::Ace),
+        make_card(Suit::Spades, Rank::Ace),
+        make_card(Suit::Hearts, Rank::Ace),
         make_card(Suit::Clubs, Rank::Ace),
         make_card(Suit::Diamonds, Rank::Ten),
         make_card(Suit::Spades, Rank::Seven),

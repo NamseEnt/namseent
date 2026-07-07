@@ -1,7 +1,12 @@
 use namui::*;
 
 fn rect(x: f32, y: f32, w: f32, h: f32) -> Rect<Px> {
-    Rect::Xywh { x: px(x), y: px(y), width: px(w), height: px(h) }
+    Rect::Xywh {
+        x: px(x),
+        y: px(y),
+        width: px(w),
+        height: px(h),
+    }
 }
 
 pub fn centered_sprite(
@@ -92,7 +97,6 @@ pub fn line_sprite_from_rect(
         color,
     })
 }
-
 
 pub fn decoration_rect(kind: crate::game_state::background::DecorationKind) -> Rect<Px> {
     use crate::game_state::background::DecorationKind;

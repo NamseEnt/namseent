@@ -53,9 +53,7 @@ impl UpgradeBehavior for MaceUpgrade {
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
-            TowerUpgradeTarget::Suit {
-                suit: Suit::Hearts,
-            },
+            TowerUpgradeTarget::Suit { suit: Suit::Hearts },
             self.damage_bonus_pct,
         ))
     }
