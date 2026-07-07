@@ -86,6 +86,29 @@ impl Component for TopBar {
                         }),
                     ]),
                 ),
+                table::fixed_no_clip(SETTINGS_BUTTON_SIZE + PADDING * 2.0, |wh, ctx| {
+                    ctx.translate((PADDING, (wh.height - SETTINGS_BUTTON_SIZE) / 2.0))
+                        .add(
+                            Button::new(
+                                Wh::new(SETTINGS_BUTTON_SIZE, SETTINGS_BUTTON_SIZE),
+                                &|| set_modal(Some(Modal::Deck)),
+                                &|wh, _text_color, ctx| {
+                                    ctx.add(memoized_text(&gold, |mut builder| {
+                                        builder
+                                            .headline()
+                                            .size(FontSize::Custom { size: px(40.) })
+                                            .stroke(
+                                                TOP_BAR_TEXT_STROKE_WIDTH,
+                                                palette::DARK_CHARCOAL,
+                                            )
+                                            .icon(IconKind::Deck)
+                                            .render_center(wh)
+                                    }));
+                                },
+                            )
+                            .variant(ButtonVariant::Text),
+                        );
+                }),
                 table::fixed_no_clip(PADDING, |_, _| {}),
                 table::fixed_no_clip(
                     SPEED_INDICATOR_WIDTH,

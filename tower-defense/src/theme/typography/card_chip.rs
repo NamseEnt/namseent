@@ -1,6 +1,5 @@
 use crate::{
-    game_state::card::{Rank, Suit},
-    theme::palette,
+    card::{Rank, Suit}, theme::palette,
 };
 use namui::*;
 

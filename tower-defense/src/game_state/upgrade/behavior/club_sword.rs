@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{card::Suit, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ClubSwordUpgrade {

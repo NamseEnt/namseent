@@ -1,5 +1,5 @@
 use crate::{
-    game_state::card::Card,
+    card::Card,
     thumbnail::{
         STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
     },

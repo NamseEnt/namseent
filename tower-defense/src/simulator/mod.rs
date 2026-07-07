@@ -7,8 +7,8 @@ pub mod recording;
 pub mod stats;
 pub mod strategies;
 
+use crate::card::Deck;
 use crate::config::GameConfig;
-use crate::game_state::card::Deck;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::play_history::HistoryEventType;

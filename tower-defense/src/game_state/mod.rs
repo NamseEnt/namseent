@@ -14,13 +14,13 @@ pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
 pub mod item;
+#[allow(unused)]
 mod map_decoration_atlas;
 mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) use action::GameStateAction;
-pub(crate) mod card;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
@@ -34,8 +34,8 @@ mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
 
+use crate::card::{Deck, Rank, Suit};
 use crate::config::GameConfig;
-use crate::game_state::card::{Deck, Rank, Suit};
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
@@ -833,8 +833,6 @@ pub fn is_boss_stage(stage: usize) -> bool {
 // Unit tests that exercise panel toggle behavior.
 #[cfg(test)]
 mod tests {
-    use crate::game_state::card::{Rank, Suit};
-
     use super::*;
 
     #[test]

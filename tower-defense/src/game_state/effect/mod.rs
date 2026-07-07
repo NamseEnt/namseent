@@ -367,8 +367,8 @@ impl Effect {
 // ============================= Test Helpers =============================
 #[cfg(test)]
 pub mod tests_support {
-    use crate::game_state::card::Deck;
-    use crate::game_state::stage_modifiers::StageModifiers;
+    use crate::card::Deck;
+use crate::game_state::stage_modifiers::StageModifiers;
     use crate::game_state::{
         GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
     };

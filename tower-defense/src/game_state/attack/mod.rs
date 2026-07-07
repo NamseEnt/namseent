@@ -6,8 +6,8 @@ use super::projectile::{
     HOMING_TURN_RATE_MAX_TILE, HOMING_TURN_RATE_MIN_TILE, ProjectileBehavior, ProjectileKind,
     ProjectileTargetIndicator, ProjectileTrail, random_rotation_speed,
 };
+use crate::card::Suit;
 use crate::game_state::TILE_PX_SIZE;
-use crate::game_state::card::Suit;
 use crate::{MapCoordF32, game_state::card::Rank};
 use namui::*;
 use rand::Rng;

@@ -1,6 +1,6 @@
-use crate::game_state::{
+use crate::{
     card::{Card, Rank, Suit},
-    upgrade::UpgradeState,
+    game_state::upgrade::UpgradeState,
 };
 use std::collections::HashMap;
 

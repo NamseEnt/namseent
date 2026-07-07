@@ -1,4 +1,4 @@
-use crate::game_state::card::{Rank, Suit};
+use crate::card::{Rank, Suit};
 use crate::icon::IconKind;
 use crate::theme::palette;
 use crate::theme::typography::TypographyBuilder;

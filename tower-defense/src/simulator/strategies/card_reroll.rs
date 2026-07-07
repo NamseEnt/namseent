@@ -1,10 +1,10 @@
 //! Card reroll and tower selection strategies.
 
 use super::CardRerollStrategy;
+use crate::card::{Card, Deck};
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 use crate::game_state::GameState;
-use crate::game_state::card::{Card, Deck};
 use crate::game_state::item::Item;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;

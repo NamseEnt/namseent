@@ -1,8 +1,10 @@
 mod deck;
+mod render;
 
 use crate::*;
 pub use deck::*;
 use rand::Rng;
+pub use render::{RenderCard, RenderTowerCard};
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]

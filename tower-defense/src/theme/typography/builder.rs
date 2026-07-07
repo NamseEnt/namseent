@@ -2,7 +2,7 @@ use super::renderer::RichTextRenderer;
 use super::style::{StyleContext, StyleDelta};
 use super::token::Token;
 use super::{DEFAULT_TEXT_STYLE, FontSize, palette};
-use crate::game_state::card::{Rank, Suit};
+use crate::card::{Rank, Suit};
 use crate::icon::{IconAttribute, IconAttributePosition, IconKind};
 use namui::*;
 

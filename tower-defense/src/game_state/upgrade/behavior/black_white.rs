@@ -1,3 +1,5 @@
+use crate::card::Suit;
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]

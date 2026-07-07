@@ -135,8 +135,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        config::DEFAULT_BASE_DICE_CHANCE,
-        game_state::upgrade::{Upgrade, UpgradeUpdateFlags},
+        card::{Rank, Suit}, config::DEFAULT_BASE_DICE_CHANCE, game_state::upgrade::{Upgrade, UpgradeUpdateFlags},
     };
 
     #[test]

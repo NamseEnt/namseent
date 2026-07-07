@@ -1,6 +1,6 @@
+use crate::card::Card;
 use crate::game_state::GameState;
 use crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent;
-use crate::game_state::card::Card;
 
 pub(super) fn reroll(game_state: &mut GameState) -> usize {
     let selected_slot_ids = game_state.hand.selected_slot_ids();

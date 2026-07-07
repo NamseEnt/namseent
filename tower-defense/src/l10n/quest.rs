@@ -1,5 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers};
-use crate::game_state::card::Suit;
+use crate::card::Suit;
 use crate::icon::IconKind;
 use crate::{theme::typography::TypographyBuilder, *};
 

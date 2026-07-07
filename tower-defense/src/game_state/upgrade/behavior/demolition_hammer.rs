@@ -113,7 +113,8 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
-    use crate::game_state::card::{Rank, Suit};
+    use crate::card::{Rank, Suit};
+
 
 
     #[test]

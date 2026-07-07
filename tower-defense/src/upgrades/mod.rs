@@ -1,12 +1,8 @@
 use crate::{
-    animation::xy_with_spring,
-    flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
-    game_state::{
-        card::Card,
+    animation::xy_with_spring, card::Card, flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template, game_state::{
         upgrade::{SelectedTowerContext, UpgradeBehavior},
         use_game_state,
-    },
-    hand::HandSlotId,
+    }, hand::HandSlotId,
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};

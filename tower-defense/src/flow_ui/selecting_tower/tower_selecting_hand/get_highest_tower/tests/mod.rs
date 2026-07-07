@@ -1,4 +1,5 @@
-use crate::game_state::card::{Card, Rank, Suit};
+use crate::card::{Card, Rank, Suit};
+
 
 mod flush;
 mod four_of_a_kind;
