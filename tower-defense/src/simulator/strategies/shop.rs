@@ -103,6 +103,7 @@ impl SynergyShopStrategy {
             let cost = match &slot.slot {
                 crate::shop::ShopSlot::Item { cost, .. } => *cost,
                 crate::shop::ShopSlot::Upgrade { cost, .. } => *cost,
+                crate::shop::ShopSlot::CardService { cost, .. } => *cost,
             };
             if cost > game_state.gold {
                 continue;
@@ -113,6 +114,7 @@ impl SynergyShopStrategy {
                 crate::shop::ShopSlot::Upgrade { upgrade, .. } => {
                     Self::rarity_weight_upgrade(*upgrade)
                 }
+                crate::shop::ShopSlot::CardService { .. } => Self::rarity_weight_common(),
             };
             if weight == 0 {
                 continue;

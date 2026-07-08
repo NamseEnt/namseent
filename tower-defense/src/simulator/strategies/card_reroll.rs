@@ -1,14 +1,13 @@
 //! Card reroll and tower selection strategies.
 
 use super::CardRerollStrategy;
-use crate::card::Card;
+use crate::card::{Card, Deck};
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 use crate::game_state::GameState;
 use crate::game_state::item::Item;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
-use crate::hand::HandItem;
 use rand::RngCore;
 
 /// Holds strong partial hands and simulates reroll outcomes before selecting cards to reroll.
@@ -171,9 +170,58 @@ fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
     false
 }
 
+struct RerollEvaluationContext<'a> {
+    deck: &'a Deck,
+    upgrade_state: &'a UpgradeState,
+    rerolled_count: usize,
+    config: &'a std::sync::Arc<GameConfig>,
+    rng: &'a mut dyn RngCore,
+}
+
+impl<'a> RerollEvaluationContext<'a> {
+    fn estimate_expected_rating(
+        &mut self,
+        hold_cards: &[Card],
+        discard_cards: &[Card],
+        draw_count: usize,
+    ) -> f32 {
+        if draw_count == 0 {
+            let template = get_highest_tower_template(
+                hold_cards,
+                self.upgrade_state,
+                self.rerolled_count,
+                self.config,
+            );
+            return tower_kind_rating(template.kind) as f32;
+        }
+
+        let mut total = 0.0;
+        for _ in 0..EXPECTED_REROLL_SAMPLES {
+            let mut deck = self.deck.clone();
+            if !discard_cards.is_empty() {
+                deck.discard(discard_cards.iter().copied());
+            }
+
+            let mut candidate_cards = hold_cards.to_vec();
+            let cards = deck.draw(self.rng, draw_count);
+            candidate_cards.extend(cards);
+
+            let template = get_highest_tower_template(
+                &candidate_cards,
+                self.upgrade_state,
+                self.rerolled_count,
+                self.config,
+            );
+            total += tower_kind_rating(template.kind) as f32;
+        }
+
+        total / EXPECTED_REROLL_SAMPLES as f32
+    }
+}
+
 fn choose_best_hold_indices(
     cards: &[Card],
-    deck: &crate::card::Deck,
+    deck: &Deck,
     upgrade_state: &UpgradeState,
     rerolled_count: usize,
     config: &std::sync::Arc<GameConfig>,
@@ -183,27 +231,30 @@ fn choose_best_hold_indices(
     let mut best_score = f32::MIN;
     let mut best_hold = Vec::new();
 
-    for mask in 0..(1usize << card_count) {
-        let hold_cards: Vec<Card> = cards
-            .iter()
-            .enumerate()
-            .filter_map(|(index, &card)| {
-                if mask & (1 << index) != 0 {
-                    Some(card)
-                } else {
-                    None
-                }
-            })
-            .collect();
+    let mut context = RerollEvaluationContext {
+        deck,
+        upgrade_state,
+        rerolled_count,
+        config,
+        rng,
+    };
 
-        let score = estimate_expected_rating(
+    for mask in 0..(1usize << card_count) {
+        let mut hold_cards = Vec::new();
+        let mut discard_cards = Vec::new();
+
+        for (index, &card) in cards.iter().enumerate() {
+            if mask & (1 << index) != 0 {
+                hold_cards.push(card);
+            } else {
+                discard_cards.push(card);
+            }
+        }
+
+        let score = context.estimate_expected_rating(
             &hold_cards,
+            discard_cards.as_slice(),
             card_count.saturating_sub(hold_cards.len()),
-            deck,
-            upgrade_state,
-            rerolled_count,
-            config,
-            rng,
         );
 
         if score > best_score || (score == best_score && hold_cards.len() > best_hold.len()) {
@@ -215,34 +266,6 @@ fn choose_best_hold_indices(
     }
 
     best_hold
-}
-
-fn estimate_expected_rating(
-    hold_cards: &[Card],
-    draw_count: usize,
-    deck: &crate::card::Deck,
-    upgrade_state: &UpgradeState,
-    rerolled_count: usize,
-    config: &std::sync::Arc<GameConfig>,
-    rng: &mut dyn RngCore,
-) -> f32 {
-    if draw_count == 0 {
-        let template =
-            get_highest_tower_template(hold_cards, upgrade_state, rerolled_count, config);
-        return tower_kind_rating(template.kind) as f32;
-    }
-
-    let mut total = 0.0;
-    for _ in 0..EXPECTED_REROLL_SAMPLES {
-        let mut candidate_cards = hold_cards.to_vec();
-        candidate_cards.extend(deck.sample(draw_count, rng));
-
-        let template =
-            get_highest_tower_template(&candidate_cards, upgrade_state, rerolled_count, config);
-        total += tower_kind_rating(template.kind) as f32;
-    }
-
-    total / EXPECTED_REROLL_SAMPLES as f32
 }
 
 fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
@@ -267,11 +290,6 @@ fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
     }
 
     game_state.action(crate::game_state::GameStateAction::CardReroll);
-
-    for _ in 0..reroll_ids.len() {
-        let card = game_state.deck.draw().unwrap_or_else(Card::new_random);
-        game_state.hand.push(HandItem::Card(card));
-    }
 }
 
 fn tower_kind_rating(kind: TowerKind) -> u32 {

@@ -73,7 +73,10 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_state::upgrade::Upgrade;
+    use crate::game_state::{
+        card::{Rank, Suit},
+        upgrade::Upgrade,
+    };
 
     #[test]
     fn mirror_duplicates_next_acquired_tower() {
@@ -96,8 +99,8 @@ mod tests {
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::High,
-            crate::card::Suit::Spades,
-            crate::card::Rank::Ace,
+            Suit::Spades,
+            Rank::Ace,
         );
         game_state.action(crate::game_state::GameStateAction::StartPlacingTower(
             tower_template,

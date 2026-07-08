@@ -3,10 +3,10 @@ pub mod towers;
 
 use self::monsters::MonsterConfig;
 use self::towers::TowerConfig;
-
 use anyhow::Context;
-
 use namui::*;
+
+pub const DEFAULT_BASE_DICE_CHANCE: usize = 3;
 
 const EMBEDDED_GAMECONFIG_TOML: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/gameconfig.toml"));
@@ -78,5 +78,11 @@ mod tests {
         let b = toml::to_string_pretty(&config)?;
         assert_eq!(a, b);
         Ok(())
+    }
+
+    #[test]
+    fn default_base_dice_chance_matches_config_default() {
+        let config = GameConfig::default_config();
+        assert_eq!(config.player.base_dice_chance, DEFAULT_BASE_DICE_CHANCE);
     }
 }

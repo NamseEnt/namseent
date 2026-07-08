@@ -1,6 +1,5 @@
 use super::*;
 use crate::{
-    card::{Rank, Suit},
     game_state::{item::Item, upgrade::Upgrade},
     *,
 };

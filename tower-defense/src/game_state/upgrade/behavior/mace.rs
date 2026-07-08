@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{card::Suit, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct MaceUpgrade {
@@ -33,7 +33,7 @@ impl UpgradeBehavior for MaceUpgrade {
     }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
-        context.suit == Some(crate::card::Suit::Hearts)
+        context.suit == Some(Suit::Hearts)
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -53,9 +53,7 @@ impl UpgradeBehavior for MaceUpgrade {
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
-            TowerUpgradeTarget::Suit {
-                suit: crate::card::Suit::Hearts,
-            },
+            TowerUpgradeTarget::Suit { suit: Suit::Hearts },
             self.damage_bonus_pct,
         ))
     }

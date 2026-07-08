@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{card::Suit, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct StaffUpgrade {
@@ -33,7 +33,7 @@ impl UpgradeBehavior for StaffUpgrade {
     }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
-        context.suit == Some(crate::card::Suit::Diamonds)
+        context.suit == Some(Suit::Diamonds)
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -54,7 +54,7 @@ impl UpgradeBehavior for StaffUpgrade {
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
             TowerUpgradeTarget::Suit {
-                suit: crate::card::Suit::Diamonds,
+                suit: Suit::Diamonds,
             },
             self.damage_bonus_pct,
         ))

@@ -3,7 +3,6 @@ mod royal_straight_flush;
 mod skill;
 
 use super::*;
-use crate::card::{Rank, Suit};
 use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
 use namui::*;

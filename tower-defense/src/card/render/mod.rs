@@ -1,3 +1,6 @@
+mod render_card;
+mod render_tower_card;
+
 use crate::{
     card::{Rank, Suit},
     icon::{Icon, IconKind, IconSize},
@@ -7,6 +10,8 @@ use crate::{
     },
 };
 use namui::*;
+pub use render_card::RenderCard;
+pub use render_tower_card::RenderTowerCard;
 
 /// suit에 따른 색상을 반환하는 헬퍼 함수
 pub fn get_suit_color(suit: Suit) -> Color {

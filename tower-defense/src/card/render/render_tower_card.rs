@@ -5,11 +5,11 @@ use crate::game_state::tower::{
 };
 use namui::*;
 
-pub(super) struct RenderTower<'a> {
+pub struct RenderTowerCard<'a> {
     pub wh: Wh<Px>,
     pub tower_template: &'a TowerTemplate,
 }
-impl Component for RenderTower<'_> {
+impl Component for RenderTowerCard<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
 

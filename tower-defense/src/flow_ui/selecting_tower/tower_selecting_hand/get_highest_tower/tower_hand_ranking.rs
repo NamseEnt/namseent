@@ -1,5 +1,7 @@
-use crate::card::{Card, Rank, Suit};
-use crate::game_state::upgrade::UpgradeState;
+use crate::{
+    card::{Card, Rank, Suit},
+    game_state::upgrade::UpgradeState,
+};
 use std::collections::HashMap;
 
 pub struct StraightResult {
@@ -17,7 +19,6 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         false => 5,
     };
     let skip_rank_for_straight = upgrade_state.skip_rank_for_straight();
-    let removed_number_rank_count = upgrade_state.removed_number_rank_count();
 
     if cards.len() < straight_card_count {
         return None;
@@ -35,13 +36,10 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         })
         .collect::<Vec<_>>();
     cards_ace_as_high.sort_by_key(|a| a.0);
-    let ace_high_removed_low = 2;
-    let ace_high_removed_high = removed_number_rank_count + 1;
     if let Some((start_idx, end_idx, _)) = check_rank(
         &cards_ace_as_high,
         straight_card_count,
         skip_rank_for_straight,
-        &|value| value >= ace_high_removed_low && value <= ace_high_removed_high,
     ) {
         let straight_slice = &cards_ace_as_high[start_idx..=end_idx];
         let ranks: Vec<usize> = straight_slice.iter().map(|(r, _)| *r).collect();
@@ -105,13 +103,10 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         })
         .collect::<Vec<_>>();
     cards_ace_as_low.sort_by_key(|a| a.0);
-    let ace_low_removed_low = 1;
-    let ace_low_removed_high = removed_number_rank_count;
     if let Some((start_idx, end_idx, _)) = check_rank(
         &cards_ace_as_low,
         straight_card_count,
         skip_rank_for_straight,
-        &|value| value >= ace_low_removed_low && value <= ace_low_removed_high,
     ) {
         let straight_slice = &cards_ace_as_low[start_idx..=end_idx];
         return Some(StraightResult {
@@ -126,7 +121,6 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         cards: &[(usize, &Card)],
         straight_card_count: usize,
         skip_rank: bool,
-        is_removed_rank: &dyn Fn(usize) -> bool,
     ) -> Option<(usize, usize, usize)> {
         let mut count = 1;
         let mut skips = 0;
@@ -139,9 +133,7 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
                 continue;
             }
 
-            let missing_non_removed_count = (prev + 1..curr)
-                .filter(|value| !is_removed_rank(*value))
-                .count();
+            let missing_non_removed_count = (prev + 1..curr).count();
 
             if missing_non_removed_count == 0 {
                 count += 1;

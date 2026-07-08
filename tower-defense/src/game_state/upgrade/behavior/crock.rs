@@ -139,6 +139,7 @@ fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
 }
 #[cfg(test)]
 mod tests {
+    use crate::card::{Rank, Suit};
 
     #[test]
     fn crock_increases_tower_damage_for_existing_towers() {
@@ -148,8 +149,8 @@ mod tests {
 
         let tower_template = crate::game_state::tower::TowerTemplate::new(
             crate::game_state::tower::TowerKind::FullHouse,
-            crate::card::Suit::Hearts,
-            crate::card::Rank::Queen,
+            Suit::Hearts,
+            Rank::Queen,
         );
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,

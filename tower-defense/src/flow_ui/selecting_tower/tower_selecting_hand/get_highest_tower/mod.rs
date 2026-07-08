@@ -9,8 +9,7 @@ use self::tower_hand_ranking::{check_flush, check_straight, count_rank};
 use self::tower_skill_injector::inject_skills;
 use self::tower_status_effect_injector::inject_status_effects;
 use self::tower_template_factory::create_tower_template;
-use crate::card::Card;
-use crate::card::REVERSED_RANKS;
+use crate::card::{Card, REVERSED_RANKS, Rank};
 use crate::config::GameConfig;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::tower::TowerTemplate;
@@ -26,13 +25,9 @@ pub fn get_highest_tower_template(
     let flush_result = check_flush(cards, upgrade_state);
 
     if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
-        if straight_result.royal && straight_result.top.rank == crate::card::Rank::Ace {
-            let mut template = create_tower_template(
-                TowerKind::RoyalFlush,
-                flush_result.suit,
-                crate::card::Rank::Ace,
-                config,
-            );
+        if straight_result.royal && straight_result.top.rank == Rank::Ace {
+            let mut template =
+                create_tower_template(TowerKind::RoyalFlush, flush_result.suit, Rank::Ace, config);
             inject_skills(&mut template);
             inject_status_effects(&mut template, upgrade_state, rerolled_count);
             return template;

@@ -74,5 +74,30 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             game_state.action(GameStateAction::SpendGold(cost_value));
             game_state.action(GameStateAction::Upgrade(upgrade_value, Some(cost_value)));
         }
+        ShopSlot::CardService { card_service, cost } => {
+            let cost_value = if game_state.stage_modifiers.is_free_shop_this_stage() {
+                0
+            } else {
+                *cost
+            };
+
+            if game_state.gold < cost_value {
+                return;
+            }
+
+            if game_state
+                .stage_modifiers
+                .is_item_and_upgrade_purchases_disabled()
+            {
+                return;
+            }
+
+            let card_service_value = card_service.clone();
+
+            slot_data.purchased = true;
+            slot_data.start_exit_animation(Instant::now());
+            game_state.action(GameStateAction::SpendGold(cost_value));
+            game_state.action(GameStateAction::UseCardService(card_service_value));
+        }
     }
 }

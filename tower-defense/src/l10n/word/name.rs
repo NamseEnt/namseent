@@ -43,6 +43,7 @@ impl WordName {
                     .with_icon_bold(IconKind::Shield, "보호막");
             }),
             super::Word::PerfectClear => builder.bold().static_text("퍼펙트 클리어"),
+            super::Word::CardService => builder.bold().static_text("카드 서비스"),
         };
     }
 
@@ -75,6 +76,7 @@ impl WordName {
                     .with_icon_bold(IconKind::Refresh, "Shield");
             }),
             super::Word::PerfectClear => builder.bold().static_text("Perfect clear"),
+            super::Word::CardService => builder.bold().static_text("Card Service"),
         };
     }
 }

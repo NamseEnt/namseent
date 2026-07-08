@@ -21,11 +21,12 @@ mod start_treasure_selection;
 mod take_damage;
 mod upgrade;
 mod upgrade_trigger;
+mod use_card_service;
 mod use_item;
 
-use crate::card::{Rank, Suit};
 use crate::game_state::{
     GameState,
+    card::{Rank, Suit},
     hand::{HandItem, HandSlotId},
     item,
     tower::{Tower, TowerKind},
@@ -69,6 +70,7 @@ pub(crate) enum GameStateAction {
     StartSelectingTower,
     StartDefense,
     StartTreasureSelection,
+    UseCardService(crate::game_state::card_service::CardService),
     GameOver,
 }
 
@@ -81,7 +83,7 @@ impl GameState {
             }
             GameStateAction::StartStage { stage } => {
                 start_stage::reset_stage_state(self);
-                start_stage::renew_game_state(self);
+                start_stage::renew_game_state(self, stage);
                 start_stage::flush_hand(self);
                 start_stage::draw_hand(self);
                 start_stage::open_panels(self);
@@ -244,6 +246,10 @@ impl GameState {
                 game_over::clear_active_entities(self);
                 game_over::record_history_event(self);
                 game_over::set_result_flow(self);
+                true
+            }
+            GameStateAction::UseCardService(card_service) => {
+                use_card_service::use_card_service(self, card_service);
                 true
             }
         }

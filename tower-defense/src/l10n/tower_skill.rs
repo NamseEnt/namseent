@@ -1,4 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
+use crate::card::Rank;
 use crate::icon::IconKind;
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
@@ -10,25 +11,11 @@ pub enum TowerSkillText {
     NearbyMonsterSpeedMulTitle,
     MoneyIncomeAddTitle,
     TopCardBonusTitle,
-    NearbyTowerDamageMulDesc {
-        mul: f32,
-        range_radius: usize,
-    },
-    NearbyTowerDamageAddDesc {
-        add: f32,
-        range_radius: usize,
-    },
-    NearbyMonsterSpeedMulDesc {
-        mul: f32,
-        range_radius: usize,
-    },
-    MoneyIncomeAddDesc {
-        add: u32,
-    },
-    TopCardBonusDesc {
-        rank: crate::card::Rank,
-        bonus_damage: usize,
-    },
+    NearbyTowerDamageMulDesc { mul: f32, range_radius: usize },
+    NearbyTowerDamageAddDesc { add: f32, range_radius: usize },
+    NearbyMonsterSpeedMulDesc { mul: f32, range_radius: usize },
+    MoneyIncomeAddDesc { add: u32 },
+    TopCardBonusDesc { rank: Rank, bonus_damage: usize },
 }
 
 impl LocalizedText for TowerSkillText {

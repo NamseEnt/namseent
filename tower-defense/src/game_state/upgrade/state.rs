@@ -49,7 +49,6 @@ impl UpgradeCache {
             cache.shorten_straight_flush_to_4_cards |= upgrade.shorten_straight_flush_to_4_cards();
             cache.skip_rank_for_straight |= upgrade.skip_rank_for_straight();
             cache.treat_suits_as_same |= upgrade.treat_suits_as_same();
-            cache.removed_number_rank_count += upgrade.removed_number_rank_count();
             cache.clear_shield_on_stage_start &= upgrade.clear_shield_on_stage_start();
         }
 
@@ -105,10 +104,6 @@ impl UpgradeState {
 
     pub fn treat_suits_as_same(&self) -> bool {
         self.cache().treat_suits_as_same
-    }
-
-    pub fn removed_number_rank_count(&self) -> usize {
-        self.cache().removed_number_rank_count
     }
 
     pub fn tower_upgrade_damage_bonuses(&self) -> Vec<TowerUpgradeDamageBonus> {

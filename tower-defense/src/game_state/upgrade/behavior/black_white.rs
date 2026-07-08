@@ -1,4 +1,4 @@
-use crate::Suit;
+use crate::card::Suit;
 
 use super::*;
 

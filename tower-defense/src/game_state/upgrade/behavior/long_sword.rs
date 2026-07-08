@@ -1,5 +1,5 @@
 use super::*;
-use crate::l10n::rich_text_helpers::RichTextHelpers;
+use crate::{card::Suit, l10n::rich_text_helpers::RichTextHelpers};
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct LongSwordUpgrade {
@@ -33,7 +33,7 @@ impl UpgradeBehavior for LongSwordUpgrade {
     }
 
     fn is_applicable(&self, context: &SelectedTowerContext) -> bool {
-        context.suit == Some(crate::card::Suit::Spades)
+        context.suit == Some(Suit::Spades)
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -53,9 +53,7 @@ impl UpgradeBehavior for LongSwordUpgrade {
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
         Some((
-            TowerUpgradeTarget::Suit {
-                suit: crate::card::Suit::Spades,
-            },
+            TowerUpgradeTarget::Suit { suit: Suit::Spades },
             self.damage_bonus_pct,
         ))
     }
