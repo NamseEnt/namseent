@@ -1,10 +1,19 @@
 mod cards;
 
-use crate::game_state::{set_modal, use_game_state};
+use crate::card::CardId;
+use crate::game_state::card_service::CardServiceBehavior;
+use crate::game_state::{UserModal, mutate_game_state, set_modal, use_game_state};
 use crate::icon::Icon;
-use crate::{game_state::modal::deck::cards::Cards, theme::button::Button};
+use crate::{
+    game_state::modal::deck::cards::Cards,
+    theme::{
+        button::Button,
+        typography::{FontSize, memoized_text},
+    },
+};
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect};
+use std::sync::Arc;
 
 const PADDING: Px = px(24.0);
 const SCROLL_BAR_WIDTH: Px = px(8.0);
@@ -19,28 +28,173 @@ pub enum DeckKind {
     Discard,
 }
 
+#[derive(Debug, Clone, State)]
+pub struct CardSelectionStep {
+    pub title: String,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, State)]
+pub struct CardSelectionState {
+    pub steps: Vec<CardSelectionStep>,
+    pub current_step: usize,
+    pub selected_card_ids: Vec<Vec<CardId>>,
+    pub card_service: crate::game_state::card_service::CardService,
+}
+
+impl CardSelectionState {
+    pub fn new(
+        steps: Vec<CardSelectionStep>,
+        card_service: crate::game_state::card_service::CardService,
+    ) -> Self {
+        let selected_card_ids = steps.iter().map(|_| Vec::new()).collect();
+        Self {
+            steps,
+            current_step: 0,
+            selected_card_ids,
+            card_service,
+        }
+    }
+
+    pub fn current_step(&self) -> &CardSelectionStep {
+        &self.steps[self.current_step]
+    }
+
+    pub fn current_selected_count(&self) -> usize {
+        self.selected_card_ids[self.current_step].len()
+    }
+
+    pub fn required_count(&self) -> usize {
+        self.current_step().count
+    }
+
+    pub fn is_card_selected(&self, card_id: CardId) -> bool {
+        self.selected_card_ids[self.current_step].contains(&card_id)
+    }
+
+    pub fn toggle_card(&mut self, card_id: CardId) {
+        let current_step = self.current_step;
+        let required_count = self.steps[current_step].count;
+        let selected = &mut self.selected_card_ids[current_step];
+        if let Some(pos) = selected.iter().position(|&i| i == card_id) {
+            selected.remove(pos);
+        } else if selected.len() < required_count {
+            selected.push(card_id);
+        }
+    }
+
+    pub fn is_step_complete(&self) -> bool {
+        self.current_selected_count() == self.required_count()
+    }
+
+    pub fn selected_card_ids_by_step(&self) -> Vec<Vec<CardId>> {
+        self.selected_card_ids.clone()
+    }
+}
+
+#[derive(Debug, Clone, State)]
 pub struct DeckModal {
     pub deck_kind: DeckKind,
+    pub selection: Option<CardSelectionState>,
 }
 
 impl Component for DeckModal {
     fn render(self, ctx: &RenderCtx) {
-        let Self { deck_kind } = self;
+        let Self {
+            deck_kind,
+            selection,
+        } = self;
 
         let game_state = use_game_state(ctx);
         let screen_wh = screen::size().into_type::<Px>();
 
         let deck = ctx.track_eq(&game_state.deck);
+        let selected_indices = if let Some(selection) = &selection {
+            selection.selected_card_ids[selection.current_step].clone()
+        } else {
+            Vec::new()
+        };
+
         let cards = ctx.memo(|| {
-            println!("DeckModal: cards memo called");
             deck.record_as_used();
-            let cards = match deck_kind {
-                DeckKind::Deck => deck.all_cards(),
-                DeckKind::Draw => deck.draw_pile(),
-                DeckKind::Discard => deck.discard_pile(),
-            };
-            cards.to_vec()
+            match deck_kind {
+                DeckKind::Deck => deck.all_cards().to_vec(),
+                DeckKind::Draw => deck.draw_pile().to_vec(),
+                DeckKind::Discard => deck.discard_pile().to_vec(),
+            }
         });
+
+        let on_card_click = if selection.is_some() {
+            Some(Arc::new(move |card_id: CardId| {
+                mutate_game_state(move |gs| {
+                    if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
+                        && let Some(selection) = &mut deck_modal.selection
+                    {
+                        selection.toggle_card(card_id);
+                    }
+                });
+            }) as Arc<dyn Fn(CardId) + Send + Sync>)
+        } else {
+            None
+        };
+
+        let mut action_button: Option<(String, Arc<dyn Fn() + Send + Sync>)> = None;
+        if let Some(selection) = &selection {
+            let step = selection.current_step();
+            let progress_text = format!(
+                "{} ({}/{})",
+                step.title,
+                selection.current_selected_count(),
+                step.count
+            );
+            let progress_text_clone = progress_text.clone();
+            ctx.translate((PADDING, PADDING)).add(memoized_text(
+                &progress_text,
+                move |mut builder| {
+                    builder
+                        .headline()
+                        .bold()
+                        .color(Color::WHITE)
+                        .stroke(2.px(), Color::BLACK)
+                        .size(FontSize::Large)
+                        .text(progress_text_clone.clone())
+                        .render_left_top()
+                },
+            ));
+
+            if selection.is_step_complete() {
+                let label = if selection.current_step + 1 >= selection.steps.len() {
+                    "Confirm"
+                } else {
+                    "Next"
+                };
+                let card_service = selection.card_service.clone();
+                action_button = Some((
+                    label.to_string(),
+                    Arc::new(move || {
+                        let card_service = card_service.clone();
+                        mutate_game_state(move |gs| {
+                            if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
+                                && let Some(selection) = &mut deck_modal.selection
+                            {
+                                if !selection.is_step_complete() {
+                                    return;
+                                }
+
+                                if selection.current_step + 1 >= selection.steps.len() {
+                                    let selected_card_ids = selection.selected_card_ids_by_step();
+                                    deck_modal.selection = None;
+                                    gs.opened_modals.user = None;
+                                    card_service.select_cards(gs, selected_card_ids);
+                                } else {
+                                    selection.current_step += 1;
+                                }
+                            }
+                        });
+                    }) as Arc<dyn Fn() + Send + Sync>,
+                ));
+            }
+        }
 
         ctx.translate((screen_wh.width - PADDING - FAB_SIZE, PADDING))
             .add(
@@ -60,6 +214,31 @@ impl Component for DeckModal {
                 .variant(crate::theme::button::ButtonVariant::Text),
             );
 
+        if let Some((label, action)) = action_button {
+            let label_clone = label.clone();
+            ctx.translate((screen_wh.width - PADDING - 128.px(), PADDING + 64.px()))
+                .add(
+                    Button::new(
+                        Wh::new(128.px(), 48.px()),
+                        &move || action(),
+                        &move |wh, _color, ctx| {
+                            let label_text = label_clone.clone();
+                            ctx.add(memoized_text((), move |mut builder| {
+                                builder
+                                    .headline()
+                                    .bold()
+                                    .color(Color::WHITE)
+                                    .stroke(2.px(), Color::BLACK)
+                                    .size(FontSize::Large)
+                                    .text(label_text.clone())
+                                    .render_center(wh)
+                            }));
+                        },
+                    )
+                    .variant(crate::theme::button::ButtonVariant::Text),
+                );
+        }
+
         ctx.add(AutoScrollViewWithCtx {
             wh: screen_wh,
             scroll_bar_width: SCROLL_BAR_WIDTH,
@@ -70,6 +249,8 @@ impl Component for DeckModal {
                     Cards {
                         width: CARD_VIEW_WIDTH,
                         cards: &cards,
+                        selected_card_ids: &selected_indices,
+                        on_card_click: on_card_click.clone(),
                     },
                 );
                 let bounding_box = card_view.bounding_box().unwrap_or(Rect::Xywh {

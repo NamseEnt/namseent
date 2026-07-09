@@ -13,6 +13,13 @@ pub trait CardServiceBehavior {
     where
         Self: Sized + Into<CardService>;
 
+    fn select_cards(
+        self,
+        game_state: &mut GameState,
+        selected_card_ids: Vec<Vec<crate::card::CardId>>,
+    ) where
+        Self: Sized + Into<CardService>;
+
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale);
 
     fn l10n_description<'a>(

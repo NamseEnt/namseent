@@ -1,6 +1,6 @@
 mod game_speed_indicator;
 
-use crate::game_state::{Modal, set_modal, use_game_state};
+use crate::game_state::{UserModal, set_modal, set_overlay_modal, use_game_state};
 use crate::l10n::Locale;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::tooltip::TooltipContent::Word;
@@ -91,7 +91,15 @@ impl Component for TopBar {
                         .add(
                             Button::new(
                                 Wh::new(SETTINGS_BUTTON_SIZE, SETTINGS_BUTTON_SIZE),
-                                &|| set_modal(Some(Modal::Deck)),
+                                &|| {
+                                    set_modal(Some(UserModal::Deck(
+                                        crate::game_state::modal::deck::DeckModal {
+                                            deck_kind:
+                                                crate::game_state::modal::deck::DeckKind::Deck,
+                                            selection: None,
+                                        },
+                                    )));
+                                },
                                 &|wh, _text_color, ctx| {
                                     ctx.add(memoized_text(&gold, |mut builder| {
                                         builder
@@ -121,7 +129,11 @@ impl Component for TopBar {
                         .add(
                             Button::new(
                                 Wh::new(SETTINGS_BUTTON_SIZE, SETTINGS_BUTTON_SIZE),
-                                &|| set_modal(Some(Modal::Settings)),
+                                &|| {
+                                    set_overlay_modal(Some(
+                                        crate::game_state::modal::SystemModal::Settings,
+                                    ))
+                                },
                                 &|wh, _text_color, ctx| {
                                     ctx.add(
                                         Icon::new(IconKind::Config)

@@ -56,7 +56,7 @@ fn generate_item_from_discriminant<R: Rng + ?Sized>(item: ItemDiscriminants, rng
 fn generate_grant_card_item<R: Rng + ?Sized>(rng: &mut R) -> Item {
     let suit = SUITS[rng.gen_range(0..SUITS.len())];
     let rank = RANKS[rng.gen_range(0..RANKS.len())];
-    let card = Card { suit, rank };
+    let card = Card::new(rank, suit);
     GrantCardItem::new(card).into_item()
 }
 
@@ -71,10 +71,7 @@ mod tests {
 
     #[test]
     fn grant_card_item_constructor_preserves_card() {
-        let card = Card {
-            suit: Suit::Hearts,
-            rank: Rank::Queen,
-        };
+        let card = Card::new(Rank::Queen, Suit::Hearts);
 
         let item = GrantCardItem::new(card).into_item();
 

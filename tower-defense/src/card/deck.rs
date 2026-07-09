@@ -16,7 +16,7 @@ impl Deck {
         let mut all_cards = Vec::with_capacity(SUITS.len() * RANKS.len());
         for &rank in &RANKS {
             for &suit in &SUITS {
-                all_cards.push(Card { suit, rank });
+                all_cards.push(Card::new(rank, suit));
             }
         }
         Self {

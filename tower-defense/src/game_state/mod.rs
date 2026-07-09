@@ -16,7 +16,7 @@ pub mod flow;
 pub mod item;
 #[allow(unused)]
 mod map_decoration_atlas;
-mod modal;
+pub mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
@@ -50,7 +50,7 @@ pub use effect_event::*;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{GrantBarricadesItem, LumpSugarItem};
-pub use modal::Modal;
+pub use modal::{DeckKind, DeckModal, UserModal};
 pub use monster::*;
 use monster_spawn::*;
 use namui::*;
@@ -137,7 +137,7 @@ pub struct GameState {
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
     pub config: Arc<GameConfig>,
-    pub opened_modal: Option<Modal>,
+    pub opened_modals: modal::OpenedModals,
     pub stage_modifiers: StageModifiers,
     pub ui_state: UIState,
     pub status_effect_particle_generator: StatusEffectParticleGenerator,
@@ -663,7 +663,7 @@ fn create_initial_game_state() -> GameState {
         deck: Deck::new(),
         play_history: PlayHistory::new(),
         config: Arc::clone(&config),
-        opened_modal: None,
+        opened_modals: modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
         status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
@@ -705,9 +705,15 @@ pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static)
     GAME_STATE_ATOM.mutate(f);
 }
 
-pub fn set_modal(modal: Option<Modal>) {
+pub fn set_modal(modal: Option<UserModal>) {
     mutate_game_state(|game_state| {
-        game_state.opened_modal = modal;
+        game_state.opened_modals.user = modal;
+    });
+}
+
+pub fn set_overlay_modal(modal: Option<modal::SystemModal>) {
+    mutate_game_state(|game_state| {
+        game_state.opened_modals.system = modal;
     });
 }
 
@@ -751,7 +757,7 @@ impl GameState {
             locale: self.locale,
             play_history: self.play_history.clone(),
             config: Arc::clone(&self.config),
-            opened_modal: None,
+            opened_modals: modal::OpenedModals::default(),
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
             status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),

@@ -420,7 +420,7 @@ pub mod tests_support {
             },
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
-            opened_modal: None,
+            opened_modals: crate::game_state::modal::OpenedModals::default(),
             stage_modifiers: StageModifiers::new(),
             ui_state: crate::game_state::UIState::new(),
             status_effect_particle_generator:

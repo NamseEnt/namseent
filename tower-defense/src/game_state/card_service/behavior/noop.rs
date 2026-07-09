@@ -1,6 +1,9 @@
 use super::*;
 use crate::{
-    Rarity, game_state::card_service::definition::CardServiceDefinition,
+    Rarity,
+    game_state::{
+        DeckKind, DeckModal, UserModal, card_service::definition::CardServiceDefinition, set_modal,
+    },
     theme::typography::TypographyBuilder,
 };
 
@@ -36,17 +39,36 @@ impl CardServiceBehavior for CardServiceNoop {
         let _ = locale;
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
-        todo!(
-            "Interaction for card service is not implemented yet. Deck modal will be used to select cards from the deck."
+        let selection = crate::game_state::modal::deck::CardSelectionState::new(
+            vec![crate::game_state::modal::deck::CardSelectionStep {
+                title: "Select a card".to_string(),
+                count: 1,
+            }],
+            self.into_card_service(),
         );
+
+        set_modal(Some(UserModal::Deck(DeckModal {
+            deck_kind: DeckKind::Deck,
+            selection: Some(selection),
+        })));
     }
 
     fn thumbnail(&self, _wh: Wh<Px>, _stroke_px: Px, _shadow: bool) -> RenderingTree {
         RenderingTree::Empty
+    }
+
+    fn select_cards(
+        self,
+        game_state: &mut GameState,
+        selected_card_ids: Vec<Vec<crate::card::CardId>>,
+    ) where
+        Self: Sized + Into<CardService>,
+    {
+        todo!()
     }
 }
 

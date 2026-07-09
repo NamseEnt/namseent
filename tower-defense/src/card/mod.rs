@@ -3,7 +3,6 @@ mod render;
 
 use crate::*;
 pub use deck::*;
-use rand::Rng;
 pub use render::{RenderCard, RenderTowerCard};
 use std::fmt::Display;
 
@@ -189,18 +188,20 @@ pub const REVERSED_RANKS: [Rank; 13] = [
     Rank::Two,
 ];
 
+static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
+pub struct CardId(usize);
+
 #[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
 pub struct Card {
+    pub id: CardId,
     pub suit: Suit,
     pub rank: Rank,
 }
 impl Ord for Card {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let rank_cmp = (self.rank as usize).cmp(&(other.rank as usize));
-        if let std::cmp::Ordering::Equal = rank_cmp {
-            return (self.suit as usize).cmp(&(other.suit as usize));
-        }
-        rank_cmp
+        self.id.0.cmp(&other.id.0)
     }
 }
 impl PartialOrd for Card {
@@ -210,12 +211,9 @@ impl PartialOrd for Card {
 }
 
 impl Card {
-    pub fn new_random() -> Self {
-        let total_cards = SUITS.len() * RANKS.len();
-        let card = rand::thread_rng().gen_range(0..total_cards);
-        let suit = SUITS[card / RANKS.len()];
-        let rank = RANKS[card % RANKS.len()];
-        Self { suit, rank }
+    pub fn new(rank: Rank, suit: Suit) -> Self {
+        let id = CardId(NEXT_CARD_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst));
+        Self { id, suit, rank }
     }
     pub fn face_image(&self) -> Image {
         (self.rank, self.suit).image()

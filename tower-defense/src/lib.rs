@@ -169,11 +169,12 @@ impl Component for Game {
         );
 
         ctx.compose(|ctx| {
-            let Some(modal) = game_state.opened_modal.as_ref() else {
-                return;
-            };
-
-            ctx.add(modal);
+            if let Some(modal) = game_state.opened_modals.user.as_ref() {
+                ctx.add(modal);
+            }
+            if let Some(overlay) = game_state.opened_modals.system.as_ref() {
+                ctx.add(overlay);
+            }
         });
 
         ctx.add(flow_ui::FlowUi);
@@ -244,12 +245,15 @@ impl Component for Game {
                     #[cfg(feature = "debug-tools")]
                     Code::F8 => {
                         mutate_game_state(|game_state| {
-                            use crate::game_state::Modal;
+                            use crate::game_state::modal::SystemModal;
 
-                            if matches!(game_state.opened_modal, Some(Modal::DebugTools)) {
-                                game_state.opened_modal = None;
+                            if matches!(
+                                game_state.opened_modals.system,
+                                Some(SystemModal::DebugTools)
+                            ) {
+                                game_state.opened_modals.system = None;
                             } else {
-                                game_state.opened_modal = Some(Modal::DebugTools);
+                                game_state.opened_modals.system = Some(SystemModal::DebugTools);
                             }
                         });
                     }
