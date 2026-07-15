@@ -287,35 +287,25 @@ impl SelectedTowerContext {
             rerolled_count,
         }
     }
-
-    pub fn is_low_card_tower(&self) -> bool {
-        self.kind.is_low_card_tower()
-    }
 }
 
 mod backpack;
 mod black_white;
 mod broken_pottery;
-mod brush;
 mod camera;
 mod cat;
-mod club_sword;
 mod crock;
 mod demolition_hammer;
 mod dice_bundle;
 mod energy_drink;
 mod fang;
-mod fountain_pen;
 mod four_leaf_clover;
 mod gift_box;
 mod ice_cream;
-mod long_sword;
-mod mace;
 mod membership_card;
 mod metronome;
 mod mirror;
 mod name_tag;
-mod pair_chopsticks;
 mod pea;
 mod perfect_pottery;
 mod piggy_bank;
@@ -323,37 +313,28 @@ mod popcorn;
 mod rabbit;
 mod resolution;
 mod shopping_bag;
-mod single_chopstick;
 mod slot_machine;
 mod spanner;
-mod staff;
 mod tape;
-mod tricycle;
 mod trophy;
 
 pub use backpack::*;
 pub use black_white::*;
 pub use broken_pottery::*;
-pub use brush::*;
 pub use camera::*;
 pub use cat::*;
-pub use club_sword::*;
 pub use crock::*;
 pub use demolition_hammer::*;
 pub use dice_bundle::*;
 pub use energy_drink::*;
 pub use fang::*;
-pub use fountain_pen::*;
 pub use four_leaf_clover::*;
 pub use gift_box::*;
 pub use ice_cream::*;
-pub use long_sword::*;
-pub use mace::*;
 pub use membership_card::*;
 pub use metronome::*;
 pub use mirror::*;
 pub use name_tag::*;
-pub use pair_chopsticks::*;
 pub use pea::*;
 pub use perfect_pottery::*;
 pub use piggy_bank::*;
@@ -361,12 +342,9 @@ pub use popcorn::*;
 pub use rabbit::*;
 pub use resolution::*;
 pub use shopping_bag::*;
-pub use single_chopstick::*;
 pub use slot_machine::*;
 pub use spanner::*;
-pub use staff::*;
 pub use tape::*;
-pub use tricycle::*;
 pub use trophy::*;
 
 #[enum_dispatch(UpgradeBehavior)]
@@ -381,19 +359,10 @@ pub use trophy::*;
 )]
 pub enum Upgrade {
     Cat(CatUpgrade),
-    Staff(StaffUpgrade),
-    LongSword(LongSwordUpgrade),
-    Mace(MaceUpgrade),
-    ClubSword(ClubSwordUpgrade),
     Backpack(BackpackUpgrade),
     DiceBundle(DiceBundleUpgrade),
-    Tricycle(TricycleUpgrade),
     EnergyDrink(EnergyDrinkUpgrade),
     PerfectPottery(PerfectPotteryUpgrade),
-    SingleChopstick(SingleChopstickUpgrade),
-    PairChopsticks(PairChopsticksUpgrade),
-    FountainPen(FountainPenUpgrade),
-    Brush(BrushUpgrade),
     FourLeafClover(FourLeafCloverUpgrade),
     Rabbit(RabbitUpgrade),
     BlackWhite(BlackWhiteUpgrade),
@@ -467,19 +436,10 @@ impl Upgrade {
     pub fn discriminant(&self) -> UpgradeDiscriminants {
         match self {
             Upgrade::Cat(_) => UpgradeDiscriminants::Cat,
-            Upgrade::Staff(_) => UpgradeDiscriminants::Staff,
-            Upgrade::LongSword(_) => UpgradeDiscriminants::LongSword,
-            Upgrade::Mace(_) => UpgradeDiscriminants::Mace,
-            Upgrade::ClubSword(_) => UpgradeDiscriminants::ClubSword,
             Upgrade::Backpack(_) => UpgradeDiscriminants::Backpack,
             Upgrade::DiceBundle(_) => UpgradeDiscriminants::DiceBundle,
-            Upgrade::Tricycle(_) => UpgradeDiscriminants::Tricycle,
             Upgrade::EnergyDrink(_) => UpgradeDiscriminants::EnergyDrink,
             Upgrade::PerfectPottery(_) => UpgradeDiscriminants::PerfectPottery,
-            Upgrade::SingleChopstick(_) => UpgradeDiscriminants::SingleChopstick,
-            Upgrade::PairChopsticks(_) => UpgradeDiscriminants::PairChopsticks,
-            Upgrade::FountainPen(_) => UpgradeDiscriminants::FountainPen,
-            Upgrade::Brush(_) => UpgradeDiscriminants::Brush,
             Upgrade::FourLeafClover(_) => UpgradeDiscriminants::FourLeafClover,
             Upgrade::Rabbit(_) => UpgradeDiscriminants::Rabbit,
             Upgrade::BlackWhite(_) => UpgradeDiscriminants::BlackWhite,
@@ -511,19 +471,10 @@ impl UpgradeDiscriminants {
     fn definition(self) -> UpgradeDefinition {
         match self {
             UpgradeDiscriminants::Cat => cat::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::Staff => staff::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::LongSword => long_sword::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::Mace => mace::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::ClubSword => club_sword::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Backpack => backpack::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DiceBundle => dice_bundle::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::Tricycle => tricycle::UPGRADE_DEFINITION,
             UpgradeDiscriminants::EnergyDrink => energy_drink::UPGRADE_DEFINITION,
             UpgradeDiscriminants::PerfectPottery => perfect_pottery::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::SingleChopstick => single_chopstick::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::PairChopsticks => pair_chopsticks::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::FountainPen => fountain_pen::UPGRADE_DEFINITION,
-            UpgradeDiscriminants::Brush => brush::UPGRADE_DEFINITION,
             UpgradeDiscriminants::FourLeafClover => four_leaf_clover::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Rabbit => rabbit::UPGRADE_DEFINITION,
             UpgradeDiscriminants::BlackWhite => black_white::UPGRADE_DEFINITION,

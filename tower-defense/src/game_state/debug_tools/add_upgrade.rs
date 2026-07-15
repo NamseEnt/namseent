@@ -182,44 +182,17 @@ fn generate_mock_upgrade(
     let damage_bonus_pct = rarity_gen(rarity, rng, (0.2..0.5, 0.3..0.75, 0.5..1.5, 1.0..2.5));
     match disc {
         UpgradeDiscriminants::Cat => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
-        UpgradeDiscriminants::Staff => {
-            crate::game_state::upgrade::StaffUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::LongSword => {
-            crate::game_state::upgrade::LongSwordUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::Mace => {
-            crate::game_state::upgrade::MaceUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::ClubSword => {
-            crate::game_state::upgrade::ClubSwordUpgrade::into_upgrade(damage_bonus_pct)
-        }
         UpgradeDiscriminants::Backpack => {
             crate::game_state::upgrade::BackpackUpgrade::into_upgrade(1)
         }
         UpgradeDiscriminants::DiceBundle => {
             crate::game_state::upgrade::DiceBundleUpgrade::into_upgrade(1)
         }
-        UpgradeDiscriminants::Tricycle => {
-            crate::game_state::upgrade::TricycleUpgrade::into_upgrade(damage_bonus_pct)
-        }
         UpgradeDiscriminants::EnergyDrink => {
             crate::game_state::upgrade::EnergyDrinkUpgrade::into_upgrade(5)
         }
         UpgradeDiscriminants::PerfectPottery => {
             crate::game_state::upgrade::PerfectPotteryUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::SingleChopstick => {
-            crate::game_state::upgrade::SingleChopstickUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::PairChopsticks => {
-            crate::game_state::upgrade::PairChopsticksUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::FountainPen => {
-            crate::game_state::upgrade::FountainPenUpgrade::into_upgrade(damage_bonus_pct)
-        }
-        UpgradeDiscriminants::Brush => {
-            crate::game_state::upgrade::BrushUpgrade::into_upgrade(damage_bonus_pct)
         }
         UpgradeDiscriminants::FourLeafClover => {
             crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade()

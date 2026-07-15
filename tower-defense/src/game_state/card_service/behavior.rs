@@ -55,13 +55,33 @@ pub trait CardServiceBehavior {
     }
 }
 
-mod noop;
+mod brush;
+mod club_sword;
+mod fountain_pen;
+mod long_sword;
+mod mace;
+mod staff;
+mod tricycle;
+
+use brush::BrushCardService;
+use club_sword::ClubSwordCardService;
+use fountain_pen::FountainPenCardService;
+use long_sword::LongSwordCardService;
+use mace::MaceCardService;
+use staff::StaffCardService;
+use tricycle::TricycleCardService;
 
 #[enum_dispatch(CardServiceBehavior)]
 #[derive(Clone, Debug, State, PartialEq, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(derive(strum_macros::EnumIter), name(CardServiceDiscriminants))]
 pub enum CardService {
-    Noop(noop::CardServiceNoop),
+    LongSword(LongSwordCardService),
+    Staff(StaffCardService),
+    Mace(MaceCardService),
+    ClubSword(ClubSwordCardService),
+    Brush(BrushCardService),
+    FountainPen(FountainPenCardService),
+    Tricycle(TricycleCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -113,7 +133,13 @@ impl CardService {
 impl CardServiceDiscriminants {
     fn definition(self) -> CardServiceDefinition {
         match self {
-            CardServiceDiscriminants::Noop => noop::DEFINITION,
+            CardServiceDiscriminants::LongSword => long_sword::DEFINITION,
+            CardServiceDiscriminants::Staff => staff::DEFINITION,
+            CardServiceDiscriminants::Mace => mace::DEFINITION,
+            CardServiceDiscriminants::ClubSword => club_sword::DEFINITION,
+            CardServiceDiscriminants::Brush => brush::DEFINITION,
+            CardServiceDiscriminants::FountainPen => fountain_pen::DEFINITION,
+            CardServiceDiscriminants::Tricycle => tricycle::DEFINITION,
         }
     }
 
