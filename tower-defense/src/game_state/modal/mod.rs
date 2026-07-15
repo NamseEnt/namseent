@@ -4,7 +4,7 @@ mod settings;
 #[cfg(feature = "debug-tools")]
 use crate::game_state::debug_tools::DebugToolsModal;
 use crate::game_state::modal::settings::SettingsModal;
-pub use deck::{DeckKind, DeckModal};
+pub use deck::DeckModal;
 use namui::*;
 
 #[derive(Debug, Clone, State)]

@@ -57,8 +57,13 @@ impl CardServiceBehavior for TricycleCardService {
         }
     }
 
-    fn thumbnail(&self, _wh: Wh<Px>, _stroke_px: Px, _shadow: bool) -> RenderingTree {
-        RenderingTree::Empty
+    fn thumbnail(&self, wh: Wh<Px>, _stroke_px: Px, shadow: bool) -> RenderingTree {
+        crate::thumbnail::render_sticker_image_with_shadow(
+            crate::asset::image::thumbnail::TRICYCLE,
+            wh,
+            crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+            shadow,
+        )
     }
 
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale) {

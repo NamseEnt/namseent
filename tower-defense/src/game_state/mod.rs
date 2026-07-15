@@ -50,7 +50,7 @@ pub use effect_event::*;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{GrantBarricadesItem, LumpSugarItem};
-pub use modal::{DeckKind, DeckModal, UserModal};
+pub use modal::UserModal;
 pub use monster::*;
 use monster_spawn::*;
 use namui::*;
