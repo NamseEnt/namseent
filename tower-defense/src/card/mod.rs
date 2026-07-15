@@ -190,20 +190,54 @@ pub const REVERSED_RANKS: [Rank; 13] = [
 
 static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
+#[derive(Debug, Clone, Copy, PartialEq, State)]
+pub struct CardEffects {
+    pub damage_bonus_pct: f32,
+}
+
+impl Default for CardEffects {
+    fn default() -> Self {
+        Self {
+            damage_bonus_pct: 0.0,
+        }
+    }
+}
+
 #[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
 pub struct CardId(usize);
 
-#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct Card {
     pub id: CardId,
     pub suit: Suit,
     pub rank: Rank,
+    pub effects: CardEffects,
 }
-impl Ord for Card {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.id.0.cmp(&other.id.0)
+
+impl PartialEq for Card {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
+
+impl Eq for Card {}
+
+impl std::hash::Hash for Card {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl Ord for Card {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.rank
+            .ordinal()
+            .cmp(&other.rank.ordinal())
+            .then_with(|| self.suit.cmp(&other.suit))
+            .then_with(|| self.id.0.cmp(&other.id.0))
+    }
+}
+
 impl PartialOrd for Card {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -213,8 +247,22 @@ impl PartialOrd for Card {
 impl Card {
     pub fn new(rank: Rank, suit: Suit) -> Self {
         let id = CardId(NEXT_CARD_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst));
-        Self { id, suit, rank }
+        Self {
+            id,
+            suit,
+            rank,
+            effects: CardEffects::default(),
+        }
     }
+
+    pub fn damage_bonus_pct(&self) -> f32 {
+        self.effects.damage_bonus_pct
+    }
+
+    pub fn add_damage_bonus_pct(&mut self, bonus_pct: f32) {
+        self.effects.damage_bonus_pct += bonus_pct;
+    }
+
     pub fn face_image(&self) -> Image {
         (self.rank, self.suit).image()
     }

@@ -1,7 +1,10 @@
 mod hand_slot;
 
 pub use crate::animation::xy_with_spring;
-use crate::{card::Card, game_state::tower::TowerTemplate};
+use crate::{
+    card::{Card, CardId},
+    game_state::tower::TowerTemplate,
+};
 use hand_slot::HandSlot;
 pub use hand_slot::HandSlotId;
 use namui::*;
@@ -198,6 +201,21 @@ impl<Item: State + PartialOrd + Debug> Hand<Item> {
             .iter()
             .find(|slot| slot.id == slot_id)
             .map(|slot| &slot.item)
+    }
+}
+
+impl Hand<HandItem> {
+    pub fn apply_to_card_ids<F>(&mut self, card_ids: &[CardId], mut f: F)
+    where
+        F: FnMut(&mut Card),
+    {
+        for slot in self.slots.iter_mut() {
+            if let HandItem::Card(card) = &mut slot.item
+                && card_ids.contains(&card.id)
+            {
+                f(card);
+            }
+        }
     }
 }
 

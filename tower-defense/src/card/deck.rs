@@ -1,4 +1,4 @@
-use crate::card::{Card, RANKS, SUITS};
+use crate::card::{Card, CardId, RANKS, SUITS};
 use namui::*;
 use rand::RngCore;
 use rand::seq::SliceRandom;
@@ -37,6 +37,26 @@ impl Deck {
 
     pub fn discard_pile(&self) -> &[Card] {
         &self.discard_pile
+    }
+
+    pub fn apply_to_card<F>(&mut self, card_id: CardId, mut f: F)
+    where
+        F: FnMut(&mut Card),
+    {
+        for card in self.all_cards.iter_mut() {
+            if card.id == card_id {
+                f(card);
+            }
+        }
+    }
+
+    pub fn apply_to_card_ids<F>(&mut self, card_ids: impl IntoIterator<Item = CardId>, mut f: F)
+    where
+        F: FnMut(&mut Card),
+    {
+        for card_id in card_ids {
+            self.apply_to_card(card_id, &mut f);
+        }
     }
 
     fn increment_revision(&mut self) {
