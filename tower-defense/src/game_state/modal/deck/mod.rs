@@ -244,7 +244,7 @@ impl Component for DeckModal {
             scroll_bar_width: SCROLL_BAR_WIDTH,
             content: move |ctx| {
                 let card_view_x = (screen_wh.width - CARD_VIEW_WIDTH) * 0.5;
-                let card_view = ctx.ghost_add(
+                let card_view = ctx.translate((card_view_x, VERTICAL_MARGIN)).ghost_add(
                     "cards".to_string(),
                     Cards {
                         width: CARD_VIEW_WIDTH,
