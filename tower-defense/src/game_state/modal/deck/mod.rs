@@ -214,30 +214,32 @@ impl Component for DeckModal {
                 .variant(crate::theme::button::ButtonVariant::Text),
             );
 
-        if let Some((label, action)) = action_button {
-            let label_clone = label.clone();
-            ctx.translate((screen_wh.width - PADDING - 128.px(), PADDING + 64.px()))
-                .add(
-                    Button::new(
-                        Wh::new(128.px(), 48.px()),
-                        &move || action(),
-                        &move |wh, _color, ctx| {
-                            let label_text = label_clone.clone();
-                            ctx.add(memoized_text((), move |mut builder| {
-                                builder
-                                    .headline()
-                                    .bold()
-                                    .color(Color::WHITE)
-                                    .stroke(2.px(), Color::BLACK)
-                                    .size(FontSize::Large)
-                                    .text(label_text.clone())
-                                    .render_center(wh)
-                            }));
-                        },
-                    )
-                    .variant(crate::theme::button::ButtonVariant::Text),
-                );
-        }
+        ctx.compose(|ctx| {
+            if let Some((label, action)) = action_button {
+                let label_clone = label.clone();
+                ctx.translate((screen_wh.width - PADDING - 128.px(), PADDING + 64.px()))
+                    .add(
+                        Button::new(
+                            Wh::new(128.px(), 48.px()),
+                            &move || action(),
+                            &move |wh, _color, ctx| {
+                                let label_text = label_clone.clone();
+                                ctx.add(memoized_text((), move |mut builder| {
+                                    builder
+                                        .headline()
+                                        .bold()
+                                        .color(Color::WHITE)
+                                        .stroke(2.px(), Color::BLACK)
+                                        .size(FontSize::Large)
+                                        .text(label_text.clone())
+                                        .render_center(wh)
+                                }));
+                            },
+                        )
+                        .variant(crate::theme::button::ButtonVariant::Text),
+                    );
+            }
+        });
 
         ctx.add(AutoScrollViewWithCtx {
             wh: screen_wh,

@@ -28,36 +28,27 @@ impl Component for Cards<'_> {
             for row in cards.chunks(COLUMN_COUNT) {
                 ctx.compose(|mut ctx| {
                     for card in row.iter() {
+                        let selected = selected_card_ids.contains(&card.id);
                         let card_wh = Wh::new(CARD_WIDTH, CARD_HEIGHT);
-                        ctx.compose(|ctx| {
-                            ctx.add(RenderCard { wh: card_wh, card });
-                            if selected_card_ids.contains(&card.id) {
-                                ctx.add(simple_rect(
-                                    card_wh,
-                                    Color::WHITE.with_alpha(100),
-                                    2.px(),
-                                    Color::WHITE,
-                                ));
-                            }
-                            if let Some(on_card_click) = &on_card_click {
-                                ctx.add(
-                                    simple_rect(
-                                        card_wh,
-                                        Color::TRANSPARENT,
-                                        0.px(),
-                                        Color::TRANSPARENT,
-                                    )
-                                    .attach_event(
-                                        move |event| match event {
-                                            Event::MouseUp { event } if event.is_local_xy_in() => {
-                                                event.stop_propagation();
-                                                on_card_click(card.id);
-                                            }
-                                            _ => {}
-                                        },
-                                    ),
-                                );
-                            }
+                        let on_card_click = on_card_click.clone();
+                        ctx.add(
+                            simple_rect(card_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
+                                .attach_event(move |event| match event {
+                                    Event::MouseUp { event } if event.is_local_xy_in() => {
+                                        event.stop_propagation();
+                                        let Some(on_card_click) = on_card_click else {
+                                            return;
+                                        };
+                                        on_card_click(card.id);
+                                    }
+                                    _ => {}
+                                }),
+                        );
+
+                        ctx.add(RenderCard {
+                            wh: card_wh,
+                            card,
+                            selected,
                         });
                         ctx = ctx.translate((CARD_WIDTH + card_gap, 0.px()));
                     }
