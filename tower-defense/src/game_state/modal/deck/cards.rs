@@ -34,7 +34,7 @@ impl Component for Cards<'_> {
                         ctx.add(
                             simple_rect(card_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
                                 .attach_event(move |event| match event {
-                                    Event::MouseUp { event } if event.is_local_xy_in() => {
+                                    Event::MouseDown { event } if event.is_local_xy_in() => {
                                         event.stop_propagation();
                                         let Some(on_card_click) = on_card_click else {
                                             return;
