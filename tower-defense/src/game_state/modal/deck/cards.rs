@@ -31,6 +31,7 @@ impl Component for Cards<'_> {
                         let selected = selected_card_ids.contains(&card.id);
                         let card_wh = Wh::new(CARD_WIDTH, CARD_HEIGHT);
                         let on_card_click = on_card_click.clone();
+                        let has_click_handler = on_card_click.is_some();
                         ctx.add(
                             simple_rect(card_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT)
                                 .attach_event(move |event| match event {
@@ -45,7 +46,11 @@ impl Component for Cards<'_> {
                                 }),
                         );
 
-                        ctx.add(RenderCard {
+                        ctx.mouse_cursor(MouseCursor::Standard(match has_click_handler {
+                            true => StandardCursor::Pointer,
+                            false => StandardCursor::Default,
+                        }))
+                        .add(RenderCard {
                             wh: card_wh,
                             card,
                             selected,
