@@ -231,7 +231,8 @@ impl Component for HealthText {
                     .render_left_center(height)
             }),
             placement: crate::tooltip::TooltipPlacement::Below,
-            content: Word(crate::l10n::word::Word::Health),
+            on_enter: || Some(Word(crate::l10n::word::Word::Health)),
+            on_exit: || {},
         });
     }
 }
@@ -264,7 +265,8 @@ impl Component for ShieldText {
                 }
             }),
             placement: crate::tooltip::TooltipPlacement::Below,
-            content: Word(crate::l10n::word::Word::Shield),
+            on_enter: || Some(Word(crate::l10n::word::Word::Shield)),
+            on_exit: || {},
         });
     }
 }
@@ -293,7 +295,8 @@ impl Component for GoldText {
                     .render_left_center(height)
             }),
             placement: crate::tooltip::TooltipPlacement::Below,
-            content: Word(crate::l10n::word::Word::Gold),
+            on_enter: || Some(Word(crate::l10n::word::Word::Gold)),
+            on_exit: || {},
         });
     }
 }
@@ -327,7 +330,8 @@ impl Component for DiceText {
                     .render_left_center(height)
             }),
             placement: crate::tooltip::TooltipPlacement::Below,
-            content: Word(crate::l10n::word::Word::Dice),
+            on_enter: || Some(Word(crate::l10n::word::Word::Dice)),
+            on_exit: || {},
         });
     }
 }
