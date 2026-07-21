@@ -238,9 +238,9 @@ checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "fn0-doc-db"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5522d0398e42ab7743ab456b81e2e4eecdece517a0d54e2654271c6354cf72"
+checksum = "9caf94bb4974ae8dd1a38d91e2adcdf4afdd243e901689385aef1e078a0e5668"
 dependencies = [
  "anyhow",
  "bytes",
@@ -256,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "fn0-object-storage"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "970d41f101a068b18f270fd17ab1c2513a94f9d6581db7bf13f0f5d8abca93e4"
+checksum = "f1f962d5acb40e40ac668903fb9d9442813a6f2ec5866e2c6d79cc02ee2ba484"
 dependencies = [
  "bytes",
  "forte-sdk",
@@ -322,9 +322,9 @@ dependencies = [
 
 [[package]]
 name = "forte-sdk"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1aaf4d8ecb358a107b03ae0b2381e07ad2b5e4cd170c6df00fba4ca180fcb56"
+checksum = "a88688cc25bedae169905df8727014f803d900b6313aa3bec64be8734a53d2ea"
 dependencies = [
  "anyhow",
  "bytes",
