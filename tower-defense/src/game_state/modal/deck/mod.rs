@@ -81,7 +81,10 @@ impl CardSelectionState {
         let selected = &mut self.selected_card_ids[current_step];
         if let Some(pos) = selected.iter().position(|&i| i == card_id) {
             selected.remove(pos);
-        } else if selected.len() < required_count {
+        } else {
+            if selected.len() >= required_count {
+                selected.remove(0);
+            }
             selected.push(card_id);
         }
     }
