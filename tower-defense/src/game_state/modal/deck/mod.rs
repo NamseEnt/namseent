@@ -3,7 +3,8 @@ mod cards;
 use crate::card::CardId;
 use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::{UserModal, mutate_game_state, set_modal, use_game_state};
-use crate::icon::Icon;
+use crate::icon::{Icon, IconKind};
+use crate::theme::palette;
 use crate::{
     game_state::modal::deck::cards::Cards,
     theme::{
@@ -15,11 +16,13 @@ use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect};
 use std::sync::Arc;
 
-const PADDING: Px = px(24.0);
+type ActionButtonCtx = Option<(IconKind, bool, Arc<dyn Fn() + Send + Sync>)>;
+
+const PADDING: Px = px(36.0);
 const SCROLL_BAR_WIDTH: Px = px(8.0);
 const CARD_VIEW_WIDTH: Px = px(540.0);
 const VERTICAL_MARGIN: Px = px(128.0);
-const FAB_SIZE: Px = px(48.0);
+const FAB_SIZE: Px = px(96.0);
 
 #[derive(Debug, Clone, State)]
 pub enum DeckKind {
@@ -138,62 +141,65 @@ impl Component for DeckModal {
             None
         };
 
-        let mut action_button: Option<(String, Arc<dyn Fn() + Send + Sync>)> = None;
+        let mut action_button: ActionButtonCtx = None;
         if let Some(selection) = &selection {
             let step = selection.current_step();
-            let progress_text = format!(
-                "{} ({}/{})",
-                step.title,
-                selection.current_selected_count(),
-                step.count
-            );
-            let progress_text_clone = progress_text.clone();
+
             ctx.translate((PADDING, PADDING)).add(memoized_text(
-                &progress_text,
-                move |mut builder| {
+                (
+                    &step.title,
+                    &selection.current_selected_count(),
+                    &step.count,
+                ),
+                |mut builder| {
+                    let progress_text = format!(
+                        "{} ({}/{})",
+                        step.title,
+                        selection.current_selected_count(),
+                        step.count
+                    );
                     builder
                         .headline()
                         .bold()
                         .color(Color::WHITE)
                         .stroke(2.px(), Color::BLACK)
                         .size(FontSize::Large)
-                        .text(progress_text_clone.clone())
+                        .text(progress_text)
                         .render_left_top()
                 },
             ));
 
-            if selection.is_step_complete() {
-                let label = if selection.current_step + 1 >= selection.steps.len() {
-                    "Confirm"
-                } else {
-                    "Next"
-                };
-                let card_service = selection.card_service.clone();
-                action_button = Some((
-                    label.to_string(),
-                    Arc::new(move || {
-                        let card_service = card_service.clone();
-                        mutate_game_state(move |gs| {
-                            if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
-                                && let Some(selection) = &mut deck_modal.selection
-                            {
-                                if !selection.is_step_complete() {
-                                    return;
-                                }
-
-                                if selection.current_step + 1 >= selection.steps.len() {
-                                    let selected_card_ids = selection.selected_card_ids_by_step();
-                                    deck_modal.selection = None;
-                                    gs.opened_modals.user = None;
-                                    card_service.select_cards(gs, selected_card_ids);
-                                } else {
-                                    selection.current_step += 1;
-                                }
+            let icon = if selection.current_step + 1 >= selection.steps.len() {
+                IconKind::Accept
+            } else {
+                IconKind::Play
+            };
+            let card_service = selection.card_service.clone();
+            action_button = Some((
+                icon,
+                !selection.is_step_complete(),
+                Arc::new(move || {
+                    let card_service = card_service.clone();
+                    mutate_game_state(move |gs| {
+                        if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
+                            && let Some(selection) = &mut deck_modal.selection
+                        {
+                            if !selection.is_step_complete() {
+                                return;
                             }
-                        });
-                    }) as Arc<dyn Fn() + Send + Sync>,
-                ));
-            }
+
+                            if selection.current_step + 1 >= selection.steps.len() {
+                                let selected_card_ids = selection.selected_card_ids_by_step();
+                                deck_modal.selection = None;
+                                gs.opened_modals.user = None;
+                                card_service.select_cards(gs, selected_card_ids);
+                            } else {
+                                selection.current_step += 1;
+                            }
+                        }
+                    });
+                }) as Arc<dyn Fn() + Send + Sync>,
+            ));
         }
 
         ctx.translate((screen_wh.width - PADDING - FAB_SIZE, PADDING))
@@ -215,29 +221,30 @@ impl Component for DeckModal {
             );
 
         ctx.compose(|ctx| {
-            if let Some((label, action)) = action_button {
-                let label_clone = label.clone();
-                ctx.translate((screen_wh.width - PADDING - 128.px(), PADDING + 64.px()))
-                    .add(
-                        Button::new(
-                            Wh::new(128.px(), 48.px()),
-                            &move || action(),
-                            &move |wh, _color, ctx| {
-                                let label_text = label_clone.clone();
-                                ctx.add(memoized_text((), move |mut builder| {
-                                    builder
-                                        .headline()
-                                        .bold()
-                                        .color(Color::WHITE)
-                                        .stroke(2.px(), Color::BLACK)
-                                        .size(FontSize::Large)
-                                        .text(label_text.clone())
-                                        .render_center(wh)
-                                }));
-                            },
-                        )
-                        .variant(crate::theme::button::ButtonVariant::Text),
-                    );
+            if let Some((icon, disable, action)) = action_button {
+                ctx.translate((
+                    screen_wh.width - PADDING - FAB_SIZE,
+                    (screen_wh.height - FAB_SIZE) * 0.5,
+                ))
+                .add(
+                    Button::new(
+                        Wh::single(FAB_SIZE),
+                        &move || action(),
+                        &move |wh, _color, ctx| {
+                            ctx.add(memoized_text((), move |mut builder| {
+                                builder
+                                    .headline()
+                                    .color(Color::from_u8(0, 0, 0, if disable { 96 } else { 255 }))
+                                    .stroke(2.px(), palette::DARK_CHARCOAL)
+                                    .size(FontSize::Custom { size: FAB_SIZE })
+                                    .icon(icon)
+                                    .render_center(wh)
+                            }));
+                        },
+                    )
+                    .disabled(disable)
+                    .variant(crate::theme::button::ButtonVariant::Text),
+                );
             }
         });
 

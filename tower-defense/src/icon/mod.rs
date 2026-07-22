@@ -363,4 +363,8 @@ impl Icon {
         self.wh = wh;
         self
     }
+    pub fn opacity(mut self, opacity: f32) -> Self {
+        self.opacity = opacity;
+        self
+    }
 }
