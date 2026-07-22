@@ -79,7 +79,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
 
     let bucket = object_storage::bucket();
     let pdb_presigned_put_url = match bucket
-        .presigned_put_url(&r2_key, Duration::from_secs(PRESIGNED_PUT_EXPIRES_SECS))
+        .presigned_put_url(&r2_key, None, Duration::from_secs(PRESIGNED_PUT_EXPIRES_SECS))
         .await
     {
         Ok(u) => u,
