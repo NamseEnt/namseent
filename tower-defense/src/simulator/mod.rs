@@ -395,6 +395,8 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
+        card_service_notifications:
+            crate::game_state::card_notification::CardServiceNotificationState::default(),
         opened_modals: crate::game_state::modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),

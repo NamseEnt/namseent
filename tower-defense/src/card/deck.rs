@@ -31,6 +31,13 @@ impl Deck {
         &self.all_cards
     }
 
+    pub fn get_card(&self, card_id: CardId) -> Option<Card> {
+        self.all_cards
+            .iter()
+            .copied()
+            .find(|card| card.id == card_id)
+    }
+
     pub fn draw_pile(&self) -> &[Card] {
         &self.draw_pile
     }
@@ -48,6 +55,38 @@ impl Deck {
                 f(card);
             }
         }
+    }
+
+    pub fn add_card(&mut self, card: Card) {
+        self.increment_revision();
+        self.all_cards.push(card);
+        if self.draw_pile.is_empty() {
+            self.discard_pile.push(card);
+        } else {
+            self.draw_pile.push(card);
+        }
+    }
+
+    pub fn remove_card(&mut self, card_id: CardId) -> Option<Card> {
+        let index = self.all_cards.iter().position(|card| card.id == card_id)?;
+        self.increment_revision();
+        let removed = self.all_cards.remove(index);
+        self.draw_pile.retain(|card| card.id != card_id);
+        self.discard_pile.retain(|card| card.id != card_id);
+        Some(removed)
+    }
+
+    pub fn modify_card<F>(&mut self, card_id: CardId, mut f: F) -> Option<Card>
+    where
+        F: FnMut(&mut Card),
+    {
+        let index = self.all_cards.iter().position(|card| card.id == card_id)?;
+        {
+            let card = &mut self.all_cards[index];
+            f(card);
+        }
+        self.increment_revision();
+        Some(self.all_cards[index])
     }
 
     pub fn apply_to_card_ids<F>(&mut self, card_ids: impl IntoIterator<Item = CardId>, mut f: F)
