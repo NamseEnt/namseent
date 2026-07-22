@@ -3,7 +3,6 @@ mod render;
 
 use crate::*;
 pub use deck::*;
-use rand::Rng;
 pub use render::{RenderCard, RenderTowerCard};
 use std::fmt::Display;
 
@@ -189,20 +188,56 @@ pub const REVERSED_RANKS: [Rank; 13] = [
     Rank::Two,
 ];
 
-#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
-pub struct Card {
-    pub suit: Suit,
-    pub rank: Rank,
+static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, State)]
+pub struct CardEffects {
+    pub damage_bonus_pct: f32,
 }
-impl Ord for Card {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let rank_cmp = (self.rank as usize).cmp(&(other.rank as usize));
-        if let std::cmp::Ordering::Equal = rank_cmp {
-            return (self.suit as usize).cmp(&(other.suit as usize));
+
+impl Default for CardEffects {
+    fn default() -> Self {
+        Self {
+            damage_bonus_pct: 0.0,
         }
-        rank_cmp
     }
 }
+
+#[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
+pub struct CardId(usize);
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct Card {
+    pub id: CardId,
+    pub suit: Suit,
+    pub rank: Rank,
+    pub effects: CardEffects,
+}
+
+impl PartialEq for Card {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for Card {}
+
+impl std::hash::Hash for Card {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl Ord for Card {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.rank
+            .ordinal()
+            .cmp(&other.rank.ordinal())
+            .then_with(|| self.suit.cmp(&other.suit))
+            .then_with(|| self.id.0.cmp(&other.id.0))
+    }
+}
+
 impl PartialOrd for Card {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -210,13 +245,24 @@ impl PartialOrd for Card {
 }
 
 impl Card {
-    pub fn new_random() -> Self {
-        let total_cards = SUITS.len() * RANKS.len();
-        let card = rand::thread_rng().gen_range(0..total_cards);
-        let suit = SUITS[card / RANKS.len()];
-        let rank = RANKS[card % RANKS.len()];
-        Self { suit, rank }
+    pub fn new(rank: Rank, suit: Suit) -> Self {
+        let id = CardId(NEXT_CARD_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst));
+        Self {
+            id,
+            suit,
+            rank,
+            effects: CardEffects::default(),
+        }
     }
+
+    pub fn damage_bonus_pct(&self) -> f32 {
+        self.effects.damage_bonus_pct
+    }
+
+    pub fn add_damage_bonus_pct(&mut self, bonus_pct: f32) {
+        self.effects.damage_bonus_pct += bonus_pct;
+    }
+
     pub fn face_image(&self) -> Image {
         (self.rank, self.suit).image()
     }

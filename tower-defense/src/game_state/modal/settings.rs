@@ -1,4 +1,4 @@
-use crate::game_state::set_modal;
+use crate::game_state::set_overlay_modal;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::l10n::ui::{SettingsText, TopBarText};
 use crate::sound::{self, SoundGroup};
@@ -56,7 +56,7 @@ impl Component for SettingsModal {
                                 ctx.add(
                                     Button::new(
                                         wh,
-                                        &|| set_modal(None),
+                                        &|| set_overlay_modal(None),
                                         &|wh, _text_color, ctx| {
                                             ctx.add(
                                                 Icon::new(IconKind::Reject)
@@ -177,7 +177,7 @@ impl Component for SettingsModal {
             )
             .attach_event(|event| match event {
                 Event::MouseDown { event } => {
-                    set_modal(None);
+                    set_overlay_modal(None);
                     event.stop_propagation();
                 }
                 Event::MouseMove { event } | Event::MouseUp { event } => {

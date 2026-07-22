@@ -1,23 +1,33 @@
+use crate::tooltip::TooltipContent;
 use namui::*;
 
-pub struct WithHoverArea<K: Into<AddKey>, C: Component> {
+pub struct WithHoverArea<
+    K: Into<AddKey>,
+    C: Component,
+    EnterFn: Fn() -> Option<TooltipContent>,
+    ExitFn: Fn(),
+> {
     pub component_key: K,
     pub component: C,
     pub placement: crate::tooltip::TooltipPlacement,
-    pub content: crate::tooltip::TooltipContent,
+    pub on_enter: EnterFn,
+    pub on_exit: ExitFn,
 }
 
-impl<K, C> Component for WithHoverArea<K, C>
+impl<K, C, EnterFn, ExitFn> Component for WithHoverArea<K, C, EnterFn, ExitFn>
 where
     K: Into<AddKey>,
     C: Component,
+    EnterFn: Fn() -> Option<TooltipContent>,
+    ExitFn: Fn(),
 {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             component_key,
             component,
             placement,
-            content,
+            on_enter,
+            on_exit,
         } = self;
         let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
         let (hovering, set_hovering) = ctx.state(|| false);
@@ -34,17 +44,22 @@ where
             if event.is_local_xy_in() {
                 if !*hovering {
                     set_hovering.set(true);
+                    let Some(content) = on_enter() else {
+                        return;
+                    };
+
                     let origin = event.global_xy - event.local_xy();
                     crate::tooltip::show_tooltip(
                         *tooltip_id,
                         bounding_box + origin,
                         placement,
-                        content.clone(),
+                        content,
                     );
                 }
             } else if *hovering {
                 set_hovering.set(false);
                 crate::tooltip::hide_tooltip(*tooltip_id);
+                on_exit();
             }
         });
     }

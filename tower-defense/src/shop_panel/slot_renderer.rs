@@ -1,6 +1,7 @@
 use super::items::ShopItem;
 use crate::hand::xy_with_spring;
 use crate::shop::{ShopSlot, ShopSlotId};
+use crate::tooltip::WithHoverArea;
 use namui::*;
 use namui_prebuilt::simple_rect;
 
@@ -29,7 +30,6 @@ impl Component for ShopSlotView<'_> {
         let slot_id = slot_data.id;
 
         let hovering = hovered_slot_id == Some(slot_id);
-        let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
         let ctx: ComposeCtx<'_, '_> = apply_slot_transform(ctx, wh, slot_data, target_xy, hovering);
 
         let cursor = if can_purchase_item {
@@ -48,55 +48,45 @@ impl Component for ShopSlotView<'_> {
             });
 
             if !is_exiting {
-                ctx.add(
-                    simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
-                        move |event| match event {
-                            Event::MouseMove { event } => {
-                                if event.is_local_xy_in() {
-                                    set_hovered_slot_id(Some(slot_id));
-                                    if !hovering {
-                                        let origin = event.global_xy - event.local_xy();
-                                        let content = match &slot_data.slot {
-                                            ShopSlot::Item { item, .. } => {
-                                                crate::tooltip::TooltipContent::Item(item.clone())
-                                            }
-                                            ShopSlot::Upgrade { upgrade, .. } => {
-                                                crate::tooltip::TooltipContent::Upgrade(*upgrade)
-                                            }
-                                            ShopSlot::CardService { card_service, .. } => {
-                                                crate::tooltip::TooltipContent::CardService(
-                                                    card_service.clone(),
-                                                )
-                                            }
-                                        };
-                                        crate::tooltip::show_tooltip(
-                                            *tooltip_id,
-                                            Rect::from_xy_wh(origin, wh),
-                                            crate::tooltip::TooltipPlacement::Above,
-                                            content,
-                                        );
-                                    }
-                                    event.stop_propagation();
-                                } else if hovering {
-                                    set_hovered_slot_id(None);
-                                    crate::tooltip::hide_tooltip(*tooltip_id);
-                                }
+                ctx.add(WithHoverArea {
+                    component_key: "item tooltip",
+                    component: simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+                    placement: crate::tooltip::TooltipPlacement::Above,
+                    on_enter: || {
+                        set_hovered_slot_id(Some(slot_id));
+                        match &slot_data.slot {
+                            ShopSlot::Item { item, .. } => {
+                                Some(crate::tooltip::TooltipContent::Item(item.clone()))
                             }
-                            Event::MouseDown { event } => {
-                                if !can_purchase_item
-                                    || !event.is_local_xy_in()
-                                    || !matches!(event.button, Some(MouseButton::Left))
-                                {
-                                    return;
-                                }
+                            ShopSlot::Upgrade { upgrade, .. } => {
+                                Some(crate::tooltip::TooltipContent::Upgrade(*upgrade))
+                            }
+                            ShopSlot::CardService { card_service, .. } => Some(
+                                crate::tooltip::TooltipContent::CardService(card_service.clone()),
+                            ),
+                        }
+                    },
+                    on_exit: || {
+                        if hovered_slot_id == Some(slot_id) {
+                            set_hovered_slot_id(None);
+                        }
+                    },
+                })
+                .attach_event(|event| {
+                    let Event::MouseDown { event } = event else {
+                        return;
+                    };
 
-                                event.stop_propagation();
-                                purchase_item(slot_id);
-                            }
-                            _ => {}
-                        },
-                    ),
-                );
+                    if !can_purchase_item
+                        || !event.is_local_xy_in()
+                        || !matches!(event.button, Some(MouseButton::Left))
+                    {
+                        return;
+                    }
+
+                    event.stop_propagation();
+                    purchase_item(slot_id);
+                });
             }
         });
     }

@@ -70,6 +70,7 @@ impl RichTextRenderer {
                     let icon_wh = Wh::single(font_size);
 
                     let icon_component = Icon::new(icon.icon_kind)
+                        .opacity(style.color.a as f32 / 255.0)
                         .size(IconSize::Custom { size: font_size })
                         .wh(icon_wh)
                         .attributes(icon.attributes.clone())

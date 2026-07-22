@@ -1,5 +1,6 @@
 use super::*;
 use crate::{
+    animation::with_spring,
     card::{Card, FaceCardImage},
     icon::{Icon, IconKind, IconSize},
 };
@@ -8,11 +9,40 @@ use namui::*;
 pub struct RenderCard<'a> {
     pub wh: Wh<Px>,
     pub card: &'a Card,
+    pub selected: bool,
 }
 
 impl Component for RenderCard<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, card } = self;
+        let Self { wh, card, selected } = self;
+        let animated_check_scaled = with_spring(
+            ctx,
+            if selected { 1.0 } else { 0.0 },
+            0.0,
+            |x| x * x,
+            || 0.0,
+        )
+        .max(0.0);
+
+        ctx.compose(|ctx| {
+            if animated_check_scaled < 0.01 {
+                return;
+            }
+            let half_xy = wh.to_xy() * 0.5;
+
+            ctx.translate(half_xy)
+                .scale(Xy::single(animated_check_scaled))
+                .translate(-half_xy)
+                .add(memoized_text((), |mut builder| {
+                    builder
+                        .size(FontSize::Custom {
+                            size: wh.width * 0.75,
+                        })
+                        .stroke(4.px(), palette::DARK_CHARCOAL)
+                        .icon(IconKind::Accept)
+                        .render_center(wh)
+                }));
+        });
 
         render_top_left_rank_and_suit(ctx, card.rank, card.suit);
 

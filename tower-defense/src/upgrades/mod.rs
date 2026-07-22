@@ -7,6 +7,7 @@ use crate::{
         use_game_state,
     },
     hand::HandSlotId,
+    tooltip::WithHoverArea,
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -176,7 +177,6 @@ impl Component for UpgradeThumbnailItem {
         let game_state = use_game_state(ctx);
         let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
-        let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
 
         let animated_xy = xy_with_spring(ctx, target_xy, target_xy);
         let ctx = ctx.translate(animated_xy);
@@ -211,33 +211,17 @@ impl Component for UpgradeThumbnailItem {
             ctx.add(upgrade_kind.thumbnail(thumbnail_wh, true));
         });
 
-        ctx.add(
-            simple_rect(
-                Wh::new(ITEM_SIZE, ITEM_SIZE),
-                Color::TRANSPARENT,
-                0.px(),
-                Color::TRANSPARENT,
-            )
-            .attach_event(move |event| {
-                let Event::MouseMove { event } = event else {
-                    return;
-                };
-                if event.is_local_xy_in() {
-                    if !*hovering {
-                        set_hovering.set(true);
-                        let origin = event.global_xy - event.local_xy();
-                        crate::tooltip::show_tooltip(
-                            *tooltip_id,
-                            Rect::from_xy_wh(origin, wh),
-                            crate::tooltip::TooltipPlacement::RightOf,
-                            crate::tooltip::TooltipContent::Upgrade(upgrade_kind),
-                        );
-                    }
-                } else if *hovering {
-                    set_hovering.set(false);
-                    crate::tooltip::hide_tooltip(*tooltip_id);
-                }
-            }),
-        );
+        ctx.add(WithHoverArea {
+            component_key: "upgrade tooltip",
+            component: simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+            placement: crate::tooltip::TooltipPlacement::RightOf,
+            on_enter: || {
+                set_hovering.set(true);
+                Some(crate::tooltip::TooltipContent::Upgrade(upgrade_kind))
+            },
+            on_exit: || {
+                set_hovering.set(false);
+            },
+        });
     }
 }

@@ -26,8 +26,6 @@ const SCREEN_MARGIN: Px = px(8.0);
 
 static NEXT_TOOLTIP_ID: AtomicU64 = AtomicU64::new(0);
 
-/// 각 hover 대상마다 1개씩 발급되는 고유 식별자.
-/// 동시에 여러 컴포넌트가 atom을 건드릴 때 자기 것만 지우기 위해 사용.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub struct TooltipId(u64);
 
@@ -37,7 +35,6 @@ impl TooltipId {
     }
 }
 
-/// anchor(대상) 기준으로 어느 쪽에 띄울지에 대한 선호. 화면 밖이면 반대편으로 뒤집힌다.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum TooltipPlacement {
     LeftOf,
@@ -46,7 +43,6 @@ pub enum TooltipPlacement {
     Below,
 }
 
-/// tooltip으로 보여줄 대상. 새 section을 가진 대상은 여기에 variant를 추가하면 된다.
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum TooltipContent {
     Item(Item),
@@ -66,7 +62,6 @@ struct TooltipRequest {
 
 static TOOLTIP: Atom<Option<TooltipRequest>> = Atom::uninitialized();
 
-/// hover 시작 시 호출. anchor는 대상의 화면 절대 좌표 rect.
 pub fn show_tooltip(
     id: TooltipId,
     anchor: Rect<Px>,
@@ -81,7 +76,6 @@ pub fn show_tooltip(
     }));
 }
 
-/// hover 종료 시 호출. 현재 떠 있는 tooltip이 자기 것일 때만 지운다.
 pub fn hide_tooltip(id: TooltipId) {
     TOOLTIP.mutate(move |current| {
         if current.as_ref().map(|request| request.id) == Some(id) {
@@ -90,13 +84,15 @@ pub fn hide_tooltip(id: TooltipId) {
     });
 }
 
-/// 한 section의 제목/본문 텍스트를 빌더에 적용하는 클로저 + 캐시 키.
+pub fn hide_tooltip_all() {
+    TOOLTIP.set(None);
+}
+
 pub struct SectionText<'a> {
     pub key: String,
     pub apply: Box<dyn Fn(&mut TypographyBuilder) + 'a>,
 }
 
-/// stacked tooltip의 박스 1개.
 pub struct TooltipSection<'a> {
     pub title: Option<SectionText<'a>>,
     pub body: SectionText<'a>,
@@ -143,7 +139,6 @@ impl TooltipContent {
     }
 }
 
-/// 화면 최상위 tooltip 레이어. `Game` 트리의 가장 마지막에 한 번 추가한다.
 pub struct TooltipLayer;
 
 impl Component for TooltipLayer {

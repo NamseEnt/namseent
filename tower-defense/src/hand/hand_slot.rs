@@ -117,6 +117,7 @@ where
                     ctx.add(RenderCard {
                         wh: HAND_SLOT_WH,
                         card,
+                        selected: self.selected,
                     });
                 }
                 HandItem::Tower(tower_template) => {
@@ -130,6 +131,7 @@ where
             ctx.add(RenderCard {
                 wh: HAND_SLOT_WH,
                 card,
+                selected: self.selected,
             });
         } else if let Some(tower_template) =
             (&self.item as &dyn Any).downcast_ref::<TowerTemplate>()

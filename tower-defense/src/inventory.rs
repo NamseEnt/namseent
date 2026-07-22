@@ -1,6 +1,7 @@
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     sound,
+    tooltip::WithHoverArea,
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
@@ -53,22 +54,13 @@ impl Component for InventoryItem<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { item } = self;
 
-        let (hovering, set_hovering) = ctx.state(|| false);
         let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
-        let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
 
         let item_wh = Wh::new(ITEM_SIZE, ITEM_SIZE);
         let inner_wh = Wh::new(
             item_wh.width - PADDING * 2.0,
             item_wh.height - PADDING * 2.0,
         );
-
-        if *hovering && (*hover_start).is_none() {
-            set_hover_start.set(Some(Instant::now()));
-        }
-        if !*hovering {
-            set_hover_start.set(None);
-        }
 
         let hover_rotation = if let Some(start) = *hover_start {
             ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
@@ -90,46 +82,44 @@ impl Component for InventoryItem<'_> {
                     ));
             });
 
+        let inventory_item = item.item.clone();
+        let item_id = item.id;
+
         ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN))
             .mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
             .add(
-                simple_rect(item_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
-                    move |event| match event {
-                        Event::MouseMove { event } => {
-                            if event.is_local_xy_in() {
-                                if !*hovering {
-                                    set_hovering.set(true);
-                                    let origin = event.global_xy - event.local_xy();
-                                    crate::tooltip::show_tooltip(
-                                        *tooltip_id,
-                                        Rect::from_xy_wh(origin, item_wh),
-                                        crate::tooltip::TooltipPlacement::LeftOf,
-                                        crate::tooltip::TooltipContent::Item(item.item.clone()),
-                                    );
-                                }
-                            } else if *hovering {
-                                set_hovering.set(false);
-                                crate::tooltip::hide_tooltip(*tooltip_id);
-                            }
-                        }
-                        Event::MouseDown { event } if event.is_local_xy_in() => {
-                            sound::emit_sound(sound::EmitSoundParams::one_shot(
-                                sound::random_small_button(),
-                                sound::SoundGroup::Ui,
-                                sound::VolumePreset::Medium,
-                                sound::SpatialMode::NonSpatial,
-                            ));
-                            let id = item.id;
-                            mutate_game_state(move |game_state| {
-                                game_state.action(
-                                    crate::game_state::GameStateAction::UseInventoryItem(id),
-                                );
-                            });
-                            event.stop_propagation();
-                        }
-                        _ => {}
+                WithHoverArea {
+                    component_key: "item tooltip",
+                    component: simple_rect(item_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+                    placement: crate::tooltip::TooltipPlacement::LeftOf,
+                    on_enter: || {
+                        set_hover_start.set(Some(Instant::now()));
+                        Some(crate::tooltip::TooltipContent::Item(inventory_item.clone()))
                     },
-                ),
+                    on_exit: move || {
+                        set_hover_start.set(None);
+                    },
+                }
+                .attach_event(|event| {
+                    let Event::MouseDown { event } = event else {
+                        return;
+                    };
+                    if !event.is_local_xy_in() {
+                        return;
+                    }
+                    sound::emit_sound(sound::EmitSoundParams::one_shot(
+                        sound::random_small_button(),
+                        sound::SoundGroup::Ui,
+                        sound::VolumePreset::Medium,
+                        sound::SpatialMode::NonSpatial,
+                    ));
+                    mutate_game_state(move |game_state| {
+                        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(
+                            item_id,
+                        ));
+                    });
+                    event.stop_propagation();
+                }),
             );
     }
 }

@@ -84,10 +84,29 @@ fn render_icon_image_with_stroke(
     opacity: f32,
     border: TextStyleBorder,
 ) -> RenderingTree {
-    let paint_color = Color::WHITE.with_alpha((opacity * 255.0).round() as u8);
-    let paint = Paint::new(paint_color)
+    let border_color = border
+        .color
+        .with_alpha((border.color.a as f32 * opacity).round() as u8);
+    let mut image_filter = icon_image_filter(
+        image,
+        rect.wh(),
+        TextStyleBorder {
+            color: border_color,
+            width: border.width,
+        },
+    );
+
+    if opacity < 1.0 {
+        let opacity_color = Color::WHITE.with_alpha((opacity * 255.0).round() as u8);
+        image_filter = image_filter.color_filter(ColorFilter::Blend {
+            color: opacity_color,
+            blend_mode: BlendMode::DstIn,
+        });
+    }
+
+    let paint = Paint::new(Color::WHITE)
         .set_anti_alias(true)
-        .set_image_filter(icon_image_filter(image, rect.wh(), border));
+        .set_image_filter(image_filter);
 
     namui::image(ImageParam {
         rect,

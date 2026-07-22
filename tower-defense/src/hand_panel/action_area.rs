@@ -1,5 +1,6 @@
 use crate::theme::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+use crate::tooltip::WithHoverArea;
 use crate::{
     game_state::{flow::GameFlow, mutate_game_state, use_game_state},
     icon::{Icon, IconKind, IconSize},
@@ -56,33 +57,19 @@ impl Component for HandRerollButton<'_> {
             on_click,
         } = self;
 
-        let (hovering, set_hovering) = ctx.state(|| false);
-        let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
-
-        ctx.add(
-            simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
-                move |event| {
-                    let Event::MouseMove { event } = event else {
-                        return;
-                    };
-                    if event.is_local_xy_in() && health_cost > 0 {
-                        if !*hovering {
-                            set_hovering.set(true);
-                            let origin = event.global_xy - event.local_xy();
-                            crate::tooltip::show_tooltip(
-                                *tooltip_id,
-                                Rect::from_xy_wh(origin, wh),
-                                crate::tooltip::TooltipPlacement::RightOf,
-                                crate::tooltip::TooltipContent::Reroll { health_cost },
-                            );
-                        }
-                    } else if *hovering {
-                        set_hovering.set(false);
-                        crate::tooltip::hide_tooltip(*tooltip_id);
-                    }
-                },
-            ),
-        );
+        ctx.add(WithHoverArea {
+            component_key: "reroll button tooltip",
+            component: simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+            placement: crate::tooltip::TooltipPlacement::RightOf,
+            on_enter: || {
+                if health_cost > 0 {
+                    Some(crate::tooltip::TooltipContent::Reroll { health_cost })
+                } else {
+                    None
+                }
+            },
+            on_exit: || {},
+        });
 
         ctx.add(
             Button::new(wh, on_click, &|wh, color, ctx| {

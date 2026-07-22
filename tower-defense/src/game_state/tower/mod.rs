@@ -265,7 +265,12 @@ impl Tower {
             .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
             .sum();
 
-        damage *= 1.0 + bonus_sum;
+        let card_bonus_sum: f32 = self
+            .used_cards
+            .iter()
+            .map(|card| card.damage_bonus_pct())
+            .sum();
+        damage *= 1.0 + bonus_sum + card_bonus_sum;
 
         damage *= stage_damage_multiplier;
 
@@ -298,6 +303,7 @@ pub struct TowerTemplate {
     pub rank: Option<Rank>,
     pub skill_templates: Vec<TowerSkillTemplate>,
     pub default_status_effects: Vec<TowerStatusEffect>,
+    pub used_cards: Vec<Card>,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
@@ -305,6 +311,15 @@ impl TowerTemplate {
     }
 
     pub fn new_optional(kind: TowerKind, suit: Option<Suit>, rank: Option<Rank>) -> Self {
+        Self::new_optional_with_used_cards(kind, suit, rank, Vec::new())
+    }
+
+    pub fn new_optional_with_used_cards(
+        kind: TowerKind,
+        suit: Option<Suit>,
+        rank: Option<Rank>,
+        used_cards: Vec<Card>,
+    ) -> Self {
         Self {
             kind,
             rerolled_count: 0,
@@ -315,6 +330,7 @@ impl TowerTemplate {
             rank,
             skill_templates: kind.skill_templates(),
             default_status_effects: vec![],
+            used_cards,
         }
     }
 
@@ -334,15 +350,23 @@ impl TowerTemplate {
         self.default_damage * damage_multiplier
     }
 
+    pub fn card_damage_bonus_pct(&self) -> f32 {
+        self.used_cards
+            .iter()
+            .map(|card| card.damage_bonus_pct())
+            .sum()
+    }
+
     pub fn attack_power_with_upgrade_bonuses(
         &self,
         tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
     ) -> f32 {
-        let bonus_sum: f32 = tower_upgrade_bonuses
+        let upgrade_bonus_sum: f32 = tower_upgrade_bonuses
             .iter()
             .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self))
             .sum();
-        let damage_multiplier = 1.0 + bonus_sum;
+        let total_bonus_sum = upgrade_bonus_sum + self.card_damage_bonus_pct();
+        let damage_multiplier = 1.0 + total_bonus_sum;
         self.calculate_rating(damage_multiplier)
     }
 }
