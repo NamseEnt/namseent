@@ -205,23 +205,27 @@ impl Component for DeckModal {
             ));
         }
 
-        ctx.translate((screen_wh.width - PADDING - FAB_SIZE, PADDING))
-            .add(
-                Button::new(
-                    Wh::single(FAB_SIZE),
-                    &|| set_modal(None),
-                    &|wh, _color, ctx| {
-                        ctx.add(Icon {
-                            kind: crate::icon::IconKind::Reject,
-                            size: crate::icon::IconSize::Custom { size: FAB_SIZE },
-                            attributes: vec![],
-                            wh,
-                            opacity: 1.0,
-                        });
-                    },
-                )
-                .variant(crate::theme::button::ButtonVariant::Text),
-            );
+        ctx.compose(|ctx| {
+            if selection.is_none() {
+                ctx.translate((screen_wh.width - PADDING - FAB_SIZE, PADDING))
+                    .add(
+                        Button::new(
+                            Wh::single(FAB_SIZE),
+                            &|| set_modal(None),
+                            &|wh, _color, ctx| {
+                                ctx.add(Icon {
+                                    kind: crate::icon::IconKind::Reject,
+                                    size: crate::icon::IconSize::Custom { size: FAB_SIZE },
+                                    attributes: vec![],
+                                    wh,
+                                    opacity: 1.0,
+                                });
+                            },
+                        )
+                        .variant(crate::theme::button::ButtonVariant::Text),
+                    );
+            }
+        });
 
         ctx.compose(|ctx| {
             if let Some((icon, disable, action)) = action_button {
