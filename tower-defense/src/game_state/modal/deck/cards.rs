@@ -54,6 +54,7 @@ impl Component for Cards<'_> {
                             wh: card_wh,
                             card,
                             selected,
+                            opacity: 1.0,
                         });
                         ctx = ctx.translate((CARD_WIDTH + card_gap, 0.px()));
                     }

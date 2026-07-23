@@ -10,11 +10,17 @@ pub struct RenderCard<'a> {
     pub wh: Wh<Px>,
     pub card: &'a Card,
     pub selected: bool,
+    pub opacity: f32,
 }
 
 impl Component for RenderCard<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh, card, selected } = self;
+        let Self {
+            wh,
+            card,
+            selected,
+            opacity,
+        } = self;
         let animated_check_scaled = with_spring(
             ctx,
             if selected { 1.0 } else { 0.0 },
@@ -38,26 +44,31 @@ impl Component for RenderCard<'_> {
                         .size(FontSize::Custom {
                             size: wh.width * 0.75,
                         })
-                        .stroke(4.px(), palette::DARK_CHARCOAL)
+                        .stroke(
+                            4.px(),
+                            palette::DARK_CHARCOAL.with_alpha(
+                                (palette::DARK_CHARCOAL.a as f32 * opacity).round() as u8,
+                            ),
+                        )
                         .icon(IconKind::Accept)
                         .render_center(wh)
                 }));
         });
 
-        render_top_left_rank_and_suit(ctx, card.rank, card.suit);
+        render_top_left_rank_and_suit_with_opacity(ctx, card.rank, card.suit, opacity);
 
         if !card.rank.is_face() {
-            self.render_center_suits(ctx, wh, card);
+            self.render_center_suits(ctx, wh, card, opacity);
         } else {
-            self.render_face_card(ctx, wh, card);
+            self.render_face_card(ctx, wh, card, opacity);
         }
 
-        render_background_rect(ctx, wh);
+        render_background_rect_with_opacity(ctx, wh, opacity);
     }
 }
 
 impl<'a> RenderCard<'a> {
-    fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card) {
+    fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card, opacity: f32) {
         let center_area = Rect::Xywh {
             x: px(36.0),
             y: px(36.0),
@@ -73,12 +84,13 @@ impl<'a> RenderCard<'a> {
             ctx.translate(position).add(
                 Icon::new(IconKind::Suit { suit: card.suit })
                     .wh(Wh::new(suit_size, suit_size))
+                    .opacity(opacity)
                     .size(IconSize::Custom { size: suit_size }),
             );
         }
     }
 
-    fn render_face_card(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card) {
+    fn render_face_card(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card, opacity: f32) {
         let center_area = Rect::Xywh {
             x: px(12.0),
             y: px(12.0),
@@ -87,12 +99,17 @@ impl<'a> RenderCard<'a> {
         };
 
         let face_image = (card.rank, card.suit).image();
+        let paint = if opacity < 1.0 {
+            Some(Paint::new(Color::from_f01(1.0, 1.0, 1.0, opacity)))
+        } else {
+            None
+        };
         ctx.add(image(ImageParam {
             image: face_image,
             rect: center_area,
             style: ImageStyle {
                 fit: ImageFit::Contain,
-                paint: None,
+                paint,
             },
         }));
     }

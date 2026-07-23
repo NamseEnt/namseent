@@ -13,6 +13,8 @@ const TOTAL_DURATION_SECS: f32 = 3.0;
 const CARD_LIFETIME_SECS: f32 = 2.0;
 const STAGGER_WINDOW_SECS: f32 = 1.0;
 const EXIT_SCREEN_FACTOR: f32 = 0.65;
+const ENHANCED_FADE_IN_START: f32 = 0.3;
+const ENHANCED_FADE_OUT_END: f32 = 0.6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 enum CardServiceNotificationEntry {
@@ -197,15 +199,10 @@ impl Component for CardNotificationCard {
                 Xy::single(0.px())
             } else {
                 match kind {
-                    CardServiceNotificationEntry::Added { .. } => {
-                        Xy::new(move_distance.width, 0.px())
-                    }
                     CardServiceNotificationEntry::Removed { .. } => {
                         Xy::new(-move_distance.width, 0.px())
                     }
-                    CardServiceNotificationEntry::Enhanced { .. } => {
-                        Xy::new(0.px(), -move_distance.height)
-                    }
+                    _ => Xy::new(move_distance.width, 0.px()),
                 }
             },
             Xy::single(0.px()),
@@ -228,6 +225,7 @@ impl Component for CardNotificationCard {
                         wh: card_wh,
                         card: &card,
                         selected: false,
+                        opacity: 1.0,
                     });
                 }
                 CardServiceNotificationEntry::Removed { card } => {
@@ -235,13 +233,38 @@ impl Component for CardNotificationCard {
                         wh: card_wh,
                         card: &card,
                         selected: false,
+                        opacity: 1.0,
                     });
                 }
                 CardServiceNotificationEntry::Enhanced { from, to } => {
+                    let from_opacity = if progress <= ENHANCED_FADE_OUT_END {
+                        1.0
+                    } else if progress >= 1.0 {
+                        0.0
+                    } else {
+                        (ENHANCED_FADE_OUT_END - progress)
+                            / (ENHANCED_FADE_OUT_END - ENHANCED_FADE_IN_START)
+                    };
+                    let to_opacity = if progress <= ENHANCED_FADE_IN_START {
+                        0.0
+                    } else if progress >= ENHANCED_FADE_OUT_END {
+                        1.0
+                    } else {
+                        (progress - ENHANCED_FADE_IN_START)
+                            / (ENHANCED_FADE_OUT_END - ENHANCED_FADE_IN_START)
+                    };
+
                     ctx.add(RenderCard {
                         wh: card_wh,
                         card: &from,
                         selected: false,
+                        opacity: from_opacity,
+                    });
+                    ctx.add(RenderCard {
+                        wh: card_wh,
+                        card: &to,
+                        selected: false,
+                        opacity: to_opacity,
                     });
                 }
             });

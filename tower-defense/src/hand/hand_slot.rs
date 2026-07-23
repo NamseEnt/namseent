@@ -118,6 +118,7 @@ where
                         wh: HAND_SLOT_WH,
                         card,
                         selected: self.selected,
+                        opacity: 1.0,
                     });
                 }
                 HandItem::Tower(tower_template) => {
@@ -132,6 +133,7 @@ where
                 wh: HAND_SLOT_WH,
                 card,
                 selected: self.selected,
+                opacity: 1.0,
             });
         } else if let Some(tower_template) =
             (&self.item as &dyn Any).downcast_ref::<TowerTemplate>()
