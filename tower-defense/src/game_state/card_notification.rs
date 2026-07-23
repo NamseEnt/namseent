@@ -5,7 +5,6 @@ use crate::card::Card;
 use crate::card::RenderCard;
 use crate::game_state::use_game_state;
 use namui::*;
-use rand::{Rng, thread_rng};
 
 const CARD_WIDTH: Px = px(120.0);
 const CARD_HEIGHT: Px = px(162.0);
@@ -60,14 +59,30 @@ struct CardServiceNotificationPlaybackEntry {
     position_offset: Xy<f32>,
 }
 impl CardServiceNotificationPlaybackEntry {
-    fn new(notification_entry: CardServiceNotificationEntry) -> Self {
-        let mut rng = thread_rng();
+    fn new(notification_entry: CardServiceNotificationEntry, index: usize, total: usize) -> Self {
         static ENTRY_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
         let id = ENTRY_ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+        let position_offset = if total == 0 {
+            Xy::new(0.5, 0.5)
+        } else {
+            let n = total as f32;
+            let i = index as f32;
+            let radius = if index == 0 {
+                0.0
+            } else {
+                (i / (n - 1.0)).min(1.0) * 0.55
+            };
+            let angle = i * 2.399_963_1_f32; // golden angle for even scattering
+            let ox = (0.5 + radius * angle.cos()).clamp(0.0, 1.0);
+            let oy = (0.5 + radius * angle.sin()).clamp(0.0, 1.0);
+            Xy::new(ox, oy)
+        };
+
         Self {
             id,
             notification_entry,
-            position_offset: Xy::new(rng.gen_range(0.0..1.0), rng.gen_range(0.0..1.0)),
+            position_offset,
         }
     }
 }
@@ -87,11 +102,15 @@ pub struct CardServiceNotificationState {
 impl CardServiceNotificationState {
     pub fn enqueue(&mut self, now: Instant, notification: CardServiceNotification) {
         if self.current.is_none() {
+            let total = notification.entries.len();
             self.current = Some(CardServiceNotificationPlayback {
                 entries: notification
                     .entries
                     .into_iter()
-                    .map(CardServiceNotificationPlaybackEntry::new)
+                    .enumerate()
+                    .map(|(index, entry)| {
+                        CardServiceNotificationPlaybackEntry::new(entry, index, total)
+                    })
                     .collect(),
                 start_time: now,
             });
@@ -110,11 +129,15 @@ impl CardServiceNotificationState {
 
         if let Some(notification) = self.queue.first().cloned() {
             self.queue.remove(0);
+            let total = notification.entries.len();
             self.current = Some(CardServiceNotificationPlayback {
                 entries: notification
                     .entries
                     .into_iter()
-                    .map(CardServiceNotificationPlaybackEntry::new)
+                    .enumerate()
+                    .map(|(index, entry)| {
+                        CardServiceNotificationPlaybackEntry::new(entry, index, total)
+                    })
                     .collect(),
                 start_time: now,
             });
