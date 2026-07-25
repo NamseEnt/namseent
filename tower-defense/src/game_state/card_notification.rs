@@ -4,6 +4,7 @@ use crate::animation::{with_spring, xy_with_spring};
 use crate::card::Card;
 use crate::card::RenderCard;
 use crate::game_state::use_game_state;
+use crate::sound::play_card_draw_sounds;
 use namui::*;
 
 const CARD_WIDTH: Px = px(120.0);
@@ -215,6 +216,7 @@ impl Component for CardNotificationCard {
             card_wh,
             move_distance,
         } = self;
+        let (sound_emitted, set_sound_emitted) = ctx.state(|| false);
 
         let animated_xy = xy_with_spring(
             ctx,
@@ -237,6 +239,11 @@ impl Component for CardNotificationCard {
             |x| x * x,
             || 0.0,
         );
+
+        if progress >= 0.6 && !*sound_emitted {
+            play_card_draw_sounds(1);
+            set_sound_emitted.set(true);
+        }
 
         let half_card = (card_wh * 0.5).to_xy();
         ctx.translate(animated_xy)
