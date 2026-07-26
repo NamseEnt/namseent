@@ -1,7 +1,11 @@
 use super::*;
 use crate::{
     card::{CardId, Suit},
-    game_state::{GameState, set_modal},
+    game_state::{
+        GameState,
+        action::{DeckEditChange, DeckEnhance},
+        set_modal,
+    },
 };
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -49,12 +53,20 @@ impl CardServiceBehavior for StaffCardService {
         Self: Sized + Into<CardService>,
     {
         for card_ids in selected_card_ids {
-            for card_id in card_ids {
-                game_state.deck.apply_to_card(card_id, |card| {
-                    card.suit = Suit::Diamonds;
-                    card.add_damage_bonus_pct(self.damage_bonus_pct);
-                });
-            }
+            game_state.action(crate::game_state::GameStateAction::ModifyDeck(
+                crate::game_state::action::DeckEdit::Enhance {
+                    enhances: card_ids
+                        .into_iter()
+                        .map(|card_id| DeckEnhance {
+                            card_id,
+                            changes: vec![
+                                DeckEditChange::SetSuit(Suit::Diamonds),
+                                DeckEditChange::AddDamageBonusPct(self.damage_bonus_pct),
+                            ],
+                        })
+                        .collect(),
+                },
+            ));
         }
     }
 

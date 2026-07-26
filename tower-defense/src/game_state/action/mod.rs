@@ -8,6 +8,7 @@ mod game_start;
 mod grant_hand_item;
 mod grant_tower_card;
 mod heal;
+mod modify_deck;
 mod place_tower;
 mod purchase_shop_item;
 mod remove_tower;
@@ -34,6 +35,8 @@ use crate::game_state::{
     user_status_effect::UserStatusEffect,
 };
 
+pub(crate) use modify_deck::{DeckEdit, DeckEditChange, DeckEnhance};
+
 pub(crate) enum GameStateAction {
     GameStart,
     StartStage {
@@ -51,6 +54,7 @@ pub(crate) enum GameStateAction {
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantHandItem(HandItem),
+    ModifyDeck(modify_deck::DeckEdit),
     GrantTowerCard {
         tower_kind: TowerKind,
         suit: Option<Suit>,
@@ -168,6 +172,10 @@ impl GameState {
             }
             GameStateAction::GrantHandItem(item) => {
                 grant_hand_item::apply(self, item);
+                true
+            }
+            GameStateAction::ModifyDeck(edit) => {
+                modify_deck::apply(self, edit);
                 true
             }
             GameStateAction::GrantTowerCard {

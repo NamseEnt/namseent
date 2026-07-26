@@ -116,6 +116,8 @@ impl Component for Game {
             set_bgm_started.set(true);
         }
 
+        ctx.add(game_state::card_notification::CardServiceNotificationLayer);
+
         ctx.add(tooltip::TooltipLayer);
 
         ctx.add(

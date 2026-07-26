@@ -21,6 +21,7 @@ pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) use action::GameStateAction;
+pub mod card_notification;
 pub mod card_service;
 pub(crate) mod play_history;
 pub mod poker_action;
@@ -136,6 +137,7 @@ pub struct GameState {
     pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
+    pub card_service_notifications: card_notification::CardServiceNotificationState,
     pub config: Arc<GameConfig>,
     pub opened_modals: modal::OpenedModals,
     pub stage_modifiers: StageModifiers,
@@ -662,6 +664,7 @@ fn create_initial_game_state() -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
+        card_service_notifications: card_notification::CardServiceNotificationState::default(),
         config: Arc::clone(&config),
         opened_modals: modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
@@ -775,6 +778,7 @@ impl GameState {
             },
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,
+            card_service_notifications: self.card_service_notifications.clone(),
         }
     }
 

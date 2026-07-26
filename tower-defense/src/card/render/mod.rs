@@ -21,13 +21,17 @@ pub fn get_suit_color(suit: Suit) -> Color {
     }
 }
 
-/// 좌상단에 rank와 suit를 수직 배치로 렌더링
-pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit) {
+pub(super) fn render_top_left_rank_and_suit_with_opacity(
+    ctx: &RenderCtx,
+    rank: Rank,
+    suit: Suit,
+    opacity: f32,
+) {
     let padding = px(4.0);
     let icon_wh = Wh::new(20.px(), 12.px());
 
     // suit에 따른 색상 결정
-    let text_color = get_suit_color(suit);
+    let text_color = with_opacity(get_suit_color(suit), opacity);
 
     let ctx = ctx.translate(Xy::new(padding, padding + 4.px()));
 
@@ -45,25 +49,35 @@ pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: S
         .add(
             Icon::new(IconKind::Suit { suit })
                 .wh(icon_wh)
+                .opacity(opacity)
                 .size(IconSize::Custom {
                     size: icon_wh.height,
                 }),
         );
 }
 
+fn with_opacity(color: Color, opacity: f32) -> Color {
+    color.with_alpha((color.a as f32 * opacity).round() as u8)
+}
+
 /// 카드/타워 배경 rect를 렌더링
 pub(super) fn render_background_rect(ctx: &RenderCtx, wh: Wh<Px>) {
+    render_background_rect_with_opacity(ctx, wh, 1.0);
+}
+
+pub(super) fn render_background_rect_with_opacity(ctx: &RenderCtx, wh: Wh<Px>, opacity: f32) {
+    let outline_color = with_opacity(palette::OUTLINE, opacity);
+    let fill_color = with_opacity(Color::WHITE, opacity);
+
     ctx.add(rect(RectParam {
         rect: wh.to_rect(),
         style: RectStyle {
             stroke: Some(RectStroke {
-                color: palette::OUTLINE,
+                color: outline_color,
                 width: 4.px(),
                 border_position: BorderPosition::Inside,
             }),
-            fill: Some(RectFill {
-                color: Color::WHITE,
-            }),
+            fill: Some(RectFill { color: fill_color }),
             round: Some(RectRound {
                 radius: palette::ROUND,
             }),
