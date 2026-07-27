@@ -100,6 +100,14 @@ impl CardServiceBehavior for ClubSwordCardService {
             }
         };
     }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        // ClubSword: remove low rank cards (low impact on poker hands).
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| c.rank as u8); // lowest first
+        cards.iter().take(3).map(|c| vec![c.id]).collect()
+    }
 }
 
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =

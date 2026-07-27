@@ -59,6 +59,12 @@ pub enum SimEvent {
         stage: usize,
         item_kind: String,
     },
+    CardServiceUsed {
+        stage: usize,
+        service_kind: String,
+        behavior_name: String,
+        cards_selected: usize,
+    },
     TreasureSelected {
         stage: usize,
         upgrade_kind: String,

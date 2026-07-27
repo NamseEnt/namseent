@@ -35,11 +35,12 @@ enum Tab {
     Items,
     Upgrades,
     Strategies,
+    CardServices,
 }
 
 impl Tab {
-    fn titles() -> [&'static str; 3] {
-        ["Items", "Upgrades", "Strategies"]
+    fn titles() -> [&'static str; 4] {
+        ["Items", "Upgrades", "Strategies", "Card Services"]
     }
 }
 
@@ -49,6 +50,7 @@ struct App {
     items: Vec<SummaryRow>,
     upgrades: Vec<SummaryRow>,
     strategies: Vec<StrategyStats>,
+    card_services: Vec<SummaryRow>,
     detail: Option<DetailStats>,
     list_state: ListState,
 }
@@ -58,6 +60,7 @@ impl App {
         let items = db.list_items()?;
         let upgrades = db.list_upgrades_and_treasures()?;
         let strategies = db.list_strategy_win_rates()?;
+        let card_services = db.list_card_services()?;
         let mut list_state = ListState::default();
         list_state.select(Some(0));
         let mut app = Self {
@@ -66,6 +69,7 @@ impl App {
             items,
             upgrades,
             strategies,
+            card_services,
             detail: None,
             list_state,
         };
@@ -77,6 +81,7 @@ impl App {
         match self.tab {
             Tab::Items => &self.items,
             Tab::Upgrades => &self.upgrades,
+            Tab::CardServices => &self.card_services,
             Tab::Strategies => &[],
         }
     }
@@ -89,6 +94,7 @@ impl App {
         match self.tab {
             Tab::Items => self.items.len(),
             Tab::Upgrades => self.upgrades.len(),
+            Tab::CardServices => self.card_services.len(),
             Tab::Strategies => self.strategies.len(),
         }
     }
@@ -113,6 +119,7 @@ impl App {
                 .get(self.selection)
                 .map(|row| db.detail_for_upgrade(&row.name))
                 .transpose()?,
+            Tab::CardServices => self.current_list().get(self.selection).map(|row| db.detail_for_card_service(&row.name)).transpose()?,
             Tab::Strategies => self
                 .current_strategy()
                 .map(|strategy| db.detail_for_strategy(&strategy.category, &strategy.name))
@@ -125,7 +132,8 @@ impl App {
         self.tab = match self.tab {
             Tab::Items => Tab::Upgrades,
             Tab::Upgrades => Tab::Strategies,
-            Tab::Strategies => Tab::Items,
+            Tab::Strategies => Tab::CardServices,
+            Tab::CardServices => Tab::Items,
         };
         self.selection = 0;
         self.list_state.select(Some(0));
@@ -184,6 +192,7 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
             Tab::Items => 0,
             Tab::Upgrades => 1,
             Tab::Strategies => 2,
+            Tab::CardServices => 3,
         })
         .block(Block::default().borders(Borders::ALL).title("Tabs"))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
@@ -209,6 +218,35 @@ fn draw_ui(frame: &mut Frame, app: &mut App) {
                     row.win_rate * 100.0,
                     row.win_count,
                     row.sample_count,
+                );
+                let content = vec![Line::from(Span::raw(label))];
+                let mut item = ListItem::new(content);
+                if idx == app.selection {
+                    item = item.style(Style::default().fg(Color::Yellow));
+                }
+                item
+            })
+            .collect(),
+        Tab::CardServices => app
+            .card_services
+            .iter()
+            .enumerate()
+            .map(|(idx, row)| {
+                let name_label = match app.tab {
+                    Tab::Upgrades => {
+                        if let Some(prefix) = upgrade_rarity_prefix(&row.name) {
+                            format!("{} {}", prefix, row.name)
+                        } else {
+                            row.name.clone()
+                        }
+                    }
+                    _ => row.name.clone(),
+                };
+                let label = format!(
+                    "{}  avg {:.1}%  win {:.1}%",
+                    name_label,
+                    row.avg_clear_rate,
+                    row.win_rate * 100.0
                 );
                 let content = vec![Line::from(Span::raw(label))];
                 let mut item = ListItem::new(content);

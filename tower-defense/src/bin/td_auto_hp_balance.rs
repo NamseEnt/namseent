@@ -13,7 +13,8 @@ use tower_defense::simulator::recording::SimRecorder;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::SynergyTreasureStrategy;
 use tower_defense::simulator::strategies::{
-    card_reroll::ItemAwareRerollStrategy, item_use::HeuristicItemUseStrategy,
+    CardServiceStrategy, card_reroll::ItemAwareRerollStrategy,
+    card_service::HeuristicCardServiceStrategy, item_use::HeuristicItemUseStrategy,
     shop::SynergyShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
 use tower_defense::{MonsterKind, config::GameConfig, set_headless};
@@ -1113,6 +1114,7 @@ fn run_simulations(
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
                 Box::new(HeuristicItemUseStrategy);
+            let card_service_strategy = HeuristicCardServiceStrategy;
             let treasure_strategy = SynergyTreasureStrategy;
 
             let sim_id = format!("sim_{seed:016x}");
@@ -1123,21 +1125,26 @@ fn run_simulations(
                 card_strategy.name(),
                 tower_strategy.name(),
                 item_strategy.name(),
+                card_service_strategy.name(),
                 seed,
             ) {
                 eprintln!("Failed to record start for {sim_id}: {e}");
             }
 
             let mut game = HeadlessGame::new_with_config(config.clone());
-            let result = game.run(
-                shop_strategy.as_ref(),
-                card_strategy.as_ref(),
-                &tower_strategy,
-                item_strategy.as_ref(),
-                &treasure_strategy,
-                &mut rng,
-                |_clear_rate| !stop_requested.load(Ordering::SeqCst),
-            );
+
+            let strategies = tower_defense::simulator::SimulationStrategies {
+                shop_strategy: shop_strategy.as_ref(),
+                card_reroll_strategy: card_strategy.as_ref(),
+                tower_placement_strategy: &tower_strategy,
+                item_use_strategy: item_strategy.as_ref(),
+                card_service_strategy: &card_service_strategy,
+                treasure_strategy: &treasure_strategy,
+            };
+
+            let result = game.run(&strategies, &mut rng, |_clear_rate| {
+                !stop_requested.load(Ordering::SeqCst)
+            });
 
             let mut arrived = vec![false; stage_count];
             {

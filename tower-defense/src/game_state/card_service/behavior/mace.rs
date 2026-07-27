@@ -97,6 +97,14 @@ impl CardServiceBehavior for MaceCardService {
             }
         };
     }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        // Mace: smash lowest rank cards.
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| c.rank as i32); // lowest first
+        cards.iter().take(3).map(|c| vec![c.id]).collect()
+    }
 }
 
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =

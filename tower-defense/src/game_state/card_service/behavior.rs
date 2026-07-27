@@ -9,7 +9,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub trait CardServiceBehavior {
     fn key(&self) -> &'static str;
 
-    fn acquire(self, _game_state: &mut GameState)
+    #[cfg_attr(feature = "simulator", allow(dead_code))]
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>;
 
@@ -19,6 +20,10 @@ pub trait CardServiceBehavior {
         selected_card_ids: Vec<Vec<crate::card::CardId>>,
     ) where
         Self: Sized + Into<CardService>;
+
+    fn heuristic_best_selection(&self, _game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        vec![vec![]]
+    }
 
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale);
 

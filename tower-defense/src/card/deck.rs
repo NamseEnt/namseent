@@ -124,12 +124,6 @@ impl Deck {
             };
             cards.push(card);
         }
-        println!(
-            "left: {}, discard: {}, drawn: {}",
-            self.draw_pile.len(),
-            self.discard_pile.len(),
-            cards.len()
-        );
         cards
     }
 

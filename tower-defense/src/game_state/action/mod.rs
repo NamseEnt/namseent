@@ -8,7 +8,7 @@ mod game_start;
 mod grant_hand_item;
 mod grant_tower_card;
 mod heal;
-mod modify_deck;
+pub mod modify_deck;
 mod place_tower;
 mod purchase_shop_item;
 mod remove_tower;

@@ -100,6 +100,13 @@ impl CardServiceBehavior for BrushCardService {
             }
         };
     }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| std::cmp::Reverse((c.rank as i32, c.suit as i32))); // high rank/suit 우선
+        cards.iter().take(3).map(|c| vec![c.id]).collect()
+    }
 }
 
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =

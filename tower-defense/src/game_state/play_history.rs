@@ -58,6 +58,11 @@ pub enum HistoryEventType {
         cost: Option<usize>,
     },
 
+    CardServiceUsed {
+        service_kind: String,
+        cards_selected: usize,
+    },
+
     GameOver,
 }
 

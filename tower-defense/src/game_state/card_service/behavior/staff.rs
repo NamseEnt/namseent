@@ -100,6 +100,14 @@ impl CardServiceBehavior for StaffCardService {
             }
         };
     }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        // Staff: add high synergy cards (e.g. missing suits for flush).
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| std::cmp::Reverse(c.rank as u8)); // high rank first
+        cards.iter().rev().take(3).map(|c| vec![c.id]).collect()
+    }
 }
 
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
