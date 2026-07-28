@@ -39,7 +39,11 @@ impl CardServiceBehavior for ClubSwordCardService {
         .to_string();
 
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
-            vec![crate::game_state::modal::deck::CardSelectionStep { title, count: 1 }],
+            vec![crate::game_state::modal::deck::CardSelectionStep {
+                title,
+                count: 1,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Any,
+            }],
             self.into_card_service(),
         );
 

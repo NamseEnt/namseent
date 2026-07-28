@@ -1,6 +1,6 @@
 mod cards;
 
-use crate::card::CardId;
+use crate::card::{Card, CardId, Rank};
 use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::{UserModal, mutate_game_state, set_modal, use_game_state};
 use crate::icon::{Icon, IconKind};
@@ -31,10 +31,34 @@ pub enum DeckKind {
     Discard,
 }
 
+#[derive(Debug, Clone, State, PartialEq)]
+pub enum CardSelectionFilter {
+    Any,
+    Face,
+    Number,
+    Rank(Rank),
+    And(Vec<CardSelectionFilter>),
+    Or(Vec<CardSelectionFilter>),
+}
+
+impl CardSelectionFilter {
+    pub fn matches(&self, card: &Card) -> bool {
+        match self {
+            CardSelectionFilter::Any => true,
+            CardSelectionFilter::Face => card.rank.is_face(),
+            CardSelectionFilter::Number => card.rank.is_number_card(),
+            CardSelectionFilter::Rank(rank) => card.rank == *rank,
+            CardSelectionFilter::And(filters) => filters.iter().all(|filter| filter.matches(card)),
+            CardSelectionFilter::Or(filters) => filters.iter().any(|filter| filter.matches(card)),
+        }
+    }
+}
+
 #[derive(Debug, Clone, State)]
 pub struct CardSelectionStep {
     pub title: String,
     pub count: usize,
+    pub filter: CardSelectionFilter,
 }
 
 #[derive(Debug, Clone, State)]
@@ -123,11 +147,18 @@ impl Component for DeckModal {
 
         let cards = ctx.memo(|| {
             deck.record_as_used();
-            match deck_kind {
+            let mut cards = match deck_kind {
                 DeckKind::Deck => deck.all_cards().to_vec(),
                 DeckKind::Draw => deck.draw_pile().to_vec(),
                 DeckKind::Discard => deck.discard_pile().to_vec(),
+            };
+            if let Some(selection) = &selection {
+                let filter = &selection.current_step().filter;
+                if *filter != CardSelectionFilter::Any {
+                    cards.retain(|card| filter.matches(card));
+                }
             }
+            cards
         });
 
         let on_card_click = if selection.is_some() {

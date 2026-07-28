@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    card::CardId,
+    card::{CardId, Rank},
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
@@ -28,14 +28,25 @@ impl CardServiceBehavior for TricycleCardService {
         "tricycle"
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let title = match game_state.locale.language {
+            crate::l10n::locale::Language::English => "Select a card",
+            crate::l10n::locale::Language::Korean => "카드를 선택하세요",
+        }
+        .to_string();
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
             vec![crate::game_state::modal::deck::CardSelectionStep {
-                title: "Select cards".to_string(),
-                count: 3,
+                title,
+                count: 1,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Or(vec![
+                    crate::game_state::modal::deck::CardSelectionFilter::Rank(Rank::Ace),
+                    crate::game_state::modal::deck::CardSelectionFilter::Rank(Rank::Two),
+                    crate::game_state::modal::deck::CardSelectionFilter::Rank(Rank::Three),
+                ]),
             }],
             self.into_card_service(),
         );
@@ -90,20 +101,23 @@ impl CardServiceBehavior for TricycleCardService {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => {
-                builder.static_text("Give 3 cards +100% damage.")
+                builder.static_text("Select one Ace, Two, or Three card and give it +200% damage.")
             }
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("3장 카드 모두에 데미지 +100% 부여.")
+                builder.static_text("A, 2, 3 카드 중 1장을 선택해 데미지 +200%를 부여합니다.")
             }
         };
     }
 
     fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
-        // Tricycle: add top potential cards.
         let deck = &game_state.deck;
-        let mut cards = deck.all_cards().to_vec();
-        cards.sort_by_key(|c| std::cmp::Reverse(c.rank as u8)); // high first
-        cards.iter().rev().take(3).map(|c| vec![c.id]).collect()
+        let mut cards = deck
+            .all_cards()
+            .iter()
+            .filter(|card| matches!(card.rank, Rank::Ace | Rank::Two | Rank::Three))
+            .collect::<Vec<_>>();
+        cards.sort_by_key(|c| c.rank.ace_low_value());
+        cards.iter().take(1).map(|c| vec![c.id]).collect()
     }
 }
 
@@ -114,5 +128,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_tricycle_card_service() -> CardService {
-    TricycleCardService::new(1.0).into_card_service()
+    TricycleCardService::new(2.0).into_card_service()
 }

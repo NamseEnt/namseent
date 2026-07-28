@@ -28,14 +28,21 @@ impl CardServiceBehavior for BrushCardService {
         "brush"
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let title = match game_state.locale.language {
+            crate::l10n::locale::Language::English => "Select a card",
+            crate::l10n::locale::Language::Korean => "카드를 선택하세요",
+        }
+        .to_string();
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
             vec![crate::game_state::modal::deck::CardSelectionStep {
-                title: "Select cards".to_string(),
-                count: 3,
+                title,
+                count: 1,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Face,
             }],
             self.into_card_service(),
         );
@@ -93,10 +100,10 @@ impl CardServiceBehavior for BrushCardService {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => {
-                builder.static_text("Give 3 face cards +100% damage.")
+                builder.static_text("Select one face card and give it +300% damage.")
             }
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("그림 카드 3장에 데미지 +100% 부여.")
+                builder.static_text("그림 카드 1장을 선택해 데미지 +300%를 부여합니다.")
             }
         };
     }
@@ -116,5 +123,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_brush_card_service() -> CardService {
-    BrushCardService::new(1.0).into_card_service()
+    BrushCardService::new(3.0).into_card_service()
 }
