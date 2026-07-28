@@ -28,15 +28,18 @@ impl CardServiceBehavior for ClubSwordCardService {
         "club_sword"
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let title = match game_state.locale.language {
+            crate::l10n::locale::Language::English => "Select a card",
+            crate::l10n::locale::Language::Korean => "카드를 선택하세요",
+        }
+        .to_string();
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
-            vec![crate::game_state::modal::deck::CardSelectionStep {
-                title: "Select a card".to_string(),
-                count: 1,
-            }],
+            vec![crate::game_state::modal::deck::CardSelectionStep { title, count: 1 }],
             self.into_card_service(),
         );
 
@@ -92,12 +95,10 @@ impl CardServiceBehavior for ClubSwordCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Give a card the Club suit and damage +100%.")
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder.static_text("카드에 클럽 효과를 부여하고 데미지 +100%.")
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Select one card, change it to the Club suit, and deal +200% damage."),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("카드 1장을 선택해 클럽으로 변경하고 데미지 +200%를 부여합니다."),
         };
     }
 
@@ -117,5 +118,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_club_sword_card_service() -> CardService {
-    ClubSwordCardService::new(1.0).into_card_service()
+    ClubSwordCardService::new(2.0).into_card_service()
 }
