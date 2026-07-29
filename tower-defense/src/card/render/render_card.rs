@@ -1,8 +1,12 @@
 use super::*;
 use crate::{
     animation::with_spring,
-    card::{Card, FaceCardImage},
+    card::{
+        Card, FaceCardImage,
+        render::render_damage_bonus::{damage_bonus_halo_config, render_damage_bonus_overlay},
+    },
     icon::{Icon, IconKind, IconSize},
+    theme::card_halo_fx::CardHaloFx,
 };
 use namui::*;
 
@@ -13,7 +17,59 @@ pub struct RenderCard<'a> {
     pub opacity: f32,
 }
 
+struct RenderCardInner<'a> {
+    wh: Wh<Px>,
+    card: &'a Card,
+    selected: bool,
+    opacity: f32,
+}
+
 impl Component for RenderCard<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            card,
+            selected,
+            opacity,
+        } = self;
+
+        let bonus_pct = card.damage_bonus_pct();
+        let on_enter = move || {
+            if bonus_pct > 0.0 {
+                Some(crate::tooltip::TooltipContent::Word(
+                    crate::l10n::word::Word::DamageBonus(Some(bonus_pct)),
+                ))
+            } else {
+                None
+            }
+        };
+
+        ctx.add(crate::tooltip::WithHoverArea {
+            component_key: "card_tooltip",
+            component: RenderCardInner {
+                wh,
+                card,
+                selected,
+                opacity,
+            },
+            placement: crate::tooltip::TooltipPlacement::Above,
+            on_enter,
+            on_exit: || {},
+        });
+
+        if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+            ctx.add(CardHaloFx {
+                wh,
+                radius: wh.width * 0.25,
+                color,
+                strength: strength * opacity,
+                seed: card.halo_seed(),
+            });
+        }
+    }
+}
+
+impl<'a> Component for RenderCardInner<'a> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
@@ -57,6 +113,8 @@ impl Component for RenderCard<'_> {
 
         render_top_left_rank_and_suit_with_opacity(ctx, card.rank, card.suit, opacity);
 
+        render_damage_bonus_overlay(ctx, wh, card.damage_bonus_pct(), opacity);
+
         if !card.rank.is_face() {
             self.render_center_suits(ctx, wh, card, opacity);
         } else {
@@ -67,7 +125,7 @@ impl Component for RenderCard<'_> {
     }
 }
 
-impl<'a> RenderCard<'a> {
+impl<'a> RenderCardInner<'a> {
     fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card, opacity: f32) {
         let center_area = Rect::Xywh {
             x: px(36.0),

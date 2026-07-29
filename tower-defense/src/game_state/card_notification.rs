@@ -220,7 +220,7 @@ impl Component for CardNotificationCard {
 
         let animated_xy = xy_with_spring(
             ctx,
-            if progress < 0.6 {
+            if progress < 0.9 {
                 Xy::single(0.px())
             } else {
                 match kind {
@@ -234,7 +234,7 @@ impl Component for CardNotificationCard {
         );
         let animated_scale = with_spring(
             ctx,
-            if progress < 0.6 { 1.0 } else { 0.0 },
+            if progress < 0.9 { 1.0 } else { 0.0 },
             0.0,
             |x| x * x,
             || 0.0,
@@ -286,15 +286,15 @@ impl Component for CardNotificationCard {
 
                     ctx.add(RenderCard {
                         wh: card_wh,
-                        card: &from,
-                        selected: false,
-                        opacity: from_opacity,
-                    });
-                    ctx.add(RenderCard {
-                        wh: card_wh,
                         card: &to,
                         selected: false,
                         opacity: to_opacity,
+                    });
+                    ctx.add(RenderCard {
+                        wh: card_wh,
+                        card: &from,
+                        selected: false,
+                        opacity: from_opacity,
                     });
                 }
             });

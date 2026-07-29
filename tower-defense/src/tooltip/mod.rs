@@ -84,6 +84,7 @@ pub fn hide_tooltip(id: TooltipId) {
     });
 }
 
+#[cfg_attr(feature = "simulator", allow(dead_code))]
 pub fn hide_tooltip_all() {
     TOOLTIP.set(None);
 }

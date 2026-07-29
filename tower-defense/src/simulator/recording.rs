@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use super::events::SimEvent;
+use serde_json::{json, to_string};
 
 pub struct SimRecorder {
     conn: Mutex<Connection>,
@@ -33,6 +34,7 @@ impl SimRecorder {
                 card_reroll_strategy TEXT NOT NULL,
                 tower_placement_strategy TEXT NOT NULL,
                 item_use_strategy TEXT NOT NULL,
+                card_service_strategy TEXT NOT NULL,
                 seed INTEGER NOT NULL,
                 victory INTEGER,
                 final_stage INTEGER,
@@ -86,15 +88,23 @@ impl SimRecorder {
             );
 
             CREATE INDEX IF NOT EXISTS idx_sim_victory ON simulations(victory);
-            CREATE INDEX IF NOT EXISTS idx_sim_strategy ON simulations(shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy);
+            CREATE INDEX IF NOT EXISTS idx_sim_strategy ON simulations(shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy);
             CREATE INDEX IF NOT EXISTS idx_sim_stage ON simulation_stage_results(simulation_id, stage);
             CREATE INDEX IF NOT EXISTS idx_sim_upgrades ON simulation_upgrades(simulation_id);
             CREATE INDEX IF NOT EXISTS idx_sim_events ON simulation_events(simulation_id);
             ",
         )?;
+
+        // Migrate legacy misspelled column (total_gold_ered -> total_gold_earned) for existing databases
+        let _ = conn.execute(
+            "ALTER TABLE simulations RENAME COLUMN total_gold_ered TO total_gold_earned",
+            [],
+        );
+
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn record_simulation_start(
         &self,
         sim_id: &str,
@@ -102,12 +112,13 @@ impl SimRecorder {
         card_reroll_strategy: &str,
         tower_placement_strategy: &str,
         item_use_strategy: &str,
+        card_service_strategy: &str,
         seed: u64,
     ) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, seed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![sim_id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, seed as i64],
+            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![sim_id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed as i64],
         )?;
         Ok(())
     }
@@ -181,28 +192,65 @@ impl SimRecorder {
 
             for (i, event) in events.iter().enumerate() {
                 let event_type = match event {
-                    SimEvent::GameStart => "game_start",
-                    SimEvent::StageStart { .. } => "stage_start",
-                    SimEvent::ShopReroll { .. } => "shop_reroll",
-                    SimEvent::ShopPurchase { .. } => "shop_purchase",
-                    SimEvent::CardReroll { .. } => "card_reroll",
-                    SimEvent::TowerSelected { .. } => "tower_selected",
-                    SimEvent::TowerPlaced { .. } => "tower_placed",
-                    SimEvent::TowerRemoved { .. } => "tower_removed",
-                    SimEvent::DefenseStart { .. } => "defense_start",
-                    SimEvent::DefenseEnd { .. } => "defense_end",
-                    SimEvent::DamageTaken { .. } => "damage_taken",
-                    SimEvent::MonsterKilled { .. } => "monster_killed",
-                    SimEvent::ItemUsed { .. } => "item_used",
-                    SimEvent::TreasureSelected { .. } => "treasure_selected",
-                    SimEvent::GameEnd { .. } => "game_end",
+                    SimEvent::GameStart => "game_start".to_string(),
+                    SimEvent::StageStart { .. } => "stage_start".to_string(),
+                    SimEvent::ShopReroll { .. } => "shop_reroll".to_string(),
+                    SimEvent::ShopPurchase { .. } => "shop_purchase".to_string(),
+                    SimEvent::CardReroll { .. } => "card_reroll".to_string(),
+                    SimEvent::TowerSelected { .. } => "tower_selected".to_string(),
+                    SimEvent::TowerPlaced { .. } => "tower_placed".to_string(),
+                    SimEvent::TowerRemoved { .. } => "tower_removed".to_string(),
+                    SimEvent::DefenseStart { .. } => "defense_start".to_string(),
+                    SimEvent::DefenseEnd { .. } => "defense_end".to_string(),
+                    SimEvent::DamageTaken { .. } => "damage_taken".to_string(),
+                    SimEvent::MonsterKilled { .. } => "monster_killed".to_string(),
+                    SimEvent::ItemUsed { .. } => "item_used".to_string(),
+                    SimEvent::CardServiceUsed { .. } => "card_service_used".to_string(),
+                    SimEvent::TreasureSelected { .. } => "treasure_selected".to_string(),
+                    SimEvent::GameEnd { .. } => "game_end".to_string(),
                 };
-                let event_data = serde_json::to_string(event)?;
+                let event_data = to_string(event)?;
                 stmt.execute(params![sim_id, i as i64, event_type, event_data])?;
             }
         }
 
         tx.commit()?;
+        Ok(())
+    }
+
+    pub fn record_event(&self, sim_id: &str, event: &SimEvent) -> anyhow::Result<()> {
+        let (event_type, event_data) = match event {
+            SimEvent::ItemUsed { stage, item_kind } => (
+                "item_used".to_string(),
+                to_string(&json!({"ItemUsed": {"stage": *stage, "item_kind": item_kind}}))?,
+            ),
+            SimEvent::CardServiceUsed {
+                stage,
+                service_kind,
+                behavior_name,
+                cards_selected,
+            } => (
+                "card_service_used".to_string(),
+                to_string(
+                    &json!({"CardServiceUsed": {"stage": *stage, "service_kind": service_kind, "behavior_name": behavior_name, "cards_selected": *cards_selected}}),
+                )?,
+            ),
+            SimEvent::TreasureSelected {
+                stage,
+                upgrade_kind,
+            } => (
+                "treasure_selected".to_string(),
+                to_string(
+                    &json!({"TreasureSelected": {"stage": *stage, "upgrade_kind": upgrade_kind}}),
+                )?,
+            ),
+            _ => return Ok(()),
+        };
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO simulation_events (simulation_id, event_order, event_type, event_data) VALUES (?1, COALESCE((SELECT MAX(event_order) FROM simulation_events WHERE simulation_id = ?1), 0) + 1, ?2, ?3)",
+            params![sim_id, event_type, event_data],
+        )?;
         Ok(())
     }
 }

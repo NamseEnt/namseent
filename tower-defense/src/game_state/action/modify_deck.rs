@@ -1,9 +1,11 @@
 use crate::card::{Card, CardId, Rank, Suit};
 use crate::game_state::GameState;
 use crate::game_state::card_notification::CardServiceNotification;
+#[cfg(not(feature = "simulator"))]
 use namui::time::now;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) enum DeckEditChange {
     AddDamageBonusPct(f32),
     SetSuit(Suit),
@@ -34,6 +36,7 @@ impl DeckEnhance {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) enum DeckEdit {
     Add { cards: Vec<Card> },
     Remove { card_ids: Vec<CardId> },
@@ -70,6 +73,7 @@ pub(super) fn apply(game_state: &mut GameState, edit: DeckEdit) {
             }
         }
     }
+    #[cfg(not(feature = "simulator"))]
     game_state
         .card_service_notifications
         .enqueue(now(), notification);

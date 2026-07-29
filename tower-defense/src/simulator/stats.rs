@@ -92,6 +92,7 @@ const STRATEGY_COLUMNS: &[(&str, &str)] = &[
     ("Card Reroll", "card_reroll_strategy"),
     ("Tower Placement", "tower_placement_strategy"),
     ("Item Use", "item_use_strategy"),
+    ("Card Service", "card_service_strategy"),
 ];
 
 impl Database {
@@ -504,6 +505,7 @@ impl Database {
             "Card Reroll" => "card_reroll_strategy",
             "Tower Placement" => "tower_placement_strategy",
             "Item Use" => "item_use_strategy",
+            "Card Service" => "card_service_strategy",
             _ => return Err(anyhow::anyhow!("Unknown strategy category: {}", category)),
         };
 
@@ -575,6 +577,16 @@ impl Database {
             distribution: Vec::new(),
         })
     }
+
+    pub fn list_card_services(&self) -> anyhow::Result<Vec<SummaryRow>> {
+        let outcome = self.load_simulation_outcomes()?;
+        let rows = self.query_event_kind("card_service_used", "$.CardServiceUsed.service_kind")?;
+        Ok(self.build_summary(rows, &outcome))
+    }
+
+    pub fn detail_for_card_service(&self, kind: &str) -> anyhow::Result<DetailStats> {
+        self.detail_for_event("card_service_used", "$.CardServiceUsed.service_kind", kind)
+    }
 }
 
 pub fn upgrade_rarity_prefix(name: &str) -> Option<&'static str> {
@@ -636,7 +648,8 @@ mod tests {
                 "card_reroll_strategy",
                 "tower_placement_strategy",
                 "item_use_strategy",
-                0,
+                "heuristic_card_service",
+                42u64,
             )
             .unwrap();
         recorder
@@ -676,7 +689,8 @@ mod tests {
                 "card_reroll_strategy",
                 "tower_placement_strategy",
                 "item_use_strategy",
-                0,
+                "heuristic_card_service",
+                42u64,
             )
             .unwrap();
         recorder
@@ -722,7 +736,8 @@ mod tests {
                 "card_reroll_strategy",
                 "tower_placement_strategy",
                 "item_use_strategy",
-                0,
+                "heuristic_card_service",
+                42u64,
             )
             .unwrap();
         recorder

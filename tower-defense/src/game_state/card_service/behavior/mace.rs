@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    card::CardId,
+    card::{CardId, Suit},
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
@@ -28,14 +28,21 @@ impl CardServiceBehavior for MaceCardService {
         "mace"
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let title = match game_state.locale.language {
+            crate::l10n::locale::Language::English => "Select a card",
+            crate::l10n::locale::Language::Korean => "카드를 선택하세요",
+        }
+        .to_string();
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
             vec![crate::game_state::modal::deck::CardSelectionStep {
-                title: "Select a card".to_string(),
+                title,
                 count: 1,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Any,
             }],
             self.into_card_service(),
         );
@@ -59,7 +66,10 @@ impl CardServiceBehavior for MaceCardService {
                         .into_iter()
                         .map(|card_id| DeckEnhance {
                             card_id,
-                            changes: vec![DeckEditChange::AddDamageBonusPct(self.damage_bonus_pct)],
+                            changes: vec![
+                                DeckEditChange::SetSuit(Suit::Hearts),
+                                DeckEditChange::AddDamageBonusPct(self.damage_bonus_pct),
+                            ],
                         })
                         .collect(),
                 },
@@ -89,13 +99,21 @@ impl CardServiceBehavior for MaceCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Give a card the Heart suit and damage +100%.")
-            }
+            crate::l10n::locale::Language::English => builder.static_text(
+                "Select one card, change it to the Heart suit, and deal +200% damage.",
+            ),
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("카드에 하트 효과를 부여하고 데미지 +100%.")
+                builder.static_text("카드 1장을 선택해 하트로 변경하고 데미지 +200%를 부여합니다.")
             }
         };
+    }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        // Mace: smash lowest rank cards.
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| c.rank as i32); // lowest first
+        cards.iter().take(3).map(|c| vec![c.id]).collect()
     }
 }
 
@@ -106,5 +124,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_mace_card_service() -> CardService {
-    MaceCardService::new(1.0).into_card_service()
+    MaceCardService::new(2.0).into_card_service()
 }

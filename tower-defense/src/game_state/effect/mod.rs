@@ -435,6 +435,7 @@ pub mod tests_support {
 
             hand_panel_forced_open: true,
             shop_panel_forced_open: true,
+            headless: false,
         }
     }
 }

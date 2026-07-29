@@ -150,6 +150,8 @@ pub struct GameState {
     // panel open states controlled by input/flow
     pub hand_panel_forced_open: bool,
     pub shop_panel_forced_open: bool,
+    // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
+    pub(crate) headless: bool,
 }
 impl GameState {
     /// 현대적인 텍스트 매니저 반환
@@ -213,6 +215,10 @@ impl GameState {
 
     pub fn now(&self) -> Instant {
         self.game_now
+    }
+
+    pub fn is_headless(&self) -> bool {
+        self.headless
     }
 
     pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: f32) {
@@ -686,6 +692,7 @@ fn create_initial_game_state() -> GameState {
         // start panels in opened state by default (if flow allows later)
         hand_panel_forced_open: true,
         shop_panel_forced_open: true,
+        headless: false,
     };
 
     // Start with selecting tower flow and default shop mode (normal shop).
@@ -779,6 +786,7 @@ impl GameState {
             hand_panel_forced_open: self.hand_panel_forced_open,
             shop_panel_forced_open: self.shop_panel_forced_open,
             card_service_notifications: self.card_service_notifications.clone(),
+            headless: self.headless,
         }
     }
 

@@ -1,3 +1,4 @@
+use crate::card::render::damage_bonus_halo_config;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
@@ -5,6 +6,7 @@ use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
 use crate::rarity::Rarity;
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::theme::{
+    card_halo_fx::CardHaloFx,
     halo::Halo,
     palette,
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
@@ -106,6 +108,7 @@ impl Component for PreviewEntryComponent {
                 .translate(-anchor);
 
             let halo_config = halo_config_for_tower_kind(template.kind);
+            let bonus_halo_config = damage_bonus_halo_config(template.card_damage_bonus_pct());
 
             ctx.compose(|ctx| {
                 table::padding_no_clip(
@@ -147,6 +150,17 @@ impl Component for PreviewEntryComponent {
                                         strength,
                                         rotation_deg_per_sec: 45.0,
                                     });
+                            }
+                            if let Some((color, strength)) = bonus_halo_config {
+                                ctx.translate(image_center - (img_wh.to_xy() * 0.5)).add(
+                                    CardHaloFx {
+                                        wh: img_wh,
+                                        radius: img_wh.width * 0.5,
+                                        color,
+                                        strength,
+                                        seed: (template.kind as u32 as f32 * 0.618034).fract(),
+                                    },
+                                );
                             }
                         }),
                         table::fixed_no_clip(4.px(), |_, _| {}),

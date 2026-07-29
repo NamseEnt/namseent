@@ -24,8 +24,19 @@ use std::sync::Arc;
 use events::SimEvent;
 use namui::Instant;
 use strategies::{
-    CardRerollStrategy, ItemUseStrategy, ShopStrategy, TowerPlacementStrategy, TreasureStrategy,
+    CardRerollStrategy, CardServiceStrategy, ItemUseStrategy, ShopStrategy, TowerPlacementStrategy,
+    TreasureStrategy,
 };
+
+/// Simulation strategies grouped to avoid too many arguments.
+pub struct SimulationStrategies<'a> {
+    pub shop_strategy: &'a dyn ShopStrategy,
+    pub card_reroll_strategy: &'a dyn CardRerollStrategy,
+    pub tower_placement_strategy: &'a dyn TowerPlacementStrategy,
+    pub item_use_strategy: &'a dyn ItemUseStrategy,
+    pub card_service_strategy: &'a dyn CardServiceStrategy,
+    pub treasure_strategy: &'a dyn TreasureStrategy,
+}
 
 /// A single headless game simulation.
 pub struct HeadlessGame {
@@ -59,14 +70,9 @@ impl HeadlessGame {
     }
 
     /// Run a full game simulation with the given strategies.
-    #[allow(clippy::too_many_arguments)]
     pub fn run<F>(
         &mut self,
-        shop_strategy: &dyn ShopStrategy,
-        card_reroll_strategy: &dyn CardRerollStrategy,
-        tower_placement_strategy: &dyn TowerPlacementStrategy,
-        item_use_strategy: &dyn ItemUseStrategy,
-        treasure_strategy: &dyn TreasureStrategy,
+        strategies: &SimulationStrategies,
         rng: &mut impl rand::Rng,
         mut on_clear_rate_update: F,
     ) -> SimResult
@@ -95,8 +101,15 @@ impl HeadlessGame {
                         });
                 }
                 GameFlow::Shopping(_) => {
-                    // Execute shop strategy in Shopping flow, then move to card selection.
-                    shop_strategy.execute_shop(&mut self.game_state, rng);
+                    // Execute shop strategy in Shopping flow, then handle card service if purchased, then move to card selection.
+                    strategies
+                        .shop_strategy
+                        .execute_shop(&mut self.game_state, rng);
+                    self.drain_play_history_events(&mut last_history_event_index);
+
+                    strategies
+                        .card_service_strategy
+                        .execute_card_service(&mut self.game_state, rng);
                     self.drain_play_history_events(&mut last_history_event_index);
 
                     self.game_state
@@ -108,12 +121,16 @@ impl HeadlessGame {
                     let _hp_before = self.game_state.hp;
 
                     // Execute item use strategy before card selection
-                    item_use_strategy.on_before_defense(&mut self.game_state);
+                    strategies
+                        .item_use_strategy
+                        .on_before_defense(&mut self.game_state);
                     self.drain_play_history_events(&mut last_history_event_index);
 
                     // Execute card reroll and tower selection
                     let rerolls_before = self.game_state.rerolled_count;
-                    card_reroll_strategy.execute_card_selection(&mut self.game_state, rng);
+                    strategies
+                        .card_reroll_strategy
+                        .execute_card_selection(&mut self.game_state, rng);
                     let rerolls_used = self.game_state.rerolled_count - rerolls_before;
                     self.drain_play_history_events(&mut last_history_event_index);
 
@@ -126,7 +143,9 @@ impl HeadlessGame {
                     let towers_before = self.game_state.towers.iter().count();
 
                     // Execute tower placement strategy
-                    tower_placement_strategy.execute_placement(&mut self.game_state);
+                    strategies
+                        .tower_placement_strategy
+                        .execute_placement(&mut self.game_state);
 
                     let towers_after = self.game_state.towers.iter().count();
                     self.total_towers_placed += towers_after.saturating_sub(towers_before);
@@ -163,7 +182,7 @@ impl HeadlessGame {
 
                     // Run defense simulation with fixed time ticks
                     let continue_sim = self.simulate_defense(
-                        item_use_strategy,
+                        strategies.item_use_strategy,
                         &mut last_history_event_index,
                         &mut on_clear_rate_update,
                     );
@@ -191,8 +210,11 @@ impl HeadlessGame {
                 GameFlow::TreasureSelection(ref flow) => {
                     let options = flow.options.clone();
                     if !options.is_empty() {
-                        let choice =
-                            treasure_strategy.select_treasure(&self.game_state, &options, rng);
+                        let choice = strategies.treasure_strategy.select_treasure(
+                            &self.game_state,
+                            &options,
+                            rng,
+                        );
                         let upgrade_kind =
                             Self::canonicalize_debug_name(format!("{:?}", options[choice]));
                         self.events.push(SimEvent::TreasureSelected {
@@ -310,6 +332,17 @@ impl HeadlessGame {
                         item_kind: Self::canonicalize_debug_name(format!("{:?}", item)),
                     });
                 }
+                HistoryEventType::CardServiceUsed {
+                    service_kind,
+                    cards_selected,
+                } => {
+                    self.events.push(SimEvent::CardServiceUsed {
+                        stage: event.stage,
+                        service_kind: service_kind.clone(),
+                        behavior_name: service_kind.clone(),
+                        cards_selected: *cards_selected,
+                    });
+                }
                 _ => {}
             }
             *last_history_event_index += 1;
@@ -407,5 +440,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         config: config.clone(),
         hand_panel_forced_open: false,
         shop_panel_forced_open: false,
+        headless: true,
     }
 }

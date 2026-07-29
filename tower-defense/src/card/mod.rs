@@ -1,9 +1,9 @@
 mod deck;
-mod render;
+pub mod render;
 
 use crate::*;
 pub use deck::*;
-pub use render::{RenderCard, RenderTowerCard};
+pub use render::{RenderCard, RenderTowerCard, damage_bonus_halo_config};
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
@@ -257,6 +257,11 @@ impl Card {
 
     pub fn damage_bonus_pct(&self) -> f32 {
         self.effects.damage_bonus_pct
+    }
+
+    pub(crate) fn halo_seed(&self) -> f32 {
+        let id = self.id.0 as f32;
+        (id * 0.618_034).fract()
     }
 
     pub fn add_damage_bonus_pct(&mut self, bonus_pct: f32) {

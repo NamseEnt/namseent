@@ -28,14 +28,21 @@ impl CardServiceBehavior for FountainPenCardService {
         "fountain_pen"
     }
 
-    fn acquire(self, _game_state: &mut GameState)
+    fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let title = match game_state.locale.language {
+            crate::l10n::locale::Language::English => "Select a card",
+            crate::l10n::locale::Language::Korean => "카드를 선택하세요",
+        }
+        .to_string();
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
             vec![crate::game_state::modal::deck::CardSelectionStep {
-                title: "Select cards".to_string(),
-                count: 3,
+                title,
+                count: 1,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Number,
             }],
             self.into_card_service(),
         );
@@ -90,12 +97,20 @@ impl CardServiceBehavior for FountainPenCardService {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => {
-                builder.static_text("Give 3 number cards +100% damage.")
+                builder.static_text("Select one number card and give it +300% damage.")
             }
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("숫자 카드 3장에 데미지 +100% 부여.")
+                builder.static_text("숫자 카드 1장을 선택해 데미지 +300%를 부여합니다.")
             }
         };
+    }
+
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        // FountainPen: damage bonus to high rank/potential cards.
+        let deck = &game_state.deck;
+        let mut cards = deck.all_cards().to_vec();
+        cards.sort_by_key(|c| std::cmp::Reverse(c.rank as u8)); // highest rank first
+        cards.iter().rev().take(3).map(|c| vec![c.id]).collect()
     }
 }
 
@@ -106,5 +121,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_fountain_pen_card_service() -> CardService {
-    FountainPenCardService::new(1.0).into_card_service()
+    FountainPenCardService::new(3.0).into_card_service()
 }

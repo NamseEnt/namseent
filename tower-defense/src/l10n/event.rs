@@ -94,6 +94,11 @@ impl HistoryEventType {
                         .l10n(UpgradeTypeText::Name(upgrade), _locale);
                 }
             }
+            HistoryEventType::CardServiceUsed { service_kind, .. } => {
+                builder
+                    .static_text("카드 서비스 사용: ")
+                    .text(service_kind.clone());
+            }
             HistoryEventType::GameOver => {
                 builder.static_text("게임 오버");
             }
@@ -167,6 +172,11 @@ impl HistoryEventType {
                         .static_text("Upgrade Selected: ")
                         .l10n(UpgradeTypeText::Name(upgrade), _locale);
                 }
+            }
+            HistoryEventType::CardServiceUsed { service_kind, .. } => {
+                builder
+                    .static_text("Card Service Used: ")
+                    .text(service_kind.clone());
             }
             HistoryEventType::GameOver => {
                 builder.static_text("Game Over");
