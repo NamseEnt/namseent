@@ -84,6 +84,7 @@ const SHOP_UPGRADE_NAMES: &[&str] = &[
     "PairChopsticks",
     "FountainPen",
     "Brush",
+    "Eraser",
     "BrokenPottery",
 ];
 
