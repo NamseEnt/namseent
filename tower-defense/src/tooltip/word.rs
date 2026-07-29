@@ -14,6 +14,7 @@ impl Word {
             Word::Shield => vec![self.tooltip_section(locale)],
             Word::PerfectClear => vec![self.tooltip_section(locale)],
             Word::CardService => vec![self.tooltip_section(locale)],
+            Word::DamageBonus(_) => vec![self.tooltip_section(locale)],
         }
     }
 

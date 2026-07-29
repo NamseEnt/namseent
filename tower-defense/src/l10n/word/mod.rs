@@ -3,7 +3,7 @@ mod name;
 
 use namui::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum Word {
     Health,
     Gold,
@@ -13,12 +13,13 @@ pub enum Word {
     Shield,
     PerfectClear,
     CardService,
+    DamageBonus(Option<f32>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct WordName(pub Word);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct WordDescription(pub Word);
 
 impl Word {

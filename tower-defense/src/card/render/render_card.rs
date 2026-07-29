@@ -17,7 +17,59 @@ pub struct RenderCard<'a> {
     pub opacity: f32,
 }
 
+struct RenderCardInner<'a> {
+    wh: Wh<Px>,
+    card: &'a Card,
+    selected: bool,
+    opacity: f32,
+}
+
 impl Component for RenderCard<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            wh,
+            card,
+            selected,
+            opacity,
+        } = self;
+
+        let bonus_pct = card.damage_bonus_pct();
+        let on_enter = move || {
+            if bonus_pct > 0.0 {
+                Some(crate::tooltip::TooltipContent::Word(
+                    crate::l10n::word::Word::DamageBonus(Some(bonus_pct)),
+                ))
+            } else {
+                None
+            }
+        };
+
+        ctx.add(crate::tooltip::WithHoverArea {
+            component_key: "card_tooltip",
+            component: RenderCardInner {
+                wh,
+                card,
+                selected,
+                opacity,
+            },
+            placement: crate::tooltip::TooltipPlacement::Above,
+            on_enter,
+            on_exit: || {},
+        });
+
+        if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+            ctx.add(CardHaloFx {
+                wh,
+                radius: wh.width * 0.25,
+                color,
+                strength: strength * opacity,
+                seed: card.halo_seed(),
+            });
+        }
+    }
+}
+
+impl<'a> Component for RenderCardInner<'a> {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
@@ -69,21 +121,11 @@ impl Component for RenderCard<'_> {
             self.render_face_card(ctx, wh, card, opacity);
         }
 
-        if let Some((color, strength)) = damage_bonus_halo_config(card.damage_bonus_pct()) {
-            ctx.add(CardHaloFx {
-                wh,
-                radius: wh.width * 0.25,
-                color,
-                strength: strength * opacity,
-                seed: card.halo_seed(),
-            });
-        }
-
         render_background_rect_with_opacity(ctx, wh, opacity);
     }
 }
 
-impl<'a> RenderCard<'a> {
+impl<'a> RenderCardInner<'a> {
     fn render_center_suits(&self, ctx: &RenderCtx, wh: Wh<Px>, card: &'a Card, opacity: f32) {
         let center_area = Rect::Xywh {
             x: px(36.0),

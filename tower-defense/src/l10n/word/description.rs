@@ -41,6 +41,13 @@ impl WordDescription {
             }),
             super::Word::PerfectClear => builder.static_text("데미지를 입지않고 스테이지를 클리어"),
             super::Word::CardService => builder.static_text("덱에 카드를 추가/제거/강화하는 등 덱을 편집할 수 있는 기능을 제공합니다"),
+            super::Word::DamageBonus(pct) => builder.with_style(|builder| {
+                if let Some(pct) = pct {
+                    builder.text(format!("타워의 데미지를 {}% 증가시킵니다.", (pct * 100.0).round()));
+                } else {
+                    builder.static_text("타워의 데미지를 증가시킵니다.");
+                }
+            }),
         };
     }
 
@@ -72,6 +79,13 @@ impl WordDescription {
             }),
             super::Word::PerfectClear => builder.static_text("Clearing a stage without taking any damage"),
             super::Word::CardService => builder.static_text("Provides features to edit your deck, such as adding, removing, or enhancing cards"),
+            super::Word::DamageBonus(pct) => builder.with_style(|builder| {
+                if let Some(pct) = pct {
+                    builder.text(format!("Increases tower damage by {}%.", (pct * 100.0).round()));
+                } else {
+                    builder.static_text("Increases tower damage.");
+                }
+            }),
         };
     }
 }
