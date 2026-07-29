@@ -1,11 +1,7 @@
 use super::*;
 use crate::{
     card::CardId,
-    game_state::{
-        GameState,
-        action::DeckEdit,
-        set_modal,
-    },
+    game_state::{GameState, action::DeckEdit, set_modal},
 };
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
@@ -86,11 +82,12 @@ impl CardServiceBehavior for EraserCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder.static_text(
-                "Select 1 card and remove it from the deck.",
-            ),
-            crate::l10n::locale::Language::Korean => builder
-                .static_text("카드를 1장 선택해 덱에서 제거합니다."),
+            crate::l10n::locale::Language::English => {
+                builder.static_text("Select 1 card and remove it from the deck.")
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder.static_text("카드를 1장 선택해 덱에서 제거합니다.")
+            }
         };
     }
 
