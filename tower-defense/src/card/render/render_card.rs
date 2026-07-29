@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     animation::with_spring,
-    card::{Card, FaceCardImage},
+    card::{Card, FaceCardImage, render::render_damage_bonus::render_damage_bonus_overlay},
     icon::{Icon, IconKind, IconSize},
 };
 use namui::*;
@@ -56,6 +56,8 @@ impl Component for RenderCard<'_> {
         });
 
         render_top_left_rank_and_suit_with_opacity(ctx, card.rank, card.suit, opacity);
+
+        render_damage_bonus_overlay(ctx, wh, card.damage_bonus_pct(), opacity);
 
         if !card.rank.is_face() {
             self.render_center_suits(ctx, wh, card, opacity);

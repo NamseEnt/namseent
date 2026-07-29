@@ -1,4 +1,5 @@
 mod render_card;
+mod render_damage_bonus;
 mod render_tower_card;
 
 use crate::{

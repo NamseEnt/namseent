@@ -119,7 +119,11 @@ impl App {
                 .get(self.selection)
                 .map(|row| db.detail_for_upgrade(&row.name))
                 .transpose()?,
-            Tab::CardServices => self.current_list().get(self.selection).map(|row| db.detail_for_card_service(&row.name)).transpose()?,
+            Tab::CardServices => self
+                .current_list()
+                .get(self.selection)
+                .map(|row| db.detail_for_card_service(&row.name))
+                .transpose()?,
             Tab::Strategies => self
                 .current_strategy()
                 .map(|strategy| db.detail_for_strategy(&strategy.category, &strategy.name))

@@ -1,7 +1,10 @@
 use super::*;
-use crate::game_state::tower::{
-    AnimationKind, TowerTemplate,
-    render::{TowerImage, TowerSpriteWithOverlay},
+use crate::{
+    card::render::render_damage_bonus::render_damage_bonus_overlay,
+    game_state::tower::{
+        AnimationKind, TowerTemplate,
+        render::{TowerImage, TowerSpriteWithOverlay},
+    },
 };
 use namui::*;
 
@@ -12,6 +15,8 @@ pub struct RenderTowerCard<'a> {
 impl Component for RenderTowerCard<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
+
+        render_damage_bonus_overlay(ctx, wh, tower_template.card_damage_bonus_pct(), 1.0);
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 
