@@ -1,3 +1,4 @@
+use crate::rarity::Rarity;
 use namui::*;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -6,6 +7,24 @@ enum SideSymbolKind {
     Burr,
     Star,
 }
+
+const HALO_COMMON_MIN: f32 = 500.0;
+const HALO_COMMON_MAX: f32 = 1000.0;
+const HALO_RARE_MIN: f32 = 1500.0;
+const HALO_RARE_MAX: f32 = 3000.0;
+const HALO_EPIC_MIN: f32 = 3000.0;
+const HALO_EPIC_MAX: f32 = 5000.0;
+const HALO_LEGENDARY_MIN: f32 = 5000.0;
+const HALO_LEGENDARY_MAX: f32 = 9000.0;
+
+const HALO_COMMON_STRENGTH_MIN: f32 = 0.4;
+const HALO_COMMON_STRENGTH_MAX: f32 = 0.6;
+const HALO_RARE_STRENGTH_MIN: f32 = 0.8;
+const HALO_RARE_STRENGTH_MAX: f32 = 1.0;
+const HALO_EPIC_STRENGTH_MIN: f32 = 1.0;
+const HALO_EPIC_STRENGTH_MAX: f32 = 1.2;
+const HALO_LEGENDARY_STRENGTH_MIN: f32 = 1.0;
+const HALO_LEGENDARY_STRENGTH_MAX: f32 = 1.2;
 
 struct DamageBonusCounts {
     bars: usize,
@@ -117,6 +136,51 @@ pub(super) fn render_damage_bonus_overlay(
         counts.chevrons,
         bar_chevron_paint.clone(),
     );
+}
+
+pub(super) fn damage_bonus_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
+    if bonus_pct <= 0.0 {
+        return None;
+    }
+
+    let percent = bonus_pct * 100.0;
+    let counts = DamageBonusCounts::from_percentage(percent);
+    if counts.is_empty() {
+        return None;
+    }
+
+    let progress = |min: f32, max: f32| ((percent - min) / (max - min)).clamp(0.0, 1.0);
+
+    if counts.symbol.is_none() {
+        if counts.chevrons == 0 {
+            return None;
+        }
+        let strength = HALO_COMMON_STRENGTH_MIN
+            + (HALO_COMMON_STRENGTH_MAX - HALO_COMMON_STRENGTH_MIN)
+                * progress(HALO_COMMON_MIN, HALO_COMMON_MAX);
+        return Some((Rarity::Common.color(), strength));
+    }
+
+    match counts.symbol.unwrap() {
+        SideSymbolKind::Diamond => {
+            let strength = HALO_RARE_STRENGTH_MIN
+                + (HALO_RARE_STRENGTH_MAX - HALO_RARE_STRENGTH_MIN)
+                    * progress(HALO_RARE_MIN, HALO_RARE_MAX);
+            Some((Rarity::Rare.color(), strength))
+        }
+        SideSymbolKind::Burr => {
+            let strength = HALO_EPIC_STRENGTH_MIN
+                + (HALO_EPIC_STRENGTH_MAX - HALO_EPIC_STRENGTH_MIN)
+                    * progress(HALO_EPIC_MIN, HALO_EPIC_MAX);
+            Some((Rarity::Epic.color(), strength))
+        }
+        SideSymbolKind::Star => {
+            let strength = HALO_LEGENDARY_STRENGTH_MIN
+                + (HALO_LEGENDARY_STRENGTH_MAX - HALO_LEGENDARY_STRENGTH_MIN)
+                    * progress(HALO_LEGENDARY_MIN, HALO_LEGENDARY_MAX);
+            Some((Rarity::Legendary.color(), strength))
+        }
+    }
 }
 
 fn render_center_markers(ctx: &ComposeCtx, wh: Wh<Px>, bars: usize, chevrons: usize, paint: Paint) {

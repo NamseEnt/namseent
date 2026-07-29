@@ -259,6 +259,11 @@ impl Card {
         self.effects.damage_bonus_pct
     }
 
+    pub(crate) fn halo_seed(&self) -> f32 {
+        let id = self.id.0 as f32;
+        (id * 0.618_034).fract()
+    }
+
     pub fn add_damage_bonus_pct(&mut self, bonus_pct: f32) {
         self.effects.damage_bonus_pct += bonus_pct;
     }

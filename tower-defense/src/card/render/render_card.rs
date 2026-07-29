@@ -1,8 +1,12 @@
 use super::*;
 use crate::{
     animation::with_spring,
-    card::{Card, FaceCardImage, render::render_damage_bonus::render_damage_bonus_overlay},
+    card::{
+        Card, FaceCardImage,
+        render::render_damage_bonus::{damage_bonus_halo_config, render_damage_bonus_overlay},
+    },
     icon::{Icon, IconKind, IconSize},
+    theme::card_halo_fx::CardHaloFx,
 };
 use namui::*;
 
@@ -63,6 +67,16 @@ impl Component for RenderCard<'_> {
             self.render_center_suits(ctx, wh, card, opacity);
         } else {
             self.render_face_card(ctx, wh, card, opacity);
+        }
+
+        if let Some((color, strength)) = damage_bonus_halo_config(card.damage_bonus_pct()) {
+            ctx.add(CardHaloFx {
+                wh,
+                radius: wh.width * 0.25,
+                color,
+                strength: strength * opacity,
+                seed: card.halo_seed(),
+            });
         }
 
         render_background_rect_with_opacity(ctx, wh, opacity);
