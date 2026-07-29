@@ -2,7 +2,9 @@ use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
 use super::{TowerImage, TowerSpriteWithOverlay};
+use crate::card::render::damage_bonus_halo_config;
 use crate::game_state::tower::Tower;
+use crate::theme::card_halo_fx::CardHaloFx;
 
 pub struct RenderTower<'a> {
     pub tower: &'a Tower,
@@ -45,8 +47,11 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
         1.0 + tower.animation.y_ratio_offset,
     );
 
-    ctx.translate(TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1))
-        .translate((image_wh.width * 0.5, image_wh.height))
+    let tile_xy = TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1);
+    let center = (image_wh.width * 0.5, image_wh.height);
+
+    ctx.translate(tile_xy)
+        .translate(center)
         .scale(scale)
         .translate(Xy::new(-image_wh.width * 0.5, -image_wh.height))
         .add(TowerSpriteWithOverlay {
@@ -56,4 +61,18 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
             rank: tower.rank,
             alpha,
         });
+
+    let bonus_pct = tower.template.card_damage_bonus_pct();
+    if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+        ctx.translate(tile_xy)
+            .translate(center)
+            .translate(Xy::new(-image_wh.width * 0.375, -image_wh.height * 0.875))
+            .add(CardHaloFx {
+                wh: image_wh * 0.75,
+                radius: image_wh.width * 0.5,
+                color,
+                strength: strength * alpha,
+                seed: (tower.id() as f32 * 0.618034).fract(),
+            });
+    }
 }
