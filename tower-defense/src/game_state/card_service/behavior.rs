@@ -62,6 +62,7 @@ pub trait CardServiceBehavior {
 
 mod brush;
 mod club_sword;
+mod eraser;
 mod fountain_pen;
 mod long_sword;
 mod mace;
@@ -70,6 +71,7 @@ mod tricycle;
 
 use brush::BrushCardService;
 use club_sword::ClubSwordCardService;
+use eraser::EraserCardService;
 use fountain_pen::FountainPenCardService;
 use long_sword::LongSwordCardService;
 use mace::MaceCardService;
@@ -87,6 +89,7 @@ pub enum CardService {
     Brush(BrushCardService),
     FountainPen(FountainPenCardService),
     Tricycle(TricycleCardService),
+    Eraser(EraserCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -145,6 +148,7 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::Brush => brush::DEFINITION,
             CardServiceDiscriminants::FountainPen => fountain_pen::DEFINITION,
             CardServiceDiscriminants::Tricycle => tricycle::DEFINITION,
+            CardServiceDiscriminants::Eraser => eraser::DEFINITION,
         }
     }
 
