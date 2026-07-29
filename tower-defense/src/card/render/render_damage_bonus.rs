@@ -138,7 +138,7 @@ pub(super) fn render_damage_bonus_overlay(
     );
 }
 
-pub(super) fn damage_bonus_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
+pub fn damage_bonus_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
     if bonus_pct <= 0.0 {
         return None;
     }

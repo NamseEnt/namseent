@@ -12,6 +12,7 @@ use crate::{
 };
 use namui::*;
 pub use render_card::RenderCard;
+pub use render_damage_bonus::damage_bonus_halo_config;
 pub use render_tower_card::RenderTowerCard;
 
 /// suit에 따른 색상을 반환하는 헬퍼 함수

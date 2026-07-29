@@ -1,9 +1,9 @@
 mod deck;
-mod render;
+pub mod render;
 
 use crate::*;
 pub use deck::*;
-pub use render::{RenderCard, RenderTowerCard};
+pub use render::{RenderCard, RenderTowerCard, damage_bonus_halo_config};
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
