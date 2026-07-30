@@ -18,7 +18,7 @@ use namui_prebuilt::table;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const PADDING: Px = px(12.0);
-const MAX_WIDTH: Px = px(320.0);
+const MAX_WIDTH: Px = px(240.0);
 const TITLE_GAP: Px = px(8.0);
 const SECTION_GAP: Px = px(8.0);
 const ANCHOR_GAP: Px = px(8.0);
@@ -250,6 +250,22 @@ impl Component for StackedTooltip<'_> {
     fn render(self, ctx: &RenderCtx) {
         let StackedTooltip { sections, locale } = self;
         let text_max = MAX_WIDTH - PADDING * 2.0;
+        let width = sections
+            .iter()
+            .enumerate()
+            .filter_map(|(index, section)| {
+                let section = ctx.ghost_add(
+                    format!("tooltip-section-measure-{index}"),
+                    SectionBox {
+                        section,
+                        locale,
+                        text_max,
+                        width: None,
+                    },
+                );
+                section.bounding_box().map(|rect| rect.width())
+            })
+            .fold(0.px(), |width, section_width| width.max(section_width));
 
         ctx.compose(|ctx| {
             let mut y = 0.px();
@@ -260,6 +276,7 @@ impl Component for StackedTooltip<'_> {
                         section,
                         locale,
                         text_max,
+                        width: Some(width),
                     },
                 );
                 let Some(box_wh) = box_tree.bounding_box().map(|rect| rect.wh()) else {
@@ -276,6 +293,7 @@ struct SectionBox<'a> {
     section: &'a TooltipSection<'a>,
     locale: Locale,
     text_max: Px,
+    width: Option<Px>,
 }
 
 impl Component for SectionBox<'_> {
@@ -284,6 +302,7 @@ impl Component for SectionBox<'_> {
             section,
             locale,
             text_max,
+            width,
         } = self;
 
         let content = ctx.ghost_compose("section-content", |ctx| {
@@ -330,7 +349,10 @@ impl Component for SectionBox<'_> {
         let Some(content_wh) = content.bounding_box().map(|rect| rect.wh()) else {
             return;
         };
-        let container_wh = content_wh + Wh::single(PADDING * 2.0);
+        let container_wh = Wh::new(
+            width.unwrap_or(content_wh.width + PADDING * 2.0),
+            content_wh.height + PADDING * 2.0,
+        );
 
         ctx.translate(Xy::new(PADDING, PADDING)).add(content);
         ctx.add(PaperContainerBackground {
