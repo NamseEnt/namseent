@@ -43,7 +43,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         return Output::NotUploaded;
     };
 
-    let bucket = object_storage::bucket();
+    let bucket = object_storage::private::bucket();
     let metadata = match bucket.head(&r2_key).await {
         Ok(Some(m)) => m,
         Ok(None) => return Output::NotUploaded,

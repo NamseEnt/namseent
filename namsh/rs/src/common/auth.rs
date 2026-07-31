@@ -47,7 +47,7 @@ pub async fn current_user(jar: &CookieJar) -> Option<UserDoc> {
 }
 
 pub async fn create_session(jar: &mut CookieJar, mut user: UserDoc) -> anyhow::Result<()> {
-    let bytes = rand::get_random_bytes(32).await;
+    let bytes = rand::get_random_bytes(32);
     let token = hex::encode(&bytes);
     let github_id = user.github_id;
     user.web_sessions.push(WebSessionEntry {
@@ -90,7 +90,7 @@ pub fn clear_session_cookie(jar: &mut CookieJar) {
 }
 
 pub async fn prepare_oauth(jar: &mut CookieJar) -> String {
-    let bytes = rand::get_random_bytes(32).await;
+    let bytes = rand::get_random_bytes(32);
     let nonce = hex::encode(&bytes);
     let state = serde_json::to_string(&OauthState {
         nonce: nonce.clone(),

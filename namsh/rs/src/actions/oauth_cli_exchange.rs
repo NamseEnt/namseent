@@ -92,7 +92,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         }
     };
 
-    let bytes = rand::get_random_bytes(16).await;
+    let bytes = rand::get_random_bytes(16);
     let Ok(uuid_bytes): Result<[u8; 16], _> = bytes.as_slice().try_into() else {
         return Output::Error {
             message: "rng returned wrong length".to_string(),

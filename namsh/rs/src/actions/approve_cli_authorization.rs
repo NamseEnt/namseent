@@ -53,7 +53,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         };
     }
 
-    let code_bytes = rand::get_random_bytes(32).await;
+    let code_bytes = rand::get_random_bytes(32);
     let code = URL_SAFE_NO_PAD.encode(&code_bytes);
 
     let now = forte_sdk::now();
