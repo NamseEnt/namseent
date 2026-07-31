@@ -204,7 +204,7 @@ fn generate_mock_upgrade(
         UpgradeDiscriminants::Trophy => crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
         UpgradeDiscriminants::Crock => crate::game_state::upgrade::CrockUpgrade::into_upgrade(),
         UpgradeDiscriminants::DemolitionHammer => {
-            crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade(damage_bonus_pct)
+            crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade()
         }
         UpgradeDiscriminants::Metronome => {
             crate::game_state::upgrade::MetronomeUpgrade::into_upgrade()

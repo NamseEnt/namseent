@@ -157,13 +157,13 @@ impl GameState {
                 true
             }
             GameStateAction::RemoveTower(tower_id) => {
-                let removed = remove_tower::remove_tower(self, tower_id);
-                if removed {
-                    remove_tower::recalculate_route(self);
-                    remove_tower::trigger_upgrades(self);
-                    remove_tower::record_history_event(self, tower_id);
-                    remove_tower::play_removal_sound(self);
-                }
+                let Some(removed_tower) = remove_tower::remove_tower(self, tower_id) else {
+                    return true;
+                };
+                remove_tower::recalculate_route(self);
+                remove_tower::trigger_upgrades(self, &removed_tower);
+                remove_tower::record_history_event(self, tower_id);
+                remove_tower::play_removal_sound(self);
                 true
             }
             GameStateAction::PurchaseShopItem(slot_id) => {

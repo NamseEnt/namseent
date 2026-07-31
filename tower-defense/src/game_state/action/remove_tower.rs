@@ -1,6 +1,6 @@
 use crate::game_state::{action::upgrade_trigger::UpgradeTriggerEvent, *};
 
-pub(super) fn remove_tower(game_state: &mut GameState, tower_id: usize) -> bool {
+pub(super) fn remove_tower(game_state: &mut GameState, tower_id: usize) -> Option<Tower> {
     game_state.towers.remove_tower(tower_id)
 }
 
@@ -9,8 +9,8 @@ pub(super) fn recalculate_route(game_state: &mut GameState) {
         .expect("route should exist after removing a tower");
 }
 
-pub(super) fn trigger_upgrades(game_state: &mut GameState) {
-    game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerRemoved);
+pub(super) fn trigger_upgrades(game_state: &mut GameState, tower: &Tower) {
+    game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerRemoved { tower });
 }
 
 pub(super) fn play_removal_sound(game_state: &mut GameState) {

@@ -128,7 +128,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
         match step {
             PlanStep::Remove(coord) => {
                 if let Some(tower_id) = gs.towers.find_by_xy(coord).map(|tower| tower.id()) {
-                    gs.towers.remove_tower(tower_id);
+                    let _ = gs.towers.remove_tower(tower_id);
                     gs.route = calculate_routes(&gs.towers.coords(), &TRAVEL_POINTS, MAP_SIZE)
                         .expect("route should exist after removing a tower");
                     placed_coords = gs.towers.coords();

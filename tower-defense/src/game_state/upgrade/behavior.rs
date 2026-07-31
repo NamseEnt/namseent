@@ -61,7 +61,11 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
-    fn on_tower_removed(&mut self, _game_state: &mut GameState) -> UpgradeUpdateFlags {
+    fn on_tower_removed(
+        &mut self,
+        _game_state: &mut GameState,
+        _tower: &Tower,
+    ) -> UpgradeUpdateFlags {
         UpgradeUpdateFlags::NONE
     }
 
