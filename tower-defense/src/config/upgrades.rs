@@ -181,7 +181,7 @@ pub fn default_upgrade_config() -> UpgradeConfig {
                 name: "ShoppingBag".into(),
                 entry: UpgradeCandidateEntry {
                     weight: 10.0,
-                    damage_multiplier: Some(1.5),
+                    damage_multiplier: None,
                 },
             },
             UpgradeCandidate {
