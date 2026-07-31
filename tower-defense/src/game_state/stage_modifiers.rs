@@ -60,6 +60,7 @@ pub struct Restrictions {
 #[derive(Clone, Debug, Default, State)]
 pub struct StageGrants {
     pub extra_tower_cards: Vec<(TowerKind, Option<Suit>, Option<Rank>)>,
+    pub free_card_services: usize,
 }
 
 #[derive(Clone, Debug, State)]
@@ -171,6 +172,10 @@ impl StageModifiers {
         std::mem::take(&mut self.stage_grants.extra_tower_cards)
     }
 
+    pub fn drain_free_card_services(&mut self) -> usize {
+        std::mem::take(&mut self.stage_grants.free_card_services)
+    }
+
     // Net deltas (for testing)
     #[cfg(test)]
     pub fn get_card_selection_hand_max_slots_delta(&self) -> isize {
@@ -248,5 +253,9 @@ impl StageModifiers {
         rank: Option<Rank>,
     ) {
         self.stage_grants.extra_tower_cards.push((kind, suit, rank));
+    }
+
+    pub fn enqueue_free_card_service(&mut self) {
+        self.stage_grants.free_card_services += 1;
     }
 }

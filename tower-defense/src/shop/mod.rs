@@ -57,6 +57,13 @@ impl Shop {
         self.slots.push(ShopSlotData::new(slot));
     }
 
+    pub fn push_free_card_service(&mut self) {
+        self.push(ShopSlot::CardService {
+            card_service: generate_shop_card_service(),
+            cost: 0,
+        });
+    }
+
     pub fn remove_completed_exit_animations(&mut self) {
         let now = Instant::now();
         self.slots

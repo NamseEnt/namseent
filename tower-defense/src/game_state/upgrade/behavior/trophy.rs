@@ -1,12 +1,8 @@
 use super::*;
-use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
+use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct TrophyUpgrade {
-    pub perfect_clear_stacks: usize,
-}
-
-const DAMAGE_BONUS_PCT: f32 = 1.0;
+pub struct TrophyUpgrade;
 
 impl UpgradeBehavior for TrophyUpgrade {
     fn key(&self) -> &'static str {
@@ -22,50 +18,17 @@ impl UpgradeBehavior for TrophyUpgrade {
         )
     }
 
-    fn thumbnail_overlay(
-        &self,
-        width_height: Wh<Px>,
-        _game_state: &GameState,
-    ) -> Option<RenderingTree> {
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!(
-                "{:.0}%",
-                self.perfect_clear_stacks as f32 * (DAMAGE_BONUS_PCT) * 100.0
-            ),
-            crate::theme::palette::RED,
-        ))
-    }
-
     fn on_stage_end(
         &mut self,
-        _game_state: &mut GameState,
+        game_state: &mut GameState,
         perfect_clear: bool,
         _gold: usize,
         _item_count: usize,
     ) -> UpgradeUpdateFlags {
         if perfect_clear {
-            self.perfect_clear_stacks += 1;
+            game_state.stage_modifiers.enqueue_free_card_service();
         }
-        UpgradeUpdateFlags::TOWER_STATS
-    }
-
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
-        if self.perfect_clear_stacks > 0 {
-            Some((
-                TowerUpgradeTarget::Global,
-                self.perfect_clear_stacks as f32 * (DAMAGE_BONUS_PCT),
-            ))
-        } else {
-            None
-        }
-    }
-
-    fn is_applicable(&self, _context: &SelectedTowerContext) -> bool {
-        if self.perfect_clear_stacks == 0 {
-            return false;
-        }
-        true
+        UpgradeUpdateFlags::NONE
     }
 
     fn l10n_name<'a>(
@@ -85,19 +48,17 @@ impl UpgradeBehavior for TrophyUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder
-                    .l10n(Word::PerfectClear.name(), locale)
-                    .static_text(" increase all towers' ")
-                    .with_damage_value(format!("damage +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder
-                    .l10n(Word::PerfectClear.name(), locale)
-                    .static_text(" 시 모든 타워 ")
-                    .with_damage_value(format!("데미지 +{:.0}%", (DAMAGE_BONUS_PCT) * 100.0));
-            }
-        }
+            crate::l10n::locale::Language::English => builder
+                .l10n(Word::PerfectClear.name(), locale)
+                .static_text(" adds one free ")
+                .l10n(Word::CardService.name(), locale)
+                .static_text(" to the next shop"),
+            crate::l10n::locale::Language::Korean => builder
+                .l10n(Word::PerfectClear.name(), locale)
+                .static_text(" 시 다음 상점에 무료 ")
+                .l10n(Word::CardService.name(), locale)
+                .static_text(" 1개 추가"),
+        };
     }
 
     fn tooltip_sections(
@@ -113,9 +74,7 @@ impl UpgradeBehavior for TrophyUpgrade {
 
 impl TrophyUpgrade {
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::Trophy(TrophyUpgrade {
-            perfect_clear_stacks: 0,
-        })
+        Upgrade::Trophy(TrophyUpgrade)
     }
 }
 
@@ -128,66 +87,70 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
     TrophyUpgrade::into_upgrade()
 }
+
 #[cfg(test)]
 mod tests {
-    use crate::card::{Rank, Suit};
+    use super::*;
+    use crate::game_state::{GameFlow, flow::DefenseFlow};
+    use crate::shop::ShopSlot;
 
     #[test]
-    fn trophy_uses_perfect_clear_stacks_for_global_damage() {
+    fn trophy_adds_one_free_card_service_to_the_next_shop_after_a_perfect_clear() {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
+            TrophyUpgrade::into_upgrade(),
             None,
         ));
+        let base_shop_slot_count = game_state.max_shop_slot();
+        game_state.flow = GameFlow::Defense(DefenseFlow::new(&game_state));
 
-        let tower_template = crate::game_state::tower::TowerTemplate::new(
-            crate::game_state::tower::TowerKind::High,
-            Suit::Hearts,
-            Rank::Two,
+        crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
+
+        let GameFlow::Shopping(flow) = &game_state.flow else {
+            panic!("expected shopping flow");
+        };
+        assert_eq!(flow.shop.slots.len(), base_shop_slot_count + 1);
+        assert_eq!(
+            flow.shop
+                .slots
+                .iter()
+                .filter(|slot_data| matches!(
+                    &slot_data.slot,
+                    ShopSlot::CardService { cost: 0, .. }
+                ))
+                .count(),
+            1
         );
-        let tower = crate::game_state::tower::Tower::new(
-            &tower_template,
-            crate::MapCoord::new(0, 0),
-            game_state.now(),
-        );
-        let before_damage = tower.calculate_projectile_damage(&[], 1.0);
-
-        game_state.action(crate::game_state::GameStateAction::StageEnd {
-            perfect_clear: true,
-            gold: 0,
-            item_count: 0,
-        });
-        game_state.action(crate::game_state::GameStateAction::StageEnd {
-            perfect_clear: true,
-            gold: 0,
-            item_count: 0,
-        });
-
-        let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
-        let after_damage = tower.calculate_projectile_damage(&upgrade_bonuses, 1.0);
-
-        assert!(after_damage > before_damage);
-        assert!((after_damage / before_damage - 3.0).abs() < f32::EPSILON);
     }
 
     #[test]
-    fn trophy_perfect_clear_increments_perfect_clear_stacks() {
+    fn trophy_does_not_add_a_card_service_after_taking_damage() {
         use crate::game_state::upgrade::tests::support;
 
-        let mut gs = support::create_mock_game_state();
-        gs.flow =
-            crate::game_state::GameFlow::Defense(crate::game_state::flow::DefenseFlow::new(&gs));
-        gs.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
+        let mut game_state = support::create_mock_game_state();
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            TrophyUpgrade::into_upgrade(),
             None,
         ));
+        let base_shop_slot_count = game_state.max_shop_slot();
+        let mut defense_flow = DefenseFlow::new(&game_state);
+        defense_flow.took_damage = true;
+        game_state.flow = GameFlow::Defense(defense_flow);
 
-        crate::game_state::tick::defense_end::check_defense_end(&mut gs);
+        crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
 
-        assert!(gs.upgrade_state.upgrades.iter().any(|upgrade| {
-            matches!(upgrade.upgrade, crate::game_state::upgrade::Upgrade::Trophy(trophy) if trophy.perfect_clear_stacks == 1)
-        }));
+        let GameFlow::Shopping(flow) = &game_state.flow else {
+            panic!("expected shopping flow");
+        };
+        assert_eq!(flow.shop.slots.len(), base_shop_slot_count);
+        assert!(
+            !flow
+                .shop
+                .slots
+                .iter()
+                .any(|slot_data| matches!(&slot_data.slot, ShopSlot::CardService { cost: 0, .. }))
+        );
     }
 }
