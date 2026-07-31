@@ -241,7 +241,7 @@ fn generate_mock_upgrade(
             crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade()
         }
         UpgradeDiscriminants::BrokenPottery => {
-            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade(damage_bonus_pct)
+            crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade()
         }
     }
 }
