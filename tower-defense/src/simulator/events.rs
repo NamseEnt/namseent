@@ -62,7 +62,6 @@ pub enum SimEvent {
     CardServiceUsed {
         stage: usize,
         service_kind: String,
-        behavior_name: String,
         cards_selected: usize,
     },
     TreasureSelected {

@@ -227,12 +227,11 @@ impl SimRecorder {
             SimEvent::CardServiceUsed {
                 stage,
                 service_kind,
-                behavior_name,
                 cards_selected,
             } => (
                 "card_service_used".to_string(),
                 to_string(
-                    &json!({"CardServiceUsed": {"stage": *stage, "service_kind": service_kind, "behavior_name": behavior_name, "cards_selected": *cards_selected}}),
+                    &json!({"CardServiceUsed": {"stage": *stage, "service_kind": service_kind, "cards_selected": *cards_selected}}),
                 )?,
             ),
             SimEvent::TreasureSelected {

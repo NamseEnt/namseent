@@ -79,7 +79,7 @@ pub trait ItemBehavior {
 
 #[enum_dispatch(ItemBehavior)]
 #[derive(Debug, Clone, PartialEq, State, strum_macros::EnumDiscriminants)]
-#[strum_discriminants(derive(State, strum_macros::EnumIter))]
+#[strum_discriminants(derive(State, strum_macros::EnumIter, strum_macros::AsRefStr))]
 pub enum Item {
     RiceBall(RiceBallItem),
     LumpSugar(LumpSugarItem),
