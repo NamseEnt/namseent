@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    card::render::render_damage_bonus::{damage_bonus_halo_config, render_damage_bonus_overlay},
+    card::render::render_polish::{polish_halo_config, render_polish_overlay},
     game_state::tower::{
         AnimationKind, TowerTemplate,
         render::{TowerImage, TowerSpriteWithOverlay},
@@ -23,11 +23,11 @@ impl Component for RenderTowerCard<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
 
-        let bonus_pct = tower_template.card_damage_bonus_pct();
+        let bonus_pct = tower_template.card_polish_pct();
         let on_enter = move || {
             if bonus_pct > 0.0 {
                 Some(crate::tooltip::TooltipContent::Word(
-                    crate::l10n::word::Word::DamageBonus(Some(bonus_pct)),
+                    crate::l10n::word::Word::Polish(Some(bonus_pct)),
                 ))
             } else {
                 None
@@ -42,7 +42,7 @@ impl Component for RenderTowerCard<'_> {
             on_exit: || {},
         });
 
-        if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+        if let Some((color, strength)) = polish_halo_config(bonus_pct) {
             let seed = (tower_template.kind as u32 as f32 * 0.618034).fract();
             ctx.add(CardHaloFx {
                 wh,
@@ -58,7 +58,7 @@ impl Component for RenderTowerCard<'_> {
 impl<'a> Component for RenderTowerCardInner<'a> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
-        render_damage_bonus_overlay(ctx, wh, tower_template.card_damage_bonus_pct(), 1.0);
+        render_polish_overlay(ctx, wh, tower_template.card_polish_pct(), 1.0);
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 

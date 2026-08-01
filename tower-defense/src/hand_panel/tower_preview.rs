@@ -1,4 +1,4 @@
-use crate::card::render::damage_bonus_halo_config;
+use crate::card::render::polish_halo_config;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
@@ -108,7 +108,7 @@ impl Component for PreviewEntryComponent {
                 .translate(-anchor);
 
             let halo_config = halo_config_for_tower_kind(template.kind);
-            let bonus_halo_config = damage_bonus_halo_config(template.card_damage_bonus_pct());
+            let bonus_halo_config = polish_halo_config(template.card_polish_pct());
 
             ctx.compose(|ctx| {
                 table::padding_no_clip(

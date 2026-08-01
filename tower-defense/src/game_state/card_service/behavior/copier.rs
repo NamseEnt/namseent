@@ -122,7 +122,7 @@ impl CardServiceBehavior for CopierCardService {
 fn copy_priority(card: &Card, deck: &[Card]) -> (f32, usize, usize, usize) {
     // 1. 사본은 강화량을 그대로 물려받고, 두 장이 같은 손패에 들어오면 보너스가 합산된다.
     //    확률에 기대는 족보 개선과 달리 곧바로 데미지로 환산되므로 가장 우선한다.
-    let enhancement = card.damage_bonus_pct();
+    let enhancement = card.polish_pct();
 
     // 2. 같은 수트를 두껍게 만들수록 플러시 계열 족보가 나올 확률이 오른다.
     let suit_count = deck.iter().filter(|other| other.suit == card.suit).count();
@@ -186,7 +186,7 @@ mod tests {
             .unwrap()
             .id;
         game_state.deck.modify_card(low_card_id, |card| {
-            card.add_damage_bonus_pct(0.5);
+            card.add_polish_pct(0.5);
         });
 
         let selected_card_id = CopierCardService.heuristic_best_selection(&game_state)[0][0];

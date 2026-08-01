@@ -227,9 +227,15 @@ pub struct InFlightAttack {
     pub damage: f32,
     pub source_tower: Option<TowerInfo>,
     pub kind: InFlightAttackKind,
+    pub splash: Option<crate::card::EngravingSplash>,
 }
 
 impl InFlightAttack {
+    pub fn with_splash(mut self, splash: Option<crate::card::EngravingSplash>) -> Self {
+        self.splash = splash;
+        self
+    }
+
     pub fn new_spatial(
         spatial: SpatialAttack,
         damage: f32,
@@ -240,6 +246,7 @@ impl InFlightAttack {
             damage,
             source_tower,
             kind: InFlightAttackKind::Spatial(spatial),
+            splash: None,
         }
     }
 
@@ -259,6 +266,7 @@ impl InFlightAttack {
                 execute_at,
                 hit_sound,
             }),
+            splash: None,
         }
     }
 
@@ -268,6 +276,7 @@ impl InFlightAttack {
             damage,
             source_tower,
             kind: InFlightAttackKind::Laser(beam),
+            splash: None,
         }
     }
 }

@@ -100,6 +100,7 @@ impl Tower {
             params.damage,
             params.source_tower,
         )
+        .with_splash(self.engraving_modifier().splash)
     }
 
     pub fn shoot_laser(
@@ -120,6 +121,7 @@ impl Tower {
             target_monster_id,
         );
         attack::InFlightAttack::new_laser(beam, damage, source_tower)
+            .with_splash(self.engraving_modifier().splash)
     }
 
     pub fn refresh_cached_upgrade_damage(
@@ -205,7 +207,9 @@ impl Tower {
     /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
     /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
     pub fn mark_fired(&mut self, now: Instant) {
-        self.cooldown = self.shoot_interval;
+        self.cooldown = self
+            .engraving_modifier()
+            .apply_shoot_interval(self.shoot_interval);
         self.animation.transition(AnimationKind::Attack, now);
     }
 
@@ -265,11 +269,7 @@ impl Tower {
             .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
             .sum();
 
-        let card_bonus_sum: f32 = self
-            .used_cards
-            .iter()
-            .map(|card| card.damage_bonus_pct())
-            .sum();
+        let card_bonus_sum: f32 = self.used_cards.iter().map(|card| card.polish_pct()).sum();
         damage *= 1.0 + bonus_sum + card_bonus_sum;
 
         damage *= stage_damage_multiplier;
@@ -281,7 +281,7 @@ impl Tower {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        self.default_attack_range_radius * contract_range_multiplier
+        self.template.attack_range_radius(contract_range_multiplier)
     }
 }
 impl Deref for Tower {
@@ -350,11 +350,25 @@ impl TowerTemplate {
         self.default_damage * damage_multiplier
     }
 
-    pub fn card_damage_bonus_pct(&self) -> f32 {
+    pub fn card_polish_pct(&self) -> f32 {
+        self.used_cards.iter().map(|card| card.polish_pct()).sum()
+    }
+
+    /// 이 타워를 만든 카드들의 각인 보정을 합친 값.
+    pub fn engraving_modifier(&self) -> crate::card::TowerEngravingModifier {
         self.used_cards
             .iter()
-            .map(|card| card.damage_bonus_pct())
-            .sum()
+            .filter_map(|card| card.engraving())
+            .map(|engraving| engraving.tower_modifier())
+            .fold(
+                crate::card::TowerEngravingModifier::NONE,
+                crate::card::TowerEngravingModifier::combine,
+            )
+    }
+
+    pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
+        self.engraving_modifier()
+            .apply_attack_range(self.default_attack_range_radius * contract_range_multiplier)
     }
 
     pub fn attack_power_with_upgrade_bonuses(
@@ -365,7 +379,7 @@ impl TowerTemplate {
             .iter()
             .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self))
             .sum();
-        let total_bonus_sum = upgrade_bonus_sum + self.card_damage_bonus_pct();
+        let total_bonus_sum = upgrade_bonus_sum + self.card_polish_pct();
         let damage_multiplier = 1.0 + total_bonus_sum;
         self.calculate_rating(damage_multiplier)
     }
@@ -495,6 +509,42 @@ pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn template_with_cards(used_cards: Vec<Card>) -> TowerTemplate {
+        TowerTemplate::new_optional_with_used_cards(
+            TowerKind::OnePair,
+            Some(Suit::Hearts),
+            Some(Rank::Three),
+            used_cards,
+        )
+    }
+
+    #[test]
+    fn engraving_modifier_folds_every_used_card() {
+        let mut engraved = Card::new(Rank::Ace, Suit::Spades);
+        engraved.effects.engraving = Some(crate::card::Engraving::Magnet);
+        let plain = Card::new(Rank::Two, Suit::Hearts);
+
+        // 자석은 타워에 영향이 없는 각인이라 결과가 중립값이어야 한다.
+        // 각인이 없는 카드가 섞여도 마찬가지다.
+        let template = template_with_cards(vec![engraved, plain]);
+
+        assert_eq!(
+            template.engraving_modifier(),
+            crate::card::TowerEngravingModifier::NONE
+        );
+    }
+
+    #[test]
+    fn attack_range_radius_goes_through_the_engraving_modifier() {
+        let template = template_with_cards(vec![Card::new(Rank::Two, Suit::Hearts)]);
+
+        // 중립 보정에서는 기존 계산과 값이 같아야 한다.
+        assert_eq!(
+            template.attack_range_radius(2.0),
+            template.default_attack_range_radius * 2.0
+        );
+    }
 
     #[test]
     fn tower_new_applies_template_skills() {

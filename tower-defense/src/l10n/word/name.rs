@@ -44,8 +44,17 @@ impl WordName {
             }),
             super::Word::PerfectClear => builder.bold().static_text("퍼펙트 클리어"),
             super::Word::CardService => builder.bold().static_text("카드 서비스"),
-            super::Word::DamageBonus(_) => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Damage, "추가 공격력");
+            super::Word::Polish(_) => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Damage, "연마");
+            }),
+            super::Word::Engraving(engraving) => builder.with_style(|builder| match engraving {
+                Some(engraving) => {
+                    builder.bold();
+                    engraving.l10n_name(builder, &Locale::KOREAN);
+                }
+                None => {
+                    builder.bold().static_text("각인");
+                }
             }),
         };
     }
@@ -80,8 +89,17 @@ impl WordName {
             }),
             super::Word::PerfectClear => builder.bold().static_text("Perfect clear"),
             super::Word::CardService => builder.bold().static_text("Card Service"),
-            super::Word::DamageBonus(_) => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Damage, "Damage Bonus");
+            super::Word::Polish(_) => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Damage, "Polish");
+            }),
+            super::Word::Engraving(engraving) => builder.with_style(|builder| match engraving {
+                Some(engraving) => {
+                    builder.bold();
+                    engraving.l10n_name(builder, &Locale::ENGLISH);
+                }
+                None => {
+                    builder.bold().static_text("Engraving");
+                }
             }),
         };
     }

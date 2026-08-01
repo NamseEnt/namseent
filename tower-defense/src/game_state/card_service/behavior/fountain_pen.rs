@@ -10,12 +10,12 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FountainPenCardService {
-    pub damage_bonus_pct: f32,
+    pub polish_pct: f32,
 }
 
 impl FountainPenCardService {
-    pub fn new(damage_bonus_pct: f32) -> Self {
-        Self { damage_bonus_pct }
+    pub fn new(polish_pct: f32) -> Self {
+        Self { polish_pct }
     }
 
     pub fn into_card_service(self) -> CardService {
@@ -66,7 +66,7 @@ impl CardServiceBehavior for FountainPenCardService {
                         .into_iter()
                         .map(|card_id| DeckEnhance {
                             card_id,
-                            changes: vec![DeckEditChange::AddDamageBonusPct(self.damage_bonus_pct)],
+                            changes: vec![DeckEditChange::AddPolishPct(self.polish_pct)],
                         })
                         .collect(),
                 },
@@ -111,6 +111,16 @@ impl CardServiceBehavior for FountainPenCardService {
         let mut cards = deck.all_cards().to_vec();
         cards.sort_by_key(|c| std::cmp::Reverse(c.rank as u8)); // highest rank first
         cards.iter().rev().take(3).map(|c| vec![c.id]).collect()
+    }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            crate::l10n::word::Word::Polish(None).tooltip_section(locale),
+        ]
     }
 }
 

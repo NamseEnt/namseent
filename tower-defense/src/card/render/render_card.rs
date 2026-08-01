@@ -3,7 +3,8 @@ use crate::{
     animation::with_spring,
     card::{
         Card, FaceCardImage,
-        render::render_damage_bonus::{damage_bonus_halo_config, render_damage_bonus_overlay},
+        render::render_engraving::render_engraving_overlay,
+        render::render_polish::{polish_halo_config, render_polish_overlay},
     },
     icon::{Icon, IconKind, IconSize},
     theme::card_halo_fx::CardHaloFx,
@@ -33,15 +34,18 @@ impl Component for RenderCard<'_> {
             opacity,
         } = self;
 
-        let bonus_pct = card.damage_bonus_pct();
+        let bonus_pct = card.polish_pct();
+        let engraving = card.engraving();
+        // 연마와 각인 툴팁은 카드 전체 호버 하나로 묶어 섹션을 쌓아 보여준다.
         let on_enter = move || {
+            let mut words = Vec::new();
             if bonus_pct > 0.0 {
-                Some(crate::tooltip::TooltipContent::Word(
-                    crate::l10n::word::Word::DamageBonus(Some(bonus_pct)),
-                ))
-            } else {
-                None
+                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct)));
             }
+            if let Some(engraving) = engraving {
+                words.push(crate::l10n::word::Word::Engraving(Some(engraving)));
+            }
+            (!words.is_empty()).then_some(crate::tooltip::TooltipContent::Words(words))
         };
 
         ctx.add(crate::tooltip::WithHoverArea {
@@ -57,7 +61,7 @@ impl Component for RenderCard<'_> {
             on_exit: || {},
         });
 
-        if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+        if let Some((color, strength)) = polish_halo_config(bonus_pct) {
             ctx.add(CardHaloFx {
                 wh,
                 radius: wh.width * 0.25,
@@ -113,7 +117,9 @@ impl<'a> Component for RenderCardInner<'a> {
 
         render_top_left_rank_and_suit_with_opacity(ctx, card.rank, card.suit, opacity);
 
-        render_damage_bonus_overlay(ctx, wh, card.damage_bonus_pct(), opacity);
+        render_polish_overlay(ctx, wh, card.polish_pct(), opacity);
+
+        render_engraving_overlay(ctx, wh, card.engraving(), opacity);
 
         if !card.rank.is_face() {
             self.render_center_suits(ctx, wh, card, opacity);

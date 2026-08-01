@@ -2,7 +2,7 @@ use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
 use super::{TowerImage, TowerSpriteWithOverlay};
-use crate::card::render::damage_bonus_halo_config;
+use crate::card::render::polish_halo_config;
 use crate::game_state::tower::Tower;
 use crate::theme::card_halo_fx::CardHaloFx;
 
@@ -62,8 +62,8 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
             alpha,
         });
 
-    let bonus_pct = tower.template.card_damage_bonus_pct();
-    if let Some((color, strength)) = damage_bonus_halo_config(bonus_pct) {
+    let bonus_pct = tower.template.card_polish_pct();
+    if let Some((color, strength)) = polish_halo_config(bonus_pct) {
         ctx.translate(tile_xy)
             .translate(center)
             .translate(Xy::new(-image_wh.width * 0.375, -image_wh.height * 0.875))

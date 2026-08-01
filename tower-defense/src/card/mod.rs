@@ -1,9 +1,11 @@
 mod deck;
+mod engraving;
 pub mod render;
 
 use crate::*;
 pub use deck::*;
-pub use render::{RenderCard, RenderTowerCard, damage_bonus_halo_config};
+pub use engraving::{Engraving, EngravingSplash, TowerEngravingModifier};
+pub use render::{RenderCard, RenderTowerCard, polish_halo_config};
 use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Copy, PartialOrd, Ord, State)]
@@ -192,13 +194,17 @@ static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicU
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct CardEffects {
-    pub damage_bonus_pct: f32,
+    /// 연마. 카드가 만든 타워의 데미지를 올리며 제한 없이 누적된다.
+    pub polish_pct: f32,
+    /// 각인. 카드당 최대 1개다. 부여/제거는 `DeckEditChange::SetEngraving` 을 거친다.
+    pub engraving: Option<Engraving>,
 }
 
 impl Default for CardEffects {
     fn default() -> Self {
         Self {
-            damage_bonus_pct: 0.0,
+            polish_pct: 0.0,
+            engraving: None,
         }
     }
 }
@@ -255,8 +261,8 @@ impl Card {
         }
     }
 
-    pub fn damage_bonus_pct(&self) -> f32 {
-        self.effects.damage_bonus_pct
+    pub fn polish_pct(&self) -> f32 {
+        self.effects.polish_pct
     }
 
     pub(crate) fn halo_seed(&self) -> f32 {
@@ -264,8 +270,12 @@ impl Card {
         (id * 0.618_034).fract()
     }
 
-    pub fn add_damage_bonus_pct(&mut self, bonus_pct: f32) {
-        self.effects.damage_bonus_pct += bonus_pct;
+    pub fn add_polish_pct(&mut self, bonus_pct: f32) {
+        self.effects.polish_pct += bonus_pct;
+    }
+
+    pub fn engraving(&self) -> Option<Engraving> {
+        self.effects.engraving
     }
 
     pub fn face_image(&self) -> Image {

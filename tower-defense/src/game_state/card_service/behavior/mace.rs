@@ -10,12 +10,12 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct MaceCardService {
-    pub damage_bonus_pct: f32,
+    pub polish_pct: f32,
 }
 
 impl MaceCardService {
-    pub fn new(damage_bonus_pct: f32) -> Self {
-        Self { damage_bonus_pct }
+    pub fn new(polish_pct: f32) -> Self {
+        Self { polish_pct }
     }
 
     pub fn into_card_service(self) -> CardService {
@@ -68,7 +68,7 @@ impl CardServiceBehavior for MaceCardService {
                             card_id,
                             changes: vec![
                                 DeckEditChange::SetSuit(Suit::Hearts),
-                                DeckEditChange::AddDamageBonusPct(self.damage_bonus_pct),
+                                DeckEditChange::AddPolishPct(self.polish_pct),
                             ],
                         })
                         .collect(),
@@ -114,6 +114,16 @@ impl CardServiceBehavior for MaceCardService {
         let mut cards = deck.all_cards().to_vec();
         cards.sort_by_key(|c| c.rank as i32); // lowest first
         cards.iter().take(3).map(|c| vec![c.id]).collect()
+    }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            crate::l10n::word::Word::Polish(None).tooltip_section(locale),
+        ]
     }
 }
 

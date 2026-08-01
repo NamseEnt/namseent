@@ -26,14 +26,14 @@ const HALO_EPIC_STRENGTH_MAX: f32 = 1.2;
 const HALO_LEGENDARY_STRENGTH_MIN: f32 = 1.0;
 const HALO_LEGENDARY_STRENGTH_MAX: f32 = 1.2;
 
-struct DamageBonusCounts {
+struct PolishCounts {
     bars: usize,
     chevrons: usize,
     symbol: Option<SideSymbolKind>,
     symbol_count: usize,
 }
 
-impl DamageBonusCounts {
+impl PolishCounts {
     fn empty() -> Self {
         Self {
             bars: 0,
@@ -89,18 +89,13 @@ impl DamageBonusCounts {
     }
 }
 
-pub(super) fn render_damage_bonus_overlay(
-    ctx: &RenderCtx,
-    wh: Wh<Px>,
-    bonus_pct: f32,
-    opacity: f32,
-) {
+pub(super) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32, opacity: f32) {
     if bonus_pct <= 0.0 {
         return;
     }
 
     let percent = bonus_pct * 100.0;
-    let counts = DamageBonusCounts::from_percentage(percent);
+    let counts = PolishCounts::from_percentage(percent);
     if counts.is_empty() {
         return;
     }
@@ -138,13 +133,13 @@ pub(super) fn render_damage_bonus_overlay(
     );
 }
 
-pub fn damage_bonus_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
+pub fn polish_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
     if bonus_pct <= 0.0 {
         return None;
     }
 
     let percent = bonus_pct * 100.0;
-    let counts = DamageBonusCounts::from_percentage(percent);
+    let counts = PolishCounts::from_percentage(percent);
     if counts.is_empty() {
         return None;
     }

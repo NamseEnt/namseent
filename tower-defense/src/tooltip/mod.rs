@@ -48,8 +48,13 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     CardService(crate::game_state::card_service::CardService),
-    Reroll { health_cost: usize },
+    Reroll {
+        health_cost: usize,
+    },
     Word(crate::l10n::word::Word),
+    /// 여러 단어의 섹션을 순서대로 쌓아 하나의 툴팁으로 보여준다.
+    /// 카드처럼 연마·각인이 동시에 붙을 수 있는 대상이 쓴다.
+    Words(Vec<crate::l10n::word::Word>),
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -136,6 +141,10 @@ impl TooltipContent {
                 let word = *word;
                 word.tooltip_sections(locale)
             }
+            TooltipContent::Words(words) => words
+                .iter()
+                .flat_map(|word| word.tooltip_sections(locale))
+                .collect(),
         }
     }
 }
