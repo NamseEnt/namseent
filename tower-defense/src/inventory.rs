@@ -29,7 +29,7 @@ impl Component for Inventory {
                 scroll_bar_width: PADDING,
                 content: |mut ctx| {
                     for item in game_state.items.iter() {
-                        ctx.add(InventoryItem { item });
+                        ctx.add_with_key(item.id.0 as u128, InventoryItem { item });
                         // advance by button height plus original gap
                         ctx = ctx.translate(Xy::new(0.px(), ITEM_SIZE + ITEM_GAP));
                     }

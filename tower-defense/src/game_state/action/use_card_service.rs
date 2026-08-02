@@ -16,7 +16,6 @@ pub(super) fn use_card_service(
         );
         card_service.select_cards(game_state, selected);
     } else {
-        crate::tooltip::hide_tooltip_all();
         card_service.acquire(game_state);
     }
 }
