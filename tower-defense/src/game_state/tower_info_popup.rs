@@ -78,7 +78,7 @@ impl Component for TowerInfoPopup<'_> {
         } else {
             0.0
         };
-        let range = tower.attack_range_radius(1.0);
+        let range = tower.attack_range_radius();
         let total_damage = game_state
             .metrics
             .tower_damage_stats

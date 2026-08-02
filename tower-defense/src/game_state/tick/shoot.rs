@@ -33,7 +33,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             }
 
-            let attack_range_radius = tower.attack_range_radius(1.0);
+            let attack_range_radius = tower.attack_range_radius();
             let tower_center = tower.center_xy_f32();
             let target_idx = monsters.iter().position(|monster| {
                 (monster.center_xy_tile() - tower_center).length() < attack_range_radius

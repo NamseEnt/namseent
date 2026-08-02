@@ -275,11 +275,11 @@ impl Tower {
         damage
     }
 
-    pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
+    pub(crate) fn attack_range_radius(&self) -> f32 {
         if self.kind == TowerKind::Barricade {
             return 0.0;
         }
-        self.template.attack_range_radius(contract_range_multiplier)
+        self.template.attack_range_radius()
     }
 }
 impl Deref for Tower {
@@ -376,9 +376,9 @@ impl TowerTemplate {
         self.engraving
     }
 
-    pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
+    pub(crate) fn attack_range_radius(&self) -> f32 {
         self.engraving
-            .apply_attack_range(self.default_attack_range_radius * contract_range_multiplier)
+            .apply_attack_range(self.default_attack_range_radius)
     }
 
     pub fn effective_shoot_interval(&self) -> Duration {
@@ -552,8 +552,8 @@ mod tests {
         let template = template_with_cards(vec![Card::new(Rank::Two, Suit::Hearts)]);
 
         assert_eq!(
-            template.attack_range_radius(2.0),
-            template.default_attack_range_radius * 2.0
+            template.attack_range_radius(),
+            template.default_attack_range_radius
         );
     }
 

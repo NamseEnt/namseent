@@ -11,7 +11,7 @@ impl Component for TowerAttackRange<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let range_radius_px = TILE_PX_SIZE.width * tower_template.attack_range_radius(1.0);
+        let range_radius_px = TILE_PX_SIZE.width * tower_template.attack_range_radius();
 
         const ROTATION_SPEED_PX_PER_SEC: f32 = 120.0;
         const DASH_ON_PX: f32 = 40.0;
