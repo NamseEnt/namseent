@@ -128,11 +128,6 @@ impl Deck {
         cards
     }
 
-    /// 자석 각인 카드를 뽑았다면 뽑을 카드 더미에 남은 자석 카드를 모두 딸려 보낸다.
-    /// 버린 카드 더미는 건드리지 않는다.
-    ///
-    /// 각인의 덱 이벤트 채널이 걸리는 지점이다. 실제 드로우 경로가 스테이지 시작과
-    /// 카드 리롤 둘로 나뉘어 있어, 양쪽이 공유하는 `draw` 안에서 처리한다.
     fn pull_magnet_engraved_cards(&mut self, drawn: &mut Vec<Card>) {
         let is_magnet = |card: &Card| card.engraving() == Some(crate::card::Engraving::Magnet);
 
@@ -175,8 +170,6 @@ mod tests {
     use super::*;
     use crate::card::{Engraving, Rank, Suit};
 
-    /// draw_pile 을 지정한 순서로 세팅한다. `draw` 는 뒤에서부터 pop 하므로
-    /// 마지막 원소가 가장 먼저 뽑힌다.
     fn deck_with_draw_pile(draw_pile: Vec<Card>) -> Deck {
         let mut deck = Deck::new();
         deck.all_cards = draw_pile.clone();
@@ -196,7 +189,6 @@ mod tests {
         let plain = Card::new(Rank::Two, Suit::Hearts);
         let buried_magnet = magnet_card(Rank::King);
         let drawn_magnet = magnet_card(Rank::Ace);
-        // 마지막 원소가 먼저 뽑히므로 drawn_magnet 한 장만 정상 드로우된다.
         let mut deck = deck_with_draw_pile(vec![buried_magnet, plain, drawn_magnet]);
 
         let drawn = deck.draw(&mut rand::thread_rng(), 1);
@@ -204,7 +196,6 @@ mod tests {
         assert_eq!(drawn.len(), 2);
         assert!(drawn.iter().any(|card| card.id == drawn_magnet.id));
         assert!(drawn.iter().any(|card| card.id == buried_magnet.id));
-        // 딸려온 자석 카드는 더미에서 빠지고, 일반 카드는 남는다.
         assert_eq!(deck.draw_pile().len(), 1);
         assert_eq!(deck.draw_pile()[0].id, plain.id);
     }

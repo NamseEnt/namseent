@@ -366,9 +366,6 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
     }
 }
 
-/// 각인 스플래시가 실린 타격마다, 적중 지점 반경 안의 다른 몬스터에게 들어갈
-/// 파생 타격을 만들어 목록에 덧붙인다. 파생 타격에는 스플래시를 싣지 않아
-/// 연쇄가 일어나지 않는다.
 fn expand_engraving_splash_hits(
     monster_centers: &[MapCoordF32],
     hits: Vec<MonsterHit>,
@@ -429,9 +426,9 @@ mod tests {
     #[test]
     fn splash_adds_scaled_hits_for_monsters_inside_the_radius() {
         let centers = vec![
-            MapCoordF32::new(0.0, 0.0), // 주 대상
-            MapCoordF32::new(1.0, 0.0), // 반경 안
-            MapCoordF32::new(9.0, 0.0), // 반경 밖
+            MapCoordF32::new(0.0, 0.0),
+            MapCoordF32::new(1.0, 0.0),
+            MapCoordF32::new(9.0, 0.0),
         ];
         let splash = EngravingSplash {
             radius: 2.0,
@@ -447,7 +444,6 @@ mod tests {
             .find(|hit| hit.target_idx == 1)
             .expect("반경 안 몬스터가 파생 타격을 받아야 한다");
         assert_eq!(splashed.damage, 50.0);
-        // 파생 타격에는 스플래시가 실리지 않아 연쇄가 일어나지 않는다.
         assert_eq!(splashed.splash, None);
         assert!(expanded.iter().all(|hit| hit.target_idx != 2));
     }

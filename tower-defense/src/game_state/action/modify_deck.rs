@@ -10,8 +10,6 @@ pub(crate) enum DeckEditChange {
     AddPolishPct(f32),
     SetSuit(Suit),
     SetRank(Rank),
-    /// 각인 부여/제거. 카드당 각인은 1개뿐이라, 이미 각인된 카드에 다른 각인을
-    /// 부여하려는 시도는 무시된다. `None` 은 언제나 제거로 동작한다.
     SetEngraving(Option<Engraving>),
 }
 
@@ -114,8 +112,6 @@ mod tests {
         let mut card = Card::new(Rank::Ace, Suit::Spades);
         card.effects.engraving = Some(Engraving::Magnet);
 
-        // 지금은 각인이 한 종류뿐이라 같은 값으로 덮어쓰는 것으로 확인한다.
-        // 값이 바뀌지 않았다는 것보다, 아래 제거 후 재부여가 되는 점이 불변식의 핵심이다.
         engrave(&mut card, Some(Engraving::Magnet));
 
         assert_eq!(card.engraving(), Some(Engraving::Magnet));

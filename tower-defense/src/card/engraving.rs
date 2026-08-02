@@ -2,36 +2,36 @@ use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 use namui::*;
 
-/// 카드에 새기는 각인. 연마(`polish_pct`)와 달리 카드당 최대 1개만 가질 수 있다.
-///
-/// 효과는 두 채널로 나뉜다.
-/// - 덱 이벤트 채널: 드로우 등 덱 조작 시점에 발동한다. `Magnet` 이 여기 해당하며
-///   실제 처리는 [`crate::card::Deck::draw`] 에 있다.
-/// - 타워 보정 채널: [`Engraving::tower_modifier`] 가 돌려주는
-///   [`TowerEngravingModifier`] 로 사거리·공격속도·스플래시를 조정한다.
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum Engraving {
     Magnet,
+    Overcharge,
 }
+
+const OVERCHARGE_ATTACK_SPEED_MUL: f32 = 1.5;
 
 impl Engraving {
     pub fn key(&self) -> &'static str {
         match self {
             Engraving::Magnet => "magnet",
+            Engraving::Overcharge => "overcharge",
         }
     }
 
-    /// 카드에 그릴 각인 표식. 이 각인을 부여하는 카드 서비스의 썸네일을 재사용한다.
     pub fn thumbnail(&self) -> Image {
         match self {
             Engraving::Magnet => crate::asset::image::thumbnail::MAGNET,
+            Engraving::Overcharge => crate::asset::image::thumbnail::BATTERY,
         }
     }
 
     pub fn tower_modifier(&self) -> TowerEngravingModifier {
         match self {
-            // 자석은 드로우 시점에만 작동하므로 타워에는 영향이 없다.
             Engraving::Magnet => TowerEngravingModifier::NONE,
+            Engraving::Overcharge => TowerEngravingModifier {
+                shoot_interval_mul: 1.0 / OVERCHARGE_ATTACK_SPEED_MUL,
+                ..TowerEngravingModifier::NONE
+            },
         }
     }
 
@@ -39,38 +39,40 @@ impl Engraving {
         builder.static_text(match (self, locale.language) {
             (Engraving::Magnet, crate::l10n::Language::Korean) => "자석",
             (Engraving::Magnet, crate::l10n::Language::English) => "Magnet",
+            (Engraving::Overcharge, crate::l10n::Language::Korean) => "과충전",
+            (Engraving::Overcharge, crate::l10n::Language::English) => "Overcharge",
         });
     }
 
     pub fn l10n_description<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
-        builder.static_text(match (self, locale.language) {
-            (Engraving::Magnet, crate::l10n::Language::Korean) => {
-                "이 카드를 뽑으면 뽑을 카드 더미에 있는 자석이 각인된 카드를 모두 손으로 가져옵니다"
+        let overcharge_pct = ((OVERCHARGE_ATTACK_SPEED_MUL - 1.0) * 100.0).round();
+        match (self, locale.language) {
+            (Engraving::Magnet, crate::l10n::Language::Korean) => builder.static_text(
+                "이 카드를 뽑으면 뽑을 카드 더미에 있는 자석이 각인된 카드를 모두 손으로 가져옵니다",
+            ),
+            (Engraving::Magnet, crate::l10n::Language::English) => builder.static_text(
+                "When you draw this card, every magnet-engraved card left in the draw pile is pulled into your hand",
+            ),
+            (Engraving::Overcharge, crate::l10n::Language::Korean) => {
+                builder.text(format!("공격속도를 {overcharge_pct}% 증가시킵니다"))
             }
-            (Engraving::Magnet, crate::l10n::Language::English) => {
-                "When you draw this card, every magnet-engraved card left in the draw pile is pulled into your hand"
+            (Engraving::Overcharge, crate::l10n::Language::English) => {
+                builder.text(format!("Increases attack speed by {overcharge_pct}%"))
             }
-        });
+        };
     }
 }
 
-/// 각인이 타워에 주는 보정. 카드 도메인의 순수 데이터라 tower 모듈에 의존하지 않는다.
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct TowerEngravingModifier {
-    /// 사거리 배수. 1.0 이면 보정 없음.
     pub attack_range_mul: f32,
-    /// 발사 간격 배수. 1.0 이면 보정 없음, 1.0 미만이면 공격 속도가 빨라진다.
     pub shoot_interval_mul: f32,
-    /// 투사체 적중 시 주변에 퍼지는 피해. None 이면 없음.
     pub splash: Option<EngravingSplash>,
 }
 
-/// 적중 지점 주변에 추가로 들어가는 피해.
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct EngravingSplash {
-    /// 타일 단위 반경.
     pub radius: f32,
-    /// 원 피해량 대비 비율.
     pub damage_pct: f32,
 }
 
@@ -81,18 +83,14 @@ impl TowerEngravingModifier {
         splash: None,
     };
 
-    /// 기본 사거리에 각인 보정을 적용한다.
     pub fn apply_attack_range(&self, base_radius: f32) -> f32 {
         base_radius * self.attack_range_mul
     }
 
-    /// 기본 발사 간격에 각인 보정을 적용한다.
     pub fn apply_shoot_interval(&self, base_interval: Duration) -> Duration {
         Duration::from_secs_f32(base_interval.as_secs_f32() * self.shoot_interval_mul)
     }
 
-    /// 한 타워가 쓴 카드들의 각인을 합친다.
-    /// 배수는 곱하고, 스플래시는 반경과 비율을 각각 큰 쪽으로 취한다.
     pub fn combine(self, other: Self) -> Self {
         Self {
             attack_range_mul: self.attack_range_mul * other.attack_range_mul,

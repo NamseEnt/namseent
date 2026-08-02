@@ -207,9 +207,7 @@ impl Tower {
     /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
     /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
     pub fn mark_fired(&mut self, now: Instant) {
-        self.cooldown = self
-            .engraving_modifier()
-            .apply_shoot_interval(self.shoot_interval);
+        self.cooldown = self.effective_shoot_interval();
         self.animation.transition(AnimationKind::Attack, now);
     }
 
@@ -269,7 +267,7 @@ impl Tower {
             .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
             .sum();
 
-        let card_bonus_sum: f32 = self.used_cards.iter().map(|card| card.polish_pct()).sum();
+        let card_bonus_sum: f32 = self.card_polish_pct();
         damage *= 1.0 + bonus_sum + card_bonus_sum;
 
         damage *= stage_damage_multiplier;
@@ -303,7 +301,8 @@ pub struct TowerTemplate {
     pub rank: Option<Rank>,
     pub skill_templates: Vec<TowerSkillTemplate>,
     pub default_status_effects: Vec<TowerStatusEffect>,
-    pub used_cards: Vec<Card>,
+    used_cards: Vec<Card>,
+    engraving: crate::card::TowerEngravingModifier,
 }
 impl TowerTemplate {
     pub fn new(kind: TowerKind, suit: Suit, rank: Rank) -> Self {
@@ -320,7 +319,7 @@ impl TowerTemplate {
         rank: Option<Rank>,
         used_cards: Vec<Card>,
     ) -> Self {
-        Self {
+        let mut template = Self {
             kind,
             rerolled_count: 0,
             shoot_interval: kind.shoot_interval(),
@@ -330,8 +329,27 @@ impl TowerTemplate {
             rank,
             skill_templates: kind.skill_templates(),
             default_status_effects: vec![],
-            used_cards,
-        }
+            used_cards: Vec::new(),
+            engraving: crate::card::TowerEngravingModifier::NONE,
+        };
+        template.set_used_cards(used_cards);
+        template
+    }
+
+    pub fn used_cards(&self) -> &[Card] {
+        &self.used_cards
+    }
+
+    pub fn set_used_cards(&mut self, used_cards: Vec<Card>) {
+        self.engraving = used_cards
+            .iter()
+            .filter_map(|card| card.engraving())
+            .map(|engraving| engraving.tower_modifier())
+            .fold(
+                crate::card::TowerEngravingModifier::NONE,
+                crate::card::TowerEngravingModifier::combine,
+            );
+        self.used_cards = used_cards;
     }
 
     pub fn barricade() -> Self {
@@ -354,21 +372,17 @@ impl TowerTemplate {
         self.used_cards.iter().map(|card| card.polish_pct()).sum()
     }
 
-    /// 이 타워를 만든 카드들의 각인 보정을 합친 값.
     pub fn engraving_modifier(&self) -> crate::card::TowerEngravingModifier {
-        self.used_cards
-            .iter()
-            .filter_map(|card| card.engraving())
-            .map(|engraving| engraving.tower_modifier())
-            .fold(
-                crate::card::TowerEngravingModifier::NONE,
-                crate::card::TowerEngravingModifier::combine,
-            )
+        self.engraving
     }
 
     pub(crate) fn attack_range_radius(&self, contract_range_multiplier: f32) -> f32 {
-        self.engraving_modifier()
+        self.engraving
             .apply_attack_range(self.default_attack_range_radius * contract_range_multiplier)
+    }
+
+    pub fn effective_shoot_interval(&self) -> Duration {
+        self.engraving.apply_shoot_interval(self.shoot_interval)
     }
 
     pub fn attack_power_with_upgrade_bonuses(
@@ -525,8 +539,6 @@ mod tests {
         engraved.effects.engraving = Some(crate::card::Engraving::Magnet);
         let plain = Card::new(Rank::Two, Suit::Hearts);
 
-        // 자석은 타워에 영향이 없는 각인이라 결과가 중립값이어야 한다.
-        // 각인이 없는 카드가 섞여도 마찬가지다.
         let template = template_with_cards(vec![engraved, plain]);
 
         assert_eq!(
@@ -539,11 +551,82 @@ mod tests {
     fn attack_range_radius_goes_through_the_engraving_modifier() {
         let template = template_with_cards(vec![Card::new(Rank::Two, Suit::Hearts)]);
 
-        // 중립 보정에서는 기존 계산과 값이 같아야 한다.
         assert_eq!(
             template.attack_range_radius(2.0),
             template.default_attack_range_radius * 2.0
         );
+    }
+
+    fn card_with_engraving(engraving: crate::card::Engraving) -> Card {
+        let mut card = Card::new(Rank::Ace, Suit::Spades);
+        card.effects.engraving = Some(engraving);
+        card
+    }
+
+    #[test]
+    fn overcharge_shortens_the_cooldown_after_firing() {
+        let now = Instant::now();
+        let plain = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
+        let overcharged = template_with_cards(vec![card_with_engraving(
+            crate::card::Engraving::Overcharge,
+        )]);
+
+        let mut plain_tower = Tower::new(&plain, MapCoord::new(0, 0), now);
+        let mut overcharged_tower = Tower::new(&overcharged, MapCoord::new(0, 0), now);
+        plain_tower.mark_fired(now);
+        overcharged_tower.mark_fired(now);
+
+        let expected = Duration::from_secs_f32(plain.shoot_interval.as_secs_f32() / 1.5);
+        assert!((overcharged_tower.cooldown.as_secs_f32() - expected.as_secs_f32()).abs() < 1e-6);
+        assert!(overcharged_tower.cooldown < plain_tower.cooldown);
+    }
+
+    #[test]
+    fn set_used_cards_re_resolves_the_engraving_modifier() {
+        let mut template = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
+        assert_eq!(
+            template.engraving_modifier(),
+            crate::card::TowerEngravingModifier::NONE
+        );
+
+        template.set_used_cards(vec![card_with_engraving(
+            crate::card::Engraving::Overcharge,
+        )]);
+        assert!(template.engraving_modifier().shoot_interval_mul < 1.0);
+
+        template.set_used_cards(vec![Card::new(Rank::Two, Suit::Hearts)]);
+        assert_eq!(
+            template.engraving_modifier(),
+            crate::card::TowerEngravingModifier::NONE
+        );
+    }
+
+    #[test]
+    fn effective_shoot_interval_reflects_overcharge() {
+        let plain = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
+        let overcharged = template_with_cards(vec![card_with_engraving(
+            crate::card::Engraving::Overcharge,
+        )]);
+
+        assert_eq!(plain.effective_shoot_interval(), plain.shoot_interval);
+        let expected = plain.shoot_interval.as_secs_f32() / 1.5;
+        assert!((overcharged.effective_shoot_interval().as_secs_f32() - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn stacked_overcharge_cards_multiply_the_attack_speed() {
+        let one = template_with_cards(vec![card_with_engraving(
+            crate::card::Engraving::Overcharge,
+        )]);
+        let two = template_with_cards(vec![
+            card_with_engraving(crate::card::Engraving::Overcharge),
+            card_with_engraving(crate::card::Engraving::Overcharge),
+        ]);
+
+        let one_mul = one.engraving_modifier().shoot_interval_mul;
+        let two_mul = two.engraving_modifier().shoot_interval_mul;
+
+        assert!((two_mul - one_mul * one_mul).abs() < 1e-6);
     }
 
     #[test]

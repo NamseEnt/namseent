@@ -109,7 +109,6 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
     }
 }
 
-// 카드 서비스 발동이 `namui::time::now()` 를 타지 않으려면 simulator 빌드가 필요하다.
 #[cfg(all(test, feature = "simulator"))]
 mod tests {
     use super::*;

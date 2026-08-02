@@ -127,8 +127,6 @@ impl Database {
         let outcome = self.load_simulation_outcomes()?;
         let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
         rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
-        // `shop_purchase` 에는 아이템·카드 서비스 구매도 섞여 있다.
-        // 업그레이드 이름만 남기는 필터 역할을 build_known_summary 가 겸한다.
         Ok(self.build_known_summary(self.build_summary(rows, &outcome), &upgrade_names()))
     }
 
@@ -758,8 +756,6 @@ mod tests {
             .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
             .unwrap();
 
-        // 기록이 하나도 없어도 모든 종류가 0회 행으로 나와야 한다.
-        // 새 아이템/업그레이드/카드 서비스를 추가해도 목록이 다시 낡지 않음을 보장한다.
         let db = Database::open(&db_path).unwrap();
         assert_eq!(
             db.list_items().unwrap().len(),
@@ -809,11 +805,9 @@ mod tests {
 
         let db = Database::open(&db_path).unwrap();
 
-        // snake_case key 가 잘리지 않고 그대로 집계된다.
         let detail = db.detail_for_shop_purchase("long_sword").unwrap();
         assert_eq!(detail.total_purchases, 1);
 
-        // 카드 서비스 구매는 Upgrades 탭으로 새지 않는다.
         let upgrades = db.list_upgrades_and_treasures().unwrap();
         assert!(upgrades.iter().all(|row| row.name != "long_sword"));
 

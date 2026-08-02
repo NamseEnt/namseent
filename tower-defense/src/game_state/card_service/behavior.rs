@@ -60,6 +60,7 @@ pub trait CardServiceBehavior {
     }
 }
 
+mod battery;
 mod brush;
 mod club_sword;
 mod copier;
@@ -72,6 +73,7 @@ mod screwdriver;
 mod staff;
 mod tricycle;
 
+use battery::BatteryCardService;
 use brush::BrushCardService;
 use club_sword::ClubSwordCardService;
 use copier::CopierCardService;
@@ -99,6 +101,7 @@ pub enum CardService {
     Screwdriver(ScrewdriverCardService),
     Copier(CopierCardService),
     Magnet(MagnetCardService),
+    Battery(BatteryCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -161,6 +164,7 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::Screwdriver => screwdriver::DEFINITION,
             CardServiceDiscriminants::Copier => copier::DEFINITION,
             CardServiceDiscriminants::Magnet => magnet::DEFINITION,
+            CardServiceDiscriminants::Battery => battery::DEFINITION,
         }
     }
 

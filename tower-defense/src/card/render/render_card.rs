@@ -36,7 +36,6 @@ impl Component for RenderCard<'_> {
 
         let bonus_pct = card.polish_pct();
         let engraving = card.engraving();
-        // 연마와 각인 툴팁은 카드 전체 호버 하나로 묶어 섹션을 쌓아 보여준다.
         let on_enter = move || {
             let mut words = Vec::new();
             if bonus_pct > 0.0 {

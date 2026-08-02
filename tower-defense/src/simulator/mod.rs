@@ -355,9 +355,6 @@ impl HeadlessGame {
     }
 }
 
-/// `Debug` 출력이나 `key()` 문자열에서 통계 집계용 이름만 뽑아낸다.
-/// 기록 시점(`drain_play_history_events`)과 조회 시점(`stats::Database`) 양쪽에서
-/// 같은 규칙을 써야 하므로 한 곳에만 둔다.
 pub(crate) fn canonicalize_kind_name(name: String) -> String {
     let trimmed = name.trim();
     let token: String = trimmed

@@ -120,16 +120,10 @@ impl CardServiceBehavior for CopierCardService {
 }
 
 fn copy_priority(card: &Card, deck: &[Card]) -> (f32, usize, usize, usize) {
-    // 1. 사본은 강화량을 그대로 물려받고, 두 장이 같은 손패에 들어오면 보너스가 합산된다.
-    //    확률에 기대는 족보 개선과 달리 곧바로 데미지로 환산되므로 가장 우선한다.
     let enhancement = card.polish_pct();
 
-    // 2. 같은 수트를 두껍게 만들수록 플러시 계열 족보가 나올 확률이 오른다.
     let suit_count = deck.iter().filter(|other| other.suit == card.suit).count();
 
-    // 3. 로열 스트레이트 플러시 조합 수는 그 수트의 10-J-Q-K-A 장수를 곱한 값이다.
-    //    사본을 더하면 해당 랭크의 장수가 n -> n+1 이 되어 조합 수가 곱/n 만큼 늘어난다.
-    //    즉 로열이 이미 모인 수트에서 가장 부족한 랭크를 복사할 때 증가폭이 가장 크다.
     let royal_gain = match ROYAL_RANKS.contains(&card.rank) {
         true => {
             let count_of = |rank: Rank| {
@@ -215,7 +209,6 @@ mod tests {
     #[test]
     fn copier_heuristic_targets_the_scarcest_royal_rank_of_the_completed_suit() {
         let mut game_state = crate::game_state::create_initial_game_state();
-        // 스페이드 로열 중 10 만 남기고 나머지 랭크를 한 장씩 더 쌓아 병목을 만든다.
         for rank in [Rank::Jack, Rank::Queen, Rank::King, Rank::Ace] {
             game_state
                 .deck

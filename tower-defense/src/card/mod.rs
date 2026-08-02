@@ -194,9 +194,7 @@ static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicU
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct CardEffects {
-    /// 연마. 카드가 만든 타워의 데미지를 올리며 제한 없이 누적된다.
     pub polish_pct: f32,
-    /// 각인. 카드당 최대 1개다. 부여/제거는 `DeckEditChange::SetEngraving` 을 거친다.
     pub engraving: Option<Engraving>,
 }
 
