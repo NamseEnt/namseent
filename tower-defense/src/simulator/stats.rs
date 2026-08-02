@@ -65,28 +65,32 @@ pub struct DetailStats {
     pub distribution: Vec<PickBin>,
 }
 
-const ITEM_NAMES: &[&str] = &[
-    "RiceBall",
-    "LumpSugar",
-    "Shield",
-    "Painkiller",
-    "GrantBarricades",
-    "GrantCard",
-];
+fn item_names() -> Vec<String> {
+    use crate::game_state::item::ItemDiscriminants;
+    use strum::IntoEnumIterator;
 
-const SHOP_UPGRADE_NAMES: &[&str] = &[
-    "Staff",
-    "LongSword",
-    "Mace",
-    "ClubSword",
-    "Tricycle",
-    "SingleChopstick",
-    "PairChopsticks",
-    "FountainPen",
-    "Brush",
-    "Eraser",
-    "BrokenPottery",
-];
+    ItemDiscriminants::iter()
+        .map(|discriminant| discriminant.as_ref().to_string())
+        .collect()
+}
+
+fn upgrade_names() -> Vec<String> {
+    use crate::game_state::upgrade::UpgradeDiscriminants;
+    use strum::IntoEnumIterator;
+
+    UpgradeDiscriminants::iter()
+        .map(|discriminant| discriminant.as_ref().to_string())
+        .collect()
+}
+
+fn card_service_names() -> Vec<String> {
+    use crate::game_state::card_service::{CardServiceBehavior, CardServiceDiscriminants};
+    use strum::IntoEnumIterator;
+
+    CardServiceDiscriminants::iter()
+        .map(|discriminant| discriminant.generate().key().to_string())
+        .collect()
+}
 
 const STRATEGY_COLUMNS: &[(&str, &str)] = &[
     ("Shop", "shop_strategy"),
@@ -105,12 +109,12 @@ impl Database {
 
     pub fn list_items(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
-        Ok(self.build_known_summary(summary, ITEM_NAMES))
+        Ok(self.build_known_summary(summary, &item_names()))
     }
 
     pub fn list_upgrades(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let summary = self.list_shop_purchase_summaries()?;
-        Ok(self.build_known_summary(summary, SHOP_UPGRADE_NAMES))
+        Ok(self.build_known_summary(summary, &upgrade_names()))
     }
 
     pub fn list_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
@@ -122,10 +126,8 @@ impl Database {
     pub fn list_upgrades_and_treasures(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
         let mut rows = self.query_event_kind("shop_purchase", "$.ShopPurchase.item_kind")?;
-        let valid_names: HashSet<&str> = SHOP_UPGRADE_NAMES.iter().copied().collect();
-        rows.retain(|(_, kind)| valid_names.contains(kind.as_str()));
         rows.extend(self.query_event_kind("treasure_selected", "$.TreasureSelected.upgrade_kind")?);
-        Ok(self.build_summary(rows, &outcome))
+        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &upgrade_names()))
     }
 
     pub fn list_strategy_win_rates(&self) -> anyhow::Result<Vec<StrategyStats>> {
@@ -245,23 +247,13 @@ impl Database {
         let mut output = Vec::new();
         for row in rows {
             let (simulation_id, kind) = row?;
-            let kind = Self::canonicalize_kind_name(kind);
+            let kind = super::canonicalize_kind_name(kind);
             if kind.is_empty() {
                 continue;
             }
             output.push((simulation_id, kind));
         }
         Ok(output)
-    }
-
-    fn canonicalize_kind_name(kind: String) -> String {
-        let trimmed = kind.trim();
-        let token: String = trimmed
-            .chars()
-            .take_while(|c| c.is_alphanumeric())
-            .collect();
-        let token = token.strip_suffix("Upgrade").unwrap_or(&token);
-        token.to_string()
     }
 
     fn build_summary(
@@ -328,7 +320,11 @@ impl Database {
         result
     }
 
-    fn build_known_summary(&self, rows: Vec<SummaryRow>, known_names: &[&str]) -> Vec<SummaryRow> {
+    fn build_known_summary(
+        &self,
+        rows: Vec<SummaryRow>,
+        known_names: &[String],
+    ) -> Vec<SummaryRow> {
         let mut map: HashMap<String, SummaryRow> = HashMap::new();
         for row in rows {
             map.insert(row.name.clone(), row);
@@ -337,7 +333,7 @@ impl Database {
         let mut result: Vec<SummaryRow> = known_names
             .iter()
             .map(|name| {
-                map.remove(*name).unwrap_or(SummaryRow {
+                map.remove(name).unwrap_or(SummaryRow {
                     name: name.to_string(),
                     selected_simulations: 0,
                     total_purchases: 0,
@@ -582,7 +578,7 @@ impl Database {
     pub fn list_card_services(&self) -> anyhow::Result<Vec<SummaryRow>> {
         let outcome = self.load_simulation_outcomes()?;
         let rows = self.query_event_kind("card_service_used", "$.CardServiceUsed.service_kind")?;
-        Ok(self.build_summary(rows, &outcome))
+        Ok(self.build_known_summary(self.build_summary(rows, &outcome), &card_service_names()))
     }
 
     pub fn detail_for_card_service(&self, kind: &str) -> anyhow::Result<DetailStats> {
@@ -624,17 +620,27 @@ mod tests {
     #[test]
     fn canonicalizes_upgrade_debug_names() {
         assert_eq!(
-            Database::canonicalize_kind_name("BlackWhite(BlackWhiteUpgrade)".to_string()),
+            super::super::canonicalize_kind_name("BlackWhite(BlackWhiteUpgrade)".to_string()),
             "BlackWhite".to_string()
         );
         assert_eq!(
-            Database::canonicalize_kind_name("PairChopsticksUpgrade".to_string()),
+            super::super::canonicalize_kind_name("PairChopsticksUpgrade".to_string()),
             "PairChopsticks".to_string()
         );
         assert_eq!(
-            Database::canonicalize_kind_name("RiceBall".to_string()),
+            super::super::canonicalize_kind_name("RiceBall".to_string()),
             "RiceBall".to_string()
         );
+    }
+
+    #[test]
+    fn canonicalizes_snake_case_card_service_keys() {
+        for key in ["long_sword", "club_sword", "fountain_pen", "copier"] {
+            assert_eq!(
+                super::super::canonicalize_kind_name(key.to_string()),
+                key.to_string()
+            );
+        }
     }
 
     #[test]
@@ -659,7 +665,7 @@ mod tests {
                 &[SimEvent::ShopPurchase {
                     stage: 1,
                     cost: 0,
-                    item_kind: "Staff(StaffUpgrade)".to_string(),
+                    item_kind: "Cat(CatUpgrade)".to_string(),
                 }],
             )
             .unwrap();
@@ -672,7 +678,7 @@ mod tests {
         assert!(
             upgrades
                 .iter()
-                .any(|row| row.name == "Staff" && row.total_purchases == 1)
+                .any(|row| row.name == "Cat" && row.total_purchases == 1)
         );
 
         fs::remove_file(&db_path).unwrap();
@@ -701,11 +707,11 @@ mod tests {
                     SimEvent::ShopPurchase {
                         stage: 1,
                         cost: 0,
-                        item_kind: "Staff(StaffUpgrade)".to_string(),
+                        item_kind: "Cat(CatUpgrade)".to_string(),
                     },
                     SimEvent::TreasureSelected {
                         stage: 1,
-                        upgrade_kind: "Staff(StaffUpgrade)".to_string(),
+                        upgrade_kind: "Cat(CatUpgrade)".to_string(),
                     },
                 ],
             )
@@ -719,15 +725,20 @@ mod tests {
         assert!(
             upgrades
                 .iter()
-                .any(|row| row.name == "Staff" && row.total_purchases == 2)
+                .any(|row| row.name == "Cat" && row.total_purchases == 2)
         );
 
         fs::remove_file(&db_path).unwrap();
     }
 
     #[test]
-    fn list_upgrades_excludes_treasure_only_names() {
-        let db_path = temp_db_path("shop_upgrade_names");
+    fn summary_tables_cover_every_variant() {
+        use crate::game_state::card_service::CardServiceDiscriminants;
+        use crate::game_state::item::ItemDiscriminants;
+        use crate::game_state::upgrade::UpgradeDiscriminants;
+        use strum::IntoEnumIterator;
+
+        let db_path = temp_db_path("known_name_coverage");
         let recorder = SimRecorder::new(&db_path).unwrap();
 
         recorder
@@ -746,21 +757,59 @@ mod tests {
             .unwrap();
 
         let db = Database::open(&db_path).unwrap();
-        let upgrades = db.list_upgrades().unwrap();
+        assert_eq!(
+            db.list_items().unwrap().len(),
+            ItemDiscriminants::iter().count()
+        );
+        assert_eq!(
+            db.list_upgrades().unwrap().len(),
+            UpgradeDiscriminants::iter().count()
+        );
+        assert_eq!(
+            db.list_card_services().unwrap().len(),
+            CardServiceDiscriminants::iter().count()
+        );
 
-        let treasure_only_names = [
-            "Cat",
-            "Backpack",
-            "DiceBundle",
-            "EnergyDrink",
-            "FourLeafClover",
-            "Rabbit",
-            "BlackWhite",
-        ];
+        fs::remove_file(&db_path).unwrap();
+    }
 
-        for name in treasure_only_names {
-            assert!(upgrades.iter().all(|row| row.name != name));
-        }
+    #[test]
+    fn card_service_purchase_is_recorded_without_leaking_into_upgrades() {
+        let db_path = temp_db_path("card_service_purchase");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+
+        recorder
+            .record_simulation_start(
+                "sim1",
+                "shop_strategy",
+                "card_reroll_strategy",
+                "tower_placement_strategy",
+                "item_use_strategy",
+                "heuristic_card_service",
+                42u64,
+            )
+            .unwrap();
+        recorder
+            .record_events(
+                "sim1",
+                &[SimEvent::ShopPurchase {
+                    stage: 1,
+                    cost: 50,
+                    item_kind: "long_sword".to_string(),
+                }],
+            )
+            .unwrap();
+        recorder
+            .record_simulation_end("sim1", true, 1, 100.0, 1.0, 0, 0, 0, 0.0, 0)
+            .unwrap();
+
+        let db = Database::open(&db_path).unwrap();
+
+        let detail = db.detail_for_shop_purchase("long_sword").unwrap();
+        assert_eq!(detail.total_purchases, 1);
+
+        let upgrades = db.list_upgrades_and_treasures().unwrap();
+        assert!(upgrades.iter().all(|row| row.name != "long_sword"));
 
         fs::remove_file(&db_path).unwrap();
     }

@@ -294,7 +294,7 @@ fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
 
 fn tower_kind_rating(kind: TowerKind) -> u32 {
     match kind {
-        TowerKind::Barricade => 0,
+        TowerKind::RubberCone => 0,
         TowerKind::High => 1,
         TowerKind::OnePair => 2,
         TowerKind::TwoPair => 3,

@@ -42,10 +42,9 @@ impl PlacedTowers {
         true
     }
 
-    pub fn remove_tower(&mut self, tower_id: usize) -> bool {
-        let before = self.inner.len();
-        self.inner.retain(|tower| tower.id() != tower_id);
-        self.inner.len() < before
+    pub fn remove_tower(&mut self, tower_id: usize) -> Option<Tower> {
+        let index = self.inner.iter().position(|tower| tower.id() == tower_id)?;
+        Some(self.inner.remove(index))
     }
 
     pub fn find_by_xy(&self, xy: MapCoord) -> Option<&Tower> {

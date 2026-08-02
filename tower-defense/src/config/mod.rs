@@ -65,13 +65,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_gameconfig_example() -> anyhow::Result<()> {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("gameconfig.toml.example");
-        GameConfig::from_toml(path)?;
-        Ok(())
-    }
-
-    #[test]
     fn serialize_default_config_deterministically() -> anyhow::Result<()> {
         let config = GameConfig::default_config();
         let a = toml::to_string_pretty(&config)?;

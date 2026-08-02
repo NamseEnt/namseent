@@ -17,7 +17,7 @@ const DROPDOWN_ITEM_HEIGHT: Px = px(32.);
 // Dropdown type: 0 = none, 1 = Kind, 2 = Suit, 3 = Rank
 
 const TOWER_KIND_ORDER: [TowerKind; 11] = [
-    TowerKind::Barricade,
+    TowerKind::RubberCone,
     TowerKind::High,
     TowerKind::OnePair,
     TowerKind::TwoPair,

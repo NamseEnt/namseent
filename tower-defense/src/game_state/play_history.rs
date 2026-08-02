@@ -58,6 +58,11 @@ pub enum HistoryEventType {
         cost: Option<usize>,
     },
 
+    CardServicePurchased {
+        service_kind: String,
+        cost: usize,
+    },
+
     CardServiceUsed {
         service_kind: String,
         cards_selected: usize,

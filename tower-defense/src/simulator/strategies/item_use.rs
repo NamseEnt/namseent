@@ -4,7 +4,7 @@ use super::ItemUseStrategy;
 use crate::game_state::GameState;
 use crate::game_state::item::Item;
 
-/// Heuristic item use strategy that immediately uses barricade grant items and preserves heal/shield.
+/// Heuristic item use strategy that immediately uses rubber cone items and preserves heal/shield.
 pub struct HeuristicItemUseStrategy;
 
 impl ItemUseStrategy for HeuristicItemUseStrategy {
@@ -13,7 +13,7 @@ impl ItemUseStrategy for HeuristicItemUseStrategy {
     }
 
     fn on_before_defense(&self, game_state: &mut GameState) {
-        use_grant_barricades(game_state);
+        use_rubber_cone(game_state);
         use_heal_if_needed(game_state);
     }
 
@@ -23,22 +23,22 @@ impl ItemUseStrategy for HeuristicItemUseStrategy {
     }
 
     fn on_item_acquired(&self, game_state: &mut GameState) {
-        use_grant_barricades(game_state);
+        use_rubber_cone(game_state);
         use_heal_if_needed(game_state);
     }
 }
 
-fn use_grant_barricades(game_state: &mut GameState) {
+fn use_rubber_cone(game_state: &mut GameState) {
     loop {
-        let barricade_id = game_state.items.iter().find_map(|item| {
-            if matches!(item.item, Item::GrantBarricades(..)) {
+        let rubber_cone_id = game_state.items.iter().find_map(|item| {
+            if matches!(item.item, Item::RubberCone(..)) {
                 Some(item.id)
             } else {
                 None
             }
         });
 
-        let Some(id) = barricade_id else {
+        let Some(id) = rubber_cone_id else {
             break;
         };
 

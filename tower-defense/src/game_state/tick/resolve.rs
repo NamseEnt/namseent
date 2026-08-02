@@ -92,6 +92,7 @@ fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
             damage: attack.damage,
             at_xy: target_xy,
             source_tower: attack.source_tower,
+            splash: attack.splash,
         });
     }
 
@@ -175,6 +176,7 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
             damage: attack.damage,
             at_xy: target_xy,
             source_tower: attack.source_tower,
+            splash: attack.splash,
         });
     }
 
@@ -306,6 +308,7 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                 damage,
                 at_xy: monster_xy,
                 source_tower: attack.source_tower,
+                splash: attack.splash,
             });
             false
         });
@@ -319,6 +322,13 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
 fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<MonsterHit>) {
     let now = game_state.now();
     let mut dead: Vec<(usize, MapCoordF32)> = Vec::new();
+
+    let monster_centers: Vec<MapCoordF32> = game_state
+        .monsters
+        .iter()
+        .map(|monster| monster.center_xy_tile())
+        .collect();
+    let hits = expand_engraving_splash_hits(&monster_centers, hits);
 
     for hit in hits {
         if hit.target_idx >= game_state.monsters.len() {
@@ -353,5 +363,103 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
     dead.dedup_by_key(|(idx, _)| *idx);
     for (target_idx, target_xy) in dead.into_iter().rev() {
         super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
+    }
+}
+
+fn expand_engraving_splash_hits(
+    monster_centers: &[MapCoordF32],
+    hits: Vec<MonsterHit>,
+) -> Vec<MonsterHit> {
+    if hits.iter().all(|hit| hit.splash.is_none()) {
+        return hits;
+    }
+
+    let mut expanded = Vec::with_capacity(hits.len());
+    for hit in hits {
+        if let Some(splash) = hit.splash {
+            for (index, center) in monster_centers.iter().enumerate() {
+                if index == hit.target_idx {
+                    continue;
+                }
+                if (*center - hit.at_xy).length() > splash.radius {
+                    continue;
+                }
+                expanded.push(MonsterHit {
+                    target_idx: index,
+                    damage: hit.damage * splash.damage_pct,
+                    at_xy: *center,
+                    source_tower: hit.source_tower,
+                    splash: None,
+                });
+            }
+        }
+        expanded.push(hit);
+    }
+    expanded
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::EngravingSplash;
+
+    fn hit(target_idx: usize, at_xy: MapCoordF32, splash: Option<EngravingSplash>) -> MonsterHit {
+        MonsterHit {
+            target_idx,
+            damage: 100.0,
+            at_xy,
+            source_tower: None,
+            splash,
+        }
+    }
+
+    #[test]
+    fn hits_without_splash_pass_through_untouched() {
+        let centers = vec![MapCoordF32::new(0.0, 0.0), MapCoordF32::new(1.0, 0.0)];
+
+        let expanded = expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], None)]);
+
+        assert_eq!(expanded.len(), 1);
+        assert_eq!(expanded[0].damage, 100.0);
+    }
+
+    #[test]
+    fn splash_adds_scaled_hits_for_monsters_inside_the_radius() {
+        let centers = vec![
+            MapCoordF32::new(0.0, 0.0),
+            MapCoordF32::new(1.0, 0.0),
+            MapCoordF32::new(9.0, 0.0),
+        ];
+        let splash = EngravingSplash {
+            radius: 2.0,
+            damage_pct: 0.5,
+        };
+
+        let expanded =
+            expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], Some(splash))]);
+
+        assert_eq!(expanded.len(), 2);
+        let splashed = expanded
+            .iter()
+            .find(|hit| hit.target_idx == 1)
+            .expect("반경 안 몬스터가 파생 타격을 받아야 한다");
+        assert_eq!(splashed.damage, 50.0);
+        assert_eq!(splashed.splash, None);
+        assert!(expanded.iter().all(|hit| hit.target_idx != 2));
+    }
+
+    #[test]
+    fn splash_never_hits_its_own_primary_target_twice() {
+        let centers = vec![MapCoordF32::new(0.0, 0.0)];
+        let splash = EngravingSplash {
+            radius: 5.0,
+            damage_pct: 1.0,
+        };
+
+        let expanded =
+            expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], Some(splash))]);
+
+        assert_eq!(expanded.len(), 1);
+        assert_eq!(expanded[0].damage, 100.0);
     }
 }

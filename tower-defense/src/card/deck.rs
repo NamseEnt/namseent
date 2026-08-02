@@ -124,7 +124,27 @@ impl Deck {
             };
             cards.push(card);
         }
+        self.pull_magnet_engraved_cards(&mut cards);
         cards
+    }
+
+    fn pull_magnet_engraved_cards(&mut self, drawn: &mut Vec<Card>) {
+        let is_magnet = |card: &Card| card.engraving() == Some(crate::card::Engraving::Magnet);
+
+        if !drawn.iter().any(is_magnet) {
+            return;
+        }
+
+        let mut pulled = Vec::new();
+        self.draw_pile.retain(|card| {
+            if is_magnet(card) {
+                pulled.push(*card);
+                false
+            } else {
+                true
+            }
+        });
+        drawn.extend(pulled);
     }
 
     pub fn discard(&mut self, cards: impl IntoIterator<Item = Card>) {
@@ -142,5 +162,68 @@ impl Default for Deck {
 impl PartialEq for Deck {
     fn eq(&self, other: &Self) -> bool {
         self.revision == other.revision
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Engraving, Rank, Suit};
+
+    fn deck_with_draw_pile(draw_pile: Vec<Card>) -> Deck {
+        let mut deck = Deck::new();
+        deck.all_cards = draw_pile.clone();
+        deck.draw_pile = draw_pile;
+        deck.discard_pile = Vec::new();
+        deck
+    }
+
+    fn magnet_card(rank: Rank) -> Card {
+        let mut card = Card::new(rank, Suit::Spades);
+        card.effects.engraving = Some(Engraving::Magnet);
+        card
+    }
+
+    #[test]
+    fn drawing_a_magnet_card_pulls_every_magnet_card_left_in_the_draw_pile() {
+        let plain = Card::new(Rank::Two, Suit::Hearts);
+        let buried_magnet = magnet_card(Rank::King);
+        let drawn_magnet = magnet_card(Rank::Ace);
+        let mut deck = deck_with_draw_pile(vec![buried_magnet, plain, drawn_magnet]);
+
+        let drawn = deck.draw(&mut rand::thread_rng(), 1);
+
+        assert_eq!(drawn.len(), 2);
+        assert!(drawn.iter().any(|card| card.id == drawn_magnet.id));
+        assert!(drawn.iter().any(|card| card.id == buried_magnet.id));
+        assert_eq!(deck.draw_pile().len(), 1);
+        assert_eq!(deck.draw_pile()[0].id, plain.id);
+    }
+
+    #[test]
+    fn drawing_only_plain_cards_pulls_nothing() {
+        let buried_magnet = magnet_card(Rank::King);
+        let plain = Card::new(Rank::Two, Suit::Hearts);
+        let mut deck = deck_with_draw_pile(vec![buried_magnet, plain]);
+
+        let drawn = deck.draw(&mut rand::thread_rng(), 1);
+
+        assert_eq!(drawn.len(), 1);
+        assert_eq!(drawn[0].id, plain.id);
+        assert_eq!(deck.draw_pile().len(), 1);
+    }
+
+    #[test]
+    fn magnet_pull_leaves_the_discard_pile_alone() {
+        let discarded_magnet = magnet_card(Rank::Queen);
+        let drawn_magnet = magnet_card(Rank::Ace);
+        let mut deck = deck_with_draw_pile(vec![drawn_magnet]);
+        deck.discard_pile = vec![discarded_magnet];
+
+        let drawn = deck.draw(&mut rand::thread_rng(), 1);
+
+        assert_eq!(drawn.len(), 1);
+        assert_eq!(deck.discard_pile().len(), 1);
+        assert_eq!(deck.discard_pile()[0].id, discarded_magnet.id);
     }
 }

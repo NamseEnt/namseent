@@ -53,9 +53,6 @@ pub trait RichTextHelpers<'a> {
         &mut self,
         value: S,
     ) -> &mut TypographyBuilder<'a>;
-    fn with_contract_risk<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
-    fn with_contract_reward<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
-    fn with_contract_duration<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a>;
     fn with_time_duration<S: Into<String>>(&mut self, value: S) -> &mut TypographyBuilder<'a>;
 }
 
@@ -193,27 +190,6 @@ impl<'a> RichTextHelpers<'a> for TypographyBuilder<'a> {
     ) -> &mut TypographyBuilder<'a> {
         self.with_style(|b| {
             b.color(palette::COMMON).text(format!("{}%", value.into()));
-        });
-        self
-    }
-
-    fn with_contract_risk<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::RED).text(text.into());
-        });
-        self
-    }
-
-    fn with_contract_reward<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::BLUE).text(text.into());
-        });
-        self
-    }
-
-    fn with_contract_duration<S: Into<String>>(&mut self, text: S) -> &mut TypographyBuilder<'a> {
-        self.with_style(|b| {
-            b.color(palette::YELLOW).text(text.into());
         });
         self
     }

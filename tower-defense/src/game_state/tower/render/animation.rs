@@ -14,7 +14,7 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
             ..
         } = tower;
         let kind = template.kind;
-        if let TowerKind::Barricade = kind {
+        if let TowerKind::RubberCone = kind {
             return;
         }
 

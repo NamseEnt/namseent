@@ -50,7 +50,7 @@ use cursor_preview::CursorPreview;
 pub use effect_event::*;
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
-use item::{GrantBarricadesItem, LumpSugarItem};
+use item::{LumpSugarItem, RubberConeItem};
 pub use modal::UserModal;
 pub use monster::*;
 use monster_spawn::*;
@@ -654,7 +654,7 @@ fn create_initial_game_state() -> GameState {
         items: vec![
             LumpSugarItem::standard().into_item().with_unique_id(),
             LumpSugarItem::standard().into_item().with_unique_id(),
-            GrantBarricadesItem::standard().into_item().with_unique_id(),
+            RubberConeItem::standard().into_item().with_unique_id(),
         ],
         gold: config.player.starting_gold,
         cursor_preview: Default::default(),
@@ -899,7 +899,7 @@ mod tests {
         // go to placing tower flow: hand allowed, shop not
         gs.action(crate::game_state::GameStateAction::StartPlacingTower(
             crate::game_state::tower::TowerTemplate::new(
-                crate::game_state::tower::TowerKind::Barricade,
+                crate::game_state::tower::TowerKind::RubberCone,
                 Suit::Spades,
                 Rank::Ace,
             ),

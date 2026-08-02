@@ -72,13 +72,13 @@ impl Component for TowerInfoPopup<'_> {
         let text = game_state.text();
 
         let damage = tower.cached_upgrade_damage();
-        let shoot_interval_secs = tower.shoot_interval.as_secs_f32();
+        let shoot_interval_secs = tower.effective_shoot_interval().as_secs_f32();
         let attack_speed = if shoot_interval_secs > 0.0 {
             1.0 / shoot_interval_secs
         } else {
             0.0
         };
-        let range = tower.attack_range_radius(1.0);
+        let range = tower.attack_range_radius();
         let total_damage = game_state
             .metrics
             .tower_damage_stats

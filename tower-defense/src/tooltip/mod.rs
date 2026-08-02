@@ -50,6 +50,7 @@ pub enum TooltipContent {
     CardService(crate::game_state::card_service::CardService),
     Reroll { health_cost: usize },
     Word(crate::l10n::word::Word),
+    Words(Vec<crate::l10n::word::Word>),
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -82,11 +83,6 @@ pub fn hide_tooltip(id: TooltipId) {
             *current = None;
         }
     });
-}
-
-#[cfg_attr(feature = "simulator", allow(dead_code))]
-pub fn hide_tooltip_all() {
-    TOOLTIP.set(None);
 }
 
 pub struct SectionText<'a> {
@@ -136,6 +132,10 @@ impl TooltipContent {
                 let word = *word;
                 word.tooltip_sections(locale)
             }
+            TooltipContent::Words(words) => words
+                .iter()
+                .flat_map(|word| word.tooltip_sections(locale))
+                .collect(),
         }
     }
 }

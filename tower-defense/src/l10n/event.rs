@@ -94,6 +94,14 @@ impl HistoryEventType {
                         .l10n(UpgradeTypeText::Name(upgrade), _locale);
                 }
             }
+            HistoryEventType::CardServicePurchased { service_kind, cost } => {
+                builder
+                    .static_text("카드 서비스 구매: ")
+                    .text(service_kind.clone())
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
+            }
             HistoryEventType::CardServiceUsed { service_kind, .. } => {
                 builder
                     .static_text("카드 서비스 사용: ")
@@ -172,6 +180,14 @@ impl HistoryEventType {
                         .static_text("Upgrade Selected: ")
                         .l10n(UpgradeTypeText::Name(upgrade), _locale);
                 }
+            }
+            HistoryEventType::CardServicePurchased { service_kind, cost } => {
+                builder
+                    .static_text("Card Service Purchased: ")
+                    .text(service_kind.clone())
+                    .static_text(" (")
+                    .with_gold_value(format!("{}G", cost))
+                    .static_text(")");
             }
             HistoryEventType::CardServiceUsed { service_kind, .. } => {
                 builder

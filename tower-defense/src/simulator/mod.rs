@@ -215,8 +215,7 @@ impl HeadlessGame {
                             &options,
                             rng,
                         );
-                        let upgrade_kind =
-                            Self::canonicalize_debug_name(format!("{:?}", options[choice]));
+                        let upgrade_kind = canonicalize_kind_name(format!("{:?}", options[choice]));
                         self.events.push(SimEvent::TreasureSelected {
                             stage: self.game_state.stage,
                             upgrade_kind,
@@ -313,7 +312,7 @@ impl HeadlessGame {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item)),
+                        item_kind: canonicalize_kind_name(format!("{:?}", item)),
                     });
                 }
                 HistoryEventType::UpgradeAcquired {
@@ -323,13 +322,20 @@ impl HeadlessGame {
                     self.events.push(SimEvent::ShopPurchase {
                         stage: event.stage,
                         cost: *cost,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", upgrade)),
+                        item_kind: canonicalize_kind_name(format!("{:?}", upgrade)),
                     });
                 }
                 HistoryEventType::ItemUsed { item } => {
                     self.events.push(SimEvent::ItemUsed {
                         stage: event.stage,
-                        item_kind: Self::canonicalize_debug_name(format!("{:?}", item)),
+                        item_kind: canonicalize_kind_name(format!("{:?}", item)),
+                    });
+                }
+                HistoryEventType::CardServicePurchased { service_kind, cost } => {
+                    self.events.push(SimEvent::ShopPurchase {
+                        stage: event.stage,
+                        cost: *cost,
+                        item_kind: service_kind.clone(),
                     });
                 }
                 HistoryEventType::CardServiceUsed {
@@ -339,7 +345,6 @@ impl HeadlessGame {
                     self.events.push(SimEvent::CardServiceUsed {
                         stage: event.stage,
                         service_kind: service_kind.clone(),
-                        behavior_name: service_kind.clone(),
                         cards_selected: *cards_selected,
                     });
                 }
@@ -348,16 +353,16 @@ impl HeadlessGame {
             *last_history_event_index += 1;
         }
     }
+}
 
-    fn canonicalize_debug_name(name: String) -> String {
-        let trimmed = name.trim();
-        let token: String = trimmed
-            .chars()
-            .take_while(|c| c.is_alphanumeric())
-            .collect();
-        let token = token.strip_suffix("Upgrade").unwrap_or(&token);
-        token.to_string()
-    }
+pub(crate) fn canonicalize_kind_name(name: String) -> String {
+    let trimmed = name.trim();
+    let token: String = trimmed
+        .chars()
+        .take_while(|c| c.is_alphanumeric() || *c == '_')
+        .collect();
+    let token = token.strip_suffix("Upgrade").unwrap_or(&token);
+    token.to_string()
 }
 
 impl Default for HeadlessGame {

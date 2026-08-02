@@ -19,7 +19,7 @@ pub fn default_tower_config() -> TowerConfig {
 
     let mut stats = BTreeMap::new();
     let tower_data: Vec<(TowerKind, f32, f32, u64)> = vec![
-        (Barricade, 0.0, 4.0, 1000),
+        (RubberCone, 0.0, 4.0, 1000),
         (High, 5.0, 4.0, 1000),
         (OnePair, 6.0, 5.0, 1000),
         (TwoPair, 10.0, 6.0, 1000),

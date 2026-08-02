@@ -60,21 +60,29 @@ pub trait CardServiceBehavior {
     }
 }
 
+mod battery;
 mod brush;
 mod club_sword;
+mod copier;
 mod eraser;
 mod fountain_pen;
 mod long_sword;
 mod mace;
+mod magnet;
+mod screwdriver;
 mod staff;
 mod tricycle;
 
+use battery::BatteryCardService;
 use brush::BrushCardService;
 use club_sword::ClubSwordCardService;
+use copier::CopierCardService;
 use eraser::EraserCardService;
 use fountain_pen::FountainPenCardService;
 use long_sword::LongSwordCardService;
 use mace::MaceCardService;
+use magnet::MagnetCardService;
+use screwdriver::ScrewdriverCardService;
 use staff::StaffCardService;
 use tricycle::TricycleCardService;
 
@@ -90,6 +98,10 @@ pub enum CardService {
     FountainPen(FountainPenCardService),
     Tricycle(TricycleCardService),
     Eraser(EraserCardService),
+    Screwdriver(ScrewdriverCardService),
+    Copier(CopierCardService),
+    Magnet(MagnetCardService),
+    Battery(BatteryCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -149,6 +161,10 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::FountainPen => fountain_pen::DEFINITION,
             CardServiceDiscriminants::Tricycle => tricycle::DEFINITION,
             CardServiceDiscriminants::Eraser => eraser::DEFINITION,
+            CardServiceDiscriminants::Screwdriver => screwdriver::DEFINITION,
+            CardServiceDiscriminants::Copier => copier::DEFINITION,
+            CardServiceDiscriminants::Magnet => magnet::DEFINITION,
+            CardServiceDiscriminants::Battery => battery::DEFINITION,
         }
     }
 

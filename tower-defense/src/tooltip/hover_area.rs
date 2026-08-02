@@ -30,8 +30,12 @@ where
             on_exit,
         } = self;
         let (tooltip_id, _) = ctx.state(crate::tooltip::TooltipId::new);
+        let tooltip_id = *tooltip_id;
         let (hovering, set_hovering) = ctx.state(|| false);
 
+        ctx.effect("hide tooltip on unmount", || {
+            move || crate::tooltip::hide_tooltip(tooltip_id)
+        });
         let rendering_tree = ctx.ghost_add(component_key, component);
         let Some(bounding_box) = rendering_tree.bounding_box() else {
             return;
@@ -50,7 +54,7 @@ where
 
                     let origin = event.global_xy - event.local_xy();
                     crate::tooltip::show_tooltip(
-                        *tooltip_id,
+                        tooltip_id,
                         bounding_box + origin,
                         placement,
                         content,
@@ -58,7 +62,7 @@ where
                 }
             } else if *hovering {
                 set_hovering.set(false);
-                crate::tooltip::hide_tooltip(*tooltip_id);
+                crate::tooltip::hide_tooltip(tooltip_id);
                 on_exit();
             }
         });

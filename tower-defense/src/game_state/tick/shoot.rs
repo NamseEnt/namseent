@@ -33,7 +33,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                 continue;
             }
 
-            let attack_range_radius = tower.attack_range_radius(1.0);
+            let attack_range_radius = tower.attack_range_radius();
             let tower_center = tower.center_xy_f32();
             let target_idx = monsters.iter().position(|monster| {
                 (monster.center_xy_tile() - tower_center).length() < attack_range_radius
@@ -44,6 +44,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let target_xy = monsters[target_idx].center_xy_tile();
             let damage = tower.cached_upgrade_damage();
+            let splash = tower.engraving_modifier().splash;
             let source_tower = TowerInfo {
                 id: tower.id(),
                 kind: tower.kind,
@@ -89,17 +90,20 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                     let damage_per_projectile = damage / 4.0;
                     tower.mark_fired(now);
                     for _ in 0..4 {
-                        new_attacks.push(InFlightAttack::new_spatial(
-                            SpatialAttack::new_homing(
-                                crate::MapCoordF32::new(tower_xy.0, tower_xy.1),
-                                target_indicator,
-                                crate::game_state::projectile::ProjectileKind::random_trash(),
-                                crate::game_state::projectile::ProjectileTrail::Burning,
-                                crate::game_state::attack::ProjectileHitEffect::TrashBounce,
-                            ),
-                            damage_per_projectile,
-                            Some(source_tower),
-                        ));
+                        new_attacks.push(
+                            InFlightAttack::new_spatial(
+                                SpatialAttack::new_homing(
+                                    crate::MapCoordF32::new(tower_xy.0, tower_xy.1),
+                                    target_indicator,
+                                    crate::game_state::projectile::ProjectileKind::random_trash(),
+                                    crate::game_state::projectile::ProjectileTrail::Burning,
+                                    crate::game_state::attack::ProjectileHitEffect::TrashBounce,
+                                ),
+                                damage_per_projectile,
+                                Some(source_tower),
+                            )
+                            .with_splash(splash),
+                        );
                     }
                 }
                 AttackType::RoyalStraightFlush { target_xy } => {
@@ -112,13 +116,16 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                         now,
                         black_smoke_sources,
                     );
-                    new_attacks.push(InFlightAttack::new_timed(
-                        target_monster_id,
-                        now + royal_straight_flush_hit_delay(),
-                        damage,
-                        Some(source_tower),
-                        HitSound::KnifeSlash,
-                    ));
+                    new_attacks.push(
+                        InFlightAttack::new_timed(
+                            target_monster_id,
+                            now + royal_straight_flush_hit_delay(),
+                            damage,
+                            Some(source_tower),
+                            HitSound::KnifeSlash,
+                        )
+                        .with_splash(splash),
+                    );
                 }
             }
         }

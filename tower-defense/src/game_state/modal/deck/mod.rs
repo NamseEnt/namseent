@@ -37,6 +37,8 @@ pub enum CardSelectionFilter {
     Face,
     Number,
     Rank(Rank),
+    Engraved,
+    NotEngraved,
     And(Vec<CardSelectionFilter>),
     Or(Vec<CardSelectionFilter>),
 }
@@ -48,6 +50,8 @@ impl CardSelectionFilter {
             CardSelectionFilter::Face => card.rank.is_face(),
             CardSelectionFilter::Number => card.rank.is_number_card(),
             CardSelectionFilter::Rank(rank) => card.rank == *rank,
+            CardSelectionFilter::Engraved => card.engraving().is_some(),
+            CardSelectionFilter::NotEngraved => card.engraving().is_none(),
             CardSelectionFilter::And(filters) => filters.iter().all(|filter| filter.matches(card)),
             CardSelectionFilter::Or(filters) => filters.iter().any(|filter| filter.matches(card)),
         }
@@ -348,5 +352,41 @@ impl Component for DeckModal {
                     _ => {}
                 }),
             );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Engraving, Suit};
+
+    #[test]
+    fn engraved_filters_split_the_deck_by_engraving() {
+        let blank = Card::new(Rank::Ace, Suit::Spades);
+        let mut engraved = Card::new(Rank::Ace, Suit::Hearts);
+        engraved.effects.engraving = Some(Engraving::Magnet);
+
+        assert!(CardSelectionFilter::NotEngraved.matches(&blank));
+        assert!(!CardSelectionFilter::NotEngraved.matches(&engraved));
+
+        assert!(!CardSelectionFilter::Engraved.matches(&blank));
+        assert!(CardSelectionFilter::Engraved.matches(&engraved));
+    }
+
+    #[test]
+    fn not_engraved_composes_with_other_filters() {
+        let mut engraved_face = Card::new(Rank::King, Suit::Spades);
+        engraved_face.effects.engraving = Some(Engraving::Magnet);
+        let blank_face = Card::new(Rank::King, Suit::Hearts);
+        let blank_number = Card::new(Rank::Two, Suit::Hearts);
+
+        let filter = CardSelectionFilter::And(vec![
+            CardSelectionFilter::Face,
+            CardSelectionFilter::NotEngraved,
+        ]);
+
+        assert!(filter.matches(&blank_face));
+        assert!(!filter.matches(&engraved_face));
+        assert!(!filter.matches(&blank_number));
     }
 }

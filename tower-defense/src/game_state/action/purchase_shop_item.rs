@@ -1,4 +1,5 @@
 use crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent;
+use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::*;
 use crate::shop::ShopSlot;
 use namui::Instant;
@@ -96,8 +97,55 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
 
             slot_data.purchased = true;
             slot_data.start_exit_animation(Instant::now());
+            game_state.record_event(
+                crate::game_state::play_history::HistoryEventType::CardServicePurchased {
+                    service_kind: card_service_value.key().to_string(),
+                    cost: cost_value,
+                },
+            );
             game_state.action(GameStateAction::SpendGold(cost_value));
             game_state.action(GameStateAction::UseCardService(card_service_value));
         }
+    }
+}
+
+#[cfg(all(test, feature = "simulator"))]
+mod tests {
+    use super::*;
+    use crate::game_state::card_service::CardServiceDiscriminants;
+    use crate::game_state::play_history::HistoryEventType;
+
+    #[test]
+    fn purchasing_a_card_service_records_its_kind_and_cost() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        game_state.headless = true;
+        game_state.gold = 100;
+
+        let slot_id = if let GameFlow::Shopping(flow) = &mut game_state.flow {
+            flow.shop.push(ShopSlot::CardService {
+                card_service: CardServiceDiscriminants::Eraser.generate(),
+                cost: 50,
+            });
+            flow.shop.slots.last().unwrap().id
+        } else {
+            panic!("expected shopping flow");
+        };
+
+        game_state.action(GameStateAction::PurchaseShopItem(slot_id));
+
+        let purchased =
+            game_state
+                .play_history
+                .events
+                .iter()
+                .find_map(|event| match &event.event_type {
+                    HistoryEventType::CardServicePurchased { service_kind, cost } => {
+                        Some((service_kind.clone(), *cost))
+                    }
+                    _ => None,
+                });
+
+        assert_eq!(purchased, Some(("eraser".to_string(), 50)));
+        assert_eq!(game_state.gold, 50);
     }
 }

@@ -14,7 +14,9 @@ pub(super) enum UpgradeTriggerEvent<'a> {
     TowerPlaced {
         tower: &'a Tower,
     },
-    TowerRemoved,
+    TowerRemoved {
+        tower: &'a Tower,
+    },
     ItemBought,
     GoldEarned {
         amount: usize,
@@ -76,8 +78,10 @@ impl GameState {
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_tower_placed(game_state, tower)),
             UpgradeTriggerEvent::StageStart { stage } => self
                 .foreach_upgrades(|upgrade, game_state| upgrade.on_stage_start(game_state, stage)),
-            UpgradeTriggerEvent::TowerRemoved => {
-                self.foreach_upgrades(|upgrade, game_state| upgrade.on_tower_removed(game_state))
+            UpgradeTriggerEvent::TowerRemoved { tower } => {
+                self.foreach_upgrades(|upgrade, game_state| {
+                    upgrade.on_tower_removed(game_state, tower)
+                })
             }
             UpgradeTriggerEvent::ItemBought => {
                 self.foreach_upgrades(|upgrade, game_state| upgrade.on_item_bought(game_state))
@@ -127,7 +131,7 @@ mod tests {
             _ => panic!("expected selecting tower flow"),
         };
 
-        let tower_template = TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Jack);
+        let tower_template = TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Jack);
         let tower = Tower::new(&tower_template, crate::MapCoord::new(0, 0), Instant::now());
 
         game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlaced { tower: &tower });

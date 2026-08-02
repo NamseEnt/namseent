@@ -13,7 +13,8 @@ pub enum Word {
     Shield,
     PerfectClear,
     CardService,
-    DamageBonus(Option<f32>),
+    Polish(Option<f32>),
+    Engraving(Option<crate::card::Engraving>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]

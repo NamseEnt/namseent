@@ -9,7 +9,7 @@ use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS};
 use crate::hand::HandSlotId;
 use namui::*;
 
-/// Heuristic placement strategy that uses the spiral plan and replaces central barricades with remaining towers.
+/// Heuristic placement strategy that uses the spiral plan and replaces central rubber cones with remaining towers.
 pub struct HeuristicPlacementStrategy;
 
 impl TowerPlacementStrategy for HeuristicPlacementStrategy {
@@ -75,7 +75,7 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                 }
             }
 
-            if !placed && self.replace_central_barricade(game_state, &template, slot_id, now) {
+            if !placed && self.replace_central_rubber_cone(game_state, &template, slot_id, now) {
                 placed = true;
             }
 
@@ -123,7 +123,7 @@ impl HeuristicPlacementStrategy {
         Some((slot_id, template))
     }
 
-    fn replace_central_barricade(
+    fn replace_central_rubber_cone(
         &self,
         game_state: &mut GameState,
         template: &crate::game_state::tower::TowerTemplate,
@@ -132,10 +132,10 @@ impl HeuristicPlacementStrategy {
     ) -> bool {
         let center = MapCoord::new(MAP_SIZE.width / 2, MAP_SIZE.height / 2);
 
-        let mut barricades: Vec<(i32, usize, MapCoord)> = game_state
+        let mut rubber_cones: Vec<(i32, usize, MapCoord)> = game_state
             .towers
             .iter()
-            .filter(|tower| tower.kind == TowerKind::Barricade)
+            .filter(|tower| tower.kind == TowerKind::RubberCone)
             .map(|tower| {
                 let dx = tower.left_top.x as i32 - center.x as i32;
                 let dy = tower.left_top.y as i32 - center.y as i32;
@@ -143,9 +143,9 @@ impl HeuristicPlacementStrategy {
             })
             .collect();
 
-        barricades.sort_by_key(|(dist, _, _)| *dist);
+        rubber_cones.sort_by_key(|(dist, _, _)| *dist);
 
-        for (_, tower_id, left_top) in barricades {
+        for (_, tower_id, left_top) in rubber_cones {
             if !game_state.action(crate::game_state::GameStateAction::RemoveTower(tower_id)) {
                 continue;
             }
