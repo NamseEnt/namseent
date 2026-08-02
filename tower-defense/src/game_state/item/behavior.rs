@@ -8,16 +8,16 @@ use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-mod grant_barricades;
 mod grant_card;
 mod lump_sugar;
 mod rice_ball;
+mod rubber_cone;
 mod shield;
 
-pub use grant_barricades::*;
 pub use grant_card::*;
 pub use lump_sugar::*;
 pub use rice_ball::*;
+pub use rubber_cone::*;
 pub use shield::*;
 
 #[enum_dispatch]
@@ -84,7 +84,7 @@ pub enum Item {
     RiceBall(RiceBallItem),
     LumpSugar(LumpSugarItem),
     Shield(ShieldItem),
-    GrantBarricades(GrantBarricadesItem),
+    RubberCone(RubberConeItem),
     GrantCard(GrantCardItem),
 }
 

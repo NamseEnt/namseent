@@ -23,7 +23,7 @@ impl TowerImage for (TowerKind, super::AnimationKind) {
     fn image(self) -> Image {
         let (tower_kind, animation_kind) = self;
         match tower_kind {
-            TowerKind::Barricade => match animation_kind {
+            TowerKind::RubberCone => match animation_kind {
                 super::AnimationKind::Idle1 => crate::asset::image::tower::barricade::IDLE1,
                 super::AnimationKind::Idle2 => crate::asset::image::tower::barricade::IDLE1,
                 super::AnimationKind::Attack => crate::asset::image::tower::barricade::IDLE1,

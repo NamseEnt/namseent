@@ -2,8 +2,7 @@ use super::Item;
 use crate::game_state::{
     card::{Card, RANKS, SUITS},
     item::{
-        GrantBarricadesItem, GrantCardItem, ItemDiscriminants, LumpSugarItem, RiceBallItem,
-        ShieldItem,
+        GrantCardItem, ItemDiscriminants, LumpSugarItem, RiceBallItem, RubberConeItem, ShieldItem,
     },
 };
 use rand::{Rng, seq::SliceRandom, thread_rng};
@@ -38,7 +37,7 @@ fn item_generation_weight(item: ItemDiscriminants) -> f32 {
         ItemDiscriminants::RiceBall => 100.0,
         ItemDiscriminants::LumpSugar => 10.0,
         ItemDiscriminants::Shield => 10.0,
-        ItemDiscriminants::GrantBarricades => 45.0,
+        ItemDiscriminants::RubberCone => 45.0,
         ItemDiscriminants::GrantCard => 35.0,
     }
 }
@@ -48,7 +47,7 @@ fn generate_item_from_discriminant<R: Rng + ?Sized>(item: ItemDiscriminants, rng
         ItemDiscriminants::RiceBall => RiceBallItem::standard().into_item(),
         ItemDiscriminants::LumpSugar => LumpSugarItem::standard().into_item(),
         ItemDiscriminants::Shield => ShieldItem::standard().into_item(),
-        ItemDiscriminants::GrantBarricades => GrantBarricadesItem::standard().into_item(),
+        ItemDiscriminants::RubberCone => RubberConeItem::standard().into_item(),
         ItemDiscriminants::GrantCard => generate_grant_card_item(rng),
     }
 }

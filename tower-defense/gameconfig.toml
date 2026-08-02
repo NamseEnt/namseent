@@ -796,7 +796,7 @@ count = 14
 kind = "Boss14"
 count = 1
 
-[towers.stats.Barricade]
+[towers.stats.RubberCone]
 damage = 0.0
 range = 4.0
 cooldown_ms = 1000

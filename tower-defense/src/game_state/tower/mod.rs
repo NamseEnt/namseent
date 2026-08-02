@@ -143,7 +143,7 @@ impl Tower {
 
     pub fn attack_type(&self, params: AttackTypeParams) -> AttackType {
         match self.kind {
-            TowerKind::Barricade => AttackType::Projectile {
+            TowerKind::RubberCone => AttackType::Projectile {
                 speed: PROJECTILE_SPEED,
                 trail: ProjectileTrail::None,
                 projectile_group: ProjectileGroup::Trash,
@@ -276,7 +276,7 @@ impl Tower {
     }
 
     pub(crate) fn attack_range_radius(&self) -> f32 {
-        if self.kind == TowerKind::Barricade {
+        if self.kind == TowerKind::RubberCone {
             return 0.0;
         }
         self.template.attack_range_radius()
@@ -352,8 +352,8 @@ impl TowerTemplate {
         self.used_cards = used_cards;
     }
 
-    pub fn barricade() -> Self {
-        Self::new_optional(TowerKind::Barricade, None, None)
+    pub fn rubber_cone() -> Self {
+        Self::new_optional(TowerKind::RubberCone, None, None)
     }
 
     pub fn suit(&self) -> Option<Suit> {
@@ -423,7 +423,7 @@ impl PartialOrd for TowerTemplate {
     State,
 )]
 pub enum TowerKind {
-    Barricade,
+    RubberCone,
     High,
     OnePair,
     TwoPair,
@@ -439,7 +439,7 @@ pub enum TowerKind {
 impl TowerKind {
     pub fn shoot_interval(&self) -> Duration {
         match self {
-            Self::Barricade => 1.sec(),
+            Self::RubberCone => 1.sec(),
             Self::High => 1.sec(),
             Self::OnePair => 1.sec(),
             Self::TwoPair => 1.sec(),
@@ -454,7 +454,7 @@ impl TowerKind {
     }
     pub fn default_attack_range_radius(&self) -> f32 {
         match self {
-            Self::Barricade => 4.0,
+            Self::RubberCone => 4.0,
             Self::High => 4.0,
             Self::OnePair => 5.0,
             Self::TwoPair => 6.0,
@@ -469,7 +469,7 @@ impl TowerKind {
     }
     pub fn default_damage(&self) -> f32 {
         match self {
-            Self::Barricade => 0.0,
+            Self::RubberCone => 0.0,
             Self::High => 5.0,
             Self::OnePair => 6.0,
             Self::TwoPair => 10.0,
@@ -491,7 +491,7 @@ impl TowerKind {
 
     pub fn to_text(self) -> TowerKindText {
         match self {
-            Self::Barricade => TowerKindText::Barricade,
+            Self::RubberCone => TowerKindText::RubberCone,
             Self::High => TowerKindText::High,
             Self::OnePair => TowerKindText::OnePair,
             Self::TwoPair => TowerKindText::TwoPair,
@@ -648,7 +648,7 @@ mod tests {
     fn refresh_cached_upgrade_damage_preserves_cached_bonuses_when_revision_unchanged() {
         let now = Instant::now();
         let mut tower = Tower::new(
-            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Two),
+            &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Two),
             MapCoord::new(0, 0),
             now,
         );

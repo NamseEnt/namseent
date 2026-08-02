@@ -212,7 +212,7 @@ mod tests {
         let now = Instant::now();
 
         let mut tower = Tower::new(
-            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace),
+            &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Ace),
             MapCoord::new(0, 0),
             now,
         );
@@ -249,7 +249,7 @@ mod tests {
         let bonus_damage = 15;
 
         let mut tower = Tower::new(
-            &TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Ace),
+            &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Ace),
             MapCoord::new(0, 0),
             now,
         );

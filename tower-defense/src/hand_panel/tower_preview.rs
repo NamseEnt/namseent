@@ -20,7 +20,7 @@ const EXIT_ANIMATION_DURATION: f32 = 0.5;
 
 fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
     match kind {
-        TowerKind::Barricade | TowerKind::High | TowerKind::OnePair => None,
+        TowerKind::RubberCone | TowerKind::High | TowerKind::OnePair => None,
         TowerKind::TwoPair => Some((Rarity::Common.color(), 0.05)),
         TowerKind::ThreeOfAKind => Some((Rarity::Rare.color(), 0.1)),
         TowerKind::Straight | TowerKind::Flush => Some((Rarity::Epic.color(), 0.15)),
@@ -32,7 +32,7 @@ fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
 
 fn rarity_for_tower_kind(kind: TowerKind) -> Rarity {
     match kind {
-        TowerKind::Barricade | TowerKind::High | TowerKind::OnePair | TowerKind::TwoPair => {
+        TowerKind::RubberCone | TowerKind::High | TowerKind::OnePair | TowerKind::TwoPair => {
             Rarity::Common
         }
         TowerKind::ThreeOfAKind => Rarity::Rare,

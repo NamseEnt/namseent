@@ -61,9 +61,9 @@ impl SynergyShopStrategy {
             return true;
         }
 
-        if count_item_kind(game_state, ItemDiscriminants::GrantBarricades) < 1
+        if count_item_kind(game_state, ItemDiscriminants::RubberCone) < 1
             && let Some(slot_id) =
-                find_item_slot(flow, ItemDiscriminants::GrantBarricades, game_state.gold)
+                find_item_slot(flow, ItemDiscriminants::RubberCone, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,

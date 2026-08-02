@@ -4,7 +4,7 @@ use crate::*;
 
 #[derive(Debug, Clone, Copy, State)]
 pub enum TowerKindText {
-    Barricade,
+    RubberCone,
     High,
     OnePair,
     TwoPair,
@@ -33,7 +33,7 @@ impl LocalizedText for TowerKindText {
 impl TowerKindText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
-            TowerKindText::Barricade => "바리케이드",
+            TowerKindText::RubberCone => "러버콘",
             TowerKindText::High => "하이카드",
             TowerKindText::OnePair => "원페어",
             TowerKindText::TwoPair => "투페어",
@@ -49,7 +49,7 @@ impl TowerKindText {
 
     pub(super) fn to_english(self) -> &'static str {
         match self {
-            TowerKindText::Barricade => "Barricade",
+            TowerKindText::RubberCone => "Rubber Cone",
             TowerKindText::High => "High",
             TowerKindText::OnePair => "One Pair",
             TowerKindText::TwoPair => "Two Pair",

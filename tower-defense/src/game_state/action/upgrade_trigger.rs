@@ -131,7 +131,7 @@ mod tests {
             _ => panic!("expected selecting tower flow"),
         };
 
-        let tower_template = TowerTemplate::new(TowerKind::Barricade, Suit::Spades, Rank::Jack);
+        let tower_template = TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Jack);
         let tower = Tower::new(&tower_template, crate::MapCoord::new(0, 0), Instant::now());
 
         game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlaced { tower: &tower });

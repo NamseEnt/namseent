@@ -5,7 +5,7 @@
 //! - Track additive adjustments (bonus/penalty pairs) with net delta helpers
 //! - Maintain reroll health costs
 //! - Maintain temporary restrictions (disabled ranks/suits, purchase/use flags)
-//! - Keep certain grants (barricade cards) persistent across stage resets
+//! - Keep certain grants (rubber cone cards) persistent across stage resets
 //!
 //! Lifecycle:
 //! - Call `reset_stage_state` at stage start; this resets transient categories but leaves `StageGrants` intact
@@ -18,7 +18,7 @@
 //!
 //! Future Ideas:
 //! - Consider serde derives if saving mid-run is needed
-//! - Add incremental (additive) shield / barricade accumulation helpers
+//! - Add incremental (additive) shield / rubber cone accumulation helpers
 //! - Introduce a generic stacking abstraction if new modifier categories grow
 
 use crate::card::{Rank, Suit};
