@@ -100,7 +100,7 @@ impl Tower {
             params.damage,
             params.source_tower,
         )
-        .with_splash(self.engraving_modifier().splash)
+        .with_on_hit_splashes(self.engraving_modifier().on_hit_splashes)
     }
 
     pub fn shoot_laser(
@@ -121,7 +121,7 @@ impl Tower {
             target_monster_id,
         );
         attack::InFlightAttack::new_laser(beam, damage, source_tower)
-            .with_splash(self.engraving_modifier().splash)
+            .with_on_hit_splashes(self.engraving_modifier().on_hit_splashes)
     }
 
     pub fn refresh_cached_upgrade_damage(
@@ -373,7 +373,7 @@ impl TowerTemplate {
     }
 
     pub fn engraving_modifier(&self) -> crate::card::TowerEngravingModifier {
-        self.engraving
+        self.engraving.clone()
     }
 
     pub(crate) fn attack_range_radius(&self) -> f32 {

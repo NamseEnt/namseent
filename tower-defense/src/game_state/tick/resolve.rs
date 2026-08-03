@@ -92,7 +92,7 @@ fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
             damage: attack.damage,
             at_xy: target_xy,
             source_tower: attack.source_tower,
-            splash: attack.splash,
+            on_hit_splashes: attack.on_hit_splashes.clone(),
         });
     }
 
@@ -176,7 +176,7 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
             damage: attack.damage,
             at_xy: target_xy,
             source_tower: attack.source_tower,
-            splash: attack.splash,
+            on_hit_splashes: attack.on_hit_splashes.clone(),
         });
     }
 
@@ -308,7 +308,7 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                 damage,
                 at_xy: monster_xy,
                 source_tower: attack.source_tower,
-                splash: attack.splash,
+                on_hit_splashes: attack.on_hit_splashes.clone(),
             });
             false
         });
@@ -328,7 +328,7 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
         .iter()
         .map(|monster| monster.center_xy_tile())
         .collect();
-    let hits = expand_engraving_splash_hits(&monster_centers, hits);
+    let hits = expand_on_hit_splashes(&monster_centers, hits);
 
     for hit in hits {
         if hit.target_idx >= game_state.monsters.len() {
@@ -366,36 +366,88 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
     }
 }
 
-fn expand_engraving_splash_hits(
+fn expand_on_hit_splashes(
     monster_centers: &[MapCoordF32],
     hits: Vec<MonsterHit>,
 ) -> Vec<MonsterHit> {
-    if hits.iter().all(|hit| hit.splash.is_none()) {
+    if hits.iter().all(|hit| hit.on_hit_splashes.is_empty()) {
         return hits;
     }
 
     let mut expanded = Vec::with_capacity(hits.len());
-    for hit in hits {
-        if let Some(splash) = hit.splash {
+    for mut hit in hits {
+        if !hit.on_hit_splashes.is_empty() {
             for (index, center) in monster_centers.iter().enumerate() {
                 if index == hit.target_idx {
                     continue;
                 }
-                if (*center - hit.at_xy).length() > splash.radius {
+                let damage_pct = hit
+                    .on_hit_splashes
+                    .iter()
+                    .filter(|splash| (*center - hit.at_xy).length() <= splash.radius)
+                    .map(|splash| splash.damage_pct)
+                    .sum::<f32>();
+                if damage_pct <= 0.0 {
                     continue;
                 }
                 expanded.push(MonsterHit {
                     target_idx: index,
-                    damage: hit.damage * splash.damage_pct,
+                    damage: hit.damage * damage_pct,
                     at_xy: *center,
                     source_tower: hit.source_tower,
-                    splash: None,
+                    on_hit_splashes: Vec::new(),
                 });
             }
+            hit.on_hit_splashes.clear();
         }
         expanded.push(hit);
     }
     expanded
+}
+
+pub(super) fn apply_area_damage_events(
+    game_state: &mut GameState,
+    events: Vec<super::AreaDamageEvent>,
+) {
+    if events.is_empty() {
+        return;
+    }
+
+    let monster_centers: Vec<MapCoordF32> = game_state
+        .monsters
+        .iter()
+        .map(|monster| monster.center_xy_tile())
+        .collect();
+    let hits = expand_area_damage_events(&monster_centers, events);
+    apply_monster_damage_and_remove_dead(game_state, hits);
+}
+
+fn expand_area_damage_events(
+    monster_centers: &[MapCoordF32],
+    events: Vec<super::AreaDamageEvent>,
+) -> Vec<MonsterHit> {
+    let mut hits = Vec::new();
+    for event in events {
+        for (index, center) in monster_centers.iter().enumerate() {
+            let damage_pct = event
+                .splashes
+                .iter()
+                .filter(|splash| (*center - event.center).length() <= splash.radius)
+                .map(|splash| splash.damage_pct)
+                .sum::<f32>();
+            if damage_pct <= 0.0 {
+                continue;
+            }
+            hits.push(MonsterHit {
+                target_idx: index,
+                damage: event.damage * damage_pct,
+                at_xy: *center,
+                source_tower: Some(event.source_tower),
+                on_hit_splashes: Vec::new(),
+            });
+        }
+    }
+    hits
 }
 
 #[cfg(test)]
@@ -409,7 +461,7 @@ mod tests {
             damage: 100.0,
             at_xy,
             source_tower: None,
-            splash,
+            on_hit_splashes: splash.into_iter().collect(),
         }
     }
 
@@ -417,7 +469,7 @@ mod tests {
     fn hits_without_splash_pass_through_untouched() {
         let centers = vec![MapCoordF32::new(0.0, 0.0), MapCoordF32::new(1.0, 0.0)];
 
-        let expanded = expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], None)]);
+        let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], None)]);
 
         assert_eq!(expanded.len(), 1);
         assert_eq!(expanded[0].damage, 100.0);
@@ -435,8 +487,7 @@ mod tests {
             damage_pct: 0.5,
         };
 
-        let expanded =
-            expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], Some(splash))]);
+        let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], Some(splash))]);
 
         assert_eq!(expanded.len(), 2);
         let splashed = expanded
@@ -444,8 +495,70 @@ mod tests {
             .find(|hit| hit.target_idx == 1)
             .expect("반경 안 몬스터가 파생 타격을 받아야 한다");
         assert_eq!(splashed.damage, 50.0);
-        assert_eq!(splashed.splash, None);
+        assert!(splashed.on_hit_splashes.is_empty());
         assert!(expanded.iter().all(|hit| hit.target_idx != 2));
+    }
+
+    #[test]
+    fn area_damage_hits_near_the_tower_instead_of_near_the_target() {
+        let tower_xy = MapCoordF32::new(0.0, 0.0);
+        let centers = vec![
+            MapCoordF32::new(8.0, 0.0),
+            MapCoordF32::new(1.0, 0.0),
+            MapCoordF32::new(3.0, 0.0),
+        ];
+        let event = super::AreaDamageEvent {
+            center: tower_xy,
+            damage: 100.0,
+            source_tower: crate::game_state::attack::TowerInfo {
+                id: 0,
+                kind: crate::game_state::tower::TowerKind::High,
+                rank: None,
+                suit: None,
+            },
+            splashes: vec![EngravingSplash {
+                radius: 2.0,
+                damage_pct: 0.3,
+            }],
+        };
+
+        let expanded = expand_area_damage_events(&centers, vec![event]);
+
+        assert_eq!(expanded.len(), 1);
+        assert_eq!(expanded[0].target_idx, 1);
+        assert!((expanded[0].damage - 30.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn duplicate_splashes_stack_damage_percentages() {
+        let centers = vec![MapCoordF32::new(0.0, 0.0), MapCoordF32::new(1.0, 0.0)];
+        let splashes = vec![
+            EngravingSplash {
+                radius: 2.0,
+                damage_pct: 0.3,
+            },
+            EngravingSplash {
+                radius: 2.0,
+                damage_pct: 0.4,
+            },
+        ];
+
+        let expanded = expand_on_hit_splashes(
+            &centers,
+            vec![MonsterHit {
+                target_idx: 0,
+                damage: 100.0,
+                at_xy: centers[0],
+                source_tower: None,
+                on_hit_splashes: splashes,
+            }],
+        );
+
+        let nearby = expanded
+            .iter()
+            .find(|hit| hit.target_idx == 1)
+            .expect("중복 스플래시가 합산되어야 한다");
+        assert!((nearby.damage - 70.0).abs() < 1e-5);
     }
 
     #[test]
@@ -456,8 +569,7 @@ mod tests {
             damage_pct: 1.0,
         };
 
-        let expanded =
-            expand_engraving_splash_hits(&centers, vec![hit(0, centers[0], Some(splash))]);
+        let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], Some(splash))]);
 
         assert_eq!(expanded.len(), 1);
         assert_eq!(expanded[0].damage, 100.0);

@@ -39,5 +39,32 @@ impl Component for TowerAttackRange<'_> {
                 phase: phase_px,
             });
         ctx.add(namui::path(path, paint));
+        let splash_radii = tower_template
+            .engraving_modifier()
+            .on_attack_splashes
+            .iter()
+            .map(|splash| splash.radius)
+            .collect::<Vec<_>>();
+
+        for splash_radius in splash_radii {
+            let splash_radius_px = TILE_PX_SIZE.width * splash_radius;
+            let splash_oval = Rect::Ltrb {
+                left: -splash_radius_px,
+                top: -splash_radius_px,
+                right: splash_radius_px,
+                bottom: splash_radius_px,
+            };
+            let splash_path = Path::new().add_oval(splash_oval);
+            let splash_paint = Paint::new(palette::GREEN)
+                .set_style(PaintStyle::Stroke)
+                .set_stroke_width(3.px())
+                .set_stroke_cap(StrokeCap::Round)
+                .set_path_effect(PathEffect::Dash {
+                    on: DASH_ON_PX,
+                    off: DASH_OFF_PX,
+                    phase: phase_px,
+                });
+            ctx.add(namui::path(splash_path, splash_paint));
+        }
     }
 }

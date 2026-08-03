@@ -12,7 +12,14 @@ pub(super) struct MonsterHit {
     pub damage: f32,
     pub at_xy: MapCoordF32,
     pub source_tower: Option<TowerInfo>,
-    pub splash: Option<crate::card::EngravingSplash>,
+    pub on_hit_splashes: Vec<crate::card::EngravingSplash>,
+}
+
+pub(super) struct AreaDamageEvent {
+    pub center: MapCoordF32,
+    pub damage: f32,
+    pub source_tower: TowerInfo,
+    pub splashes: Vec<crate::card::EngravingSplash>,
 }
 
 pub(crate) const TICK_MAX_DURATION: Duration = Duration::from_millis(16);
