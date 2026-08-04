@@ -27,6 +27,7 @@ pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
 mod render;
+pub(crate) mod shop_purchase;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
 pub(crate) mod tick;

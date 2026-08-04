@@ -5,6 +5,10 @@ use crate::shop::ShopSlot;
 use namui::Instant;
 
 pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) {
+    if !game_state.shop_purchase_status(slot_id).is_available() {
+        return;
+    }
+
     let shop = match &mut game_state.flow {
         GameFlow::Shopping(flow) => &mut flow.shop,
         _ => return,
@@ -147,5 +151,38 @@ mod tests {
 
         assert_eq!(purchased, Some(("eraser".to_string(), 50)));
         assert_eq!(game_state.gold, 50);
+    }
+    #[test]
+    fn magic_wand_purchase_is_blocked_without_an_engraved_card() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        game_state.headless = true;
+        game_state.gold = 100;
+
+        let slot_id = if let GameFlow::Shopping(flow) = &mut game_state.flow {
+            flow.shop.push(ShopSlot::CardService {
+                card_service: CardServiceDiscriminants::MagicWand.generate(),
+                cost: 50,
+            });
+            flow.shop.slots.last().unwrap().id
+        } else {
+            panic!("expected shopping flow");
+        };
+
+        game_state.action(GameStateAction::PurchaseShopItem(slot_id));
+
+        let slot = if let GameFlow::Shopping(flow) = &game_state.flow {
+            flow.shop.get_slot_by_id(slot_id).unwrap()
+        } else {
+            panic!("expected shopping flow");
+        };
+        assert!(!slot.purchased);
+        assert_eq!(game_state.gold, 100);
+        assert!(!game_state.play_history.events.iter().any(|event| {
+            matches!(
+                event.event_type,
+                HistoryEventType::CardServicePurchased { ref service_kind, .. }
+                    if service_kind == "magic_wand"
+            )
+        }));
     }
 }

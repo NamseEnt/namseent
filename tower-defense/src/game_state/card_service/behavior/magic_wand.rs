@@ -26,10 +26,33 @@ impl CardServiceBehavior for MagicWandCardService {
         "magic_wand"
     }
 
+    fn purchase_block_reasons(
+        &self,
+        context: &CardServicePurchaseContext,
+    ) -> Vec<CardServicePurchaseBlockReason> {
+        let mut reasons = Vec::new();
+        if context.engraved_card_count == 0 {
+            reasons.push(CardServicePurchaseBlockReason::NoEngravedCard);
+        }
+        let available = context.unengraved_card_count;
+        if available < 1 {
+            reasons.push(CardServicePurchaseBlockReason::NotEnoughUnengravedCards {
+                required: 1,
+                available,
+            });
+        }
+        reasons
+    }
+
     fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,
     {
+        let purchase_context = CardServicePurchaseContext::from_game_state(game_state);
+        if !self.purchase_block_reasons(&purchase_context).is_empty() {
+            return;
+        }
+
         let selection = crate::game_state::modal::deck::CardSelectionState::new(
             vec![
                 crate::game_state::modal::deck::CardSelectionStep {
@@ -96,6 +119,12 @@ impl CardServiceBehavior for MagicWandCardService {
         else {
             return;
         };
+        let Some(target_card) = game_state.deck.get_card(target_card_id) else {
+            return;
+        };
+        if target_card.engraving().is_some() {
+            return;
+        }
 
         game_state.action(crate::game_state::GameStateAction::ModifyDeck(
             DeckEdit::Enhance {

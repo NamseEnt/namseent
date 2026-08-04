@@ -31,6 +31,10 @@ impl Deck {
         &self.all_cards
     }
 
+    pub(crate) fn revision(&self) -> usize {
+        self.revision
+    }
+
     pub fn get_card(&self, card_id: CardId) -> Option<Card> {
         self.all_cards
             .iter()
@@ -50,10 +54,15 @@ impl Deck {
     where
         F: FnMut(&mut Card),
     {
+        let mut changed = false;
         for card in self.all_cards.iter_mut() {
             if card.id == card_id {
                 f(card);
+                changed = true;
             }
+        }
+        if changed {
+            self.increment_revision();
         }
     }
 
@@ -225,5 +234,18 @@ mod tests {
         assert_eq!(drawn.len(), 1);
         assert_eq!(deck.discard_pile().len(), 1);
         assert_eq!(deck.discard_pile()[0].id, discarded_magnet.id);
+    }
+
+    #[test]
+    fn applying_to_card_increments_revision() {
+        let mut deck = Deck::new();
+        let card_id = deck.all_cards()[0].id;
+        let before = deck.revision();
+
+        deck.apply_to_card(card_id, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+        });
+
+        assert_ne!(deck.revision(), before);
     }
 }

@@ -52,6 +52,19 @@ pub trait ItemBehavior {
         shadow: bool,
     ) -> RenderingTree;
 
+    fn thumbnail_with_shadow_opacity(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        crate::thumbnail::with_opacity(
+            self.thumbnail_with_shadow(width_height, stroke_px, shadow),
+            opacity,
+        )
+    }
+
     fn tooltip_sections(
         &self,
         locale: crate::l10n::Locale,
@@ -170,6 +183,16 @@ impl Item {
         shadow: bool,
     ) -> RenderingTree {
         ItemBehavior::thumbnail_with_shadow(self, width_height, stroke_px, shadow)
+    }
+
+    pub fn thumbnail_with_shadow_opacity(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        ItemBehavior::thumbnail_with_shadow_opacity(self, width_height, stroke_px, shadow, opacity)
     }
 
     pub fn discriminant(&self) -> ItemDiscriminants {

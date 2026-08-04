@@ -26,6 +26,17 @@ impl CardServiceBehavior for PliersCardService {
         "pliers"
     }
 
+    fn purchase_block_reasons(
+        &self,
+        context: &CardServicePurchaseContext,
+    ) -> Vec<CardServicePurchaseBlockReason> {
+        if context.engraved_card_count == 0 {
+            vec![CardServicePurchaseBlockReason::NoEngravedCard]
+        } else {
+            Vec::new()
+        }
+    }
+
     fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,

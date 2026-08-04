@@ -2,8 +2,11 @@ mod hover_area;
 mod word;
 
 use crate::animation::with_spring;
-use crate::game_state::card_service::CardServiceBehavior;
+use crate::game_state::card_service::{
+    CardServiceBehavior, CardServicePurchaseBlockReason, CardServicePurchaseContext,
+};
 use crate::game_state::item::{Item, ItemBehavior};
+use crate::game_state::shop_purchase::ShopPurchaseBlockReason;
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
@@ -48,7 +51,13 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     CardService(crate::game_state::card_service::CardService),
-    Reroll { health_cost: usize },
+    Shop {
+        content: Box<TooltipContent>,
+        slot_id: crate::shop::ShopSlotId,
+    },
+    Reroll {
+        health_cost: usize,
+    },
     Word(crate::l10n::word::Word),
     Words(Vec<crate::l10n::word::Word>),
 }
@@ -96,7 +105,19 @@ pub struct TooltipSection<'a> {
 }
 
 impl TooltipContent {
-    fn sections(&self, locale: Locale) -> Vec<TooltipSection<'_>> {
+    pub(crate) fn shop(content: Self, slot_id: crate::shop::ShopSlotId) -> Self {
+        Self::Shop {
+            content: Box::new(content),
+            slot_id,
+        }
+    }
+
+    fn sections(
+        &self,
+        locale: Locale,
+        game_state: &crate::game_state::GameState,
+        purchase_context: &CardServicePurchaseContext,
+    ) -> Vec<TooltipSection<'_>> {
         match self {
             TooltipContent::Item(item) => {
                 let mut sections = Word::Item.tooltip_sections(locale);
@@ -111,6 +132,15 @@ impl TooltipContent {
             TooltipContent::CardService(card_service) => {
                 let mut sections = Word::CardService.tooltip_sections(locale);
                 sections.extend(card_service.tooltip_sections(locale));
+                sections
+            }
+            TooltipContent::Shop { content, slot_id } => {
+                let mut sections = content.sections(locale, game_state, purchase_context);
+                let status =
+                    game_state.shop_purchase_status_with_context(*slot_id, purchase_context);
+                if !status.is_available() {
+                    sections.extend(shop_purchase_unavailable_sections(status.reasons(), locale));
+                }
                 sections
             }
             TooltipContent::Reroll { health_cost } => {
@@ -140,12 +170,79 @@ impl TooltipContent {
     }
 }
 
+fn shop_purchase_unavailable_sections(
+    reasons: &[ShopPurchaseBlockReason],
+    locale: Locale,
+) -> Vec<TooltipSection<'static>> {
+    let reason_texts = reasons
+        .iter()
+        .map(|reason| match reason {
+            ShopPurchaseBlockReason::InvalidSlot => {
+                l10n::ui::ShopPurchaseBlockReasonText::Unavailable
+            }
+            ShopPurchaseBlockReason::AlreadyPurchased => {
+                l10n::ui::ShopPurchaseBlockReasonText::AlreadyPurchased
+            }
+            ShopPurchaseBlockReason::NotEnoughGold {
+                required,
+                available,
+            } => l10n::ui::ShopPurchaseBlockReasonText::NotEnoughGold {
+                required: *required,
+                available: *available,
+            },
+            ShopPurchaseBlockReason::PurchasesDisabled => {
+                l10n::ui::ShopPurchaseBlockReasonText::PurchasesDisabled
+            }
+            ShopPurchaseBlockReason::CardService(reason) => match reason {
+                CardServicePurchaseBlockReason::NoEngravedCard => {
+                    l10n::ui::ShopPurchaseBlockReasonText::NoEngravedCard
+                }
+                CardServicePurchaseBlockReason::NotEnoughUnengravedCards {
+                    required,
+                    available,
+                } => l10n::ui::ShopPurchaseBlockReasonText::NotEnoughUnengravedCards {
+                    required: *required,
+                    available: *available,
+                },
+            },
+        })
+        .collect::<Vec<_>>();
+
+    vec![TooltipSection {
+        title: Some(SectionText {
+            key: "shop_purchase:unavailable:title".to_string(),
+            apply: Box::new(move |builder| {
+                builder
+                    .icon(IconKind::Warning)
+                    .space()
+                    .l10n(l10n::ui::ShopPurchaseBlockReasonText::Unavailable, &locale);
+            }),
+        }),
+        body: SectionText {
+            key: "shop_purchase:unavailable:reasons".to_string(),
+            apply: Box::new(move |builder| {
+                for (index, reason) in reason_texts.iter().enumerate() {
+                    if index > 0 {
+                        builder.text("\n");
+                    }
+                    builder.l10n(*reason, &locale);
+                }
+            }),
+        },
+    }]
+}
+
 pub struct TooltipLayer;
 
 impl Component for TooltipLayer {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
         let locale = game_state.text().locale();
+        let deck_revision = ctx.track_eq(&game_state.deck.revision());
+        let purchase_context = ctx.memo(|| {
+            deck_revision.record_as_used();
+            CardServicePurchaseContext::from_game_state(&game_state)
+        });
 
         let (request, _) = ctx.init_atom(&TOOLTIP, || None::<TooltipRequest>);
         let (last, set_last) = ctx.state(|| None::<TooltipRequest>);
@@ -176,7 +273,9 @@ impl Component for TooltipLayer {
         };
 
         ctx.compose(|ctx| {
-            let sections = request.content.sections(locale);
+            let sections = request
+                .content
+                .sections(locale, &game_state, &purchase_context);
             let tooltip = ctx.ghost_add("stacked-tooltip", StackedTooltip { sections, locale });
             let Some(tooltip_wh) = tooltip.bounding_box().map(|rect| rect.wh()) else {
                 return;

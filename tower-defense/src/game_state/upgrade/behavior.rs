@@ -168,6 +168,15 @@ pub trait UpgradeBehavior {
 
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree;
 
+    fn thumbnail_with_opacity(
+        &self,
+        width_height: Wh<Px>,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        crate::thumbnail::with_opacity(self.thumbnail(width_height, shadow), opacity)
+    }
+
     fn thumbnail_overlay(
         &self,
         _width_height: Wh<Px>,

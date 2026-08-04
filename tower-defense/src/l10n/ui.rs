@@ -219,3 +219,62 @@ impl SettingsText {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum ShopPurchaseBlockReasonText {
+    Unavailable,
+    AlreadyPurchased,
+    NotEnoughGold { required: usize, available: usize },
+    PurchasesDisabled,
+    NoEngravedCard,
+    NotEnoughUnengravedCards { required: usize, available: usize },
+}
+
+impl LocalizedText for ShopPurchaseBlockReasonText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        let _ = match locale.language {
+            Language::Korean => match self {
+                Self::Unavailable => builder.static_text("구매 불가"),
+                Self::AlreadyPurchased => builder.static_text("이미 구매한 상품입니다"),
+                Self::NotEnoughGold {
+                    required,
+                    available,
+                } => builder.text(format!(
+                    "골드가 부족합니다. 필요: {required}, 보유: {available}"
+                )),
+                Self::PurchasesDisabled => {
+                    builder.static_text("현재 상점 구매가 비활성화되어 있습니다")
+                }
+                Self::NoEngravedCard => builder.static_text("각인된 카드가 없습니다"),
+                Self::NotEnoughUnengravedCards {
+                    required,
+                    available,
+                } => builder.text(format!(
+                    "각인되지 않은 카드가 부족합니다. 필요: {required}, 가능: {available}"
+                )),
+            },
+            Language::English => match self {
+                Self::Unavailable => builder.static_text("Purchase unavailable"),
+                Self::AlreadyPurchased => {
+                    builder.static_text("This item has already been purchased")
+                }
+                Self::NotEnoughGold {
+                    required,
+                    available,
+                } => builder.text(format!(
+                    "Not enough gold. Required: {required}, available: {available}"
+                )),
+                Self::PurchasesDisabled => {
+                    builder.static_text("Shop purchases are currently disabled")
+                }
+                Self::NoEngravedCard => builder.static_text("There are no engraved cards"),
+                Self::NotEnoughUnengravedCards {
+                    required,
+                    available,
+                } => builder.text(format!(
+                    "Not enough unengraved cards. Required: {required}, available: {available}"
+                )),
+            },
+        };
+    }
+}
