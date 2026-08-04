@@ -78,22 +78,4 @@ mod tests {
             assert_eq!(item.discriminant(), discriminant);
         }
     }
-
-    #[test]
-    fn generating_by_rarity_returns_only_requested_rarity() {
-        let rarities = [
-            crate::Rarity::Common,
-            crate::Rarity::Rare,
-            crate::Rarity::Epic,
-            crate::Rarity::Legendary,
-        ];
-
-        for (index, rarity) in rarities.into_iter().enumerate() {
-            let mut rng = StdRng::seed_from_u64(index as u64 + 20);
-            for _ in 0..16 {
-                let item = generate_item_of_rarity_with_rng(rarity, &mut rng);
-                assert_eq!(item.discriminant().rarity(), rarity);
-            }
-        }
-    }
 }

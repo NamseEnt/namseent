@@ -84,7 +84,7 @@ impl ItemBehavior for MilkItem {
 
 pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
     crate::game_state::item::definition::ItemDefinition::new(generate_milk_item, || {
-        crate::Rarity::Epic
+        crate::Rarity::Rare
     });
 
 fn generate_milk_item(_rng: &mut dyn rand::RngCore) -> Item {

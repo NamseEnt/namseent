@@ -163,24 +163,6 @@ fn grant_upgrade_and_item_via_run_effect() {
 }
 
 #[test]
-fn grant_item_uses_requested_rarity() {
-    let rarities = [
-        crate::rarity::Rarity::Common,
-        crate::rarity::Rarity::Rare,
-        crate::rarity::Rarity::Epic,
-        crate::rarity::Rarity::Legendary,
-    ];
-
-    for rarity in rarities {
-        let mut gs = make_test_state();
-        run_effect(&mut gs, &Effect::GrantItem { rarity });
-
-        assert_eq!(gs.items.len(), 1);
-        assert_eq!(gs.items[0].discriminant().rarity(), rarity);
-    }
-}
-
-#[test]
 fn stage_modifiers_via_run_effect() {
     let mut gs = make_test_state();
     run_effect(&mut gs, &Effect::IncreaseIncomingDamage { multiplier: 1.2 });

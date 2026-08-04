@@ -72,7 +72,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
 fn use_shield_items(game_state: &mut GameState) {
     loop {
         let shield_id = game_state.items.iter().find_map(|item| {
-            if matches!(item.item, Item::Shield(..)) {
+            if matches!(item.item, Item::Milk(..)) {
                 Some(item.id)
             } else {
                 None
