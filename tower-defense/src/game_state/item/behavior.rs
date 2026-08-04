@@ -10,6 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 mod candy;
 mod cookie;
+mod donut;
 mod grant_card;
 mod lump_sugar;
 mod milk;
@@ -18,6 +19,7 @@ mod rubber_cone;
 
 pub use candy::*;
 pub use cookie::*;
+pub use donut::*;
 pub use grant_card::*;
 pub use lump_sugar::*;
 pub use milk::*;
@@ -100,6 +102,7 @@ pub trait ItemBehavior {
 pub enum Item {
     Candy(CandyItem),
     Cookie(CookieItem),
+    Donut(DonutItem),
     RiceBall(RiceBallItem),
     LumpSugar(LumpSugarItem),
     Milk(MilkItem),
@@ -215,6 +218,7 @@ impl ItemDiscriminants {
         match self {
             ItemDiscriminants::Candy => candy::DEFINITION,
             ItemDiscriminants::Cookie => cookie::DEFINITION,
+            ItemDiscriminants::Donut => donut::DEFINITION,
             ItemDiscriminants::RiceBall => rice_ball::DEFINITION,
             ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
             ItemDiscriminants::Milk => milk::DEFINITION,
