@@ -20,6 +20,7 @@ mod lunch_box;
 mod milk;
 mod rice_ball;
 mod rubber_cone;
+mod strawberry;
 
 pub use bread::*;
 pub use candy::*;
@@ -33,6 +34,7 @@ pub use lunch_box::*;
 pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
+pub use strawberry::*;
 
 #[enum_dispatch]
 pub trait ItemBehavior {
@@ -117,6 +119,7 @@ pub enum Item {
     LunchBox(LunchBoxItem),
     LumpSugar(LumpSugarItem),
     Milk(MilkItem),
+    Strawberry(StrawberryItem),
     RubberCone(RubberConeItem),
     Gimbap(GimbapItem),
     GrantCard(GrantCardItem),
@@ -237,6 +240,7 @@ impl ItemDiscriminants {
             ItemDiscriminants::LunchBox => lunch_box::DEFINITION,
             ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
             ItemDiscriminants::Milk => milk::DEFINITION,
+            ItemDiscriminants::Strawberry => strawberry::DEFINITION,
             ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
             ItemDiscriminants::Gimbap => gimbap::DEFINITION,
             ItemDiscriminants::GrantCard => grant_card::DEFINITION,
