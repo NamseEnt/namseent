@@ -71,6 +71,7 @@ fn item_heal_amount(item: &Item) -> Option<f32> {
     match item {
         Item::Bread(bread) => Some(bread.heal_amount),
         Item::Gimbap(gimbap) => Some(gimbap.heal_amount),
+        Item::LunchBox(lunch_box) => Some(lunch_box.heal_amount),
         Item::Candy(candy) => Some(candy.heal_amount),
         Item::Cannoli(cannoli) => Some(cannoli.heal_amount),
         Item::Cookie(cookie) => Some(cookie.heal_amount),
@@ -85,7 +86,11 @@ fn use_shield_items(game_state: &mut GameState) {
         let shield_id = game_state.items.iter().find_map(|item| {
             if matches!(
                 item.item,
-                Item::Bread(..) | Item::Gimbap(..) | Item::Milk(..) | Item::RiceBall(..)
+                Item::Bread(..)
+                    | Item::Gimbap(..)
+                    | Item::LunchBox(..)
+                    | Item::Milk(..)
+                    | Item::RiceBall(..)
             ) {
                 Some(item.id)
             } else {

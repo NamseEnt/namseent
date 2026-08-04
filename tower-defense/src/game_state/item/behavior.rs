@@ -16,6 +16,7 @@ mod donut;
 mod gimbap;
 mod grant_card;
 mod lump_sugar;
+mod lunch_box;
 mod milk;
 mod rice_ball;
 mod rubber_cone;
@@ -28,6 +29,7 @@ pub use donut::*;
 pub use gimbap::*;
 pub use grant_card::*;
 pub use lump_sugar::*;
+pub use lunch_box::*;
 pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
@@ -112,6 +114,7 @@ pub enum Item {
     Cookie(CookieItem),
     Donut(DonutItem),
     RiceBall(RiceBallItem),
+    LunchBox(LunchBoxItem),
     LumpSugar(LumpSugarItem),
     Milk(MilkItem),
     RubberCone(RubberConeItem),
@@ -231,6 +234,7 @@ impl ItemDiscriminants {
             ItemDiscriminants::Cookie => cookie::DEFINITION,
             ItemDiscriminants::Donut => donut::DEFINITION,
             ItemDiscriminants::RiceBall => rice_ball::DEFINITION,
+            ItemDiscriminants::LunchBox => lunch_box::DEFINITION,
             ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
             ItemDiscriminants::Milk => milk::DEFINITION,
             ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,

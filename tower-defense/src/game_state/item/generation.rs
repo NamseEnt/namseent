@@ -97,4 +97,13 @@ mod tests {
             assert_eq!(item.discriminant().rarity(), crate::Rarity::Rare);
         }
     }
+    #[test]
+    fn generating_epic_item_by_rarity_returns_epic() {
+        let mut rng = StdRng::seed_from_u64(22);
+
+        for _ in 0..16 {
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Epic, &mut rng);
+            assert_eq!(item.discriminant().rarity(), crate::Rarity::Epic);
+        }
+    }
 }
