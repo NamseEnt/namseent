@@ -69,6 +69,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
 
 fn item_heal_amount(item: &Item) -> Option<f32> {
     match item {
+        Item::Apple(apple) => Some(apple.heal_amount),
         Item::Bread(bread) => Some(bread.heal_amount),
         Item::Gimbap(gimbap) => Some(gimbap.heal_amount),
         Item::LunchBox(lunch_box) => Some(lunch_box.heal_amount),
