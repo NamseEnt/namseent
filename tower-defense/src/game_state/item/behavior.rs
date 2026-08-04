@@ -8,6 +8,7 @@ use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+mod bread;
 mod candy;
 mod cannoli;
 mod cookie;
@@ -18,6 +19,7 @@ mod milk;
 mod rice_ball;
 mod rubber_cone;
 
+pub use bread::*;
 pub use candy::*;
 pub use cannoli::*;
 pub use cookie::*;
@@ -102,6 +104,7 @@ pub trait ItemBehavior {
 #[derive(Debug, Clone, PartialEq, State, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(derive(State, strum_macros::EnumIter, strum_macros::AsRefStr))]
 pub enum Item {
+    Bread(BreadItem),
     Candy(CandyItem),
     Cannoli(CannoliItem),
     Cookie(CookieItem),
@@ -219,6 +222,7 @@ impl Item {
 impl ItemDiscriminants {
     fn definition(self) -> crate::game_state::item::definition::ItemDefinition {
         match self {
+            ItemDiscriminants::Bread => bread::DEFINITION,
             ItemDiscriminants::Candy => candy::DEFINITION,
             ItemDiscriminants::Cannoli => cannoli::DEFINITION,
             ItemDiscriminants::Cookie => cookie::DEFINITION,
