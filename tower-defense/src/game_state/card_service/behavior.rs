@@ -117,6 +117,7 @@ mod magic_wand;
 mod magnet;
 mod pliers;
 mod screwdriver;
+mod spinning_top;
 mod staff;
 mod tricycle;
 
@@ -133,6 +134,7 @@ use magic_wand::MagicWandCardService;
 use magnet::MagnetCardService;
 use pliers::PliersCardService;
 use screwdriver::ScrewdriverCardService;
+use spinning_top::SpinningTopCardService;
 use staff::StaffCardService;
 use tricycle::TricycleCardService;
 
@@ -155,6 +157,7 @@ pub enum CardService {
     Magnet(MagnetCardService),
     Battery(BatteryCardService),
     Cactus(CactusCardService),
+    SpinningTop(SpinningTopCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -230,6 +233,7 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::Copier => copier::DEFINITION,
             CardServiceDiscriminants::Magnet => magnet::DEFINITION,
             CardServiceDiscriminants::Cactus => cactus::DEFINITION,
+            CardServiceDiscriminants::SpinningTop => spinning_top::DEFINITION,
             CardServiceDiscriminants::Battery => battery::DEFINITION,
         }
     }

@@ -7,6 +7,7 @@ pub enum Engraving {
     Magnet,
     Overcharge,
     Cactus,
+    SpinningTop,
 }
 
 const CACTUS_SPLASH_RADIUS: f32 = 2.0;
@@ -19,6 +20,7 @@ impl Engraving {
             Engraving::Magnet => "magnet",
             Engraving::Overcharge => "overcharge",
             Engraving::Cactus => "cactus",
+            Engraving::SpinningTop => "spinning_top",
         }
     }
 
@@ -27,6 +29,7 @@ impl Engraving {
             Engraving::Magnet => crate::asset::image::thumbnail::MAGNET,
             Engraving::Overcharge => crate::asset::image::thumbnail::BATTERY,
             Engraving::Cactus => crate::asset::image::thumbnail::CACTUS,
+            Engraving::SpinningTop => crate::asset::image::thumbnail::SPINNING_TOP,
         }
     }
 
@@ -44,6 +47,7 @@ impl Engraving {
                 }],
                 ..TowerEngravingModifier::NONE
             },
+            Engraving::SpinningTop => TowerEngravingModifier::NONE,
         }
     }
 
@@ -55,6 +59,8 @@ impl Engraving {
             (Engraving::Overcharge, crate::l10n::Language::English) => "Overcharge",
             (Engraving::Cactus, crate::l10n::Language::Korean) => "선인장",
             (Engraving::Cactus, crate::l10n::Language::English) => "Cactus",
+            (Engraving::SpinningTop, crate::l10n::Language::Korean) => "팽이",
+            (Engraving::SpinningTop, crate::l10n::Language::English) => "Spinning Top",
         });
     }
 
@@ -78,6 +84,12 @@ impl Engraving {
             }
             (Engraving::Cactus, crate::l10n::Language::English) => {
                 builder.static_text("When attacking, deals 30% of tower damage to nearby enemies")
+            }
+            (Engraving::SpinningTop, crate::l10n::Language::Korean) => {
+                builder.static_text("이 카드를 뽑으면 카드를 1장 더 뽑습니다")
+            }
+            (Engraving::SpinningTop, crate::l10n::Language::English) => {
+                builder.static_text("When this card is drawn, draw 1 additional card")
             }
         };
     }
