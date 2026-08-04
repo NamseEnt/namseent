@@ -69,6 +69,7 @@ mod eraser;
 mod fountain_pen;
 mod long_sword;
 mod mace;
+mod magic_wand;
 mod magnet;
 mod pliers;
 mod screwdriver;
@@ -84,6 +85,7 @@ use eraser::EraserCardService;
 use fountain_pen::FountainPenCardService;
 use long_sword::LongSwordCardService;
 use mace::MaceCardService;
+use magic_wand::MagicWandCardService;
 use magnet::MagnetCardService;
 use pliers::PliersCardService;
 use screwdriver::ScrewdriverCardService;
@@ -102,6 +104,7 @@ pub enum CardService {
     FountainPen(FountainPenCardService),
     Tricycle(TricycleCardService),
     Eraser(EraserCardService),
+    MagicWand(MagicWandCardService),
     Pliers(PliersCardService),
     Screwdriver(ScrewdriverCardService),
     Copier(CopierCardService),
@@ -167,6 +170,7 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::FountainPen => fountain_pen::DEFINITION,
             CardServiceDiscriminants::Tricycle => tricycle::DEFINITION,
             CardServiceDiscriminants::Eraser => eraser::DEFINITION,
+            CardServiceDiscriminants::MagicWand => magic_wand::DEFINITION,
             CardServiceDiscriminants::Pliers => pliers::DEFINITION,
             CardServiceDiscriminants::Screwdriver => screwdriver::DEFINITION,
             CardServiceDiscriminants::Copier => copier::DEFINITION,
