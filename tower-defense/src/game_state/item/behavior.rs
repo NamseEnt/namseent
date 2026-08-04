@@ -10,12 +10,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 mod grant_card;
 mod lump_sugar;
+mod milk;
 mod rice_ball;
 mod rubber_cone;
 mod shield;
 
 pub use grant_card::*;
 pub use lump_sugar::*;
+pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
 pub use shield::*;
@@ -96,6 +98,7 @@ pub trait ItemBehavior {
 pub enum Item {
     RiceBall(RiceBallItem),
     LumpSugar(LumpSugarItem),
+    Milk(MilkItem),
     Shield(ShieldItem),
     RubberCone(RubberConeItem),
     GrantCard(GrantCardItem),
