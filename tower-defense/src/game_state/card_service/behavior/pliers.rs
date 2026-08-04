@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    card::{CardId, Engraving},
+    card::CardId,
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
@@ -9,21 +9,21 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct CactusCardService;
+pub struct PliersCardService;
 
-impl CactusCardService {
+impl PliersCardService {
     pub fn new() -> Self {
         Self
     }
 
     pub fn into_card_service(self) -> CardService {
-        CardService::Cactus(self)
+        CardService::Pliers(self)
     }
 }
 
-impl CardServiceBehavior for CactusCardService {
+impl CardServiceBehavior for PliersCardService {
     fn key(&self) -> &'static str {
-        "cactus"
+        "pliers"
     }
 
     fn acquire(self, game_state: &mut GameState)
@@ -31,8 +31,10 @@ impl CardServiceBehavior for CactusCardService {
         Self: Sized + Into<CardService>,
     {
         let title = match game_state.locale.language {
-            crate::l10n::locale::Language::English => "Select a card to engrave",
-            crate::l10n::locale::Language::Korean => "각인할 카드를 선택하세요",
+            crate::l10n::locale::Language::English => {
+                "Select an engraved card to remove its engraving"
+            }
+            crate::l10n::locale::Language::Korean => "각인을 제거할 카드를 선택하세요",
         }
         .to_string();
 
@@ -40,7 +42,7 @@ impl CardServiceBehavior for CactusCardService {
             vec![crate::game_state::modal::deck::CardSelectionStep {
                 title,
                 count: 1,
-                filter: crate::game_state::modal::deck::CardSelectionFilter::NotEngraved,
+                filter: crate::game_state::modal::deck::CardSelectionFilter::Engraved,
             }],
             self.into_card_service(),
         );
@@ -64,7 +66,7 @@ impl CardServiceBehavior for CactusCardService {
                         .into_iter()
                         .map(|card_id| DeckEnhance {
                             card_id,
-                            changes: vec![DeckEditChange::SetEngraving(Some(Engraving::Cactus))],
+                            changes: vec![DeckEditChange::SetEngraving(None)],
                         })
                         .collect(),
                 },
@@ -74,7 +76,7 @@ impl CardServiceBehavior for CactusCardService {
 
     fn thumbnail(&self, wh: Wh<Px>, _stroke_px: Px, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::CACTUS,
+            crate::asset::image::thumbnail::PLIERS,
             wh,
             crate::thumbnail::STICKER_THUMBNAIL_STROKE,
             shadow,
@@ -83,8 +85,8 @@ impl CardServiceBehavior for CactusCardService {
 
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
         builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Cactus",
-            crate::l10n::locale::Language::Korean => "선인장",
+            crate::l10n::locale::Language::English => "Pliers",
+            crate::l10n::locale::Language::Korean => "플라이어",
         });
     }
 
@@ -95,30 +97,20 @@ impl CardServiceBehavior for CactusCardService {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => {
-                builder.static_text("Select 1 card and engrave cactus on it.")
+                builder.static_text("Select 1 engraved card and remove its engraving.")
             }
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("카드 1장을 선택해 선인장 각인을 부여합니다.")
+                builder.static_text("각인된 카드 1장을 선택해 각인을 제거합니다.")
             }
         };
     }
 
-    fn tooltip_sections(
-        &self,
-        locale: crate::l10n::Locale,
-    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
-        vec![
-            self.tooltip_section(locale),
-            crate::l10n::word::Word::Engraving(Some(Engraving::Cactus)).tooltip_section(locale),
-        ]
-    }
-
     fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
-        let card_id = game_state
-            .deck
+        let deck = &game_state.deck;
+        let card_id = deck
             .all_cards()
             .iter()
-            .filter(|card| card.engraving().is_none())
+            .filter(|card| card.engraving().is_some())
             .max_by(|a, b| {
                 a.polish_pct()
                     .total_cmp(&b.polish_pct())
@@ -133,97 +125,91 @@ impl CardServiceBehavior for CactusCardService {
 
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
-        generate_cactus_card_service,
+        generate_pliers_card_service,
         || crate::Rarity::Common,
     );
 
-fn generate_cactus_card_service() -> CardService {
-    CactusCardService::new().into_card_service()
+fn generate_pliers_card_service() -> CardService {
+    PliersCardService::new().into_card_service()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::card::Engraving;
     use crate::game_state::card_service::CardServiceBehavior;
 
     #[test]
-    fn cactus_engraving_adds_thirty_percent_splash_damage() {
-        assert_eq!(
-            Engraving::Cactus.tower_modifier().on_attack_splashes,
-            vec![crate::card::EngravingSplash {
-                radius: 2.0,
-                damage_pct: 0.3,
-            }]
-        );
+    fn heuristic_selects_one_engraved_card() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        let engraved = game_state.deck.all_cards()[0].id;
+        game_state.deck.modify_card(engraved, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+        });
+
+        let selected = PliersCardService.heuristic_best_selection(&game_state);
+
+        assert_eq!(selected, vec![vec![engraved]]);
     }
 
     #[test]
-    fn cactus_heuristic_selects_one_unengraved_card() {
+    fn heuristic_handles_a_deck_without_engraved_cards() {
         let game_state = crate::game_state::create_initial_game_state();
 
-        let selected = CactusCardService.heuristic_best_selection(&game_state);
-
-        assert_eq!(selected.len(), 1);
-        assert_eq!(selected[0].len(), 1);
-        assert!(
-            game_state
-                .deck
-                .get_card(selected[0][0])
-                .unwrap()
-                .engraving()
-                .is_none()
-        );
-    }
-
-    #[cfg(feature = "simulator")]
-    #[test]
-    fn cactus_selection_only_engraves_the_selected_card() {
-        let mut game_state = crate::game_state::create_initial_game_state();
-        let selected = game_state.deck.all_cards()[0].id;
-        let unrelated = game_state.deck.all_cards()[1].id;
-
-        CactusCardService.select_cards(&mut game_state, vec![vec![selected]]);
-
         assert_eq!(
-            game_state.deck.get_card(selected).unwrap().engraving(),
-            Some(Engraving::Cactus)
-        );
-        assert_eq!(
-            game_state.deck.get_card(unrelated).unwrap().engraving(),
-            None
-        );
-    }
-
-    #[test]
-    fn cactus_heuristic_handles_a_fully_engraved_deck() {
-        let mut game_state = crate::game_state::create_initial_game_state();
-        for card in game_state.deck.all_cards().to_vec() {
-            game_state.deck.modify_card(card.id, |card| {
-                card.effects.engraving = Some(Engraving::Magnet);
-            });
-        }
-
-        assert_eq!(
-            CactusCardService.heuristic_best_selection(&game_state),
+            PliersCardService.heuristic_best_selection(&game_state),
             vec![vec![]]
         );
     }
 
     #[cfg(feature = "simulator")]
     #[test]
-    fn cactus_headless_use_card_service_engraves_the_selected_card() {
+    fn selection_removes_only_the_selected_card_engraving() {
         let mut game_state = crate::game_state::create_initial_game_state();
-        let service = CactusCardService;
-        let selected = service.heuristic_best_selection(&game_state)[0][0];
+        let selected = game_state.deck.all_cards()[0].id;
+        let unrelated = game_state.deck.all_cards()[1].id;
+        game_state.deck.modify_card(selected, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+            card.add_polish_pct(1.0);
+        });
+        game_state.deck.modify_card(unrelated, |card| {
+            card.effects.engraving = Some(Engraving::Overcharge);
+        });
+        let polish = game_state.deck.get_card(selected).unwrap().polish_pct();
+
+        PliersCardService.select_cards(&mut game_state, vec![vec![selected]]);
+
+        assert_eq!(
+            game_state.deck.get_card(selected).unwrap().engraving(),
+            None
+        );
+        assert_eq!(
+            game_state.deck.get_card(selected).unwrap().polish_pct(),
+            polish
+        );
+        assert_eq!(
+            game_state.deck.get_card(unrelated).unwrap().engraving(),
+            Some(Engraving::Overcharge)
+        );
+    }
+
+    #[cfg(feature = "simulator")]
+    #[test]
+    fn headless_use_card_service_removes_the_selected_engraving() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        let selected = game_state.deck.all_cards()[0].id;
+        game_state.deck.modify_card(selected, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+        });
         game_state.headless = true;
 
         game_state.action(crate::game_state::GameStateAction::UseCardService(
-            service.into_card_service(),
+            PliersCardService.into_card_service(),
         ));
 
         assert_eq!(
             game_state.deck.get_card(selected).unwrap().engraving(),
-            Some(Engraving::Cactus)
+            None
         );
     }
 }
