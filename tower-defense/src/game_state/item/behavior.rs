@@ -13,6 +13,7 @@ mod banana;
 mod bread;
 mod candy;
 mod cannoli;
+mod carrot;
 mod cookie;
 mod donut;
 mod gimbap;
@@ -30,6 +31,7 @@ pub use banana::*;
 pub use bread::*;
 pub use candy::*;
 pub use cannoli::*;
+pub use carrot::*;
 pub use cookie::*;
 pub use donut::*;
 pub use gimbap::*;
@@ -118,6 +120,7 @@ pub trait ItemBehavior {
 pub enum Item {
     Apple(AppleItem),
     Banana(BananaItem),
+    Carrot(CarrotItem),
     Bread(BreadItem),
     Candy(CandyItem),
     Cannoli(CannoliItem),
@@ -242,6 +245,7 @@ impl ItemDiscriminants {
         match self {
             ItemDiscriminants::Apple => apple::DEFINITION,
             ItemDiscriminants::Banana => banana::DEFINITION,
+            ItemDiscriminants::Carrot => carrot::DEFINITION,
             ItemDiscriminants::Bread => bread::DEFINITION,
             ItemDiscriminants::Candy => candy::DEFINITION,
             ItemDiscriminants::Cannoli => cannoli::DEFINITION,

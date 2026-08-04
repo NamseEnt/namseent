@@ -106,4 +106,13 @@ mod tests {
             assert_eq!(item.discriminant().rarity(), crate::Rarity::Epic);
         }
     }
+    #[test]
+    fn generating_legendary_item_by_rarity_returns_legendary() {
+        let mut rng = StdRng::seed_from_u64(23);
+
+        for _ in 0..16 {
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Legendary, &mut rng);
+            assert_eq!(item.discriminant().rarity(), crate::Rarity::Legendary);
+        }
+    }
 }
