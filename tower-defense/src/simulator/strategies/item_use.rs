@@ -70,6 +70,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
 fn item_heal_amount(item: &Item) -> Option<f32> {
     match item {
         Item::Candy(candy) => Some(candy.heal_amount),
+        Item::Cannoli(cannoli) => Some(cannoli.heal_amount),
         Item::Cookie(cookie) => Some(cookie.heal_amount),
         Item::Donut(donut) => Some(donut.heal_amount),
         Item::RiceBall(rice_ball) => Some(rice_ball.heal_amount),
