@@ -50,22 +50,13 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     let max_hp = game_state.config.player.max_hp;
 
     loop {
-        let heal_item_id = game_state.items.iter().find_map(|item| match item.item {
-            Item::Candy(candy) => {
-                if game_state.hp + candy.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
-                    Some(item.id)
-                } else {
-                    None
-                }
+        let heal_item_id = game_state.items.iter().find_map(|item| {
+            let heal_amount = item_heal_amount(&item.item)?;
+            if game_state.hp + heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
+                Some(item.id)
+            } else {
+                None
             }
-            Item::RiceBall(rice_ball) => {
-                if game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
-                    Some(item.id)
-                } else {
-                    None
-                }
-            }
-            _ => None,
         });
 
         let Some(id) = heal_item_id else {
@@ -73,6 +64,15 @@ fn use_heal_if_needed(game_state: &mut GameState) {
         };
 
         game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
+    }
+}
+
+fn item_heal_amount(item: &Item) -> Option<f32> {
+    match item {
+        Item::Candy(candy) => Some(candy.heal_amount),
+        Item::Cookie(cookie) => Some(cookie.heal_amount),
+        Item::RiceBall(rice_ball) => Some(rice_ball.heal_amount),
+        _ => None,
     }
 }
 
