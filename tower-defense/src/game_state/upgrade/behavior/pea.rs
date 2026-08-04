@@ -1,7 +1,7 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const PEA_HP_PLUS: f32 = 10.0;
+const PEA_HP_PLUS: f32 = 3.0;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PeaUpgrade;
