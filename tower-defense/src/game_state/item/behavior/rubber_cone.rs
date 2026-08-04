@@ -83,3 +83,12 @@ impl ItemBehavior for RubberConeItem {
         )
     }
 }
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_rubber_cone_item, || {
+        crate::Rarity::Rare
+    });
+
+fn generate_rubber_cone_item(_rng: &mut dyn rand::RngCore) -> Item {
+    RubberConeItem::standard().into_item()
+}

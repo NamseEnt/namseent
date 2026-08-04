@@ -1,4 +1,5 @@
 use super::*;
+use rand::{Rng, RngCore};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub struct GrantCardItem {
@@ -67,4 +68,17 @@ impl ItemBehavior for GrantCardItem {
     ) -> RenderingTree {
         render_card(&self.card, width_height, stroke_px, shadow)
     }
+}
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_grant_card_item, || {
+        crate::Rarity::Rare
+    });
+
+fn generate_grant_card_item(rng: &mut dyn RngCore) -> Item {
+    let suit =
+        crate::game_state::card::SUITS[rng.gen_range(0..crate::game_state::card::SUITS.len())];
+    let rank =
+        crate::game_state::card::RANKS[rng.gen_range(0..crate::game_state::card::RANKS.len())];
+    GrantCardItem::new(Card::new(rank, suit)).into_item()
 }

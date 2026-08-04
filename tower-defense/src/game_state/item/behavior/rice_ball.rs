@@ -74,3 +74,12 @@ impl ItemBehavior for RiceBallItem {
         )
     }
 }
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_rice_ball_item, || {
+        crate::Rarity::Common
+    });
+
+fn generate_rice_ball_item(_rng: &mut dyn rand::RngCore) -> Item {
+    RiceBallItem::standard().into_item()
+}

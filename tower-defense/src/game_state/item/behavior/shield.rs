@@ -76,3 +76,12 @@ impl ItemBehavior for ShieldItem {
         )
     }
 }
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_shield_item, || {
+        crate::Rarity::Legendary
+    });
+
+fn generate_shield_item(_rng: &mut dyn rand::RngCore) -> Item {
+    ShieldItem::standard().into_item()
+}

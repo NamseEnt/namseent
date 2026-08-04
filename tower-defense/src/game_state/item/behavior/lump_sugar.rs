@@ -92,3 +92,12 @@ impl ItemBehavior for LumpSugarItem {
         )
     }
 }
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_lump_sugar_item, || {
+        crate::Rarity::Epic
+    });
+
+fn generate_lump_sugar_item(_rng: &mut dyn rand::RngCore) -> Item {
+    LumpSugarItem::standard().into_item()
+}

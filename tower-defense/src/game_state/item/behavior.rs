@@ -207,6 +207,27 @@ impl Item {
     }
 }
 
+impl ItemDiscriminants {
+    fn definition(self) -> crate::game_state::item::definition::ItemDefinition {
+        match self {
+            ItemDiscriminants::RiceBall => rice_ball::DEFINITION,
+            ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
+            ItemDiscriminants::Milk => milk::DEFINITION,
+            ItemDiscriminants::Shield => shield::DEFINITION,
+            ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
+            ItemDiscriminants::GrantCard => grant_card::DEFINITION,
+        }
+    }
+
+    pub(crate) fn generate(self, rng: &mut dyn rand::RngCore) -> Item {
+        self.definition().generate(rng)
+    }
+
+    pub(crate) fn rarity(self) -> crate::Rarity {
+        self.definition().rarity()
+    }
+}
+
 pub(crate) fn render_sticker(
     image: Image,
     width_height: Wh<Px>,
