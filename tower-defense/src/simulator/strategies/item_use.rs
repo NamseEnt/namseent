@@ -81,7 +81,7 @@ fn item_heal_amount(item: &Item) -> Option<f32> {
 fn use_shield_items(game_state: &mut GameState) {
     loop {
         let shield_id = game_state.items.iter().find_map(|item| {
-            if matches!(item.item, Item::Milk(..)) {
+            if matches!(item.item, Item::Milk(..) | Item::RiceBall(..)) {
                 Some(item.id)
             } else {
                 None
