@@ -51,6 +51,13 @@ fn use_heal_if_needed(game_state: &mut GameState) {
 
     loop {
         let heal_item_id = game_state.items.iter().find_map(|item| match item.item {
+            Item::Candy(candy) => {
+                if game_state.hp + candy.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
+                    Some(item.id)
+                } else {
+                    None
+                }
+            }
             Item::RiceBall(rice_ball) => {
                 if game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
                     Some(item.id)

@@ -78,4 +78,14 @@ mod tests {
             assert_eq!(item.discriminant(), discriminant);
         }
     }
+
+    #[test]
+    fn generating_common_item_by_rarity_returns_common() {
+        let mut rng = StdRng::seed_from_u64(20);
+
+        for _ in 0..16 {
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Common, &mut rng);
+            assert_eq!(item.discriminant().rarity(), crate::Rarity::Common);
+        }
+    }
 }
