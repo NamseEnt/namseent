@@ -23,6 +23,7 @@ mod milk;
 mod rice_ball;
 mod rubber_cone;
 mod strawberry;
+mod watermelon;
 
 pub use apple::*;
 pub use banana::*;
@@ -39,6 +40,7 @@ pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
 pub use strawberry::*;
+pub use watermelon::*;
 
 #[enum_dispatch]
 pub trait ItemBehavior {
@@ -127,6 +129,7 @@ pub enum Item {
     Milk(MilkItem),
     Strawberry(StrawberryItem),
     RubberCone(RubberConeItem),
+    Watermelon(WatermelonItem),
     Gimbap(GimbapItem),
     GrantCard(GrantCardItem),
 }
@@ -250,6 +253,7 @@ impl ItemDiscriminants {
             ItemDiscriminants::Milk => milk::DEFINITION,
             ItemDiscriminants::Strawberry => strawberry::DEFINITION,
             ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
+            ItemDiscriminants::Watermelon => watermelon::DEFINITION,
             ItemDiscriminants::Gimbap => gimbap::DEFINITION,
             ItemDiscriminants::GrantCard => grant_card::DEFINITION,
         }

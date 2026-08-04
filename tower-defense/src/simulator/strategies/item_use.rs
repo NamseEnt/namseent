@@ -80,6 +80,7 @@ fn item_heal_amount(item: &Item) -> Option<f32> {
         Item::Donut(donut) => Some(donut.heal_amount),
         Item::RiceBall(rice_ball) => Some(rice_ball.heal_amount),
         Item::Strawberry(strawberry) => Some(strawberry.heal_amount),
+        Item::Watermelon(watermelon) => Some(watermelon.heal_amount),
         _ => None,
     }
 }
