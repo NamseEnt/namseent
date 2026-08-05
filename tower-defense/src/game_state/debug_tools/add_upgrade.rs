@@ -181,6 +181,9 @@ fn generate_mock_upgrade(
     use crate::game_state::upgrade::*;
     let damage_bonus_pct = rarity_gen(rarity, rng, (0.2..0.5, 0.3..0.75, 0.5..1.5, 1.0..2.5));
     match disc {
+        UpgradeDiscriminants::Apple => crate::game_state::upgrade::AppleUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Banana => crate::game_state::upgrade::BananaUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Carrot => crate::game_state::upgrade::CarrotUpgrade::into_upgrade(),
         UpgradeDiscriminants::Cat => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
         UpgradeDiscriminants::Backpack => {
             crate::game_state::upgrade::BackpackUpgrade::into_upgrade(1)
@@ -203,6 +206,16 @@ fn generate_mock_upgrade(
         }
         UpgradeDiscriminants::Trophy => crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
         UpgradeDiscriminants::Crock => crate::game_state::upgrade::CrockUpgrade::into_upgrade(),
+        UpgradeDiscriminants::CupNoodles => {
+            crate::game_state::upgrade::CupNoodlesUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::FrenchFries => {
+            crate::game_state::upgrade::FrenchFriesUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Hamburger => {
+            crate::game_state::upgrade::HamburgerUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Pizza => crate::game_state::upgrade::PizzaUpgrade::into_upgrade(),
         UpgradeDiscriminants::DemolitionHammer => {
             crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade()
         }
@@ -242,6 +255,12 @@ fn generate_mock_upgrade(
         }
         UpgradeDiscriminants::BrokenPottery => {
             crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Strawberry => {
+            crate::game_state::upgrade::StrawberryUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Watermelon => {
+            crate::game_state::upgrade::WatermelonUpgrade::into_upgrade()
         }
     }
 }

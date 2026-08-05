@@ -9,6 +9,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
     let now = game_state.now();
     let mut new_attacks: Vec<InFlightAttack> = Vec::new();
+    let mut area_damage_events = Vec::new();
 
     {
         let towers = &mut game_state.towers;
@@ -44,13 +45,21 @@ pub fn shoot_attacks(game_state: &mut GameState) {
 
             let target_xy = monsters[target_idx].center_xy_tile();
             let damage = tower.cached_upgrade_damage();
-            let splash = tower.engraving_modifier().splash;
+            let engraving_modifier = tower.engraving_modifier();
             let source_tower = TowerInfo {
                 id: tower.id(),
                 kind: tower.kind,
                 rank: tower.rank(),
                 suit: tower.suit(),
             };
+            if !engraving_modifier.on_attack_splashes.is_empty() {
+                area_damage_events.push(super::AreaDamageEvent {
+                    center: tower_center,
+                    damage,
+                    source_tower,
+                    splashes: engraving_modifier.on_attack_splashes.clone(),
+                });
+            }
             let attack_type = tower.attack_type(AttackTypeParams {
                 target_xy: (target_xy.x, target_xy.y),
                 now,
@@ -102,7 +111,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                                 damage_per_projectile,
                                 Some(source_tower),
                             )
-                            .with_splash(splash),
+                            .with_on_hit_splashes(engraving_modifier.on_hit_splashes.clone()),
                         );
                     }
                 }
@@ -124,7 +133,7 @@ pub fn shoot_attacks(game_state: &mut GameState) {
                             Some(source_tower),
                             HitSound::KnifeSlash,
                         )
-                        .with_splash(splash),
+                        .with_on_hit_splashes(engraving_modifier.on_hit_splashes.clone()),
                     );
                 }
             }
@@ -132,4 +141,5 @@ pub fn shoot_attacks(game_state: &mut GameState) {
     }
 
     game_state.in_flight_attacks.extend(new_attacks);
+    super::resolve::apply_area_damage_events(game_state, area_damage_events);
 }

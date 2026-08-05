@@ -227,12 +227,12 @@ pub struct InFlightAttack {
     pub damage: f32,
     pub source_tower: Option<TowerInfo>,
     pub kind: InFlightAttackKind,
-    pub splash: Option<crate::card::EngravingSplash>,
+    pub on_hit_splashes: Vec<crate::card::EngravingSplash>,
 }
 
 impl InFlightAttack {
-    pub fn with_splash(mut self, splash: Option<crate::card::EngravingSplash>) -> Self {
-        self.splash = splash;
+    pub fn with_on_hit_splashes(mut self, splashes: Vec<crate::card::EngravingSplash>) -> Self {
+        self.on_hit_splashes = splashes;
         self
     }
 
@@ -246,7 +246,7 @@ impl InFlightAttack {
             damage,
             source_tower,
             kind: InFlightAttackKind::Spatial(spatial),
-            splash: None,
+            on_hit_splashes: Vec::new(),
         }
     }
 
@@ -266,7 +266,7 @@ impl InFlightAttack {
                 execute_at,
                 hit_sound,
             }),
-            splash: None,
+            on_hit_splashes: Vec::new(),
         }
     }
 
@@ -276,7 +276,7 @@ impl InFlightAttack {
             damage,
             source_tower,
             kind: InFlightAttackKind::Laser(beam),
-            splash: None,
+            on_hit_splashes: Vec::new(),
         }
     }
 }

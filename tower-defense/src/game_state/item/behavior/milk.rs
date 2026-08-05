@@ -3,27 +3,27 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
-pub struct ShieldItem {
+pub struct MilkItem {
     pub shield_amount: f32,
 }
 
-impl ShieldItem {
+impl MilkItem {
     pub fn new(shield_amount: f32) -> Self {
         Self { shield_amount }
     }
 
     pub fn standard() -> Self {
-        Self::new(25.0)
+        Self::new(12.0)
     }
 
     pub fn into_item(self) -> Item {
-        Item::Shield(self)
+        Item::Milk(self)
     }
 }
 
-impl ItemBehavior for ShieldItem {
+impl ItemBehavior for MilkItem {
     fn key(&self) -> &'static str {
-        "shield"
+        "milk"
     }
 
     fn use_item(&self, game_state: &mut crate::game_state::GameState) {
@@ -38,8 +38,8 @@ impl ItemBehavior for ShieldItem {
         locale: &crate::l10n::Locale,
     ) {
         builder.static_text(match locale.language {
-            crate::l10n::Language::Korean => "보호막",
-            crate::l10n::Language::English => "Shield",
+            crate::l10n::Language::Korean => "우유",
+            crate::l10n::Language::English => "Milk",
         });
     }
 
@@ -52,12 +52,17 @@ impl ItemBehavior for ShieldItem {
             crate::l10n::Language::Korean => {
                 builder
                     .l10n(Word::Shield.name(), locale)
-                    .with_shield_value(format!(" +{:.0}", self.shield_amount));
+                    .static_text("을 ")
+                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .static_text(" 획득합니다.");
             }
             crate::l10n::Language::English => {
                 builder
+                    .static_text("Gain ")
+                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .static_text(" ")
                     .l10n(Word::Shield.name(), locale)
-                    .with_shield_value(format!(" +{:.0}", self.shield_amount));
+                    .static_text(".");
             }
         }
     }
@@ -69,10 +74,29 @@ impl ItemBehavior for ShieldItem {
         shadow: bool,
     ) -> RenderingTree {
         render_sticker(
-            crate::asset::image::thumbnail::SHIELD,
+            crate::asset::image::thumbnail::MILK,
             width_height,
             stroke_px,
             shadow,
         )
     }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            Word::Shield.tooltip_section(locale),
+        ]
+    }
+}
+
+pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
+    crate::game_state::item::definition::ItemDefinition::new(generate_milk_item, || {
+        crate::Rarity::Rare
+    });
+
+fn generate_milk_item(_rng: &mut dyn rand::RngCore) -> Item {
+    MilkItem::standard().into_item()
 }

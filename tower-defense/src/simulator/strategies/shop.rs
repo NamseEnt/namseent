@@ -50,10 +50,10 @@ impl SynergyShopStrategy {
             return true;
         }
 
-        if count_item_kind(game_state, ItemDiscriminants::Shield) < 1
+        if count_item_kind(game_state, ItemDiscriminants::Milk) < 1
             && game_state.shield <= 0.0
             && game_state.hp < game_state.config.player.max_hp * 0.85
-            && let Some(slot_id) = find_item_slot(flow, ItemDiscriminants::Shield, game_state.gold)
+            && let Some(slot_id) = find_item_slot(flow, ItemDiscriminants::Milk, game_state.gold)
         {
             game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,

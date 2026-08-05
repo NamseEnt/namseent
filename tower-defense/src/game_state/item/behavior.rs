@@ -8,17 +8,31 @@ use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+mod bread;
+mod candy;
+mod cannoli;
+mod cookie;
+mod donut;
+mod gimbap;
 mod grant_card;
 mod lump_sugar;
+mod lunch_box;
+mod milk;
 mod rice_ball;
 mod rubber_cone;
-mod shield;
 
+pub use bread::*;
+pub use candy::*;
+pub use cannoli::*;
+pub use cookie::*;
+pub use donut::*;
+pub use gimbap::*;
 pub use grant_card::*;
 pub use lump_sugar::*;
+pub use lunch_box::*;
+pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
-pub use shield::*;
 
 #[enum_dispatch]
 pub trait ItemBehavior {
@@ -52,6 +66,19 @@ pub trait ItemBehavior {
         shadow: bool,
     ) -> RenderingTree;
 
+    fn thumbnail_with_shadow_opacity(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        crate::thumbnail::with_opacity(
+            self.thumbnail_with_shadow(width_height, stroke_px, shadow),
+            opacity,
+        )
+    }
+
     fn tooltip_sections(
         &self,
         locale: crate::l10n::Locale,
@@ -81,10 +108,17 @@ pub trait ItemBehavior {
 #[derive(Debug, Clone, PartialEq, State, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(derive(State, strum_macros::EnumIter, strum_macros::AsRefStr))]
 pub enum Item {
+    Bread(BreadItem),
+    Candy(CandyItem),
+    Cannoli(CannoliItem),
+    Cookie(CookieItem),
+    Donut(DonutItem),
     RiceBall(RiceBallItem),
+    LunchBox(LunchBoxItem),
     LumpSugar(LumpSugarItem),
-    Shield(ShieldItem),
+    Milk(MilkItem),
     RubberCone(RubberConeItem),
+    Gimbap(GimbapItem),
     GrantCard(GrantCardItem),
 }
 
@@ -172,12 +206,49 @@ impl Item {
         ItemBehavior::thumbnail_with_shadow(self, width_height, stroke_px, shadow)
     }
 
+    pub fn thumbnail_with_shadow_opacity(
+        &self,
+        width_height: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        ItemBehavior::thumbnail_with_shadow_opacity(self, width_height, stroke_px, shadow, opacity)
+    }
+
     pub fn discriminant(&self) -> ItemDiscriminants {
         self.into()
     }
 
     pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
         self.thumbnail_with_shadow(width_height, STICKER_THUMBNAIL_STROKE, false)
+    }
+}
+
+impl ItemDiscriminants {
+    fn definition(self) -> crate::game_state::item::definition::ItemDefinition {
+        match self {
+            ItemDiscriminants::Bread => bread::DEFINITION,
+            ItemDiscriminants::Candy => candy::DEFINITION,
+            ItemDiscriminants::Cannoli => cannoli::DEFINITION,
+            ItemDiscriminants::Cookie => cookie::DEFINITION,
+            ItemDiscriminants::Donut => donut::DEFINITION,
+            ItemDiscriminants::RiceBall => rice_ball::DEFINITION,
+            ItemDiscriminants::LunchBox => lunch_box::DEFINITION,
+            ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
+            ItemDiscriminants::Milk => milk::DEFINITION,
+            ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
+            ItemDiscriminants::Gimbap => gimbap::DEFINITION,
+            ItemDiscriminants::GrantCard => grant_card::DEFINITION,
+        }
+    }
+
+    pub(crate) fn generate(self, rng: &mut dyn rand::RngCore) -> Item {
+        self.definition().generate(rng)
+    }
+
+    pub(crate) fn rarity(self) -> crate::Rarity {
+        self.definition().rarity()
     }
 }
 

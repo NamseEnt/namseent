@@ -6,8 +6,12 @@ use namui::*;
 pub enum Engraving {
     Magnet,
     Overcharge,
+    Cactus,
+    SpinningTop,
 }
 
+const CACTUS_SPLASH_RADIUS: f32 = 2.0;
+const CACTUS_SPLASH_DAMAGE_PCT: f32 = 0.3;
 const OVERCHARGE_ATTACK_SPEED_MUL: f32 = 1.5;
 
 impl Engraving {
@@ -15,6 +19,8 @@ impl Engraving {
         match self {
             Engraving::Magnet => "magnet",
             Engraving::Overcharge => "overcharge",
+            Engraving::Cactus => "cactus",
+            Engraving::SpinningTop => "spinning_top",
         }
     }
 
@@ -22,6 +28,8 @@ impl Engraving {
         match self {
             Engraving::Magnet => crate::asset::image::thumbnail::MAGNET,
             Engraving::Overcharge => crate::asset::image::thumbnail::BATTERY,
+            Engraving::Cactus => crate::asset::image::thumbnail::CACTUS,
+            Engraving::SpinningTop => crate::asset::image::thumbnail::SPINNING_TOP,
         }
     }
 
@@ -32,6 +40,14 @@ impl Engraving {
                 shoot_interval_mul: 1.0 / OVERCHARGE_ATTACK_SPEED_MUL,
                 ..TowerEngravingModifier::NONE
             },
+            Engraving::Cactus => TowerEngravingModifier {
+                on_attack_splashes: vec![EngravingSplash {
+                    radius: CACTUS_SPLASH_RADIUS,
+                    damage_pct: CACTUS_SPLASH_DAMAGE_PCT,
+                }],
+                ..TowerEngravingModifier::NONE
+            },
+            Engraving::SpinningTop => TowerEngravingModifier::NONE,
         }
     }
 
@@ -41,6 +57,10 @@ impl Engraving {
             (Engraving::Magnet, crate::l10n::Language::English) => "Magnet",
             (Engraving::Overcharge, crate::l10n::Language::Korean) => "과충전",
             (Engraving::Overcharge, crate::l10n::Language::English) => "Overcharge",
+            (Engraving::Cactus, crate::l10n::Language::Korean) => "선인장",
+            (Engraving::Cactus, crate::l10n::Language::English) => "Cactus",
+            (Engraving::SpinningTop, crate::l10n::Language::Korean) => "팽이",
+            (Engraving::SpinningTop, crate::l10n::Language::English) => "Spinning Top",
         });
     }
 
@@ -59,15 +79,28 @@ impl Engraving {
             (Engraving::Overcharge, crate::l10n::Language::English) => {
                 builder.text(format!("Increases attack speed by {overcharge_pct}%"))
             }
+            (Engraving::Cactus, crate::l10n::Language::Korean) => {
+                builder.static_text("공격 시 타워 주변 적들에게 타워 데미지의 30%를 입힙니다")
+            }
+            (Engraving::Cactus, crate::l10n::Language::English) => {
+                builder.static_text("When attacking, deals 30% of tower damage to nearby enemies")
+            }
+            (Engraving::SpinningTop, crate::l10n::Language::Korean) => {
+                builder.static_text("이 카드를 뽑으면 카드를 1장 더 뽑습니다")
+            }
+            (Engraving::SpinningTop, crate::l10n::Language::English) => {
+                builder.static_text("When this card is drawn, draw 1 additional card")
+            }
         };
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, State)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerEngravingModifier {
     pub attack_range_mul: f32,
     pub shoot_interval_mul: f32,
-    pub splash: Option<EngravingSplash>,
+    pub on_hit_splashes: Vec<EngravingSplash>,
+    pub on_attack_splashes: Vec<EngravingSplash>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
@@ -80,7 +113,8 @@ impl TowerEngravingModifier {
     pub const NONE: Self = Self {
         attack_range_mul: 1.0,
         shoot_interval_mul: 1.0,
-        splash: None,
+        on_hit_splashes: Vec::new(),
+        on_attack_splashes: Vec::new(),
     };
 
     pub fn apply_attack_range(&self, base_radius: f32) -> f32 {
@@ -92,16 +126,16 @@ impl TowerEngravingModifier {
     }
 
     pub fn combine(self, other: Self) -> Self {
+        let mut on_hit_splashes = self.on_hit_splashes;
+        on_hit_splashes.extend(other.on_hit_splashes);
+        let mut on_attack_splashes = self.on_attack_splashes;
+        on_attack_splashes.extend(other.on_attack_splashes);
+
         Self {
             attack_range_mul: self.attack_range_mul * other.attack_range_mul,
             shoot_interval_mul: self.shoot_interval_mul * other.shoot_interval_mul,
-            splash: match (self.splash, other.splash) {
-                (Some(a), Some(b)) => Some(EngravingSplash {
-                    radius: a.radius.max(b.radius),
-                    damage_pct: a.damage_pct.max(b.damage_pct),
-                }),
-                (splash, None) | (None, splash) => splash,
-            },
+            on_hit_splashes,
+            on_attack_splashes,
         }
     }
 }
@@ -124,7 +158,8 @@ mod tests {
         TowerEngravingModifier {
             attack_range_mul: range,
             shoot_interval_mul: interval,
-            splash,
+            on_hit_splashes: splash.into_iter().collect(),
+            on_attack_splashes: Vec::new(),
         }
     }
 
@@ -139,8 +174,8 @@ mod tests {
             }),
         );
 
-        assert_eq!(TowerEngravingModifier::NONE.combine(target), target);
-        assert_eq!(target.combine(TowerEngravingModifier::NONE), target);
+        assert_eq!(TowerEngravingModifier::NONE.combine(target.clone()), target);
+        assert_eq!(target.clone().combine(TowerEngravingModifier::NONE), target);
     }
 
     #[test]
@@ -172,30 +207,17 @@ mod tests {
     }
 
     #[test]
-    fn combine_takes_the_larger_splash_of_each_field() {
-        let combined = modifier(
-            1.0,
-            1.0,
-            Some(EngravingSplash {
-                radius: 3.0,
-                damage_pct: 0.2,
-            }),
-        )
-        .combine(modifier(
-            1.0,
-            1.0,
-            Some(EngravingSplash {
-                radius: 1.0,
-                damage_pct: 0.9,
-            }),
-        ));
+    fn combine_preserves_duplicate_splashes() {
+        let first = EngravingSplash {
+            radius: 3.0,
+            damage_pct: 0.2,
+        };
+        let second = EngravingSplash {
+            radius: 1.0,
+            damage_pct: 0.9,
+        };
+        let combined = modifier(1.0, 1.0, Some(first)).combine(modifier(1.0, 1.0, Some(second)));
 
-        assert_eq!(
-            combined.splash,
-            Some(EngravingSplash {
-                radius: 3.0,
-                damage_pct: 0.9,
-            })
-        );
+        assert_eq!(combined.on_hit_splashes, vec![first, second]);
     }
 }

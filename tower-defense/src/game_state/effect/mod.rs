@@ -111,11 +111,7 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
 
 /// 테스트 및 결정적(Deterministic) 실행을 위해 RNG를 주입할 수 있는 버전.
 /// 기존 `run_effect` 는 thread_rng() 를 사용하며, 이 함수는 재사용 가능한 코어 로직을 담는다.
-pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
-    game_state: &mut GameState,
-    effect: &Effect,
-    rng: &mut R,
-) {
+pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Effect, rng: &mut R) {
     match effect {
         Effect::Heal { amount } => {
             game_state.hp = (game_state.hp + amount).min(game_state.max_hp());
@@ -163,9 +159,12 @@ pub fn run_effect_with_rng<R: rand::Rng + ?Sized>(
             let upgrade = crate::game_state::upgrade::generate_boss_reward_upgrade(game_state);
             game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
         }
-        Effect::GrantItem { rarity: _ } => {
-            let item = crate::game_state::item::generation::generate_item_with_rng(rng);
-            game_state.items.push(item.with_unique_id());
+        Effect::GrantItem { rarity } => {
+            if let Some(item) =
+                crate::game_state::item::generation::generate_item_of_rarity_with_rng(*rarity, rng)
+            {
+                game_state.items.push(item.with_unique_id());
+            }
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
             game_state

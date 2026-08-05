@@ -28,6 +28,21 @@ impl CardServiceBehavior for MagnetCardService {
         "magnet"
     }
 
+    fn purchase_block_reasons(
+        &self,
+        context: &CardServicePurchaseContext,
+    ) -> Vec<CardServicePurchaseBlockReason> {
+        let available = context.unengraved_card_count;
+        if available < 2 {
+            vec![CardServicePurchaseBlockReason::NotEnoughUnengravedCards {
+                required: 2,
+                available,
+            }]
+        } else {
+            Vec::new()
+        }
+    }
+
     fn acquire(self, game_state: &mut GameState)
     where
         Self: Sized + Into<CardService>,

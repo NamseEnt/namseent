@@ -27,6 +27,7 @@ pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
 mod render;
+pub(crate) mod shop_purchase;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
 pub(crate) mod tick;
@@ -164,7 +165,7 @@ impl GameState {
     }
 
     pub fn max_hp(&self) -> f32 {
-        self.config.player.max_hp + self.upgrade_state.max_hp_plus() as f32
+        self.config.player.max_hp + self.upgrade_state.max_hp_plus()
     }
 
     pub fn max_dice_chance(&self) -> usize {

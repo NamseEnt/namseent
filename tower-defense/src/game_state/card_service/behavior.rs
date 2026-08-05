@@ -5,6 +5,33 @@ use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
+pub(crate) struct CardServicePurchaseContext {
+    pub(crate) engraved_card_count: usize,
+    pub(crate) unengraved_card_count: usize,
+}
+
+impl CardServicePurchaseContext {
+    pub(crate) fn from_game_state(game_state: &GameState) -> Self {
+        let engraved_card_count = game_state
+            .deck
+            .all_cards()
+            .iter()
+            .filter(|card| card.engraving().is_some())
+            .count();
+        Self {
+            engraved_card_count,
+            unengraved_card_count: game_state.deck.all_cards().len() - engraved_card_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
+pub(crate) enum CardServicePurchaseBlockReason {
+    NoEngravedCard,
+    NotEnoughUnengravedCards { required: usize, available: usize },
+}
+
 #[enum_dispatch]
 pub trait CardServiceBehavior {
     fn key(&self) -> &'static str;
@@ -25,6 +52,13 @@ pub trait CardServiceBehavior {
         vec![vec![]]
     }
 
+    fn purchase_block_reasons(
+        &self,
+        _context: &CardServicePurchaseContext,
+    ) -> Vec<CardServicePurchaseBlockReason> {
+        Vec::new()
+    }
+
     fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale);
 
     fn l10n_description<'a>(
@@ -34,6 +68,16 @@ pub trait CardServiceBehavior {
     );
 
     fn thumbnail(&self, wh: Wh<Px>, stroke_px: Px, shadow: bool) -> RenderingTree;
+
+    fn thumbnail_with_opacity(
+        &self,
+        wh: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        crate::thumbnail::with_opacity(self.thumbnail(wh, stroke_px, shadow), opacity)
+    }
 
     fn tooltip_sections(
         &self,
@@ -62,27 +106,35 @@ pub trait CardServiceBehavior {
 
 mod battery;
 mod brush;
+mod cactus;
 mod club_sword;
 mod copier;
 mod eraser;
 mod fountain_pen;
 mod long_sword;
 mod mace;
+mod magic_wand;
 mod magnet;
+mod pliers;
 mod screwdriver;
+mod spinning_top;
 mod staff;
 mod tricycle;
 
 use battery::BatteryCardService;
 use brush::BrushCardService;
+use cactus::CactusCardService;
 use club_sword::ClubSwordCardService;
 use copier::CopierCardService;
 use eraser::EraserCardService;
 use fountain_pen::FountainPenCardService;
 use long_sword::LongSwordCardService;
 use mace::MaceCardService;
+use magic_wand::MagicWandCardService;
 use magnet::MagnetCardService;
+use pliers::PliersCardService;
 use screwdriver::ScrewdriverCardService;
+use spinning_top::SpinningTopCardService;
 use staff::StaffCardService;
 use tricycle::TricycleCardService;
 
@@ -98,10 +150,14 @@ pub enum CardService {
     FountainPen(FountainPenCardService),
     Tricycle(TricycleCardService),
     Eraser(EraserCardService),
+    MagicWand(MagicWandCardService),
+    Pliers(PliersCardService),
     Screwdriver(ScrewdriverCardService),
     Copier(CopierCardService),
     Magnet(MagnetCardService),
     Battery(BatteryCardService),
+    Cactus(CactusCardService),
+    SpinningTop(SpinningTopCardService),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -148,6 +204,16 @@ impl CardService {
     pub fn with_unique_id(self) -> CardServiceWithId {
         CardServiceWithId::new(self)
     }
+
+    pub fn thumbnail_with_opacity(
+        &self,
+        wh: Wh<Px>,
+        stroke_px: Px,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        CardServiceBehavior::thumbnail_with_opacity(self, wh, stroke_px, shadow, opacity)
+    }
 }
 
 impl CardServiceDiscriminants {
@@ -161,9 +227,13 @@ impl CardServiceDiscriminants {
             CardServiceDiscriminants::FountainPen => fountain_pen::DEFINITION,
             CardServiceDiscriminants::Tricycle => tricycle::DEFINITION,
             CardServiceDiscriminants::Eraser => eraser::DEFINITION,
+            CardServiceDiscriminants::MagicWand => magic_wand::DEFINITION,
+            CardServiceDiscriminants::Pliers => pliers::DEFINITION,
             CardServiceDiscriminants::Screwdriver => screwdriver::DEFINITION,
             CardServiceDiscriminants::Copier => copier::DEFINITION,
             CardServiceDiscriminants::Magnet => magnet::DEFINITION,
+            CardServiceDiscriminants::Cactus => cactus::DEFINITION,
+            CardServiceDiscriminants::SpinningTop => spinning_top::DEFINITION,
             CardServiceDiscriminants::Battery => battery::DEFINITION,
         }
     }
@@ -174,5 +244,26 @@ impl CardServiceDiscriminants {
 
     pub(crate) fn rarity(self) -> Rarity {
         self.definition().rarity()
+    }
+}
+
+#[cfg(test)]
+mod purchase_context_tests {
+    use super::*;
+    use crate::card::Engraving;
+
+    #[test]
+    fn purchase_context_counts_engravings_in_one_snapshot() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        let total = game_state.deck.all_cards().len();
+        let card_id = game_state.deck.all_cards()[0].id;
+        game_state.deck.modify_card(card_id, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+        });
+
+        let context = CardServicePurchaseContext::from_game_state(&game_state);
+
+        assert_eq!(context.engraved_card_count, 1);
+        assert_eq!(context.unengraved_card_count, total - 1);
     }
 }

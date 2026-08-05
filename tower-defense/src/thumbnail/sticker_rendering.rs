@@ -9,6 +9,67 @@ const STICKER_SHADOW_ALPHA: u8 = 192;
 const STICKER_SHADOW_BLUR: Px = px(2.5);
 const STICKER_SHADOW_OFFSET_Y: Px = px(2.0);
 
+pub fn with_opacity(rendering_tree: RenderingTree, opacity: f32) -> RenderingTree {
+    let opacity = opacity.clamp(0.0, 1.0);
+    match rendering_tree {
+        RenderingTree::Empty => RenderingTree::Empty,
+        RenderingTree::Children(children) => namui::render(
+            children
+                .iter()
+                .copied()
+                .map(|child| with_opacity(child, opacity)),
+        ),
+        RenderingTree::Node(DrawCommand::Path { command }) => {
+            RenderingTree::Node(DrawCommand::Path {
+                command: arena_alloc(PathDrawCommand {
+                    path: command.path.clone(),
+                    paint: paint_with_opacity(command.paint.clone(), opacity),
+                }),
+            })
+        }
+        RenderingTree::Node(DrawCommand::Image { command }) => {
+            RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: command.image,
+                    sprites: command.sprites.clone(),
+                    paint: command
+                        .paint
+                        .clone()
+                        .map(|paint| paint_with_opacity(paint, opacity)),
+                    sprite_colors_blend_mode: command.sprite_colors_blend_mode,
+                }),
+            })
+        }
+        RenderingTree::Node(DrawCommand::Text { command }) => {
+            RenderingTree::Node(DrawCommand::Text {
+                command: arena_alloc(TextDrawCommand {
+                    text: command.text.clone(),
+                    font: command.font.clone(),
+                    x: command.x,
+                    y: command.y,
+                    paint: paint_with_opacity(command.paint.clone(), opacity),
+                    align: command.align,
+                    baseline: command.baseline,
+                    max_width: command.max_width,
+                    line_height_percent: command.line_height_percent,
+                    underline: command
+                        .underline
+                        .clone()
+                        .map(|paint| Box::new(paint_with_opacity(*paint, opacity))),
+                }),
+            })
+        }
+        RenderingTree::Special(_) => rendering_tree,
+    }
+}
+
+fn paint_with_opacity(mut paint: Paint, opacity: f32) -> Paint {
+    paint.color = paint
+        .color
+        .with_alpha((f32::from(paint.color.a) * opacity).round() as u8);
+    paint
+}
+
 pub fn render_sticker_image_with_shadow(
     image: Image,
     width_height: Wh<Px>,

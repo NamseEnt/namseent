@@ -6,4 +6,13 @@ impl Upgrade {
     pub fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         UpgradeBehavior::thumbnail(self, width_height, shadow)
     }
+
+    pub fn thumbnail_with_opacity(
+        &self,
+        width_height: Wh<Px>,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        UpgradeBehavior::thumbnail_with_opacity(self, width_height, shadow, opacity)
+    }
 }

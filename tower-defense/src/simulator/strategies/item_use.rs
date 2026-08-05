@@ -47,18 +47,15 @@ fn use_rubber_cone(game_state: &mut GameState) {
 }
 
 fn use_heal_if_needed(game_state: &mut GameState) {
-    let max_hp = game_state.config.player.max_hp;
-
     loop {
-        let heal_item_id = game_state.items.iter().find_map(|item| match item.item {
-            Item::RiceBall(rice_ball) => {
-                if game_state.hp + rice_ball.heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
-                    Some(item.id)
-                } else {
-                    None
-                }
+        let heal_item_id = game_state.items.iter().find_map(|item| {
+            let max_hp = game_state.max_hp();
+            let heal_amount = item_heal_amount(&item.item)?;
+            if game_state.hp + heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
+                Some(item.id)
+            } else {
+                None
             }
-            _ => None,
         });
 
         let Some(id) = heal_item_id else {
@@ -69,10 +66,30 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     }
 }
 
+fn item_heal_amount(item: &Item) -> Option<f32> {
+    match item {
+        Item::Bread(bread) => Some(bread.heal_amount),
+        Item::Gimbap(gimbap) => Some(gimbap.heal_amount),
+        Item::LunchBox(lunch_box) => Some(lunch_box.heal_amount),
+        Item::Candy(candy) => Some(candy.heal_amount),
+        Item::Cannoli(cannoli) => Some(cannoli.heal_amount),
+        Item::Cookie(cookie) => Some(cookie.heal_amount),
+        Item::Donut(donut) => Some(donut.heal_amount),
+        Item::RiceBall(rice_ball) => Some(rice_ball.heal_amount),
+        _ => None,
+    }
+}
 fn use_shield_items(game_state: &mut GameState) {
     loop {
         let shield_id = game_state.items.iter().find_map(|item| {
-            if matches!(item.item, Item::Shield(..)) {
+            if matches!(
+                item.item,
+                Item::Bread(..)
+                    | Item::Gimbap(..)
+                    | Item::LunchBox(..)
+                    | Item::Milk(..)
+                    | Item::RiceBall(..)
+            ) {
                 Some(item.id)
             } else {
                 None

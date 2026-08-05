@@ -31,6 +31,10 @@ impl Deck {
         &self.all_cards
     }
 
+    pub(crate) fn revision(&self) -> usize {
+        self.revision
+    }
+
     pub fn get_card(&self, card_id: CardId) -> Option<Card> {
         self.all_cards
             .iter()
@@ -50,10 +54,15 @@ impl Deck {
     where
         F: FnMut(&mut Card),
     {
+        let mut changed = false;
         for card in self.all_cards.iter_mut() {
             if card.id == card_id {
                 f(card);
+                changed = true;
             }
+        }
+        if changed {
+            self.increment_revision();
         }
     }
 
@@ -112,7 +121,8 @@ impl Deck {
     pub fn draw(&mut self, rng: &mut dyn RngCore, count: usize) -> Vec<Card> {
         self.increment_revision();
         let mut cards = Vec::new();
-        while cards.len() < count {
+        let mut draw_count = count;
+        while cards.len() < draw_count {
             let Some(card) = self.draw_pile.pop() else {
                 if self.discard_pile.is_empty() {
                     break;
@@ -122,6 +132,9 @@ impl Deck {
                 self.draw_pile.shuffle(rng);
                 continue;
             };
+            if card.engraving() == Some(crate::card::Engraving::SpinningTop) {
+                draw_count = draw_count.saturating_add(1);
+            }
             cards.push(card);
         }
         self.pull_magnet_engraved_cards(&mut cards);
@@ -184,6 +197,24 @@ mod tests {
         card
     }
 
+    fn spinning_top_card(rank: Rank) -> Card {
+        let mut card = Card::new(rank, Suit::Spades);
+        card.effects.engraving = Some(Engraving::SpinningTop);
+        card
+    }
+
+    #[test]
+    fn drawing_a_spinning_top_card_draws_one_additional_card() {
+        let spinning_top = spinning_top_card(Rank::Ace);
+        let plain = Card::new(Rank::Two, Suit::Hearts);
+        let mut deck = deck_with_draw_pile(vec![plain, spinning_top]);
+
+        let drawn = deck.draw(&mut rand::thread_rng(), 1);
+
+        assert_eq!(drawn, vec![spinning_top, plain]);
+        assert!(deck.draw_pile().is_empty());
+    }
+
     #[test]
     fn drawing_a_magnet_card_pulls_every_magnet_card_left_in_the_draw_pile() {
         let plain = Card::new(Rank::Two, Suit::Hearts);
@@ -225,5 +256,18 @@ mod tests {
         assert_eq!(drawn.len(), 1);
         assert_eq!(deck.discard_pile().len(), 1);
         assert_eq!(deck.discard_pile()[0].id, discarded_magnet.id);
+    }
+
+    #[test]
+    fn applying_to_card_increments_revision() {
+        let mut deck = Deck::new();
+        let card_id = deck.all_cards()[0].id;
+        let before = deck.revision();
+
+        deck.apply_to_card(card_id, |card| {
+            card.effects.engraving = Some(Engraving::Cactus);
+        });
+
+        assert_ne!(deck.revision(), before);
     }
 }

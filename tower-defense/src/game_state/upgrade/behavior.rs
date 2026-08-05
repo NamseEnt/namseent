@@ -22,7 +22,6 @@ impl UpgradeUpdateFlags {
     pub const NONE: Self = Self(0);
     pub const TOWER_STATS: Self = Self(1 << 0);
     pub const CACHE: Self = Self(1 << 1);
-    pub const HEAL_TO_FULL: Self = Self(1 << 2);
     pub const REVISION: Self = Self(1 << 3);
 
     pub fn contains(&self, other: Self) -> bool {
@@ -42,6 +41,13 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 |= rhs.0;
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, State)]
+pub enum UpgradeAcquireRecovery {
+    None,
+    Amount(f32),
+    ToFull,
 }
 
 /// Common trait for all upgrade behaviors
@@ -97,6 +103,10 @@ pub trait UpgradeBehavior {
 
     fn max_hp_plus(&self) -> f32 {
         0.0
+    }
+
+    fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {
+        UpgradeAcquireRecovery::None
     }
 
     fn shop_slot_expand(&self) -> usize {
@@ -167,6 +177,15 @@ pub trait UpgradeBehavior {
     );
 
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree;
+
+    fn thumbnail_with_opacity(
+        &self,
+        width_height: Wh<Px>,
+        shadow: bool,
+        opacity: f32,
+    ) -> RenderingTree {
+        crate::thumbnail::with_opacity(self.thumbnail(width_height, shadow), opacity)
+    }
 
     fn thumbnail_overlay(
         &self,
@@ -293,18 +312,24 @@ impl SelectedTowerContext {
     }
 }
 
+mod apple;
 mod backpack;
+mod banana;
 mod black_white;
 mod broken_pottery;
 mod camera;
+mod carrot;
 mod cat;
 mod crock;
+mod cup_noodles;
 mod demolition_hammer;
 mod dice_bundle;
 mod energy_drink;
 mod fang;
 mod four_leaf_clover;
+mod french_fries;
 mod gift_box;
+mod hamburger;
 mod ice_cream;
 mod membership_card;
 mod metronome;
@@ -313,27 +338,36 @@ mod name_tag;
 mod pea;
 mod perfect_pottery;
 mod piggy_bank;
+mod pizza;
 mod popcorn;
 mod rabbit;
 mod resolution;
 mod shopping_bag;
 mod slot_machine;
 mod spanner;
+mod strawberry;
 mod tape;
 mod trophy;
+mod watermelon;
 
+pub use apple::*;
 pub use backpack::*;
+pub use banana::*;
 pub use black_white::*;
 pub use broken_pottery::*;
 pub use camera::*;
+pub use carrot::*;
 pub use cat::*;
 pub use crock::*;
+pub use cup_noodles::*;
 pub use demolition_hammer::*;
 pub use dice_bundle::*;
 pub use energy_drink::*;
 pub use fang::*;
 pub use four_leaf_clover::*;
+pub use french_fries::*;
 pub use gift_box::*;
+pub use hamburger::*;
 pub use ice_cream::*;
 pub use membership_card::*;
 pub use metronome::*;
@@ -342,14 +376,17 @@ pub use name_tag::*;
 pub use pea::*;
 pub use perfect_pottery::*;
 pub use piggy_bank::*;
+pub use pizza::*;
 pub use popcorn::*;
 pub use rabbit::*;
 pub use resolution::*;
 pub use shopping_bag::*;
 pub use slot_machine::*;
 pub use spanner::*;
+pub use strawberry::*;
 pub use tape::*;
 pub use trophy::*;
+pub use watermelon::*;
 
 #[enum_dispatch(UpgradeBehavior)]
 #[derive(Debug, Clone, Copy, State, PartialEq, strum_macros::EnumDiscriminants)]
@@ -362,6 +399,9 @@ pub use trophy::*;
     name(UpgradeDiscriminants)
 )]
 pub enum Upgrade {
+    Apple(AppleUpgrade),
+    Banana(BananaUpgrade),
+    Carrot(CarrotUpgrade),
     Cat(CatUpgrade),
     Backpack(BackpackUpgrade),
     DiceBundle(DiceBundleUpgrade),
@@ -372,6 +412,10 @@ pub enum Upgrade {
     BlackWhite(BlackWhiteUpgrade),
     Trophy(TrophyUpgrade),
     Crock(CrockUpgrade),
+    CupNoodles(CupNoodlesUpgrade),
+    FrenchFries(FrenchFriesUpgrade),
+    Hamburger(HamburgerUpgrade),
+    Pizza(PizzaUpgrade),
     DemolitionHammer(DemolitionHammerUpgrade),
     Metronome(MetronomeUpgrade),
     Tape(TapeUpgrade),
@@ -390,6 +434,8 @@ pub enum Upgrade {
     Popcorn(PopcornUpgrade),
     MembershipCard(MembershipCardUpgrade),
     BrokenPottery(BrokenPotteryUpgrade),
+    Strawberry(StrawberryUpgrade),
+    Watermelon(WatermelonUpgrade),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -439,6 +485,9 @@ impl Upgrade {
 
     pub fn discriminant(&self) -> UpgradeDiscriminants {
         match self {
+            Upgrade::Apple(_) => UpgradeDiscriminants::Apple,
+            Upgrade::Banana(_) => UpgradeDiscriminants::Banana,
+            Upgrade::Carrot(_) => UpgradeDiscriminants::Carrot,
             Upgrade::Cat(_) => UpgradeDiscriminants::Cat,
             Upgrade::Backpack(_) => UpgradeDiscriminants::Backpack,
             Upgrade::DiceBundle(_) => UpgradeDiscriminants::DiceBundle,
@@ -449,6 +498,10 @@ impl Upgrade {
             Upgrade::BlackWhite(_) => UpgradeDiscriminants::BlackWhite,
             Upgrade::Trophy(_) => UpgradeDiscriminants::Trophy,
             Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
+            Upgrade::CupNoodles(_) => UpgradeDiscriminants::CupNoodles,
+            Upgrade::FrenchFries(_) => UpgradeDiscriminants::FrenchFries,
+            Upgrade::Hamburger(_) => UpgradeDiscriminants::Hamburger,
+            Upgrade::Pizza(_) => UpgradeDiscriminants::Pizza,
             Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
             Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
             Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
@@ -467,6 +520,8 @@ impl Upgrade {
             Upgrade::Popcorn(_) => UpgradeDiscriminants::Popcorn,
             Upgrade::MembershipCard(_) => UpgradeDiscriminants::MembershipCard,
             Upgrade::BrokenPottery(_) => UpgradeDiscriminants::BrokenPottery,
+            Upgrade::Strawberry(_) => UpgradeDiscriminants::Strawberry,
+            Upgrade::Watermelon(_) => UpgradeDiscriminants::Watermelon,
         }
     }
 }
@@ -474,6 +529,9 @@ impl Upgrade {
 impl UpgradeDiscriminants {
     fn definition(self) -> UpgradeDefinition {
         match self {
+            UpgradeDiscriminants::Apple => apple::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Banana => banana::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Carrot => carrot::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Cat => cat::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Backpack => backpack::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DiceBundle => dice_bundle::UPGRADE_DEFINITION,
@@ -484,6 +542,10 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::BlackWhite => black_white::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Trophy => trophy::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Crock => crock::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::CupNoodles => cup_noodles::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::FrenchFries => french_fries::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Hamburger => hamburger::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Pizza => pizza::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
@@ -502,6 +564,8 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::Popcorn => popcorn::UPGRADE_DEFINITION,
             UpgradeDiscriminants::MembershipCard => membership_card::UPGRADE_DEFINITION,
             UpgradeDiscriminants::BrokenPottery => broken_pottery::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Strawberry => strawberry::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Watermelon => watermelon::UPGRADE_DEFINITION,
         }
     }
 
@@ -525,5 +589,71 @@ impl Upgrade {
 
     pub fn description_text(&self) -> crate::l10n::upgrade::UpgradeTypeText<'_> {
         crate::l10n::upgrade::UpgradeTypeText::DescriptionUpgrade(self)
+    }
+}
+#[cfg(test)]
+mod food_upgrade_tests {
+    use super::*;
+
+    #[test]
+    fn max_hp_food_upgrades_recover_after_cache_refresh() {
+        use crate::game_state::upgrade::tests::support;
+
+        let cases = [
+            (Upgrade::Apple(AppleUpgrade), 4.0, 6.0),
+            (Upgrade::Banana(BananaUpgrade), 6.0, 9.0),
+            (Upgrade::Strawberry(StrawberryUpgrade), 2.0, 3.0),
+            (Upgrade::Watermelon(WatermelonUpgrade), 8.0, 12.0),
+            (Upgrade::FrenchFries(FrenchFriesUpgrade), -4.0, 12.0),
+            (Upgrade::Hamburger(HamburgerUpgrade), -6.0, 18.0),
+            (Upgrade::Pizza(PizzaUpgrade), -8.0, 24.0),
+        ];
+
+        for (upgrade, max_hp_plus, heal_amount) in cases {
+            let mut game_state = support::create_mock_game_state();
+            let base_max_hp = game_state.max_hp();
+            game_state.hp = base_max_hp - 10.0;
+
+            game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
+
+            assert_eq!(game_state.max_hp(), base_max_hp + max_hp_plus);
+            assert_eq!(
+                game_state.hp,
+                (base_max_hp - 10.0 + heal_amount).min(game_state.max_hp())
+            );
+        }
+    }
+
+    #[test]
+    fn carrot_fully_recovers_after_cache_refresh() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        game_state.hp = 1.0;
+
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            Upgrade::Carrot(CarrotUpgrade),
+            None,
+        ));
+
+        assert_eq!(game_state.upgrade_state.max_hp_plus(), 6.0);
+        assert_eq!(game_state.hp, game_state.max_hp());
+    }
+    #[test]
+    fn cup_noodles_decreases_max_hp_before_recovering() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let base_max_hp = game_state.max_hp();
+        game_state.hp = base_max_hp - 10.0;
+
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            Upgrade::CupNoodles(CupNoodlesUpgrade),
+            None,
+        ));
+
+        assert_eq!(game_state.upgrade_state.max_hp_plus(), -2.0);
+        assert_eq!(game_state.max_hp(), base_max_hp - 2.0);
+        assert_eq!(game_state.hp, base_max_hp - 4.0);
     }
 }

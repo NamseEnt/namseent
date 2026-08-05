@@ -1,6 +1,6 @@
-use crate::game_state::GameState;
+use crate::game_state::card_service::CardServicePurchaseContext;
 use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
-use crate::shop::{ShopSlot, ShopSlotId};
+use crate::shop::ShopSlotId;
 use crate::shop_panel::constants::*;
 use crate::shop_panel::slot_layout_calculator::SlotLayoutCalculator;
 use crate::shop_panel::slot_renderer::ShopSlotView;
@@ -30,8 +30,14 @@ impl Component for ShopPaperContent {
                     ));
                 });
             };
-            let can_purchase_item =
-                |slot_id: ShopSlotId| game_state.can_purchase_shop_item(slot_id);
+            let deck_revision = ctx.track_eq(&game_state.deck.revision());
+            let purchase_context = ctx.memo(|| {
+                deck_revision.record_as_used();
+                CardServicePurchaseContext::from_game_state(&game_state)
+            });
+            let purchase_status = |slot_id: ShopSlotId| {
+                game_state.shop_purchase_status_with_context(slot_id, &purchase_context)
+            };
 
             let (exiting_slot_positions, set_exiting_slot_positions) =
                 ctx.state::<std::collections::HashMap<ShopSlotId, Xy<Px>>>(Default::default);
@@ -79,7 +85,7 @@ impl Component for ShopPaperContent {
                                         },
                                         slot_data,
                                         purchase_item: &purchase_item,
-                                        can_purchase_item: can_purchase_item(hovered_id),
+                                        purchase_status: purchase_status(hovered_id),
                                         target_xy,
                                         hovered_slot_id: *hovered_slot_id,
                                         set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
@@ -102,7 +108,7 @@ impl Component for ShopPaperContent {
                                             },
                                             slot_data,
                                             purchase_item: &purchase_item,
-                                            can_purchase_item: can_purchase_item(slot_id),
+                                            purchase_status: purchase_status(slot_id),
                                             target_xy,
                                             hovered_slot_id: *hovered_slot_id,
                                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
@@ -126,7 +132,7 @@ impl Component for ShopPaperContent {
                                         },
                                         slot_data,
                                         purchase_item: &purchase_item,
-                                        can_purchase_item: can_purchase_item(slot_id),
+                                        purchase_status: purchase_status(slot_id),
                                         target_xy,
                                         hovered_slot_id: *hovered_slot_id,
                                         set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
@@ -137,39 +143,6 @@ impl Component for ShopPaperContent {
                     })]),
                 )(wh, ctx);
             });
-        }
-    }
-}
-
-impl GameState {
-    fn can_purchase_shop_item(&self, slot_id: crate::shop::ShopSlotId) -> bool {
-        let shop = match &self.flow {
-            GameFlow::Shopping(flow) => &flow.shop,
-            _ => return false,
-        };
-
-        let Some(slot_data) = shop.get_slot_by_id(slot_id) else {
-            return false;
-        };
-
-        if slot_data.purchased {
-            return false;
-        }
-
-        match &slot_data.slot {
-            ShopSlot::Item { cost, .. }
-            | ShopSlot::Upgrade { cost, .. }
-            | ShopSlot::CardService { cost, .. } => {
-                let effective_cost = if self.stage_modifiers.is_free_shop_this_stage() {
-                    0
-                } else {
-                    *cost
-                };
-                self.gold >= effective_cost
-                    && !self
-                        .stage_modifiers
-                        .is_item_and_upgrade_purchases_disabled()
-            }
         }
     }
 }

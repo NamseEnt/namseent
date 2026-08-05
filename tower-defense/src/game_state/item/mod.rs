@@ -1,4 +1,5 @@
 mod behavior;
+mod definition;
 pub mod generation;
 
 pub use behavior::*;

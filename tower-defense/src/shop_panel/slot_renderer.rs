@@ -1,4 +1,5 @@
 use super::items::ShopItem;
+use crate::game_state::shop_purchase::ShopPurchaseStatus;
 use crate::hand::xy_with_spring;
 use crate::shop::{ShopSlot, ShopSlotId};
 use crate::tooltip::WithHoverArea;
@@ -9,7 +10,7 @@ pub struct ShopSlotView<'a> {
     pub wh: Wh<Px>,
     pub slot_data: &'a crate::shop::ShopSlotData,
     pub purchase_item: &'a dyn Fn(ShopSlotId),
-    pub can_purchase_item: bool,
+    pub purchase_status: ShopPurchaseStatus,
     pub target_xy: Xy<Px>,
     pub hovered_slot_id: Option<ShopSlotId>,
     pub set_hovered_slot_id: &'a dyn Fn(Option<ShopSlotId>),
@@ -21,7 +22,7 @@ impl Component for ShopSlotView<'_> {
             wh,
             slot_data,
             purchase_item,
-            can_purchase_item,
+            purchase_status,
             target_xy,
             hovered_slot_id,
             set_hovered_slot_id,
@@ -32,7 +33,7 @@ impl Component for ShopSlotView<'_> {
         let hovering = hovered_slot_id == Some(slot_id);
         let ctx: ComposeCtx<'_, '_> = apply_slot_transform(ctx, wh, slot_data, target_xy, hovering);
 
-        let cursor = if can_purchase_item {
+        let cursor = if purchase_status.is_available() {
             MouseCursor::Standard(StandardCursor::Pointer)
         } else {
             MouseCursor::Standard(StandardCursor::NotAllowed)
@@ -44,7 +45,7 @@ impl Component for ShopSlotView<'_> {
             ctx.add(ShopItem {
                 wh,
                 slot_data,
-                can_purchase_item,
+                purchase_status: purchase_status.clone(),
             });
 
             if !is_exiting {
@@ -56,14 +57,25 @@ impl Component for ShopSlotView<'_> {
                         set_hovered_slot_id(Some(slot_id));
                         match &slot_data.slot {
                             ShopSlot::Item { item, .. } => {
-                                Some(crate::tooltip::TooltipContent::Item(item.clone()))
+                                Some(crate::tooltip::TooltipContent::shop(
+                                    crate::tooltip::TooltipContent::Item(item.clone()),
+                                    slot_id,
+                                ))
                             }
                             ShopSlot::Upgrade { upgrade, .. } => {
-                                Some(crate::tooltip::TooltipContent::Upgrade(*upgrade))
+                                Some(crate::tooltip::TooltipContent::shop(
+                                    crate::tooltip::TooltipContent::Upgrade(*upgrade),
+                                    slot_id,
+                                ))
                             }
-                            ShopSlot::CardService { card_service, .. } => Some(
-                                crate::tooltip::TooltipContent::CardService(card_service.clone()),
-                            ),
+                            ShopSlot::CardService { card_service, .. } => {
+                                Some(crate::tooltip::TooltipContent::shop(
+                                    crate::tooltip::TooltipContent::CardService(
+                                        card_service.clone(),
+                                    ),
+                                    slot_id,
+                                ))
+                            }
                         }
                     },
                     on_exit: || {
@@ -77,7 +89,7 @@ impl Component for ShopSlotView<'_> {
                         return;
                     };
 
-                    if !can_purchase_item
+                    if !purchase_status.is_available()
                         || !event.is_local_xy_in()
                         || !matches!(event.button, Some(MouseButton::Left))
                     {
