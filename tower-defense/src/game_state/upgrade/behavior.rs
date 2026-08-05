@@ -5,10 +5,9 @@ use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::rarity::Rarity;
+use crate::thumbnail::STICKER_THUMBNAIL_STROKE;
 use enum_dispatch::enum_dispatch;
 use namui::*;
-
-const UPGRADE_STICKER_THUMBNAIL_STROKE: Px = px(6.0);
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // ============================================================================

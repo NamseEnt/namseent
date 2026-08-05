@@ -14,7 +14,7 @@ impl UpgradeBehavior for SpannerUpgrade {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::SPANNER,
             width_height,
-            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            STICKER_THUMBNAIL_STROKE,
             shadow,
         )
     }

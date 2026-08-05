@@ -15,7 +15,7 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::BROKEN_POTTERY,
             width_height,
-            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            STICKER_THUMBNAIL_STROKE,
             shadow,
         )
     }

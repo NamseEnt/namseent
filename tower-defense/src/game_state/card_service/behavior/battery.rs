@@ -89,11 +89,11 @@ impl CardServiceBehavior for BatteryCardService {
         }
     }
 
-    fn thumbnail(&self, wh: Wh<Px>, _stroke_px: Px, shadow: bool) -> RenderingTree {
+    fn thumbnail(&self, wh: Wh<Px>, stroke_px: Px, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::BATTERY,
             wh,
-            crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+            stroke_px,
             shadow,
         )
     }
