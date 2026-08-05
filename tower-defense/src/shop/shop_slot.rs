@@ -1,5 +1,9 @@
 use crate::{
-    game_state::{card_service::CardService, item::Item, upgrade::Upgrade},
+    game_state::{
+        card_service::{CardService, CardServiceDiscriminants},
+        item::Item,
+        upgrade::Upgrade,
+    },
     *,
 };
 use std::sync::atomic::AtomicUsize;
@@ -12,6 +16,10 @@ impl ShopSlotId {
     pub fn new() -> Self {
         let id = SHOP_SLOT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         Self(id)
+    }
+
+    pub fn halo_seed(self) -> f32 {
+        (self.0 as f32 * 0.618034).fract()
     }
 }
 impl Default for ShopSlotId {
@@ -86,4 +94,16 @@ pub enum ShopSlot {
         card_service: CardService,
         cost: usize,
     },
+}
+
+impl ShopSlot {
+    pub fn rarity(&self) -> Rarity {
+        match self {
+            Self::Item { item, .. } => item.discriminant().rarity(),
+            Self::Upgrade { upgrade, .. } => upgrade.discriminant().rarity(),
+            Self::CardService { card_service, .. } => {
+                CardServiceDiscriminants::from(card_service).rarity()
+            }
+        }
+    }
 }

@@ -3,6 +3,7 @@ use crate::game_state::shop_purchase::ShopPurchaseStatus;
 use crate::icon::IconKind;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData};
+use crate::theme::card_halo_fx::CardHaloFx;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, memoized_text};
 use namui::*;
@@ -58,8 +59,8 @@ fn render_thumbnail(
         1.0
     };
 
-    ctx.translate(thumbnail_xy)
-        .compose(|ctx| match &slot_data.slot {
+    ctx.translate(thumbnail_xy).compose(|ctx| {
+        match &slot_data.slot {
             ShopSlot::Item { item, .. } => {
                 ctx.add(item.thumbnail_with_shadow_opacity(
                     thumbnail_wh,
@@ -79,7 +80,27 @@ fn render_thumbnail(
                     thumbnail_opacity,
                 ));
             }
-        });
+        }
+
+        if let Some((color, strength)) = rarity_halo_config(slot_data.slot.rarity()) {
+            ctx.add(CardHaloFx {
+                wh: thumbnail_wh,
+                radius: thumbnail_size * 0.75,
+                color,
+                strength: strength * thumbnail_opacity,
+                seed: slot_data.id.halo_seed(),
+            });
+        }
+    });
+}
+
+fn rarity_halo_config(rarity: crate::Rarity) -> Option<(Color, f32)> {
+    match rarity {
+        crate::Rarity::Common => None,
+        crate::Rarity::Rare => Some((rarity.color(), 0.8)),
+        crate::Rarity::Epic => Some((rarity.color(), 0.8)),
+        crate::Rarity::Legendary => Some((rarity.color(), 1.0)),
+    }
 }
 
 fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available: bool) {

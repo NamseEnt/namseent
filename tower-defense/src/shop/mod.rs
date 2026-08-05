@@ -11,9 +11,12 @@ use rand::{Rng, thread_rng};
 pub use shop_slot::*;
 
 const BASE_COST_ITEM: f32 = 20.0;
-const BASE_COST_TREASURE: f32 = 100.0;
-const BASE_COST_CARD_SERVICE: f32 = 50.0;
+const BASE_COST_TREASURE: f32 = 95.0;
+const BASE_COST_CARD_SERVICE: f32 = 45.0;
 const SHOP_VALUE_COST_MULTIPLIER: f32 = 0.5;
+const RARE_PRICE_FACTOR: f32 = 1.4;
+const EPIC_PRICE_FACTOR: f32 = 1.8;
+const LEGENDARY_PRICE_FACTOR: f32 = 2.2;
 
 #[derive(Clone, Debug, State)]
 pub struct Shop {
@@ -148,17 +151,69 @@ fn apply_random_cost<R: Rng + ?Sized>(
         ShopSlot::Upgrade { .. } => BASE_COST_TREASURE,
         ShopSlot::CardService { .. } => BASE_COST_CARD_SERVICE,
     };
-    let additional_cost = rng.gen_range(0.0..=base_cost * SHOP_VALUE_COST_MULTIPLIER);
+    let additional_cost_ratio = rng.gen_range(0.0..=SHOP_VALUE_COST_MULTIPLIER);
+    let rarity = slot.rarity();
 
     let cost = match slot {
         ShopSlot::Item { ref mut cost, .. } => cost,
         ShopSlot::Upgrade { ref mut cost, .. } => cost,
         ShopSlot::CardService { ref mut cost, .. } => cost,
     };
-    *cost = match free {
-        true => 0,
-        false => (base_cost + additional_cost - discount as f32).max(0.0) as usize,
-    };
+    *cost = calculate_cost(base_cost, rarity, additional_cost_ratio, free, discount);
 
     slot
+}
+
+fn rarity_price_factor(rarity: Rarity) -> f32 {
+    match rarity {
+        Rarity::Common => 1.0,
+        Rarity::Rare => RARE_PRICE_FACTOR,
+        Rarity::Epic => EPIC_PRICE_FACTOR,
+        Rarity::Legendary => LEGENDARY_PRICE_FACTOR,
+    }
+}
+
+fn calculate_cost(
+    base_cost: f32,
+    rarity: Rarity,
+    additional_cost_ratio: f32,
+    free: bool,
+    discount: usize,
+) -> usize {
+    if free {
+        return 0;
+    }
+
+    let rarity_adjusted_base = base_cost * rarity_price_factor(rarity);
+    (rarity_adjusted_base * (1.0 + additional_cost_ratio) - discount as f32).max(0.0) as usize
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rarity_price_factors_are_ordered() {
+        assert_eq!(rarity_price_factor(Rarity::Common), 1.0);
+        assert_eq!(rarity_price_factor(Rarity::Rare), 1.25);
+        assert_eq!(rarity_price_factor(Rarity::Epic), 1.5);
+        assert_eq!(rarity_price_factor(Rarity::Legendary), 2.0);
+    }
+
+    #[test]
+    fn calculate_cost_applies_rarity_and_randomness_before_discount() {
+        assert_eq!(calculate_cost(20.0, Rarity::Common, 0.0, false, 0), 20);
+        assert_eq!(calculate_cost(20.0, Rarity::Rare, 0.0, false, 0), 25);
+        assert_eq!(calculate_cost(20.0, Rarity::Epic, 0.5, false, 5), 40);
+        assert_eq!(
+            calculate_cost(100.0, Rarity::Legendary, 0.5, false, 25),
+            275
+        );
+    }
+
+    #[test]
+    fn calculate_cost_keeps_free_and_discount_floor_behavior() {
+        assert_eq!(calculate_cost(100.0, Rarity::Legendary, 0.5, true, 0), 0);
+        assert_eq!(calculate_cost(20.0, Rarity::Common, 0.0, false, 25), 0);
+    }
 }
