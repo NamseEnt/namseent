@@ -113,7 +113,8 @@ impl GameState {
                     self.action(crate::game_state::GameStateAction::Heal(amount));
                 }
                 UpgradeAcquireRecovery::ToFull => {
-                    self.hp = self.max_hp();
+                    let amount = self.max_hp() - self.hp;
+                    self.action(crate::game_state::GameStateAction::Heal(amount));
                 }
             }
         }

@@ -321,6 +321,7 @@ mod camera;
 mod carrot;
 mod cat;
 mod crock;
+mod cup_noodles;
 mod demolition_hammer;
 mod dice_bundle;
 mod energy_drink;
@@ -355,6 +356,7 @@ pub use camera::*;
 pub use carrot::*;
 pub use cat::*;
 pub use crock::*;
+pub use cup_noodles::*;
 pub use demolition_hammer::*;
 pub use dice_bundle::*;
 pub use energy_drink::*;
@@ -404,6 +406,7 @@ pub enum Upgrade {
     BlackWhite(BlackWhiteUpgrade),
     Trophy(TrophyUpgrade),
     Crock(CrockUpgrade),
+    CupNoodles(CupNoodlesUpgrade),
     DemolitionHammer(DemolitionHammerUpgrade),
     Metronome(MetronomeUpgrade),
     Tape(TapeUpgrade),
@@ -486,6 +489,7 @@ impl Upgrade {
             Upgrade::BlackWhite(_) => UpgradeDiscriminants::BlackWhite,
             Upgrade::Trophy(_) => UpgradeDiscriminants::Trophy,
             Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
+            Upgrade::CupNoodles(_) => UpgradeDiscriminants::CupNoodles,
             Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
             Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
             Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
@@ -526,6 +530,7 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::BlackWhite => black_white::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Trophy => trophy::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Crock => crock::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::CupNoodles => cup_noodles::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
@@ -610,7 +615,24 @@ mod food_upgrade_tests {
             None,
         ));
 
-        assert_eq!(game_state.upgrade_state.max_hp_plus(), 6);
+        assert_eq!(game_state.upgrade_state.max_hp_plus(), 6.0);
         assert_eq!(game_state.hp, game_state.max_hp());
+    }
+    #[test]
+    fn cup_noodles_decreases_max_hp_before_recovering() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let base_max_hp = game_state.max_hp();
+        game_state.hp = base_max_hp - 10.0;
+
+        game_state.action(crate::game_state::GameStateAction::Upgrade(
+            Upgrade::CupNoodles(CupNoodlesUpgrade),
+            None,
+        ));
+
+        assert_eq!(game_state.upgrade_state.max_hp_plus(), -2.0);
+        assert_eq!(game_state.max_hp(), base_max_hp - 2.0);
+        assert_eq!(game_state.hp, base_max_hp - 4.0);
     }
 }

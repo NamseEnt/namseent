@@ -206,6 +206,9 @@ fn generate_mock_upgrade(
         }
         UpgradeDiscriminants::Trophy => crate::game_state::upgrade::TrophyUpgrade::into_upgrade(),
         UpgradeDiscriminants::Crock => crate::game_state::upgrade::CrockUpgrade::into_upgrade(),
+        UpgradeDiscriminants::CupNoodles => {
+            crate::game_state::upgrade::CupNoodlesUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::DemolitionHammer => {
             crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade()
         }
