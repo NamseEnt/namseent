@@ -53,14 +53,20 @@ impl UpgradeBehavior for PeaUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder.with_health_value(format!(
-                "Increase max Health by {:.0} and fully recover Health.",
-                PEA_HP_PLUS
-            )),
-            crate::l10n::locale::Language::Korean => builder.with_health_value(format!(
-                "최대 체력을 {:.0} 늘리고, 체력을 모두 회복합니다.",
-                PEA_HP_PLUS
-            )),
+            crate::l10n::locale::Language::English => builder
+                .with_heal_icon("Max Health")
+                .static_text(" increased by ")
+                .with_health_value(format!("{:.0}", PEA_HP_PLUS))
+                .static_text(", ")
+                .with_heal_icon("Health")
+                .static_text(" fully recovered."),
+            crate::l10n::locale::Language::Korean => builder
+                .with_heal_icon("최대 체력")
+                .static_text("을 ")
+                .with_health_value(format!("{:.0}", PEA_HP_PLUS))
+                .static_text(" 늘리고, ")
+                .with_heal_icon("체력을 ")
+                .static_text("모두 회복합니다."),
         };
     }
 }
