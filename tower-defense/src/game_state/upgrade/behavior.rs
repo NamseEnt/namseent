@@ -338,6 +338,7 @@ mod name_tag;
 mod pea;
 mod perfect_pottery;
 mod piggy_bank;
+mod pizza;
 mod popcorn;
 mod rabbit;
 mod resolution;
@@ -375,6 +376,7 @@ pub use name_tag::*;
 pub use pea::*;
 pub use perfect_pottery::*;
 pub use piggy_bank::*;
+pub use pizza::*;
 pub use popcorn::*;
 pub use rabbit::*;
 pub use resolution::*;
@@ -413,6 +415,7 @@ pub enum Upgrade {
     CupNoodles(CupNoodlesUpgrade),
     FrenchFries(FrenchFriesUpgrade),
     Hamburger(HamburgerUpgrade),
+    Pizza(PizzaUpgrade),
     DemolitionHammer(DemolitionHammerUpgrade),
     Metronome(MetronomeUpgrade),
     Tape(TapeUpgrade),
@@ -498,6 +501,7 @@ impl Upgrade {
             Upgrade::CupNoodles(_) => UpgradeDiscriminants::CupNoodles,
             Upgrade::FrenchFries(_) => UpgradeDiscriminants::FrenchFries,
             Upgrade::Hamburger(_) => UpgradeDiscriminants::Hamburger,
+            Upgrade::Pizza(_) => UpgradeDiscriminants::Pizza,
             Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
             Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
             Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
@@ -541,6 +545,7 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::CupNoodles => cup_noodles::UPGRADE_DEFINITION,
             UpgradeDiscriminants::FrenchFries => french_fries::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Hamburger => hamburger::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Pizza => pizza::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
@@ -601,6 +606,7 @@ mod food_upgrade_tests {
             (Upgrade::Watermelon(WatermelonUpgrade), 8.0, 12.0),
             (Upgrade::FrenchFries(FrenchFriesUpgrade), -4.0, 12.0),
             (Upgrade::Hamburger(HamburgerUpgrade), -6.0, 18.0),
+            (Upgrade::Pizza(PizzaUpgrade), -8.0, 24.0),
         ];
 
         for (upgrade, max_hp_plus, heal_amount) in cases {
