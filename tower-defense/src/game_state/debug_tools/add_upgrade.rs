@@ -212,6 +212,9 @@ fn generate_mock_upgrade(
         UpgradeDiscriminants::FrenchFries => {
             crate::game_state::upgrade::FrenchFriesUpgrade::into_upgrade()
         }
+        UpgradeDiscriminants::Hamburger => {
+            crate::game_state::upgrade::HamburgerUpgrade::into_upgrade()
+        }
         UpgradeDiscriminants::DemolitionHammer => {
             crate::game_state::upgrade::DemolitionHammerUpgrade::into_upgrade()
         }

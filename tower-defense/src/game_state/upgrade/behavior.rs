@@ -329,6 +329,7 @@ mod fang;
 mod four_leaf_clover;
 mod french_fries;
 mod gift_box;
+mod hamburger;
 mod ice_cream;
 mod membership_card;
 mod metronome;
@@ -365,6 +366,7 @@ pub use fang::*;
 pub use four_leaf_clover::*;
 pub use french_fries::*;
 pub use gift_box::*;
+pub use hamburger::*;
 pub use ice_cream::*;
 pub use membership_card::*;
 pub use metronome::*;
@@ -410,6 +412,7 @@ pub enum Upgrade {
     Crock(CrockUpgrade),
     CupNoodles(CupNoodlesUpgrade),
     FrenchFries(FrenchFriesUpgrade),
+    Hamburger(HamburgerUpgrade),
     DemolitionHammer(DemolitionHammerUpgrade),
     Metronome(MetronomeUpgrade),
     Tape(TapeUpgrade),
@@ -494,6 +497,7 @@ impl Upgrade {
             Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
             Upgrade::CupNoodles(_) => UpgradeDiscriminants::CupNoodles,
             Upgrade::FrenchFries(_) => UpgradeDiscriminants::FrenchFries,
+            Upgrade::Hamburger(_) => UpgradeDiscriminants::Hamburger,
             Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
             Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
             Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
@@ -536,6 +540,7 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::Crock => crock::UPGRADE_DEFINITION,
             UpgradeDiscriminants::CupNoodles => cup_noodles::UPGRADE_DEFINITION,
             UpgradeDiscriminants::FrenchFries => french_fries::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::Hamburger => hamburger::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
@@ -595,6 +600,7 @@ mod food_upgrade_tests {
             (Upgrade::Strawberry(StrawberryUpgrade), 2.0, 3.0),
             (Upgrade::Watermelon(WatermelonUpgrade), 8.0, 12.0),
             (Upgrade::FrenchFries(FrenchFriesUpgrade), -4.0, 12.0),
+            (Upgrade::Hamburger(HamburgerUpgrade), -6.0, 18.0),
         ];
 
         for (upgrade, max_hp_plus, heal_amount) in cases {
