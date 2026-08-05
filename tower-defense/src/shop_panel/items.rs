@@ -6,11 +6,11 @@ use crate::shop::{ShopSlot, ShopSlotData};
 use crate::theme::card_halo_fx::CardHaloFx;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, memoized_text};
+use crate::thumbnail::STICKER_THUMBNAIL_STROKE;
 use namui::*;
 use namui_prebuilt::table;
 
 const PRICE_HEIGHT: Px = px(36.0);
-const THUMBNAIL_STROKE: Px = px(6.0);
 const PURCHASED_THUMBNAIL_OPACITY: f32 = 0.5;
 const UNAVAILABLE_THUMBNAIL_OPACITY: f32 = 0.45;
 
@@ -64,7 +64,7 @@ fn render_thumbnail(
             ShopSlot::Item { item, .. } => {
                 ctx.add(item.thumbnail_with_shadow_opacity(
                     thumbnail_wh,
-                    THUMBNAIL_STROKE,
+                    STICKER_THUMBNAIL_STROKE,
                     true,
                     thumbnail_opacity,
                 ));
@@ -75,7 +75,7 @@ fn render_thumbnail(
             ShopSlot::CardService { card_service, .. } => {
                 ctx.add(card_service.thumbnail_with_opacity(
                     thumbnail_wh,
-                    THUMBNAIL_STROKE,
+                    STICKER_THUMBNAIL_STROKE,
                     true,
                     thumbnail_opacity,
                 ));

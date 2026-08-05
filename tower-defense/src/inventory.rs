@@ -1,6 +1,7 @@
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     sound,
+    thumbnail::STICKER_THUMBNAIL_STROKE,
     tooltip::WithHoverArea,
 };
 use namui::*;
@@ -12,7 +13,6 @@ const ITEM_GAP: Px = px(12.);
 // half the gap becomes margin around each button
 const ITEM_MARGIN: Px = px(6.);
 const PADDING: Px = px(8.);
-const INVENTORY_STICKER_THUMBNAIL_STROKE: Px = px(6.);
 
 pub struct Inventory {
     pub wh: Wh<Px>,
@@ -75,11 +75,7 @@ impl Component for InventoryItem<'_> {
                     .rotate(hover_rotation.deg())
                     .translate(Xy::new(-pivot.x, -pivot.y))
                     .translate(Xy::new(PADDING, PADDING))
-                    .add(item.thumbnail_with_shadow(
-                        inner_wh,
-                        INVENTORY_STICKER_THUMBNAIL_STROKE,
-                        true,
-                    ));
+                    .add(item.thumbnail_with_shadow(inner_wh, STICKER_THUMBNAIL_STROKE, true));
             });
 
         let inventory_item = item.item.clone();

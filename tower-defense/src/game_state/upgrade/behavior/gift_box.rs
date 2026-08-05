@@ -15,7 +15,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::GIFT_BOX,
             width_height,
-            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            STICKER_THUMBNAIL_STROKE,
             shadow,
         )
     }

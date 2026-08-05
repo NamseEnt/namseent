@@ -16,7 +16,7 @@ impl UpgradeBehavior for FrenchFriesUpgrade {
         crate::thumbnail::render_sticker_image_with_shadow(
             crate::asset::image::thumbnail::FRENCH_FRIES,
             width_height,
-            UPGRADE_STICKER_THUMBNAIL_STROKE,
+            STICKER_THUMBNAIL_STROKE,
             shadow,
         )
     }
