@@ -18,13 +18,11 @@ pub fn generate_item_with_rng<R: Rng>(rng: &mut R) -> Item {
     candidate.generate(rng)
 }
 
-pub fn generate_item_of_rarity_with_rng<R: Rng>(rarity: Rarity, rng: &mut R) -> Item {
+pub fn generate_item_of_rarity_with_rng<R: Rng>(rarity: Rarity, rng: &mut R) -> Option<Item> {
     let candidates = generate_item_rarity_candidate_table(rarity);
-    let candidate = candidates
-        .choose(rng)
-        .expect("item rarity should have at least one candidate");
+    let candidate = candidates.choose(rng)?;
 
-    candidate.generate(rng)
+    Some(candidate.generate(rng))
 }
 
 /// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
@@ -84,7 +82,8 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(20);
 
         for _ in 0..16 {
-            let item = generate_item_of_rarity_with_rng(crate::Rarity::Common, &mut rng);
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Common, &mut rng)
+                .expect("common item candidate");
             assert_eq!(item.discriminant().rarity(), crate::Rarity::Common);
         }
     }
@@ -93,7 +92,8 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(21);
 
         for _ in 0..16 {
-            let item = generate_item_of_rarity_with_rng(crate::Rarity::Rare, &mut rng);
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Rare, &mut rng)
+                .expect("rare item candidate");
             assert_eq!(item.discriminant().rarity(), crate::Rarity::Rare);
         }
     }
@@ -102,17 +102,15 @@ mod tests {
         let mut rng = StdRng::seed_from_u64(22);
 
         for _ in 0..16 {
-            let item = generate_item_of_rarity_with_rng(crate::Rarity::Epic, &mut rng);
+            let item = generate_item_of_rarity_with_rng(crate::Rarity::Epic, &mut rng)
+                .expect("epic item candidate");
             assert_eq!(item.discriminant().rarity(), crate::Rarity::Epic);
         }
     }
     #[test]
-    fn generating_legendary_item_by_rarity_returns_legendary() {
+    fn generating_unrepresented_item_rarity_returns_none() {
         let mut rng = StdRng::seed_from_u64(23);
 
-        for _ in 0..16 {
-            let item = generate_item_of_rarity_with_rng(crate::Rarity::Legendary, &mut rng);
-            assert_eq!(item.discriminant().rarity(), crate::Rarity::Legendary);
-        }
+        assert!(generate_item_of_rarity_with_rng(crate::Rarity::Legendary, &mut rng).is_none());
     }
 }

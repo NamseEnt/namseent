@@ -1,7 +1,7 @@
 use crate::game_state::{
     GameState,
     tower::Tower,
-    upgrade::{Upgrade, UpgradeBehavior, UpgradeUpdateFlags},
+    upgrade::{Upgrade, UpgradeAcquireRecovery, UpgradeBehavior, UpgradeUpdateFlags},
 };
 
 pub(super) enum UpgradeTriggerEvent<'a> {
@@ -49,10 +49,6 @@ impl GameState {
                 tower.refresh_cached_upgrade_damage(self.upgrade_state.revision, &upgrade_bonuses);
             }
         }
-
-        if flags.contains(UpgradeUpdateFlags::HEAL_TO_FULL) {
-            self.hp = self.max_hp();
-        }
     }
 
     fn foreach_upgrades<F>(&mut self, mut f: F) -> UpgradeUpdateFlags
@@ -72,6 +68,11 @@ impl GameState {
     }
 
     pub(super) fn handle_upgrade_trigger(&mut self, event: UpgradeTriggerEvent<'_>) {
+        let recovery = match &event {
+            UpgradeTriggerEvent::UpgradeAcquired { upgrade } => Some(upgrade.recovery_on_acquire()),
+            _ => None,
+        };
+
         let flags = match event {
             UpgradeTriggerEvent::UpgradeAcquired { upgrade } => upgrade.acquire(self),
             UpgradeTriggerEvent::TowerPlaced { tower } => self
@@ -105,6 +106,17 @@ impl GameState {
             }
         };
         self.refresh_upgrade_trigger_side_effects(flags);
+        if let Some(recovery) = recovery {
+            match recovery {
+                UpgradeAcquireRecovery::None => {}
+                UpgradeAcquireRecovery::Amount(amount) => {
+                    self.action(crate::game_state::GameStateAction::Heal(amount));
+                }
+                UpgradeAcquireRecovery::ToFull => {
+                    self.hp = self.max_hp();
+                }
+            }
+        }
     }
 }
 

@@ -1,19 +1,19 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const PEA_HP_PLUS: f32 = 3.0;
+const CARROT_HP_PLUS: f32 = 6.0;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct PeaUpgrade;
+pub struct CarrotUpgrade;
 
-impl UpgradeBehavior for PeaUpgrade {
+impl UpgradeBehavior for CarrotUpgrade {
     fn key(&self) -> &'static str {
-        "pea"
+        "carrot"
     }
 
     fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
         crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::PEA,
+            crate::asset::image::thumbnail::CARROT,
             width_height,
             UPGRADE_STICKER_THUMBNAIL_STROKE,
             shadow,
@@ -29,7 +29,7 @@ impl UpgradeBehavior for PeaUpgrade {
     }
 
     fn max_hp_plus(&self) -> f32 {
-        PEA_HP_PLUS
+        CARROT_HP_PLUS
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {
@@ -42,8 +42,8 @@ impl UpgradeBehavior for PeaUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         builder.static_text(match locale.language {
-            crate::l10n::locale::Language::English => "Pea",
-            crate::l10n::locale::Language::Korean => "완두콩",
+            crate::l10n::locale::Language::English => "Carrot",
+            crate::l10n::locale::Language::Korean => "당근",
         });
     }
 
@@ -55,50 +55,28 @@ impl UpgradeBehavior for PeaUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder.with_health_value(format!(
                 "Increase max Health by {:.0} and fully recover Health.",
-                PEA_HP_PLUS
+                CARROT_HP_PLUS
             )),
             crate::l10n::locale::Language::Korean => builder.with_health_value(format!(
                 "최대 체력을 {:.0} 늘리고, 체력을 모두 회복합니다.",
-                PEA_HP_PLUS
+                CARROT_HP_PLUS
             )),
         };
     }
 }
 
-impl PeaUpgrade {
+impl CarrotUpgrade {
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::Pea(PeaUpgrade)
+        Upgrade::Carrot(CarrotUpgrade)
     }
 }
 
 pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
     generate_upgrade,
     no_current_and_max,
-    UpgradeDefinition::rarity_rare,
+    UpgradeDefinition::rarity_legendary,
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    PeaUpgrade::into_upgrade()
-}
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn pea_increases_max_hp_and_fully_heals() {
-        use crate::game_state::upgrade::tests::support;
-
-        let mut game_state = support::create_mock_game_state();
-        game_state.hp = 1.0;
-
-        game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::PeaUpgrade::into_upgrade(),
-            None,
-        ));
-
-        assert_eq!(game_state.upgrade_state.max_hp_plus(), 3);
-        assert!(
-            (game_state.max_hp() - (game_state.config.player.max_hp + 3.0)).abs() < f32::EPSILON
-        );
-        assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
-    }
+    CarrotUpgrade::into_upgrade()
 }

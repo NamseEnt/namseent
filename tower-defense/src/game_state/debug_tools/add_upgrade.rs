@@ -181,6 +181,9 @@ fn generate_mock_upgrade(
     use crate::game_state::upgrade::*;
     let damage_bonus_pct = rarity_gen(rarity, rng, (0.2..0.5, 0.3..0.75, 0.5..1.5, 1.0..2.5));
     match disc {
+        UpgradeDiscriminants::Apple => crate::game_state::upgrade::AppleUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Banana => crate::game_state::upgrade::BananaUpgrade::into_upgrade(),
+        UpgradeDiscriminants::Carrot => crate::game_state::upgrade::CarrotUpgrade::into_upgrade(),
         UpgradeDiscriminants::Cat => crate::game_state::upgrade::CatUpgrade::into_upgrade(1),
         UpgradeDiscriminants::Backpack => {
             crate::game_state::upgrade::BackpackUpgrade::into_upgrade(1)
@@ -242,6 +245,12 @@ fn generate_mock_upgrade(
         }
         UpgradeDiscriminants::BrokenPottery => {
             crate::game_state::upgrade::BrokenPotteryUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Strawberry => {
+            crate::game_state::upgrade::StrawberryUpgrade::into_upgrade()
+        }
+        UpgradeDiscriminants::Watermelon => {
+            crate::game_state::upgrade::WatermelonUpgrade::into_upgrade()
         }
     }
 }

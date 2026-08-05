@@ -50,7 +50,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     loop {
         let heal_item_id = game_state.items.iter().find_map(|item| {
             let max_hp = game_state.max_hp();
-            let heal_amount = item_heal_amount(&item.item, game_state)?;
+            let heal_amount = item_heal_amount(&item.item)?;
             if game_state.hp + heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
                 Some(item.id)
             } else {
@@ -66,13 +66,8 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     }
 }
 
-fn item_heal_amount(item: &Item, game_state: &GameState) -> Option<f32> {
+fn item_heal_amount(item: &Item) -> Option<f32> {
     match item {
-        Item::Carrot(carrot) => {
-            Some((game_state.max_hp() + carrot.max_hp_amount - game_state.hp).max(0.0))
-        }
-        Item::Apple(apple) => Some(apple.heal_amount),
-        Item::Banana(banana) => Some(banana.heal_amount),
         Item::Bread(bread) => Some(bread.heal_amount),
         Item::Gimbap(gimbap) => Some(gimbap.heal_amount),
         Item::LunchBox(lunch_box) => Some(lunch_box.heal_amount),
@@ -81,12 +76,9 @@ fn item_heal_amount(item: &Item, game_state: &GameState) -> Option<f32> {
         Item::Cookie(cookie) => Some(cookie.heal_amount),
         Item::Donut(donut) => Some(donut.heal_amount),
         Item::RiceBall(rice_ball) => Some(rice_ball.heal_amount),
-        Item::Strawberry(strawberry) => Some(strawberry.heal_amount),
-        Item::Watermelon(watermelon) => Some(watermelon.heal_amount),
         _ => None,
     }
 }
-
 fn use_shield_items(game_state: &mut GameState) {
     loop {
         let shield_id = game_state.items.iter().find_map(|item| {

@@ -8,12 +8,9 @@ use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-mod apple;
-mod banana;
 mod bread;
 mod candy;
 mod cannoli;
-mod carrot;
 mod cookie;
 mod donut;
 mod gimbap;
@@ -23,15 +20,10 @@ mod lunch_box;
 mod milk;
 mod rice_ball;
 mod rubber_cone;
-mod strawberry;
-mod watermelon;
 
-pub use apple::*;
-pub use banana::*;
 pub use bread::*;
 pub use candy::*;
 pub use cannoli::*;
-pub use carrot::*;
 pub use cookie::*;
 pub use donut::*;
 pub use gimbap::*;
@@ -41,8 +33,6 @@ pub use lunch_box::*;
 pub use milk::*;
 pub use rice_ball::*;
 pub use rubber_cone::*;
-pub use strawberry::*;
-pub use watermelon::*;
 
 #[enum_dispatch]
 pub trait ItemBehavior {
@@ -118,9 +108,6 @@ pub trait ItemBehavior {
 #[derive(Debug, Clone, PartialEq, State, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(derive(State, strum_macros::EnumIter, strum_macros::AsRefStr))]
 pub enum Item {
-    Apple(AppleItem),
-    Banana(BananaItem),
-    Carrot(CarrotItem),
     Bread(BreadItem),
     Candy(CandyItem),
     Cannoli(CannoliItem),
@@ -130,9 +117,7 @@ pub enum Item {
     LunchBox(LunchBoxItem),
     LumpSugar(LumpSugarItem),
     Milk(MilkItem),
-    Strawberry(StrawberryItem),
     RubberCone(RubberConeItem),
-    Watermelon(WatermelonItem),
     Gimbap(GimbapItem),
     GrantCard(GrantCardItem),
 }
@@ -243,9 +228,6 @@ impl Item {
 impl ItemDiscriminants {
     fn definition(self) -> crate::game_state::item::definition::ItemDefinition {
         match self {
-            ItemDiscriminants::Apple => apple::DEFINITION,
-            ItemDiscriminants::Banana => banana::DEFINITION,
-            ItemDiscriminants::Carrot => carrot::DEFINITION,
             ItemDiscriminants::Bread => bread::DEFINITION,
             ItemDiscriminants::Candy => candy::DEFINITION,
             ItemDiscriminants::Cannoli => cannoli::DEFINITION,
@@ -255,9 +237,7 @@ impl ItemDiscriminants {
             ItemDiscriminants::LunchBox => lunch_box::DEFINITION,
             ItemDiscriminants::LumpSugar => lump_sugar::DEFINITION,
             ItemDiscriminants::Milk => milk::DEFINITION,
-            ItemDiscriminants::Strawberry => strawberry::DEFINITION,
             ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
-            ItemDiscriminants::Watermelon => watermelon::DEFINITION,
             ItemDiscriminants::Gimbap => gimbap::DEFINITION,
             ItemDiscriminants::GrantCard => grant_card::DEFINITION,
         }
