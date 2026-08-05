@@ -80,6 +80,16 @@ impl ItemBehavior for MilkItem {
             shadow,
         )
     }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            Word::Shield.tooltip_section(locale),
+        ]
+    }
 }
 
 pub(super) const DEFINITION: crate::game_state::item::definition::ItemDefinition =
