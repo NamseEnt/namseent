@@ -327,6 +327,7 @@ mod dice_bundle;
 mod energy_drink;
 mod fang;
 mod four_leaf_clover;
+mod french_fries;
 mod gift_box;
 mod ice_cream;
 mod membership_card;
@@ -362,6 +363,7 @@ pub use dice_bundle::*;
 pub use energy_drink::*;
 pub use fang::*;
 pub use four_leaf_clover::*;
+pub use french_fries::*;
 pub use gift_box::*;
 pub use ice_cream::*;
 pub use membership_card::*;
@@ -407,6 +409,7 @@ pub enum Upgrade {
     Trophy(TrophyUpgrade),
     Crock(CrockUpgrade),
     CupNoodles(CupNoodlesUpgrade),
+    FrenchFries(FrenchFriesUpgrade),
     DemolitionHammer(DemolitionHammerUpgrade),
     Metronome(MetronomeUpgrade),
     Tape(TapeUpgrade),
@@ -490,6 +493,7 @@ impl Upgrade {
             Upgrade::Trophy(_) => UpgradeDiscriminants::Trophy,
             Upgrade::Crock(_) => UpgradeDiscriminants::Crock,
             Upgrade::CupNoodles(_) => UpgradeDiscriminants::CupNoodles,
+            Upgrade::FrenchFries(_) => UpgradeDiscriminants::FrenchFries,
             Upgrade::DemolitionHammer(_) => UpgradeDiscriminants::DemolitionHammer,
             Upgrade::Metronome(_) => UpgradeDiscriminants::Metronome,
             Upgrade::Tape(_) => UpgradeDiscriminants::Tape,
@@ -531,6 +535,7 @@ impl UpgradeDiscriminants {
             UpgradeDiscriminants::Trophy => trophy::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Crock => crock::UPGRADE_DEFINITION,
             UpgradeDiscriminants::CupNoodles => cup_noodles::UPGRADE_DEFINITION,
+            UpgradeDiscriminants::FrenchFries => french_fries::UPGRADE_DEFINITION,
             UpgradeDiscriminants::DemolitionHammer => demolition_hammer::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Metronome => metronome::UPGRADE_DEFINITION,
             UpgradeDiscriminants::Tape => tape::UPGRADE_DEFINITION,
@@ -589,6 +594,7 @@ mod food_upgrade_tests {
             (Upgrade::Banana(BananaUpgrade), 6.0, 9.0),
             (Upgrade::Strawberry(StrawberryUpgrade), 2.0, 3.0),
             (Upgrade::Watermelon(WatermelonUpgrade), 8.0, 12.0),
+            (Upgrade::FrenchFries(FrenchFriesUpgrade), -4.0, 12.0),
         ];
 
         for (upgrade, max_hp_plus, heal_amount) in cases {
@@ -599,7 +605,10 @@ mod food_upgrade_tests {
             game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
             assert_eq!(game_state.max_hp(), base_max_hp + max_hp_plus);
-            assert_eq!(game_state.hp, base_max_hp - 10.0 + heal_amount);
+            assert_eq!(
+                game_state.hp,
+                (base_max_hp - 10.0 + heal_amount).min(game_state.max_hp())
+            );
         }
     }
 
