@@ -72,6 +72,11 @@ struct TooltipRequest {
 }
 
 static TOOLTIP: Atom<Option<TooltipRequest>> = Atom::uninitialized();
+static TOOLTIP_DISMISS_REVISION: Atom<u64> = Atom::uninitialized();
+
+pub(crate) fn dismiss_revision<'a, 'rt>(ctx: &'a RenderCtx<'a, 'rt>) -> Sig<'a, u64> {
+    ctx.init_atom(&TOOLTIP_DISMISS_REVISION, || 0).0
+}
 
 pub fn show_tooltip(
     id: TooltipId,
@@ -92,6 +97,13 @@ pub fn hide_tooltip(id: TooltipId) {
         if current.as_ref().map(|request| request.id) == Some(id) {
             *current = None;
         }
+    });
+}
+
+pub fn dismiss_all_tooltips() {
+    TOOLTIP.set(None);
+    TOOLTIP_DISMISS_REVISION.mutate(|revision| {
+        *revision = revision.wrapping_add(1);
     });
 }
 
@@ -248,13 +260,25 @@ impl Component for TooltipLayer {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
         let locale = game_state.text().locale();
+        let _dismiss_revision = dismiss_revision(ctx);
+        let (request, _) = ctx.init_atom(&TOOLTIP, || None::<TooltipRequest>);
+        let modal_open = (
+            game_state.opened_modals.user.is_some(),
+            game_state.opened_modals.system.is_some(),
+        );
+        let modal_open = ctx.track_eq(&modal_open);
+        ctx.effect("dismiss tooltip when modal opens", || {
+            modal_open.record_as_used();
+            if modal_open.0 || modal_open.1 {
+                dismiss_all_tooltips();
+            }
+        });
         let deck_revision = ctx.track_eq(&game_state.deck.revision());
         let purchase_context = ctx.memo(|| {
             deck_revision.record_as_used();
             CardServicePurchaseContext::from_game_state(&game_state)
         });
 
-        let (request, _) = ctx.init_atom(&TOOLTIP, || None::<TooltipRequest>);
         let (last, set_last) = ctx.state(|| None::<TooltipRequest>);
 
         let showing = request.is_some();
