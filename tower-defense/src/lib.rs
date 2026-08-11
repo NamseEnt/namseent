@@ -25,6 +25,20 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
+#[cfg(test)]
+extern crate namui_kv_store_memory;
+
+#[cfg(test)]
+mod kv_store_memory_provider_link {
+    #[test]
+    fn links_provider_symbols() {
+        let get = namui_kv_store_memory::_kv_store_get as extern "C" fn(u32, *const u8, u32);
+        let put = namui_kv_store_memory::_kv_store_put
+            as extern "C" fn(u32, *const u8, u32, *const u8, u32);
+        std::hint::black_box((get, put));
+    }
+}
+
 use crate::camera_controller::CameraController;
 use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use card::*;

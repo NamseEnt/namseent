@@ -49,6 +49,7 @@ required-features = ["simulator"]
 
 [dev-dependencies]
 criterion = { version = "0.5", default-features = false }
+namui-kv-store-memory = { path = "test_support/namui-kv-store-memory" }
 
 [[bench]]
 name = "rich_text_benchmark"
