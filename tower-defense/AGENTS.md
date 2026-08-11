@@ -48,3 +48,32 @@ Before committing UI changes that use `ctx.add`, verify:
 - Avoid hardcoding display text directly in UI components when a localization path exists via the `l10n` APIs.
 - When rendering text in Tower Defense UI, use `memoized_text()`.
 - Keep text rendering consistent with existing usage patterns where `memoized_text()` receives stable memoization keys and renders through the typography builder.
+
+## Namui State Tracking Rule
+
+- `ctx.track_eq` compares its target on every render and clones the target when the comparison reports a change.
+- Do not derive field-by-field `PartialEq` for a large tracked state containing collections when its owner updates frequently.
+- For such state, maintain a lightweight wrapping revision and either track that revision directly or implement `PartialEq` using only the revision.
+- Increment the revision on every mutation that changes rendered data, including load and merge paths.
+- Route collection mutations through methods that also update the revision; avoid direct mutation that can leave the revision stale.
+
+## Game State Ownership and Sparse Event Rule
+
+- Keep gameplay-owned data in `GameState` when its lifetime and mutation authority follow the game session.
+- Avoid mirroring the same data in another `Atom` and synchronizing it through pending batches or per-frame snapshots.
+- Trigger sparse gameplay events such as discoveries at authoritative `GameStateAction` or mutation points instead of observing the whole `GameState`, which changes every tick.
+- Use a separate `Atom` only for state with genuinely independent ownership or lifetime, not solely to notify another copy of gameplay state.
+
+## Persistent State and Headless Rule
+
+- Load persistent gameplay metadata before rendering consumers that require it.
+- If runtime mutations can occur before an asynchronous load completes, merge them with loaded data instead of overwriting either side.
+- Cache and deduplicate values in memory, mark them dirty only on real changes, and avoid issuing KV writes for duplicate observations.
+- Serialize or coalesce asynchronous KV writes so an older request cannot complete after and overwrite a newer snapshot.
+- Check headless or simulator mode at the authoritative side-effect entry point and skip discovery persistence and other runtime-only side effects there.
+
+## Native Namui KV Test Rule
+
+- Keep cache, merge, revision, and deduplication logic separable from `namui::system::kv_store` so it can be tested without the Namui runtime.
+- Native test binaries that reference Namui KV may fail to link on `_kv_store_get` or `_kv_store_put` when the runtime FFI is unavailable.
+- In that environment, run `cargo check --tests` for compile coverage and report the linker limitation explicitly; do not report the runtime tests as passed.
