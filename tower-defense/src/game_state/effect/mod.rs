@@ -163,7 +163,7 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
             if let Some(item) =
                 crate::game_state::item::generation::generate_item_of_rarity_with_rng(*rarity, rng)
             {
-                game_state.items.push(item.with_unique_id());
+                game_state.action(crate::game_state::GameStateAction::GrantItem(item));
             }
         }
         Effect::IncreaseAllTowersDamage { multiplier } => {
@@ -435,6 +435,7 @@ pub mod tests_support {
             hand_panel_forced_open: true,
             shop_panel_forced_open: true,
             headless: false,
+            discovery: Default::default(),
         }
     }
 }

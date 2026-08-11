@@ -67,17 +67,7 @@ pub trait CardServiceBehavior {
         locale: &crate::l10n::Locale,
     );
 
-    fn thumbnail(&self, wh: Wh<Px>, stroke_px: Px, shadow: bool) -> RenderingTree;
-
-    fn thumbnail_with_opacity(
-        &self,
-        wh: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        crate::thumbnail::with_opacity(self.thumbnail(wh, stroke_px, shadow), opacity)
-    }
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_>;
 
     fn tooltip_sections(
         &self,
@@ -205,14 +195,8 @@ impl CardService {
         CardServiceWithId::new(self)
     }
 
-    pub fn thumbnail_with_opacity(
-        &self,
-        wh: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        CardServiceBehavior::thumbnail_with_opacity(self, wh, stroke_px, shadow, opacity)
+    pub fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        CardServiceBehavior::thumbnail_source(self)
     }
 }
 

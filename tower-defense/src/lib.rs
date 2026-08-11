@@ -28,7 +28,7 @@ mod upgrades;
 use crate::camera_controller::CameraController;
 use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use card::*;
-use game_state::{TILE_PX_SIZE, mutate_game_state};
+use game_state::{TILE_PX_SIZE, modal::encyclopedia, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
@@ -83,6 +83,8 @@ impl Component for Game {
         let _sound_state = sound::init_sound_state(ctx);
         let (settings_loaded, set_settings_loaded) = ctx.state(|| false);
         let (settings_load_started, set_settings_load_started) = ctx.state(|| false);
+        let (encyclopedia_loaded, set_encyclopedia_loaded) = ctx.state(|| false);
+        let (encyclopedia_load_started, set_encyclopedia_load_started) = ctx.state(|| false);
         let (bgm_started, set_bgm_started) = ctx.state(|| false);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) =
             ctx.state::<Option<MiddleMouseButtonDragging>>(|| None);
@@ -102,7 +104,22 @@ impl Component for Game {
             });
         });
 
-        if !*settings_loaded {
+        ctx.effect("load encyclopedia", || {
+            if *encyclopedia_load_started {
+                return;
+            }
+
+            set_encyclopedia_load_started.set(true);
+            spawn(async move {
+                let loaded = encyclopedia::load_async().await;
+                mutate_game_state(move |game_state| {
+                    game_state.merge_loaded_discoveries(loaded);
+                    set_encyclopedia_loaded.set(true);
+                });
+            });
+        });
+
+        if !*settings_loaded || !*encyclopedia_loaded {
             return;
         }
 
@@ -171,11 +188,11 @@ impl Component for Game {
         );
 
         ctx.compose(|ctx| {
-            if let Some(modal) = game_state.opened_modals.user.as_ref() {
-                ctx.add(modal);
-            }
             if let Some(overlay) = game_state.opened_modals.system.as_ref() {
                 ctx.add(overlay);
+            }
+            if let Some(modal) = game_state.opened_modals.user.as_ref() {
+                ctx.add(modal);
             }
         });
 

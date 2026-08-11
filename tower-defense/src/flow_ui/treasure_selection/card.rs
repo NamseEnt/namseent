@@ -7,6 +7,7 @@ use crate::theme::{
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
     typography::{FontSize, memoized_text},
 };
+use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail};
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 
@@ -37,7 +38,15 @@ impl Component for TreasureCardContent {
                     table::fixed_no_clip(wh.height, |thumb_wh, ctx| {
                         ctx.compose(|ctx| {
                             table::padding_no_clip(PADDING, |inner_wh, inner_ctx| {
-                                inner_ctx.add(upgrade.thumbnail(inner_wh, false));
+                                inner_ctx.add(render_thumbnail(
+                                    upgrade.thumbnail_source(),
+                                    inner_wh,
+                                    ThumbnailRenderOptions::sticker(
+                                        crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+                                        false,
+                                        1.0,
+                                    ),
+                                ));
                             })(thumb_wh, ctx);
                         });
                         ctx.add(PaperContainerBackground {

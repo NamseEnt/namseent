@@ -1,15 +1,18 @@
 pub mod deck;
+pub mod encyclopedia;
 mod settings;
 
 #[cfg(feature = "debug-tools")]
 use crate::game_state::debug_tools::DebugToolsModal;
 use crate::game_state::modal::settings::SettingsModal;
 pub use deck::DeckModal;
+use encyclopedia::EncyclopediaModal;
 use namui::*;
 
 #[derive(Debug, Clone, State)]
 pub enum SystemModal {
     Settings,
+    Encyclopedia,
     #[cfg(feature = "debug-tools")]
     DebugTools,
 }
@@ -25,6 +28,9 @@ impl Component for &SystemModal {
         match self {
             SystemModal::Settings => {
                 ctx.add(SettingsModal);
+            }
+            SystemModal::Encyclopedia => {
+                ctx.add(EncyclopediaModal);
             }
             #[cfg(feature = "debug-tools")]
             SystemModal::DebugTools => {

@@ -13,6 +13,67 @@ pub enum TopBarText {
     Settings,
     Shop,
     UseTower,
+    Encyclopedia,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum EncyclopediaText {
+    Title,
+    Items,
+    CardServices,
+    Treasures,
+    Undiscovered,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct EncyclopediaProgressText {
+    pub discovered: usize,
+    pub total: usize,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct EncyclopediaCompletionText {
+    pub percentage: usize,
+}
+
+impl LocalizedText for EncyclopediaProgressText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean | Language::English => {
+                builder.text(format!("{}/{}", self.discovered, self.total));
+            }
+        }
+    }
+}
+
+impl LocalizedText for EncyclopediaCompletionText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.text(format!("전체 수집률 {}%", self.percentage));
+            }
+            Language::English => {
+                builder.text(format!("Collection {}%", self.percentage));
+            }
+        }
+    }
+}
+
+impl LocalizedText for EncyclopediaText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        builder.static_text(match (locale.language, self) {
+            (Language::Korean, Self::Title) => "백과사전",
+            (Language::Korean, Self::Items) => "아이템",
+            (Language::Korean, Self::CardServices) => "카드 서비스",
+            (Language::Korean, Self::Treasures) => "보물",
+            (Language::Korean, Self::Undiscovered) => "아직 발견하지 않은 항목입니다",
+            (Language::English, Self::Title) => "Encyclopedia",
+            (Language::English, Self::Items) => "Items",
+            (Language::English, Self::CardServices) => "Card Services",
+            (Language::English, Self::Treasures) => "Treasures",
+            (Language::English, Self::Undiscovered) => "This entry has not been discovered yet",
+        });
+    }
 }
 
 #[derive(Debug, Clone, Copy, State)]
@@ -61,6 +122,7 @@ impl TopBarText {
             TopBarText::Settings => "설정",
             TopBarText::Shop => "상점",
             TopBarText::UseTower => "타워 사용",
+            TopBarText::Encyclopedia => "백과사전",
         }
     }
 
@@ -75,6 +137,7 @@ impl TopBarText {
             TopBarText::Settings => "Settings",
             TopBarText::Shop => "Shop",
             TopBarText::UseTower => "Use Tower",
+            TopBarText::Encyclopedia => "Encyclopedia",
         }
     }
 }

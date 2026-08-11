@@ -1,6 +1,5 @@
 use crate::game_state::{mutate_game_state, use_game_state};
 use crate::icon::IconKind;
-use crate::shop::refresh_shop;
 use crate::theme::button::{Button, ButtonVariant};
 use crate::theme::typography::memoized_text;
 use crate::tooltip::WithHoverArea;
@@ -36,7 +35,7 @@ impl Component for RefreshButton {
                 game_state.action(crate::game_state::GameStateAction::TakeDamage(
                     health_cost as f32,
                 ));
-                refresh_shop(game_state);
+                game_state.action(crate::game_state::GameStateAction::RefreshShop);
             });
         };
 

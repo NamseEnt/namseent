@@ -13,20 +13,14 @@ impl UpgradeBehavior for MetronomeUpgrade {
         "metronome"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::METRONOME,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::METRONOME)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         game_state: &GameState,
-    ) -> Option<RenderingTree> {
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         let cycle = self.cycle(game_state.stage);
         let active = cycle == 2;
         let stage_color = if active {
@@ -34,19 +28,13 @@ impl UpgradeBehavior for MetronomeUpgrade {
         } else {
             crate::theme::palette::DISABLED_TEXT
         };
-
-        Some(render([
-            crate::thumbnail::render_right_top_overlay(
-                width_height.width,
-                &format!("{}/2", cycle),
-                stage_color,
-            ),
-            crate::thumbnail::render_right_bottom_overlay(
-                width_height,
-                &format!("{}", DICE_BONUS),
+        vec![
+            crate::thumbnail::ThumbnailOverlay::right_top(format!("{}/2", cycle), stage_color),
+            crate::thumbnail::ThumbnailOverlay::right_bottom(
+                format!("{}", DICE_BONUS),
                 crate::theme::palette::BLUE,
             ),
-        ]))
+        ]
     }
 
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {

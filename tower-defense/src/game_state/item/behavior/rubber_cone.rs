@@ -69,18 +69,8 @@ impl ItemBehavior for RubberConeItem {
         }
     }
 
-    fn thumbnail_with_shadow(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-    ) -> RenderingTree {
-        render_sticker(
-            crate::asset::image::thumbnail::RUBBER_CONE,
-            width_height,
-            stroke_px,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::RUBBER_CONE)
     }
 }
 

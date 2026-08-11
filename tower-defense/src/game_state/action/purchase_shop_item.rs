@@ -9,6 +9,17 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
         return;
     }
 
+    let slot = match &game_state.flow {
+        GameFlow::Shopping(flow) => flow
+            .shop
+            .get_slot_by_id(slot_id)
+            .map(|slot| slot.slot.clone()),
+        _ => None,
+    };
+    if let Some(slot) = slot.as_ref() {
+        game_state.discover_shop_slot(slot);
+    }
+
     let shop = match &mut game_state.flow {
         GameFlow::Shopping(flow) => &mut flow.shop,
         _ => return,

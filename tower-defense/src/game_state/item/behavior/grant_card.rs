@@ -60,13 +60,8 @@ impl ItemBehavior for GrantCardItem {
         }
     }
 
-    fn thumbnail_with_shadow(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-    ) -> RenderingTree {
-        render_card(&self.card, width_height, stroke_px, shadow)
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Card(&self.card)
     }
 }
 

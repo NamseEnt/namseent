@@ -9,37 +9,86 @@ const STICKER_SHADOW_ALPHA: u8 = 192;
 const STICKER_SHADOW_BLUR: Px = px(2.5);
 const STICKER_SHADOW_OFFSET_Y: Px = px(2.0);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ThumbnailMode {
+    Sticker,
+    Silhouette { color: Color },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ThumbnailRenderOptions {
+    pub mode: ThumbnailMode,
     pub stroke_px: Px,
     pub shadow: bool,
+    pub opacity: f32,
 }
 
 impl ThumbnailRenderOptions {
     pub const fn new(stroke_px: Px, shadow: bool) -> Self {
-        Self { stroke_px, shadow }
+        Self {
+            mode: ThumbnailMode::Sticker,
+            stroke_px,
+            shadow,
+            opacity: 1.0,
+        }
+    }
+
+    pub const fn sticker(stroke_px: Px, shadow: bool, opacity: f32) -> Self {
+        Self {
+            mode: ThumbnailMode::Sticker,
+            stroke_px,
+            shadow,
+            opacity,
+        }
+    }
+
+    pub fn silhouette(color: Color, opacity: f32) -> Self {
+        Self {
+            mode: ThumbnailMode::Silhouette { color },
+            stroke_px: 0.px(),
+            shadow: false,
+            opacity,
+        }
     }
 }
 
-pub enum ThumbnailContent<'a> {
-    Sticker(Image),
+pub enum ThumbnailSource<'a> {
+    Image(Image),
     Card(&'a Card),
 }
 
 pub fn render_thumbnail(
-    content: ThumbnailContent<'_>,
+    source: ThumbnailSource<'_>,
     width_height: Wh<Px>,
     options: ThumbnailRenderOptions,
 ) -> RenderingTree {
-    match content {
-        ThumbnailContent::Sticker(image) => {
-            render_sticker_thumbnail_impl(image, width_height, options)
+    let ThumbnailRenderOptions {
+        mode,
+        stroke_px,
+        shadow,
+        opacity,
+    } = options;
+    let base_options = ThumbnailRenderOptions::new(stroke_px, shadow);
+    let rendering_tree = match (mode, source) {
+        (ThumbnailMode::Sticker, ThumbnailSource::Image(image)) => {
+            render_sticker_thumbnail_impl(image, width_height, base_options)
         }
-        ThumbnailContent::Card(card) => render_card_thumbnail_impl(card, width_height, options),
-    }
+        (ThumbnailMode::Sticker, ThumbnailSource::Card(card)) => {
+            render_card_thumbnail_impl(card, width_height, base_options)
+        }
+        (ThumbnailMode::Silhouette { color }, ThumbnailSource::Image(image)) => {
+            render_silhouette_image(image, width_height, color)
+        }
+        (ThumbnailMode::Silhouette { color }, ThumbnailSource::Card(card)) => with_color(
+            render_card_thumbnail_impl(card, width_height, base_options),
+            color,
+        ),
+    };
+
+    with_opacity(rendering_tree, opacity)
 }
 
-pub fn with_opacity(rendering_tree: RenderingTree, opacity: f32) -> RenderingTree {
+fn with_opacity(rendering_tree: RenderingTree, opacity: f32) -> RenderingTree {
     let opacity = opacity.clamp(0.0, 1.0);
     match rendering_tree {
         RenderingTree::Empty => RenderingTree::Empty,
@@ -100,17 +149,78 @@ fn paint_with_opacity(mut paint: Paint, opacity: f32) -> Paint {
     paint
 }
 
-pub fn render_sticker_image_with_shadow(
-    image: Image,
-    width_height: Wh<Px>,
-    stroke_px: Px,
-    shadow: bool,
-) -> RenderingTree {
-    render_thumbnail(
-        ThumbnailContent::Sticker(image),
-        width_height,
-        ThumbnailRenderOptions::new(stroke_px, shadow),
-    )
+fn with_color(rendering_tree: RenderingTree, color: Color) -> RenderingTree {
+    match rendering_tree {
+        RenderingTree::Empty => RenderingTree::Empty,
+        RenderingTree::Children(children) => namui::render(
+            children
+                .iter()
+                .copied()
+                .map(|child| with_color(child, color)),
+        ),
+        RenderingTree::Node(DrawCommand::Path { command }) => {
+            let mut paint = command.paint.clone();
+            paint.color = color.with_alpha(paint.color.a);
+            RenderingTree::Node(DrawCommand::Path {
+                command: arena_alloc(PathDrawCommand {
+                    path: command.path.clone(),
+                    paint,
+                }),
+            })
+        }
+        RenderingTree::Node(DrawCommand::Image { command }) => {
+            let paint = command
+                .paint
+                .clone()
+                .unwrap_or_else(|| Paint::new(Color::WHITE))
+                .set_color_filter(ColorFilter::Blend {
+                    color,
+                    blend_mode: BlendMode::SrcIn,
+                });
+            RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: command.image,
+                    sprites: command.sprites.clone(),
+                    paint: Some(paint),
+                    sprite_colors_blend_mode: command.sprite_colors_blend_mode,
+                }),
+            })
+        }
+        RenderingTree::Node(DrawCommand::Text { command }) => {
+            let mut paint = command.paint.clone();
+            paint.color = color.with_alpha(paint.color.a);
+            RenderingTree::Node(DrawCommand::Text {
+                command: arena_alloc(TextDrawCommand {
+                    text: command.text.clone(),
+                    font: command.font.clone(),
+                    x: command.x,
+                    y: command.y,
+                    paint,
+                    align: command.align,
+                    baseline: command.baseline,
+                    max_width: command.max_width,
+                    line_height_percent: command.line_height_percent,
+                    underline: command.underline.clone(),
+                }),
+            })
+        }
+        RenderingTree::Special(_) => rendering_tree,
+    }
+}
+
+fn render_silhouette_image(image: Image, width_height: Wh<Px>, color: Color) -> RenderingTree {
+    let paint = Paint::new(Color::WHITE).set_color_filter(ColorFilter::Blend {
+        color,
+        blend_mode: BlendMode::SrcIn,
+    });
+    namui::image(ImageParam {
+        rect: width_height.to_rect(),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: Some(paint),
+        },
+    })
 }
 
 fn render_sticker_thumbnail_impl(
@@ -127,62 +237,12 @@ fn render_sticker_thumbnail_impl(
     namui::render(vec![image_tree, shadow_tree])
 }
 
-const OVERLAY_OVERLAP: Px = px(8.0);
-pub fn render_right_bottom_overlay(
-    width_height: Wh<Px>,
-    text: &str,
-    text_color: Color,
-) -> RenderingTree {
-    let overlay = crate::theme::typography::TypographyBuilder::new()
-        .headline()
-        .size(crate::theme::typography::FontSize::Medium)
-        .color(text_color)
-        .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
-        .static_text(text)
-        .render_right_bottom(width_height);
-
-    namui::translate(
-        overlay.offset.x + OVERLAY_OVERLAP,
-        overlay.offset.y + OVERLAY_OVERLAP,
-        overlay.tree,
-    )
-}
-
-pub fn render_right_top_overlay(width: Px, text: &str, text_color: Color) -> RenderingTree {
-    let overlay = crate::theme::typography::TypographyBuilder::new()
-        .headline()
-        .size(crate::theme::typography::FontSize::Medium)
-        .color(text_color)
-        .stroke(2.px(), crate::theme::palette::DARK_CHARCOAL)
-        .static_text(text)
-        .render_right_top(width);
-
-    namui::translate(
-        overlay.offset.x + OVERLAY_OVERLAP,
-        overlay.offset.y - OVERLAY_OVERLAP,
-        overlay.tree,
-    )
-}
-
 const CARD_ASPECT_RATIO: f32 = 0.72;
 const CARD_ROUND_RATIO: f32 = 0.12;
 const CARD_SUIT_SIZE_RATIO: f32 = 0.5;
 const CARD_SUIT_CENTER_RATIO: (f32, f32) = (0.4, 0.31);
 const CARD_RANK_SIZE_RATIO: f32 = 0.52;
 const CARD_RANK_CENTER_RATIO: (f32, f32) = (0.6, 0.67);
-
-pub fn render_card_thumbnail(
-    card: &Card,
-    width_height: Wh<Px>,
-    stroke_px: Px,
-    shadow: bool,
-) -> RenderingTree {
-    render_thumbnail(
-        ThumbnailContent::Card(card),
-        width_height,
-        ThumbnailRenderOptions::new(stroke_px, shadow),
-    )
-}
 
 fn render_card_thumbnail_impl(
     card: &Card,
@@ -484,5 +544,18 @@ mod tests {
         assert!(
             sticker_destination_rect(Wh::single(px(256.0)), Wh::new(px(96.0), px(0.0))).is_none()
         );
+    }
+
+    #[test]
+    fn silhouette_options_use_the_requested_color_and_opacity() {
+        let options = ThumbnailRenderOptions::silhouette(Color::BLACK, 0.45);
+        assert_eq!(
+            options.mode,
+            ThumbnailMode::Silhouette {
+                color: Color::BLACK
+            }
+        );
+        assert_eq!(options.opacity, 0.45);
+        assert!(!options.shadow);
     }
 }

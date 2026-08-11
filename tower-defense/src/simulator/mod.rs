@@ -446,5 +446,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         hand_panel_forced_open: false,
         shop_panel_forced_open: false,
         headless: true,
+        discovery: Default::default(),
     }
 }

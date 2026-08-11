@@ -9,13 +9,8 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
         "shopping_bag"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::SHOPPING_BAG,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::SHOPPING_BAG)
     }
 
     fn on_item_bought(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {

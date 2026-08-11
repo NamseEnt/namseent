@@ -6,7 +6,7 @@ use crate::shop::{ShopSlot, ShopSlotData};
 use crate::theme::card_halo_fx::CardHaloFx;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::theme::typography::{FontSize, memoized_text};
-use crate::thumbnail::STICKER_THUMBNAIL_STROKE;
+use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail as render_thumbnail_source};
 use namui::*;
 use namui_prebuilt::table;
 
@@ -60,27 +60,20 @@ fn render_thumbnail(
     };
 
     ctx.translate(thumbnail_xy).compose(|ctx| {
-        match &slot_data.slot {
-            ShopSlot::Item { item, .. } => {
-                ctx.add(item.thumbnail_with_shadow_opacity(
-                    thumbnail_wh,
-                    STICKER_THUMBNAIL_STROKE,
-                    true,
-                    thumbnail_opacity,
-                ));
-            }
-            ShopSlot::Upgrade { upgrade, .. } => {
-                ctx.add(upgrade.thumbnail_with_opacity(thumbnail_wh, true, thumbnail_opacity));
-            }
-            ShopSlot::CardService { card_service, .. } => {
-                ctx.add(card_service.thumbnail_with_opacity(
-                    thumbnail_wh,
-                    STICKER_THUMBNAIL_STROKE,
-                    true,
-                    thumbnail_opacity,
-                ));
-            }
-        }
+        let source = match &slot_data.slot {
+            ShopSlot::Item { item, .. } => item.thumbnail_source(),
+            ShopSlot::Upgrade { upgrade, .. } => upgrade.thumbnail_source(),
+            ShopSlot::CardService { card_service, .. } => card_service.thumbnail_source(),
+        };
+        ctx.add(render_thumbnail_source(
+            source,
+            thumbnail_wh,
+            ThumbnailRenderOptions::sticker(
+                crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+                true,
+                thumbnail_opacity,
+            ),
+        ));
 
         if let Some((color, strength)) = rarity_halo_config(slot_data.slot.rarity()) {
             ctx.add(CardHaloFx {

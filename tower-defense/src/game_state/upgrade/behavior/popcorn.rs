@@ -14,28 +14,21 @@ impl UpgradeBehavior for PopcornUpgrade {
         "popcorn"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::POPCORN,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::POPCORN)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         if self.active_stage_damage_bonus <= 0.0 {
-            return None;
+            return Vec::new();
         }
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{:.0}%", self.active_stage_damage_bonus * 100.0),
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("{:.0}%", self.active_stage_damage_bonus * 100.0),
             crate::theme::palette::RED,
-        ))
+        )]
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {

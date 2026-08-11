@@ -23,6 +23,7 @@ mod placed_towers;
 pub(crate) use action::GameStateAction;
 pub mod card_notification;
 pub mod card_service;
+pub(crate) mod discovery;
 pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
@@ -147,6 +148,7 @@ pub struct GameState {
     pub black_smoke_sources: Vec<field_particle::emitter::BlackSmokeSource>,
     pub effect_events: EffectEventQueue,
     pub base_animation_state: BaseAnimationState,
+    pub(crate) discovery: discovery::DiscoveryState,
 
     // panel open states controlled by input/flow
     pub hand_panel_forced_open: bool,
@@ -680,6 +682,7 @@ fn create_initial_game_state() -> GameState {
         black_smoke_sources: Default::default(),
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
+        discovery: Default::default(),
         metrics: GameMetrics {
             total_gold_earned: 0,
             total_gold_spent: 0,
@@ -713,7 +716,10 @@ pub fn use_game_state<'a>(ctx: &'a RenderCtx) -> Sig<'a, GameState> {
 }
 
 pub fn mutate_game_state(f: impl FnOnce(&mut GameState) + Send + Sync + 'static) {
-    GAME_STATE_ATOM.mutate(f);
+    GAME_STATE_ATOM.mutate(move |game_state| {
+        f(game_state);
+        game_state.persist_discoveries_if_dirty();
+    });
 }
 
 pub fn set_modal(modal: Option<UserModal>) {
@@ -729,8 +735,10 @@ pub fn set_overlay_modal(modal: Option<modal::SystemModal>) {
 }
 
 pub fn restart_game() {
-    GAME_STATE_ATOM.mutate(|game_state| {
+    mutate_game_state(|game_state| {
+        let previous_discoveries = game_state.discovery.clone();
         *game_state = create_initial_game_state();
+        game_state.preserve_discoveries_from(&previous_discoveries);
     });
 }
 
@@ -788,6 +796,7 @@ impl GameState {
             shop_panel_forced_open: self.shop_panel_forced_open,
             card_service_notifications: self.card_service_notifications.clone(),
             headless: self.headless,
+            discovery: self.discovery.clone(),
         }
     }
 

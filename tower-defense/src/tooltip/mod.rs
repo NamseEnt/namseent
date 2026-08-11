@@ -60,6 +60,7 @@ pub enum TooltipContent {
     },
     Word(crate::l10n::word::Word),
     Words(Vec<crate::l10n::word::Word>),
+    Undiscovered,
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -166,6 +167,15 @@ impl TooltipContent {
                 .iter()
                 .flat_map(|word| word.tooltip_sections(locale))
                 .collect(),
+            TooltipContent::Undiscovered => vec![TooltipSection {
+                title: None,
+                body: SectionText {
+                    key: "encyclopedia:undiscovered".to_string(),
+                    apply: Box::new(move |builder| {
+                        builder.l10n(l10n::ui::EncyclopediaText::Undiscovered, &locale);
+                    }),
+                },
+            }],
         }
     }
 }

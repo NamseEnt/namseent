@@ -100,6 +100,7 @@ pub fn refresh_shop(game_state: &mut GameState) {
     for new_slot in new_slots {
         flow.shop.push(new_slot);
     }
+    game_state.discover_shop();
 }
 
 pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
@@ -110,6 +111,7 @@ pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
         };
         flow.shop.push(slot);
     }
+    game_state.discover_shop();
 }
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {

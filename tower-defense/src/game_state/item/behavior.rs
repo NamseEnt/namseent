@@ -1,9 +1,4 @@
-use crate::{
-    card::Card,
-    thumbnail::{
-        STICKER_THUMBNAIL_STROKE, render_card_thumbnail, render_sticker_image_with_shadow,
-    },
-};
+use crate::card::Card;
 use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -59,25 +54,7 @@ pub trait ItemBehavior {
         locale: &crate::l10n::Locale,
     );
 
-    fn thumbnail_with_shadow(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-    ) -> RenderingTree;
-
-    fn thumbnail_with_shadow_opacity(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        crate::thumbnail::with_opacity(
-            self.thumbnail_with_shadow(width_height, stroke_px, shadow),
-            opacity,
-        )
-    }
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_>;
 
     fn tooltip_sections(
         &self,
@@ -197,31 +174,12 @@ impl Item {
         ItemBehavior::l10n_description(self, builder, locale)
     }
 
-    pub fn thumbnail_with_shadow(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-    ) -> RenderingTree {
-        ItemBehavior::thumbnail_with_shadow(self, width_height, stroke_px, shadow)
-    }
-
-    pub fn thumbnail_with_shadow_opacity(
-        &self,
-        width_height: Wh<Px>,
-        stroke_px: Px,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        ItemBehavior::thumbnail_with_shadow_opacity(self, width_height, stroke_px, shadow, opacity)
+    pub fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        ItemBehavior::thumbnail_source(self)
     }
 
     pub fn discriminant(&self) -> ItemDiscriminants {
         self.into()
-    }
-
-    pub fn thumbnail(&self, width_height: Wh<Px>) -> RenderingTree {
-        self.thumbnail_with_shadow(width_height, STICKER_THUMBNAIL_STROKE, false)
     }
 }
 
@@ -250,22 +208,4 @@ impl ItemDiscriminants {
     pub(crate) fn rarity(self) -> crate::Rarity {
         self.definition().rarity()
     }
-}
-
-pub(crate) fn render_sticker(
-    image: Image,
-    width_height: Wh<Px>,
-    stroke_px: Px,
-    shadow: bool,
-) -> RenderingTree {
-    render_sticker_image_with_shadow(image, width_height, stroke_px, shadow)
-}
-
-pub(crate) fn render_card(
-    card: &Card,
-    width_height: Wh<Px>,
-    stroke_px: Px,
-    shadow: bool,
-) -> RenderingTree {
-    render_card_thumbnail(card, width_height, stroke_px, shadow)
 }

@@ -11,25 +11,18 @@ impl UpgradeBehavior for EnergyDrinkUpgrade {
         "energy_drink"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::ENERGY_DRINK,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::ENERGY_DRINK)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("-{}", self.add),
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("-{}", self.add),
             crate::theme::palette::YELLOW,
-        ))
+        )]
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
