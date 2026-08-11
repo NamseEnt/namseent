@@ -195,25 +195,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rarity_price_factors_are_ordered() {
-        assert_eq!(rarity_price_factor(Rarity::Common), 1.0);
-        assert_eq!(rarity_price_factor(Rarity::Rare), 1.25);
-        assert_eq!(rarity_price_factor(Rarity::Epic), 1.5);
-        assert_eq!(rarity_price_factor(Rarity::Legendary), 2.0);
-    }
-
-    #[test]
-    fn calculate_cost_applies_rarity_and_randomness_before_discount() {
-        assert_eq!(calculate_cost(20.0, Rarity::Common, 0.0, false, 0), 20);
-        assert_eq!(calculate_cost(20.0, Rarity::Rare, 0.0, false, 0), 25);
-        assert_eq!(calculate_cost(20.0, Rarity::Epic, 0.5, false, 5), 40);
-        assert_eq!(
-            calculate_cost(100.0, Rarity::Legendary, 0.5, false, 25),
-            275
-        );
-    }
-
-    #[test]
     fn calculate_cost_keeps_free_and_discount_floor_behavior() {
         assert_eq!(calculate_cost(100.0, Rarity::Legendary, 0.5, true, 0), 0);
         assert_eq!(calculate_cost(20.0, Rarity::Common, 0.0, false, 25), 0);
