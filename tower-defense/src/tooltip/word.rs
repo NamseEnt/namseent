@@ -9,6 +9,8 @@ impl Word {
             Word::Health => vec![self.tooltip_section(locale)],
             Word::Gold => vec![self.tooltip_section(locale)],
             Word::Dice => vec![self.tooltip_section(locale)],
+            Word::Deck => vec![self.tooltip_section(locale)],
+            Word::Encyclopedia => vec![self.tooltip_section(locale)],
             Word::Item => vec![self.tooltip_section(locale)],
             Word::Treasure => vec![self.tooltip_section(locale)],
             Word::Shield => vec![self.tooltip_section(locale)],
