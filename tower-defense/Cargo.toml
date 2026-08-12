@@ -10,7 +10,7 @@ icon = "asset/image/tower/high/idle1.png"
 [features]
 default = []
 debug-tools = []
-simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:indicatif", "dep:ctrlc", "dep:crossterm", "dep:ratatui"]
+simulator = ["dep:rusqlite", "dep:clap", "dep:rayon", "dep:indicatif", "dep:ctrlc", "dep:crossterm", "dep:ratatui", "dep:namui-kv-store-memory"]
 
 [dependencies]
 anyhow = "1.0.98"
@@ -28,6 +28,7 @@ indicatif = { version = "0.17", optional = true }
 ctrlc = { version = "3", optional = true }
 crossterm = { version = "0.28", optional = true }
 ratatui = { version = "0.29", optional = true }
+namui-kv-store-memory = { path = "test_support/namui-kv-store-memory", optional = true }
 strum = "0.28.0"
 strum_macros = "0.28.0"
 enum_dispatch = "0.3"

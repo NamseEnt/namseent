@@ -70,6 +70,8 @@ struct Cli {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    tower_defense::init_simulator_kv_store();
+
     set_headless(true);
 
     let config = if let Some(path) = &cli.config {
