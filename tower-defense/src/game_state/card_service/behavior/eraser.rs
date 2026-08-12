@@ -98,7 +98,7 @@ impl CardServiceBehavior for EraserCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_eraser_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Rare,
     );
 
 fn generate_eraser_card_service() -> CardService {

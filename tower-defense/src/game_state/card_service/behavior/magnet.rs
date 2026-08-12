@@ -151,7 +151,7 @@ impl CardServiceBehavior for MagnetCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_magnet_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Epic,
     );
 
 fn generate_magnet_card_service() -> CardService {

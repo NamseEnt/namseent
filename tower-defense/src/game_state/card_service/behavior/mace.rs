@@ -125,7 +125,7 @@ impl CardServiceBehavior for MaceCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_mace_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Rare,
     );
 
 fn generate_mace_card_service() -> CardService {

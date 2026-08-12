@@ -146,7 +146,7 @@ impl CardServiceBehavior for BatteryCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_battery_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Epic,
     );
 
 fn generate_battery_card_service() -> CardService {

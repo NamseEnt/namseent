@@ -124,7 +124,7 @@ impl CardServiceBehavior for LongSwordCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_long_sword_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Rare,
     );
 
 fn generate_long_sword_card_service() -> CardService {
