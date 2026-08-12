@@ -220,13 +220,9 @@ fn shop_purchase_unavailable_sections(
             ShopPurchaseBlockReason::AlreadyPurchased => {
                 l10n::ui::ShopPurchaseBlockReasonText::AlreadyPurchased
             }
-            ShopPurchaseBlockReason::NotEnoughGold {
-                required,
-                available,
-            } => l10n::ui::ShopPurchaseBlockReasonText::NotEnoughGold {
-                required: *required,
-                available: *available,
-            },
+            ShopPurchaseBlockReason::NotEnoughGold => {
+                l10n::ui::ShopPurchaseBlockReasonText::NotEnoughGold
+            }
             ShopPurchaseBlockReason::PurchasesDisabled => {
                 l10n::ui::ShopPurchaseBlockReasonText::PurchasesDisabled
             }

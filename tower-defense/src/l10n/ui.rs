@@ -318,7 +318,7 @@ impl SettingsText {
 pub enum ShopPurchaseBlockReasonText {
     Unavailable,
     AlreadyPurchased,
-    NotEnoughGold { required: usize, available: usize },
+    NotEnoughGold,
     PurchasesDisabled,
     NoEngravedCard,
     NotEnoughUnengravedCards { required: usize, available: usize },
@@ -330,12 +330,7 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
             Language::Korean => match self {
                 Self::Unavailable => builder.static_text("구매 불가"),
                 Self::AlreadyPurchased => builder.static_text("이미 구매한 상품입니다"),
-                Self::NotEnoughGold {
-                    required,
-                    available,
-                } => builder.text(format!(
-                    "골드가 부족합니다. 필요: {required}, 보유: {available}"
-                )),
+                Self::NotEnoughGold => builder.static_text("골드가 부족합니다"),
                 Self::PurchasesDisabled => {
                     builder.static_text("현재 상점 구매가 비활성화되어 있습니다")
                 }
@@ -352,12 +347,7 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
                 Self::AlreadyPurchased => {
                     builder.static_text("This item has already been purchased")
                 }
-                Self::NotEnoughGold {
-                    required,
-                    available,
-                } => builder.text(format!(
-                    "Not enough gold. Required: {required}, available: {available}"
-                )),
+                Self::NotEnoughGold => builder.static_text("Not enough gold"),
                 Self::PurchasesDisabled => {
                     builder.static_text("Shop purchases are currently disabled")
                 }
