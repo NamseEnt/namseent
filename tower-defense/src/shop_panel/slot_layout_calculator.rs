@@ -1,16 +1,20 @@
 use crate::shop::{Shop, ShopSlotId};
-use crate::shop_panel::constants::{PADDING, SHOP_SLOT_WIDTH};
+use crate::shop_panel::constants::{PADDING, SHOP_SLOT_HEIGHT, SHOP_SLOT_WIDTH};
 use namui::*;
 use std::collections::HashMap;
 
 pub struct SlotLayoutCalculator {
     pub items_area_wh: Wh<Px>,
+    pub visible_items_area_height: Px,
 }
 
 impl SlotLayoutCalculator {
     #[inline]
-    pub fn new(items_area_wh: Wh<Px>) -> Self {
-        Self { items_area_wh }
+    pub fn new(items_area_wh: Wh<Px>, visible_items_area_height: Px) -> Self {
+        Self {
+            items_area_wh,
+            visible_items_area_height,
+        }
     }
 
     pub fn calculate_positions(&self, shop: &Shop) -> HashMap<ShopSlotId, Xy<Px>> {
@@ -28,7 +32,7 @@ impl SlotLayoutCalculator {
         }
 
         let (slot_w, gap, start_x) = self.calculate_layout_params(slot_count);
-        let y = 0.px();
+        let y = ((self.visible_items_area_height - SHOP_SLOT_HEIGHT) / 2.0).max(0.px());
 
         for (active_index, slot_data) in active_slots.iter().enumerate() {
             let x = start_x + (slot_w + gap) * active_index as f32;

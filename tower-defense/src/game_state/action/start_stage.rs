@@ -26,9 +26,7 @@ pub(super) fn renew_game_state(game_state: &mut GameState, stage: usize) {
     }
     game_state.item_used = false;
     game_state.metrics.total_rerolled_count += game_state.rerolled_count;
-    game_state.metrics.total_shop_rerolled_count += game_state.shop_rerolled_count;
     game_state.rerolled_count = 0;
-    game_state.shop_rerolled_count = 0;
     game_state.deck.prepare_draw_pile(&mut rand::thread_rng());
     game_state.left_dice = game_state.max_dice_chance();
     game_state.stage = stage;
@@ -56,7 +54,6 @@ pub(super) fn flush_hand(game_state: &mut GameState) {
 
 pub(super) fn open_panels(game_state: &mut GameState) {
     game_state.hand_panel_forced_open = true;
-    game_state.shop_panel_forced_open = true;
 }
 
 pub(super) fn set_shopping_flow(game_state: &mut GameState) {

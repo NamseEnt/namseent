@@ -143,7 +143,7 @@ impl Component for DebugToolsModal {
                                                                         .paragraph()
                                                                         .color(text_color)
                                                                         .text(
-                                                                            "Add Shop Reroll Item",
+                                                                            "Add Card Reroll Item",
                                                                         )
                                                                         .render_center(wh)
                                                                 },

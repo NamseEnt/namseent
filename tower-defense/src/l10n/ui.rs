@@ -16,6 +16,28 @@ pub enum TopBarText {
     Encyclopedia,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub enum FabTooltipText {
+    ShopNext,
+}
+
+impl LocalizedText for FabTooltipText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        builder.static_text(match (locale.language, self) {
+            (Language::Korean, Self::ShopNext) => "상점을 닫고 다음 단계로 넘어갑니다.",
+            (Language::English, Self::ShopNext) => "Closes the shop and proceeds to the next step.",
+        });
+    }
+}
+
+impl FabTooltipText {
+    pub(crate) const fn key(self) -> &'static str {
+        match self {
+            Self::ShopNext => "shop_next",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, State)]
 pub enum EncyclopediaText {
     Title,
@@ -84,7 +106,6 @@ pub enum ResultModalText {
     TotalGoldLabel,
     TotalDamageLabel,
     CardRerollCountLabel,
-    ShopRerollCountLabel,
     NoTowerDamage,
 }
 
@@ -164,7 +185,6 @@ impl ResultModalText {
             ResultModalText::TotalGoldLabel => "총 획득 골드",
             ResultModalText::TotalDamageLabel => "총 데미지",
             ResultModalText::CardRerollCountLabel => "카드 리롤 횟수",
-            ResultModalText::ShopRerollCountLabel => "상점 리롤 횟수",
             ResultModalText::NoTowerDamage => "타워 기여 기록이 없습니다",
         }
     }
@@ -177,7 +197,6 @@ impl ResultModalText {
             ResultModalText::TotalGoldLabel => "Total Gold Earned",
             ResultModalText::TotalDamageLabel => "Total Damage",
             ResultModalText::CardRerollCountLabel => "Card Reroll Count",
-            ResultModalText::ShopRerollCountLabel => "Shop Reroll Count",
             ResultModalText::NoTowerDamage => "No tower contribution recorded",
         }
     }

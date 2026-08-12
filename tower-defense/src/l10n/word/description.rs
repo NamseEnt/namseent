@@ -27,7 +27,7 @@ impl WordDescription {
             }),
             super::Word::Dice => builder.with_style(|builder| {
                 builder.static_text(
-                    "상점과 핸드에서 리롤할 때 소비됩니다. 매 스테이지 종료 시 사라지고, 매 스테이지 시작 시 리필됩니다",
+                    "핸드에서 리롤할 때 소비됩니다. 매 스테이지 종료 시 사라지고, 매 스테이지 시작 시 리필됩니다",
                 );
             }),
             super::Word::Deck => builder.static_text("덱에 있는 카드를 살펴봅니다"),
@@ -80,7 +80,7 @@ impl WordDescription {
             }),
             super::Word::Dice => builder.with_style(|builder| {
                 builder.static_text(
-                    "Consumed when rerolling in the shop and hand. Disappears at the end of each stage and refills at the start of each stage",
+                    "Consumed when rerolling cards in hand. Disappears at the end of each stage and refills at the start of each stage",
                 );
             }),
             super::Word::Deck => builder.static_text("View the cards in your deck"),

@@ -53,7 +53,6 @@ pub(crate) enum GameStateAction {
     RemoveTower(usize),
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
-    RefreshShop,
     GrantItem(item::Item),
     GrantHandItem(HandItem),
     ModifyDeck(modify_deck::DeckEdit),
@@ -173,10 +172,6 @@ impl GameState {
             }
             GameStateAction::PurchaseShopItem(slot_id) => {
                 purchase_shop_item::try_purchase(self, slot_id);
-                true
-            }
-            GameStateAction::RefreshShop => {
-                crate::shop::refresh_shop(self);
                 true
             }
             GameStateAction::GrantItem(item) => {

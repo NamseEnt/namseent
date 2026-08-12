@@ -407,7 +407,6 @@ pub mod tests_support {
             game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
-            shop_rerolled_count: 0,
             metrics: crate::game_state::GameMetrics {
                 total_gold_earned: 0,
                 total_gold_spent: 0,
@@ -415,7 +414,6 @@ pub mod tests_support {
                 max_consecutive_perfect_clears: 0,
                 tower_damage_stats: vec![],
                 total_rerolled_count: 0,
-                total_shop_rerolled_count: 0,
             },
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
@@ -433,7 +431,6 @@ pub mod tests_support {
             config: config.clone(),
 
             hand_panel_forced_open: true,
-            shop_panel_forced_open: true,
             headless: false,
             discovery: Default::default(),
         }

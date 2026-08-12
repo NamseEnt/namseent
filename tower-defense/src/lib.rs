@@ -46,7 +46,7 @@ use game_state::{TILE_PX_SIZE, modal::encyclopedia, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
-use theme::palette;
+use theme::{fab::FabLayout, palette};
 use top_bar::TopBar;
 use upgrades::Upgrades;
 
@@ -210,6 +210,8 @@ impl Component for Game {
             }
         });
 
+        ctx.add(shop_panel::ShopPanel);
+
         ctx.add(flow_ui::FlowUi);
 
         ctx.compose(|ctx| {
@@ -232,11 +234,9 @@ impl Component for Game {
                         ]),
                     ),
                 ),
-                table::fixed(128.px(), |_, _| {}),
+                table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
             ])(screen_wh, ctx);
         });
-
-        ctx.add(shop_panel::ShopPanel);
 
         ctx.add(hand_panel::HandPanel);
 

@@ -420,7 +420,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
-        shop_rerolled_count: 0,
         metrics: GameMetrics {
             total_gold_earned: 0,
             total_gold_spent: 0,
@@ -428,7 +427,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
             max_consecutive_perfect_clears: 0,
             tower_damage_stats: vec![],
             total_rerolled_count: 0,
-            total_shop_rerolled_count: 0,
         },
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
@@ -444,7 +442,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         base_animation_state: BaseAnimationState::new(now),
         config: config.clone(),
         hand_panel_forced_open: false,
-        shop_panel_forced_open: false,
         headless: true,
         discovery: Default::default(),
     }

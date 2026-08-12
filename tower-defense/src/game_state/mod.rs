@@ -104,7 +104,6 @@ pub struct GameMetrics {
     pub max_consecutive_perfect_clears: usize,
     pub tower_damage_stats: Vec<TowerDamageStats>,
     pub total_rerolled_count: usize,
-    pub total_shop_rerolled_count: usize,
 }
 
 #[derive(State)]
@@ -135,7 +134,6 @@ pub struct GameState {
     pub(crate) game_now: Instant,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
-    pub shop_rerolled_count: usize,
     pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
@@ -152,7 +150,6 @@ pub struct GameState {
 
     // panel open states controlled by input/flow
     pub hand_panel_forced_open: bool,
-    pub shop_panel_forced_open: bool,
     // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
     pub(crate) headless: bool,
 }
@@ -194,26 +191,13 @@ impl GameState {
         matches!(self.flow, GameFlow::Shopping(_))
     }
 
-    /// Toggle panels according to rules described in UI feature request.
-    ///
-    /// * If any panel that is allowed is currently open, close both.
-    /// * Otherwise open all allowed panels (disallowed ones stay closed).
+    /// Toggle the hand panel when the current flow permits it.
     pub fn toggle_panels(&mut self) {
-        let hand_allowed = self.can_open_hand_panel();
-        let shop_allowed = self.can_open_shop_panel();
-        let hand_open = hand_allowed && self.hand_panel_forced_open;
-        let shop_open = shop_allowed && self.shop_panel_forced_open;
-        if hand_open || shop_open {
+        if !self.can_open_hand_panel() {
             self.hand_panel_forced_open = false;
-            self.shop_panel_forced_open = false;
-        } else {
-            if hand_allowed {
-                self.hand_panel_forced_open = true;
-            }
-            if shop_allowed {
-                self.shop_panel_forced_open = true;
-            }
+            return;
         }
+        self.hand_panel_forced_open = !self.hand_panel_forced_open;
     }
 
     pub fn now(&self) -> Instant {
@@ -669,7 +653,6 @@ fn create_initial_game_state() -> GameState {
         game_now: now,
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
-        shop_rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
@@ -690,12 +673,10 @@ fn create_initial_game_state() -> GameState {
             max_consecutive_perfect_clears: 0,
             tower_damage_stats: Vec::new(),
             total_rerolled_count: 0,
-            total_shop_rerolled_count: 0,
         },
 
         // start panels in opened state by default (if flow allows later)
         hand_panel_forced_open: true,
-        shop_panel_forced_open: true,
         headless: false,
     };
 
@@ -772,7 +753,6 @@ impl GameState {
             game_now: self.game_now,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
-            shop_rerolled_count: self.shop_rerolled_count,
             locale: self.locale,
             play_history: self.play_history.clone(),
             config: Arc::clone(&self.config),
@@ -790,10 +770,8 @@ impl GameState {
                 max_consecutive_perfect_clears: self.metrics.max_consecutive_perfect_clears,
                 tower_damage_stats: self.metrics.tower_damage_stats.clone(),
                 total_rerolled_count: self.metrics.total_rerolled_count,
-                total_shop_rerolled_count: self.metrics.total_shop_rerolled_count,
             },
             hand_panel_forced_open: self.hand_panel_forced_open,
-            shop_panel_forced_open: self.shop_panel_forced_open,
             card_service_notifications: self.card_service_notifications.clone(),
             headless: self.headless,
             discovery: self.discovery.clone(),
@@ -865,71 +843,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn toggle_panels_basic_scenarios() {
+    fn toggle_panels_only_controls_hand_panel() {
         let mut gs = create_initial_game_state();
 
-        // initially flow is Shopping after StartStage, so only shop is allowed.
         assert!(!gs.can_open_hand_panel());
         assert!(gs.can_open_shop_panel());
-
-        // shopping flow: hand is disallowed, shop is allowed
-        assert!(gs.shop_panel_forced_open);
-
-        gs.toggle_panels();
-        // toggling when one or both allowed should close both
-        assert!(!gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
-
-        // reopening when none open should open only the allowed shop panel
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
 
-        // enter selecting tower flow from shopping - hand now allowed, shop no longer allowed
         gs.action(crate::game_state::GameStateAction::StartSelectingTower);
         assert!(gs.can_open_hand_panel());
         assert!(!gs.can_open_shop_panel());
-        assert!(!gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
-
-        // space should open the available hand panel in SelectingTower since shop is no longer allowed.
         gs.toggle_panels();
         assert!(gs.hand_panel_forced_open);
-        assert!(gs.shop_panel_forced_open);
-
-        // toggle again should close both flags, then reopening will only open hand again.
         gs.toggle_panels();
         assert!(!gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
-
-        gs.toggle_panels();
-        assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
-
-        // go to placing tower flow: hand allowed, shop not
-        gs.action(crate::game_state::GameStateAction::StartPlacingTower(
-            crate::game_state::tower::TowerTemplate::new(
-                crate::game_state::tower::TowerKind::RubberCone,
-                Suit::Spades,
-                Rank::Ace,
-            ),
-        ));
-        assert!(gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel());
-
-        // forced flags remain whatever they were; toggle logic should respect permissions
-        assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
-
-        // space when hand is open should close both (shop will be closed but can't open anyway)
-        gs.toggle_panels();
-        assert!(!gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
-
-        // toggle again should reopen only the hand panel since shop is not allowed
-        gs.toggle_panels();
-        assert!(gs.hand_panel_forced_open);
-        assert!(!gs.shop_panel_forced_open);
     }
 
     #[test]

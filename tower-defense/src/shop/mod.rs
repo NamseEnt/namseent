@@ -39,23 +39,6 @@ impl Shop {
         self.slots.iter_mut().find(|slot| slot.id == id)
     }
 
-    pub fn delete_slots(&mut self, ids: &[ShopSlotId]) {
-        let now = Instant::now();
-        for slot in self.slots.iter_mut() {
-            if ids.contains(&slot.id) {
-                slot.start_exit_animation(now);
-            }
-        }
-    }
-
-    pub fn get_unpurchased_slot_ids(&self) -> Vec<ShopSlotId> {
-        self.slots
-            .iter()
-            .filter(|slot| !slot.purchased && slot.exit_animation.is_none())
-            .map(|slot| slot.id)
-            .collect()
-    }
-
     pub fn push(&mut self, slot: ShopSlot) {
         self.slots.push(ShopSlotData::new(slot));
     }
@@ -76,31 +59,6 @@ impl Shop {
     pub fn update(&mut self) {
         self.remove_completed_exit_animations();
     }
-}
-
-pub fn refresh_shop(game_state: &mut GameState) {
-    let (unpurchased_slot_ids, refresh_count) = if let GameFlow::Shopping(flow) = &game_state.flow {
-        let ids = flow.shop.get_unpurchased_slot_ids();
-        let count = ids.len();
-        (ids, count)
-    } else {
-        return;
-    };
-
-    let new_slots: Vec<ShopSlot> = (0..refresh_count)
-        .map(|_| generate_shop_slot(game_state))
-        .collect();
-
-    let GameFlow::Shopping(flow) = &mut game_state.flow else {
-        unreachable!()
-    };
-
-    flow.shop.delete_slots(&unpurchased_slot_ids);
-
-    for new_slot in new_slots {
-        flow.shop.push(new_slot);
-    }
-    game_state.discover_shop();
 }
 
 pub fn add_shop_slots(game_state: &mut GameState, count: usize) {

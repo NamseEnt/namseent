@@ -10,9 +10,6 @@ pub enum SimEvent {
     StageStart {
         stage: usize,
     },
-    ShopReroll {
-        stage: usize,
-    },
     ShopPurchase {
         stage: usize,
         cost: usize,

@@ -10,6 +10,7 @@ use crate::game_state::shop_purchase::ShopPurchaseBlockReason;
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
+use crate::l10n::ui::FabTooltipText;
 use crate::l10n::word::Word;
 use crate::l10n::{self, Locale};
 use crate::theme::palette;
@@ -60,6 +61,7 @@ pub enum TooltipContent {
     },
     Word(crate::l10n::word::Word),
     Words(Vec<crate::l10n::word::Word>),
+    Fab(FabTooltipText),
     Undiscovered,
 }
 
@@ -179,6 +181,18 @@ impl TooltipContent {
                 .iter()
                 .flat_map(|word| word.tooltip_sections(locale))
                 .collect(),
+            TooltipContent::Fab(text) => {
+                let text = *text;
+                vec![TooltipSection {
+                    title: None,
+                    body: SectionText {
+                        key: format!("fab:{}", text.key()),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(text, &locale);
+                        }),
+                    },
+                }]
+            }
             TooltipContent::Undiscovered => vec![TooltipSection {
                 title: None,
                 body: SectionText {

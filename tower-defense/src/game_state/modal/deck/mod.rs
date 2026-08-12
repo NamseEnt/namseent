@@ -3,12 +3,11 @@ mod cards;
 use crate::card::{Card, CardId, Rank};
 use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::{UserModal, mutate_game_state, set_modal, use_game_state};
-use crate::icon::{Icon, IconKind};
-use crate::theme::palette;
+use crate::icon::IconKind;
 use crate::{
     game_state::modal::deck::cards::Cards,
     theme::{
-        button::Button,
+        fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton},
         typography::{FontSize, memoized_text},
     },
 };
@@ -22,7 +21,6 @@ const PADDING: Px = px(36.0);
 const SCROLL_BAR_WIDTH: Px = px(8.0);
 const CARD_VIEW_WIDTH: Px = px(540.0);
 const VERTICAL_MARGIN: Px = px(128.0);
-const FAB_SIZE: Px = px(96.0);
 
 #[derive(Debug, Clone, State)]
 pub enum DeckKind {
@@ -240,53 +238,32 @@ impl Component for DeckModal {
             ));
         }
 
+        let close = || set_modal(None);
         ctx.compose(|ctx| {
             if selection.is_none() {
-                ctx.translate((screen_wh.width - PADDING - FAB_SIZE, PADDING))
-                    .add(
-                        Button::new(
-                            Wh::single(FAB_SIZE),
-                            &|| set_modal(None),
-                            &|wh, _color, ctx| {
-                                ctx.add(Icon {
-                                    kind: crate::icon::IconKind::Reject,
-                                    size: crate::icon::IconSize::Custom { size: FAB_SIZE },
-                                    attributes: vec![],
-                                    wh,
-                                    opacity: 1.0,
-                                });
-                            },
-                        )
-                        .variant(crate::theme::button::ButtonVariant::Text),
-                    );
+                ctx.add(FloatingActionButton {
+                    screen_wh,
+                    position: FabPosition::new(FabSide::Right, FabVerticalPosition::Top),
+                    visible: true,
+                    icon: IconKind::Reject,
+                    disabled: false,
+                    on_click: &close,
+                    tooltip_content: None,
+                });
             }
         });
 
         ctx.compose(|ctx| {
             if let Some((icon, disable, action)) = action_button {
-                ctx.translate((
-                    screen_wh.width - PADDING - FAB_SIZE,
-                    (screen_wh.height - FAB_SIZE) * 0.5,
-                ))
-                .add(
-                    Button::new(
-                        Wh::single(FAB_SIZE),
-                        &move || action(),
-                        &move |wh, _color, ctx| {
-                            ctx.add(memoized_text((), move |mut builder| {
-                                builder
-                                    .headline()
-                                    .color(Color::from_u8(0, 0, 0, if disable { 96 } else { 255 }))
-                                    .stroke(2.px(), palette::DARK_CHARCOAL)
-                                    .size(FontSize::Custom { size: FAB_SIZE })
-                                    .icon(icon)
-                                    .render_center(wh)
-                            }));
-                        },
-                    )
-                    .disabled(disable)
-                    .variant(crate::theme::button::ButtonVariant::Text),
-                );
+                ctx.add(FloatingActionButton {
+                    screen_wh,
+                    position: FabPosition::new(FabSide::Right, FabVerticalPosition::Center),
+                    visible: true,
+                    icon,
+                    disabled: disable,
+                    on_click: &move || action(),
+                    tooltip_content: None,
+                });
             }
         });
 
