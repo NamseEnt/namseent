@@ -52,10 +52,6 @@ pub(super) fn flush_hand(game_state: &mut GameState) {
     }
 }
 
-pub(super) fn open_panels(game_state: &mut GameState) {
-    game_state.hand_panel_forced_open = true;
-}
-
 pub(super) fn set_shopping_flow(game_state: &mut GameState) {
     let mut shop = crate::shop::Shop::new(game_state);
     let free_card_services = game_state.stage_modifiers.drain_free_card_services();

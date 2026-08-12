@@ -441,7 +441,6 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
         config: config.clone(),
-        hand_panel_forced_open: false,
         headless: true,
         discovery: Default::default(),
     }

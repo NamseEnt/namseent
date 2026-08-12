@@ -211,6 +211,7 @@ impl Component for Game {
         });
 
         ctx.add(shop_panel::ShopPanel);
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(flow_ui::FlowUi);
 
@@ -237,8 +238,6 @@ impl Component for Game {
                 table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
             ])(screen_wh, ctx);
         });
-
-        ctx.add(hand_panel::HandPanel);
 
         ctx.add(sound::SoundRenderer);
 
@@ -268,11 +267,6 @@ impl Component for Game {
                         mutate_game_state(|game_state| {
                             game_state.fast_forward_multiplier =
                                 game_state.fast_forward_multiplier.next();
-                        });
-                    }
-                    Code::Space => {
-                        mutate_game_state(|game_state| {
-                            game_state.toggle_panels();
                         });
                     }
                     #[cfg(feature = "debug-tools")]

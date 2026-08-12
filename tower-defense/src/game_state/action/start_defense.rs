@@ -6,7 +6,17 @@ use crate::game_state::{
 use crate::sound;
 use namui::Duration;
 
+pub(super) fn discard_unplaced_towers(game_state: &mut GameState) {
+    let tower_slot_ids = game_state.hand.active_slot_ids();
+    if !tower_slot_ids.is_empty() {
+        game_state.hand.delete_slots(&tower_slot_ids);
+    }
+}
+
 pub(super) fn set_defense_flow(game_state: &mut GameState) {
+    if matches!(game_state.flow, GameFlow::PlacingTower) {
+        discard_unplaced_towers(game_state);
+    }
     game_state.flow = GameFlow::Defense(DefenseFlow::new(game_state));
 }
 

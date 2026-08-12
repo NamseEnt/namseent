@@ -4,17 +4,13 @@ use crate::{
     sound,
 };
 use namui::*;
-use namui_prebuilt::table;
 
-use super::constants::{PANEL_PADDING, interaction_width};
+use super::constants::{CONTAINER_PADDING, PANEL_PADDING};
 
-pub(super) struct PaperContent {
-    pub wh: Wh<Px>,
-}
+pub(super) struct PaperContent;
 
 impl Component for PaperContent {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
         let game_state = use_game_state(ctx);
 
         let on_card_click = |id: HandSlotId| {
@@ -51,22 +47,10 @@ impl Component for PaperContent {
             });
         };
 
-        ctx.compose(|ctx| {
-            table::padding_no_clip(
-                PANEL_PADDING,
-                table::horizontal([
-                    table::fixed_no_clip(
-                        wh.width - interaction_width() - PANEL_PADDING,
-                        |_, ctx| {
-                            ctx.add(HandComponent {
-                                hand: &game_state.hand,
-                                on_click: &on_card_click,
-                            });
-                        },
-                    ),
-                    table::fixed(interaction_width(), |_, _| {}),
-                ]),
-            )(wh, ctx);
-        });
+        ctx.translate((PANEL_PADDING + CONTAINER_PADDING, CONTAINER_PADDING))
+            .add(HandComponent {
+                hand: &game_state.hand,
+                on_click: &on_card_click,
+            });
     }
 }

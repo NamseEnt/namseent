@@ -92,7 +92,6 @@ impl GameState {
                 start_stage::renew_game_state(self, stage);
                 start_stage::flush_hand(self);
                 start_stage::draw_hand(self);
-                start_stage::open_panels(self);
                 start_stage::trigger_upgrade_effects(self, stage);
                 start_stage::set_shopping_flow(self);
                 self.discover_shop();

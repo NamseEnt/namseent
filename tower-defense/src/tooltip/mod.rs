@@ -56,12 +56,12 @@ pub enum TooltipContent {
         content: Box<TooltipContent>,
         slot_id: crate::shop::ShopSlotId,
     },
-    Reroll {
-        health_cost: usize,
-    },
     Word(crate::l10n::word::Word),
     Words(Vec<crate::l10n::word::Word>),
-    Fab(FabTooltipText),
+    Fab {
+        text: FabTooltipText,
+        health_cost: Option<usize>,
+    },
     Undiscovered,
 }
 
@@ -158,21 +158,6 @@ impl TooltipContent {
                 }
                 sections
             }
-            TooltipContent::Reroll { health_cost } => {
-                let health_cost = *health_cost;
-                vec![TooltipSection {
-                    title: None,
-                    body: SectionText {
-                        key: format!("reroll:{health_cost}"),
-                        apply: Box::new(move |builder| {
-                            builder.icon(IconKind::Warning).space().l10n(
-                                l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
-                                &locale,
-                            );
-                        }),
-                    },
-                }]
-            }
             TooltipContent::Word(word) => {
                 let word = *word;
                 word.tooltip_sections(locale)
@@ -181,9 +166,10 @@ impl TooltipContent {
                 .iter()
                 .flat_map(|word| word.tooltip_sections(locale))
                 .collect(),
-            TooltipContent::Fab(text) => {
+            TooltipContent::Fab { text, health_cost } => {
                 let text = *text;
-                vec![TooltipSection {
+                let health_cost = *health_cost;
+                let mut sections = vec![TooltipSection {
                     title: None,
                     body: SectionText {
                         key: format!("fab:{}", text.key()),
@@ -191,7 +177,22 @@ impl TooltipContent {
                             builder.l10n(text, &locale);
                         }),
                     },
-                }]
+                }];
+                if let Some(health_cost) = health_cost {
+                    sections.push(TooltipSection {
+                        title: None,
+                        body: SectionText {
+                            key: format!("fab:reroll:{health_cost}"),
+                            apply: Box::new(move |builder| {
+                                builder.icon(IconKind::Warning).space().l10n(
+                                    l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
+                                    &locale,
+                                );
+                            }),
+                        },
+                    });
+                }
+                sections
             }
             TooltipContent::Undiscovered => vec![TooltipSection {
                 title: None,

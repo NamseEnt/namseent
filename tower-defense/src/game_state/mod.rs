@@ -148,8 +148,6 @@ pub struct GameState {
     pub base_animation_state: BaseAnimationState,
     pub(crate) discovery: discovery::DiscoveryState,
 
-    // panel open states controlled by input/flow
-    pub hand_panel_forced_open: bool,
     // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
     pub(crate) headless: bool,
 }
@@ -178,28 +176,10 @@ impl GameState {
         crate::rarity::Rarity::Common
     }
 
-    /// Returns whether the hand panel is allowed to be opened based on current flow.
-    pub fn can_open_hand_panel(&self) -> bool {
-        matches!(
-            self.flow,
-            GameFlow::SelectingTower(_) | GameFlow::PlacingTower
-        )
-    }
-
     /// Returns whether the shop panel is allowed to be opened based on current flow.
     pub fn can_open_shop_panel(&self) -> bool {
         matches!(self.flow, GameFlow::Shopping(_))
     }
-
-    /// Toggle the hand panel when the current flow permits it.
-    pub fn toggle_panels(&mut self) {
-        if !self.can_open_hand_panel() {
-            self.hand_panel_forced_open = false;
-            return;
-        }
-        self.hand_panel_forced_open = !self.hand_panel_forced_open;
-    }
-
     pub fn now(&self) -> Instant {
         self.game_now
     }
@@ -675,8 +655,6 @@ fn create_initial_game_state() -> GameState {
             total_rerolled_count: 0,
         },
 
-        // start panels in opened state by default (if flow allows later)
-        hand_panel_forced_open: true,
         headless: false,
     };
 
@@ -771,7 +749,6 @@ impl GameState {
                 tower_damage_stats: self.metrics.tower_damage_stats.clone(),
                 total_rerolled_count: self.metrics.total_rerolled_count,
             },
-            hand_panel_forced_open: self.hand_panel_forced_open,
             card_service_notifications: self.card_service_notifications.clone(),
             headless: self.headless,
             discovery: self.discovery.clone(),
@@ -837,28 +814,9 @@ pub fn is_boss_stage(stage: usize) -> bool {
     stage.is_multiple_of(5) || (46..=49).contains(&stage)
 }
 
-// Unit tests that exercise panel toggle behavior.
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn toggle_panels_only_controls_hand_panel() {
-        let mut gs = create_initial_game_state();
-
-        assert!(!gs.can_open_hand_panel());
-        assert!(gs.can_open_shop_panel());
-        gs.toggle_panels();
-        assert!(!gs.hand_panel_forced_open);
-
-        gs.action(crate::game_state::GameStateAction::StartSelectingTower);
-        assert!(gs.can_open_hand_panel());
-        assert!(!gs.can_open_shop_panel());
-        gs.toggle_panels();
-        assert!(gs.hand_panel_forced_open);
-        gs.toggle_panels();
-        assert!(!gs.hand_panel_forced_open);
-    }
 
     #[test]
     fn shopping_allows_shop_panel() {

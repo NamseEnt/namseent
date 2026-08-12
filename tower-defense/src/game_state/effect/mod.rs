@@ -430,7 +430,6 @@ pub mod tests_support {
             base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
             config: config.clone(),
 
-            hand_panel_forced_open: true,
             headless: false,
             discovery: Default::default(),
         }

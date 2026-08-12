@@ -247,6 +247,7 @@ impl Component for DeckModal {
                     visible: true,
                     icon: IconKind::Reject,
                     disabled: false,
+                    long_press_time: None,
                     on_click: &close,
                     tooltip_content: None,
                 });
@@ -261,6 +262,7 @@ impl Component for DeckModal {
                     visible: true,
                     icon,
                     disabled: disable,
+                    long_press_time: None,
                     on_click: &move || action(),
                     tooltip_content: None,
                 });
