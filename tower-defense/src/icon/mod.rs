@@ -36,6 +36,7 @@ pub enum IconKind {
     Rarity { rarity: Rarity },
     Rating,
     Deck,
+    Encyclopedia,
 }
 impl IconKind {
     pub fn image(self) -> Image {
@@ -80,6 +81,7 @@ impl IconKind {
             },
             IconKind::Rating => crate::asset::image::icon::RATING,
             IconKind::Deck => crate::asset::image::icon::DECK,
+            IconKind::Encyclopedia => crate::asset::image::icon::ENCYCLOPEDIA,
         }
     }
 
@@ -125,6 +127,7 @@ impl IconKind {
             IconKind::Rating => "rating",
             IconKind::Warning => "warning",
             IconKind::Deck => "deck",
+            IconKind::Encyclopedia => "encyclopedia",
         }
     }
 
@@ -176,6 +179,7 @@ impl IconKind {
             "rating" => Some(IconKind::Rating),
             "warning" => Some(IconKind::Warning),
             "deck" => Some(IconKind::Deck),
+            "encyclopedia" => Some(IconKind::Encyclopedia),
             _ => None,
         }
     }

@@ -196,7 +196,6 @@ impl Component for PreviewEntryComponent {
 pub struct HandTowerPreview {
     pub wh: Wh<Px>,
     pub tower_template: Option<TowerTemplate>,
-    pub panel_open: bool,
 }
 
 impl Component for HandTowerPreview {
@@ -234,8 +233,7 @@ impl Component for HandTowerPreview {
                 .is_none_or(|exit_animation| !exit_animation.is_complete(now))
         });
 
-        let active_id = if self.panel_open && matches!(game_state.flow, GameFlow::SelectingTower(_))
-        {
+        let active_id = if matches!(game_state.flow, GameFlow::SelectingTower(_)) {
             entries
                 .iter()
                 .rev()

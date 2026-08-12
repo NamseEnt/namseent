@@ -5,7 +5,6 @@ use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::rarity::Rarity;
-use crate::thumbnail::STICKER_THUMBNAIL_STROKE;
 use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -175,23 +174,13 @@ pub trait UpgradeBehavior {
         locale: &crate::l10n::Locale,
     );
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree;
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_>;
 
-    fn thumbnail_with_opacity(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        crate::thumbnail::with_opacity(self.thumbnail(width_height, shadow), opacity)
-    }
-
-    fn thumbnail_overlay(
-        &self,
-        _width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
-        None
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        Vec::new()
     }
 
     #[allow(dead_code)]

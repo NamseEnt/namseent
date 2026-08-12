@@ -14,20 +14,14 @@ impl UpgradeBehavior for TapeUpgrade {
         "tape"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::TAPE,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::TAPE)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         game_state: &GameState,
-    ) -> Option<RenderingTree> {
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         let cycle = self.cycle(game_state.stage);
         let active = cycle == TAPE_WAVE_INTERVAL;
         let stage_color = if active {
@@ -35,19 +29,16 @@ impl UpgradeBehavior for TapeUpgrade {
         } else {
             crate::theme::palette::DISABLED_TEXT
         };
-
-        Some(render([
-            crate::thumbnail::render_right_top_overlay(
-                width_height.width,
-                &format!("{}/{}", cycle, TAPE_WAVE_INTERVAL),
+        vec![
+            crate::thumbnail::ThumbnailOverlay::right_top(
+                format!("{}/{}", cycle, TAPE_WAVE_INTERVAL),
                 stage_color,
             ),
-            crate::thumbnail::render_right_bottom_overlay(
-                width_height,
-                &format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0),
+            crate::thumbnail::ThumbnailOverlay::right_bottom(
+                format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0),
                 crate::theme::palette::BLUE,
             ),
-        ]))
+        ]
     }
 
     fn acquire(mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {

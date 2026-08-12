@@ -9,6 +9,7 @@ pub mod locale;
 pub mod monster_skill;
 pub mod poker_action;
 pub mod quest;
+pub mod rarity;
 pub mod rich_text_helpers;
 pub mod tower;
 pub mod tower_skill;

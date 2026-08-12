@@ -7,7 +7,7 @@ use crate::game_state::{
 };
 
 #[test]
-fn increase_shop_reroll_via_run_effect() {
+fn increase_reroll_via_run_effect() {
     let mut gs = make_test_state();
     let default_dice = gs.config.player.base_dice_chance;
     assert_eq!(gs.max_dice_chance(), default_dice);
@@ -20,7 +20,7 @@ fn increase_shop_reroll_via_run_effect() {
 }
 
 #[test]
-fn shop_reroll_penalty_then_bonus_via_run_effect() {
+fn reroll_penalty_then_bonus_via_run_effect() {
     let mut gs = make_test_state();
     let default_dice = gs.config.player.base_dice_chance;
     for _ in 0..4 {

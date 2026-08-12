@@ -14,28 +14,21 @@ impl UpgradeBehavior for ResolutionUpgrade {
         "resolution"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::RESOLUTION,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::RESOLUTION)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!(
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!(
                 "{:.0}%",
                 self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
             ),
             crate::theme::palette::RED,
-        ))
+        )]
     }
 
     fn on_stage_start(&mut self, game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {

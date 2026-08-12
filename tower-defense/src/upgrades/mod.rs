@@ -1,3 +1,4 @@
+use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail, render_thumbnail_overlays};
 use crate::{
     animation::xy_with_spring,
     card::Card,
@@ -205,10 +206,19 @@ impl Component for UpgradeThumbnailItem {
                 .rotate(hover_rotation.deg())
                 .translate(Xy::new(-pivot.x, -pivot.y));
 
-            if let Some(overlay) = upgrade_kind.thumbnail_overlay(thumbnail_wh, &game_state) {
-                ctx.add(overlay);
+            let overlays = upgrade_kind.thumbnail_overlays(&game_state);
+            if !overlays.is_empty() {
+                ctx.add(render_thumbnail_overlays(&overlays, thumbnail_wh));
             }
-            ctx.add(upgrade_kind.thumbnail(thumbnail_wh, true));
+            ctx.add(render_thumbnail(
+                upgrade_kind.thumbnail_source(),
+                thumbnail_wh,
+                ThumbnailRenderOptions::sticker(
+                    crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+                    true,
+                    1.0,
+                ),
+            ));
         });
 
         ctx.add(WithHoverArea {

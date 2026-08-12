@@ -25,14 +25,28 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
+#[cfg(test)]
+extern crate namui_kv_store_memory;
+
+#[cfg(test)]
+mod kv_store_memory_provider_link {
+    #[test]
+    fn links_provider_symbols() {
+        let get = namui_kv_store_memory::_kv_store_get as extern "C" fn(u32, *const u8, u32);
+        let put = namui_kv_store_memory::_kv_store_put
+            as extern "C" fn(u32, *const u8, u32, *const u8, u32);
+        std::hint::black_box((get, put));
+    }
+}
+
 use crate::camera_controller::CameraController;
 use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use card::*;
-use game_state::{TILE_PX_SIZE, mutate_game_state};
+use game_state::{TILE_PX_SIZE, modal::encyclopedia, mutate_game_state};
 use inventory::Inventory;
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
-use theme::palette;
+use theme::{fab::FabLayout, palette};
 use top_bar::TopBar;
 use upgrades::Upgrades;
 
@@ -83,6 +97,8 @@ impl Component for Game {
         let _sound_state = sound::init_sound_state(ctx);
         let (settings_loaded, set_settings_loaded) = ctx.state(|| false);
         let (settings_load_started, set_settings_load_started) = ctx.state(|| false);
+        let (encyclopedia_loaded, set_encyclopedia_loaded) = ctx.state(|| false);
+        let (encyclopedia_load_started, set_encyclopedia_load_started) = ctx.state(|| false);
         let (bgm_started, set_bgm_started) = ctx.state(|| false);
         let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) =
             ctx.state::<Option<MiddleMouseButtonDragging>>(|| None);
@@ -102,7 +118,22 @@ impl Component for Game {
             });
         });
 
-        if !*settings_loaded {
+        ctx.effect("load encyclopedia", || {
+            if *encyclopedia_load_started {
+                return;
+            }
+
+            set_encyclopedia_load_started.set(true);
+            spawn(async move {
+                let loaded = encyclopedia::load_async().await;
+                mutate_game_state(move |game_state| {
+                    game_state.merge_loaded_discoveries(loaded);
+                    set_encyclopedia_loaded.set(true);
+                });
+            });
+        });
+
+        if !*settings_loaded || !*encyclopedia_loaded {
             return;
         }
 
@@ -171,13 +202,16 @@ impl Component for Game {
         );
 
         ctx.compose(|ctx| {
-            if let Some(modal) = game_state.opened_modals.user.as_ref() {
-                ctx.add(modal);
-            }
             if let Some(overlay) = game_state.opened_modals.system.as_ref() {
                 ctx.add(overlay);
             }
+            if let Some(modal) = game_state.opened_modals.user.as_ref() {
+                ctx.add(modal);
+            }
         });
+
+        ctx.add(shop_panel::ShopPanel);
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(flow_ui::FlowUi);
 
@@ -201,13 +235,9 @@ impl Component for Game {
                         ]),
                     ),
                 ),
-                table::fixed(128.px(), |_, _| {}),
+                table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
             ])(screen_wh, ctx);
         });
-
-        ctx.add(shop_panel::ShopPanel);
-
-        ctx.add(hand_panel::HandPanel);
 
         ctx.add(sound::SoundRenderer);
 
@@ -237,11 +267,6 @@ impl Component for Game {
                         mutate_game_state(|game_state| {
                             game_state.fast_forward_multiplier =
                                 game_state.fast_forward_multiplier.next();
-                        });
-                    }
-                    Code::Space => {
-                        mutate_game_state(|game_state| {
-                            game_state.toggle_panels();
                         });
                     }
                     #[cfg(feature = "debug-tools")]

@@ -12,29 +12,21 @@ impl UpgradeBehavior for IceCreamUpgrade {
         "ice_cream"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::ICE_CREAM,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::ICE_CREAM)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         if self.waves_remaining == 0 {
-            return None;
+            return Vec::new();
         }
-
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{:.0}%", self.damage_bonus_pct * 100.0),
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("{:.0}%", self.damage_bonus_pct * 100.0),
             crate::theme::palette::RED,
-        ))
+        )]
     }
 
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {

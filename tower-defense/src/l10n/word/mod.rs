@@ -8,6 +8,8 @@ pub enum Word {
     Health,
     Gold,
     Dice,
+    Deck,
+    Encyclopedia,
     Item,
     Treasure,
     Shield,

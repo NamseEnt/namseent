@@ -56,7 +56,10 @@ impl Component for ShopPaperContent {
                             height: content_wh.height,
                         };
 
-                        let calculator = SlotLayoutCalculator::new(items_area_wh);
+                        let visible_items_area_height =
+                            (BG_HEIGHT - PANEL_PADDING * 2.0 - PADDING * 2.0).max(0.px());
+                        let calculator =
+                            SlotLayoutCalculator::new(items_area_wh, visible_items_area_height);
                         let slot_positions = calculator.calculate_positions(shop);
 
                         let rendering_data =

@@ -53,6 +53,7 @@ pub(crate) enum GameStateAction {
     RemoveTower(usize),
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
+    GrantItem(item::Item),
     GrantHandItem(HandItem),
     ModifyDeck(modify_deck::DeckEdit),
     GrantTowerCard {
@@ -82,6 +83,7 @@ impl GameState {
     pub(crate) fn action(&mut self, action: GameStateAction) -> bool {
         match action {
             GameStateAction::GameStart => {
+                self.discover_inventory_items();
                 game_start::record_history_event(self);
                 true
             }
@@ -90,9 +92,9 @@ impl GameState {
                 start_stage::renew_game_state(self, stage);
                 start_stage::flush_hand(self);
                 start_stage::draw_hand(self);
-                start_stage::open_panels(self);
                 start_stage::trigger_upgrade_effects(self, stage);
                 start_stage::set_shopping_flow(self);
+                self.discover_shop();
                 start_stage::record_history_event(self, stage);
                 start_stage::save_debug_snapshot(self);
                 true
@@ -133,6 +135,7 @@ impl GameState {
             }
             GameStateAction::Upgrade(upgrade, cost) => {
                 upgrade::trigger_upgrades(self, upgrade);
+                self.discover_treasure(upgrade);
                 upgrade::record_history_event(self, upgrade, cost);
                 true
             }
@@ -168,6 +171,11 @@ impl GameState {
             }
             GameStateAction::PurchaseShopItem(slot_id) => {
                 purchase_shop_item::try_purchase(self, slot_id);
+                true
+            }
+            GameStateAction::GrantItem(item) => {
+                self.discover_item(&item);
+                self.items.push(item.with_unique_id());
                 true
             }
             GameStateAction::GrantHandItem(item) => {
@@ -248,6 +256,7 @@ impl GameState {
             }
             GameStateAction::StartTreasureSelection => {
                 start_treasure_selection::set_treasure_selection_flow(self);
+                self.discover_treasure_options();
                 true
             }
             GameStateAction::GameOver => {
@@ -257,7 +266,8 @@ impl GameState {
                 true
             }
             GameStateAction::UseCardService(card_service) => {
-                use_card_service::use_card_service(self, card_service);
+                use_card_service::use_card_service(self, card_service.clone());
+                self.discover_card_service(&card_service);
                 true
             }
         }

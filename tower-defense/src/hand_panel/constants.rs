@@ -3,28 +3,13 @@ use namui::*;
 
 pub(super) const CONTAINER_PADDING: Px = px(8.0);
 pub(super) const PANEL_PADDING: Px = px(24.0);
-pub(super) const INNER_PADDING: Px = px(8.0);
-pub(super) const INTERACTION_CONTAINER_PADDING: Px = px(8.0);
 pub(super) const BOTTOM_OUTSIDE_HEIGHT: Px = px(24.0);
-pub(super) const STICKY_WIDTH: Px = px(128.0);
-pub(super) const STICKY_HEIGHT: Px = px(72.0);
-pub(super) const STICKY_VISIBLE_HEIGHT: Px = px(36.0);
-pub(super) const STICKY_HIDDEN_BY_PAPER_HEIGHT: Px = px(12.0);
-
-pub(super) const STICKY_SHIFT: Px = px(64.0);
-
 pub(super) const PAPER_HEIGHT: Px = px(176.0);
-pub(super) const ACTION_WIDTH: Px = px(160.0);
 
-// tower preview dimensions and spacing
 pub(super) const PREVIEW_WIDTH: Px = px(160.0);
 pub(super) const PREVIEW_HEIGHT: Px = px(160.0);
 pub(super) const PREVIEW_RIGHT_OVERLAP: Px = px(12.0);
 
-pub(super) fn interaction_width() -> Px {
-    ACTION_WIDTH + INTERACTION_CONTAINER_PADDING * 2.0
-}
-
 pub(super) fn panel_width() -> Px {
-    HAND_WH.width + interaction_width() + PANEL_PADDING * 2.0 + CONTAINER_PADDING * 2.0
+    HAND_WH.width + (PANEL_PADDING + CONTAINER_PADDING) * 2.0
 }

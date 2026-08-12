@@ -31,6 +31,12 @@ impl WordName {
                     .color(crate::theme::palette::BLUE)
                     .with_icon_bold(IconKind::Refresh, "주사위");
             }),
+            super::Word::Deck => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Deck, "덱");
+            }),
+            super::Word::Encyclopedia => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Encyclopedia, "백과사전");
+            }),
             super::Word::Item => builder.with_style(|builder| {
                 builder.with_icon_bold(IconKind::Item, "아이템");
             }),
@@ -75,6 +81,12 @@ impl WordName {
                 builder
                     .color(crate::theme::palette::BLUE)
                     .with_icon_bold(IconKind::Refresh, "Dice");
+            }),
+            super::Word::Deck => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Deck, "Deck");
+            }),
+            super::Word::Encyclopedia => builder.with_style(|builder| {
+                builder.with_icon_bold(IconKind::Encyclopedia, "Encyclopedia");
             }),
             super::Word::Item => builder.with_style(|builder| {
                 builder.with_icon_bold(IconKind::Item, "Item");

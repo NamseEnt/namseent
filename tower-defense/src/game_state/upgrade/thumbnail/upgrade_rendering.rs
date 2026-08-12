@@ -1,18 +1,15 @@
 use crate::game_state::upgrade::Upgrade;
 use crate::game_state::upgrade::behavior::UpgradeBehavior;
-use namui::*;
 
 impl Upgrade {
-    pub fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        UpgradeBehavior::thumbnail(self, width_height, shadow)
+    pub fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        UpgradeBehavior::thumbnail_source(self)
     }
 
-    pub fn thumbnail_with_opacity(
+    pub fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
-        shadow: bool,
-        opacity: f32,
-    ) -> RenderingTree {
-        UpgradeBehavior::thumbnail_with_opacity(self, width_height, shadow, opacity)
+        game_state: &crate::game_state::GameState,
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        UpgradeBehavior::thumbnail_overlays(self, game_state)
     }
 }

@@ -10,6 +10,7 @@ use crate::game_state::shop_purchase::ShopPurchaseBlockReason;
 use crate::game_state::upgrade::{Upgrade, UpgradeBehavior};
 use crate::game_state::use_game_state;
 use crate::icon::IconKind;
+use crate::l10n::ui::FabTooltipText;
 use crate::l10n::word::Word;
 use crate::l10n::{self, Locale};
 use crate::theme::palette;
@@ -55,11 +56,13 @@ pub enum TooltipContent {
         content: Box<TooltipContent>,
         slot_id: crate::shop::ShopSlotId,
     },
-    Reroll {
-        health_cost: usize,
-    },
     Word(crate::l10n::word::Word),
     Words(Vec<crate::l10n::word::Word>),
+    Fab {
+        text: FabTooltipText,
+        health_cost: Option<usize>,
+    },
+    Undiscovered,
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -71,6 +74,11 @@ struct TooltipRequest {
 }
 
 static TOOLTIP: Atom<Option<TooltipRequest>> = Atom::uninitialized();
+static TOOLTIP_DISMISS_REVISION: Atom<u64> = Atom::uninitialized();
+
+pub(crate) fn dismiss_revision<'a, 'rt>(ctx: &'a RenderCtx<'a, 'rt>) -> Sig<'a, u64> {
+    ctx.init_atom(&TOOLTIP_DISMISS_REVISION, || 0).0
+}
 
 pub fn show_tooltip(
     id: TooltipId,
@@ -91,6 +99,13 @@ pub fn hide_tooltip(id: TooltipId) {
         if current.as_ref().map(|request| request.id) == Some(id) {
             *current = None;
         }
+    });
+}
+
+pub fn dismiss_all_tooltips() {
+    TOOLTIP.set(None);
+    TOOLTIP_DISMISS_REVISION.mutate(|revision| {
+        *revision = revision.wrapping_add(1);
     });
 }
 
@@ -143,21 +158,6 @@ impl TooltipContent {
                 }
                 sections
             }
-            TooltipContent::Reroll { health_cost } => {
-                let health_cost = *health_cost;
-                vec![TooltipSection {
-                    title: None,
-                    body: SectionText {
-                        key: format!("reroll:{health_cost}"),
-                        apply: Box::new(move |builder| {
-                            builder.icon(IconKind::Warning).space().l10n(
-                                l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
-                                &locale,
-                            );
-                        }),
-                    },
-                }]
-            }
             TooltipContent::Word(word) => {
                 let word = *word;
                 word.tooltip_sections(locale)
@@ -166,6 +166,43 @@ impl TooltipContent {
                 .iter()
                 .flat_map(|word| word.tooltip_sections(locale))
                 .collect(),
+            TooltipContent::Fab { text, health_cost } => {
+                let text = *text;
+                let health_cost = *health_cost;
+                let mut sections = vec![TooltipSection {
+                    title: None,
+                    body: SectionText {
+                        key: format!("fab:{}", text.key()),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(text, &locale);
+                        }),
+                    },
+                }];
+                if let Some(health_cost) = health_cost {
+                    sections.push(TooltipSection {
+                        title: None,
+                        body: SectionText {
+                            key: format!("fab:reroll:{health_cost}"),
+                            apply: Box::new(move |builder| {
+                                builder.icon(IconKind::Warning).space().l10n(
+                                    l10n::ui::RerollHealthCostDetailText::Damage(health_cost),
+                                    &locale,
+                                );
+                            }),
+                        },
+                    });
+                }
+                sections
+            }
+            TooltipContent::Undiscovered => vec![TooltipSection {
+                title: None,
+                body: SectionText {
+                    key: "encyclopedia:undiscovered".to_string(),
+                    apply: Box::new(move |builder| {
+                        builder.l10n(l10n::ui::EncyclopediaText::Undiscovered, &locale);
+                    }),
+                },
+            }],
         }
     }
 }
@@ -183,13 +220,9 @@ fn shop_purchase_unavailable_sections(
             ShopPurchaseBlockReason::AlreadyPurchased => {
                 l10n::ui::ShopPurchaseBlockReasonText::AlreadyPurchased
             }
-            ShopPurchaseBlockReason::NotEnoughGold {
-                required,
-                available,
-            } => l10n::ui::ShopPurchaseBlockReasonText::NotEnoughGold {
-                required: *required,
-                available: *available,
-            },
+            ShopPurchaseBlockReason::NotEnoughGold => {
+                l10n::ui::ShopPurchaseBlockReasonText::NotEnoughGold
+            }
             ShopPurchaseBlockReason::PurchasesDisabled => {
                 l10n::ui::ShopPurchaseBlockReasonText::PurchasesDisabled
             }
@@ -238,13 +271,25 @@ impl Component for TooltipLayer {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
         let locale = game_state.text().locale();
+        let _dismiss_revision = dismiss_revision(ctx);
+        let (request, _) = ctx.init_atom(&TOOLTIP, || None::<TooltipRequest>);
+        let modal_open = (
+            game_state.opened_modals.user.is_some(),
+            game_state.opened_modals.system.is_some(),
+        );
+        let modal_open = ctx.track_eq(&modal_open);
+        ctx.effect("dismiss tooltip when modal opens", || {
+            modal_open.record_as_used();
+            if modal_open.0 || modal_open.1 {
+                dismiss_all_tooltips();
+            }
+        });
         let deck_revision = ctx.track_eq(&game_state.deck.revision());
         let purchase_context = ctx.memo(|| {
             deck_revision.record_as_used();
             CardServicePurchaseContext::from_game_state(&game_state)
         });
 
-        let (request, _) = ctx.init_atom(&TOOLTIP, || None::<TooltipRequest>);
         let (last, set_last) = ctx.state(|| None::<TooltipRequest>);
 
         let showing = request.is_some();

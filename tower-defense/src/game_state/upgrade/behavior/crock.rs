@@ -30,25 +30,18 @@ impl UpgradeBehavior for CrockUpgrade {
         "crock"
     }
 
-    fn thumbnail(&self, width_height: Wh<Px>, shadow: bool) -> RenderingTree {
-        crate::thumbnail::render_sticker_image_with_shadow(
-            crate::asset::image::thumbnail::CROCK,
-            width_height,
-            STICKER_THUMBNAIL_STROKE,
-            shadow,
-        )
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::CROCK)
     }
 
-    fn thumbnail_overlay(
+    fn thumbnail_overlays(
         &self,
-        width_height: Wh<Px>,
         _game_state: &GameState,
-    ) -> Option<RenderingTree> {
-        Some(crate::thumbnail::render_right_bottom_overlay(
-            width_height,
-            &format!("{:.0}%", self.current_damage_bonus() * 100.0),
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("{:.0}%", self.current_damage_bonus() * 100.0),
             crate::theme::palette::RED,
-        ))
+        )]
     }
 
     fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {

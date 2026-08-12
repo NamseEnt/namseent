@@ -1336,6 +1336,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "namui-kv-store-memory"
+version = "0.1.0"
+
+[[package]]
 name = "namui-particle"
 version = "0.1.0"
 dependencies = [
@@ -2466,6 +2470,7 @@ dependencies = [
  "enum_dispatch",
  "indicatif",
  "namui",
+ "namui-kv-store-memory",
  "namui-prebuilt",
  "rand",
  "ratatui",

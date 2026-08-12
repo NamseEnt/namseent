@@ -1,7 +1,7 @@
 use crate::{
     game_state::{mutate_game_state, use_game_state},
     sound,
-    thumbnail::STICKER_THUMBNAIL_STROKE,
+    thumbnail::{ThumbnailRenderOptions, render_thumbnail},
     tooltip::WithHoverArea,
 };
 use namui::*;
@@ -75,7 +75,15 @@ impl Component for InventoryItem<'_> {
                     .rotate(hover_rotation.deg())
                     .translate(Xy::new(-pivot.x, -pivot.y))
                     .translate(Xy::new(PADDING, PADDING))
-                    .add(item.thumbnail_with_shadow(inner_wh, STICKER_THUMBNAIL_STROKE, true));
+                    .add(render_thumbnail(
+                        item.thumbnail_source(),
+                        inner_wh,
+                        ThumbnailRenderOptions::sticker(
+                            crate::thumbnail::STICKER_THUMBNAIL_STROKE,
+                            true,
+                            1.0,
+                        ),
+                    ));
             });
 
         let inventory_item = item.item.clone();

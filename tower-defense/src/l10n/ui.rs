@@ -13,6 +13,101 @@ pub enum TopBarText {
     Settings,
     Shop,
     UseTower,
+    Encyclopedia,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub enum FabTooltipText {
+    CreateTower,
+    RerollHand,
+    StartDefense,
+    ShopNext,
+}
+
+impl LocalizedText for FabTooltipText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        builder.static_text(match (locale.language, self) {
+            (Language::Korean, Self::CreateTower) => "선택한 카드로 만들 수 있는 가장 높은 등급의 타워를 획득합니다. 카드를 선택하지 않으면 핸드 전체를 사용해 가장 높은 등급의 타워를 획득합니다.",
+            (Language::Korean, Self::RerollHand) => "선택한 카드를 버리고 새 카드를 뽑습니다. 카드를 선택하지 않으면 핸드의 모든 카드를 버리고 새로 뽑습니다.",
+            (Language::Korean, Self::StartDefense) => "디펜스를 시작합니다. 핸드에 남아 있는 미배치 타워는 사라집니다.",
+            (Language::Korean, Self::ShopNext) => "상점을 닫고 다음 단계로 넘어갑니다.",
+            (Language::English, Self::CreateTower) => "Create the highest-rank tower possible from the selected cards. If no cards are selected, your entire hand is used to create the highest-rank tower possible.",
+            (Language::English, Self::RerollHand) => "Discard the selected cards and draw new ones. If no cards are selected, your entire hand is discarded and redrawn.",
+            (Language::English, Self::StartDefense) => "Begin the defense. Any towers left unplaced in your hand will be lost.",
+            (Language::English, Self::ShopNext) => "Closes the shop and proceeds to the next step.",
+        });
+    }
+}
+
+impl FabTooltipText {
+    pub(crate) const fn key(self) -> &'static str {
+        match self {
+            Self::CreateTower => "create_tower",
+            Self::RerollHand => "reroll_hand",
+            Self::StartDefense => "start_defense",
+            Self::ShopNext => "shop_next",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum EncyclopediaText {
+    Title,
+    Items,
+    CardServices,
+    Treasures,
+    Undiscovered,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct EncyclopediaProgressText {
+    pub discovered: usize,
+    pub total: usize,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct EncyclopediaCompletionText {
+    pub percentage: usize,
+}
+
+impl LocalizedText for EncyclopediaProgressText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean | Language::English => {
+                builder.text(format!("{}/{}", self.discovered, self.total));
+            }
+        }
+    }
+}
+
+impl LocalizedText for EncyclopediaCompletionText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        match locale.language {
+            Language::Korean => {
+                builder.text(format!("전체 수집률 {}%", self.percentage));
+            }
+            Language::English => {
+                builder.text(format!("Collection {}%", self.percentage));
+            }
+        }
+    }
+}
+
+impl LocalizedText for EncyclopediaText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        builder.static_text(match (locale.language, self) {
+            (Language::Korean, Self::Title) => "백과사전",
+            (Language::Korean, Self::Items) => "아이템",
+            (Language::Korean, Self::CardServices) => "카드 서비스",
+            (Language::Korean, Self::Treasures) => "보물",
+            (Language::Korean, Self::Undiscovered) => "아직 발견하지 않은 항목입니다",
+            (Language::English, Self::Title) => "Encyclopedia",
+            (Language::English, Self::Items) => "Items",
+            (Language::English, Self::CardServices) => "Card Services",
+            (Language::English, Self::Treasures) => "Treasures",
+            (Language::English, Self::Undiscovered) => "This entry has not been discovered yet",
+        });
+    }
 }
 
 #[derive(Debug, Clone, Copy, State)]
@@ -23,7 +118,6 @@ pub enum ResultModalText {
     TotalGoldLabel,
     TotalDamageLabel,
     CardRerollCountLabel,
-    ShopRerollCountLabel,
     NoTowerDamage,
 }
 
@@ -61,6 +155,7 @@ impl TopBarText {
             TopBarText::Settings => "설정",
             TopBarText::Shop => "상점",
             TopBarText::UseTower => "타워 사용",
+            TopBarText::Encyclopedia => "백과사전",
         }
     }
 
@@ -75,6 +170,7 @@ impl TopBarText {
             TopBarText::Settings => "Settings",
             TopBarText::Shop => "Shop",
             TopBarText::UseTower => "Use Tower",
+            TopBarText::Encyclopedia => "Encyclopedia",
         }
     }
 }
@@ -101,7 +197,6 @@ impl ResultModalText {
             ResultModalText::TotalGoldLabel => "총 획득 골드",
             ResultModalText::TotalDamageLabel => "총 데미지",
             ResultModalText::CardRerollCountLabel => "카드 리롤 횟수",
-            ResultModalText::ShopRerollCountLabel => "상점 리롤 횟수",
             ResultModalText::NoTowerDamage => "타워 기여 기록이 없습니다",
         }
     }
@@ -114,7 +209,6 @@ impl ResultModalText {
             ResultModalText::TotalGoldLabel => "Total Gold Earned",
             ResultModalText::TotalDamageLabel => "Total Damage",
             ResultModalText::CardRerollCountLabel => "Card Reroll Count",
-            ResultModalText::ShopRerollCountLabel => "Shop Reroll Count",
             ResultModalText::NoTowerDamage => "No tower contribution recorded",
         }
     }
@@ -224,7 +318,7 @@ impl SettingsText {
 pub enum ShopPurchaseBlockReasonText {
     Unavailable,
     AlreadyPurchased,
-    NotEnoughGold { required: usize, available: usize },
+    NotEnoughGold,
     PurchasesDisabled,
     NoEngravedCard,
     NotEnoughUnengravedCards { required: usize, available: usize },
@@ -236,12 +330,7 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
             Language::Korean => match self {
                 Self::Unavailable => builder.static_text("구매 불가"),
                 Self::AlreadyPurchased => builder.static_text("이미 구매한 상품입니다"),
-                Self::NotEnoughGold {
-                    required,
-                    available,
-                } => builder.text(format!(
-                    "골드가 부족합니다. 필요: {required}, 보유: {available}"
-                )),
+                Self::NotEnoughGold => builder.static_text("골드가 부족합니다"),
                 Self::PurchasesDisabled => {
                     builder.static_text("현재 상점 구매가 비활성화되어 있습니다")
                 }
@@ -258,12 +347,7 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
                 Self::AlreadyPurchased => {
                     builder.static_text("This item has already been purchased")
                 }
-                Self::NotEnoughGold {
-                    required,
-                    available,
-                } => builder.text(format!(
-                    "Not enough gold. Required: {required}, available: {available}"
-                )),
+                Self::NotEnoughGold => builder.static_text("Not enough gold"),
                 Self::PurchasesDisabled => {
                     builder.static_text("Shop purchases are currently disabled")
                 }

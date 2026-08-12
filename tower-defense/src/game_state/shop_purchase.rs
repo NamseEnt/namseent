@@ -9,7 +9,7 @@ use namui::*;
 pub(crate) enum ShopPurchaseBlockReason {
     InvalidSlot,
     AlreadyPurchased,
-    NotEnoughGold { required: usize, available: usize },
+    NotEnoughGold,
     PurchasesDisabled,
     CardService(CardServicePurchaseBlockReason),
 }
@@ -84,10 +84,7 @@ impl GameState {
             cost
         };
         if self.gold < effective_cost {
-            reasons.push(ShopPurchaseBlockReason::NotEnoughGold {
-                required: effective_cost,
-                available: self.gold,
-            });
+            reasons.push(ShopPurchaseBlockReason::NotEnoughGold);
         }
         if self
             .stage_modifiers

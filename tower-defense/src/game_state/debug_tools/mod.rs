@@ -130,11 +130,9 @@ impl Component for DebugToolsModal {
                                                         Wh::new(_wh.width - PADDING * 2.0, 40.px()),
                                                         &|| {
                                                             mutate_game_state(|gs| {
-                                                                gs.items.push(
-                                                                    LumpSugarItem::standard()
-                                                                        .into_item()
-                                                                        .with_unique_id(),
-                                                                );
+                                                                gs.action(crate::game_state::GameStateAction::GrantItem(
+                                                                    LumpSugarItem::standard().into_item(),
+                                                                ));
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {
@@ -145,7 +143,7 @@ impl Component for DebugToolsModal {
                                                                         .paragraph()
                                                                         .color(text_color)
                                                                         .text(
-                                                                            "Add Shop Reroll Item",
+                                                                            "Add Card Reroll Item",
                                                                         )
                                                                         .render_center(wh)
                                                                 },
@@ -162,11 +160,9 @@ impl Component for DebugToolsModal {
                                                         Wh::new(_wh.width - PADDING * 2.0, 40.px()),
                                                         &|| {
                                                             mutate_game_state(|gs| {
-                                                                gs.items.push(
-                                                                    LumpSugarItem::standard()
-                                                                        .into_item()
-                                                                        .with_unique_id(),
-                                                                );
+                                                                gs.action(crate::game_state::GameStateAction::GrantItem(
+                                                                    LumpSugarItem::standard().into_item(),
+                                                                ));
                                                             });
                                                         },
                                                         &|wh, text_color, ctx| {

@@ -1,6 +1,6 @@
 // 현대적 l10n API - 간결하고 효율적인 다국어 텍스트 관리
 
-use super::{Language, Locale, LocalizedText, effect, tower, ui};
+use super::{Language, Locale, LocalizedText, effect, rarity, tower, ui};
 use crate::*;
 
 /// 통합 다국어 텍스트 관리자
@@ -44,6 +44,32 @@ impl TextManager {
 /// UI 텍스트 처리
 impl TextManager {
     pub fn ui(&self, text: ui::TopBarText) -> &'static str {
+        match self.locale.language {
+            Language::Korean => text.to_korean(),
+            Language::English => text.to_english(),
+        }
+    }
+
+    pub fn encyclopedia(&self, text: ui::EncyclopediaText) -> &'static str {
+        match self.locale.language {
+            Language::Korean => match text {
+                ui::EncyclopediaText::Title => "백과사전",
+                ui::EncyclopediaText::Items => "아이템",
+                ui::EncyclopediaText::CardServices => "카드 서비스",
+                ui::EncyclopediaText::Treasures => "보물",
+                ui::EncyclopediaText::Undiscovered => "아직 발견하지 않은 항목입니다",
+            },
+            Language::English => match text {
+                ui::EncyclopediaText::Title => "Encyclopedia",
+                ui::EncyclopediaText::Items => "Items",
+                ui::EncyclopediaText::CardServices => "Card Services",
+                ui::EncyclopediaText::Treasures => "Treasures",
+                ui::EncyclopediaText::Undiscovered => "This entry has not been discovered yet",
+            },
+        }
+    }
+
+    pub fn rarity(&self, text: rarity::RarityText) -> &'static str {
         match self.locale.language {
             Language::Korean => text.to_korean(),
             Language::English => text.to_english(),

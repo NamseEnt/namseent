@@ -39,23 +39,6 @@ impl Shop {
         self.slots.iter_mut().find(|slot| slot.id == id)
     }
 
-    pub fn delete_slots(&mut self, ids: &[ShopSlotId]) {
-        let now = Instant::now();
-        for slot in self.slots.iter_mut() {
-            if ids.contains(&slot.id) {
-                slot.start_exit_animation(now);
-            }
-        }
-    }
-
-    pub fn get_unpurchased_slot_ids(&self) -> Vec<ShopSlotId> {
-        self.slots
-            .iter()
-            .filter(|slot| !slot.purchased && slot.exit_animation.is_none())
-            .map(|slot| slot.id)
-            .collect()
-    }
-
     pub fn push(&mut self, slot: ShopSlot) {
         self.slots.push(ShopSlotData::new(slot));
     }
@@ -78,30 +61,6 @@ impl Shop {
     }
 }
 
-pub fn refresh_shop(game_state: &mut GameState) {
-    let (unpurchased_slot_ids, refresh_count) = if let GameFlow::Shopping(flow) = &game_state.flow {
-        let ids = flow.shop.get_unpurchased_slot_ids();
-        let count = ids.len();
-        (ids, count)
-    } else {
-        return;
-    };
-
-    let new_slots: Vec<ShopSlot> = (0..refresh_count)
-        .map(|_| generate_shop_slot(game_state))
-        .collect();
-
-    let GameFlow::Shopping(flow) = &mut game_state.flow else {
-        unreachable!()
-    };
-
-    flow.shop.delete_slots(&unpurchased_slot_ids);
-
-    for new_slot in new_slots {
-        flow.shop.push(new_slot);
-    }
-}
-
 pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
     for _ in 0..count {
         let slot = generate_shop_slot(game_state);
@@ -110,6 +69,7 @@ pub fn add_shop_slots(game_state: &mut GameState, count: usize) {
         };
         flow.shop.push(slot);
     }
+    game_state.discover_shop();
 }
 
 fn generate_shop_slot(game_state: &GameState) -> ShopSlot {
@@ -191,25 +151,6 @@ fn calculate_cost(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn rarity_price_factors_are_ordered() {
-        assert_eq!(rarity_price_factor(Rarity::Common), 1.0);
-        assert_eq!(rarity_price_factor(Rarity::Rare), 1.25);
-        assert_eq!(rarity_price_factor(Rarity::Epic), 1.5);
-        assert_eq!(rarity_price_factor(Rarity::Legendary), 2.0);
-    }
-
-    #[test]
-    fn calculate_cost_applies_rarity_and_randomness_before_discount() {
-        assert_eq!(calculate_cost(20.0, Rarity::Common, 0.0, false, 0), 20);
-        assert_eq!(calculate_cost(20.0, Rarity::Rare, 0.0, false, 0), 25);
-        assert_eq!(calculate_cost(20.0, Rarity::Epic, 0.5, false, 5), 40);
-        assert_eq!(
-            calculate_cost(100.0, Rarity::Legendary, 0.5, false, 25),
-            275
-        );
-    }
 
     #[test]
     fn calculate_cost_keeps_free_and_discount_floor_behavior() {

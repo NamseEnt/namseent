@@ -16,11 +16,11 @@ pub use treasure::{SynergyTreasureStrategy, TreasureStrategy};
 use crate::game_state::GameState;
 use rand::RngCore;
 
-/// Strategy for shop interaction (buy items/upgrades, reroll shop).
+/// Strategy for shop interaction (buying items and upgrades).
 pub trait ShopStrategy: Send + Sync {
     fn name(&self) -> &str;
     /// Called once per stage when shop is available.
-    /// May purchase items and reroll the shop.
+    /// Purchases items and upgrades from the shop.
     fn execute_shop(&self, game_state: &mut GameState, rng: &mut dyn RngCore);
 }
 

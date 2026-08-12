@@ -194,7 +194,6 @@ impl SimRecorder {
                 let event_type = match event {
                     SimEvent::GameStart => "game_start".to_string(),
                     SimEvent::StageStart { .. } => "stage_start".to_string(),
-                    SimEvent::ShopReroll { .. } => "shop_reroll".to_string(),
                     SimEvent::ShopPurchase { .. } => "shop_purchase".to_string(),
                     SimEvent::CardReroll { .. } => "card_reroll".to_string(),
                     SimEvent::TowerSelected { .. } => "tower_selected".to_string(),
