@@ -19,7 +19,7 @@ APP_ID=2793590
 STEAM_USER="${STEAM_USER:-skatpgusskat}"
 BRANCH="${STEAM_BRANCH:-default}"
 
-NAMSH_URL="${NAMSH_URL:-https://g6vldebf.fn0.dev}"
+NAMSH_URL="${NAMSH_URL:-https://namsh.namseent.com}"
 NAMSH_TOKEN_FILE="${NAMSH_TOKEN_FILE:-$HOME/.config/namsh/token}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
