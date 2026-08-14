@@ -1,3 +1,4 @@
 /target
 /dist
 /.forte
+/rs/src/route_generated.rs

@@ -41,7 +41,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         }
     };
 
-    let bucket = object_storage::bucket();
+    let bucket = object_storage::private::bucket();
     let presigned_get_url = match bucket
         .presigned_get_url(&dump.r2_key, Duration::from_secs(PRESIGNED_GET_EXPIRES_SECS))
         .await

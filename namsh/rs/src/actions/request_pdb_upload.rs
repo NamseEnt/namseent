@@ -56,7 +56,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
     let build = match existing {
         Some(b) => b,
         None => {
-            let key_bytes = rand::get_random_bytes(32).await;
+            let key_bytes = rand::get_random_bytes(32);
             let hmac_key_hex = hex::encode(&key_bytes);
             let fresh = BuildDoc {
                 build_id: build_id.clone(),
@@ -77,7 +77,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         }
     };
 
-    let bucket = object_storage::bucket();
+    let bucket = object_storage::private::bucket();
     let pdb_presigned_put_url = match bucket
         .presigned_put_url(&r2_key, None, Duration::from_secs(PRESIGNED_PUT_EXPIRES_SECS))
         .await

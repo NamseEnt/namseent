@@ -147,7 +147,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
     };
 
     let upload = if dump_ids.len() < MAX_DUMPS_PER_GROUP {
-        let bytes = rand::get_random_bytes(16).await;
+        let bytes = rand::get_random_bytes(16);
         let Ok(uuid_bytes): Result<[u8; 16], _> = bytes.as_slice().try_into() else {
             return Output::Error {
                 message: "rng returned wrong length".to_string(),
@@ -156,7 +156,7 @@ pub async fn handler(req: ForteRequest<'_, Input>) -> Output {
         let dump_id = Uuid::from_bytes(uuid_bytes).to_string();
         let r2_key = format!("dump/{}/{}.dmp", req.body.stack_hash, dump_id);
 
-        let bucket = object_storage::bucket();
+        let bucket = object_storage::private::bucket();
         let presigned_put_url = match bucket
             .presigned_put_url(&r2_key, None, Duration::from_secs(PRESIGNED_PUT_EXPIRES_SECS))
             .await
