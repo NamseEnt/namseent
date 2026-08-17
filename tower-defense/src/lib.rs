@@ -1,6 +1,7 @@
 mod animation;
 mod camera_controller;
 pub mod config;
+pub mod deterministic_rng;
 mod flow_ui;
 mod game_state;
 mod image_filter_utils; // now private; selective re-exports below

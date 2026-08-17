@@ -18,6 +18,7 @@ pub(super) struct UpgradeRarityWeights {
 }
 
 impl UpgradeRarityWeights {
+    #[allow(dead_code)]
     pub(super) fn shop() -> Self {
         Self {
             common: 50.0,

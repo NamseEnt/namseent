@@ -17,6 +17,7 @@ anyhow = "1.0.98"
 namui = { path = "../namui/namui" }
 namui-prebuilt = { path = "../namui/namui-prebuilt" }
 rand = { version = "0.8.5", features = ["alloc"] }
+rand_chacha = "=0.3.1"
 
 rusqlite = { version = "0.31", features = ["bundled"], optional = true }
 clap = { version = "4", features = ["derive"], optional = true }

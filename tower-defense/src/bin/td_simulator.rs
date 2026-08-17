@@ -1,5 +1,6 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
+use rand::{SeedableRng, rngs::StdRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -132,9 +133,9 @@ fn main() -> anyhow::Result<()> {
     };
 
     pool.install(|| {
-        (0..cli.samples).into_par_iter().for_each(|_i| {
-            let mut rng = rand::thread_rng();
-            let seed: u64 = rand::Rng::r#gen(&mut rng);
+        (0..cli.samples).into_par_iter().for_each(|sample| {
+            let seed = sample as u64;
+            let mut rng = StdRng::seed_from_u64(seed);
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
                 Box::new(SynergyShopStrategy);
@@ -161,7 +162,7 @@ fn main() -> anyhow::Result<()> {
                 return;
             }
 
-            let mut game = HeadlessGame::new_with_config(config.clone());
+            let mut game = HeadlessGame::new(config.clone(), seed);
 
             let strategies = tower_defense::simulator::SimulationStrategies {
                 shop_strategy: shop_strategy.as_ref(),

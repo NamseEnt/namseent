@@ -6,6 +6,7 @@ use crate::game_state::card_service::generation::candidate_table::{
 };
 use rand::seq::SliceRandom;
 
+#[allow(dead_code)]
 pub fn generate_shop_card_service() -> CardService {
     select_from_candidates(generate_candidate_table(RarityWeights::shop()))
 }

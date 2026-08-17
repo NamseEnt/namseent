@@ -430,6 +430,7 @@ pub mod tests_support {
             base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
             config: config.clone(),
 
+            rng: crate::game_state::rng::GameRngState::new(0),
             headless: false,
             discovery: Default::default(),
         }

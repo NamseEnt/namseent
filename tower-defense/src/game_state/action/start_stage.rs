@@ -56,7 +56,7 @@ pub(super) fn set_shopping_flow(game_state: &mut GameState) {
     let mut shop = crate::shop::Shop::new(game_state);
     let free_card_services = game_state.stage_modifiers.drain_free_card_services();
     for _ in 0..free_card_services {
-        shop.push_free_card_service();
+        shop.push_free_card_service(game_state);
     }
     game_state.flow = GameFlow::Shopping(ShoppingFlow { shop });
 }

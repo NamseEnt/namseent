@@ -50,14 +50,8 @@ pub struct HeadlessGame {
 }
 
 impl HeadlessGame {
-    /// Create a new headless game with default initial state.
-    pub fn new() -> Self {
-        Self::new_with_config(Arc::new(GameConfig::default_config()))
-    }
-
-    /// Create a new headless game using a supplied game configuration.
-    pub fn new_with_config(config: Arc<GameConfig>) -> Self {
-        let game_state = create_headless_game_state(config.clone());
+    pub fn new(config: Arc<GameConfig>, seed: u64) -> Self {
+        let game_state = create_headless_game_state(config.clone(), seed);
         Self {
             game_state,
             events: Vec::new(),
@@ -367,7 +361,7 @@ pub(crate) fn canonicalize_kind_name(name: String) -> String {
 
 impl Default for HeadlessGame {
     fn default() -> Self {
-        Self::new()
+        Self::new(Arc::new(GameConfig::default_config()), 0)
     }
 }
 
@@ -387,7 +381,7 @@ pub struct SimResult {
 }
 
 /// Create a GameState suitable for headless simulation.
-fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
+fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
     use crate::game_state::BaseAnimationState;
     use crate::game_state::Camera;
     use crate::game_state::StatusEffectParticleGenerator;
@@ -441,6 +435,7 @@ fn create_headless_game_state(config: Arc<GameConfig>) -> GameState {
         effect_events: EffectEventQueue::default(),
         base_animation_state: BaseAnimationState::new(now),
         config: config.clone(),
+        rng: crate::game_state::rng::GameRngState::new(seed),
         headless: true,
         discovery: Default::default(),
     }
