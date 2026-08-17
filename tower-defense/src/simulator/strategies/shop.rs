@@ -22,9 +22,11 @@ impl ShopStrategy for SynergyShopStrategy {
             }
 
             if let Some(slot_id) = self.choose_best_slot(game_state, _rng) {
-                game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+                if !game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                     slot_id,
-                ));
+                )) {
+                    break;
+                }
                 continue;
             }
 
@@ -35,50 +37,43 @@ impl ShopStrategy for SynergyShopStrategy {
 
 impl SynergyShopStrategy {
     fn buy_priority_item(&self, game_state: &mut GameState) -> bool {
-        let GameFlow::Shopping(flow) = &game_state.flow else {
+        if !matches!(game_state.flow, GameFlow::Shopping(_)) {
             return false;
-        };
+        }
 
         if count_item_kind(game_state, ItemDiscriminants::RiceBall) < 1
             && game_state.hp < game_state.config.player.max_hp * 0.75
-            && let Some(slot_id) =
-                find_item_slot(flow, ItemDiscriminants::RiceBall, game_state.gold)
+            && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::RiceBall)
         {
-            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
             ));
-            return true;
         }
 
         if count_item_kind(game_state, ItemDiscriminants::Milk) < 1
             && game_state.shield <= 0.0
             && game_state.hp < game_state.config.player.max_hp * 0.85
-            && let Some(slot_id) = find_item_slot(flow, ItemDiscriminants::Milk, game_state.gold)
+            && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::Milk)
         {
-            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
             ));
-            return true;
         }
 
         if count_item_kind(game_state, ItemDiscriminants::RubberCone) < 1
-            && let Some(slot_id) =
-                find_item_slot(flow, ItemDiscriminants::RubberCone, game_state.gold)
+            && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::RubberCone)
         {
-            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
             ));
-            return true;
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
-            && let Some(slot_id) =
-                find_item_slot(flow, ItemDiscriminants::LumpSugar, game_state.gold)
+            && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::LumpSugar)
         {
-            game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
+            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
                 slot_id,
             ));
-            return true;
         }
 
         false
@@ -97,18 +92,12 @@ impl SynergyShopStrategy {
         let mut weighted_slots: Vec<(crate::shop::ShopSlotId, u32)> = Vec::new();
 
         for slot in &flow.shop.slots {
-            if slot.purchased || slot.exit_animation.is_some() {
+            if slot.purchased
+                || slot.exit_animation.is_some()
+                || !game_state.shop_purchase_status(slot.id).is_available()
+            {
                 continue;
             }
-            let cost = match &slot.slot {
-                crate::shop::ShopSlot::Item { cost, .. } => *cost,
-                crate::shop::ShopSlot::Upgrade { cost, .. } => *cost,
-                crate::shop::ShopSlot::CardService { cost, .. } => *cost,
-            };
-            if cost > game_state.gold {
-                continue;
-            }
-
             let weight = match &slot.slot {
                 crate::shop::ShopSlot::Item { .. } => Self::rarity_weight_common(),
                 crate::shop::ShopSlot::Upgrade { upgrade, .. } => {
@@ -154,19 +143,24 @@ impl SynergyShopStrategy {
 }
 
 fn find_item_slot(
-    flow: &crate::game_state::flow::ShoppingFlow,
+    game_state: &GameState,
     kind: ItemDiscriminants,
-    max_cost: usize,
 ) -> Option<crate::shop::ShopSlotId> {
+    let GameFlow::Shopping(flow) = &game_state.flow else {
+        return None;
+    };
+
     let mut best: Option<(crate::shop::ShopSlotId, usize)> = None;
     for slot in &flow.shop.slots {
-        if slot.purchased || slot.exit_animation.is_some() {
+        if slot.purchased
+            || slot.exit_animation.is_some()
+            || !game_state.shop_purchase_status(slot.id).is_available()
+        {
             continue;
         }
 
         if let crate::shop::ShopSlot::Item { item, cost } = &slot.slot
             && item.discriminant() == kind
-            && *cost <= max_cost
             && (best.is_none() || *cost < best.unwrap().1)
         {
             best = Some((slot.id, *cost));

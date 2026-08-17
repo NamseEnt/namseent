@@ -170,8 +170,7 @@ impl GameState {
                 true
             }
             GameStateAction::PurchaseShopItem(slot_id) => {
-                purchase_shop_item::try_purchase(self, slot_id);
-                true
+                purchase_shop_item::try_purchase(self, slot_id)
             }
             GameStateAction::GrantItem(item) => {
                 self.discover_item(&item);
