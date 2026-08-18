@@ -221,9 +221,6 @@ impl Component for Game {
             }
         });
 
-        ctx.add(shop_panel::ShopPanel);
-        ctx.add(hand_panel::HandPanel);
-
         ctx.add(flow_ui::FlowUi);
 
         ctx.compose(|ctx| {
@@ -249,6 +246,9 @@ impl Component for Game {
                 table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
             ])(screen_wh, ctx);
         });
+
+        ctx.add(shop_panel::ShopPanel);
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(sound::SoundRenderer);
 
