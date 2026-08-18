@@ -22,6 +22,8 @@ pub enum FabTooltipText {
     RerollHand,
     StartDefense,
     ShopNext,
+    DrawPile,
+    DiscardPile,
 }
 
 impl LocalizedText for FabTooltipText {
@@ -31,10 +33,14 @@ impl LocalizedText for FabTooltipText {
             (Language::Korean, Self::RerollHand) => "선택한 카드를 버리고 새 카드를 뽑습니다. 카드를 선택하지 않으면 핸드의 모든 카드를 버리고 새로 뽑습니다.",
             (Language::Korean, Self::StartDefense) => "디펜스를 시작합니다. 핸드에 남아 있는 미배치 타워는 사라집니다.",
             (Language::Korean, Self::ShopNext) => "상점을 닫고 다음 단계로 넘어갑니다.",
+            (Language::Korean, Self::DrawPile) => "뽑을 카드 더미의 카드를 확인합니다.",
+            (Language::Korean, Self::DiscardPile) => "버린 카드 더미의 카드를 확인합니다.",
             (Language::English, Self::CreateTower) => "Create the highest-rank tower possible from the selected cards. If no cards are selected, your entire hand is used to create the highest-rank tower possible.",
             (Language::English, Self::RerollHand) => "Discard the selected cards and draw new ones. If no cards are selected, your entire hand is discarded and redrawn.",
             (Language::English, Self::StartDefense) => "Begin the defense. Any towers left unplaced in your hand will be lost.",
             (Language::English, Self::ShopNext) => "Closes the shop and proceeds to the next step.",
+            (Language::English, Self::DrawPile) => "View the cards currently in the draw pile.",
+            (Language::English, Self::DiscardPile) => "View the cards currently in the discard pile.",
         });
     }
 }
@@ -46,6 +52,8 @@ impl FabTooltipText {
             Self::RerollHand => "reroll_hand",
             Self::StartDefense => "start_defense",
             Self::ShopNext => "shop_next",
+            Self::DrawPile => "draw_pile",
+            Self::DiscardPile => "discard_pile",
         }
     }
 }

@@ -183,6 +183,9 @@ impl Component for DeckModal {
                 DeckKind::Draw => deck.draw_pile().to_vec(),
                 DeckKind::Discard => deck.discard_pile().to_vec(),
             };
+            if matches!(deck_kind, DeckKind::Draw) {
+                cards.sort();
+            }
             if let Some(selection) = &selection {
                 let filter = &selection.current_step().filter;
                 if *filter != CardSelectionFilter::Any {

@@ -1,4 +1,5 @@
 mod constants;
+mod deck_pile_buttons;
 mod paper_content;
 mod placing_tower_next_fab;
 mod reroll_fab;
@@ -18,6 +19,7 @@ use constants::{
     BOTTOM_OUTSIDE_HEIGHT, CONTAINER_PADDING, PAPER_HEIGHT, PREVIEW_HEIGHT, PREVIEW_RIGHT_OVERLAP,
     PREVIEW_WIDTH, panel_width,
 };
+use deck_pile_buttons::DeckPileButtons;
 use paper_content::PaperContent;
 use placing_tower_next_fab::PlacingTowerNextFab;
 use reroll_fab::HandRerollFab;
@@ -102,6 +104,15 @@ impl Component for HandPanel {
                 visible: selecting_tower,
                 disabled: reroll_disabled,
                 health_cost: reroll_health_cost,
+            },
+        );
+        ctx.add_with_key(
+            "deck-pile-buttons",
+            DeckPileButtons {
+                screen_wh,
+                visible: selecting_tower,
+                draw_count: game_state.deck.draw_pile().len(),
+                discard_count: game_state.deck.discard_pile().len(),
             },
         );
 
