@@ -8,11 +8,16 @@ use namui::*;
 pub(super) struct PlacingTowerNextFab {
     pub screen_wh: Wh<Px>,
     pub visible: bool,
+    pub has_unplaced_towers: bool,
 }
 
 impl Component for PlacingTowerNextFab {
     fn render(self, ctx: &RenderCtx) {
-        let Self { screen_wh, visible } = self;
+        let Self {
+            screen_wh,
+            visible,
+            has_unplaced_towers,
+        } = self;
         let next = || {
             if !visible {
                 return;
@@ -28,7 +33,7 @@ impl Component for PlacingTowerNextFab {
             visible,
             icon: IconKind::Play,
             disabled: false,
-            long_press_time: Some(Duration::from_millis(1200)),
+            long_press_time: has_unplaced_towers.then_some(Duration::from_millis(1200)),
             on_click: &next,
             tooltip_content: Some(TooltipContent::Fab {
                 text: FabTooltipText::StartDefense,

@@ -91,6 +91,7 @@ impl Component for HandPanel {
             "placing-tower-next-fab",
             PlacingTowerNextFab {
                 screen_wh,
+                has_unplaced_towers: !game_state.hand.is_empty(),
                 visible: placing_tower,
             },
         );
