@@ -1,11 +1,9 @@
-mod cards;
-
 use crate::card::{Card, CardId, Rank};
 use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::{UserModal, mutate_game_state, set_modal, use_game_state};
 use crate::icon::IconKind;
 use crate::{
-    game_state::modal::deck::cards::Cards,
+    game_state::modal::card_grid::Cards,
     theme::{
         fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton},
         typography::{FontSize, memoized_text},

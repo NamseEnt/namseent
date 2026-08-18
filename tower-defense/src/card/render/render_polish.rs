@@ -89,7 +89,7 @@ impl PolishCounts {
     }
 }
 
-pub(super) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32, opacity: f32) {
+pub(crate) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32, opacity: f32) {
     if bonus_pct <= 0.0 {
         return;
     }

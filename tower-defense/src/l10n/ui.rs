@@ -135,7 +135,14 @@ pub enum TowerInfoPopupText {
     AttackSpeedLabel,
     RangeLabel,
     TotalDamageLabel,
+    RerollCountLabel,
     RemoveButton,
+    DetailsButton,
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub enum TowerDetailsModalText {
+    Title,
 }
 
 impl LocalizedText for TopBarText {
@@ -229,7 +236,9 @@ impl TowerInfoPopupText {
             TowerInfoPopupText::AttackSpeedLabel => "공격속도",
             TowerInfoPopupText::RangeLabel => "사거리",
             TowerInfoPopupText::TotalDamageLabel => "누적 데미지",
+            TowerInfoPopupText::RerollCountLabel => "리롤 수",
             TowerInfoPopupText::RemoveButton => "철거",
+            TowerInfoPopupText::DetailsButton => "자세히",
         }
     }
 
@@ -239,7 +248,23 @@ impl TowerInfoPopupText {
             TowerInfoPopupText::AttackSpeedLabel => "Attack Speed",
             TowerInfoPopupText::RangeLabel => "Range",
             TowerInfoPopupText::TotalDamageLabel => "Total Damage",
+            TowerInfoPopupText::RerollCountLabel => "Rerolls",
             TowerInfoPopupText::RemoveButton => "Remove",
+            TowerInfoPopupText::DetailsButton => "Details",
+        }
+    }
+}
+
+impl TowerDetailsModalText {
+    pub(super) fn to_korean(self) -> &'static str {
+        match self {
+            TowerDetailsModalText::Title => "사용된 카드",
+        }
+    }
+
+    pub(super) fn to_english(self) -> &'static str {
+        match self {
+            TowerDetailsModalText::Title => "Cards Used",
         }
     }
 }

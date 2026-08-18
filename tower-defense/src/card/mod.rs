@@ -5,6 +5,7 @@ pub mod render;
 use crate::*;
 pub use deck::*;
 pub use engraving::{Engraving, EngravingSplash, TowerEngravingModifier};
+pub(crate) use render::render_polish_overlay;
 pub use render::{RenderCard, RenderTowerCard, polish_halo_config};
 use std::fmt::Display;
 
