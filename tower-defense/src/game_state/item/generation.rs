@@ -1,35 +1,15 @@
 mod candidate_table;
 
-use self::candidate_table::{
-    ItemRarityWeights, generate_item_candidate_table, generate_item_rarity_candidate_table,
-};
+use self::candidate_table::generate_item_rarity_candidate_table;
 use super::Item;
 use crate::Rarity;
-use rand::{Rng, seq::SliceRandom, thread_rng};
-
-/// 외부에서 RNG를 주입할 수 있는 아이템 생성 함수 (테스트/결정성 보장 목적)
-pub fn generate_item_with_rng<R: Rng>(rng: &mut R) -> Item {
-    let candidates = generate_item_candidate_table(ItemRarityWeights::shop());
-    let candidate = candidates
-        .choose_weighted(rng, |(_, weight)| *weight)
-        .expect("item candidate table should not be empty")
-        .0;
-
-    candidate.generate(rng)
-}
+use rand::{Rng, seq::SliceRandom};
 
 pub fn generate_item_of_rarity_with_rng<R: Rng>(rarity: Rarity, rng: &mut R) -> Option<Item> {
     let candidates = generate_item_rarity_candidate_table(rarity);
     let candidate = candidates.choose(rng)?;
 
     Some(candidate.generate(rng))
-}
-
-/// 기존 외부 API: thread_rng() 사용 (기존 호출 코드 호환성 유지)
-#[allow(dead_code)]
-pub fn generate_item() -> Item {
-    let mut rng = thread_rng();
-    generate_item_with_rng(&mut rng)
 }
 
 #[cfg(test)]

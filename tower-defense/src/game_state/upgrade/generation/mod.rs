@@ -18,14 +18,6 @@ fn select_upgrade_from_candidates(
         .upgrade
 }
 
-#[allow(dead_code)]
-pub fn generate_shop_upgrade(game_state: &GameState) -> Upgrade {
-    select_upgrade_from_candidates(generate_upgrade_candidate_table(
-        game_state,
-        UpgradeRarityWeights::shop(),
-    ))
-}
-
 pub fn generate_boss_reward_upgrade(game_state: &GameState) -> Upgrade {
     select_upgrade_from_candidates(generate_upgrade_candidate_table(
         game_state,

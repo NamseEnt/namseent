@@ -348,11 +348,3 @@ pub fn generate_shop_screen_with_stats(
 
     GeneratedShopScreen { slots, stats }
 }
-
-#[allow(dead_code)]
-pub(crate) fn generate_shop_screen(
-    game_state: &mut GameState,
-    slot_count: usize,
-) -> Vec<ShopSlotData> {
-    generate_shop_screen_with_stats(game_state, slot_count, &[], None).slots
-}

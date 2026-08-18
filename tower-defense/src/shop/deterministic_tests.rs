@@ -150,7 +150,9 @@ fn content_bag_has_no_duplicate_in_a_cycle_and_sorts_keys() {
 fn screen_generation_entrypoint_returns_requested_slots() {
     let mut game_state = crate::game_state::create_game_state_with_seed(100);
     assert_eq!(
-        super::deterministic::generate_shop_screen(&mut game_state, 3).len(),
+        deterministic::generate_shop_screen_with_stats(&mut game_state, 3, &[], None)
+            .slots
+            .len(),
         3
     );
 }
