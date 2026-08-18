@@ -10,6 +10,8 @@ use crate::{
         fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton},
         typography::{FontSize, memoized_text},
     },
+    thumbnail::{ThumbnailRenderOptions, render_thumbnail},
+    tooltip::{TooltipContent, TooltipPlacement, WithHoverArea},
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect};
@@ -21,6 +23,9 @@ const PADDING: Px = px(36.0);
 const SCROLL_BAR_WIDTH: Px = px(8.0);
 const CARD_VIEW_WIDTH: Px = px(540.0);
 const VERTICAL_MARGIN: Px = px(128.0);
+const TITLE_HEIGHT: Px = px(32.0);
+const CARD_SERVICE_THUMBNAIL_GAP: Px = px(8.0);
+const CARD_SERVICE_THUMBNAIL_SIZE: Px = px(72.0);
 
 #[derive(Debug, Clone, State)]
 pub enum DeckKind {
@@ -130,6 +135,30 @@ pub struct DeckModal {
     pub selection: Option<CardSelectionState>,
 }
 
+struct CardServiceThumbnail<'a> {
+    card_service: &'a crate::game_state::card_service::CardService,
+}
+
+impl Component for CardServiceThumbnail<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { card_service } = self;
+        let thumbnail_wh = Wh::single(CARD_SERVICE_THUMBNAIL_SIZE);
+
+        ctx.add(render_thumbnail(
+            card_service.thumbnail_source(),
+            thumbnail_wh,
+            ThumbnailRenderOptions::sticker(crate::thumbnail::STICKER_THUMBNAIL_STROKE, true, 1.0),
+        ));
+        ctx.add(WithHoverArea {
+            component_key: "card service tooltip",
+            component: simple_rect(thumbnail_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+            placement: TooltipPlacement::Above,
+            on_enter: move || Some(TooltipContent::CardService((*card_service).clone())),
+            on_exit: || {},
+        });
+    }
+}
+
 impl Component for DeckModal {
     fn render(self, ctx: &RenderCtx) {
         let Self {
@@ -204,6 +233,11 @@ impl Component for DeckModal {
                         .render_left_top()
                 },
             ));
+
+            ctx.translate((PADDING, PADDING + TITLE_HEIGHT + CARD_SERVICE_THUMBNAIL_GAP))
+                .add(CardServiceThumbnail {
+                    card_service: &selection.card_service,
+                });
 
             let icon = if selection.current_step + 1 >= selection.steps.len() {
                 IconKind::Accept
