@@ -135,18 +135,18 @@ impl TooltipContent {
     ) -> Vec<TooltipSection<'_>> {
         match self {
             TooltipContent::Item(item) => {
-                let mut sections = Word::Item.tooltip_sections(locale);
-                sections.extend(item.tooltip_sections(locale));
+                let mut sections = item.tooltip_sections(locale);
+                sections.extend(Word::Item.tooltip_sections(locale));
                 sections
             }
             TooltipContent::Upgrade(upgrade) => {
-                let mut sections = Word::Treasure.tooltip_sections(locale);
-                sections.extend(upgrade.tooltip_sections(locale));
+                let mut sections = upgrade.tooltip_sections(locale);
+                sections.extend(Word::Treasure.tooltip_sections(locale));
                 sections
             }
             TooltipContent::CardService(card_service) => {
-                let mut sections = Word::CardService.tooltip_sections(locale);
-                sections.extend(card_service.tooltip_sections(locale));
+                let mut sections = card_service.tooltip_sections(locale);
+                sections.extend(Word::CardService.tooltip_sections(locale));
                 sections
             }
             TooltipContent::Shop { content, slot_id } => {
