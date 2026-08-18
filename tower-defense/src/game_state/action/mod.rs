@@ -5,7 +5,6 @@ mod gain_rerolls;
 mod gain_shield;
 mod game_over;
 mod game_start;
-mod grant_hand_item;
 mod grant_tower_card;
 mod heal;
 pub mod modify_deck;
@@ -28,7 +27,7 @@ mod use_item;
 use crate::game_state::{
     GameState,
     card::{Rank, Suit},
-    hand::{HandItem, HandSlotId},
+    hand::HandSlotId,
     item,
     tower::{Tower, TowerKind},
     upgrade::Upgrade,
@@ -54,7 +53,6 @@ pub(crate) enum GameStateAction {
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantItem(item::Item),
-    GrantHandItem(HandItem),
     ModifyDeck(modify_deck::DeckEdit),
     GrantTowerCard {
         tower_kind: TowerKind,
@@ -175,10 +173,6 @@ impl GameState {
             GameStateAction::GrantItem(item) => {
                 self.discover_item(&item);
                 self.items.push(item.with_unique_id());
-                true
-            }
-            GameStateAction::GrantHandItem(item) => {
-                grant_hand_item::apply(self, item);
                 true
             }
             GameStateAction::ModifyDeck(edit) => {

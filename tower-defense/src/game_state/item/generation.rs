@@ -35,37 +35,9 @@ pub fn generate_item() -> Item {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game_state::{
-        card::{Card, RANKS, Rank, SUITS, Suit},
-        item::{GrantCardItem, ItemDiscriminants},
-    };
+    use crate::game_state::item::ItemDiscriminants;
     use rand::{SeedableRng, rngs::StdRng};
     use strum::IntoEnumIterator;
-
-    #[test]
-    fn grant_card_item_constructor_preserves_card() {
-        let card = Card::new(Rank::Queen, Suit::Hearts);
-
-        let item = GrantCardItem::new(card).into_item();
-
-        assert_eq!(
-            item,
-            crate::game_state::item::Item::GrantCard(GrantCardItem { card })
-        );
-    }
-
-    #[test]
-    fn generate_item_with_rng_stays_in_valid_card_range() {
-        let mut rng = StdRng::seed_from_u64(7);
-
-        for _ in 0..128 {
-            let item = generate_item_with_rng(&mut rng);
-            if let crate::game_state::item::Item::GrantCard(GrantCardItem { card }) = item {
-                assert!(SUITS.contains(&card.suit));
-                assert!(RANKS.contains(&card.rank));
-            }
-        }
-    }
 
     #[test]
     fn every_definition_generates_its_own_item_variant() {

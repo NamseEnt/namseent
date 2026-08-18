@@ -5,7 +5,6 @@ use crate::card::{Card, Deck};
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
 use crate::game_state::GameState;
-use crate::game_state::item::Item;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
 use rand::RngCore;
@@ -78,37 +77,6 @@ impl CardRerollStrategy for SmartRerollStrategy {
     }
 }
 
-/// Uses card-granting items when they complete or improve a strong combo, then falls back to smart rerolling.
-///
-/// **행동 수칙 (Behavioral Principles):**
-/// - 주사위를 굴리기 전, 손패에 카드를 제공하는 아이템(`Item::GrantCard`)이 있다면 아이템 사용 가능성을 평가합니다.
-/// - 현재 손패가 Straight 미만이면서, 해당 아이템을 썼을 때 **Straight (스트레이트) 이상의 족보**가 완성되거나 향상되면 주사위 소모 없이 즉시 사용합니다.
-/// - 아이템을 사용해 조건을 충족했다면, 다시 타워를 배치하는 흐름으로 전환(종료)합니다.
-/// - 위 조건에 맞는 아이템이 없거나 주사위가 남아있다면 `SmartRerollStrategy`로 전환(위임)하여 스마트 리롤(일부 남기기)을 굴립니다.
-pub struct ItemAwareRerollStrategy;
-
-impl CardRerollStrategy for ItemAwareRerollStrategy {
-    fn name(&self) -> &str {
-        "item_aware_reroll"
-    }
-
-    fn execute_card_selection(&self, game_state: &mut GameState, rng: &mut dyn RngCore) {
-        let cards = collect_hand_cards(game_state);
-        if !cards.is_empty()
-            && game_state.left_dice > 0
-            && try_use_grant_card_item(game_state, &cards)
-        {
-            let cards = collect_hand_cards(game_state);
-            if cards.is_empty() {
-                return;
-            }
-        }
-
-        let strategy = SmartRerollStrategy;
-        strategy.execute_card_selection(game_state, rng);
-    }
-}
-
 fn collect_hand_cards(game_state: &GameState) -> Vec<Card> {
     let slot_ids = game_state.hand.active_slot_ids();
     slot_ids
@@ -123,52 +91,6 @@ fn collect_hand_cards(game_state: &GameState) -> Vec<Card> {
 }
 
 const EXPECTED_REROLL_SAMPLES: usize = 12;
-
-fn try_use_grant_card_item(game_state: &mut GameState, cards: &[Card]) -> bool {
-    let current_template = get_highest_tower_template(
-        cards,
-        &game_state.upgrade_state,
-        game_state.rerolled_count,
-        &game_state.config,
-    );
-    let current_rating = tower_kind_rating(current_template.kind);
-
-    if current_rating >= tower_kind_rating(TowerKind::Straight) {
-        return false;
-    }
-
-    let mut best_item_id = None;
-    let mut best_item_rating = current_rating;
-
-    let straight_threshold = tower_kind_rating(TowerKind::Straight);
-
-    for item in game_state.items.iter() {
-        if let Item::GrantCard(grant_card_item) = item.item {
-            let mut candidate_cards = cards.to_vec();
-            candidate_cards.push(grant_card_item.card);
-
-            let candidate_template = get_highest_tower_template(
-                &candidate_cards,
-                &game_state.upgrade_state,
-                game_state.rerolled_count,
-                &game_state.config,
-            );
-
-            let candidate_rating = tower_kind_rating(candidate_template.kind);
-            if candidate_rating >= straight_threshold && candidate_rating > best_item_rating {
-                best_item_rating = candidate_rating;
-                best_item_id = Some(item.id);
-            }
-        }
-    }
-
-    if let Some(id) = best_item_id {
-        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
-        return true;
-    }
-
-    false
-}
 
 struct RerollEvaluationContext<'a> {
     deck: &'a Deck,

@@ -8,6 +8,15 @@
 
 > ⚠️ **Documentation note:** this file is treated as authoritative guidance for agents. **Do not add inline comments or explanatory notes** outside of the structured rules. Keeping the file comment‑free prevents confusion during automated parsing.
 
+## Codex Linux Sandbox Workaround Rule
+
+- On this Ubuntu 24.04 host, the workspace sandbox is known to fail during bubblewrap loopback initialization with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`.
+- Treat that exact failure as a host AppArmor/unprivileged-user-namespace incompatibility, not as a repository permission, command, or patch-syntax problem.
+- For `exec_command` calls in this repository, request command-scoped escalated execution on the first attempt; do not probe the default sandbox first.
+- Do not retry a command in the default sandbox after this exact error.
+- Do not invoke the sandboxed `apply_patch` path on this host because it has no escalation channel and deterministically fails. When file edits are required and higher-priority instructions permit, apply the same unified diff through an escalation-capable patch command such as `git apply`, then inspect `git diff`.
+- Keep every escalation narrowly scoped and include the required user-facing justification.
+
 ## Hand UI Layering Checklist
 
 - For panel containers:
