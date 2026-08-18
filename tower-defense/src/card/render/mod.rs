@@ -24,12 +24,7 @@ pub fn get_suit_color(suit: Suit) -> Color {
     }
 }
 
-pub(super) fn render_top_left_rank_and_suit_with_opacity(
-    ctx: &RenderCtx,
-    rank: Rank,
-    suit: Suit,
-    opacity: f32,
-) {
+pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit, opacity: f32) {
     let padding = px(4.0);
     let icon_wh = Wh::new(20.px(), 12.px());
 
@@ -43,6 +38,7 @@ pub(super) fn render_top_left_rank_and_suit_with_opacity(
             .headline()
             .size(FontSize::Small)
             .color(text_color)
+            .stroke(0.px(), Color::TRANSPARENT)
             .text(rank.to_string())
             .render_center(icon_wh)
     }));

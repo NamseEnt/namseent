@@ -82,7 +82,7 @@ impl UpgradeBehavior for TapeUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Slow enemies by ")
-                    .with_movement_speed_debuff_value(format!(
+                    .with_bold(format!(
                         "-{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
                     ))
@@ -95,7 +95,7 @@ impl UpgradeBehavior for TapeUpgrade {
                     .static_text("매 ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
                     .static_text("스테이지마다 적 ")
-                    .with_movement_speed_debuff_value(format!(
+                    .with_bold(format!(
                         "이동속도 -{:.0}%",
                         (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
                     ));

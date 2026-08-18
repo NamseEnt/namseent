@@ -38,7 +38,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .l10n(Word::Dice.name(), locale)
-                    .with_dice_value(" +1")
+                    .with_bold(" +1")
                     .static_text(" for each purchased ")
                     .l10n(Word::Item.name(), locale);
             }
@@ -47,7 +47,7 @@ impl UpgradeBehavior for ShoppingBagUpgrade {
                     .l10n(Word::Item.name(), locale)
                     .static_text(" 구매 시 ")
                     .l10n(Word::Dice.name(), locale)
-                    .with_dice_value(" +1");
+                    .with_bold(" +1");
             }
         }
     }

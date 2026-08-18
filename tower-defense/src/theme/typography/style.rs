@@ -126,12 +126,12 @@ pub struct StyleContext {
 
 impl StyleContext {
     /// Create new style context with defaults
-    pub fn new(font_name: String, font_size: IntPx, color: Color, text_style: TextStyle) -> Self {
+    pub fn new(font_name: String, font_size: IntPx, text_style: TextStyle) -> Self {
         let (font_family, bold) = parse_font_name(&font_name);
         Self {
             font_family,
             font_size,
-            color,
+            color: text_style.color,
             bold,
             underline: false,
             text_style,

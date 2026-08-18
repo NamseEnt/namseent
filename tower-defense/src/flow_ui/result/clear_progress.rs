@@ -26,8 +26,6 @@ impl Component for ClearProgress {
                 .headline()
                 .size(typography::FontSize::Medium)
                 .bold()
-                .color(palette::WHITE)
-                .stroke(2.px(), palette::DARK_CHARCOAL)
                 .text(format!("{:.2}%", clear_rate))
                 .render_center(wh)
         }));

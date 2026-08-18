@@ -41,8 +41,6 @@ impl Component for PopupStatRow {
                             .paragraph()
                             .size(FontSize::Small)
                             .bold()
-                            .color(theme::palette::WHITE)
-                            .stroke(2.px(), theme::palette::DARK_CHARCOAL)
                             .text(&label_string)
                             .render_left_center(wh.height)
                     }));
@@ -54,8 +52,6 @@ impl Component for PopupStatRow {
                             .paragraph()
                             .size(FontSize::Small)
                             .bold()
-                            .color(theme::palette::WHITE)
-                            .stroke(2.px(), theme::palette::DARK_CHARCOAL)
                             .text(&value_string)
                             .render_right_center(wh)
                     }));
@@ -160,8 +156,8 @@ impl Component for TowerInfoPopup<'_> {
                                                     builder
                                                         .size(FontSize::Medium)
                                                         .bold()
-                                                        .color(theme::palette::WHITE)
-                                                        .stroke(2.px(), theme::palette::DARK_CHARCOAL)
+                                                        
+                                                        
                                                         .max_width(wh.width)
                                                         .text(remove_text.clone())
                                                         .render_center(wh)

@@ -46,8 +46,6 @@ impl Component for SettingsModal {
                                     builder
                                         .headline()
                                         .size(typography::FontSize::Medium)
-                                        .color(palette::WHITE)
-                                        .stroke(2.px(), palette::DARK_CHARCOAL)
                                         .text(game_state.text().ui(TopBarText::Settings))
                                         .render_left_center(wh.height)
                                 }));
@@ -207,8 +205,6 @@ fn render_volume_row(
                 builder
                     .headline()
                     .size(typography::FontSize::Small)
-                    .color(palette::WHITE)
-                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .text(label)
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));
@@ -227,8 +223,6 @@ fn render_volume_row(
                 builder
                     .paragraph()
                     .size(typography::FontSize::Medium)
-                    .color(palette::WHITE)
-                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .text(format!("{}%", value_percent))
                     .render_left_center(VOLUME_ROW_HEIGHT)
             }));

@@ -1,6 +1,5 @@
 use crate::{
-    icon::IconKind,
-    l10n::{Language, Locale, LocalizedText, rich_text_helpers::RichTextHelpers, word::WordName},
+    l10n::{Language, Locale, LocalizedText, word::WordName},
     theme::typography::TypographyBuilder,
 };
 
@@ -16,103 +15,47 @@ impl LocalizedText for WordName {
 impl WordName {
     fn apply_korean<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self.0 {
-            super::Word::Health => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::RED)
-                    .with_icon_bold(IconKind::Health, "체력");
-            }),
-            super::Word::Gold => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::YELLOW)
-                    .with_icon_bold(IconKind::Gold, "골드");
-            }),
-            super::Word::Dice => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::BLUE)
-                    .with_icon_bold(IconKind::Refresh, "주사위");
-            }),
-            super::Word::Deck => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Deck, "덱");
-            }),
-            super::Word::Encyclopedia => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Encyclopedia, "백과사전");
-            }),
-            super::Word::Item => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Item, "아이템");
-            }),
-            super::Word::Treasure => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Treasure, "보물");
-            }),
-            super::Word::Shield => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::GREEN)
-                    .with_icon_bold(IconKind::Shield, "보호막");
-            }),
-            super::Word::PerfectClear => builder.bold().static_text("퍼펙트 클리어"),
-            super::Word::CardService => builder.bold().static_text("카드 서비스"),
-            super::Word::Polish(_) => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Damage, "연마");
-            }),
-            super::Word::Engraving(engraving) => builder.with_style(|builder| match engraving {
+            super::Word::Health => builder.static_text("체력"),
+            super::Word::Gold => builder.static_text("골드"),
+            super::Word::Dice => builder.static_text("주사위"),
+            super::Word::Deck => builder.static_text("덱"),
+            super::Word::Encyclopedia => builder.static_text("백과사전"),
+            super::Word::Item => builder.static_text("아이템"),
+            super::Word::Treasure => builder.static_text("보물"),
+            super::Word::Shield => builder.static_text("보호막"),
+            super::Word::PerfectClear => builder.static_text("퍼펙트 클리어"),
+            super::Word::CardService => builder.static_text("카드 서비스"),
+            super::Word::Polish(_) => builder.static_text("연마"),
+            super::Word::Engraving(engraving) => match engraving {
                 Some(engraving) => {
-                    builder.bold();
                     engraving.l10n_name(builder, &Locale::KOREAN);
+                    builder
                 }
-                None => {
-                    builder.bold().static_text("각인");
-                }
-            }),
+                None => builder.static_text("각인"),
+            },
         };
     }
 
     fn apply_english<'a>(self, builder: &mut TypographyBuilder<'a>) {
         match self.0 {
-            super::Word::Health => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::RED)
-                    .with_icon_bold(IconKind::Refresh, "Health");
-            }),
-            super::Word::Gold => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::YELLOW)
-                    .with_icon_bold(IconKind::Gold, "Gold");
-            }),
-            super::Word::Dice => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::BLUE)
-                    .with_icon_bold(IconKind::Refresh, "Dice");
-            }),
-            super::Word::Deck => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Deck, "Deck");
-            }),
-            super::Word::Encyclopedia => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Encyclopedia, "Encyclopedia");
-            }),
-            super::Word::Item => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Item, "Item");
-            }),
-            super::Word::Treasure => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Refresh, "Treasure");
-            }),
-            super::Word::Shield => builder.with_style(|builder| {
-                builder
-                    .color(crate::theme::palette::GREEN)
-                    .with_icon_bold(IconKind::Refresh, "Shield");
-            }),
-            super::Word::PerfectClear => builder.bold().static_text("Perfect clear"),
-            super::Word::CardService => builder.bold().static_text("Card Service"),
-            super::Word::Polish(_) => builder.with_style(|builder| {
-                builder.with_icon_bold(IconKind::Damage, "Polish");
-            }),
-            super::Word::Engraving(engraving) => builder.with_style(|builder| match engraving {
+            super::Word::Health => builder.static_text("Health"),
+            super::Word::Gold => builder.static_text("Gold"),
+            super::Word::Dice => builder.static_text("Dice"),
+            super::Word::Deck => builder.static_text("Deck"),
+            super::Word::Encyclopedia => builder.static_text("Encyclopedia"),
+            super::Word::Item => builder.static_text("Item"),
+            super::Word::Treasure => builder.static_text("Treasure"),
+            super::Word::Shield => builder.static_text("Shield"),
+            super::Word::PerfectClear => builder.static_text("Perfect clear"),
+            super::Word::CardService => builder.static_text("Card Service"),
+            super::Word::Polish(_) => builder.static_text("Polish"),
+            super::Word::Engraving(engraving) => match engraving {
                 Some(engraving) => {
-                    builder.bold();
                     engraving.l10n_name(builder, &Locale::ENGLISH);
+                    builder
                 }
-                None => {
-                    builder.bold().static_text("Engraving");
-                }
-            }),
+                None => builder.static_text("Engraving"),
+            },
         };
     }
 }

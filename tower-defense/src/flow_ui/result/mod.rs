@@ -53,8 +53,6 @@ impl Component for ResultModal {
                                 builder
                                     .headline()
                                     .bold()
-                                    .stroke(2.px(), palette::DARK_CHARCOAL)
-                                    .color(palette::WHITE)
                                     .size(typography::FontSize::Large)
                                     .text(game_state.text().result_modal(ResultModalText::Title))
                                     .render_center(wh)
@@ -175,8 +173,6 @@ impl Component for ResultModal {
                                             builder
                                                 .headline()
                                                 .bold()
-                                                .stroke(2.px(), palette::DARK_CHARCOAL)
-                                                .color(palette::WHITE)
                                                 .size(typography::FontSize::Medium)
                                                 .text(
                                                     game_state.text().result_modal(

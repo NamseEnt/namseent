@@ -72,7 +72,7 @@ impl HistoryEventType {
                     .static_text("아이템 구매: ")
                     .l10n(item.name_text(), _locale)
                     .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
+                    .with_bold(format!("{}G", cost))
                     .static_text(")");
             }
             HistoryEventType::ItemUsed { item } => {
@@ -86,7 +86,7 @@ impl HistoryEventType {
                         .static_text("업그레이드 구매: ")
                         .l10n(UpgradeTypeText::Name(upgrade), _locale)
                         .static_text(" (")
-                        .with_gold_value(format!("{}G", cost))
+                        .with_bold(format!("{}G", cost))
                         .static_text(")");
                 } else {
                     builder
@@ -99,7 +99,7 @@ impl HistoryEventType {
                     .static_text("카드 서비스 구매: ")
                     .text(service_kind.clone())
                     .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
+                    .with_bold(format!("{}G", cost))
                     .static_text(")");
             }
             HistoryEventType::CardServiceUsed { service_kind, .. } => {
@@ -159,7 +159,7 @@ impl HistoryEventType {
                     .static_text("Item Purchased: ")
                     .l10n(item.name_text(), _locale)
                     .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
+                    .with_bold(format!("{}G", cost))
                     .static_text(")");
             }
             HistoryEventType::ItemUsed { item } => {
@@ -173,7 +173,7 @@ impl HistoryEventType {
                         .static_text("Upgrade Purchased: ")
                         .l10n(UpgradeTypeText::Name(upgrade), _locale)
                         .static_text(" (")
-                        .with_gold_value(format!("{}G", cost))
+                        .with_bold(format!("{}G", cost))
                         .static_text(")");
                 } else {
                     builder
@@ -186,7 +186,7 @@ impl HistoryEventType {
                     .static_text("Card Service Purchased: ")
                     .text(service_kind.clone())
                     .static_text(" (")
-                    .with_gold_value(format!("{}G", cost))
+                    .with_bold(format!("{}G", cost))
                     .static_text(")");
             }
             HistoryEventType::CardServiceUsed { service_kind, .. } => {

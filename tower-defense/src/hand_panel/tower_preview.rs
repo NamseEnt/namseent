@@ -170,7 +170,6 @@ impl Component for PreviewEntryComponent {
                                     .headline()
                                     .size(FontSize::Medium)
                                     .color(rarity_for_tower_kind(template.kind).color())
-                                    .stroke(2.px(), palette::DARK_CHARCOAL)
                                     .max_width(wh.width);
                                 builder.text(tower_name).render_center_bottom(wh)
                             }));
@@ -277,7 +276,6 @@ fn render_attack_power_badge(
                 .paragraph()
                 .size(FontSize::Custom { size: 14.px() })
                 .bold()
-                .color(palette::WHITE)
                 .text(badge_text_ref.as_str())
                 .render_left_center(badge_height)
         }),

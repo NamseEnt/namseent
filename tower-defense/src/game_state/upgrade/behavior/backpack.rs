@@ -63,12 +63,11 @@ impl UpgradeBehavior for BackpackUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder.with_icon_bold(
-                crate::icon::IconKind::Shop,
-                format!("Shop slot +{}", self.add),
-            ),
+            crate::l10n::locale::Language::English => {
+                builder.with_bold("The shop offers 1 more item")
+            }
             crate::l10n::locale::Language::Korean => {
-                builder.with_icon_bold(crate::icon::IconKind::Shop, "상점 슬롯 +1")
+                builder.with_bold("상점에 상품이 하나 더 표시됩니다")
             }
         };
     }

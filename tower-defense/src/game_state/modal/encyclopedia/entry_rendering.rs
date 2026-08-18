@@ -93,7 +93,6 @@ pub(super) fn render_entries(
                         .bold()
                         .size(FontSize::Medium)
                         .color(rarity.color())
-                        .stroke(2.px(), palette::DARK_CHARCOAL)
                         .l10n(RarityText::from(rarity), &locale)
                         .text("  ")
                         .l10n(
@@ -189,8 +188,6 @@ fn render_entry(ctx: ComposeCtx, entry: &Entry, is_discovered: bool) {
                             .headline()
                             .bold()
                             .size(FontSize::Custom { size: px(30.0) })
-                            .color(palette::WHITE)
-                            .stroke(2.px(), palette::DARK_CHARCOAL)
                             .text("?")
                             .render_center(thumbnail_wh)
                     }));

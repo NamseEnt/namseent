@@ -50,12 +50,12 @@ impl UpgradeBehavior for CatUpgrade {
             crate::l10n::locale::Language::English => builder
                 .static_text("Gain ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", self.add))
+                .with_bold(format!(" +{}", self.add))
                 .static_text(" on monster kills"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("적 처치 시 ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", self.add)),
+                .with_bold(format!(" +{}", self.add)),
         };
     }
 }

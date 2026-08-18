@@ -255,7 +255,7 @@ impl RerollHealthCostDetailText {
         match self {
             RerollHealthCostDetailText::Damage(amount) => builder
                 .text("체력을 ")
-                .with_health_loss(format!("{}", amount))
+                .with_bold(format!("{}", amount))
                 .text(" 잃습니다"),
         };
     }
@@ -264,7 +264,7 @@ impl RerollHealthCostDetailText {
         match self {
             RerollHealthCostDetailText::Damage(amount) => builder
                 .text("Lose ")
-                .with_health_loss(format!("{}", amount))
+                .with_bold(format!("{}", amount))
                 .text(" health"),
         };
     }

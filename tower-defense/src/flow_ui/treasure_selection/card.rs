@@ -69,8 +69,6 @@ impl Component for TreasureCardContent {
                                         builder
                                             .headline()
                                             .bold()
-                                            .color(palette::WHITE)
-                                            .stroke(2.px(), palette::DARK_CHARCOAL)
                                             .size(FontSize::Large)
                                             .l10n(
                                                 l10n::upgrade::UpgradeTypeText::Name(&upgrade),
@@ -90,8 +88,6 @@ impl Component for TreasureCardContent {
                                                 builder
                                                     .paragraph()
                                                     .bold()
-                                                    .color(palette::WHITE)
-                                                    .stroke(2.px(), palette::DARK_CHARCOAL)
                                                     .max_width(width)
                                                     .size(FontSize::Medium)
                                                     .l10n(

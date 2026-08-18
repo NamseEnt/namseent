@@ -460,8 +460,8 @@ impl Component for SectionBox<'_> {
                                 .headline()
                                 .size(FontSize::Medium)
                                 .max_width(text_max)
-                                .color(palette::WHITE)
-                                .stroke(2.px(), palette::DARK_CHARCOAL);
+                                .bold()
+                                .color(palette::BRIGHT_ORANGE);
                             (title.apply)(&mut builder);
                             builder.render_left_top()
                         },
@@ -478,9 +478,7 @@ impl Component for SectionBox<'_> {
                         builder
                             .paragraph()
                             .size(FontSize::Large)
-                            .max_width(text_max)
-                            .color(palette::WHITE)
-                            .stroke(2.px(), palette::DARK_CHARCOAL);
+                            .max_width(text_max);
                         (body.apply)(&mut builder);
                         builder.render_left_top()
                     },

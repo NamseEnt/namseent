@@ -77,7 +77,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Remaining rerolls give ")
-                    .with_damage_value(format!(
+                    .with_bold(format!(
                         "damage +{:.0}%",
                         self.damage_bonus_pct_per_reroll * 100.0
                     ))
@@ -87,7 +87,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
                 builder
                     .static_text("남은 리롤마다 모든 타워")
                     .static_text(" ")
-                    .with_damage_value(format!(
+                    .with_bold(format!(
                         "데미지 +{:.0}%",
                         self.damage_bonus_pct_per_reroll * 100.0
                     ));

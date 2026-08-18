@@ -53,13 +53,13 @@ impl ItemBehavior for MilkItem {
                 builder
                     .l10n(Word::Shield.name(), locale)
                     .static_text("을 ")
-                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .with_bold(format!("{:.0}", self.shield_amount))
                     .static_text(" 획득합니다.");
             }
             crate::l10n::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .with_bold(format!("{:.0}", self.shield_amount))
                     .static_text(" ")
                     .l10n(Word::Shield.name(), locale)
                     .static_text(".");

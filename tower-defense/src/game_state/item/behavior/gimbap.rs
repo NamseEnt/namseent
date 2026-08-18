@@ -58,21 +58,21 @@ impl ItemBehavior for GimbapItem {
                 builder
                     .l10n(Word::Health.name(), locale)
                     .static_text("을 ")
-                    .with_health_value(format!("{:.0}", self.heal_amount))
+                    .with_bold(format!("{:.0}", self.heal_amount))
                     .static_text(" 회복하고, ")
                     .l10n(Word::Shield.name(), locale)
                     .static_text("을 ")
-                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .with_bold(format!("{:.0}", self.shield_amount))
                     .static_text(" 획득합니다.");
             }
             crate::l10n::Language::English => {
                 builder
                     .static_text("Recover ")
-                    .with_health_value(format!("{:.0}", self.heal_amount))
+                    .with_bold(format!("{:.0}", self.heal_amount))
                     .static_text(" ")
                     .l10n(Word::Health.name(), locale)
                     .static_text(" and gain ")
-                    .with_shield_value(format!("{:.0}", self.shield_amount))
+                    .with_bold(format!("{:.0}", self.shield_amount))
                     .static_text(" ")
                     .l10n(Word::Shield.name(), locale)
                     .static_text(".");

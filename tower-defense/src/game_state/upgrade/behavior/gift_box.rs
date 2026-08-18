@@ -75,7 +75,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", self.add))
+                .with_bold(format!(" +{}", self.add))
                 .static_text(" per ")
                 .l10n(Word::Item.name(), locale)
                 .static_text(" at the end of each stage"),
@@ -84,7 +84,7 @@ impl UpgradeBehavior for GiftBoxUpgrade {
                 .l10n(Word::Item.name(), locale)
                 .static_text(" 1개당 ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", self.add)),
+                .with_bold(format!(" +{}", self.add)),
         };
     }
 }

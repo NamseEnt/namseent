@@ -116,7 +116,6 @@ fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available
                 builder
                     .headline()
                     .size(FontSize::Medium)
-                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .color(cost_color)
                     .icon(IconKind::Gold)
                     .space()

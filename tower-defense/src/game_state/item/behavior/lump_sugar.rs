@@ -68,12 +68,12 @@ impl ItemBehavior for LumpSugarItem {
             crate::l10n::Language::Korean => {
                 builder
                     .l10n(Word::Dice.name(), locale)
-                    .with_dice_value(format!(" +{}", self.reroll_amount));
+                    .with_bold(format!(" +{}", self.reroll_amount));
             }
             crate::l10n::Language::English => {
                 builder
                     .l10n(Word::Dice.name(), locale)
-                    .with_dice_value(format!(" +{}", self.reroll_amount));
+                    .with_bold(format!(" +{}", self.reroll_amount));
             }
         }
     }

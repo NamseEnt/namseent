@@ -1,6 +1,4 @@
 use super::*;
-
-use crate::icon::IconKind;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
@@ -57,13 +55,13 @@ impl ItemBehavior for RubberConeItem {
             crate::l10n::Language::Korean => {
                 builder.static_text("핸드에 ");
                 builder
-                    .with_icon_bold(IconKind::Card, format!("{}장", self.count))
+                    .with_bold( format!("{}장", self.count))
                     .static_text(" 러버콘 타워를 가져옵니다. 러버콘 타워는 공격 기능 없이 적들의 이동만 방해할 수 있는 타워입니다.");
             }
             crate::l10n::Language::English => {
                 builder.static_text("Adds ");
                 builder
-                    .with_icon_bold(IconKind::Card, format!("{}", self.count))
+                    .with_bold( format!("{}", self.count))
                     .static_text(" Rubber Cone towers to your hand. Rubber Cone towers cannot attack; they can only hinder enemy movement.");
             }
         }

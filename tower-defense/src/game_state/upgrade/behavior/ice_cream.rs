@@ -94,7 +94,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .with_damage_value(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
+                    .with_bold(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
                     .static_text(" for ")
                     .text(self.waves_remaining.to_string())
                     .static_text(" stages");
@@ -103,7 +103,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
                 builder
                     .text(self.waves_remaining.to_string())
                     .static_text("스테이지 동안 모든 타워 ")
-                    .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_bold(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
             }
         }
     }

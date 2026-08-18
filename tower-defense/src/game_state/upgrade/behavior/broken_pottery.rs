@@ -44,12 +44,12 @@ impl UpgradeBehavior for BrokenPotteryUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(" +1")
+                .with_bold(" +1")
                 .static_text(" every 4 card rerolls"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("카드 리롤 4회마다 ")
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(" +1"),
+                .with_bold(" +1"),
         };
     }
 }

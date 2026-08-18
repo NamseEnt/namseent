@@ -51,13 +51,13 @@ impl ItemBehavior for CookieItem {
                 builder
                     .l10n(Word::Health.name(), locale)
                     .static_text("을 ")
-                    .with_health_value(format!("{:.0}", self.heal_amount))
+                    .with_bold(format!("{:.0}", self.heal_amount))
                     .static_text(" 회복합니다.");
             }
             crate::l10n::Language::English => {
                 builder
                     .static_text("Recover ")
-                    .with_health_value(format!("{:.0}", self.heal_amount))
+                    .with_bold(format!("{:.0}", self.heal_amount))
                     .static_text(" ")
                     .l10n(Word::Health.name(), locale)
                     .static_text(".");
