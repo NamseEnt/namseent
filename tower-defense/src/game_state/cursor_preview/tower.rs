@@ -75,7 +75,7 @@ impl Component for TowerCursorPreview<'_> {
                     Box::new(Tower::new(
                         &tower_template_for_placement,
                         left_top,
-                        game_state.now(),
+                        game_state.sim_tick(),
                     )),
                     Some(placing_tower_slot_id),
                 ));

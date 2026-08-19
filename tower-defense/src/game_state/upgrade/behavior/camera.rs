@@ -112,7 +112,7 @@ mod tests {
         let face_tower = crate::game_state::tower::Tower::new(
             &face_tower_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(face_tower),
@@ -142,7 +142,7 @@ mod tests {
         let number_tower = crate::game_state::tower::Tower::new(
             &number_tower_template,
             crate::MapCoord::new(2, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(number_tower),

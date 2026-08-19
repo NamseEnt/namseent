@@ -6,6 +6,7 @@ use crate::game_state::field_particle::emitter::{
 };
 use crate::game_state::{EffectEventQueue, GameEffectEvent, GameState, Monster};
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
+use crate::{SimTick, SimTickSpan};
 use namui::*;
 use rand::Rng;
 
@@ -15,7 +16,7 @@ const ROYAL_STRAIGHT_FLUSH_CLONE_PASS_THROUGH_DISTANCE: f32 = 2.0;
 
 #[derive(Clone, PartialEq, State)]
 pub struct RoyalStraightFlushVisual {
-    created_at: Instant,
+    created_at: SimTick,
     clones: Vec<RoyalStraightFlushClone>,
     phase: RoyalStraightFlushPhase,
     target_monster_id: usize,
@@ -36,11 +37,11 @@ enum RoyalStraightFlushPhase {
 }
 
 impl RoyalStraightFlushVisual {
-    const FADE_DURATION: Duration = Duration::from_millis(300);
-    const DASH_DURATION: Duration = Duration::from_millis(120);
+    const FADE_DURATION: SimTickSpan = SimTickSpan::from_millis_ceil(300);
+    const DASH_DURATION: SimTickSpan = SimTickSpan::from_millis_ceil(120);
 
     fn new(
-        created_at: Instant,
+        created_at: SimTick,
         clones: Vec<RoyalStraightFlushClone>,
         target_monster_id: usize,
     ) -> Self {
@@ -52,8 +53,8 @@ impl RoyalStraightFlushVisual {
         }
     }
 
-    fn phase_at(&self, now: Instant) -> RoyalStraightFlushPhase {
-        let elapsed = now - self.created_at;
+    fn phase_at(&self, sim_tick: SimTick) -> RoyalStraightFlushPhase {
+        let elapsed = sim_tick - self.created_at;
         if elapsed < Self::FADE_DURATION {
             RoyalStraightFlushPhase::Spawning
         } else if elapsed < Self::FADE_DURATION + Self::DASH_DURATION {
@@ -65,9 +66,9 @@ impl RoyalStraightFlushVisual {
         }
     }
 
-    fn phase_progress(&self, now: Instant) -> f32 {
-        let elapsed = now - self.created_at;
-        let (phase_elapsed, phase_duration) = match self.phase_at(now) {
+    fn phase_progress(&self, sim_tick: SimTick) -> f32 {
+        let elapsed = sim_tick - self.created_at;
+        let (phase_elapsed, phase_duration) = match self.phase_at(sim_tick) {
             RoyalStraightFlushPhase::Spawning => (elapsed, Self::FADE_DURATION),
             RoyalStraightFlushPhase::Dashing => {
                 (elapsed - Self::FADE_DURATION, Self::DASH_DURATION)
@@ -81,9 +82,9 @@ impl RoyalStraightFlushVisual {
         (phase_elapsed.as_secs_f32() / phase_duration.as_secs_f32()).clamp(0.0, 1.0)
     }
 
-    pub fn original_alpha(&self, now: Instant) -> f32 {
-        let t = self.phase_progress(now);
-        match self.phase_at(now) {
+    pub fn original_alpha(&self, sim_tick: SimTick) -> f32 {
+        let t = self.phase_progress(sim_tick);
+        match self.phase_at(sim_tick) {
             RoyalStraightFlushPhase::Spawning => 1.0 - t,
             RoyalStraightFlushPhase::Dashing => 0.0,
             RoyalStraightFlushPhase::Returning => t,
@@ -91,9 +92,9 @@ impl RoyalStraightFlushVisual {
         }
     }
 
-    pub fn clone_alpha(&self, now: Instant) -> f32 {
-        let t = self.phase_progress(now);
-        match self.phase_at(now) {
+    pub fn clone_alpha(&self, sim_tick: SimTick) -> f32 {
+        let t = self.phase_progress(sim_tick);
+        match self.phase_at(sim_tick) {
             RoyalStraightFlushPhase::Spawning => t,
             RoyalStraightFlushPhase::Dashing => 1.0,
             RoyalStraightFlushPhase::Returning => 1.0 - t,
@@ -101,9 +102,9 @@ impl RoyalStraightFlushVisual {
         }
     }
 
-    pub fn clone_positions(&self, now: Instant) -> impl Iterator<Item = (f32, f32)> + '_ {
-        let phase = self.phase_at(now);
-        let eased_t = ease_out_cubic(self.phase_progress(now));
+    pub fn clone_positions(&self, sim_tick: SimTick) -> impl Iterator<Item = (f32, f32)> + '_ {
+        let phase = self.phase_at(sim_tick);
+        let eased_t = ease_out_cubic(self.phase_progress(sim_tick));
         self.clones.iter().map(move |clone| match phase {
             RoyalStraightFlushPhase::Spawning => clone.spawn_center_xy,
             RoyalStraightFlushPhase::Dashing => {
@@ -118,12 +119,13 @@ impl RoyalStraightFlushVisual {
     fn tick(
         &mut self,
         effect_events: &mut EffectEventQueue,
-        now: Instant,
+        sim_tick: SimTick,
+        presentation_instant: crate::PresentationInstant,
         tower_center_xy: (f32, f32),
         monsters: &[Monster],
         black_smoke_sources: &mut Vec<BlackSmokeSource>,
     ) {
-        let next_phase = self.phase_at(now);
+        let next_phase = self.phase_at(sim_tick);
         if next_phase == self.phase {
             return;
         }
@@ -136,18 +138,34 @@ impl RoyalStraightFlushVisual {
             for clone in &mut self.clones {
                 clone.end_center_xy = compute_pass_through_xy(clone.spawn_center_xy, target_xy);
 
-                spawn_black_smoke_dash_trail(clone.spawn_center_xy, clone.end_center_xy, now);
-                spawn_red_slash_marks(clone.spawn_center_xy, target_xy, now);
+                spawn_black_smoke_dash_trail(
+                    clone.spawn_center_xy,
+                    clone.end_center_xy,
+                    presentation_instant.as_namui(),
+                );
+                spawn_red_slash_marks(
+                    clone.spawn_center_xy,
+                    target_xy,
+                    presentation_instant.as_namui(),
+                );
             }
-            spawn_yellow_explosion_burst(target_xy, now);
+            spawn_yellow_explosion_burst(target_xy, presentation_instant.as_namui());
         }
 
         if next_phase == RoyalStraightFlushPhase::Returning {
-            spawn_black_smoke_burst(black_smoke_sources, tower_center_xy, now);
-            spawn_black_smoke_puff_burst(tower_center_xy, now);
+            spawn_black_smoke_burst(
+                black_smoke_sources,
+                tower_center_xy,
+                presentation_instant.as_namui(),
+            );
+            spawn_black_smoke_puff_burst(tower_center_xy, presentation_instant.as_namui());
             for clone in &self.clones {
-                spawn_black_smoke_burst_reversed(black_smoke_sources, clone.end_center_xy, now);
-                spawn_black_smoke_puff_burst(clone.end_center_xy, now);
+                spawn_black_smoke_burst_reversed(
+                    black_smoke_sources,
+                    clone.end_center_xy,
+                    presentation_instant.as_namui(),
+                );
+                spawn_black_smoke_puff_burst(clone.end_center_xy, presentation_instant.as_namui());
                 effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
                     sound::random_wind(),
                     SoundGroup::Sfx,
@@ -173,12 +191,12 @@ impl RoyalStraightFlushVisual {
         self.phase = next_phase;
     }
 
-    fn is_finished(&self, now: Instant) -> bool {
-        self.phase_at(now) == RoyalStraightFlushPhase::Finished
+    fn is_finished(&self, sim_tick: SimTick) -> bool {
+        self.phase_at(sim_tick) == RoyalStraightFlushPhase::Finished
     }
 }
 
-pub fn royal_straight_flush_hit_delay() -> Duration {
+pub fn royal_straight_flush_hit_delay() -> SimTickSpan {
     RoyalStraightFlushVisual::FADE_DURATION + RoyalStraightFlushVisual::DASH_DURATION
 }
 
@@ -188,15 +206,20 @@ impl Tower {
         effect_events: &mut EffectEventQueue,
         target_xy: (f32, f32),
         target_monster_id: usize,
-        now: Instant,
+        sim_tick: SimTick,
+        presentation_instant: crate::PresentationInstant,
         black_smoke_sources: &mut Vec<BlackSmokeSource>,
     ) {
         let tower_center = self.center_xy_f32();
         let tower_center_xy = (tower_center.x, tower_center.y);
         let clones = generate_royal_straight_flush_clones(target_xy);
 
-        spawn_black_smoke_burst_reversed(black_smoke_sources, tower_center_xy, now);
-        spawn_black_smoke_puff_burst(tower_center_xy, now);
+        spawn_black_smoke_burst_reversed(
+            black_smoke_sources,
+            tower_center_xy,
+            presentation_instant.as_namui(),
+        );
+        spawn_black_smoke_puff_burst(tower_center_xy, presentation_instant.as_namui());
         effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
             sound::random_wind(),
             SoundGroup::Sfx,
@@ -206,8 +229,12 @@ impl Tower {
             },
         )));
         for clone in &clones {
-            spawn_black_smoke_burst(black_smoke_sources, clone.spawn_center_xy, now);
-            spawn_black_smoke_puff_burst(clone.spawn_center_xy, now);
+            spawn_black_smoke_burst(
+                black_smoke_sources,
+                clone.spawn_center_xy,
+                presentation_instant.as_namui(),
+            );
+            spawn_black_smoke_puff_burst(clone.spawn_center_xy, presentation_instant.as_namui());
             effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
                 sound::random_wind(),
                 SoundGroup::Sfx,
@@ -222,7 +249,7 @@ impl Tower {
         }
 
         self.royal_straight_flush_visual = Some(RoyalStraightFlushVisual::new(
-            now,
+            sim_tick,
             clones,
             target_monster_id,
         ));
@@ -233,7 +260,11 @@ impl Tower {
     }
 }
 
-pub fn tick_royal_straight_flush_visuals(game_state: &mut GameState, now: Instant) {
+pub fn tick_royal_straight_flush_visuals(
+    game_state: &mut GameState,
+    sim_tick: SimTick,
+    presentation_instant: crate::PresentationInstant,
+) {
     let monsters = &game_state.monsters;
     let black_smoke_sources = &mut game_state.black_smoke_sources;
     for tower in game_state.towers.iter_mut() {
@@ -245,12 +276,13 @@ pub fn tick_royal_straight_flush_visuals(game_state: &mut GameState, now: Instan
         let visual = tower.royal_straight_flush_visual.as_mut().unwrap();
         visual.tick(
             &mut game_state.effect_events,
-            now,
+            sim_tick,
+            presentation_instant,
             tower_center_xy,
             monsters,
             black_smoke_sources,
         );
-        if visual.is_finished(now) {
+        if visual.is_finished(sim_tick) {
             tower.royal_straight_flush_visual = None;
         }
     }

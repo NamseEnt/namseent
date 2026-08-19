@@ -2,15 +2,16 @@ use super::{
     palette,
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
+use crate::PresentationInstant;
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use namui::*;
 
 /// Long press 상태를 관리하는 구조체
 #[derive(Clone, Copy, State)]
 struct LongPressState {
-    press_start_time: Option<Instant>,
+    press_start_time: Option<PresentationInstant>,
     accumulated_time: Duration,
-    release_time: Option<Instant>,
+    release_time: Option<PresentationInstant>,
 }
 
 impl LongPressState {
@@ -23,14 +24,14 @@ impl LongPressState {
     }
 
     /// 현재 진행 시간을 계산 (음수가 되지 않도록 보장)
-    fn current_progress(&self) -> Duration {
+    fn current_progress(&self, presentation_instant: PresentationInstant) -> Duration {
         if let Some(start_time) = self.press_start_time {
             // 버튼을 누르고 있는 중
-            let pressing_duration = Instant::now() - start_time;
+            let pressing_duration = presentation_instant - start_time;
             self.accumulated_time + pressing_duration
         } else if let Some(rel_time) = self.release_time {
             // 버튼을 뗀 후 감소 중
-            let elapsed_since_release = Instant::now() - rel_time;
+            let elapsed_since_release = presentation_instant - rel_time;
             if elapsed_since_release > self.accumulated_time {
                 Duration::from_secs(0)
             } else {
@@ -42,23 +43,23 @@ impl LongPressState {
     }
 
     /// 버튼을 누르기 시작할 때 호출
-    fn on_press_start(&mut self) {
+    fn on_press_start(&mut self, presentation_instant: PresentationInstant) {
         // 감소 중이었다면 현재 누적 시간을 고정
         if self.release_time.is_some() {
-            self.accumulated_time = self.current_progress();
+            self.accumulated_time = self.current_progress(presentation_instant);
         }
-        self.press_start_time = Some(Instant::now());
+        self.press_start_time = Some(presentation_instant);
         self.release_time = None;
     }
 
     /// 버튼을 뗄 때 호출
-    fn on_press_end(&mut self) {
+    fn on_press_end(&mut self, presentation_instant: PresentationInstant) {
         if let Some(start_time) = self.press_start_time {
-            let pressing_duration = Instant::now() - start_time;
+            let pressing_duration = presentation_instant - start_time;
             self.accumulated_time += pressing_duration;
         }
         self.press_start_time = None;
-        self.release_time = Some(Instant::now());
+        self.release_time = Some(presentation_instant);
     }
 
     /// 트리거 완료 후 초기화
@@ -67,8 +68,9 @@ impl LongPressState {
     }
 
     /// 진행률이 0에 도달했는지 확인
-    fn is_depleted(&self) -> bool {
-        self.release_time.is_some() && self.current_progress().as_secs_f32() <= 0.0
+    fn is_depleted(&self, presentation_instant: PresentationInstant) -> bool {
+        self.release_time.is_some()
+            && self.current_progress(presentation_instant).as_secs_f32() <= 0.0
     }
 }
 
@@ -170,7 +172,7 @@ impl Component for Button<'_> {
 
         let (long_press_state, set_long_press_state) = ctx.state(LongPressState::new);
         let (long_press_sound_started_at, set_long_press_sound_started_at) =
-            ctx.state(|| None::<Instant>);
+            ctx.state(|| None::<PresentationInstant>);
         let (last_long_press_sound_elapsed, set_last_long_press_sound_elapsed) =
             ctx.state(|| None::<f32>);
 
@@ -203,10 +205,10 @@ impl Component for Button<'_> {
         // Long press 프로그레스 오버레이 렌더링
         if let Some(duration) = long_press_time {
             let mut state = *long_press_state;
-            let current_progress = state.current_progress();
+            let current_progress = state.current_progress(PresentationInstant::capture());
 
             // 진행률이 0에 도달하면 상태 초기화
-            if state.is_depleted() {
+            if state.is_depleted(PresentationInstant::capture()) {
                 state.reset();
                 set_long_press_state.set(state);
             }
@@ -255,9 +257,9 @@ impl Component for Button<'_> {
                     if long_press_time.is_some() {
                         play_random_button_click_sound();
                         let mut state = *long_press_state;
-                        state.on_press_start();
+                        state.on_press_start(PresentationInstant::capture());
                         set_long_press_state.set(state);
-                        set_long_press_sound_started_at.set(Some(Instant::now()));
+                        set_long_press_sound_started_at.set(Some(PresentationInstant::capture()));
                         set_last_long_press_sound_elapsed.set(None);
                     }
                 }
@@ -273,12 +275,12 @@ impl Component for Button<'_> {
 
                     if let Some(long_press_duration) = long_press_time {
                         let mut state = *long_press_state;
-                        let total_progress = state.current_progress();
+                        let total_progress = state.current_progress(PresentationInstant::capture());
 
                         if is_inside && was_pressed && total_progress >= long_press_duration {
                             state.reset();
                         } else {
-                            state.on_press_end();
+                            state.on_press_end(PresentationInstant::capture());
                         }
                         set_long_press_state.set(state);
                         set_long_press_sound_started_at.set(None);
@@ -345,7 +347,7 @@ impl Component for Button<'_> {
             && let ButtonState::Pressed = *button_state
         {
             if let Some(started_at) = *long_press_sound_started_at {
-                let elapsed = (Instant::now() - started_at).as_secs_f32();
+                let elapsed = (PresentationInstant::capture() - started_at).as_secs_f32();
                 let interval = long_press_repeat_interval(elapsed);
                 let should_play = match *last_long_press_sound_elapsed {
                     Some(last_elapsed) => elapsed - last_elapsed >= interval,
@@ -359,13 +361,13 @@ impl Component for Button<'_> {
             }
 
             let mut state = *long_press_state;
-            let total_progress = state.current_progress();
+            let total_progress = state.current_progress(PresentationInstant::capture());
 
             if total_progress >= long_press_duration {
                 play_random_button_click_sound();
                 on_click();
                 state.reset();
-                set_long_press_sound_started_at.set(Some(Instant::now()));
+                set_long_press_sound_started_at.set(Some(PresentationInstant::capture()));
                 set_last_long_press_sound_elapsed.set(None);
             }
         }

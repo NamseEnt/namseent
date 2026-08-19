@@ -2,25 +2,26 @@ use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
 use super::{TowerImage, TowerSpriteWithOverlay};
+use crate::SimTick;
 use crate::card::render::polish_halo_config;
 use crate::game_state::tower::Tower;
 use crate::theme::card_halo_fx::CardHaloFx;
 
 pub struct RenderTower<'a> {
     pub tower: &'a Tower,
-    pub now: Instant,
+    pub sim_tick: SimTick,
 }
 
 impl Component for RenderTower<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let RenderTower { tower, now } = self;
+        let RenderTower { tower, sim_tick } = self;
 
         if let Some(visual) = tower.royal_straight_flush_visual() {
-            render_tower_sprite(ctx, tower, (0.0, 0.0), visual.original_alpha(now));
+            render_tower_sprite(ctx, tower, (0.0, 0.0), visual.original_alpha(sim_tick));
 
-            let clone_alpha = visual.clone_alpha(now);
+            let clone_alpha = visual.clone_alpha(sim_tick);
             let tower_left_top = tower.left_top.map(|t| t as f32);
-            for clone_center_xy in visual.clone_positions(now) {
+            for clone_center_xy in visual.clone_positions(sim_tick) {
                 let clone_left_top = Xy::new(clone_center_xy.0 - 1.0, clone_center_xy.1 - 1.0);
                 let local_offset = (
                     clone_left_top.x - tower_left_top.x,

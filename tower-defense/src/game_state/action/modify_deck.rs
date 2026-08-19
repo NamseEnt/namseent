@@ -1,8 +1,6 @@
 use crate::card::{Card, CardId, Engraving, Rank, Suit};
 use crate::game_state::GameState;
 use crate::game_state::card_notification::CardServiceNotification;
-#[cfg(not(feature = "simulator"))]
-use namui::time::now;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -80,9 +78,7 @@ pub(super) fn apply(game_state: &mut GameState, edit: DeckEdit) {
         }
     }
     #[cfg(not(feature = "simulator"))]
-    game_state
-        .card_service_notifications
-        .enqueue(now(), notification);
+    game_state.card_service_notifications.enqueue(notification);
 }
 
 #[cfg(test)]

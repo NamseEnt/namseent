@@ -86,3 +86,14 @@ Before committing UI changes that use `ctx.add`, verify:
 - Keep cache, merge, revision, and deduplication logic separable from `namui::system::kv_store` so it can be tested without the Namui runtime.
 - Native test binaries that reference Namui KV may fail to link on `_kv_store_get` or `_kv_store_put` when the runtime FFI is unavailable.
 - In that environment, run `cargo check --tests` for compile coverage and report the linker limitation explicitly; do not report the runtime tests as passed.
+
+## Time Domain Rules
+
+- Use `SimTick` and `SimTickSpan` for all authoritative gameplay time, including spawn schedules, cooldowns, status effects, timed attacks, movement, and world animation state.
+- Use `PresentationInstant` and `PresentationDelta` for UI, notification, hover, long-press, menu-transition, sound, and particle playback time.
+- Capture one `PresentationInstant` at the root render frame and pass it to presentation consumers; do not call `namui::time::now()` independently from each child render.
+- Do not introduce `GameState::now()`, `game_now`, or unqualified `now` parameters in gameplay or UI-facing APIs. Parameter and field names must identify `sim_tick`, `sim_span`, `presentation_instant`, or `presentation_delta`.
+- The existing Namui field-particle trait adapter is the sole raw `namui::Instant` boundary; keep it presentation-only and do not pass it into gameplay decisions.
+- A simulation step advances exactly one `SimTick`; fast-forward changes step count only and never changes the fixed step duration.
+- Fixed-tick scheduler catch-up limits, retained backlog, and discarded time must remain observable through structured diagnostics and must not be silently dropped.
+- Keep rendered and headless execution on the same simulation-step function; headless mode may suppress presentation side effects only.

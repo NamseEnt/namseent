@@ -5,6 +5,7 @@ use crate::card::Card;
 use crate::card::RenderCard;
 use crate::game_state::use_game_state;
 use crate::sound::play_card_draw_sounds;
+use crate::time::PresentationInstant;
 use namui::*;
 
 const CARD_WIDTH: Px = px(120.0);
@@ -91,7 +92,7 @@ impl CardServiceNotificationPlaybackEntry {
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct CardServiceNotificationPlayback {
     entries: Vec<CardServiceNotificationPlaybackEntry>,
-    start_time: Instant,
+    pub(crate) start_time: PresentationInstant,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, State)]
@@ -101,28 +102,18 @@ pub struct CardServiceNotificationState {
 }
 
 impl CardServiceNotificationState {
-    pub fn enqueue(&mut self, now: Instant, notification: CardServiceNotification) {
-        if self.current.is_none() {
-            let total = notification.entries.len();
-            self.current = Some(CardServiceNotificationPlayback {
-                entries: notification
-                    .entries
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, entry)| {
-                        CardServiceNotificationPlaybackEntry::new(entry, index, total)
-                    })
-                    .collect(),
-                start_time: now,
-            });
-        } else {
-            self.queue.push(notification);
-        }
+    pub fn enqueue(&mut self, notification: CardServiceNotification) {
+        self.queue.push(notification);
     }
 
-    pub fn advance(&mut self, now: Instant) {
+    pub fn advance(&mut self, presentation_instant: PresentationInstant) {
         match self.current.as_ref() {
-            Some(current) if (now - current.start_time).as_secs_f32() < TOTAL_DURATION_SECS => {
+            Some(current)
+                if presentation_instant
+                    .delta_since(current.start_time)
+                    .as_secs_f32()
+                    < TOTAL_DURATION_SECS =>
+            {
                 return;
             }
             _ => {}
@@ -140,7 +131,7 @@ impl CardServiceNotificationState {
                         CardServiceNotificationPlaybackEntry::new(entry, index, total)
                     })
                     .collect(),
-                start_time: now,
+                start_time: presentation_instant,
             });
         } else {
             self.current = None;
@@ -148,22 +139,54 @@ impl CardServiceNotificationState {
     }
 }
 
-pub struct CardServiceNotificationLayer;
+pub struct CardServiceNotificationLayer {
+    pub presentation_instant: PresentationInstant,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn playback_starts_at_the_presentation_frame_for_any_simulation_speed() {
+        let frame = PresentationInstant::from_namui(Instant::new(Duration::from_secs(10)));
+        let later = PresentationInstant::from_namui(Instant::new(Duration::from_secs(11)));
+
+        for _simulated_ticks in [60_u64, 480_u64] {
+            let mut state = CardServiceNotificationState::default();
+            state.enqueue(CardServiceNotification::new());
+            state.advance(frame);
+
+            let playback = state.current.as_ref().expect("playback should start");
+            assert_eq!(playback.start_time, frame);
+
+            state.advance(later);
+            assert!(state.current.is_some());
+        }
+    }
+}
 
 impl Component for CardServiceNotificationLayer {
     fn render(self, ctx: &RenderCtx) {
         let game_state = use_game_state(ctx);
-        let now = game_state.now();
+        let presentation_instant = self.presentation_instant;
         let screen_wh = screen::size().map(IntPx::into_px);
 
         let should_advance = match game_state.card_service_notifications.current.as_ref() {
-            Some(current) => (now - current.start_time).as_secs_f32() >= TOTAL_DURATION_SECS,
+            Some(current) => {
+                presentation_instant
+                    .delta_since(current.start_time)
+                    .as_secs_f32()
+                    >= TOTAL_DURATION_SECS
+            }
             None => !game_state.card_service_notifications.queue.is_empty(),
         };
         if should_advance {
             ctx.effect("advance card service notifications", || {
                 crate::game_state::mutate_game_state(move |game_state| {
-                    game_state.card_service_notifications.advance(now);
+                    game_state
+                        .card_service_notifications
+                        .advance(presentation_instant);
                 });
             });
         }
@@ -177,7 +200,9 @@ impl Component for CardServiceNotificationLayer {
         let card_wh = Wh::new(CARD_WIDTH, CARD_HEIGHT);
         let one_third_screen_wh = (screen_wh / 3.0).to_xy();
         for (index, entry) in playback.entries.iter().enumerate() {
-            let elapsed = (now - playback.start_time).as_secs_f32();
+            let elapsed = presentation_instant
+                .delta_since(playback.start_time)
+                .as_secs_f32();
             let entry_start_time = index as f32 * delay_per_entry;
             let entry_end_time = entry_start_time + CARD_LIFETIME_SECS;
             let progress = ((elapsed - entry_start_time) / (entry_end_time - entry_start_time))

@@ -131,7 +131,7 @@ fn damage_reduction_effects_add_status_effects() {
         &mut gs,
         &Effect::DamageReduction {
             damage_multiply: 0.8,
-            duration: namui::Duration::from_secs(5),
+            duration: crate::SimTickSpan::from_millis_ceil(5_000),
         },
     );
     assert_eq!(gs.user_status_effects.len(), 1);

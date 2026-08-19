@@ -133,7 +133,9 @@ pub struct GameState {
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
-    pub(crate) game_now: Instant,
+    pub(crate) sim_tick: SimTick,
+    pub(crate) sim_scheduler: tick::scheduler::FixedTickScheduler,
+    pub(crate) sim_scheduler_report: tick::scheduler::ScheduleReport,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
     pub metrics: GameMetrics,
@@ -183,8 +185,20 @@ impl GameState {
     pub fn can_open_shop_panel(&self) -> bool {
         matches!(self.flow, GameFlow::Shopping(_))
     }
-    pub fn now(&self) -> Instant {
-        self.game_now
+    pub fn sim_tick(&self) -> SimTick {
+        self.sim_tick
+    }
+
+    pub fn sim_scheduler_report(&self) -> tick::scheduler::ScheduleReport {
+        self.sim_scheduler_report
+    }
+
+    pub fn sim_scheduler_discarded_units(&self) -> u64 {
+        self.sim_scheduler.discarded_units()
+    }
+
+    pub fn sim_scheduler_backlog(&self) -> SimTickSpan {
+        self.sim_scheduler.backlog()
     }
 
     pub fn is_headless(&self) -> bool {
@@ -212,10 +226,6 @@ impl GameState {
                 total_damage: damage,
             });
         }
-    }
-
-    pub fn advance_time(&mut self, dt: Duration) {
-        self.game_now += dt;
     }
 
     pub fn flush_effect_events(&mut self) {
@@ -270,52 +280,96 @@ impl GameState {
                     start_xy,
                     end_xy,
                     count,
-                    now,
-                } => match trail {
-                    ProjectileTrail::Burning => {
-                        field_particle::emitter::spawn_burning_trail(start_xy, end_xy, count, now);
+                    presentation_instant,
+                } => {
+                    let presentation_now = presentation_instant.as_namui();
+                    match trail {
+                        ProjectileTrail::Burning => {
+                            field_particle::emitter::spawn_burning_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::Sparkle => {
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::WindCurve => {
+                            field_particle::emitter::spawn_wind_curve_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::Heart => {
+                            field_particle::emitter::spawn_heart_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::LightningSparkle => {
+                            field_particle::emitter::spawn_lightning_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::None => {}
                     }
-                    ProjectileTrail::Sparkle => {
-                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::WindCurve => {
-                        field_particle::emitter::spawn_wind_curve_trail(
-                            start_xy, end_xy, count, now,
-                        );
-                    }
-                    ProjectileTrail::Heart => {
-                        field_particle::emitter::spawn_heart_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::LightningSparkle => {
-                        field_particle::emitter::spawn_lightning_trail(
-                            start_xy, end_xy, count, now,
-                        );
-                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::None => {}
-                },
-                GameEffectEvent::SpawnProjectileHitEffect(hit_effect, impact_xy, now) => {
+                }
+                GameEffectEvent::SpawnProjectileHitEffect(
+                    hit_effect,
+                    impact_xy,
+                    presentation_instant,
+                ) => {
+                    let presentation_now = presentation_instant.as_namui();
                     use crate::game_state::attack::ProjectileHitEffect;
                     match hit_effect {
                         ProjectileHitEffect::CardBurst => {
-                            field_particle::emitter::spawn_card_burst(impact_xy, now);
+                            field_particle::emitter::spawn_card_burst(impact_xy, presentation_now);
                         }
                         ProjectileHitEffect::SparkleBurst => {
-                            field_particle::emitter::spawn_sparkle_burst(impact_xy, now);
+                            field_particle::emitter::spawn_sparkle_burst(
+                                impact_xy,
+                                presentation_now,
+                            );
                         }
                         ProjectileHitEffect::HeartBurst => {
-                            field_particle::emitter::spawn_heart_burst(impact_xy, now);
+                            field_particle::emitter::spawn_heart_burst(impact_xy, presentation_now);
                         }
                         ProjectileHitEffect::TrashBounce => {
                             // Trash bounce is handled as direct projectile activity elsewhere.
                         }
                     }
                 }
-                GameEffectEvent::SpawnLaserBeam(start_xy, end_xy, now) => {
-                    field_particle::emitter::spawn_laser_beam(start_xy, end_xy, now);
+                GameEffectEvent::SpawnLaserBeam(start_xy, end_xy, presentation_instant) => {
+                    field_particle::emitter::spawn_laser_beam(
+                        start_xy,
+                        end_xy,
+                        presentation_instant.as_namui(),
+                    );
                 }
-                GameEffectEvent::SpawnTowerRemoveDustBurst(center_xy, now) => {
-                    field_particle::emitter::spawn_tower_remove_dust_burst(center_xy, now);
+                GameEffectEvent::SpawnTowerRemoveDustBurst(center_xy, presentation_instant) => {
+                    field_particle::emitter::spawn_tower_remove_dust_burst(
+                        center_xy,
+                        presentation_instant.as_namui(),
+                    );
                 }
                 GameEffectEvent::SyncProjectileTrailState {
                     projectile_id,
@@ -324,8 +378,9 @@ impl GameState {
                     end_xy,
                     moved_distance,
                     dt_secs,
-                    now,
+                    presentation_instant,
                 } => {
+                    let presentation_now = presentation_instant.as_namui();
                     active_trail_sound_projectiles.insert(projectile_id);
                     let mut effect_states = PROJECTILE_TRAIL_EFFECT_STATE.lock().unwrap();
                     let state = effect_states.entry(projectile_id).or_default();
@@ -361,7 +416,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::Sparkle => {
@@ -369,7 +424,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::WindCurve => {
@@ -377,7 +432,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::Heart => {
@@ -385,7 +440,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::LightningSparkle => {
@@ -393,13 +448,13 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                     field_particle::emitter::spawn_sparkle_trail(
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::None => {}
@@ -569,8 +624,13 @@ impl GameState {
         }
     }
 
-    pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
-        self.ui_state.set_selected_tower(tower_id, self.now());
+    pub fn set_selected_tower(
+        &mut self,
+        tower_id: Option<usize>,
+        presentation_instant: crate::PresentationInstant,
+    ) {
+        self.ui_state
+            .set_selected_tower(tower_id, presentation_instant);
     }
 
     pub fn cleanup_unused_tower_popup_states(&mut self) {
@@ -580,9 +640,13 @@ impl GameState {
         self.ui_state.cleanup_unused_states(&existing_tower_ids);
     }
 
-    pub fn update_camera_shake(&mut self, dt: Duration) {
+    pub fn update_camera_shake(
+        &mut self,
+        dt: Duration,
+        presentation_instant: crate::PresentationInstant,
+    ) {
         self.camera
-            .update_shake(dt, self.game_now - Instant::new(Duration::ZERO));
+            .update_shake(dt, presentation_instant - PresentationInstant::zero());
     }
 }
 
@@ -609,7 +673,7 @@ fn create_initial_game_state() -> GameState {
 
 pub fn create_game_state_with_seed(seed: u64) -> GameState {
     let config = Arc::new(GameConfig::default_config());
-    let now = Instant::now();
+    let presentation_instant = PresentationInstant::capture();
     let decorations = background::generate_decorations();
     let mut game_state = GameState {
         monsters: Default::default(),
@@ -637,7 +701,9 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
-        game_now: now,
+        sim_tick: SimTick::ZERO,
+        sim_scheduler: tick::scheduler::FixedTickScheduler::default(),
+        sim_scheduler_report: tick::scheduler::ScheduleReport::default(),
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
@@ -648,10 +714,10 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         opened_modals: modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
-        status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
+        status_effect_particle_generator: StatusEffectParticleGenerator::new(presentation_instant),
         black_smoke_sources: Default::default(),
         effect_events: EffectEventQueue::default(),
-        base_animation_state: BaseAnimationState::new(now),
+        base_animation_state: BaseAnimationState::new(SimTick::ZERO),
         discovery: Default::default(),
         metrics: GameMetrics {
             total_gold_earned: 0,
@@ -737,7 +803,9 @@ impl GameState {
             user_status_effects: self.user_status_effects.clone(),
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
-            game_now: self.game_now,
+            sim_tick: self.sim_tick,
+            sim_scheduler: self.sim_scheduler,
+            sim_scheduler_report: self.sim_scheduler_report,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
             locale: self.locale,
@@ -746,7 +814,9 @@ impl GameState {
             opened_modals: modal::OpenedModals::default(),
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
-            status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(
+                crate::PresentationInstant::capture(),
+            ),
             black_smoke_sources: Default::default(),
             effect_events: self.effect_events.clone(),
             base_animation_state: self.base_animation_state.clone(),

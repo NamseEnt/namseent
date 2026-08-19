@@ -4,7 +4,7 @@ pub fn handle_monster_death(
     game_state: &mut GameState,
     target_idx: usize,
     target_xy: Xy<f32>,
-    now: Instant,
+    presentation_instant: crate::PresentationInstant,
 ) {
     if target_idx >= game_state.monsters.len() {
         return;
@@ -29,7 +29,9 @@ pub fn handle_monster_death(
         .effect_events
         .push(GameEffectEvent::SpawnParticle(
             ParticleSpawnRequest::MonsterSoul(field_particle::MonsterSoulParticle::new(
-                pixel_xy, now, rotation,
+                pixel_xy,
+                presentation_instant.as_namui(),
+                rotation,
             )),
         ));
 
@@ -38,7 +40,7 @@ pub fn handle_monster_death(
         .push(GameEffectEvent::SpawnParticle(
             ParticleSpawnRequest::MonsterCorpse(field_particle::MonsterCorpseParticle::new(
                 pixel_xy,
-                now,
+                presentation_instant.as_namui(),
                 rotation,
                 monster_kind,
                 wh,

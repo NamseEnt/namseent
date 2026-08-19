@@ -128,7 +128,6 @@ mod tests {
     use crate::game_state::create_initial_game_state;
     use crate::game_state::flow::GameFlow;
     use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
-    use namui::Instant;
 
     #[test]
     fn camera_gold_earning_does_not_refresh_shop_when_selecting_tower() {
@@ -145,7 +144,11 @@ mod tests {
         };
 
         let tower_template = TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Jack);
-        let tower = Tower::new(&tower_template, crate::MapCoord::new(0, 0), Instant::now());
+        let tower = Tower::new(
+            &tower_template,
+            crate::MapCoord::new(0, 0),
+            crate::SimTick::ZERO,
+        );
 
         game_state.handle_upgrade_trigger(UpgradeTriggerEvent::TowerPlaced { tower: &tower });
 

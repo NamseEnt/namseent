@@ -1,4 +1,5 @@
 use crate::MapCoordF32;
+use crate::PresentationInstant;
 use crate::game_state::ProjectileTrail;
 use crate::game_state::field_particle::*;
 use crate::sound;
@@ -46,15 +47,15 @@ pub enum GameEffectEvent {
         start_xy: MapCoordF32,
         end_xy: MapCoordF32,
         count: usize,
-        now: Instant,
+        presentation_instant: PresentationInstant,
     },
     SpawnProjectileHitEffect(
         crate::game_state::attack::ProjectileHitEffect,
         MapCoordF32,
-        Instant,
+        PresentationInstant,
     ),
-    SpawnLaserBeam((f32, f32), (f32, f32), Instant),
-    SpawnTowerRemoveDustBurst((f32, f32), Instant),
+    SpawnLaserBeam((f32, f32), (f32, f32), PresentationInstant),
+    SpawnTowerRemoveDustBurst((f32, f32), PresentationInstant),
     SyncProjectileTrailState {
         projectile_id: u64,
         trail: ProjectileTrail,
@@ -62,7 +63,7 @@ pub enum GameEffectEvent {
         end_xy: MapCoordF32,
         moved_distance: f32,
         dt_secs: f32,
-        now: Instant,
+        presentation_instant: PresentationInstant,
     },
 }
 

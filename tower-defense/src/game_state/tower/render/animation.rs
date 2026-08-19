@@ -1,11 +1,13 @@
 use crate::game_state::GameState;
+use crate::{SimTick, SimTickSpan};
 use namui::*;
 
 use crate::game_state::tower::{Tower, TowerKind};
 
-pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
+pub fn tower_animation_tick(game_state: &mut GameState, sim_tick: SimTick) {
     const STIFFNESS: f32 = -1500.0;
     const DAMPING: f32 = -10.0;
+    const DELTA_TIME_SECONDS: f32 = 1.0 / 60.0;
 
     game_state.towers.iter_mut().for_each(|tower| {
         let Tower {
@@ -18,23 +20,23 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
             return;
         }
 
-        let delta_time = (now - animation.tick_at).as_secs_f32();
-        animation.tick_at = now;
+        let delta_time = DELTA_TIME_SECONDS;
+        animation.tick_at = sim_tick;
 
-        if now - animation.transited_at > animation.duration() {
+        if sim_tick - animation.transited_at > animation.duration() {
             animation.transition(
                 match animation.kind {
                     AnimationKind::Idle1 => AnimationKind::Idle2,
                     AnimationKind::Idle2 => AnimationKind::Idle1,
                     AnimationKind::Attack => AnimationKind::Idle1,
                 },
-                now,
+                sim_tick,
             );
         }
 
         let transit_force_expired = animation
             .transit_force
-            .is_some_and(|transit_force| transit_force.end_at < now);
+            .is_some_and(|transit_force| transit_force.end_at < sim_tick);
         let transit_force = animation
             .transit_force
             .map(|transit_force| transit_force.force)
@@ -54,48 +56,48 @@ pub fn tower_animation_tick(game_state: &mut GameState, now: Instant) {
 #[derive(Clone, PartialEq, State)]
 pub(crate) struct Animation {
     pub(crate) kind: AnimationKind,
-    pub(crate) transited_at: Instant,
+    pub(crate) transited_at: SimTick,
     transit_force: Option<TransitForce>,
-    pub(crate) tick_at: Instant,
+    pub(crate) tick_at: SimTick,
     pub(crate) y_ratio_offset: f32,
     pub(crate) y_ratio_velocity: f32,
 }
 
 impl Animation {
-    pub(crate) fn new(now: Instant) -> Self {
+    pub(crate) fn new(sim_tick: SimTick) -> Self {
         Self {
             kind: AnimationKind::Idle1,
-            transited_at: now,
+            transited_at: sim_tick,
             transit_force: None,
-            tick_at: now,
+            tick_at: sim_tick,
             y_ratio_offset: 0.0,
             y_ratio_velocity: 0.0,
         }
     }
 
-    pub(crate) fn transition(&mut self, kind: AnimationKind, now: Instant) {
+    pub(crate) fn transition(&mut self, kind: AnimationKind, sim_tick: SimTick) {
         const IDLE_TRANSIT_FORCE: f32 = -100.0;
         const ATTACK_TRANSIT_FORCE: f32 = -500.0;
-        const FORCE_DURATION: Duration = Duration::from_millis(33);
+        const FORCE_DURATION: SimTickSpan = SimTickSpan::from_millis_ceil(33);
 
         if let AnimationKind::Attack = kind {
             self.transit_force = Some(TransitForce {
                 force: ATTACK_TRANSIT_FORCE,
-                end_at: now + FORCE_DURATION,
+                end_at: sim_tick + FORCE_DURATION,
             });
         } else if let AnimationKind::Attack = self.kind {
         } else {
             self.transit_force = Some(TransitForce {
                 force: IDLE_TRANSIT_FORCE,
-                end_at: now + FORCE_DURATION,
+                end_at: sim_tick + FORCE_DURATION,
             });
         }
 
         self.kind = kind;
-        self.transited_at = now;
+        self.transited_at = sim_tick;
     }
 
-    fn duration(&self) -> Duration {
+    fn duration(&self) -> SimTickSpan {
         self.kind.duration()
     }
 }
@@ -103,7 +105,7 @@ impl Animation {
 #[derive(Clone, Copy, PartialEq, State)]
 struct TransitForce {
     force: f32,
-    end_at: Instant,
+    end_at: SimTick,
 }
 
 #[derive(Clone, Copy, PartialEq, State)]
@@ -114,11 +116,11 @@ pub enum AnimationKind {
 }
 
 impl AnimationKind {
-    fn duration(&self) -> Duration {
+    fn duration(&self) -> SimTickSpan {
         match self {
-            Self::Idle1 => Duration::from_millis(1500),
-            Self::Idle2 => Duration::from_millis(1500),
-            Self::Attack => Duration::from_millis(333),
+            Self::Idle1 => SimTickSpan::from_millis_ceil(1500),
+            Self::Idle2 => SimTickSpan::from_millis_ceil(1500),
+            Self::Attack => SimTickSpan::from_millis_ceil(333),
         }
     }
 }

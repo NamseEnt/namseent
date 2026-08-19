@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 mod bag;
 mod deterministic;
 #[cfg(test)]
@@ -64,14 +65,13 @@ impl Shop {
         self.last_generation_stats = generated.stats;
     }
 
-    pub fn remove_completed_exit_animations(&mut self) {
-        let now = Instant::now();
+    pub fn remove_completed_exit_animations(&mut self, presentation_instant: PresentationInstant) {
         self.slots
-            .retain(|slot| !slot.is_exit_animation_complete(now));
+            .retain(|slot| !slot.is_exit_animation_complete(presentation_instant));
     }
 
-    pub fn update(&mut self) {
-        self.remove_completed_exit_animations();
+    pub fn update(&mut self, presentation_instant: PresentationInstant) {
+        self.remove_completed_exit_animations(presentation_instant);
     }
 }
 

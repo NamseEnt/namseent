@@ -12,7 +12,7 @@ pub struct PlayHistory {
 #[derive(Debug, Clone, State)]
 pub struct HistoryEvent {
     pub stage: usize,
-    pub timestamp: Instant,
+    pub timestamp: SimTick,
     pub event_type: HistoryEventType,
 }
 
@@ -81,7 +81,7 @@ impl GameState {
     pub(crate) fn record_event(&mut self, event_type: HistoryEventType) {
         self.play_history.events.push(HistoryEvent {
             stage: self.stage,
-            timestamp: self.now(),
+            timestamp: self.sim_tick(),
             event_type,
         });
     }

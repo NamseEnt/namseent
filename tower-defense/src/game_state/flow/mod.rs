@@ -33,9 +33,9 @@ impl TreasureSelectionFlow {
     fn update(&mut self) {}
 }
 impl GameFlow {
-    pub(crate) fn update(&mut self) {
+    pub(crate) fn update(&mut self, presentation_instant: PresentationInstant) {
         match self {
-            GameFlow::Shopping(shopping_flow) => shopping_flow.update(),
+            GameFlow::Shopping(shopping_flow) => shopping_flow.update(presentation_instant),
             GameFlow::SelectingTower(selecting_tower) => selecting_tower.update(),
             GameFlow::TreasureSelection(treasure_flow) => treasure_flow.update(),
             _ => {}
@@ -54,8 +54,8 @@ impl ShoppingFlow {
         ShoppingFlow { shop }
     }
 
-    fn update(&mut self) {
-        self.shop.update();
+    fn update(&mut self, presentation_instant: PresentationInstant) {
+        self.shop.update(presentation_instant);
     }
 }
 

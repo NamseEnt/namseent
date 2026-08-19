@@ -13,7 +13,7 @@ use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
 use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
-use crate::game_state::tick::{TICK_MAX_DURATION, tick_headless};
+use crate::game_state::tick::tick_headless;
 use crate::game_state::{
     EffectEventQueue, GameMetrics, GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory,
 };
@@ -21,8 +21,8 @@ use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
 use std::sync::Arc;
 
+use crate::PresentationInstant;
 use events::SimEvent;
-use namui::Instant;
 use strategies::{
     CardRerollStrategy, CardServiceStrategy, ItemUseStrategy, ShopStrategy, TowerPlacementStrategy,
     TreasureStrategy,
@@ -270,15 +270,13 @@ impl HeadlessGame {
     where
         F: FnMut(f32) -> bool,
     {
-        let tick_dt = TICK_MAX_DURATION;
         let max_ticks = 60 * 60 * 5; // 5 minutes at 60fps as safety limit
         let mut tick_count = 0;
 
         let hp_before = self.game_state.hp;
 
         while matches!(self.game_state.flow, GameFlow::Defense(_)) && tick_count < max_ticks {
-            self.game_state.advance_time(tick_dt);
-            tick_headless(&mut self.game_state, tick_dt);
+            tick_headless(&mut self.game_state);
             tick_count += 1;
 
             let clear_rate = self.game_state.calculate_clear_rate();
@@ -387,7 +385,7 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
     use crate::game_state::StatusEffectParticleGenerator;
     use crate::game_state::UIState;
 
-    let now = Instant::now();
+    let presentation_instant = PresentationInstant::capture();
     let decorations = crate::game_state::background::generate_decorations();
     GameState {
         monsters: Default::default(),
@@ -411,7 +409,9 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
-        game_now: now,
+        sim_tick: crate::SimTick::ZERO,
+        sim_scheduler: crate::game_state::tick::scheduler::FixedTickScheduler::default(),
+        sim_scheduler_report: crate::game_state::tick::scheduler::ScheduleReport::default(),
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         metrics: GameMetrics {
@@ -430,10 +430,10 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
         opened_modals: crate::game_state::modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
-        status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
+        status_effect_particle_generator: StatusEffectParticleGenerator::new(presentation_instant),
         black_smoke_sources: Default::default(),
         effect_events: EffectEventQueue::default(),
-        base_animation_state: BaseAnimationState::new(now),
+        base_animation_state: BaseAnimationState::new(crate::SimTick::ZERO),
         config: config.clone(),
         rng: crate::game_state::rng::GameRngState::new(seed),
         headless: true,

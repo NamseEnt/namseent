@@ -1,4 +1,4 @@
-use crate::MapCoordF32;
+use crate::{MapCoordF32, PresentationInstant};
 use namui::*;
 
 use super::{SoundGroup, VolumePreset};
@@ -19,26 +19,26 @@ pub struct SoundEvent {
     pub volume_preset: VolumePreset,
     pub spatial: SpatialMode,
     pub repeat: bool,
-    pub play_at: Instant,
-    pub created_at: Instant,
+    pub play_at: PresentationInstant,
+    pub created_at: PresentationInstant,
     pub max_duration: Option<Duration>,
 }
 
 impl SoundEvent {
-    pub fn is_ready(&self, now: Instant) -> bool {
-        now >= self.play_at
+    pub fn is_ready(&self, presentation_instant: PresentationInstant) -> bool {
+        presentation_instant >= self.play_at
     }
 
-    pub fn is_expired(&self, now: Instant) -> bool {
+    pub fn is_expired(&self, presentation_instant: PresentationInstant) -> bool {
         let Some(max_duration) = self.max_duration else {
             return false;
         };
 
-        if now < self.play_at {
+        if presentation_instant < self.play_at {
             return false;
         }
 
-        now - self.play_at >= max_duration
+        presentation_instant - self.play_at >= max_duration
     }
 }
 

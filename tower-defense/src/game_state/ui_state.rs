@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use namui::*;
 use std::collections::HashMap;
 
@@ -9,11 +10,11 @@ pub struct TowerInfoSpringState {
     pub opacity_velocity: f32,
     pub target_scale: f32,
     pub target_opacity: f32,
-    pub last_tick: Instant,
+    pub last_tick: PresentationInstant,
 }
 
 impl TowerInfoSpringState {
-    pub fn new(now: Instant) -> Self {
+    pub fn new(presentation_instant: PresentationInstant) -> Self {
         Self {
             scale: 0.0,
             scale_velocity: 0.0,
@@ -21,7 +22,7 @@ impl TowerInfoSpringState {
             opacity_velocity: 0.0,
             target_scale: 0.0,
             target_opacity: 0.0,
-            last_tick: now,
+            last_tick: presentation_instant,
         }
     }
 
@@ -35,12 +36,15 @@ impl TowerInfoSpringState {
         self.target_opacity = 0.0;
     }
 
-    pub fn tick(&mut self, now: Instant) {
+    pub fn tick(&mut self, presentation_instant: PresentationInstant) {
         const STIFFNESS: f32 = 300.0;
         const DAMPING: f32 = 20.0;
 
-        let delta_time = (now - self.last_tick).as_secs_f32().min(0.016); // Cap at 60fps
-        self.last_tick = now;
+        let delta_time = presentation_instant
+            .delta_since(self.last_tick)
+            .as_secs_f32()
+            .min(0.016);
+        self.last_tick = presentation_instant;
 
         // Scale spring
         let scale_force = STIFFNESS * (self.target_scale - self.scale);
@@ -71,7 +75,7 @@ impl TowerInfoSpringState {
 pub struct UIState {
     pub tower_popup_states: HashMap<usize, TowerInfoSpringState>,
     pub selected_tower_id: Option<usize>,
-    last_cleanup_time: Instant,
+    last_cleanup_time: PresentationInstant,
 }
 
 impl UIState {
@@ -79,17 +83,25 @@ impl UIState {
         Self {
             tower_popup_states: HashMap::new(),
             selected_tower_id: None,
-            last_cleanup_time: Instant::now(),
+            last_cleanup_time: PresentationInstant::capture(),
         }
     }
 
-    pub fn ensure_tower_popup_state(&mut self, tower_id: usize, now: Instant) {
+    pub fn ensure_tower_popup_state(
+        &mut self,
+        tower_id: usize,
+        presentation_instant: PresentationInstant,
+    ) {
         self.tower_popup_states
             .entry(tower_id)
-            .or_insert_with(|| TowerInfoSpringState::new(now));
+            .or_insert_with(|| TowerInfoSpringState::new(presentation_instant));
     }
 
-    pub fn set_selected_tower(&mut self, tower_id: Option<usize>, now: Instant) {
+    pub fn set_selected_tower(
+        &mut self,
+        tower_id: Option<usize>,
+        presentation_instant: PresentationInstant,
+    ) {
         // Early return if same tower
         if self.selected_tower_id == tower_id {
             return;
@@ -104,7 +116,7 @@ impl UIState {
 
         // Show newly selected tower
         if let Some(new_id) = tower_id {
-            self.ensure_tower_popup_state(new_id, now);
+            self.ensure_tower_popup_state(new_id, presentation_instant);
             if let Some(popup_state) = self.tower_popup_states.get_mut(&new_id) {
                 popup_state.show();
             }
@@ -113,15 +125,19 @@ impl UIState {
         self.selected_tower_id = tower_id;
     }
 
-    pub fn tick(&mut self, now: Instant) {
+    pub fn tick(&mut self, presentation_instant: PresentationInstant) {
         // Update all popup spring states
         for popup_state in self.tower_popup_states.values_mut() {
-            popup_state.tick(now);
+            popup_state.tick(presentation_instant);
         }
 
         // Cleanup unused states periodically (every 5 seconds)
-        if (now - self.last_cleanup_time) > Duration::from_secs(5) {
-            self.last_cleanup_time = now;
+        if presentation_instant
+            .delta_since(self.last_cleanup_time)
+            .as_secs_f32()
+            > 5.0
+        {
+            self.last_cleanup_time = presentation_instant;
             // Note: cleanup will be called externally with tower list
         }
     }
@@ -142,8 +158,11 @@ impl UIState {
         self.tower_popup_states.get(&tower_id)
     }
 
-    pub fn should_cleanup(&self, now: Instant) -> bool {
-        (now - self.last_cleanup_time) > Duration::from_secs(5)
+    pub fn should_cleanup(&self, presentation_instant: PresentationInstant) -> bool {
+        presentation_instant
+            .delta_since(self.last_cleanup_time)
+            .as_secs_f32()
+            > 5.0
     }
 }
 

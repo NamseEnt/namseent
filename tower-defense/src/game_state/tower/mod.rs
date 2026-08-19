@@ -3,6 +3,7 @@ mod royal_straight_flush;
 mod skill;
 
 use super::*;
+use crate::SimTick;
 use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
 use namui::*;
@@ -24,7 +25,7 @@ const FAST_PROJECTILE_SPEED: Velocity = Per::new(16.0, Duration::from_secs(1));
 pub struct Tower {
     id: usize,
     pub left_top: MapCoord,
-    cooldown: Duration,
+    cooldown: SimTickSpan,
     pub template: TowerTemplate,
     pub status_effects: Vec<TowerStatusEffect>,
     pub skills: Vec<TowerSkill>,
@@ -47,46 +48,46 @@ pub struct ShootProjectileParams {
     pub projectile_group: ProjectileGroup,
     pub hit_effect: attack::ProjectileHitEffect,
     pub damage: f32,
-    pub now: Instant,
+    pub sim_tick: SimTick,
     pub source_tower: Option<attack::TowerInfo>,
 }
 
 pub struct AttackTypeParams {
     pub target_xy: (f32, f32),
-    pub now: Instant,
+    pub sim_tick: SimTick,
 }
 
 impl Tower {
-    pub fn new(template: &TowerTemplate, left_top: MapCoord, now: Instant) -> Self {
+    pub fn new(template: &TowerTemplate, left_top: MapCoord, sim_tick: SimTick) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
 
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             left_top,
-            cooldown: Duration::from_secs(0),
+            cooldown: SimTickSpan::ZERO,
             template: template.clone(),
             status_effects: template.default_status_effects.clone(),
             skills: template
                 .skill_templates
                 .iter()
                 .cloned()
-                .map(|skill_template| TowerSkill::new(skill_template, now))
+                .map(|skill_template| TowerSkill::new(skill_template, sim_tick))
                 .collect(),
             cached_upgrade: CachedTowerUpgradeDamage {
                 revision: 0,
                 bonuses: Vec::new(),
                 damage: template.default_damage,
             },
-            animation: Animation::new(now),
+            animation: Animation::new(sim_tick),
             royal_straight_flush_visual: None,
         }
     }
     pub fn in_cooltime(&self) -> bool {
-        self.cooldown > Duration::from_secs(0)
+        self.cooldown > SimTickSpan::ZERO
     }
 
     pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
-        self.mark_fired(params.now);
+        self.mark_fired(params.sim_tick);
 
         attack::InFlightAttack::new_spatial(
             attack::SpatialAttack::new_direct(
@@ -108,16 +109,16 @@ impl Tower {
         target_xy: (f32, f32),
         target_monster_id: usize,
         damage: f32,
-        now: Instant,
+        sim_tick: SimTick,
         source_tower: Option<attack::TowerInfo>,
     ) -> attack::InFlightAttack {
-        self.mark_fired(now);
+        self.mark_fired(sim_tick);
 
         let head_xy = self.head_xy_tile();
         let beam = attack::laser::LaserBeam::new(
             (head_xy.x, head_xy.y),
             target_xy,
-            now,
+            sim_tick,
             target_monster_id,
         );
         attack::InFlightAttack::new_laser(beam, damage, source_tower)
@@ -206,9 +207,9 @@ impl Tower {
 
     /// cooldown과 animation을 한 번에 설정. shoot_projectile/shoot_laser와 달리
     /// FullHouse/RSF처럼 별도 shoot_* 메서드가 없는 공격 타입이 호출한다.
-    pub fn mark_fired(&mut self, now: Instant) {
+    pub fn mark_fired(&mut self, sim_tick: SimTick) {
         self.cooldown = self.effective_shoot_interval();
-        self.animation.transition(AnimationKind::Attack, now);
+        self.animation.transition(AnimationKind::Attack, sim_tick);
     }
 
     fn center_xy(&self) -> MapCoord {
@@ -294,7 +295,7 @@ impl Deref for Tower {
 pub struct TowerTemplate {
     pub kind: TowerKind,
     pub rerolled_count: usize,
-    pub shoot_interval: Duration,
+    pub shoot_interval: SimTickSpan,
     pub default_attack_range_radius: f32,
     pub default_damage: f32,
     pub suit: Option<Suit>,
@@ -381,7 +382,7 @@ impl TowerTemplate {
             .apply_attack_range(self.default_attack_range_radius)
     }
 
-    pub fn effective_shoot_interval(&self) -> Duration {
+    pub fn effective_shoot_interval(&self) -> SimTickSpan {
         self.engraving.apply_shoot_interval(self.shoot_interval)
     }
 
@@ -437,19 +438,19 @@ pub enum TowerKind {
 }
 
 impl TowerKind {
-    pub fn shoot_interval(&self) -> Duration {
+    pub fn shoot_interval(&self) -> SimTickSpan {
         match self {
-            Self::RubberCone => 1.sec(),
-            Self::High => 1.sec(),
-            Self::OnePair => 1.sec(),
-            Self::TwoPair => 1.sec(),
-            Self::ThreeOfAKind => 1.sec(),
-            Self::Straight => 0.5.sec(),
-            Self::Flush => 1.sec(),
-            Self::FullHouse => 1.sec(),
-            Self::FourOfAKind => 1.sec(),
-            Self::StraightFlush => 0.5.sec(),
-            Self::RoyalFlush => 1.sec(),
+            Self::RubberCone => SimTickSpan::from_millis_ceil(1_000),
+            Self::High => SimTickSpan::from_millis_ceil(1_000),
+            Self::OnePair => SimTickSpan::from_millis_ceil(1_000),
+            Self::TwoPair => SimTickSpan::from_millis_ceil(1_000),
+            Self::ThreeOfAKind => SimTickSpan::from_millis_ceil(1_000),
+            Self::Straight => SimTickSpan::from_millis_ceil(500),
+            Self::Flush => SimTickSpan::from_millis_ceil(1_000),
+            Self::FullHouse => SimTickSpan::from_millis_ceil(1_000),
+            Self::FourOfAKind => SimTickSpan::from_millis_ceil(1_000),
+            Self::StraightFlush => SimTickSpan::from_millis_ceil(500),
+            Self::RoyalFlush => SimTickSpan::from_millis_ceil(1_000),
         }
     }
     pub fn default_attack_range_radius(&self) -> f32 {
@@ -506,16 +507,16 @@ impl TowerKind {
     }
 }
 
-pub fn tower_cooldown_tick(game_state: &mut GameState, dt: Duration) {
+pub fn tower_cooldown_tick(game_state: &mut GameState) {
     game_state.towers.iter_mut().for_each(|tower| {
-        if tower.cooldown == Duration::from_secs(0) {
+        if tower.cooldown == SimTickSpan::ZERO {
             return;
         }
 
-        if tower.cooldown < dt {
-            tower.cooldown = Duration::from_secs(0);
+        if tower.cooldown == SimTickSpan::ONE {
+            tower.cooldown = SimTickSpan::ZERO;
         } else {
-            tower.cooldown -= dt;
+            tower.cooldown -= SimTickSpan::ONE;
         }
     });
 }
@@ -565,19 +566,19 @@ mod tests {
 
     #[test]
     fn overcharge_shortens_the_cooldown_after_firing() {
-        let now = Instant::now();
+        let sim_tick = SimTick::ZERO;
         let plain = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
         let overcharged = template_with_cards(vec![card_with_engraving(
             crate::card::Engraving::Overcharge,
         )]);
 
-        let mut plain_tower = Tower::new(&plain, MapCoord::new(0, 0), now);
-        let mut overcharged_tower = Tower::new(&overcharged, MapCoord::new(0, 0), now);
-        plain_tower.mark_fired(now);
-        overcharged_tower.mark_fired(now);
+        let mut plain_tower = Tower::new(&plain, MapCoord::new(0, 0), sim_tick);
+        let mut overcharged_tower = Tower::new(&overcharged, MapCoord::new(0, 0), sim_tick);
+        plain_tower.mark_fired(sim_tick);
+        overcharged_tower.mark_fired(sim_tick);
 
-        let expected = Duration::from_secs_f32(plain.shoot_interval.as_secs_f32() / 1.5);
-        assert!((overcharged_tower.cooldown.as_secs_f32() - expected.as_secs_f32()).abs() < 1e-6);
+        let expected = plain.shoot_interval.scale_ceil(1.0 / 1.5);
+        assert_eq!(overcharged_tower.cooldown, expected);
         assert!(overcharged_tower.cooldown < plain_tower.cooldown);
     }
 
@@ -609,8 +610,8 @@ mod tests {
         )]);
 
         assert_eq!(plain.effective_shoot_interval(), plain.shoot_interval);
-        let expected = plain.shoot_interval.as_secs_f32() / 1.5;
-        assert!((overcharged.effective_shoot_interval().as_secs_f32() - expected).abs() < 1e-6);
+        let expected = plain.shoot_interval.scale_ceil(1.0 / 1.5);
+        assert_eq!(overcharged.effective_shoot_interval(), expected);
     }
 
     #[test]
@@ -631,7 +632,7 @@ mod tests {
 
     #[test]
     fn tower_new_applies_template_skills() {
-        let now = Instant::now();
+        let now = SimTick::ZERO;
         let template = TowerTemplate::new(TowerKind::OnePair, Suit::Hearts, Rank::Three);
         let tower = Tower::new(&template, MapCoord::new(0, 0), now);
 
@@ -646,7 +647,7 @@ mod tests {
 
     #[test]
     fn refresh_cached_upgrade_damage_preserves_cached_bonuses_when_revision_unchanged() {
-        let now = Instant::now();
+        let now = SimTick::ZERO;
         let mut tower = Tower::new(
             &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Two),
             MapCoord::new(0, 0),

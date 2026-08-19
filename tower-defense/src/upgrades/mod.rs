@@ -1,5 +1,6 @@
 use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail, render_thumbnail_overlays};
 use crate::{
+    PresentationInstant,
     animation::xy_with_spring,
     card::Card,
     flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template,
@@ -177,21 +178,21 @@ impl Component for UpgradeThumbnailItem {
 
         let game_state = use_game_state(ctx);
         let (hovering, set_hovering) = ctx.state(|| false);
-        let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
+        let (hover_start, set_hover_start) = ctx.state(|| None::<PresentationInstant>);
 
         let animated_xy = xy_with_spring(ctx, target_xy, target_xy);
         let ctx = ctx.translate(animated_xy);
 
         let should_wobble = *hovering || is_applicable;
         if should_wobble && (*hover_start).is_none() {
-            set_hover_start.set(Some(Instant::now()));
+            set_hover_start.set(Some(PresentationInstant::capture()));
         }
         if !should_wobble {
             set_hover_start.set(None);
         }
 
         let hover_rotation = if let Some(start) = *hover_start {
-            ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
+            ((PresentationInstant::capture() - start).as_secs_f32() * 25.0).sin() * 3.0
         } else {
             0.0
         };

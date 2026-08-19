@@ -6,7 +6,7 @@ mod render;
 pub mod skill;
 
 use crate::{
-    MapCoordF32,
+    MapCoordF32, SimTick,
     game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
     route::{MoveOnRoute, Route},
 };
@@ -47,7 +47,7 @@ impl Monster {
     pub fn new(
         template: &MonsterTemplate,
         route: Arc<Route>,
-        now: Instant,
+        sim_tick: SimTick,
         health_multiplier: f32,
     ) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
@@ -64,7 +64,7 @@ impl Monster {
             skills: template
                 .skills
                 .iter()
-                .map(|&t| MonsterSkill::new(t, now))
+                .map(|&t| MonsterSkill::new(t, sim_tick))
                 .collect(),
             status_effects: vec![],
             damage: template.damage,

@@ -78,7 +78,7 @@ fn get_first_monster_kind_from_spawn_table(
     let (monster_queue, _) = super::super::monster_spawn::monster_queue_table(
         gs.stage,
         gs.route.clone(),
-        gs.now(),
+        gs.sim_tick(),
         health_multiplier,
         &gs.config,
     );

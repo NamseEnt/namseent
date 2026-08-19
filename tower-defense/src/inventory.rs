@@ -1,4 +1,5 @@
 use crate::{
+    PresentationInstant,
     game_state::{mutate_game_state, use_game_state},
     sound,
     thumbnail::{ThumbnailRenderOptions, render_thumbnail},
@@ -54,7 +55,7 @@ impl Component for InventoryItem<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { item } = self;
 
-        let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
+        let (hover_start, set_hover_start) = ctx.state(|| None::<PresentationInstant>);
 
         let item_wh = Wh::new(ITEM_SIZE, ITEM_SIZE);
         let inner_wh = Wh::new(
@@ -63,7 +64,7 @@ impl Component for InventoryItem<'_> {
         );
 
         let hover_rotation = if let Some(start) = *hover_start {
-            ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
+            ((PresentationInstant::capture() - start).as_secs_f32() * 25.0).sin() * 3.0
         } else {
             0.0
         };
@@ -97,7 +98,7 @@ impl Component for InventoryItem<'_> {
                     component: simple_rect(item_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
                     placement: crate::tooltip::TooltipPlacement::LeftOf,
                     on_enter: || {
-                        set_hover_start.set(Some(Instant::now()));
+                        set_hover_start.set(Some(PresentationInstant::capture()));
                         Some(crate::tooltip::TooltipContent::Item(inventory_item.clone()))
                     },
                     on_exit: move || {

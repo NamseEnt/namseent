@@ -24,7 +24,7 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                 None => break,
             };
 
-            let now = game_state.now();
+            let sim_tick = game_state.sim_tick();
             let mut placed = false;
 
             for step in placement_plan() {
@@ -51,7 +51,7 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                             &route_coords,
                             MAP_SIZE,
                         ) {
-                            let tower = Tower::new(&template, left_top, now);
+                            let tower = Tower::new(&template, left_top, sim_tick);
                             game_state.action(crate::game_state::GameStateAction::PlaceTower(
                                 Box::new(tower),
                                 None,
@@ -75,7 +75,8 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                 }
             }
 
-            if !placed && self.replace_central_rubber_cone(game_state, &template, slot_id, now) {
+            if !placed && self.replace_central_rubber_cone(game_state, &template, slot_id, sim_tick)
+            {
                 placed = true;
             }
 
@@ -128,7 +129,7 @@ impl HeuristicPlacementStrategy {
         game_state: &mut GameState,
         template: &crate::game_state::tower::TowerTemplate,
         slot_id: HandSlotId,
-        now: namui::Instant,
+        sim_tick: crate::SimTick,
     ) -> bool {
         let center = MapCoord::new(MAP_SIZE.width / 2, MAP_SIZE.height / 2);
 
@@ -160,7 +161,7 @@ impl HeuristicPlacementStrategy {
                 &route_coords,
                 MAP_SIZE,
             ) {
-                let tower = Tower::new(template, left_top, now);
+                let tower = Tower::new(template, left_top, sim_tick);
                 game_state.action(crate::game_state::GameStateAction::PlaceTower(
                     Box::new(tower),
                     None,

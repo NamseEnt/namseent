@@ -1,6 +1,7 @@
 use super::{
     SoundGroup, SpatialMode, cleanup_expired_sounds, state::active_sounds, use_sound_state,
 };
+use crate::PresentationInstant;
 use crate::game_state::{TILE_PX_SIZE, use_game_state};
 use namui::*;
 
@@ -18,10 +19,13 @@ impl Component for SoundRenderer {
         let game_state = use_game_state(ctx);
         let sound_state = use_sound_state(ctx);
         let active_sounds = active_sounds();
-        let now = Instant::now();
+        let presentation_instant = PresentationInstant::capture();
 
-        if active_sounds.iter().any(|sound| sound.is_expired(now)) {
-            cleanup_expired_sounds(now);
+        if active_sounds
+            .iter()
+            .any(|sound| sound.is_expired(presentation_instant))
+        {
+            cleanup_expired_sounds(presentation_instant);
         }
 
         let volume_settings = sound_state.volume_settings.clone();
@@ -35,9 +39,14 @@ impl Component for SoundRenderer {
                     game_state.as_ref(),
                     &active_sounds,
                     &volume_settings,
-                    now,
+                    presentation_instant,
                 );
-                render_non_spatial_sounds(&ctx, &active_sounds, &volume_settings, now);
+                render_non_spatial_sounds(
+                    &ctx,
+                    &active_sounds,
+                    &volume_settings,
+                    presentation_instant,
+                );
             },
         });
     }
@@ -48,7 +57,7 @@ fn render_spatial_sounds(
     game_state: &crate::game_state::GameState,
     active_sounds: &[super::event::SoundEvent],
     volume_settings: &super::volume::VolumeSettings,
-    now: Instant,
+    presentation_instant: PresentationInstant,
 ) {
     let camera = &game_state.camera;
     let visual_left_top = camera.visual_left_top();
@@ -81,7 +90,7 @@ fn render_spatial_sounds(
                 z: 0.0,
                 children: |ctx: ComposeCtx| {
                     for sound in active_sounds.iter().filter(|sound| sound.group == group) {
-                        if !sound.is_ready(now) {
+                        if !sound.is_ready(presentation_instant) {
                             continue;
                         }
 
@@ -114,7 +123,7 @@ fn render_non_spatial_sounds(
     ctx: &ComposeCtx,
     active_sounds: &[super::event::SoundEvent],
     volume_settings: &super::volume::VolumeSettings,
-    now: Instant,
+    presentation_instant: PresentationInstant,
 ) {
     for group in AUDIO_GROUPS {
         let subgroup_volume = volume_settings.subgroup_audio_gain(group);
@@ -124,7 +133,7 @@ fn render_non_spatial_sounds(
             z: 0.0,
             children: |ctx: ComposeCtx| {
                 for sound in active_sounds.iter().filter(|sound| sound.group == group) {
-                    if !sound.is_ready(now) {
+                    if !sound.is_ready(presentation_instant) {
                         continue;
                     }
 

@@ -1,3 +1,4 @@
+use crate::SimTickSpan;
 use crate::game_state::{
     GameState,
     card::{Rank, Suit},
@@ -25,7 +26,7 @@ pub enum Effect {
     },
     DamageReduction {
         damage_multiply: f32,
-        duration: Duration,
+        duration: SimTickSpan,
     },
     LoseHealth {
         amount: f32,
@@ -138,7 +139,7 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
                 kind: UserStatusEffectKind::DamageReduction {
                     damage_multiply: *damage_multiply,
                 },
-                end_at: game_state.now() + *duration,
+                end_at: game_state.sim_tick() + *duration,
             };
             game_state.user_status_effects.push(status_effect);
         }
@@ -372,7 +373,6 @@ pub mod tests_support {
         GameState, MAP_SIZE, TRAVEL_POINTS, flow::GameFlow, monster_spawn::MonsterSpawnState,
     };
     use crate::hand::{Hand, HandItem};
-    use namui::Instant;
 
     /// 테스트용 GameState 생성 헬퍼.
     /// - Atom / 렌더 컨텍스트에 의존하지 않음.
@@ -403,8 +403,11 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
+            sim_tick: crate::SimTick::ZERO,
+            sim_scheduler: crate::game_state::tick::scheduler::FixedTickScheduler::default(),
+            sim_scheduler_report:
+                crate::game_state::tick::scheduler::ScheduleReport::default(),
             deck: Deck::new(),
-            game_now: Instant::now(),
             fast_forward_multiplier: Default::default(),
             rerolled_count: 0,
             metrics: crate::game_state::GameMetrics {
@@ -424,10 +427,11 @@ pub mod tests_support {
             ui_state: crate::game_state::UIState::new(),
             status_effect_particle_generator:
                 crate::game_state::status_effect_particle_generator::StatusEffectParticleGenerator::new(
-                    Instant::now(),
+                    crate::PresentationInstant::capture(),
                 ),
             black_smoke_sources: Default::default(),
-            base_animation_state: crate::game_state::BaseAnimationState::new(Instant::now()),
+            base_animation_state:
+                crate::game_state::BaseAnimationState::new(crate::SimTick::ZERO),
             config: config.clone(),
 
             rng: crate::game_state::rng::GameRngState::new(0),

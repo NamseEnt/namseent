@@ -1,3 +1,4 @@
+use crate::SimTickSpan;
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
 use namui::*;
@@ -121,8 +122,8 @@ impl TowerEngravingModifier {
         base_radius * self.attack_range_mul
     }
 
-    pub fn apply_shoot_interval(&self, base_interval: Duration) -> Duration {
-        Duration::from_secs_f32(base_interval.as_secs_f32() * self.shoot_interval_mul)
+    pub fn apply_shoot_interval(&self, base_interval: SimTickSpan) -> SimTickSpan {
+        base_interval.scale_ceil(self.shoot_interval_mul)
     }
 
     pub fn combine(self, other: Self) -> Self {
@@ -194,11 +195,11 @@ mod tests {
 
     #[test]
     fn apply_shoot_interval_scales_by_the_multiplier() {
-        let base = Duration::from_secs(1);
+        let base = SimTickSpan::from_millis_ceil(1_000);
 
         assert_eq!(
             modifier(1.0, 0.5, None).apply_shoot_interval(base),
-            Duration::from_millis(500)
+            SimTickSpan::from_millis_ceil(500)
         );
         assert_eq!(
             TowerEngravingModifier::NONE.apply_shoot_interval(base),

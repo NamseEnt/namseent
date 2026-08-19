@@ -6,6 +6,7 @@ use super::projectile::{
     HOMING_TURN_RATE_MAX_TILE, HOMING_TURN_RATE_MIN_TILE, ProjectileBehavior, ProjectileKind,
     ProjectileTargetIndicator, ProjectileTrail, random_rotation_speed,
 };
+use crate::SimTick;
 use crate::card::Suit;
 use crate::game_state::TILE_PX_SIZE;
 use crate::{MapCoordF32, game_state::card::Rank};
@@ -202,7 +203,7 @@ impl Component for &SpatialAttack {
 #[derive(Clone, Copy, PartialEq, Eq, State)]
 pub struct TimedAttack {
     pub target_monster_id: usize,
-    pub execute_at: Instant,
+    pub execute_at: SimTick,
     pub hit_sound: HitSound,
 }
 
@@ -252,7 +253,7 @@ impl InFlightAttack {
 
     pub fn new_timed(
         target_monster_id: usize,
-        execute_at: Instant,
+        execute_at: SimTick,
         damage: f32,
         source_tower: Option<TowerInfo>,
         hit_sound: HitSound,

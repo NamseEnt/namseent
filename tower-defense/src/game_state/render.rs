@@ -2,11 +2,14 @@ use super::*;
 
 pub struct RenderGameState<'a> {
     pub game_state: &'a GameState,
+    pub presentation_instant: crate::PresentationInstant,
 }
 
 impl Component for RenderGameState<'_> {
     fn render(self, ctx: &RenderCtx) {
-        ctx.add(tick::Ticker);
+        ctx.add(tick::Ticker {
+            presentation_instant: self.presentation_instant,
+        });
 
         let visual_left_top = self.game_state.camera.visual_left_top();
         let final_offset = TILE_PX_SIZE.to_xy() * visual_left_top * -1.0;
@@ -167,7 +170,8 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &GameState) {
                         }
 
                         mutate_game_state(|game_state| {
-                            game_state.set_selected_tower(None);
+                            game_state
+                                .set_selected_tower(None, crate::PresentationInstant::capture());
                         });
                     }
                 });
@@ -213,7 +217,7 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         }
 
         let px_xy = TILE_PX_SIZE.to_xy() * tower_xy;
-        let now = game_state.now();
+        let sim_tick = game_state.sim_tick();
         ctx.translate(px_xy).compose(move |ctx| {
             if game_state.ui_state.selected_tower_id == Some(tower.id()) {
                 ctx.add(crate::game_state::tower::render::TowerAttackRange {
@@ -223,30 +227,36 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
 
             ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
                 .add(
-                    crate::game_state::tower::render::RenderTower { tower, now }.attach_event({
-                        let tower_id = tower.id();
-                        move |event| {
-                            let Event::MouseDown { event } = event else {
-                                return;
-                            };
-                            if event.button != Some(MouseButton::Left) {
-                                return;
-                            }
-                            if !event.is_local_xy_in() {
-                                return;
-                            }
-                            event.stop_propagation();
-                            mutate_game_state(move |game_state| {
-                                let next_selected =
-                                    if game_state.ui_state.selected_tower_id == Some(tower_id) {
+                    crate::game_state::tower::render::RenderTower { tower, sim_tick }.attach_event(
+                        {
+                            let tower_id = tower.id();
+                            move |event| {
+                                let Event::MouseDown { event } = event else {
+                                    return;
+                                };
+                                if event.button != Some(MouseButton::Left) {
+                                    return;
+                                }
+                                if !event.is_local_xy_in() {
+                                    return;
+                                }
+                                event.stop_propagation();
+                                mutate_game_state(move |game_state| {
+                                    let next_selected = if game_state.ui_state.selected_tower_id
+                                        == Some(tower_id)
+                                    {
                                         None
                                     } else {
                                         Some(tower_id)
                                     };
-                                game_state.set_selected_tower(next_selected);
-                            });
-                        }
-                    }),
+                                    game_state.set_selected_tower(
+                                        next_selected,
+                                        crate::PresentationInstant::capture(),
+                                    );
+                                });
+                            }
+                        },
+                    ),
                 );
         });
     }

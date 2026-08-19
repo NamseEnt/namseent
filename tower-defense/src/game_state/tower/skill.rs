@@ -1,32 +1,33 @@
 use super::*;
+use crate::{SimTick, SimTickSpan};
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct TowerSkillTemplate {
     pub kind: TowerSkillKind,
-    pub cooldown: Duration,
-    pub duration: Duration,
+    pub cooldown: SimTickSpan,
+    pub duration: SimTickSpan,
 }
 impl TowerSkillTemplate {
     pub fn new_passive(kind: TowerSkillKind) -> Self {
         Self {
             kind,
-            cooldown: Duration::from_secs(1),
-            duration: Duration::from_secs(1),
+            cooldown: SimTickSpan::from_millis_ceil(1_000),
+            duration: SimTickSpan::from_millis_ceil(1_000),
         }
     }
 }
 
 #[derive(Clone, PartialEq, State)]
 pub struct TowerSkill {
-    pub last_used_at: Instant,
+    pub last_used_at: SimTick,
     pub template: TowerSkillTemplate,
 }
 
 impl TowerSkill {
-    pub fn new(template: TowerSkillTemplate, now: Instant) -> Self {
+    pub fn new(template: TowerSkillTemplate, sim_tick: SimTick) -> Self {
         Self {
-            last_used_at: now,
+            last_used_at: sim_tick,
             template,
         }
     }
@@ -72,11 +73,11 @@ impl TowerStatusEffectKind {
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum TowerStatusEffectEnd {
-    Time { end_at: Instant },
+    Time { end_at: SimTick },
     NeverEnd,
 }
 
-pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Instant) {
+pub fn remove_tower_finished_status_effects(game_state: &mut GameState, sim_tick: SimTick) {
     let upgrade_revision = game_state.upgrade_state.revision;
     let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
@@ -84,7 +85,7 @@ pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Ins
         let mut removed_damage_effect = false;
         tower.status_effects.retain(|e| {
             let keep = match e.end_at {
-                TowerStatusEffectEnd::Time { end_at } => now < end_at,
+                TowerStatusEffectEnd::Time { end_at } => sim_tick < end_at,
                 TowerStatusEffectEnd::NeverEnd => true,
             };
             if !keep && e.kind.affects_damage() {
@@ -99,16 +100,16 @@ pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Ins
     }
 }
 
-pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
+pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
     let mut activated_skills = vec![];
 
     for tower in game_state.towers.iter_mut() {
         for skill in tower.skills.iter_mut() {
-            if now < skill.last_used_at + skill.cooldown {
+            if sim_tick < skill.last_used_at + skill.cooldown {
                 continue;
             }
 
-            skill.last_used_at = now;
+            skill.last_used_at = sim_tick;
             activated_skills.push((tower.id, skill.template));
         }
     }
@@ -151,7 +152,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageMul { mul },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     },
                 );
@@ -162,7 +163,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd { add },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     },
                 );
@@ -172,7 +173,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     MonsterStatusEffect {
                         kind: MonsterStatusEffectKind::SpeedMul { mul },
-                        end_at: now + skill.duration,
+                        end_at: sim_tick + skill.duration,
                     },
                 );
             }
@@ -189,7 +190,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                             add: bonus_damage as f32,
                         },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     };
                     tower.status_effects.push(effect.clone());
@@ -203,13 +204,14 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{SimTick, SimTickSpan};
 
     use crate::game_state::effect::tests_support::make_test_state;
 
     #[test]
     fn top_card_bonus_activates_damage_add_status_effect() {
         let mut game_state = make_test_state();
-        let now = Instant::now();
+        let now = SimTick::from_ticks(120);
 
         let mut tower = Tower::new(
             &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Ace),
@@ -223,10 +225,10 @@ mod tests {
                     rank: Rank::Ace,
                     bonus_damage: 15,
                 },
-                cooldown: Duration::from_secs(1),
-                duration: Duration::from_secs(1),
+                cooldown: SimTickSpan::from_millis_ceil(1_000),
+                duration: SimTickSpan::from_millis_ceil(1_000),
             },
-            now - Duration::from_secs(2),
+            SimTick::ZERO,
         ));
 
         game_state.towers.place_tower(tower);
@@ -245,7 +247,7 @@ mod tests {
     #[test]
     fn top_card_bonus_updates_cached_upgrade_damage() {
         let mut game_state = make_test_state();
-        let now = Instant::now();
+        let now = SimTick::from_ticks(120);
         let bonus_damage = 15;
 
         let mut tower = Tower::new(
@@ -260,10 +262,10 @@ mod tests {
                     rank: Rank::Ace,
                     bonus_damage,
                 },
-                cooldown: Duration::from_secs(1),
-                duration: Duration::from_secs(1),
+                cooldown: SimTickSpan::from_millis_ceil(1_000),
+                duration: SimTickSpan::from_millis_ceil(1_000),
             },
-            now - Duration::from_secs(2),
+            SimTick::ZERO,
         ));
 
         game_state.towers.place_tower(tower);

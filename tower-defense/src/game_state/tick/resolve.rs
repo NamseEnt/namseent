@@ -1,4 +1,5 @@
 use super::*;
+use crate::PresentationInstant;
 use crate::game_state::attack::{
     HitSound, InFlightAttack, InFlightAttackKind, ProjectileHitEffect,
 };
@@ -7,19 +8,24 @@ use crate::game_state::projectile::ProjectileBehavior;
 use rand::Rng;
 use std::collections::HashMap;
 
-pub fn update_in_flight_attacks(game_state: &mut GameState, dt: Duration, now: Instant) {
-    process_timed_attacks(game_state, now);
-    process_laser_attacks(game_state, now);
-    move_spatial_attacks(game_state, dt, now);
+pub fn update_in_flight_attacks(
+    game_state: &mut GameState,
+    dt: Duration,
+    presentation_instant: PresentationInstant,
+) {
+    process_timed_attacks(game_state, presentation_instant);
+    process_laser_attacks(game_state, presentation_instant);
+    move_spatial_attacks(game_state, dt, presentation_instant);
 }
 
-fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
+fn process_timed_attacks(game_state: &mut GameState, presentation_instant: PresentationInstant) {
     let mut rng = rand::thread_rng();
+    let sim_tick = game_state.sim_tick();
     let mut due: Vec<InFlightAttack> = Vec::new();
 
     game_state.in_flight_attacks.retain(|attack| {
         if let InFlightAttackKind::Timed(timed) = &attack.kind
-            && timed.execute_at <= now
+            && timed.execute_at <= sim_tick
         {
             due.push(attack.clone());
             return false;
@@ -81,7 +87,7 @@ fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
                         crate::game_state::field_particle::DamageTextParticle::new(
                             target_xy,
                             attack.damage,
-                            now,
+                            presentation_instant.as_namui(),
                         ),
                     ),
                 ));
@@ -96,10 +102,10 @@ fn process_timed_attacks(game_state: &mut GameState, now: Instant) {
         });
     }
 
-    apply_monster_damage_and_remove_dead(game_state, hits);
+    apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
-fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
+fn process_laser_attacks(game_state: &mut GameState, presentation_instant: PresentationInstant) {
     let mut due: Vec<InFlightAttack> = Vec::new();
 
     game_state.in_flight_attacks.retain(|attack| {
@@ -149,7 +155,7 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
             .push(GameEffectEvent::SpawnLaserBeam(
                 beam.start_xy,
                 beam.end_xy,
-                beam.created_at,
+                presentation_instant,
             ));
 
         let Some(&target_idx) = monster_index_by_id.get(&beam.target_monster_id) else {
@@ -165,7 +171,7 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
                         crate::game_state::field_particle::DamageTextParticle::new(
                             target_xy,
                             attack.damage,
-                            now,
+                            presentation_instant.as_namui(),
                         ),
                     ),
                 ));
@@ -180,10 +186,14 @@ fn process_laser_attacks(game_state: &mut GameState, now: Instant) {
         });
     }
 
-    apply_monster_damage_and_remove_dead(game_state, hits);
+    apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
-fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) {
+fn move_spatial_attacks(
+    game_state: &mut GameState,
+    dt: Duration,
+    presentation_instant: PresentationInstant,
+) {
     let mut hits: Vec<MonsterHit> = Vec::new();
 
     {
@@ -218,7 +228,7 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                             spatial.rotation,
                             spatial.rotation_speed,
                             spatial.velocity,
-                            now,
+                            presentation_instant.as_namui(),
                             Duration::from_millis(300),
                         )),
                     ));
@@ -248,7 +258,7 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                         end_xy: spatial.xy,
                         moved_distance,
                         dt_secs: dt.as_secs_f32(),
-                        now,
+                        presentation_instant,
                     });
                 return true;
             }
@@ -274,7 +284,9 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                     .effect_events
                     .push(GameEffectEvent::SpawnParticle(
                         ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
-                            monster_xy, damage, now,
+                            monster_xy,
+                            damage,
+                            presentation_instant.as_namui(),
                         )),
                     ));
             }
@@ -285,7 +297,7 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                         spatial.projectile_kind,
                         (start_xy.x, start_xy.y),
                         (monster_xy.x, monster_xy.y),
-                        now,
+                        presentation_instant.as_namui(),
                     ) {
                         game_state
                             .effect_events
@@ -298,7 +310,9 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
                     game_state
                         .effect_events
                         .push(GameEffectEvent::SpawnProjectileHitEffect(
-                            hit_effect, monster_xy, now,
+                            hit_effect,
+                            monster_xy,
+                            presentation_instant,
                         ));
                 }
             }
@@ -314,13 +328,16 @@ fn move_spatial_attacks(game_state: &mut GameState, dt: Duration, now: Instant) 
         });
     }
 
-    apply_monster_damage_and_remove_dead(game_state, hits);
+    apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
 /// 모든 공격 경로(Spatial/Timed/Laser)의 공통 종착점.
 /// 데미지 적용 → 타워 데미지 기록 → 사망 판정 → monster_death 처리.
-fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<MonsterHit>) {
-    let now = game_state.now();
+fn apply_monster_damage_and_remove_dead(
+    game_state: &mut GameState,
+    hits: Vec<MonsterHit>,
+    presentation_instant: PresentationInstant,
+) {
     let mut dead: Vec<(usize, MapCoordF32)> = Vec::new();
 
     let monster_centers: Vec<MapCoordF32> = game_state
@@ -362,7 +379,12 @@ fn apply_monster_damage_and_remove_dead(game_state: &mut GameState, hits: Vec<Mo
     dead.sort_by_key(|(idx, _)| *idx);
     dead.dedup_by_key(|(idx, _)| *idx);
     for (target_idx, target_xy) in dead.into_iter().rev() {
-        super::monster_death::handle_monster_death(game_state, target_idx, target_xy, now);
+        super::monster_death::handle_monster_death(
+            game_state,
+            target_idx,
+            target_xy,
+            presentation_instant,
+        );
     }
 }
 
@@ -408,6 +430,7 @@ fn expand_on_hit_splashes(
 pub(super) fn apply_area_damage_events(
     game_state: &mut GameState,
     events: Vec<super::AreaDamageEvent>,
+    presentation_instant: PresentationInstant,
 ) {
     if events.is_empty() {
         return;
@@ -419,7 +442,7 @@ pub(super) fn apply_area_damage_events(
         .map(|monster| monster.center_xy_tile())
         .collect();
     let hits = expand_area_damage_events(&monster_centers, events);
-    apply_monster_damage_and_remove_dead(game_state, hits);
+    apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
 fn expand_area_damage_events(

@@ -112,12 +112,22 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(&template, game_state.route.clone(), game_state.now(), 1.0);
+        let target = Monster::new(
+            &template,
+            game_state.route.clone(),
+            game_state.sim_tick(),
+            1.0,
+        );
         let target_xy = target.center_xy_tile();
-        let now = game_state.now();
+        let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);
-        tick::monster_death::handle_monster_death(&mut game_state, 0, target_xy, now);
+        tick::monster_death::handle_monster_death(
+            &mut game_state,
+            0,
+            target_xy,
+            presentation_instant,
+        );
 
         assert!((game_state.hp - 11.0).abs() < f32::EPSILON);
     }
@@ -140,12 +150,22 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(&template, game_state.route.clone(), game_state.now(), 1.0);
+        let target = Monster::new(
+            &template,
+            game_state.route.clone(),
+            game_state.sim_tick(),
+            1.0,
+        );
         let target_xy = target.center_xy_tile();
-        let now = game_state.now();
+        let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);
-        tick::monster_death::handle_monster_death(&mut game_state, 0, target_xy, now);
+        tick::monster_death::handle_monster_death(
+            &mut game_state,
+            0,
+            target_xy,
+            presentation_instant,
+        );
 
         assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
     }
