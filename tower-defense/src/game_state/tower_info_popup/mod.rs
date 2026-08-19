@@ -56,6 +56,11 @@ impl Component for TowerInfoPopup<'_> {
         } else {
             0.0
         };
+        let dps = if shoot_interval_secs > 0.0 {
+            damage / shoot_interval_secs
+        } else {
+            0.0
+        };
         let range = tower.attack_range_radius();
         let total_damage = game_state
             .metrics
@@ -65,6 +70,7 @@ impl Component for TowerInfoPopup<'_> {
             .map(|entry| entry.total_damage)
             .unwrap_or(0.0);
         let damage_label = text.tower_info_popup(TowerInfoPopupText::DamageLabel);
+        let dps_label = text.tower_info_popup(TowerInfoPopupText::DpsLabel);
         let attack_speed_label = text.tower_info_popup(TowerInfoPopupText::AttackSpeedLabel);
         let range_label = text.tower_info_popup(TowerInfoPopupText::RangeLabel);
         let total_damage_label = text.tower_info_popup(TowerInfoPopupText::TotalDamageLabel);
@@ -85,7 +91,7 @@ impl Component for TowerInfoPopup<'_> {
         let engraving_overlay_height = area_height(engravings.len());
         let bubble_height = BUBBLE_PADDING * 2.0
             + TOWER_NAME_ROW_HEIGHT
-            + STAT_ROW_HEIGHT * 5.0
+            + STAT_ROW_HEIGHT * 6.0
             + engraving_overlay_height
             + SECTION_GAP
             + REMOVE_BUTTON_HEIGHT
@@ -110,6 +116,13 @@ impl Component for TowerInfoPopup<'_> {
                                             .render_center(wh)
                                     },
                                 ));
+                            }),
+                            table::fixed_no_clip(STAT_ROW_HEIGHT, |wh, ctx| {
+                                ctx.add(PopupStatRow {
+                                    wh,
+                                    label: dps_label,
+                                    value: crate::format_compact_number(dps),
+                                });
                             }),
                             table::fixed_no_clip(STAT_ROW_HEIGHT, |wh, ctx| {
                                 ctx.add(PopupStatRow {

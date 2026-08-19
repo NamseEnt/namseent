@@ -132,6 +132,7 @@ pub enum ResultModalText {
 #[derive(Debug, Clone, Copy, State)]
 pub enum TowerInfoPopupText {
     DamageLabel,
+    DpsLabel,
     AttackSpeedLabel,
     RangeLabel,
     TotalDamageLabel,
@@ -233,6 +234,7 @@ impl TowerInfoPopupText {
     pub(super) fn to_korean(self) -> &'static str {
         match self {
             TowerInfoPopupText::DamageLabel => "데미지",
+            TowerInfoPopupText::DpsLabel => "DPS",
             TowerInfoPopupText::AttackSpeedLabel => "공격속도",
             TowerInfoPopupText::RangeLabel => "사거리",
             TowerInfoPopupText::TotalDamageLabel => "누적 데미지",
@@ -245,6 +247,7 @@ impl TowerInfoPopupText {
     pub(super) fn to_english(self) -> &'static str {
         match self {
             TowerInfoPopupText::DamageLabel => "Damage",
+            TowerInfoPopupText::DpsLabel => "DPS",
             TowerInfoPopupText::AttackSpeedLabel => "Attack Speed",
             TowerInfoPopupText::RangeLabel => "Range",
             TowerInfoPopupText::TotalDamageLabel => "Total Damage",
