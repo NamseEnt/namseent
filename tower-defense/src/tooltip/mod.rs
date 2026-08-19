@@ -52,6 +52,10 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     CardService(crate::game_state::card_service::CardService),
+    Tower {
+        kind: crate::game_state::tower::TowerKind,
+        words: Vec<crate::l10n::word::Word>,
+    },
     Shop {
         content: Box<TooltipContent>,
         slot_id: crate::shop::ShopSlotId,
@@ -147,6 +151,19 @@ impl TooltipContent {
             TooltipContent::CardService(card_service) => {
                 let mut sections = card_service.tooltip_sections(locale);
                 sections.extend(Word::CardService.tooltip_sections(locale));
+                sections
+            }
+            TooltipContent::Tower { kind, words } => {
+                let mut sections = vec![TooltipSection {
+                    title: None,
+                    body: SectionText {
+                        key: format!("tower:{kind:?}:name"),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(kind.to_text(), &locale);
+                        }),
+                    },
+                }];
+                sections.extend(words.iter().flat_map(|word| word.tooltip_sections(locale)));
                 sections
             }
             TooltipContent::Shop { content, slot_id } => {

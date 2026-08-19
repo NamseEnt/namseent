@@ -25,14 +25,23 @@ impl Component for RenderTowerCard<'_> {
         let Self { wh, tower_template } = self;
 
         let bonus_pct = tower_template.card_polish_pct();
+        let tower_kind = tower_template.kind;
+        let engraving = tower_template
+            .used_cards()
+            .iter()
+            .find_map(|card| card.engraving());
         let on_enter = move || {
+            let mut words = Vec::new();
             if bonus_pct > 0.0 {
-                Some(crate::tooltip::TooltipContent::Word(
-                    crate::l10n::word::Word::Polish(Some(bonus_pct)),
-                ))
-            } else {
-                None
+                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct)));
             }
+            if let Some(engraving) = engraving {
+                words.push(crate::l10n::word::Word::Engraving(Some(engraving)));
+            }
+            Some(crate::tooltip::TooltipContent::Tower {
+                kind: tower_kind,
+                words,
+            })
         };
 
         ctx.add(crate::tooltip::WithHoverArea {
