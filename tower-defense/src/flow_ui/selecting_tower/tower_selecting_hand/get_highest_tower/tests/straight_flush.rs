@@ -52,10 +52,10 @@ fn test_straight_flush_4cards_without_upgrade() {
 #[test]
 fn test_straight_flush_4cards_with_upgrade() {
     let cards = vec![
+        make_card(Suit::Hearts, Rank::Nine),
         make_card(Suit::Hearts, Rank::Ten),
         make_card(Suit::Hearts, Rank::Jack),
         make_card(Suit::Hearts, Rank::Queen),
-        make_card(Suit::Hearts, Rank::King),
     ];
     let upgrade_state = state_with(vec![
         crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
@@ -69,7 +69,7 @@ fn test_straight_flush_4cards_with_upgrade() {
     );
     assert_eq!(template.kind, TowerKind::StraightFlush);
     assert_eq!(template.suit.unwrap(), Suit::Hearts);
-    assert_eq!(template.rank.unwrap(), Rank::King);
+    assert_eq!(template.rank.unwrap(), Rank::Queen);
 }
 
 #[test]
@@ -122,10 +122,10 @@ fn test_straight_flush_treat_suits_as_same() {
 #[test]
 fn test_straight_flush_treat_suits_as_same_and_shorten_4cards() {
     let cards = vec![
-        make_card(Suit::Hearts, Rank::Ten),
-        make_card(Suit::Diamonds, Rank::Jack),
-        make_card(Suit::Hearts, Rank::Queen),
-        make_card(Suit::Diamonds, Rank::King),
+        make_card(Suit::Hearts, Rank::Nine),
+        make_card(Suit::Diamonds, Rank::Ten),
+        make_card(Suit::Hearts, Rank::Jack),
+        make_card(Suit::Diamonds, Rank::Queen),
     ];
     let upgrade_state = state_with(vec![
         crate::game_state::upgrade::BlackWhiteUpgrade::into_upgrade(),
@@ -140,5 +140,28 @@ fn test_straight_flush_treat_suits_as_same_and_shorten_4cards() {
     );
     assert_eq!(template.kind, TowerKind::StraightFlush);
     assert!(template.suit.unwrap() == Suit::Hearts || template.suit.unwrap() == Suit::Diamonds);
-    assert_eq!(template.rank.unwrap(), Rank::King);
+    assert_eq!(template.rank.unwrap(), Rank::Queen);
+}
+
+#[test]
+fn test_straight_and_flush_must_use_the_same_cards() {
+    let cards = vec![
+        make_card(Suit::Hearts, Rank::Two),
+        make_card(Suit::Hearts, Rank::Three),
+        make_card(Suit::Hearts, Rank::Four),
+        make_card(Suit::Hearts, Rank::Nine),
+        make_card(Suit::Spades, Rank::Five),
+    ];
+    let upgrade_state = state_with(vec![
+        crate::game_state::upgrade::FourLeafCloverUpgrade::into_upgrade(),
+    ]);
+    let template = get_highest_tower_template(
+        &cards,
+        &upgrade_state,
+        0,
+        &crate::config::GameConfig::default_config(),
+    );
+
+    assert_eq!(template.kind, TowerKind::Flush);
+    assert_eq!(template.used_cards().len(), 4);
 }
