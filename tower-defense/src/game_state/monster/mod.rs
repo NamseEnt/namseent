@@ -6,13 +6,13 @@ mod render;
 pub mod skill;
 
 use crate::{
-    Damage, FixedRatio, Health, MapCoordF32, SimTick,
+    Damage, FixedRatio, Health, MapCoordF32, MonsterId, SimTick, WorldCoord, WorldVec,
     game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
     route::{MoveOnRoute, Route},
 };
 pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
-pub use move_monsters::move_monsters;
+pub use move_monsters::{move_monsters, resolve_base_damage};
 use namui::*;
 pub use render::{monster_animation_tick, monster_wh};
 #[allow(unused_imports)]
@@ -20,16 +20,13 @@ pub use skill::{
     MonsterSkill, MonsterSkillTemplate, MonsterStatusEffect, MonsterStatusEffectKind,
     activate_monster_skills, remove_monster_finished_status_effects,
 };
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
-};
+use std::sync::Arc;
 
 const MONSTER_HP_BAR_HEIGHT: Px = px(4.);
 
 #[derive(State, Clone)]
 pub struct Monster {
-    id: usize,
+    id: MonsterId,
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
     pub projectile_target_indicator: ProjectileTargetIndicator,
@@ -45,19 +42,19 @@ pub struct Monster {
     pub animation: MonsterAnimation,
 }
 impl Monster {
-    pub fn new(
+    pub(crate) fn new_with_id(
         template: &MonsterTemplate,
         route: Arc<Route>,
         sim_tick: SimTick,
         health_multipliers: &crate::RatioProduct,
+        id: MonsterId,
     ) -> Self {
-        static ID: AtomicUsize = AtomicUsize::new(0);
         let adjusted_max_hp = template.max_hp.scaled_by_product(health_multipliers);
         Self {
-            id: ID.fetch_add(1, Ordering::Relaxed),
+            id,
             move_on_route: MoveOnRoute::new(route, template.velocity),
             kind: template.kind,
-            projectile_target_indicator: ProjectileTargetIndicator::new(),
+            projectile_target_indicator: ProjectileTargetIndicator::from_id(id),
             hp: adjusted_max_hp,
             max_hp: adjusted_max_hp,
             stage_progress_counted: false,
@@ -108,30 +105,84 @@ impl Monster {
         self.move_on_route.xy()
     }
 
-    /// 몬스터의 중심점 (타일 단위) - 프로젝타일/레이저 유도용
-    pub fn center_xy_tile(&self) -> MapCoordF32 {
-        self.move_on_route.xy() + MapCoordF32::new(0.5, 0.5)
+    pub fn world_xy(&self) -> WorldCoord {
+        self.move_on_route.world_xy()
     }
 
-    pub fn id(&self) -> usize {
+    /// 몬스터의 중심점 (타일 단위) - 프로젝타일/레이저 유도용
+    pub fn center_xy_tile(&self) -> MapCoordF32 {
+        self.center_world_xy().as_map_coord_f32()
+    }
+
+    pub fn center_world_xy(&self) -> WorldCoord {
+        self.world_xy()
+            + WorldVec::new(
+                crate::world::WORLD_UNITS_PER_TILE / 2,
+                crate::world::WORLD_UNITS_PER_TILE / 2,
+            )
+    }
+
+    pub fn id(&self) -> MonsterId {
         self.id
     }
-    pub fn get_speed_multiplier(&self) -> f32 {
+    pub fn get_speed_multiplier(&self) -> FixedRatio {
         let is_immune_to_slow = self.status_effects.iter().any(|status_effect| {
             matches!(status_effect.kind, MonsterStatusEffectKind::ImmuneToSlow)
         });
-        let mut speed_multiplier = 1.0f32;
-        for status_effect in &self.status_effects {
-            match status_effect.kind {
-                MonsterStatusEffectKind::SpeedMul { mul } => {
-                    if is_immune_to_slow && mul < FixedRatio::ONE {
-                        continue;
-                    }
-                    speed_multiplier *= mul.as_f32();
-                }
-                MonsterStatusEffectKind::Invincible | MonsterStatusEffectKind::ImmuneToSlow => {}
+        let factors = self.status_effects.iter().filter_map(|status_effect| {
+            let MonsterStatusEffectKind::SpeedMul { mul } = status_effect.kind else {
+                return None;
+            };
+            if is_immune_to_slow && mul < FixedRatio::ONE {
+                return None;
             }
-        }
-        speed_multiplier
+            Some(mul)
+        });
+        FixedRatio::from_raw(
+            crate::RatioProduct::one()
+                .with_all(factors)
+                .apply_raw(FixedRatio::ONE.raw()),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn monster_with_speed_effects(multipliers: impl IntoIterator<Item = FixedRatio>) -> Monster {
+        let game_state = crate::game_state::create_game_state_with_seed(19);
+        let template = MonsterTemplate::new(MonsterKind::Mob01, &game_state.config);
+        let mut monster = Monster::new_with_id(
+            &template,
+            game_state.route,
+            SimTick::ZERO,
+            &crate::RatioProduct::one(),
+            crate::MonsterId::from_raw(1),
+        );
+        monster.status_effects = multipliers
+            .into_iter()
+            .map(|mul| MonsterStatusEffect {
+                kind: MonsterStatusEffectKind::SpeedMul { mul },
+                end_at: SimTick::from_ticks(100),
+            })
+            .collect();
+        monster
+    }
+
+    #[test]
+    fn speed_multiplier_is_independent_of_status_insertion_order() {
+        let factors = [
+            FixedRatio::from_raw(1_234_567),
+            FixedRatio::from_raw(765_433),
+            FixedRatio::from_raw(1_000_003),
+        ];
+        let forward = monster_with_speed_effects(factors);
+        let reversed = monster_with_speed_effects(factors.into_iter().rev());
+
+        assert_eq!(
+            forward.get_speed_multiplier(),
+            reversed.get_speed_multiplier()
+        );
     }
 }

@@ -3,9 +3,9 @@ mod royal_straight_flush;
 mod skill;
 
 use super::*;
-use crate::SimTick;
 use crate::game_state::attack::{AttackType, ProjectileGroup};
 use crate::l10n::tower::TowerKindText;
+use crate::{AttackId, MonsterId, SimTick, TowerId, WorldCoord, WorldDistance, WorldVec};
 use namui::*;
 use render::Animation;
 pub use render::{AnimationKind, tower_animation_tick};
@@ -13,17 +13,15 @@ use royal_straight_flush::RoyalStraightFlushVisual;
 pub use royal_straight_flush::royal_straight_flush_hit_delay;
 pub use royal_straight_flush::tick_royal_straight_flush_visuals;
 pub use skill::*;
-use std::{
-    ops::Deref,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use std::ops::Deref;
 
-const PROJECTILE_SPEED: Velocity = Per::new(12.0, Duration::from_secs(1));
-const FAST_PROJECTILE_SPEED: Velocity = Per::new(16.0, Duration::from_secs(1));
+const PROJECTILE_SPEED: Velocity = WorldSpeed::from_raw(12 * crate::world::WORLD_UNITS_PER_TILE);
+const FAST_PROJECTILE_SPEED: Velocity =
+    WorldSpeed::from_raw(16 * crate::world::WORLD_UNITS_PER_TILE);
 
 #[derive(Clone, PartialEq, State)]
 pub struct Tower {
-    id: usize,
+    id: Option<TowerId>,
     pub left_top: MapCoord,
     cooldown: SimTickSpan,
     pub template: TowerTemplate,
@@ -42,7 +40,9 @@ pub struct CachedTowerUpgradeDamage {
 }
 
 pub struct ShootProjectileParams {
+    pub id: AttackId,
     pub target_indicator: ProjectileTargetIndicator,
+    pub key: u64,
     pub speed: Velocity,
     pub trail: ProjectileTrail,
     pub projectile_group: ProjectileGroup,
@@ -53,16 +53,14 @@ pub struct ShootProjectileParams {
 }
 
 pub struct AttackTypeParams {
-    pub target_xy: (f32, f32),
+    pub target_xy: WorldCoord,
     pub sim_tick: SimTick,
 }
 
 impl Tower {
     pub fn new(template: &TowerTemplate, left_top: MapCoord, sim_tick: SimTick) -> Self {
-        static ID: AtomicUsize = AtomicUsize::new(0);
-
         Self {
-            id: ID.fetch_add(1, Ordering::Relaxed),
+            id: None,
             left_top,
             cooldown: SimTickSpan::ZERO,
             template: template.clone(),
@@ -82,6 +80,12 @@ impl Tower {
             royal_straight_flush_visual: None,
         }
     }
+
+    pub(crate) fn assign_id(&mut self, id: TowerId) {
+        assert!(self.id.is_none(), "tower ID must be assigned exactly once");
+        self.id = Some(id);
+    }
+
     pub fn in_cooltime(&self) -> bool {
         self.cooldown > SimTickSpan::ZERO
     }
@@ -90,10 +94,12 @@ impl Tower {
         self.mark_fired(params.sim_tick);
 
         attack::InFlightAttack::new_spatial(
+            params.id,
             attack::SpatialAttack::new_direct(
-                self.head_xy_tile(),
+                self.head_world_xy(),
                 params.target_indicator,
-                params.projectile_group.random_kind(),
+                params.key,
+                params.projectile_group.kind_for(params.key),
                 params.speed,
                 params.trail,
                 params.hit_effect,
@@ -106,22 +112,22 @@ impl Tower {
 
     pub fn shoot_laser(
         &mut self,
-        target_xy: (f32, f32),
-        target_monster_id: usize,
+        id: AttackId,
+        target_xy: WorldCoord,
+        target_monster_id: MonsterId,
         damage: Damage,
         sim_tick: SimTick,
         source_tower: Option<attack::TowerInfo>,
     ) -> attack::InFlightAttack {
         self.mark_fired(sim_tick);
 
-        let head_xy = self.head_xy_tile();
         let beam = attack::laser::LaserBeam::new(
-            (head_xy.x, head_xy.y),
+            self.head_world_xy(),
             target_xy,
             sim_tick,
             target_monster_id,
         );
-        attack::InFlightAttack::new_laser(beam, damage, source_tower)
+        attack::InFlightAttack::new_laser(id, beam, damage, source_tower)
             .with_on_hit_splashes(self.engraving_modifier().on_hit_splashes)
     }
 
@@ -191,10 +197,8 @@ impl Tower {
                 hit_effect: attack::ProjectileHitEffect::SparkleBurst,
             },
             TowerKind::FullHouse => {
-                let head_xy = self.head_xy_tile();
-                AttackType::FullHouseRain {
-                    tower_xy: (head_xy.x, head_xy.y),
-                }
+                let head_xy = self.head_world_xy();
+                AttackType::FullHouseRain { tower_xy: head_xy }
             }
             TowerKind::FourOfAKind => AttackType::Projectile {
                 speed: FAST_PROJECTILE_SPEED,
@@ -216,16 +220,24 @@ impl Tower {
         self.left_top + MapCoord::new(1, 1)
     }
     pub fn center_xy_f32(&self) -> MapCoordF32 {
-        self.center_xy().map(|t| t as f32)
+        self.center_world_xy().as_map_coord_f32()
+    }
+
+    pub fn center_world_xy(&self) -> WorldCoord {
+        let center = self.center_xy();
+        WorldCoord::from_tile_center(center.x as i64, center.y as i64)
     }
 
     pub fn head_xy_tile(&self) -> MapCoordF32 {
-        let center = self.center_xy_f32();
-        MapCoordF32::new(center.x, center.y - 0.5)
+        self.head_world_xy().as_map_coord_f32()
     }
 
-    pub fn id(&self) -> usize {
-        self.id
+    pub fn head_world_xy(&self) -> WorldCoord {
+        self.center_world_xy() + WorldVec::new(0, -crate::world::WORLD_UNITS_PER_TILE / 2)
+    }
+
+    pub fn id(&self) -> TowerId {
+        self.id.expect("placed tower must have an ID")
     }
 
     pub fn rank(&self) -> Option<Rank> {
@@ -277,9 +289,9 @@ impl Tower {
         Damage::from_raw(ratios.apply_raw(damage.raw()))
     }
 
-    pub(crate) fn attack_range_radius(&self) -> f32 {
+    pub(crate) fn attack_range_radius(&self) -> WorldDistance {
         if self.kind == TowerKind::RubberCone {
-            return 0.0;
+            return WorldDistance::ZERO;
         }
         self.template.attack_range_radius()
     }
@@ -297,7 +309,7 @@ pub struct TowerTemplate {
     pub kind: TowerKind,
     pub rerolled_count: usize,
     pub shoot_interval: SimTickSpan,
-    pub default_attack_range_radius: f32,
+    pub default_attack_range_radius: WorldDistance,
     pub default_damage: Damage,
     pub suit: Option<Suit>,
     pub rank: Option<Rank>,
@@ -383,7 +395,7 @@ impl TowerTemplate {
         self.engraving.clone()
     }
 
-    pub(crate) fn attack_range_radius(&self) -> f32 {
+    pub(crate) fn attack_range_radius(&self) -> WorldDistance {
         self.engraving
             .apply_attack_range(self.default_attack_range_radius)
     }
@@ -460,19 +472,19 @@ impl TowerKind {
             Self::RoyalFlush => SimTickSpan::from_millis_ceil(1_000),
         }
     }
-    pub fn default_attack_range_radius(&self) -> f32 {
+    pub fn default_attack_range_radius(&self) -> WorldDistance {
         match self {
-            Self::RubberCone => 4.0,
-            Self::High => 4.0,
-            Self::OnePair => 5.0,
-            Self::TwoPair => 6.0,
-            Self::ThreeOfAKind => 7.0,
-            Self::Straight => 9.0,
-            Self::Flush => 9.0,
-            Self::FullHouse => 11.0,
-            Self::FourOfAKind => 11.0,
-            Self::StraightFlush => 14.0,
-            Self::RoyalFlush => 15.0,
+            Self::RubberCone => WorldDistance::from_tiles(4),
+            Self::High => WorldDistance::from_tiles(4),
+            Self::OnePair => WorldDistance::from_tiles(5),
+            Self::TwoPair => WorldDistance::from_tiles(6),
+            Self::ThreeOfAKind => WorldDistance::from_tiles(7),
+            Self::Straight => WorldDistance::from_tiles(9),
+            Self::Flush => WorldDistance::from_tiles(9),
+            Self::FullHouse => WorldDistance::from_tiles(11),
+            Self::FourOfAKind => WorldDistance::from_tiles(11),
+            Self::StraightFlush => WorldDistance::from_tiles(14),
+            Self::RoyalFlush => WorldDistance::from_tiles(15),
         }
     }
     pub fn default_damage(&self) -> Damage {

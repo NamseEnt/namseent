@@ -6,7 +6,7 @@ const NAME_TAG_DAMAGE_BONUS_PCT: FixedRatio = FixedRatio::from_integer(2);
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct NameTagUpgrade {
     pub damage_bonus_pct: FixedRatio,
-    pub target_tower_id: Option<usize>,
+    pub target_tower_id: Option<crate::TowerId>,
 }
 
 impl UpgradeBehavior for NameTagUpgrade {

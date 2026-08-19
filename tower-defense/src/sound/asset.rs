@@ -218,6 +218,25 @@ pub fn random_wind() -> AudioAsset {
     random_one(&WIND_ASSETS)
 }
 
+pub fn deterministic_flamethrower() -> AudioAsset {
+    FLAMETHROWER_ASSETS[0]
+}
+pub fn deterministic_smoke_bomb() -> AudioAsset {
+    SMOKE_BOMB_ASSETS[0]
+}
+pub fn deterministic_red_laser_shot() -> AudioAsset {
+    RED_LASER_SHOT_ASSETS[0]
+}
+pub fn deterministic_knife_slash() -> AudioAsset {
+    KNIFE_SLASH_ASSETS[0]
+}
+pub fn deterministic_whoop() -> AudioAsset {
+    WHOOP_ASSETS[0]
+}
+pub fn deterministic_wind() -> AudioAsset {
+    WIND_ASSETS[0]
+}
+
 pub fn random_knife_slash() -> AudioAsset {
     random_one(&KNIFE_SLASH_ASSETS)
 }

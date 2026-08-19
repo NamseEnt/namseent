@@ -1,18 +1,21 @@
 use crate::Damage;
 use crate::game_state::user_status_effect::UserStatusEffectKind;
 use crate::game_state::{GameState, flow::GameFlow};
-use namui::Duration;
+use crate::{RatioProduct, WorldSpeed};
 
-pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
+pub fn move_monsters(game_state: &mut GameState) {
     for monster in &mut game_state.monsters {
-        let mut dt = dt;
-        dt *= monster.get_speed_multiplier();
-        dt *= game_state
-            .stage_modifiers
-            .get_enemy_speed_multiplier()
-            .as_f32();
-        monster.move_on_route.move_by(dt);
+        let speed = RatioProduct::one()
+            .with(monster.get_speed_multiplier())
+            .with(game_state.stage_modifiers.get_enemy_speed_multiplier())
+            .apply_raw(monster.move_on_route.velocity().raw());
+        monster
+            .move_on_route
+            .move_one_tick(WorldSpeed::from_raw(speed));
     }
+}
+
+pub fn resolve_base_damage(game_state: &mut GameState) {
     let mut damage = Damage::ZERO;
     for monster in &mut game_state.monsters {
         if monster.move_on_route.is_finished() {
@@ -44,6 +47,7 @@ pub fn move_monsters(game_state: &mut GameState, dt: Duration) {
     if !damage.is_zero() {
         game_state.action(crate::game_state::GameStateAction::TakeDamage(damage));
     }
+    game_state.monsters.sort_by_key(|monster| monster.id());
 }
 
 fn adjusted_incoming_damage(game_state: &GameState, damage: Damage) -> Damage {

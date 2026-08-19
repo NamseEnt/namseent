@@ -33,7 +33,7 @@ use crate::game_state::{
     upgrade::Upgrade,
     user_status_effect::UserStatusEffect,
 };
-use crate::{Damage, Health, Shield};
+use crate::{Damage, Health, Shield, TowerId};
 
 pub(crate) use modify_deck::{DeckEdit, DeckEditChange, DeckEnhance};
 
@@ -50,7 +50,7 @@ pub(crate) enum GameStateAction {
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
     PlaceTower(Box<Tower>, Option<HandSlotId>),
-    RemoveTower(usize),
+    RemoveTower(TowerId),
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantItem(item::Item),
@@ -149,7 +149,7 @@ impl GameState {
             }
             GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {
                 place_tower::prepare_tower_stats(&mut tower, &self.upgrade_state);
-                if place_tower::place_tower(self, &tower) {
+                if place_tower::place_tower(self, &mut tower) {
                     if let Some(slot_id) = placing_tower_slot_id {
                         self.hand.delete_slots(&[slot_id]);
                         place_tower::auto_select_first_tower(self);

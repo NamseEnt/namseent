@@ -5,7 +5,7 @@ use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::rarity::Rarity;
-use crate::{FixedRatio, Health, HealthDelta};
+use crate::{FixedRatio, Health, HealthDelta, TowerId};
 use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -266,7 +266,7 @@ pub(super) fn no_current_and_max(_upgrade_state: &UpgradeState) -> Option<(usize
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]
 pub enum SelectedTowerId {
-    Placed(usize),
+    Placed(TowerId),
     ToBePlaced,
 }
 

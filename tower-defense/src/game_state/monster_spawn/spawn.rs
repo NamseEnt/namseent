@@ -16,6 +16,7 @@ pub fn start_spawn(game_state: &mut GameState) {
         sim_tick,
         health_multipliers,
         &game_state.config,
+        &mut game_state.next_entity_id,
     );
 
     game_state.monster_spawn_state.monster_queue = monster_queue;
@@ -54,19 +55,23 @@ pub fn tick(game_state: &mut GameState, sim_tick: SimTick) {
         Some(sim_tick + game_state.monster_spawn_state.spawn_interval);
 }
 
-pub fn monster_queue_table(
+pub(crate) fn monster_queue_table(
     stage: usize,
     route: Arc<Route>,
     sim_tick: SimTick,
     health_multipliers: &crate::RatioProduct,
     config: &crate::config::GameConfig,
+    allocator: &mut super::super::entity_id::EntityIdAllocator,
 ) -> (VecDeque<Monster>, SimTickSpan) {
     let (template_queue, spawn_interval) = monster_template_queue_table(stage, config);
 
     let monster_queue = template_queue
         .into_iter()
-        .map(|template| Monster::new(&template, route.clone(), sim_tick, health_multipliers))
-        .collect();
+        .map(|template| {
+            let id = allocator.allocate_monster_id();
+            Monster::new_with_id(&template, route.clone(), sim_tick, health_multipliers, id)
+        })
+        .collect::<VecDeque<_>>();
 
     (monster_queue, spawn_interval)
 }
@@ -89,7 +94,7 @@ pub fn monster_template_queue_table(
         .entries
         .iter()
         .flat_map(|entry| std::iter::repeat_n(entry.kind, entry.count))
-        .map(|kind| MonsterTemplate::new_with_config(kind, config))
+        .map(|kind| MonsterTemplate::new(kind, config))
         .collect::<VecDeque<_>>();
 
     (template_queue, spawn_interval)

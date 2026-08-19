@@ -1,15 +1,15 @@
-use crate::MapCoordF32;
 use crate::PresentationInstant;
 use crate::game_state::ProjectileTrail;
 use crate::game_state::field_particle::*;
 use crate::sound;
 use crate::sound::EmitSoundParams;
+use crate::{AttackId, MapCoordF32};
 use namui::*;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 
 pub(crate) static PROJECTILE_TRAIL_SOUND_IDS: LazyLock<
-    Mutex<HashMap<u64, (ProjectileTrail, sound::SoundId)>>,
+    Mutex<HashMap<AttackId, (ProjectileTrail, sound::SoundId)>>,
 > = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Default, Clone)]
@@ -19,7 +19,7 @@ pub(crate) struct ProjectileTrailEffectState {
 }
 
 pub(crate) static PROJECTILE_TRAIL_EFFECT_STATE: LazyLock<
-    Mutex<HashMap<u64, ProjectileTrailEffectState>>,
+    Mutex<HashMap<AttackId, ProjectileTrailEffectState>>,
 > = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[derive(Clone)]
@@ -57,7 +57,7 @@ pub enum GameEffectEvent {
     SpawnLaserBeam((f32, f32), (f32, f32), PresentationInstant),
     SpawnTowerRemoveDustBurst((f32, f32), PresentationInstant),
     SyncProjectileTrailState {
-        projectile_id: u64,
+        projectile_id: AttackId,
         trail: ProjectileTrail,
         start_xy: MapCoordF32,
         end_xy: MapCoordF32,

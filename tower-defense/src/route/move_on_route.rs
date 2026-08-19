@@ -1,77 +1,86 @@
 use super::*;
-use crate::*;
+use crate::{MapCoordF32, WorldCoord, WorldDistance, WorldSpeed};
 use std::sync::Arc;
 
 #[derive(State, Clone)]
 pub struct MoveOnRoute {
     route: Arc<Route>,
     route_index: usize,
-    /// must be in [0.0, 1.0]
-    route_progress: f32,
-    map_coord: MapCoordF32,
-    velocity: Velocity,
+    route_progress: WorldDistance,
+    map_coord: WorldCoord,
+    velocity: WorldSpeed,
+    movement_remainder: i64,
 }
 
-pub type Velocity = Per<f32, Duration>;
+pub type Velocity = WorldSpeed;
 
 impl MoveOnRoute {
     pub fn new(route: Arc<Route>, velocity: Velocity) -> Self {
         Self {
-            map_coord: route.map_coords[0].map(|x| x as f32),
+            map_coord: route.world_coords[0],
             route,
             route_index: 0,
-            route_progress: 0.0,
+            route_progress: WorldDistance::ZERO,
             velocity,
+            movement_remainder: 0,
         }
     }
     pub fn is_finished(&self) -> bool {
-        self.route_index >= self.route.map_coords.len() - 1
+        self.route_index >= self.route.world_coords.len().saturating_sub(1)
     }
-    pub fn xy(&self) -> Xy<f32> {
+    pub fn world_xy(&self) -> WorldCoord {
         self.map_coord
+    }
+    pub fn xy(&self) -> MapCoordF32 {
+        self.map_coord.as_map_coord_f32()
     }
     pub fn velocity(&self) -> Velocity {
         self.velocity
     }
-
     pub fn route_index(&self) -> usize {
         self.route_index
     }
-
+    pub fn route_progress(&self) -> WorldDistance {
+        self.route_progress
+    }
     pub fn reset(&mut self) {
         self.route_index = 0;
-        self.route_progress = 0.0;
-        self.map_coord = self.route.map_coords[0].map(|x| x as f32);
+        self.route_progress = WorldDistance::ZERO;
+        self.map_coord = self.route.world_coords[0];
     }
-
-    pub(crate) fn move_by(&mut self, dt: Duration) {
-        let mut movable_distance = self.velocity * dt;
-
-        while movable_distance > 0.0 {
-            let Some(next_route_xy) = self
-                .route
-                .map_coords
-                .get(self.route_index + 1)
-                .map(|x| x.map(|x| x as f32))
-            else {
-                return;
-            };
-            let last_route_xy = self.route.map_coords[self.route_index].map(|x| x as f32);
-            let left_distance_to_next_route_xy = (next_route_xy - self.map_coord).length();
-
-            if movable_distance < left_distance_to_next_route_xy {
-                let distance_between_route_xy = (next_route_xy - last_route_xy).length();
-                self.route_progress += movable_distance / distance_between_route_xy;
-                // protect from floating point error... gpt recommendation
-                self.route_progress = self.route_progress.clamp(0.0, 1.0);
-                self.map_coord =
-                    last_route_xy + (next_route_xy - last_route_xy) * self.route_progress;
+    pub(crate) fn move_one_tick(&mut self, speed: WorldSpeed) {
+        let numerator = speed.raw() as i128 + self.movement_remainder as i128;
+        let movable_distance = (numerator / crate::world::SIM_TICKS_PER_SECOND as i128)
+            .clamp(0, i64::MAX as i128) as i64;
+        self.movement_remainder = (numerator % crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+        let mut movable_distance = movable_distance;
+        while movable_distance > 0 && !self.is_finished() {
+            let segment_start = self.route.world_coords[self.route_index];
+            let segment_end = self.route.world_coords[self.route_index + 1];
+            let segment_length = self.route.segment_lengths[self.route_index].raw();
+            let travelled = self
+                .route_progress
+                .raw()
+                .saturating_sub(self.route.cumulative_lengths[self.route_index].raw());
+            let left = segment_length.saturating_sub(travelled);
+            if movable_distance < left {
+                let next_travelled = travelled.saturating_add(movable_distance);
+                self.route_progress = WorldDistance::from_raw(
+                    self.route.cumulative_lengths[self.route_index]
+                        .raw()
+                        .saturating_add(next_travelled),
+                );
+                self.map_coord = segment_start
+                    + (segment_end - segment_start).scaled_by_distance(
+                        WorldDistance::from_raw(next_travelled),
+                        WorldDistance::from_raw(segment_length),
+                    );
                 return;
             }
-            movable_distance -= left_distance_to_next_route_xy;
+            movable_distance = movable_distance.saturating_sub(left);
             self.route_index += 1;
-            self.route_progress = 0.0;
-            self.map_coord = next_route_xy;
+            self.route_progress = self.route.cumulative_lengths[self.route_index];
+            self.map_coord = segment_end;
         }
     }
 }
@@ -80,67 +89,35 @@ impl MoveOnRoute {
 mod tests {
     use super::*;
 
-    const ONE_VELOCITY: Velocity = Per::new(1.0, Duration::from_secs(1));
-
-    #[test]
-    fn test_tick_moves_monster_forward() {
-        let route = Arc::new(Route {
-            map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
-        move_on_route.move_by(Duration::from_secs_f32(2.5));
-        move_on_route.move_by(Duration::from_secs_f32(2.5));
-        assert_eq!(move_on_route.route_index, 0);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
+    fn route(length: i64) -> Arc<Route> {
+        let start = WorldCoord::ZERO;
+        let end = WorldCoord::new(length, 0);
+        Arc::new(Route {
+            map_coords: vec![MapCoord::new(0, 0), MapCoord::new(1, 0)],
+            world_coords: vec![start, end],
+            segment_lengths: vec![WorldDistance::from_raw(length)],
+            cumulative_lengths: vec![WorldDistance::ZERO, WorldDistance::from_raw(length)],
+        })
     }
 
     #[test]
-    fn test_tick_reaches_next_point() {
-        let route = Arc::new(Route {
-            map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        assert_eq!(move_on_route.route_index, 1);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
+    fn endpoint_is_reached_without_overshoot() {
+        let mut mover = MoveOnRoute::new(route(1_000_000), WorldSpeed::from_raw(120_000_000));
+        mover.move_one_tick(WorldSpeed::from_raw(120_000_000));
+        assert_eq!(mover.world_xy(), WorldCoord::new(1_000_000, 0));
+        assert!(mover.is_finished());
     }
 
     #[test]
-    fn test_tick_finishes_route() {
-        let route = Arc::new(Route {
-            map_coords: vec![Xy::new(0, 0), Xy::new(10, 0)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
-        move_on_route.move_by(Duration::from_secs_f32(10.0));
-        move_on_route.move_by(Duration::from_secs_f32(10.0));
-        assert!(move_on_route.is_finished());
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-    }
-
-    #[test]
-    fn test_tick_multiple_points() {
-        let route = Arc::new(Route {
-            map_coords: vec![Xy::new(0, 0), Xy::new(10, 0), Xy::new(10, 10)],
-        });
-        let mut move_on_route = MoveOnRoute::new(route, ONE_VELOCITY);
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        assert_eq!(move_on_route.route_index, 0);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(5.0, 0.0));
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        assert_eq!(move_on_route.route_index, 1);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 0.0));
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        assert_eq!(move_on_route.route_index, 1);
-        assert!(move_on_route.route_progress > 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 5.0));
-        move_on_route.move_by(Duration::from_secs_f32(5.0));
-        assert_eq!(move_on_route.route_index, 2);
-        assert_eq!(move_on_route.route_progress, 0.0);
-        assert_eq!(move_on_route.xy(), Xy::new(10.0, 10.0));
+    fn remainder_is_preserved_for_one_hundred_thousand_ticks() {
+        let mut mover = MoveOnRoute::new(route(10_000_000), WorldSpeed::from_raw(1));
+        for _ in 0..100_000 {
+            mover.move_one_tick(WorldSpeed::from_raw(1));
+        }
+        assert_eq!(
+            mover.world_xy().x,
+            100_000 / crate::world::SIM_TICKS_PER_SECOND
+        );
+        assert_eq!(mover.route_progress().raw(), mover.world_xy().x);
     }
 }

@@ -115,13 +115,14 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(
+        let target = Monster::new_with_id(
             &template,
             game_state.route.clone(),
             game_state.sim_tick(),
             &crate::RatioProduct::one(),
+            crate::MonsterId::from_entity_id(game_state.allocate_entity_id()),
         );
-        let target_xy = target.center_xy_tile();
+        let target_xy = target.center_world_xy();
         let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);
@@ -153,13 +154,14 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(
+        let target = Monster::new_with_id(
             &template,
             game_state.route.clone(),
             game_state.sim_tick(),
             &crate::RatioProduct::one(),
+            crate::MonsterId::from_entity_id(game_state.allocate_entity_id()),
         );
-        let target_xy = target.center_xy_tile();
+        let target_xy = target.center_world_xy();
         let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);

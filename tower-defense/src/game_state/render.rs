@@ -186,7 +186,7 @@ fn render_projectiles(ctx: &RenderCtx, game_state: &GameState) {
         ctx,
         game_state.in_flight_attacks.iter().filter_map(|attack| {
             if let InFlightAttackKind::Spatial(spatial) = &attack.kind {
-                Some((spatial.xy, spatial))
+                Some((spatial.xy.as_map_coord_f32(), spatial))
             } else {
                 None
             }

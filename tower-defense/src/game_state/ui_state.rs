@@ -1,4 +1,5 @@
 use crate::PresentationInstant;
+use crate::TowerId;
 use namui::*;
 use std::collections::HashMap;
 
@@ -73,8 +74,8 @@ impl TowerInfoSpringState {
 /// UI 관련 상태를 관리하는 별도 구조체
 #[derive(State, Clone)]
 pub struct UIState {
-    pub tower_popup_states: HashMap<usize, TowerInfoSpringState>,
-    pub selected_tower_id: Option<usize>,
+    pub tower_popup_states: HashMap<TowerId, TowerInfoSpringState>,
+    pub selected_tower_id: Option<TowerId>,
     last_cleanup_time: PresentationInstant,
 }
 
@@ -89,7 +90,7 @@ impl UIState {
 
     pub fn ensure_tower_popup_state(
         &mut self,
-        tower_id: usize,
+        tower_id: TowerId,
         presentation_instant: PresentationInstant,
     ) {
         self.tower_popup_states
@@ -99,7 +100,7 @@ impl UIState {
 
     pub fn set_selected_tower(
         &mut self,
-        tower_id: Option<usize>,
+        tower_id: Option<TowerId>,
         presentation_instant: PresentationInstant,
     ) {
         // Early return if same tower
@@ -142,7 +143,10 @@ impl UIState {
         }
     }
 
-    pub fn cleanup_unused_states(&mut self, existing_tower_ids: &std::collections::HashSet<usize>) {
+    pub fn cleanup_unused_states(
+        &mut self,
+        existing_tower_ids: &std::collections::HashSet<TowerId>,
+    ) {
         self.tower_popup_states
             .retain(|&tower_id, _| existing_tower_ids.contains(&tower_id));
 
@@ -154,7 +158,7 @@ impl UIState {
         }
     }
 
-    pub fn get_popup_state(&self, tower_id: usize) -> Option<&TowerInfoSpringState> {
+    pub fn get_popup_state(&self, tower_id: TowerId) -> Option<&TowerInfoSpringState> {
         self.tower_popup_states.get(&tower_id)
     }
 

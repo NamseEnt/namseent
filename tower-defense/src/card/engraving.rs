@@ -1,6 +1,6 @@
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
-use crate::{FixedRatio, SimTickSpan};
+use crate::{FixedRatio, RatioProduct, SimTickSpan, WorldDistance};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
@@ -11,7 +11,7 @@ pub enum Engraving {
     SpinningTop,
 }
 
-const CACTUS_SPLASH_RADIUS: f32 = 2.0;
+const CACTUS_SPLASH_RADIUS: WorldDistance = WorldDistance::from_tiles(2);
 const CACTUS_SPLASH_DAMAGE_PCT: FixedRatio = FixedRatio::from_raw(300_000);
 const OVERCHARGE_ATTACK_SPEED_MUL: FixedRatio = FixedRatio::from_raw(1_500_000);
 
@@ -98,7 +98,7 @@ impl Engraving {
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerEngravingModifier {
-    pub attack_range_mul: f32,
+    pub attack_range_mul: FixedRatio,
     pub shoot_interval_mul: FixedRatio,
     pub on_hit_splashes: Vec<EngravingSplash>,
     pub on_attack_splashes: Vec<EngravingSplash>,
@@ -106,20 +106,20 @@ pub struct TowerEngravingModifier {
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct EngravingSplash {
-    pub radius: f32,
+    pub radius: WorldDistance,
     pub damage_pct: FixedRatio,
 }
 
 impl TowerEngravingModifier {
     pub const NONE: Self = Self {
-        attack_range_mul: 1.0,
+        attack_range_mul: FixedRatio::ONE,
         shoot_interval_mul: FixedRatio::ONE,
         on_hit_splashes: Vec::new(),
         on_attack_splashes: Vec::new(),
     };
 
-    pub fn apply_attack_range(&self, base_radius: f32) -> f32 {
-        base_radius * self.attack_range_mul
+    pub fn apply_attack_range(&self, base_radius: WorldDistance) -> WorldDistance {
+        base_radius.scaled_by(self.attack_range_mul)
     }
 
     pub fn apply_shoot_interval(&self, base_interval: SimTickSpan) -> SimTickSpan {
@@ -133,7 +133,12 @@ impl TowerEngravingModifier {
         on_attack_splashes.extend(other.on_attack_splashes);
 
         Self {
-            attack_range_mul: self.attack_range_mul * other.attack_range_mul,
+            attack_range_mul: FixedRatio::from_raw(
+                RatioProduct::one()
+                    .with(self.attack_range_mul)
+                    .with(other.attack_range_mul)
+                    .apply_raw(FixedRatio::ONE.raw()),
+            ),
             shoot_interval_mul: FixedRatio::from_raw(
                 crate::RatioProduct::one()
                     .with(self.shoot_interval_mul)
@@ -162,7 +167,7 @@ mod tests {
         splash: Option<EngravingSplash>,
     ) -> TowerEngravingModifier {
         TowerEngravingModifier {
-            attack_range_mul: range,
+            attack_range_mul: FixedRatio::from_f64(range as f64).unwrap(),
             shoot_interval_mul: interval,
             on_hit_splashes: splash.into_iter().collect(),
             on_attack_splashes: Vec::new(),
@@ -175,7 +180,7 @@ mod tests {
             1.5,
             FixedRatio::from_raw(800_000),
             Some(EngravingSplash {
-                radius: 2.0,
+                radius: WorldDistance::from_tiles(2),
                 damage_pct: FixedRatio::from_raw(400_000),
             }),
         );
@@ -192,17 +197,20 @@ mod tests {
             None,
         ));
 
-        assert_eq!(combined.attack_range_mul, 3.0);
+        assert_eq!(combined.attack_range_mul, FixedRatio::from_integer(3));
         assert_eq!(combined.shoot_interval_mul, FixedRatio::from_raw(250_000));
     }
 
     #[test]
     fn apply_attack_range_scales_by_the_multiplier() {
         assert_eq!(
-            modifier(1.5, FixedRatio::ONE, None).apply_attack_range(8.0),
-            12.0
+            modifier(1.5, FixedRatio::ONE, None).apply_attack_range(WorldDistance::from_tiles(8)),
+            WorldDistance::from_tiles(12)
         );
-        assert_eq!(TowerEngravingModifier::NONE.apply_attack_range(8.0), 8.0);
+        assert_eq!(
+            TowerEngravingModifier::NONE.apply_attack_range(WorldDistance::from_tiles(8)),
+            WorldDistance::from_tiles(8)
+        );
     }
 
     #[test]
@@ -222,11 +230,11 @@ mod tests {
     #[test]
     fn combine_preserves_duplicate_splashes() {
         let first = EngravingSplash {
-            radius: 3.0,
+            radius: WorldDistance::from_tiles(3),
             damage_pct: FixedRatio::from_raw(200_000),
         };
         let second = EngravingSplash {
-            radius: 1.0,
+            radius: WorldDistance::from_tiles(1),
             damage_pct: FixedRatio::from_raw(900_000),
         };
         let combined = modifier(1.0, FixedRatio::ONE, Some(first)).combine(modifier(

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{SimTick, SimTickSpan};
+use crate::{SimTick, SimTickSpan, WorldDistance};
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
@@ -43,11 +43,25 @@ impl Deref for TowerSkill {
 
 #[derive(Clone, Copy, PartialEq, Debug, State)]
 pub enum TowerSkillKind {
-    NearbyTowerDamageMul { mul: FixedRatio, range_radius: f32 },
-    NearbyTowerDamageAdd { add: DamageDelta, range_radius: f32 },
-    NearbyMonsterSpeedMul { mul: FixedRatio, range_radius: f32 },
-    MoneyIncomeAdd { add: u32 },
-    TopCardBonus { rank: Rank, bonus_damage: usize },
+    NearbyTowerDamageMul {
+        mul: FixedRatio,
+        range_radius: WorldDistance,
+    },
+    NearbyTowerDamageAdd {
+        add: DamageDelta,
+        range_radius: WorldDistance,
+    },
+    NearbyMonsterSpeedMul {
+        mul: FixedRatio,
+        range_radius: WorldDistance,
+    },
+    MoneyIncomeAdd {
+        add: u32,
+    },
+    TopCardBonus {
+        rank: Rank,
+        bonus_damage: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -104,13 +118,14 @@ pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
     let mut activated_skills = vec![];
 
     for tower in game_state.towers.iter_mut() {
+        let tower_id = tower.id();
         for skill in tower.skills.iter_mut() {
             if sim_tick < skill.last_used_at + skill.cooldown {
                 continue;
             }
 
             skill.last_used_at = sim_tick;
-            activated_skills.push((tower.id, skill.template));
+            activated_skills.push((tower_id, skill.template));
         }
     }
 
@@ -118,16 +133,18 @@ pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
         let caster_xy = game_state
             .towers
             .iter()
-            .find(|m| m.id == tower_id)
+            .find(|m| m.id() == tower_id)
             .unwrap()
-            .center_xy_f32();
+            .center_world_xy();
 
         let upgrade_revision = game_state.upgrade_state.revision;
         let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
-        let mut on_nearby_towers = |range_radius: f32, effect: TowerStatusEffect| {
+        let mut on_nearby_towers = |range_radius: WorldDistance, effect: TowerStatusEffect| {
             for tower in game_state.towers.iter_mut() {
-                if caster_xy.distance(tower.center_xy_f32()) <= range_radius {
+                if (caster_xy - tower.center_world_xy()).length_squared()
+                    <= (range_radius.raw() as u128).saturating_mul(range_radius.raw() as u128)
+                {
                     let affects_damage = effect.kind.affects_damage();
                     tower.status_effects.push(effect.clone());
                     if affects_damage {
@@ -137,9 +154,11 @@ pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
             }
         };
 
-        let mut on_nearby_monsters = |range_radius: f32, effect: MonsterStatusEffect| {
+        let mut on_nearby_monsters = |range_radius: WorldDistance, effect: MonsterStatusEffect| {
             for monster in game_state.monsters.iter_mut() {
-                if caster_xy.distance(monster.center_xy_tile()) <= range_radius {
+                if (caster_xy - monster.center_world_xy()).length_squared()
+                    <= (range_radius.raw() as u128).saturating_mul(range_radius.raw() as u128)
+                {
                     monster.status_effects.push(effect.clone());
                 }
             }
@@ -183,7 +202,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
                     && let Some(tower) = game_state
                         .towers
                         .iter_mut()
-                        .find(|tower| tower.id == tower_id)
+                        .find(|tower| tower.id() == tower_id)
                 {
                     let effect = TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd {
@@ -231,6 +250,7 @@ mod tests {
             SimTick::ZERO,
         ));
 
+        tower.assign_id(game_state.allocate_tower_id());
         game_state.towers.place_tower(tower);
         activate_tower_skills(&mut game_state, now);
 
@@ -268,6 +288,7 @@ mod tests {
             SimTick::ZERO,
         ));
 
+        tower.assign_id(game_state.allocate_tower_id());
         game_state.towers.place_tower(tower);
         activate_tower_skills(&mut game_state, now);
 

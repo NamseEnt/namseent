@@ -3,7 +3,7 @@ use super::*;
 pub fn handle_monster_death(
     game_state: &mut GameState,
     target_idx: usize,
-    target_xy: Xy<f32>,
+    target_xy: crate::WorldCoord,
     presentation_instant: crate::PresentationInstant,
 ) {
     if target_idx >= game_state.monsters.len() {
@@ -36,7 +36,7 @@ pub fn handle_monster_death(
 
     let wh = monster::monster_wh(monster_kind);
 
-    let pixel_xy = TILE_PX_SIZE.to_xy() * target_xy;
+    let pixel_xy = TILE_PX_SIZE.to_xy() * target_xy.as_map_coord_f32();
 
     game_state
         .effect_events

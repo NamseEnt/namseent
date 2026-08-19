@@ -90,8 +90,9 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
                     sound::SpatialMode::NonSpatial,
                 ),
             ));
-            let movement_speed =
-                monster.move_on_route.velocity() * 1.sec() * monster.get_speed_multiplier();
+            let movement_speed = monster.move_on_route.velocity().raw() as f32
+                / crate::world::WORLD_UNITS_PER_TILE as f32
+                * monster.get_speed_multiplier().as_f32();
 
             monster.animation.y_offset_velocity =
                 (-3.0 + ((movement_speed - 1.0) / (0.25)) * 0.4).clamp(-3.5, -1.85);

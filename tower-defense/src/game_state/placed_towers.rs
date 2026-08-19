@@ -1,4 +1,5 @@
 use super::*;
+use crate::TowerId;
 
 /// Assume that the tower's size is 2x2.
 /// All iteration in this struct will be in the order of left-top, right-top, left-bottom, right-bottom.
@@ -42,7 +43,7 @@ impl PlacedTowers {
         true
     }
 
-    pub fn remove_tower(&mut self, tower_id: usize) -> Option<Tower> {
+    pub fn remove_tower(&mut self, tower_id: TowerId) -> Option<Tower> {
         let index = self.inner.iter().position(|tower| tower.id() == tower_id)?;
         Some(self.inner.remove(index))
     }

@@ -1,4 +1,5 @@
 use crate::FixedRatio;
+use crate::TowerId;
 use crate::game_state::{card::Suit, tower::Tower};
 use namui::*;
 
@@ -11,7 +12,7 @@ pub enum TowerUpgradeTarget {
     LowCardTower,
     NoRerollTower,
     RerolledTower,
-    TowerId { tower_id: usize },
+    TowerId { tower_id: TowerId },
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]

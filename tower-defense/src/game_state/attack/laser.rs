@@ -1,4 +1,4 @@
-use crate::{SimTick, SimTickSpan};
+use crate::{MonsterId, SimTick, SimTickSpan, WorldCoord};
 use namui::*;
 
 /// 레이저 광선의 수명
@@ -7,21 +7,21 @@ pub const LASER_LIFETIME: SimTickSpan = SimTickSpan::from_millis_ceil(500);
 #[derive(Clone, State)]
 pub struct LaserBeam {
     /// 레이저 시작점 (타워 위치)
-    pub start_xy: (f32, f32),
+    pub start_xy: WorldCoord,
     /// 레이저 끝점 (발사 시점의 적 위치)
-    pub end_xy: (f32, f32),
+    pub end_xy: WorldCoord,
     /// 레이저가 생성된 시간
     pub created_at: SimTick,
     /// 데미지를 적용할 몬스터 ID.
-    pub target_monster_id: usize,
+    pub target_monster_id: MonsterId,
 }
 
 impl LaserBeam {
     pub fn new(
-        start_xy: (f32, f32),
-        end_xy: (f32, f32),
+        start_xy: WorldCoord,
+        end_xy: WorldCoord,
         created_at: SimTick,
-        target_monster_id: usize,
+        target_monster_id: MonsterId,
     ) -> Self {
         Self {
             start_xy,

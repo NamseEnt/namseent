@@ -7,6 +7,7 @@ mod flow_ui;
 mod game_state;
 mod image_filter_utils; // now private; selective re-exports below
 pub use game_state::monster::MonsterKind;
+pub use game_state::{AttackId, EntityId, MonsterId, TowerId};
 pub mod card;
 mod hand;
 mod hand_panel;
@@ -27,11 +28,15 @@ pub mod time;
 mod tooltip;
 mod top_bar;
 mod upgrades;
+pub mod world;
 
 pub use combat_number::{
     ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct, Shield,
 };
 pub use time::{PresentationDelta, PresentationInstant, SimTick, SimTickSpan};
+pub use world::{
+    WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, segment_hits_point,
+};
 
 #[cfg(any(test, feature = "simulator"))]
 extern crate namui_kv_store_memory;

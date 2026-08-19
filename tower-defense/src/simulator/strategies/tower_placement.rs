@@ -133,7 +133,7 @@ impl HeuristicPlacementStrategy {
     ) -> bool {
         let center = MapCoord::new(MAP_SIZE.width / 2, MAP_SIZE.height / 2);
 
-        let mut rubber_cones: Vec<(i32, usize, MapCoord)> = game_state
+        let mut rubber_cones: Vec<(i32, crate::TowerId, MapCoord)> = game_state
             .towers
             .iter()
             .filter(|tower| tower.kind == TowerKind::RubberCone)

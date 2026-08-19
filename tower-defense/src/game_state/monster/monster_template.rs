@@ -1,7 +1,7 @@
 use super::MonsterSkillTemplate;
 use crate::game_state::monster::MonsterKind;
 use crate::game_state::route::Velocity;
-use crate::{Damage, Health};
+use crate::{Damage, Health, WorldSpeed};
 use namui::*;
 
 #[derive(State, Clone)]
@@ -15,8 +15,12 @@ pub struct MonsterTemplate {
 }
 
 impl MonsterTemplate {
-    fn velocity(mul: f32) -> Velocity {
-        Velocity::new(5.0 * mul, Duration::from_secs(1))
+    fn velocity(mul: crate::FixedRatio) -> Velocity {
+        WorldSpeed::from_raw(
+            crate::RatioProduct::one()
+                .with(mul)
+                .apply_raw(5 * crate::world::WORLD_UNITS_PER_TILE),
+        )
     }
 
     fn damage(damage: Damage) -> Damage {
@@ -27,11 +31,7 @@ impl MonsterTemplate {
         mul
     }
 
-    pub fn new(kind: MonsterKind) -> Self {
-        Self::new_with_config(kind, &crate::config::GameConfig::default_config())
-    }
-
-    pub fn new_with_config(kind: MonsterKind, config: &crate::config::GameConfig) -> Self {
+    pub fn new(kind: MonsterKind, config: &crate::config::GameConfig) -> Self {
         let stats = config
             .monsters
             .stats
@@ -54,12 +54,5 @@ impl MonsterTemplate {
             .get(&kind)
             .expect("missing monster stats for kind")
             .base_hp
-    }
-
-    pub fn skill_descriptions(&self) -> Vec<crate::l10n::monster_skill::MonsterSkillText> {
-        self.skills
-            .iter()
-            .map(|skill| skill.kind.description())
-            .collect()
     }
 }

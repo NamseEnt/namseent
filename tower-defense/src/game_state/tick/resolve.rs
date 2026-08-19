@@ -1,26 +1,22 @@
 use super::*;
 use crate::PresentationInstant;
-use crate::game_state::attack::{
-    HitSound, InFlightAttack, InFlightAttackKind, ProjectileHitEffect,
-};
+use crate::game_state::attack::{InFlightAttack, InFlightAttackKind, ProjectileHitEffect};
 use crate::game_state::effect_event::{GameEffectEvent, ParticleSpawnRequest};
-use crate::game_state::projectile::ProjectileBehavior;
-use crate::{Damage, FixedRatio, RatioProduct};
-use rand::Rng;
+use crate::game_state::projectile::{PROJECTILE_COLLISION_RADIUS, ProjectileBehavior};
+use crate::{Damage, FixedRatio, MonsterId, RatioProduct, WorldCoord, segment_hits_point};
 use std::collections::HashMap;
 
 pub fn update_in_flight_attacks(
     game_state: &mut GameState,
-    dt: Duration,
     presentation_instant: PresentationInstant,
 ) {
+    game_state.in_flight_attacks.sort_by_key(|attack| attack.id);
     process_timed_attacks(game_state, presentation_instant);
     process_laser_attacks(game_state, presentation_instant);
-    move_spatial_attacks(game_state, dt, presentation_instant);
+    move_spatial_attacks(game_state, presentation_instant);
 }
 
 fn process_timed_attacks(game_state: &mut GameState, presentation_instant: PresentationInstant) {
-    let mut rng = rand::thread_rng();
     let sim_tick = game_state.sim_tick();
     let mut due: Vec<InFlightAttack> = Vec::new();
 
@@ -49,36 +45,33 @@ fn process_timed_attacks(game_state: &mut GameState, presentation_instant: Prese
         let Some(&target_idx) = monster_index_by_id.get(&timed.target_monster_id) else {
             continue;
         };
-        let target_xy = game_state.monsters[target_idx].center_xy_tile();
+        let target_xy = game_state.monsters[target_idx].center_world_xy();
+        let target_xy_presentation = target_xy.as_map_coord_f32();
 
-        match timed.hit_sound {
-            HitSound::KnifeSlash => {
-                game_state.effect_events.push(GameEffectEvent::PlaySound(
-                    crate::sound::EmitSoundParams::one_shot(
-                        crate::sound::random_knife_slash(),
-                        crate::sound::SoundGroup::Sfx,
-                        crate::sound::VolumePreset::Low,
-                        crate::sound::SpatialMode::Spatial {
-                            position: target_xy,
-                        },
-                    ),
-                ));
-                let delay_ms = rng.gen_range(30_i64..=60_i64);
-                game_state
-                    .effect_events
-                    .push(GameEffectEvent::PlaySoundDelayed(
-                        crate::sound::EmitSoundParams::one_shot(
-                            crate::sound::random_knife_slash(),
-                            crate::sound::SoundGroup::Sfx,
-                            crate::sound::VolumePreset::Low,
-                            crate::sound::SpatialMode::Spatial {
-                                position: target_xy,
-                            },
-                        ),
-                        Duration::from_millis(delay_ms),
-                    ));
-            }
-        }
+        game_state.effect_events.push(GameEffectEvent::PlaySound(
+            crate::sound::EmitSoundParams::one_shot(
+                crate::sound::deterministic_knife_slash(),
+                crate::sound::SoundGroup::Sfx,
+                crate::sound::VolumePreset::Low,
+                crate::sound::SpatialMode::Spatial {
+                    position: target_xy_presentation,
+                },
+            ),
+        ));
+        let delay_ms = 45_i64;
+        game_state
+            .effect_events
+            .push(GameEffectEvent::PlaySoundDelayed(
+                crate::sound::EmitSoundParams::one_shot(
+                    crate::sound::deterministic_knife_slash(),
+                    crate::sound::SoundGroup::Sfx,
+                    crate::sound::VolumePreset::Low,
+                    crate::sound::SpatialMode::Spatial {
+                        position: target_xy_presentation,
+                    },
+                ),
+                Duration::from_millis(delay_ms),
+            ));
 
         if !attack.damage.is_zero() {
             game_state
@@ -86,7 +79,7 @@ fn process_timed_attacks(game_state: &mut GameState, presentation_instant: Prese
                 .push(GameEffectEvent::SpawnParticle(
                     ParticleSpawnRequest::DamageText(
                         crate::game_state::field_particle::DamageTextParticle::new(
-                            target_xy,
+                            target_xy_presentation,
                             attack.damage.as_f32(),
                             presentation_instant.as_namui(),
                         ),
@@ -133,36 +126,43 @@ fn process_laser_attacks(game_state: &mut GameState, presentation_instant: Prese
         // 레이저 빔 시각 이펙트 (데미지 적용 전에 발행)
         game_state.effect_events.push(GameEffectEvent::PlaySound(
             crate::sound::EmitSoundParams::one_shot(
-                crate::sound::random_red_laser_shot(),
+                crate::sound::deterministic_red_laser_shot(),
                 crate::sound::SoundGroup::Sfx,
                 crate::sound::VolumePreset::Minimum,
                 crate::sound::SpatialMode::Spatial {
-                    position: crate::MapCoordF32::new(beam.start_xy.0, beam.start_xy.1),
+                    position: beam.start_xy.as_map_coord_f32(),
                 },
             ),
         ));
         game_state.effect_events.push(GameEffectEvent::PlaySound(
             crate::sound::EmitSoundParams::one_shot(
-                crate::sound::random_red_laser_shot(),
+                crate::sound::deterministic_red_laser_shot(),
                 crate::sound::SoundGroup::Sfx,
                 crate::sound::VolumePreset::Minimum,
                 crate::sound::SpatialMode::Spatial {
-                    position: crate::MapCoordF32::new(beam.end_xy.0, beam.end_xy.1),
+                    position: beam.end_xy.as_map_coord_f32(),
                 },
             ),
         ));
         game_state
             .effect_events
             .push(GameEffectEvent::SpawnLaserBeam(
-                beam.start_xy,
-                beam.end_xy,
+                (
+                    beam.start_xy.x as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                    beam.start_xy.y as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                ),
+                (
+                    beam.end_xy.x as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                    beam.end_xy.y as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                ),
                 presentation_instant,
             ));
 
         let Some(&target_idx) = monster_index_by_id.get(&beam.target_monster_id) else {
             continue;
         };
-        let target_xy = game_state.monsters[target_idx].center_xy_tile();
+        let target_xy = game_state.monsters[target_idx].center_world_xy();
+        let target_xy_presentation = target_xy.as_map_coord_f32();
 
         if !attack.damage.is_zero() {
             game_state
@@ -170,7 +170,7 @@ fn process_laser_attacks(game_state: &mut GameState, presentation_instant: Prese
                 .push(GameEffectEvent::SpawnParticle(
                     ParticleSpawnRequest::DamageText(
                         crate::game_state::field_particle::DamageTextParticle::new(
-                            target_xy,
+                            target_xy_presentation,
                             attack.damage.as_f32(),
                             presentation_instant.as_namui(),
                         ),
@@ -190,11 +190,7 @@ fn process_laser_attacks(game_state: &mut GameState, presentation_instant: Prese
     apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
-fn move_spatial_attacks(
-    game_state: &mut GameState,
-    dt: Duration,
-    presentation_instant: PresentationInstant,
-) {
+fn move_spatial_attacks(game_state: &mut GameState, presentation_instant: PresentationInstant) {
     let mut hits: Vec<MonsterHit> = Vec::new();
 
     {
@@ -219,46 +215,30 @@ fn move_spatial_attacks(
 
             let Some(&monster_index) = monster_index_by_indicator.get(&spatial.target_indicator)
             else {
-                // 타겟 몬스터가 이미 사망 → 투사체를 파티클로 흩날림
-                game_state
-                    .effect_events
-                    .push(GameEffectEvent::SpawnParticle(
-                        ParticleSpawnRequest::Projectile(field_particle::ProjectileParticle::new(
-                            spatial.xy,
-                            spatial.projectile_kind,
-                            spatial.rotation,
-                            spatial.rotation_speed,
-                            spatial.velocity,
-                            presentation_instant.as_namui(),
-                            Duration::from_millis(300),
-                        )),
-                    ));
                 return false;
             };
 
-            let monster_xy = monsters[monster_index].center_xy_tile();
+            let monster_xy = monsters[monster_index].center_world_xy();
 
-            let step_distance = match spatial.behavior {
-                ProjectileBehavior::Direct => spatial.velocity.length() * dt.as_secs_f32(),
-                ProjectileBehavior::Homing { velocity, .. } => velocity.length() * dt.as_secs_f32(),
-            };
-
-            if (monster_xy - start_xy).length() > step_distance {
-                // 아직 도달 전 → 이동 처리
-                match spatial.behavior {
-                    ProjectileBehavior::Direct => spatial.move_by(dt, monster_xy),
-                    ProjectileBehavior::Homing { .. } => spatial.move_homing(dt, monster_xy),
-                }
-                let moved_distance = (spatial.xy - start_xy).length();
+            match spatial.behavior {
+                ProjectileBehavior::Direct => spatial.move_by(monster_xy),
+                ProjectileBehavior::Homing { .. } => spatial.move_homing(monster_xy),
+            }
+            let end_xy = spatial.xy;
+            if !segment_hits_point(start_xy, end_xy, monster_xy, PROJECTILE_COLLISION_RADIUS)
+                && end_xy != monster_xy
+            {
+                let moved_distance = (end_xy - start_xy).length().raw() as f32
+                    / crate::world::WORLD_UNITS_PER_TILE as f32;
                 game_state
                     .effect_events
                     .push(GameEffectEvent::SyncProjectileTrailState {
                         projectile_id: attack.id,
                         trail: spatial.trail,
-                        start_xy,
-                        end_xy: spatial.xy,
+                        start_xy: start_xy.as_map_coord_f32(),
+                        end_xy: end_xy.as_map_coord_f32(),
                         moved_distance,
-                        dt_secs: dt.as_secs_f32(),
+                        dt_secs: 1.0 / crate::world::SIM_TICKS_PER_SECOND as f32,
                         presentation_instant,
                     });
                 return true;
@@ -274,7 +254,7 @@ fn move_spatial_attacks(
                         sound::SoundGroup::Sfx,
                         sound::VolumePreset::Minimum,
                         sound::SpatialMode::Spatial {
-                            position: monster_xy,
+                            position: monster_xy.as_map_coord_f32(),
                         },
                     ),
                 ));
@@ -285,7 +265,7 @@ fn move_spatial_attacks(
                     .effect_events
                     .push(GameEffectEvent::SpawnParticle(
                         ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
-                            monster_xy,
+                            monster_xy.as_map_coord_f32(),
                             damage.as_f32(),
                             presentation_instant.as_namui(),
                         )),
@@ -296,8 +276,14 @@ fn move_spatial_attacks(
                 ProjectileHitEffect::TrashBounce => {
                     for p in field_particle::emitter::create_bounce_particles(
                         spatial.projectile_kind,
-                        (start_xy.x, start_xy.y),
-                        (monster_xy.x, monster_xy.y),
+                        (
+                            start_xy.x as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                            start_xy.y as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                        ),
+                        (
+                            monster_xy.x as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                            monster_xy.y as f32 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                        ),
                         presentation_instant.as_namui(),
                     ) {
                         game_state
@@ -312,7 +298,7 @@ fn move_spatial_attacks(
                         .effect_events
                         .push(GameEffectEvent::SpawnProjectileHitEffect(
                             hit_effect,
-                            monster_xy,
+                            monster_xy.as_map_coord_f32(),
                             presentation_instant,
                         ));
                 }
@@ -339,14 +325,24 @@ fn apply_monster_damage_and_remove_dead(
     hits: Vec<MonsterHit>,
     presentation_instant: PresentationInstant,
 ) {
-    let mut dead: Vec<(usize, MapCoordF32)> = Vec::new();
+    let mut dead: Vec<(MonsterId, WorldCoord)> = Vec::new();
 
-    let monster_centers: Vec<MapCoordF32> = game_state
+    let monster_centers: Vec<WorldCoord> = game_state
         .monsters
         .iter()
-        .map(|monster| monster.center_xy_tile())
+        .map(|monster| monster.center_world_xy())
         .collect();
-    let hits = expand_on_hit_splashes(&monster_centers, hits);
+    let mut hits = expand_on_hit_splashes(&monster_centers, hits);
+    hits.sort_by_key(|hit| {
+        (
+            game_state
+                .monsters
+                .get(hit.target_idx)
+                .map(|m| m.id())
+                .unwrap_or(MonsterId::from_raw(u64::MAX)),
+            hit.target_idx,
+        )
+    });
 
     for hit in hits {
         if hit.target_idx >= game_state.monsters.len() {
@@ -368,11 +364,11 @@ fn apply_monster_damage_and_remove_dead(
         if !hit.damage.is_zero() {
             game_state.effect_events.push(GameEffectEvent::PlaySound(
                 crate::sound::EmitSoundParams::one_shot(
-                    crate::sound::random_whoop(),
+                    crate::sound::deterministic_whoop(),
                     crate::sound::SoundGroup::Sfx,
                     crate::sound::VolumePreset::Minimum,
                     crate::sound::SpatialMode::Spatial {
-                        position: hit.at_xy,
+                        position: hit.at_xy.as_map_coord_f32(),
                     },
                 ),
             ));
@@ -383,13 +379,20 @@ fn apply_monster_damage_and_remove_dead(
         }
 
         if game_state.monsters[hit.target_idx].dead() {
-            dead.push((hit.target_idx, hit.at_xy));
+            dead.push((game_state.monsters[hit.target_idx].id(), hit.at_xy));
         }
     }
 
-    dead.sort_by_key(|(idx, _)| *idx);
-    dead.dedup_by_key(|(idx, _)| *idx);
-    for (target_idx, target_xy) in dead.into_iter().rev() {
+    dead.sort_by_key(|(id, _)| *id);
+    dead.dedup_by_key(|(id, _)| *id);
+    for (target_id, target_xy) in dead {
+        let Some(target_idx) = game_state
+            .monsters
+            .iter()
+            .position(|monster| monster.id() == target_id)
+        else {
+            continue;
+        };
         super::monster_death::handle_monster_death(
             game_state,
             target_idx,
@@ -397,10 +400,11 @@ fn apply_monster_damage_and_remove_dead(
             presentation_instant,
         );
     }
+    game_state.monsters.sort_by_key(|monster| monster.id());
 }
 
 fn expand_on_hit_splashes(
-    monster_centers: &[MapCoordF32],
+    monster_centers: &[WorldCoord],
     hits: Vec<MonsterHit>,
 ) -> Vec<MonsterHit> {
     if hits.iter().all(|hit| hit.on_hit_splashes.is_empty()) {
@@ -417,7 +421,11 @@ fn expand_on_hit_splashes(
                 let damage_pct_raw: i64 = hit
                     .on_hit_splashes
                     .iter()
-                    .filter(|splash| (*center - hit.at_xy).length() <= splash.radius)
+                    .filter(|splash| {
+                        (*center - hit.at_xy).length_squared()
+                            <= (splash.radius.raw() as u128)
+                                .saturating_mul(splash.radius.raw() as u128)
+                    })
                     .map(|splash| splash.damage_pct.raw())
                     .sum();
                 if damage_pct_raw <= 0 {
@@ -451,17 +459,17 @@ pub(super) fn apply_area_damage_events(
         return;
     }
 
-    let monster_centers: Vec<MapCoordF32> = game_state
+    let monster_centers: Vec<WorldCoord> = game_state
         .monsters
         .iter()
-        .map(|monster| monster.center_xy_tile())
+        .map(|monster| monster.center_world_xy())
         .collect();
     let hits = expand_area_damage_events(&monster_centers, events);
     apply_monster_damage_and_remove_dead(game_state, hits, presentation_instant);
 }
 
 fn expand_area_damage_events(
-    monster_centers: &[MapCoordF32],
+    monster_centers: &[WorldCoord],
     events: Vec<super::AreaDamageEvent>,
 ) -> Vec<MonsterHit> {
     let mut hits = Vec::new();
@@ -470,7 +478,10 @@ fn expand_area_damage_events(
             let damage_pct_raw: i64 = event
                 .splashes
                 .iter()
-                .filter(|splash| (*center - event.center).length() <= splash.radius)
+                .filter(|splash| {
+                    (*center - event.center).length_squared()
+                        <= (splash.radius.raw() as u128).saturating_mul(splash.radius.raw() as u128)
+                })
                 .map(|splash| splash.damage_pct.raw())
                 .sum();
             if damage_pct_raw <= 0 {
@@ -497,7 +508,7 @@ mod tests {
     use super::*;
     use crate::card::EngravingSplash;
 
-    fn hit(target_idx: usize, at_xy: MapCoordF32, splash: Option<EngravingSplash>) -> MonsterHit {
+    fn hit(target_idx: usize, at_xy: WorldCoord, splash: Option<EngravingSplash>) -> MonsterHit {
         MonsterHit {
             target_idx,
             damage: Damage::from_integer(100),
@@ -509,7 +520,7 @@ mod tests {
 
     #[test]
     fn hits_without_splash_pass_through_untouched() {
-        let centers = vec![MapCoordF32::new(0.0, 0.0), MapCoordF32::new(1.0, 0.0)];
+        let centers = vec![WorldCoord::from_tile(0, 0), WorldCoord::from_tile(1, 0)];
 
         let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], None)]);
 
@@ -520,12 +531,12 @@ mod tests {
     #[test]
     fn splash_adds_scaled_hits_for_monsters_inside_the_radius() {
         let centers = vec![
-            MapCoordF32::new(0.0, 0.0),
-            MapCoordF32::new(1.0, 0.0),
-            MapCoordF32::new(9.0, 0.0),
+            WorldCoord::from_tile(0, 0),
+            WorldCoord::from_tile(1, 0),
+            WorldCoord::from_tile(9, 0),
         ];
         let splash = EngravingSplash {
-            radius: 2.0,
+            radius: crate::WorldDistance::from_tiles(2),
             damage_pct: FixedRatio::from_raw(500_000),
         };
 
@@ -543,23 +554,23 @@ mod tests {
 
     #[test]
     fn area_damage_hits_near_the_tower_instead_of_near_the_target() {
-        let tower_xy = MapCoordF32::new(0.0, 0.0);
+        let tower_xy = WorldCoord::from_tile(0, 0);
         let centers = vec![
-            MapCoordF32::new(8.0, 0.0),
-            MapCoordF32::new(1.0, 0.0),
-            MapCoordF32::new(3.0, 0.0),
+            WorldCoord::from_tile(8, 0),
+            WorldCoord::from_tile(1, 0),
+            WorldCoord::from_tile(3, 0),
         ];
         let event = super::AreaDamageEvent {
             center: tower_xy,
             damage: Damage::from_integer(100),
             source_tower: crate::game_state::attack::TowerInfo {
-                id: 0,
+                id: crate::TowerId::from_raw(1),
                 kind: crate::game_state::tower::TowerKind::High,
                 rank: None,
                 suit: None,
             },
             splashes: vec![EngravingSplash {
-                radius: 2.0,
+                radius: crate::WorldDistance::from_tiles(2),
                 damage_pct: FixedRatio::from_raw(300_000),
             }],
         };
@@ -573,14 +584,14 @@ mod tests {
 
     #[test]
     fn duplicate_splashes_stack_damage_percentages() {
-        let centers = vec![MapCoordF32::new(0.0, 0.0), MapCoordF32::new(1.0, 0.0)];
+        let centers = vec![WorldCoord::from_tile(0, 0), WorldCoord::from_tile(1, 0)];
         let splashes = vec![
             EngravingSplash {
-                radius: 2.0,
+                radius: crate::WorldDistance::from_tiles(2),
                 damage_pct: FixedRatio::from_raw(300_000),
             },
             EngravingSplash {
-                radius: 2.0,
+                radius: crate::WorldDistance::from_tiles(2),
                 damage_pct: FixedRatio::from_raw(400_000),
             },
         ];
@@ -605,9 +616,9 @@ mod tests {
 
     #[test]
     fn splash_never_hits_its_own_primary_target_twice() {
-        let centers = vec![MapCoordF32::new(0.0, 0.0)];
+        let centers = vec![WorldCoord::from_tile(0, 0)];
         let splash = EngravingSplash {
-            radius: 5.0,
+            radius: crate::WorldDistance::from_tiles(5),
             damage_pct: FixedRatio::ONE,
         };
 

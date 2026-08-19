@@ -37,7 +37,7 @@ pub enum HistoryEventType {
     },
 
     TowerRemovedById {
-        tower_id: usize,
+        tower_id: TowerId,
     },
 
     DamageTaken {

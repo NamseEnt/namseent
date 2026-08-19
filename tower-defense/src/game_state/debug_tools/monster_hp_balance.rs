@@ -75,12 +75,14 @@ fn get_first_monster_kind_from_spawn_table(
     gs: &crate::game_state::GameState,
 ) -> Option<crate::game_state::monster::MonsterKind> {
     let health_multipliers = gs.stage_modifiers.enemy_health_multipliers();
+    let mut allocator = gs.next_entity_id;
     let (monster_queue, _) = super::super::monster_spawn::monster_queue_table(
         gs.stage,
         gs.route.clone(),
         gs.sim_tick(),
         health_multipliers,
         &gs.config,
+        &mut allocator,
     );
     monster_queue.front().map(|monster| monster.kind)
 }

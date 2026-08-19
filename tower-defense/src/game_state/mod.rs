@@ -10,6 +10,7 @@ mod debug_tools;
 pub mod difficulty;
 pub mod effect;
 pub mod effect_event;
+mod entity_id;
 pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
@@ -52,6 +53,8 @@ pub use base::*;
 pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
 pub use effect_event::*;
+pub(crate) use entity_id::EntityIdAllocator;
+pub use entity_id::{AttackId, EntityId, MonsterId, TowerId};
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{LumpSugarItem, RubberConeItem};
@@ -92,7 +95,7 @@ const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 
 #[derive(Debug, Clone, State)]
 pub struct TowerDamageStats {
-    pub tower_id: usize,
+    pub tower_id: TowerId,
     pub tower_kind: TowerKind,
     pub rank: Option<Rank>,
     pub suit: Option<Suit>,
@@ -134,6 +137,7 @@ pub struct GameState {
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
+    pub(crate) next_entity_id: EntityIdAllocator,
     pub(crate) sim_tick: SimTick,
     pub(crate) sim_scheduler: tick::scheduler::FixedTickScheduler,
     pub(crate) sim_scheduler_report: tick::scheduler::ScheduleReport,
@@ -158,6 +162,15 @@ pub struct GameState {
     pub(crate) headless: bool,
 }
 impl GameState {
+    #[allow(dead_code)]
+    pub(crate) fn allocate_entity_id(&mut self) -> EntityId {
+        self.next_entity_id.allocate()
+    }
+
+    pub(crate) fn allocate_tower_id(&mut self) -> TowerId {
+        self.next_entity_id.allocate_tower_id()
+    }
+
     /// 현대적인 텍스트 매니저 반환
     pub fn text(&self) -> crate::l10n::TextManager {
         crate::l10n::TextManager::new(self.locale)
@@ -616,7 +629,7 @@ impl GameState {
             }
         }
 
-        let stale_keys: Vec<u64> = active_projectile_sound_ids
+        let stale_keys: Vec<AttackId> = active_projectile_sound_ids
             .keys()
             .filter(|key| !active_trail_sound_projectiles.contains(key))
             .cloned()
@@ -630,7 +643,7 @@ impl GameState {
 
     pub fn set_selected_tower(
         &mut self,
-        tower_id: Option<usize>,
+        tower_id: Option<TowerId>,
         presentation_instant: crate::PresentationInstant,
     ) {
         self.ui_state
@@ -638,7 +651,7 @@ impl GameState {
     }
 
     pub fn cleanup_unused_tower_popup_states(&mut self) {
-        let existing_tower_ids: std::collections::HashSet<usize> =
+        let existing_tower_ids: std::collections::HashSet<TowerId> =
             self.towers.iter().map(|tower| tower.id()).collect();
 
         self.ui_state.cleanup_unused_states(&existing_tower_ids);
@@ -705,6 +718,7 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
+        next_entity_id: EntityIdAllocator::default(),
         sim_tick: SimTick::ZERO,
         sim_scheduler: tick::scheduler::FixedTickScheduler::default(),
         sim_scheduler_report: tick::scheduler::ScheduleReport::default(),
@@ -807,6 +821,7 @@ impl GameState {
             user_status_effects: self.user_status_effects.clone(),
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
+            next_entity_id: self.next_entity_id,
             sim_tick: self.sim_tick,
             sim_scheduler: self.sim_scheduler,
             sim_scheduler_report: self.sim_scheduler_report,
@@ -975,6 +990,43 @@ mod tests {
                 right_monster.stage_progress_counted
             );
         }
+    }
+
+    #[test]
+    fn entity_ids_are_sequential_and_owned_by_game_state() {
+        let mut game_state = create_game_state_with_seed(0x1D);
+        game_state.action(GameStateAction::StartDefense);
+
+        let queued_count = game_state.monster_spawn_state.monster_queue.len();
+        assert!(queued_count > 0);
+        assert_eq!(
+            game_state.monster_spawn_state.monster_queue[0].id(),
+            MonsterId::from_raw(1)
+        );
+
+        crate::game_state::monster_spawn::tick(&mut game_state, SimTick::ZERO);
+        assert_eq!(game_state.monsters[0].id(), MonsterId::from_raw(1));
+
+        let mut expected_state = game_state.clone_for_debug();
+        let tower_id = expected_state.allocate_tower_id();
+        let template = crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            crate::card::Suit::Spades,
+            crate::card::Rank::Ace,
+        );
+        game_state.action(GameStateAction::PlaceTower(
+            Box::new(crate::game_state::tower::Tower::new(
+                &template,
+                MapCoord::new(0, 0),
+                SimTick::ZERO,
+            )),
+            None,
+        ));
+
+        assert_eq!(game_state.towers.iter().next().unwrap().id(), tower_id);
+
+        let cloned = game_state.clone_for_debug();
+        assert_eq!(cloned.next_entity_id, game_state.next_entity_id);
     }
 
     #[test]

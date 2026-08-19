@@ -12,7 +12,9 @@ impl Component for TowerAttackRange<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let range_radius_px = TILE_PX_SIZE.width * tower_template.attack_range_radius();
+        let range_radius_px = TILE_PX_SIZE.width
+            * (tower_template.attack_range_radius().raw() as f32
+                / crate::world::WORLD_UNITS_PER_TILE as f32);
 
         const ROTATION_SPEED_PX_PER_SEC: f32 = 120.0;
         const DASH_ON_PX: f32 = 40.0;
@@ -49,7 +51,8 @@ impl Component for TowerAttackRange<'_> {
             .collect::<Vec<_>>();
 
         for splash_radius in splash_radii {
-            let splash_radius_px = TILE_PX_SIZE.width * splash_radius;
+            let splash_radius_px = TILE_PX_SIZE.width
+                * (splash_radius.raw() as f32 / crate::world::WORLD_UNITS_PER_TILE as f32);
             let splash_oval = Rect::Ltrb {
                 left: -splash_radius_px,
                 top: -splash_radius_px,

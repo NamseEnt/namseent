@@ -73,7 +73,7 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
                 radius: image_wh.width * 0.5,
                 color,
                 strength: strength * alpha,
-                seed: (tower.id() as f32 * 0.618034).fract(),
+                seed: (tower.id().raw() as f32 * 0.618034).fract(),
             });
     }
 }

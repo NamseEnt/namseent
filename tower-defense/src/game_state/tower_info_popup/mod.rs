@@ -142,7 +142,11 @@ impl Component for TowerInfoPopup<'_> {
                                 ctx.add(PopupStatRow {
                                     wh,
                                     label: range_label,
-                                    value: format!("{range:.1}"),
+                                    value: format!(
+                                        "{:.1}",
+                                        range.raw() as f32
+                                            / crate::world::WORLD_UNITS_PER_TILE as f32
+                                    ),
                                 });
                             }),
                             table::fixed_no_clip(STAT_ROW_HEIGHT, |wh, ctx| {

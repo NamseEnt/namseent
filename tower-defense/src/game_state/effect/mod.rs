@@ -409,6 +409,7 @@ pub mod tests_support {
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,
+            next_entity_id: crate::game_state::entity_id::EntityIdAllocator::default(),
             sim_tick: crate::SimTick::ZERO,
             sim_scheduler: crate::game_state::tick::scheduler::FixedTickScheduler::default(),
             sim_scheduler_report:

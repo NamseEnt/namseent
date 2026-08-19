@@ -1,14 +1,14 @@
 #![allow(clippy::excessive_precision)]
 
 use crate::game_state::monster::MonsterKind;
-use crate::{Damage, Health};
+use crate::{Damage, FixedRatio, Health};
 use namui::*;
 use std::collections::BTreeMap;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct MonsterStats {
     pub base_hp: Health,
-    pub velocity_mul: f32,
+    pub velocity_mul: FixedRatio,
     pub damage: Damage,
     pub reward: usize,
 }
@@ -37,7 +37,7 @@ pub fn default_monster_config() -> MonsterConfig {
     let mut stats = BTreeMap::new();
     let mut stage_waves = Vec::new();
 
-    let hp_table: Vec<(MonsterKind, f64, f32, f64, usize)> = vec![
+    let hp_table: Vec<(MonsterKind, f64, f64, f64, usize)> = vec![
         (Mob01, 11.159947395324707, 1.0, 1.0, 3),
         (Mob02, 16.629634857177734, 1.0, 2.0, 3),
         (Mob03, 21.63849639892578, 0.75, 1.0, 3),
@@ -109,7 +109,8 @@ pub fn default_monster_config() -> MonsterConfig {
             *kind,
             MonsterStats {
                 base_hp: Health::from_f64(*hp).expect("valid default monster hp"),
-                velocity_mul: *velocity_mul,
+                velocity_mul: FixedRatio::from_f64(*velocity_mul)
+                    .expect("valid velocity multiplier"),
                 damage: Damage::from_f64(*damage).expect("valid default monster damage"),
                 reward: *reward,
             },

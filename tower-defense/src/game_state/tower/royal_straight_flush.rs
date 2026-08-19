@@ -6,9 +6,8 @@ use crate::game_state::field_particle::emitter::{
 };
 use crate::game_state::{EffectEventQueue, GameEffectEvent, GameState, Monster};
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
-use crate::{SimTick, SimTickSpan};
+use crate::{MonsterId, SimTick, SimTickSpan};
 use namui::*;
-use rand::Rng;
 
 const ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MIN: f32 = 2.5;
 const ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MAX: f32 = 3.5;
@@ -19,7 +18,7 @@ pub struct RoyalStraightFlushVisual {
     created_at: SimTick,
     clones: Vec<RoyalStraightFlushClone>,
     phase: RoyalStraightFlushPhase,
-    target_monster_id: usize,
+    target_monster_id: MonsterId,
 }
 
 #[derive(Clone, PartialEq, State)]
@@ -43,7 +42,7 @@ impl RoyalStraightFlushVisual {
     fn new(
         created_at: SimTick,
         clones: Vec<RoyalStraightFlushClone>,
-        target_monster_id: usize,
+        target_monster_id: MonsterId,
     ) -> Self {
         Self {
             created_at,
@@ -167,7 +166,7 @@ impl RoyalStraightFlushVisual {
                 );
                 spawn_black_smoke_puff_burst(clone.end_center_xy, presentation_instant.as_namui());
                 effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
-                    sound::random_wind(),
+                    sound::deterministic_wind(),
                     SoundGroup::Sfx,
                     VolumePreset::Minimum,
                     SpatialMode::Spatial {
@@ -179,7 +178,7 @@ impl RoyalStraightFlushVisual {
                 )));
             }
             effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
-                sound::random_wind(),
+                sound::deterministic_wind(),
                 SoundGroup::Sfx,
                 VolumePreset::Minimum,
                 SpatialMode::Spatial {
@@ -205,14 +204,19 @@ impl Tower {
         &mut self,
         effect_events: &mut EffectEventQueue,
         target_xy: (f32, f32),
-        target_monster_id: usize,
+        target_monster_id: MonsterId,
         sim_tick: SimTick,
         presentation_instant: crate::PresentationInstant,
         black_smoke_sources: &mut Vec<BlackSmokeSource>,
     ) {
         let tower_center = self.center_xy_f32();
         let tower_center_xy = (tower_center.x, tower_center.y);
-        let clones = generate_royal_straight_flush_clones(target_xy);
+        let clones = generate_royal_straight_flush_clones(
+            target_xy,
+            self.id().raw().wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                ^ sim_tick.ticks()
+                ^ target_monster_id.raw(),
+        );
 
         spawn_black_smoke_burst_reversed(
             black_smoke_sources,
@@ -221,7 +225,7 @@ impl Tower {
         );
         spawn_black_smoke_puff_burst(tower_center_xy, presentation_instant.as_namui());
         effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
-            sound::random_wind(),
+            sound::deterministic_wind(),
             SoundGroup::Sfx,
             VolumePreset::Minimum,
             SpatialMode::Spatial {
@@ -236,7 +240,7 @@ impl Tower {
             );
             spawn_black_smoke_puff_burst(clone.spawn_center_xy, presentation_instant.as_namui());
             effect_events.push(GameEffectEvent::PlaySound(EmitSoundParams::one_shot(
-                sound::random_wind(),
+                sound::deterministic_wind(),
                 SoundGroup::Sfx,
                 VolumePreset::Minimum,
                 SpatialMode::Spatial {
@@ -288,21 +292,25 @@ pub fn tick_royal_straight_flush_visuals(
     }
 }
 
-fn generate_royal_straight_flush_clones(target_xy: (f32, f32)) -> Vec<RoyalStraightFlushClone> {
-    let mut rng = rand::thread_rng();
-    let angle1 = rng.gen_range(0.0..std::f32::consts::TAU);
-    let separation = rng.gen_range(
-        std::f32::consts::FRAC_PI_3..(std::f32::consts::TAU - std::f32::consts::FRAC_PI_3),
-    );
+fn generate_royal_straight_flush_clones(
+    target_xy: (f32, f32),
+    key: u64,
+) -> Vec<RoyalStraightFlushClone> {
+    let unit = |value: u64| -> f32 {
+        (value.wrapping_mul(0xA24B_AED4_963E_E407) >> 40) as f32 / (1u64 << 24) as f32
+    };
+    let angle1 = unit(key) * std::f32::consts::TAU;
+    let separation = std::f32::consts::FRAC_PI_3
+        + unit(key.rotate_left(17)) * (std::f32::consts::TAU - 2.0 * std::f32::consts::FRAC_PI_3);
     let angle2 = (angle1 + separation) % std::f32::consts::TAU;
 
     [angle1, angle2]
         .into_iter()
         .map(|angle| {
-            let radius = rng.gen_range(
-                ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MIN
-                    ..ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MAX,
-            );
+            let radius = ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MIN
+                + unit(key.rotate_left(31) ^ angle.to_bits() as u64)
+                    * (ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MAX
+                        - ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MIN);
             let spawn_center_xy = (
                 target_xy.0 + angle.cos() * radius,
                 target_xy.1 + angle.sin() * radius,

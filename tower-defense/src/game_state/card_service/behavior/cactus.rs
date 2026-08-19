@@ -161,7 +161,7 @@ mod tests {
         assert_eq!(
             Engraving::Cactus.tower_modifier().on_attack_splashes,
             vec![crate::card::EngravingSplash {
-                radius: 2.0,
+                radius: crate::WorldDistance::from_tiles(2),
                 damage_pct: crate::FixedRatio::from_raw(300_000),
             }]
         );
