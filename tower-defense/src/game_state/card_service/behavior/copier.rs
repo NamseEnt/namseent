@@ -104,7 +104,7 @@ impl CardServiceBehavior for CopierCardService {
             .iter()
             .map(|card| (copy_priority(card, deck), card.id))
             .max_by(|(a, _), (b, _)| {
-                a.0.total_cmp(&b.0)
+                a.0.cmp(&b.0)
                     .then_with(|| (a.1, a.2, a.3).cmp(&(b.1, b.2, b.3)))
             })
             .map(|(_, card_id)| card_id)
@@ -114,7 +114,7 @@ impl CardServiceBehavior for CopierCardService {
     }
 }
 
-fn copy_priority(card: &Card, deck: &[Card]) -> (f32, usize, usize, usize) {
+fn copy_priority(card: &Card, deck: &[Card]) -> (crate::FixedRatio, usize, usize, usize) {
     let enhancement = card.polish_pct();
 
     let suit_count = deck.iter().filter(|other| other.suit == card.suit).count();
@@ -175,7 +175,7 @@ mod tests {
             .unwrap()
             .id;
         game_state.deck.modify_card(low_card_id, |card| {
-            card.add_polish_pct(0.5);
+            card.add_polish_pct(crate::FixedRatio::from_raw(500_000));
         });
 
         let selected_card_id = CopierCardService.heuristic_best_selection(&game_state)[0][0];

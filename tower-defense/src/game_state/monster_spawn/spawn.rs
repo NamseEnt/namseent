@@ -8,13 +8,13 @@ pub fn start_spawn(game_state: &mut GameState) {
         return;
     }
 
-    let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
+    let health_multipliers = game_state.stage_modifiers.enemy_health_multipliers();
     let sim_tick = game_state.sim_tick();
     let (monster_queue, spawn_interval) = monster_queue_table(
         game_state.stage,
         game_state.route.clone(),
         sim_tick,
-        health_multiplier,
+        health_multipliers,
         &game_state.config,
     );
 
@@ -42,7 +42,8 @@ pub fn tick(game_state: &mut GameState, sim_tick: SimTick) {
     #[cfg(feature = "debug-tools")]
     {
         let hp_offset = crate::game_state::debug_tools::monster_hp_balance::get_hp_offset();
-        next_monster.max_hp += hp_offset;
+        let hp_offset = crate::Health::from_f64(hp_offset as f64).unwrap_or(crate::Health::ZERO);
+        next_monster.max_hp = next_monster.max_hp.saturating_add(hp_offset);
         next_monster.hp = next_monster.max_hp;
     }
 
@@ -57,14 +58,14 @@ pub fn monster_queue_table(
     stage: usize,
     route: Arc<Route>,
     sim_tick: SimTick,
-    health_multiplier: f32,
+    health_multipliers: &crate::RatioProduct,
     config: &crate::config::GameConfig,
 ) -> (VecDeque<Monster>, SimTickSpan) {
     let (template_queue, spawn_interval) = monster_template_queue_table(stage, config);
 
     let monster_queue = template_queue
         .into_iter()
-        .map(|template| Monster::new(&template, route.clone(), sim_tick, health_multiplier))
+        .map(|template| Monster::new(&template, route.clone(), sim_tick, health_multipliers))
         .collect();
 
     (monster_queue, spawn_interval)

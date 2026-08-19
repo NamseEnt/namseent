@@ -1,4 +1,5 @@
 use crate::{
+    Shield,
     game_state::{
         self, GameState,
         action::upgrade_trigger::UpgradeTriggerEvent,
@@ -22,7 +23,7 @@ pub(super) fn reset_stage_state(game_state: &mut GameState) {
 
 pub(super) fn renew_game_state(game_state: &mut GameState, stage: usize) {
     if game_state.upgrade_state.clear_shield_on_stage_start() {
-        game_state.shield = 0.0;
+        game_state.shield = Shield::ZERO;
     }
     game_state.item_used = false;
     game_state.metrics.total_rerolled_count += game_state.rerolled_count;

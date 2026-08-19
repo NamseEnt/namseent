@@ -5,12 +5,13 @@ pub(crate) mod scheduler;
 mod shoot;
 
 use super::*;
+use crate::Damage;
 use crate::game_state::attack::TowerInfo;
 
 /// 공격이 몬스터에 명중했을 때의 정보. 모든 공격 경로(Spatial/Timed/Laser)가 동일한 struct를 사용.
 pub(super) struct MonsterHit {
     pub target_idx: usize,
-    pub damage: f32,
+    pub damage: Damage,
     pub at_xy: MapCoordF32,
     pub source_tower: Option<TowerInfo>,
     pub on_hit_splashes: Vec<crate::card::EngravingSplash>,
@@ -18,7 +19,7 @@ pub(super) struct MonsterHit {
 
 pub(super) struct AreaDamageEvent {
     pub center: MapCoordF32,
-    pub damage: f32,
+    pub damage: Damage,
     pub source_tower: TowerInfo,
     pub splashes: Vec<crate::card::EngravingSplash>,
 }

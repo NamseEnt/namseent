@@ -6,7 +6,7 @@ mod render;
 pub mod skill;
 
 use crate::{
-    MapCoordF32, SimTick,
+    Damage, FixedRatio, Health, MapCoordF32, SimTick,
     game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
     route::{MoveOnRoute, Route},
 };
@@ -33,13 +33,14 @@ pub struct Monster {
     pub move_on_route: MoveOnRoute,
     pub kind: MonsterKind,
     pub projectile_target_indicator: ProjectileTargetIndicator,
-    pub hp: f32,
-    pub max_hp: f32,
+    pub hp: Health,
+    pub max_hp: Health,
+    pub stage_progress_counted: bool,
     #[cfg(feature = "debug-tools")]
-    pub base_max_hp: f32,
+    pub base_max_hp: Health,
     pub skills: Vec<MonsterSkill>,
     pub status_effects: Vec<MonsterStatusEffect>,
-    pub damage: f32,
+    pub damage: Damage,
     pub reward: usize,
     pub animation: MonsterAnimation,
 }
@@ -48,10 +49,10 @@ impl Monster {
         template: &MonsterTemplate,
         route: Arc<Route>,
         sim_tick: SimTick,
-        health_multiplier: f32,
+        health_multipliers: &crate::RatioProduct,
     ) -> Self {
         static ID: AtomicUsize = AtomicUsize::new(0);
-        let adjusted_max_hp = template.max_hp * health_multiplier;
+        let adjusted_max_hp = template.max_hp.scaled_by_product(health_multipliers);
         Self {
             id: ID.fetch_add(1, Ordering::Relaxed),
             move_on_route: MoveOnRoute::new(route, template.velocity),
@@ -59,6 +60,7 @@ impl Monster {
             projectile_target_indicator: ProjectileTargetIndicator::new(),
             hp: adjusted_max_hp,
             max_hp: adjusted_max_hp,
+            stage_progress_counted: false,
             #[cfg(feature = "debug-tools")]
             base_max_hp: adjusted_max_hp,
             skills: template
@@ -72,7 +74,7 @@ impl Monster {
             animation: MonsterAnimation::new(),
         }
     }
-    pub fn get_damage(&mut self, damage: f32) {
+    pub fn get_damage(&mut self, damage: Damage) {
         if self.dead()
             || self.status_effects.iter().any(|status_effect| {
                 matches!(status_effect.kind, MonsterStatusEffectKind::Invincible)
@@ -81,25 +83,25 @@ impl Monster {
             return;
         }
 
-        self.hp -= damage;
+        self.hp = self.hp.saturating_sub(Health::from_raw(damage.raw()));
     }
-    pub fn heal(&mut self, amount: f32) {
+    pub fn heal(&mut self, amount: Health) {
         if self.dead() {
             return;
         }
 
-        self.hp += amount;
+        self.hp = self.hp.saturating_add(amount);
         if self.hp > self.max_hp {
             self.hp = self.max_hp;
         }
     }
-    pub fn get_damage_to_user(&self) -> f32 {
+    pub fn get_damage_to_user(&self) -> Damage {
         // weaken or strengthen the damage
         self.damage
     }
 
     pub fn dead(&self) -> bool {
-        self.hp <= 0.0
+        self.hp.is_zero()
     }
 
     pub fn xy(&self) -> MapCoordF32 {
@@ -122,10 +124,10 @@ impl Monster {
         for status_effect in &self.status_effects {
             match status_effect.kind {
                 MonsterStatusEffectKind::SpeedMul { mul } => {
-                    if is_immune_to_slow && mul < 1.0 {
+                    if is_immune_to_slow && mul < FixedRatio::ONE {
                         continue;
                     }
-                    speed_multiplier *= mul;
+                    speed_multiplier *= mul.as_f32();
                 }
                 MonsterStatusEffectKind::Invincible | MonsterStatusEffectKind::ImmuneToSlow => {}
             }

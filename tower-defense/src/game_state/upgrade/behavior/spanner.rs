@@ -78,7 +78,7 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut gs = support::create_mock_game_state();
-        gs.shield = 50.0;
+        gs.shield = crate::Shield::from_integer(50);
         gs.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::SpannerUpgrade::into_upgrade(),
             None,
@@ -86,6 +86,6 @@ mod tests {
 
         gs.action(crate::game_state::GameStateAction::StartStage { stage: gs.stage });
 
-        assert_eq!(gs.shield, 50.0);
+        assert_eq!(gs.shield, crate::Shield::from_integer(50));
     }
 }

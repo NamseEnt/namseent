@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const APPLE_HP_PLUS: f32 = 4.0;
-const APPLE_HEAL_AMOUNT: f32 = 6.0;
+const APPLE_HP_PLUS: HealthDelta = HealthDelta::from_integer(4);
+const APPLE_HEAL_AMOUNT: Health = Health::from_integer(6);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct AppleUpgrade;
@@ -24,7 +24,7 @@ impl UpgradeBehavior for AppleUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         APPLE_HP_PLUS
     }
 

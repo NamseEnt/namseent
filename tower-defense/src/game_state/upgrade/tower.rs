@@ -1,3 +1,4 @@
+use crate::FixedRatio;
 use crate::game_state::{card::Suit, tower::Tower};
 use namui::*;
 
@@ -16,7 +17,7 @@ pub enum TowerUpgradeTarget {
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TowerUpgradeDamageBonus {
     pub target: TowerUpgradeTarget,
-    pub bonus_pct: f32,
+    pub bonus_pct: FixedRatio,
 }
 
 impl TowerUpgradeDamageBonus {
@@ -24,15 +25,14 @@ impl TowerUpgradeDamageBonus {
         self.target.applies_to_tower(tower)
     }
 
-    pub fn effective_bonus_pct_for_tower(&self, tower: &Tower) -> f32 {
+    pub fn effective_bonus_pct_for_tower(&self, tower: &Tower) -> FixedRatio {
         if !self.applies_to_tower(tower) {
-            return 0.0;
+            return FixedRatio::ZERO;
         }
 
         match self.target {
             TowerUpgradeTarget::RerolledTower => {
-                let rerolled_count = tower.rerolled_count() as f32;
-                self.bonus_pct * rerolled_count
+                self.bonus_pct.saturating_mul_usize(tower.rerolled_count())
             }
             _ => self.bonus_pct,
         }
@@ -41,16 +41,15 @@ impl TowerUpgradeDamageBonus {
     pub fn effective_bonus_pct_for_tower_template(
         &self,
         tower_template: &crate::game_state::tower::TowerTemplate,
-    ) -> f32 {
+    ) -> FixedRatio {
         if !self.target.applies_to_tower_template(tower_template) {
-            return 0.0;
+            return FixedRatio::ZERO;
         }
 
         match self.target {
-            TowerUpgradeTarget::RerolledTower => {
-                let rerolled_count = tower_template.rerolled_count as f32;
-                self.bonus_pct * rerolled_count
-            }
+            TowerUpgradeTarget::RerolledTower => self
+                .bonus_pct
+                .saturating_mul_usize(tower_template.rerolled_count),
             _ => self.bonus_pct,
         }
     }

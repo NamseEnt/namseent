@@ -1,11 +1,11 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const NAME_TAG_DAMAGE_BONUS_PCT: f32 = 2.0;
+const NAME_TAG_DAMAGE_BONUS_PCT: FixedRatio = FixedRatio::from_integer(2);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct NameTagUpgrade {
-    pub damage_bonus_pct: f32,
+    pub damage_bonus_pct: FixedRatio,
     pub target_tower_id: Option<usize>,
 }
 
@@ -41,7 +41,7 @@ impl UpgradeBehavior for NameTagUpgrade {
         UpgradeUpdateFlags::TOWER_STATS
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         self.target_tower_id.map(|tower_id| {
             (
                 TowerUpgradeTarget::TowerId { tower_id },
@@ -70,19 +70,25 @@ impl UpgradeBehavior for NameTagUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("The next tower you place gains ")
-                    .with_bold(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_bold(format!(
+                        "damage +{:.0}%",
+                        self.damage_bonus_pct.as_f32() * 100.0
+                    ));
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .static_text("다음 배치하는 타워 ")
-                    .with_bold(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_bold(format!(
+                        "데미지 +{:.0}%",
+                        self.damage_bonus_pct.as_f32() * 100.0
+                    ));
             }
         }
     }
 }
 
 impl NameTagUpgrade {
-    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: FixedRatio) -> Upgrade {
         Upgrade::NameTag(NameTagUpgrade {
             damage_bonus_pct,
             target_tower_id: None,
@@ -113,7 +119,9 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(2.0),
+            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(
+                crate::FixedRatio::from_integer(2),
+            ),
             None,
         ));
         game_state.left_dice = 0;
@@ -129,7 +137,7 @@ mod tests {
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::NameTag(upgrade) = &upgrade.upgrade {
-                (upgrade.damage_bonus_pct - 2.0).abs() < f32::EPSILON
+                upgrade.damage_bonus_pct == crate::FixedRatio::from_integer(2)
             } else {
                 false
             }

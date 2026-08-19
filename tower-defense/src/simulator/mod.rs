@@ -21,6 +21,7 @@ use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
 use std::sync::Arc;
 
+use crate::Health;
 use crate::PresentationInstant;
 use events::SimEvent;
 use strategies::{
@@ -44,8 +45,8 @@ pub struct HeadlessGame {
     pub events: Vec<SimEvent>,
     pub total_towers_placed: usize,
     pub total_items_used: usize,
-    pub total_damage_taken: f32,
-    pub stage_damage: Vec<(usize, f32)>,
+    pub total_damage_taken: Health,
+    pub stage_damage: Vec<(usize, Health)>,
     pub total_gold_earned: usize,
 }
 
@@ -57,7 +58,7 @@ impl HeadlessGame {
             events: Vec::new(),
             total_towers_placed: 0,
             total_items_used: 0,
-            total_damage_taken: 0.0,
+            total_damage_taken: Health::ZERO,
             stage_damage: Vec::new(),
             total_gold_earned: 0,
         }
@@ -156,17 +157,17 @@ impl HeadlessGame {
                 }
                 GameFlow::Defense(_) => {
                     let clear_rate = self.game_state.calculate_clear_rate();
-                    if !on_clear_rate_update(clear_rate) {
+                    if !on_clear_rate_update(clear_rate.as_percent_f32()) {
                         return SimResult {
                             victory: false,
                             final_stage: self.game_state.stage,
-                            clear_rate,
-                            final_hp: self.game_state.hp,
+                            clear_rate: clear_rate.as_percent_f32(),
+                            final_hp: self.game_state.hp.as_f32(),
                             final_gold: self.game_state.gold,
                             total_towers_placed: self.total_towers_placed,
                             total_items_used: self.total_items_used,
-                            total_damage_taken: self.total_damage_taken,
-                            stage_damage: self.stage_damage.clone(),
+                            total_damage_taken: self.total_damage_taken.as_f32(),
+                            stage_damage: self.stage_damage_for_output(),
                             total_gold_earned: self.game_state.metrics.total_gold_earned,
                         };
                     }
@@ -182,21 +183,22 @@ impl HeadlessGame {
                     );
                     self.drain_play_history_events(&mut last_history_event_index);
 
-                    let damage_this_stage = (hp_before - self.game_state.hp).max(0.0);
-                    self.total_damage_taken += damage_this_stage;
+                    let damage_this_stage = hp_before.saturating_sub(self.game_state.hp);
+                    self.total_damage_taken =
+                        self.total_damage_taken.saturating_add(damage_this_stage);
                     self.stage_damage.push((stage, damage_this_stage));
 
                     if !continue_sim {
                         return SimResult {
                             victory: false,
                             final_stage: self.game_state.stage,
-                            clear_rate: self.game_state.calculate_clear_rate(),
-                            final_hp: self.game_state.hp,
+                            clear_rate: self.game_state.calculate_clear_rate().as_percent_f32(),
+                            final_hp: self.game_state.hp.as_f32(),
                             final_gold: self.game_state.gold,
                             total_towers_placed: self.total_towers_placed,
                             total_items_used: self.total_items_used,
-                            total_damage_taken: self.total_damage_taken,
-                            stage_damage: self.stage_damage.clone(),
+                            total_damage_taken: self.total_damage_taken.as_f32(),
+                            stage_damage: self.stage_damage_for_output(),
                             total_gold_earned: self.game_state.metrics.total_gold_earned,
                         };
                     }
@@ -235,24 +237,24 @@ impl HeadlessGame {
                     });
                 }
                 GameFlow::Result { clear_rate } => {
-                    on_clear_rate_update(clear_rate);
-                    let victory = clear_rate >= 100.0;
+                    on_clear_rate_update(clear_rate.as_percent_f32());
+                    let victory = clear_rate == crate::ClearRate::FULL;
                     self.events.push(SimEvent::GameEnd {
                         final_stage: self.game_state.stage,
                         victory,
-                        clear_rate,
+                        clear_rate: clear_rate.as_percent_f32(),
                     });
 
                     return SimResult {
                         victory,
                         final_stage: self.game_state.stage,
-                        clear_rate,
-                        final_hp: self.game_state.hp,
+                        clear_rate: clear_rate.as_percent_f32(),
+                        final_hp: self.game_state.hp.as_f32(),
                         final_gold: self.game_state.gold,
                         total_towers_placed: self.total_towers_placed,
                         total_items_used: self.total_items_used,
-                        total_damage_taken: self.total_damage_taken,
-                        stage_damage: self.stage_damage.clone(),
+                        total_damage_taken: self.total_damage_taken.as_f32(),
+                        stage_damage: self.stage_damage_for_output(),
                         total_gold_earned: self.game_state.metrics.total_gold_earned,
                     };
                 }
@@ -280,20 +282,27 @@ impl HeadlessGame {
             tick_count += 1;
 
             let clear_rate = self.game_state.calculate_clear_rate();
-            if !on_clear_rate_update(clear_rate) {
+            if !on_clear_rate_update(clear_rate.as_percent_f32()) {
                 return false;
             }
 
             // Check if damage was taken and invoke item strategy
             let current_hp = self.game_state.hp;
             if current_hp < hp_before {
-                let damage = hp_before - current_hp;
+                let damage = crate::Damage::from_raw(hp_before.saturating_sub(current_hp).raw());
                 item_use_strategy.on_damage_taken(&mut self.game_state, damage);
                 self.drain_play_history_events(last_history_event_index);
             }
         }
 
         true
+    }
+
+    fn stage_damage_for_output(&self) -> Vec<(usize, f32)> {
+        self.stage_damage
+            .iter()
+            .map(|(stage, damage)| (*stage, damage.as_f32()))
+            .collect()
     }
 
     fn drain_play_history_events(&mut self, last_history_event_index: &mut usize) {
@@ -405,7 +414,7 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
         gold: config.player.starting_gold,
         cursor_preview: Default::default(),
         hp: config.player.starting_hp,
-        shield: 0.0,
+        shield: crate::Shield::ZERO,
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,

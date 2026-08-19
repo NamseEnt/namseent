@@ -5,6 +5,7 @@ use crate::game_state::attack::{
 };
 use crate::game_state::effect_event::{GameEffectEvent, ParticleSpawnRequest};
 use crate::game_state::projectile::ProjectileBehavior;
+use crate::{Damage, FixedRatio, RatioProduct};
 use rand::Rng;
 use std::collections::HashMap;
 
@@ -79,14 +80,14 @@ fn process_timed_attacks(game_state: &mut GameState, presentation_instant: Prese
             }
         }
 
-        if attack.damage > 0.0 {
+        if !attack.damage.is_zero() {
             game_state
                 .effect_events
                 .push(GameEffectEvent::SpawnParticle(
                     ParticleSpawnRequest::DamageText(
                         crate::game_state::field_particle::DamageTextParticle::new(
                             target_xy,
-                            attack.damage,
+                            attack.damage.as_f32(),
                             presentation_instant.as_namui(),
                         ),
                     ),
@@ -163,14 +164,14 @@ fn process_laser_attacks(game_state: &mut GameState, presentation_instant: Prese
         };
         let target_xy = game_state.monsters[target_idx].center_xy_tile();
 
-        if attack.damage > 0.0 {
+        if !attack.damage.is_zero() {
             game_state
                 .effect_events
                 .push(GameEffectEvent::SpawnParticle(
                     ParticleSpawnRequest::DamageText(
                         crate::game_state::field_particle::DamageTextParticle::new(
                             target_xy,
-                            attack.damage,
+                            attack.damage.as_f32(),
                             presentation_instant.as_namui(),
                         ),
                     ),
@@ -279,13 +280,13 @@ fn move_spatial_attacks(
                 ));
             }
 
-            if damage > 0.0 {
+            if !damage.is_zero() {
                 game_state
                     .effect_events
                     .push(GameEffectEvent::SpawnParticle(
                         ParticleSpawnRequest::DamageText(field_particle::DamageTextParticle::new(
                             monster_xy,
-                            damage,
+                            damage.as_f32(),
                             presentation_instant.as_namui(),
                         )),
                     ));
@@ -352,9 +353,19 @@ fn apply_monster_damage_and_remove_dead(
             continue;
         }
 
+        let hp_before = game_state.monsters[hit.target_idx].hp;
         game_state.monsters[hit.target_idx].get_damage(hit.damage);
+        let hp_dealt = hp_before.saturating_sub(game_state.monsters[hit.target_idx].hp);
+        if !hp_dealt.is_zero()
+            && let GameFlow::Defense(defense_flow) = &mut game_state.flow
+        {
+            defense_flow.stage_progress.processed_hp = defense_flow
+                .stage_progress
+                .processed_hp
+                .saturating_add(hp_dealt);
+        }
 
-        if hit.damage > 0.0 {
+        if !hit.damage.is_zero() {
             game_state.effect_events.push(GameEffectEvent::PlaySound(
                 crate::sound::EmitSoundParams::one_shot(
                     crate::sound::random_whoop(),
@@ -403,18 +414,22 @@ fn expand_on_hit_splashes(
                 if index == hit.target_idx {
                     continue;
                 }
-                let damage_pct = hit
+                let damage_pct_raw: i64 = hit
                     .on_hit_splashes
                     .iter()
                     .filter(|splash| (*center - hit.at_xy).length() <= splash.radius)
-                    .map(|splash| splash.damage_pct)
-                    .sum::<f32>();
-                if damage_pct <= 0.0 {
+                    .map(|splash| splash.damage_pct.raw())
+                    .sum();
+                if damage_pct_raw <= 0 {
                     continue;
                 }
                 expanded.push(MonsterHit {
                     target_idx: index,
-                    damage: hit.damage * damage_pct,
+                    damage: Damage::from_raw(
+                        RatioProduct::one()
+                            .with(FixedRatio::from_raw(damage_pct_raw))
+                            .apply_raw(hit.damage.raw()),
+                    ),
                     at_xy: *center,
                     source_tower: hit.source_tower,
                     on_hit_splashes: Vec::new(),
@@ -452,18 +467,22 @@ fn expand_area_damage_events(
     let mut hits = Vec::new();
     for event in events {
         for (index, center) in monster_centers.iter().enumerate() {
-            let damage_pct = event
+            let damage_pct_raw: i64 = event
                 .splashes
                 .iter()
                 .filter(|splash| (*center - event.center).length() <= splash.radius)
-                .map(|splash| splash.damage_pct)
-                .sum::<f32>();
-            if damage_pct <= 0.0 {
+                .map(|splash| splash.damage_pct.raw())
+                .sum();
+            if damage_pct_raw <= 0 {
                 continue;
             }
             hits.push(MonsterHit {
                 target_idx: index,
-                damage: event.damage * damage_pct,
+                damage: Damage::from_raw(
+                    RatioProduct::one()
+                        .with(FixedRatio::from_raw(damage_pct_raw))
+                        .apply_raw(event.damage.raw()),
+                ),
                 at_xy: *center,
                 source_tower: Some(event.source_tower),
                 on_hit_splashes: Vec::new(),
@@ -481,7 +500,7 @@ mod tests {
     fn hit(target_idx: usize, at_xy: MapCoordF32, splash: Option<EngravingSplash>) -> MonsterHit {
         MonsterHit {
             target_idx,
-            damage: 100.0,
+            damage: Damage::from_integer(100),
             at_xy,
             source_tower: None,
             on_hit_splashes: splash.into_iter().collect(),
@@ -495,7 +514,7 @@ mod tests {
         let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], None)]);
 
         assert_eq!(expanded.len(), 1);
-        assert_eq!(expanded[0].damage, 100.0);
+        assert_eq!(expanded[0].damage, Damage::from_integer(100));
     }
 
     #[test]
@@ -507,7 +526,7 @@ mod tests {
         ];
         let splash = EngravingSplash {
             radius: 2.0,
-            damage_pct: 0.5,
+            damage_pct: FixedRatio::from_raw(500_000),
         };
 
         let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], Some(splash))]);
@@ -517,7 +536,7 @@ mod tests {
             .iter()
             .find(|hit| hit.target_idx == 1)
             .expect("반경 안 몬스터가 파생 타격을 받아야 한다");
-        assert_eq!(splashed.damage, 50.0);
+        assert_eq!(splashed.damage, Damage::from_integer(50));
         assert!(splashed.on_hit_splashes.is_empty());
         assert!(expanded.iter().all(|hit| hit.target_idx != 2));
     }
@@ -532,7 +551,7 @@ mod tests {
         ];
         let event = super::AreaDamageEvent {
             center: tower_xy,
-            damage: 100.0,
+            damage: Damage::from_integer(100),
             source_tower: crate::game_state::attack::TowerInfo {
                 id: 0,
                 kind: crate::game_state::tower::TowerKind::High,
@@ -541,7 +560,7 @@ mod tests {
             },
             splashes: vec![EngravingSplash {
                 radius: 2.0,
-                damage_pct: 0.3,
+                damage_pct: FixedRatio::from_raw(300_000),
             }],
         };
 
@@ -549,7 +568,7 @@ mod tests {
 
         assert_eq!(expanded.len(), 1);
         assert_eq!(expanded[0].target_idx, 1);
-        assert!((expanded[0].damage - 30.0).abs() < 1e-5);
+        assert_eq!(expanded[0].damage, Damage::from_integer(30));
     }
 
     #[test]
@@ -558,11 +577,11 @@ mod tests {
         let splashes = vec![
             EngravingSplash {
                 radius: 2.0,
-                damage_pct: 0.3,
+                damage_pct: FixedRatio::from_raw(300_000),
             },
             EngravingSplash {
                 radius: 2.0,
-                damage_pct: 0.4,
+                damage_pct: FixedRatio::from_raw(400_000),
             },
         ];
 
@@ -570,7 +589,7 @@ mod tests {
             &centers,
             vec![MonsterHit {
                 target_idx: 0,
-                damage: 100.0,
+                damage: Damage::from_integer(100),
                 at_xy: centers[0],
                 source_tower: None,
                 on_hit_splashes: splashes,
@@ -581,7 +600,7 @@ mod tests {
             .iter()
             .find(|hit| hit.target_idx == 1)
             .expect("중복 스플래시가 합산되어야 한다");
-        assert!((nearby.damage - 70.0).abs() < 1e-5);
+        assert_eq!(nearby.damage, Damage::from_integer(70));
     }
 
     #[test]
@@ -589,12 +608,12 @@ mod tests {
         let centers = vec![MapCoordF32::new(0.0, 0.0)];
         let splash = EngravingSplash {
             radius: 5.0,
-            damage_pct: 1.0,
+            damage_pct: FixedRatio::ONE,
         };
 
         let expanded = expand_on_hit_splashes(&centers, vec![hit(0, centers[0], Some(splash))]);
 
         assert_eq!(expanded.len(), 1);
-        assert_eq!(expanded[0].damage, 100.0);
+        assert_eq!(expanded[0].damage, Damage::from_integer(100));
     }
 }

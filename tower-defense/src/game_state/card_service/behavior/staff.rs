@@ -10,11 +10,11 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct StaffCardService {
-    pub polish_pct: f32,
+    pub polish_pct: crate::FixedRatio,
 }
 
 impl StaffCardService {
-    pub fn new(polish_pct: f32) -> Self {
+    pub fn new(polish_pct: crate::FixedRatio) -> Self {
         Self { polish_pct }
     }
 
@@ -128,5 +128,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_staff_card_service() -> CardService {
-    StaffCardService::new(2.0).into_card_service()
+    StaffCardService::new(crate::FixedRatio::from_integer(2)).into_card_service()
 }

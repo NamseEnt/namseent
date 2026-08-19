@@ -13,7 +13,7 @@ pub use item_use::HeuristicItemUseStrategy;
 pub use shop::SynergyShopStrategy;
 pub use treasure::{SynergyTreasureStrategy, TreasureStrategy};
 
-use crate::game_state::GameState;
+use crate::{Damage, game_state::GameState};
 use rand::RngCore;
 
 /// Strategy for shop interaction (buying items and upgrades).
@@ -45,7 +45,7 @@ pub trait ItemUseStrategy: Send + Sync {
     /// Called at strategic moments (before defense, when damaged, etc.).
     fn on_before_defense(&self, game_state: &mut GameState);
     /// Called when player takes damage.
-    fn on_damage_taken(&self, game_state: &mut GameState, damage: f32);
+    fn on_damage_taken(&self, game_state: &mut GameState, damage: Damage);
     /// Called when a new item is acquired.
     fn on_item_acquired(&self, game_state: &mut GameState);
 }

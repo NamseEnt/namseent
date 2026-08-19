@@ -4,16 +4,16 @@ use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct CookieItem {
-    pub heal_amount: f32,
+    pub heal_amount: crate::Health,
 }
 
 impl CookieItem {
-    pub fn new(heal_amount: f32) -> Self {
+    pub fn new(heal_amount: crate::Health) -> Self {
         Self { heal_amount }
     }
 
     pub fn standard() -> Self {
-        Self::new(5.0)
+        Self::new(crate::Health::from_integer(5))
     }
 
     pub fn into_item(self) -> Item {
@@ -108,10 +108,13 @@ mod tests {
     fn using_cookie_heals_five_health() {
         let mut game_state = crate::game_state::create_initial_game_state();
         let max_hp = game_state.max_hp();
-        game_state.hp = max_hp - 7.0;
+        game_state.hp = max_hp.saturating_sub(crate::Health::from_integer(7));
 
         CookieItem::standard().use_item(&mut game_state);
 
-        assert_eq!(game_state.hp, max_hp - 2.0);
+        assert_eq!(
+            game_state.hp,
+            max_hp.saturating_sub(crate::Health::from_integer(2))
+        );
     }
 }

@@ -1,16 +1,16 @@
 use super::MonsterSkillTemplate;
 use crate::game_state::monster::MonsterKind;
 use crate::game_state::route::Velocity;
-use crate::*;
-use namui::{Duration, State};
+use crate::{Damage, Health};
+use namui::*;
 
 #[derive(State, Clone)]
 pub struct MonsterTemplate {
     pub kind: MonsterKind,
-    pub max_hp: f32,
+    pub max_hp: Health,
     pub skills: Vec<MonsterSkillTemplate>,
     pub velocity: Velocity,
-    pub damage: f32,
+    pub damage: Damage,
     pub reward: usize,
 }
 
@@ -19,8 +19,8 @@ impl MonsterTemplate {
         Velocity::new(5.0 * mul, Duration::from_secs(1))
     }
 
-    fn damage(mul: f32) -> f32 {
-        mul
+    fn damage(damage: Damage) -> Damage {
+        damage
     }
 
     fn reward(mul: usize) -> usize {
@@ -47,7 +47,7 @@ impl MonsterTemplate {
         }
     }
 
-    pub fn get_base_max_hp(kind: MonsterKind) -> f32 {
+    pub fn get_base_max_hp(kind: MonsterKind) -> Health {
         crate::config::GameConfig::default_config()
             .monsters
             .stats

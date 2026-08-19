@@ -1,4 +1,4 @@
-use crate::SimTick;
+use crate::{FixedRatio, SimTick};
 use namui::*;
 
 use super::GameState;
@@ -11,7 +11,7 @@ pub struct UserStatusEffect {
 
 #[derive(State, Clone)]
 pub enum UserStatusEffectKind {
-    DamageReduction { damage_multiply: f32 },
+    DamageReduction { damage_multiply: FixedRatio },
 }
 
 pub fn remove_user_finished_status_effects(game_state: &mut GameState, sim_tick: SimTick) {

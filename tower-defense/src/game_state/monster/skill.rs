@@ -1,5 +1,5 @@
 use crate::game_state::GameState;
-use crate::{SimTick, SimTickSpan};
+use crate::{FixedRatio, SimTick, SimTickSpan};
 use namui::*;
 use std::ops::Deref;
 
@@ -37,9 +37,9 @@ impl Deref for MonsterSkill {
 #[derive(Clone, Copy, State)]
 pub enum MonsterSkillKind {
     Invincible,
-    SpeedMul { mul: f32 },
+    SpeedMul { mul: FixedRatio },
     ImmuneToSlow,
-    HealByMaxHp { ratio: f32 },
+    HealByMaxHp { ratio: FixedRatio },
 }
 
 impl MonsterSkillKind {
@@ -62,7 +62,7 @@ pub enum Target {
 
 #[derive(Clone, Copy, PartialEq, State)]
 pub enum MonsterStatusEffectKind {
-    SpeedMul { mul: f32 },
+    SpeedMul { mul: FixedRatio },
     Invincible,
     ImmuneToSlow,
     // 자신에게 n초 동안 무적 버프 부여
@@ -128,7 +128,7 @@ pub fn activate_monster_skills(game_state: &mut GameState, sim_tick: SimTick) {
                     push_status_effect(MonsterStatusEffectKind::ImmuneToSlow);
                 }
                 MonsterSkillKind::HealByMaxHp { ratio } => {
-                    monster.heal(monster.max_hp * ratio);
+                    monster.heal(monster.max_hp.scaled_by(ratio));
                 }
             }
         });
@@ -174,25 +174,33 @@ impl From<PrebuiltSkill> for MonsterSkillTemplate {
     fn from(val: PrebuiltSkill) -> Self {
         match val {
             PrebuiltSkill::Heal01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.075 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(75_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(3000),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::Heal02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.1 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(100_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(3000),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::Heal03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.15 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(150_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(4000),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::Heal04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.15 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(150_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(3000),
                 duration: SimTickSpan::ZERO,
@@ -246,49 +254,65 @@ impl From<PrebuiltSkill> for MonsterSkillTemplate {
                 duration: SimTickSpan::from_millis_ceil(750),
             },
             PrebuiltSkill::Speedmul01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 2.0 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(2_000_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(5000),
                 duration: SimTickSpan::from_millis_ceil(3000),
             },
             PrebuiltSkill::Speedmul02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_250_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(5000),
                 duration: SimTickSpan::from_millis_ceil(3000),
             },
             PrebuiltSkill::Speedmul03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_250_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(2000),
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::Speedmul04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_500_000),
+                },
                 target: Target::AllMonsters,
                 cooldown: SimTickSpan::from_millis_ceil(1000),
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::SelfHeal01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.05 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(50_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(3000),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::SelfHeal02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.05 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(50_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(2500),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::SelfHeal03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.075 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(75_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(2000),
                 duration: SimTickSpan::ZERO,
             },
             PrebuiltSkill::SelfHeal04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::HealByMaxHp { ratio: 0.1 },
+                kind: MonsterSkillKind::HealByMaxHp {
+                    ratio: FixedRatio::from_raw(100_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(1000),
                 duration: SimTickSpan::ZERO,
@@ -342,25 +366,33 @@ impl From<PrebuiltSkill> for MonsterSkillTemplate {
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::SelfSpeedmul01 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.1 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_100_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(3000),
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::SelfSpeedmul02 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.25 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_250_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(2500),
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::SelfSpeedmul03 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_500_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(2000),
                 duration: SimTickSpan::from_millis_ceil(1000),
             },
             PrebuiltSkill::SelfSpeedmul04 => MonsterSkillTemplate {
-                kind: MonsterSkillKind::SpeedMul { mul: 1.5 },
+                kind: MonsterSkillKind::SpeedMul {
+                    mul: FixedRatio::from_raw(1_500_000),
+                },
                 target: Target::MySelf,
                 cooldown: SimTickSpan::from_millis_ceil(1000),
                 duration: SimTickSpan::from_millis_ceil(1000),

@@ -134,7 +134,7 @@ impl CardServiceBehavior for MagnetCardService {
             .collect();
         candidates.sort_by(|a, b| {
             b.polish_pct()
-                .total_cmp(&a.polish_pct())
+                .cmp(&a.polish_pct())
                 .then_with(|| b.rank.ordinal().cmp(&a.rank.ordinal()))
         });
 
@@ -190,7 +190,7 @@ mod tests {
             .collect();
         for card_id in &polished {
             game_state.deck.modify_card(*card_id, |card| {
-                card.add_polish_pct(1.0);
+                card.add_polish_pct(crate::FixedRatio::ONE);
             });
         }
 

@@ -127,40 +127,55 @@ mod tests {
     #[test]
     fn applying_effects_modifies_stage_modifiers() {
         let mut modifiers = StageModifiers::new();
-        let effect = Effect::DecreaseEnemyHealthPercent { percentage: 20.0 };
+        let effect = Effect::DecreaseEnemyHealthPercent {
+            percentage: crate::FixedRatio::from_integer(20),
+        };
         effect.apply_to_stage_modifiers(&mut modifiers);
-        assert!((modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
+        assert_eq!(
+            modifiers.get_enemy_health_multiplier(),
+            crate::FixedRatio::from_raw(1_200_000)
+        );
 
         let effect2 = Effect::DecreaseGoldGainPercent {
-            reduction_percentage: 0.10,
+            reduction_percentage: crate::FixedRatio::from_raw(100_000),
         };
         effect2.apply_to_stage_modifiers(&mut modifiers);
-        assert!((modifiers.get_gold_gain_multiplier() - 0.9).abs() < 0.0001);
+        assert_eq!(
+            modifiers.get_gold_gain_multiplier(),
+            crate::FixedRatio::from_raw(900_000)
+        );
     }
 
     #[test]
     fn applying_option_runs_effects_on_game_state() {
         let mut game_state = crate::game_state::effect::tests_support::make_test_state();
-        game_state.hp = 40.0;
+        game_state.hp = crate::Health::from_integer(40);
         game_state.gold = 0;
 
         let option = DifficultyOption {
             action: PokerAction::Call,
             effects: vec![
-                Effect::Heal { amount: 10.0 },
-                Effect::GainGold {
-                    min_amount: 5.0,
-                    max_amount: 5.0,
+                Effect::Heal {
+                    amount: crate::Health::from_integer(10),
                 },
-                Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
+                Effect::GainGold {
+                    min_amount: 5,
+                    max_amount: 5,
+                },
+                Effect::IncreaseEnemyHealthPercent {
+                    percentage: crate::FixedRatio::from_integer(20),
+                },
             ],
             next_stage_offer: NextStageOffer::None,
         };
 
         option.apply(&mut game_state);
 
-        assert!((game_state.hp - 50.0).abs() < 0.0001);
+        assert_eq!(game_state.hp, crate::Health::from_integer(50));
         assert_eq!(game_state.gold, 5);
-        assert!((game_state.stage_modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
+        assert_eq!(
+            game_state.stage_modifiers.get_enemy_health_multiplier(),
+            crate::FixedRatio::from_raw(1_200_000)
+        );
     }
 }

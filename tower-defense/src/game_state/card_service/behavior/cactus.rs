@@ -131,7 +131,7 @@ impl CardServiceBehavior for CactusCardService {
             .filter(|card| card.engraving().is_none())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)
@@ -162,7 +162,7 @@ mod tests {
             Engraving::Cactus.tower_modifier().on_attack_splashes,
             vec![crate::card::EngravingSplash {
                 radius: 2.0,
-                damage_pct: 0.3,
+                damage_pct: crate::FixedRatio::from_raw(300_000),
             }]
         );
     }

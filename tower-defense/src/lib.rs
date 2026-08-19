@@ -1,5 +1,6 @@
 mod animation;
 mod camera_controller;
+pub mod combat_number;
 pub mod config;
 pub mod deterministic_rng;
 mod flow_ui;
@@ -27,6 +28,9 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
+pub use combat_number::{
+    ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct, Shield,
+};
 pub use time::{PresentationDelta, PresentationInstant, SimTick, SimTickSpan};
 
 #[cfg(any(test, feature = "simulator"))]

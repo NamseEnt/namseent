@@ -1,13 +1,14 @@
 use crate::game_state::camera::ShakeIntensity;
 use crate::game_state::*;
+use crate::{Damage, Health, Shield};
 use namui::Duration;
 use rand::Rng;
 
 const DAMAGE_SOUND_DELAY_MIN_MS: i64 = 10;
 const DAMAGE_SOUND_DELAY_MAX_MS: i64 = 50;
 
-pub(super) fn shake_camera(game_state: &mut GameState, damage: f32) {
-    let intensity = match damage {
+pub(super) fn shake_camera(game_state: &mut GameState, damage: Damage) {
+    let intensity = match damage.as_f32() {
         d if d < 10.0 => ShakeIntensity::Light,
         d if d < 25.0 => ShakeIntensity::Medium,
         _ => ShakeIntensity::Heavy,
@@ -17,21 +18,24 @@ pub(super) fn shake_camera(game_state: &mut GameState, damage: f32) {
 }
 
 /// Returns the actual damage after shield absorption.
-pub(super) fn apply_shield_and_damage(game_state: &mut GameState, damage: f32) -> f32 {
+pub(super) fn apply_shield_and_damage(game_state: &mut GameState, damage: Damage) -> Damage {
     let mut actual_damage = damage;
-    if game_state.shield > 0.0 {
-        let absorbed = damage.min(game_state.shield);
-        actual_damage -= absorbed;
-        game_state.shield -= absorbed;
+    if !game_state.shield.is_zero() {
+        let absorbed = Shield::from_raw(damage.raw().min(game_state.shield.raw()));
+        actual_damage = damage.saturating_sub(Damage::from_raw(absorbed.raw()));
+        game_state.shield = game_state.shield.saturating_sub(absorbed);
     }
-    game_state.hp -= actual_damage;
+    game_state.hp = game_state
+        .hp
+        .saturating_sub(Health::from_raw(actual_damage.raw()));
     if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
         defense_flow.took_damage = true;
     }
     actual_damage
 }
 
-pub(super) fn play_damage_sounds(game_state: &mut GameState, damage: f32) {
+pub(super) fn play_damage_sounds(game_state: &mut GameState, damage: Damage) {
+    let damage = damage.as_f32();
     if damage <= 0.0 {
         return;
     }
@@ -63,19 +67,23 @@ pub(super) fn play_damage_sounds(game_state: &mut GameState, damage: f32) {
 }
 
 /// `damage` is the original damage (for the `> 0` guard); `actual_damage` is post-shield.
-pub(super) fn record_history_event(game_state: &mut GameState, damage: f32, actual_damage: f32) {
-    if damage <= 0.0 {
+pub(super) fn record_history_event(
+    game_state: &mut GameState,
+    damage: Damage,
+    actual_damage: Damage,
+) {
+    if damage.is_zero() {
         return;
     }
     game_state.record_event(
         crate::game_state::play_history::HistoryEventType::DamageTaken {
-            amount: actual_damage,
+            amount: actual_damage.as_f32(),
         },
     );
 }
 
 pub(super) fn check_game_over(game_state: &mut GameState) {
-    if game_state.hp <= 0.0 {
+    if game_state.hp.is_zero() {
         game_state.effect_events.push(GameEffectEvent::PlaySound(
             sound::EmitSoundParams::one_shot(
                 sound::random_fail(),

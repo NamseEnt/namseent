@@ -41,7 +41,10 @@ impl UpgradeBehavior for FangUpgrade {
     }
 
     fn on_monster_death(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.hp = (game_state.hp + self.add as f32).min(game_state.max_hp());
+        game_state.hp = game_state
+            .hp
+            .saturating_add(crate::Health::from_usize(self.add))
+            .min(game_state.max_hp());
         UpgradeUpdateFlags::NONE
     }
 
@@ -99,7 +102,7 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.hp = 10.0;
+        game_state.hp = crate::Health::from_integer(10);
 
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::FangUpgrade::into_upgrade(),
@@ -116,7 +119,7 @@ mod tests {
             &template,
             game_state.route.clone(),
             game_state.sim_tick(),
-            1.0,
+            &crate::RatioProduct::one(),
         );
         let target_xy = target.center_xy_tile();
         let presentation_instant = crate::PresentationInstant::capture();
@@ -129,7 +132,7 @@ mod tests {
             presentation_instant,
         );
 
-        assert!((game_state.hp - 11.0).abs() < f32::EPSILON);
+        assert_eq!(game_state.hp, crate::Health::from_integer(11));
     }
 
     #[test]
@@ -154,7 +157,7 @@ mod tests {
             &template,
             game_state.route.clone(),
             game_state.sim_tick(),
-            1.0,
+            &crate::RatioProduct::one(),
         );
         let target_xy = target.center_xy_tile();
         let presentation_instant = crate::PresentationInstant::capture();
@@ -167,6 +170,6 @@ mod tests {
             presentation_instant,
         );
 
-        assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
+        assert_eq!(game_state.hp, game_state.max_hp());
     }
 }

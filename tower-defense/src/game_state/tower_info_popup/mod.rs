@@ -57,7 +57,7 @@ impl Component for TowerInfoPopup<'_> {
             0.0
         };
         let dps = if shoot_interval_secs > 0.0 {
-            damage / shoot_interval_secs
+            damage.as_f32() / shoot_interval_secs
         } else {
             0.0
         };
@@ -67,7 +67,7 @@ impl Component for TowerInfoPopup<'_> {
             .tower_damage_stats
             .iter()
             .find(|entry| entry.tower_id == tower.id())
-            .map(|entry| entry.total_damage)
+            .map(|entry| entry.total_damage.as_f32())
             .unwrap_or(0.0);
         let damage_label = text.tower_info_popup(TowerInfoPopupText::DamageLabel);
         let dps_label = text.tower_info_popup(TowerInfoPopupText::DpsLabel);
@@ -128,7 +128,7 @@ impl Component for TowerInfoPopup<'_> {
                                 ctx.add(PopupStatRow {
                                     wh,
                                     label: damage_label,
-                                    value: format!("{damage:.1}"),
+                                    value: format!("{:.1}", damage.as_f32()),
                                 });
                             }),
                             table::fixed_no_clip(STAT_ROW_HEIGHT, |wh, ctx| {
@@ -259,7 +259,7 @@ impl Component for TowerInfoPopup<'_> {
 
                 ctx.add(PopupPolishOverlay {
                     wh: Wh::new(BUBBLE_WIDTH, bubble_height),
-                    bonus_pct: tower.card_polish_pct(),
+                    bonus_pct: tower.card_polish_pct().as_f32(),
                 });
 
                 ctx.add(PaperContainerBackground {

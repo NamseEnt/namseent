@@ -64,7 +64,7 @@ fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, 
         });
 
     let bonus_pct = tower.template.card_polish_pct();
-    if let Some((color, strength)) = polish_halo_config(bonus_pct) {
+    if let Some((color, strength)) = polish_halo_config(bonus_pct.as_f32()) {
         ctx.translate(tile_xy)
             .translate(center)
             .translate(Xy::new(-image_wh.width * 0.375, -image_wh.height * 0.875))

@@ -195,14 +195,14 @@ static NEXT_CARD_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicU
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct CardEffects {
-    pub polish_pct: f32,
+    pub polish_pct: FixedRatio,
     pub engraving: Option<Engraving>,
 }
 
 impl Default for CardEffects {
     fn default() -> Self {
         Self {
-            polish_pct: 0.0,
+            polish_pct: FixedRatio::ZERO,
             engraving: None,
         }
     }
@@ -260,7 +260,7 @@ impl Card {
         }
     }
 
-    pub fn polish_pct(&self) -> f32 {
+    pub fn polish_pct(&self) -> FixedRatio {
         self.effects.polish_pct
     }
 
@@ -269,8 +269,13 @@ impl Card {
         (id * 0.618_034).fract()
     }
 
-    pub fn add_polish_pct(&mut self, bonus_pct: f32) {
-        self.effects.polish_pct += bonus_pct;
+    pub fn add_polish_pct(&mut self, bonus_pct: FixedRatio) {
+        self.effects.polish_pct = FixedRatio::from_raw(
+            self.effects
+                .polish_pct
+                .raw()
+                .saturating_add(bonus_pct.raw()),
+        );
     }
 
     pub fn engraving(&self) -> Option<Engraving> {

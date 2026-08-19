@@ -74,12 +74,12 @@ fn set_balance_state(state: Option<BalanceState>) {
 fn get_first_monster_kind_from_spawn_table(
     gs: &crate::game_state::GameState,
 ) -> Option<crate::game_state::monster::MonsterKind> {
-    let health_multiplier = gs.stage_modifiers.get_enemy_health_multiplier();
+    let health_multipliers = gs.stage_modifiers.enemy_health_multipliers();
     let (monster_queue, _) = super::super::monster_spawn::monster_queue_table(
         gs.stage,
         gs.route.clone(),
         gs.sim_tick(),
-        health_multiplier,
+        health_multipliers,
         &gs.config,
     );
     monster_queue.front().map(|monster| monster.kind)
@@ -130,7 +130,8 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
         // Get first monster kind from spawn table
         let first_monster_kind = get_first_monster_kind_from_spawn_table(gs);
         if let Some(kind) = first_monster_kind {
-            let base_max_hp = crate::game_state::monster::MonsterTemplate::get_base_max_hp(kind);
+            let base_max_hp =
+                crate::game_state::monster::MonsterTemplate::get_base_max_hp(kind).as_f32();
             let increment = base_max_hp * 0.1; // 10% of base max_hp
             set_balance_state(Some(BalanceState {
                 hp_offset: 0.0,
@@ -182,7 +183,7 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
 
     // Store the hp before defense starts for later comparison
     let mut state = get_balance_state().unwrap();
-    state.defense_start_hp = gs.hp;
+    state.defense_start_hp = gs.hp.as_f32();
     state.snapshot_index = snapshot_idx;
     state.needs_adjustment = true;
     state.display_text = format!(
@@ -212,7 +213,7 @@ pub fn check_and_adjust_hp_balance(gs: &mut crate::game_state::GameState) {
         return;
     }
 
-    let all_monsters_killed = gs.hp == state.defense_start_hp;
+    let all_monsters_killed = gs.hp.as_f32() == state.defense_start_hp;
 
     match state.all_killed_last_time {
         None => {
@@ -247,7 +248,7 @@ pub fn check_and_adjust_hp_balance(gs: &mut crate::game_state::GameState) {
     );
 
     // Restore hp to 100
-    gs.hp = 100.0;
+    gs.hp = crate::Health::from_integer(100);
 
     // Continue procedure if increment is still large enough
     if state.increment > state.base_max_hp * 0.01 {

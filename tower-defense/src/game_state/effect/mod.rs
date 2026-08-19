@@ -1,35 +1,35 @@
-use crate::SimTickSpan;
 use crate::game_state::{
     GameState,
     card::{Rank, Suit},
     stage_modifiers::StageModifiers,
     user_status_effect::{UserStatusEffect, UserStatusEffectKind},
 };
+use crate::{FixedRatio, Health, Shield, SimTickSpan};
 
 use crate::rarity::Rarity;
 use namui::*;
 
+fn percentage_to_multiplier(percentage: FixedRatio) -> FixedRatio {
+    FixedRatio::ONE.increased_by_percent(percentage)
+}
+
 #[derive(Clone, Debug, PartialEq, State)]
 pub enum Effect {
     Heal {
-        amount: f32,
+        amount: Health,
     },
     Shield {
-        amount: f32,
+        amount: Shield,
     },
     EarnGold {
         amount: usize,
     },
-    Lottery {
-        amount: f32,
-        probability: f32,
-    },
     DamageReduction {
-        damage_multiply: f32,
+        damage_multiply: FixedRatio,
         duration: SimTickSpan,
     },
     LoseHealth {
-        amount: f32,
+        amount: Health,
     },
     LoseGold {
         amount: usize,
@@ -41,22 +41,22 @@ pub enum Effect {
         rarity: Rarity,
     },
     IncreaseAllTowersDamage {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     DecreaseAllTowersDamage {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     IncreaseIncomingDamage {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     DecreaseIncomingDamage {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     IncreaseGoldGain {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     DecreaseGoldGainPercent {
-        reduction_percentage: f32,
+        reduction_percentage: FixedRatio,
     },
     DisableItemAndUpgradePurchases,
     DisableItemUse,
@@ -73,16 +73,16 @@ pub enum Effect {
         penalty: usize,
     },
     IncreaseEnemyHealthPercent {
-        percentage: f32,
+        percentage: FixedRatio,
     },
     DecreaseEnemyHealthPercent {
-        percentage: f32,
+        percentage: FixedRatio,
     },
     IncreaseEnemySpeed {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     DecreaseEnemySpeed {
-        multiplier: f32,
+        multiplier: FixedRatio,
     },
     RankTowerDisable {
         rank: Rank,
@@ -91,16 +91,16 @@ pub enum Effect {
         suit: Suit,
     },
     GainShield {
-        min_amount: f32,
-        max_amount: f32,
+        min_amount: Shield,
+        max_amount: Shield,
     },
     HealHealth {
-        min_amount: f32,
-        max_amount: f32,
+        min_amount: Health,
+        max_amount: Health,
     },
     GainGold {
-        min_amount: f32,
-        max_amount: f32,
+        min_amount: usize,
+        max_amount: usize,
     },
 }
 
@@ -115,21 +115,16 @@ pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
 pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Effect, rng: &mut R) {
     match effect {
         Effect::Heal { amount } => {
-            game_state.hp = (game_state.hp + amount).min(game_state.max_hp());
+            game_state.hp = game_state
+                .hp
+                .saturating_add(*amount)
+                .min(game_state.max_hp());
         }
         Effect::Shield { amount } => {
-            game_state.shield += amount;
+            game_state.shield = game_state.shield.saturating_add(*amount);
         }
         Effect::EarnGold { amount } => {
             game_state.gold = game_state.gold.saturating_add(*amount);
-        }
-        Effect::Lottery {
-            amount,
-            probability,
-        } => {
-            let is_winner = rng.gen_bool(*probability as f64);
-            let gold = if is_winner { *amount as usize } else { 0 };
-            game_state.action(crate::game_state::GameStateAction::EarnGold(gold));
         }
         Effect::DamageReduction {
             damage_multiply,
@@ -144,7 +139,10 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
             game_state.user_status_effects.push(status_effect);
         }
         Effect::LoseHealth { amount } => {
-            game_state.hp = (game_state.hp - amount).max(1.0);
+            game_state.hp = game_state
+                .hp
+                .saturating_sub(*amount)
+                .max(Health::from_integer(1));
         }
         Effect::LoseGold { amount } => {
             if game_state.gold >= *amount {
@@ -152,8 +150,13 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
             } else {
                 let remaining = *amount - game_state.gold;
                 game_state.gold = 0;
-                let health_penalty = (remaining as f32 / 10.0).max(1.0);
-                game_state.hp = (game_state.hp - health_penalty).max(1.0);
+                let health_penalty = Health::from_usize(remaining)
+                    .scaled_by(FixedRatio::from_raw(100_000))
+                    .max(Health::from_integer(1));
+                game_state.hp = game_state
+                    .hp
+                    .saturating_sub(health_penalty)
+                    .max(Health::from_integer(1));
             }
         }
         Effect::GrantUpgrade { rarity: _ } => {
@@ -197,7 +200,7 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
         } => {
             game_state
                 .stage_modifiers
-                .apply_gold_gain_multiplier(1.0 - *reduction_percentage);
+                .apply_gold_gain_multiplier(reduction_percentage.one_minus());
         }
         Effect::DisableItemAndUpgradePurchases => {
             game_state
@@ -226,13 +229,13 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
                 .apply_max_rerolls_penalty(*penalty);
         }
         Effect::IncreaseEnemyHealthPercent { percentage } => {
-            let multiplier = 1.0 + percentage / 100.0;
+            let multiplier = percentage_to_multiplier(*percentage);
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
         }
         Effect::DecreaseEnemyHealthPercent { percentage } => {
-            let multiplier = 1.0 - percentage / 100.0;
+            let multiplier = FixedRatio::ONE.decreased_by_percent(*percentage);
             game_state
                 .stage_modifiers
                 .apply_enemy_health_multiplier(multiplier);
@@ -257,21 +260,25 @@ pub fn run_effect_with_rng<R: rand::Rng>(game_state: &mut GameState, effect: &Ef
             min_amount,
             max_amount,
         } => {
-            let shield_amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.shield += shield_amount;
+            let shield_amount =
+                Shield::from_raw(rng.gen_range(min_amount.raw()..=max_amount.raw()));
+            game_state.shield = game_state.shield.saturating_add(shield_amount);
         }
         Effect::HealHealth {
             min_amount,
             max_amount,
         } => {
-            let heal_amount = rng.gen_range(*min_amount..=*max_amount);
-            game_state.hp = (game_state.hp + heal_amount).min(game_state.max_hp());
+            let heal_amount = Health::from_raw(rng.gen_range(min_amount.raw()..=max_amount.raw()));
+            game_state.hp = game_state
+                .hp
+                .saturating_add(heal_amount)
+                .min(game_state.max_hp());
         }
         Effect::GainGold {
             min_amount,
             max_amount,
         } => {
-            let gold_amount = rng.gen_range(*min_amount..=*max_amount) as usize;
+            let gold_amount = rng.gen_range(*min_amount..=*max_amount);
             game_state.gold += gold_amount;
         }
     }
@@ -287,7 +294,6 @@ impl Effect {
             Effect::Heal { .. }
             | Effect::Shield { .. }
             | Effect::EarnGold { .. }
-            | Effect::Lottery { .. }
             | Effect::DamageReduction { .. }
             | Effect::GrantUpgrade { .. }
             | Effect::GrantItem { .. }
@@ -320,7 +326,7 @@ impl Effect {
     pub fn apply_to_stage_modifiers(&self, modifiers: &mut StageModifiers) {
         match self {
             Effect::DecreaseEnemyHealthPercent { percentage } => {
-                let multiplier = 1.0 + percentage / 100.0;
+                let multiplier = percentage_to_multiplier(*percentage);
                 modifiers.apply_enemy_health_multiplier(multiplier);
             }
             Effect::IncreaseIncomingDamage { multiplier } => {
@@ -335,7 +341,7 @@ impl Effect {
             Effect::DecreaseGoldGainPercent {
                 reduction_percentage,
             } => {
-                modifiers.apply_gold_gain_multiplier(1.0 - *reduction_percentage);
+                modifiers.apply_gold_gain_multiplier(reduction_percentage.one_minus());
             }
             Effect::DecreaseAllTowersDamage { multiplier }
             | Effect::IncreaseAllTowersDamage { multiplier } => {
@@ -398,8 +404,8 @@ pub mod tests_support {
             items: vec![],
             gold: 0,
             cursor_preview: Default::default(),
-            hp: 100.0,
-            shield: 0.0,
+            hp: crate::Health::from_integer(100),
+            shield: crate::Shield::ZERO,
             user_status_effects: Default::default(),
             left_quest_board_refresh_chance: 0,
             item_used: false,

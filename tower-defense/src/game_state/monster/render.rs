@@ -36,7 +36,11 @@ impl Component for &Monster {
         ))
         .add(MonsterHpBar {
             wh: hp_bar_wh,
-            progress: self.hp / self.max_hp,
+            progress: if self.max_hp.is_zero() {
+                0.0
+            } else {
+                self.hp.as_f32() / self.max_hp.as_f32()
+            },
         });
     }
 }

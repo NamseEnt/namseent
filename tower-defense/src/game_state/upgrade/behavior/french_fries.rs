@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const FRENCH_FRIES_MAX_HP_DECREASE: f32 = 4.0;
-const FRENCH_FRIES_HEAL_AMOUNT: f32 = 12.0;
+const FRENCH_FRIES_MAX_HP_DECREASE: HealthDelta = HealthDelta::from_integer(4);
+const FRENCH_FRIES_HEAL_AMOUNT: Health = Health::from_integer(12);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FrenchFriesUpgrade;
@@ -24,8 +24,8 @@ impl UpgradeBehavior for FrenchFriesUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        -FRENCH_FRIES_MAX_HP_DECREASE
+    fn max_hp_plus(&self) -> HealthDelta {
+        HealthDelta::from_raw(-FRENCH_FRIES_MAX_HP_DECREASE.raw())
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {

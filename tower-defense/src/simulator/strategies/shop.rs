@@ -42,7 +42,12 @@ impl SynergyShopStrategy {
         }
 
         if count_item_kind(game_state, ItemDiscriminants::RiceBall) < 1
-            && game_state.hp < game_state.config.player.max_hp * 0.75
+            && game_state.hp
+                < game_state
+                    .config
+                    .player
+                    .max_hp
+                    .scaled_by(crate::FixedRatio::from_raw(750_000))
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::RiceBall)
         {
             return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
@@ -51,8 +56,13 @@ impl SynergyShopStrategy {
         }
 
         if count_item_kind(game_state, ItemDiscriminants::Milk) < 1
-            && game_state.shield <= 0.0
-            && game_state.hp < game_state.config.player.max_hp * 0.85
+            && game_state.shield.is_zero()
+            && game_state.hp
+                < game_state
+                    .config
+                    .player
+                    .max_hp
+                    .scaled_by(crate::FixedRatio::from_raw(850_000))
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::Milk)
         {
             return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(

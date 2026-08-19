@@ -38,7 +38,7 @@ pub struct Tower {
 pub struct CachedTowerUpgradeDamage {
     pub revision: usize,
     pub bonuses: Vec<crate::game_state::upgrade::TowerUpgradeDamageBonus>,
-    pub damage: f32,
+    pub damage: Damage,
 }
 
 pub struct ShootProjectileParams {
@@ -47,7 +47,7 @@ pub struct ShootProjectileParams {
     pub trail: ProjectileTrail,
     pub projectile_group: ProjectileGroup,
     pub hit_effect: attack::ProjectileHitEffect,
-    pub damage: f32,
+    pub damage: Damage,
     pub sim_tick: SimTick,
     pub source_tower: Option<attack::TowerInfo>,
 }
@@ -108,7 +108,7 @@ impl Tower {
         &mut self,
         target_xy: (f32, f32),
         target_monster_id: usize,
-        damage: f32,
+        damage: Damage,
         sim_tick: SimTick,
         source_tower: Option<attack::TowerInfo>,
     ) -> attack::InFlightAttack {
@@ -134,11 +134,11 @@ impl Tower {
             self.cached_upgrade.bonuses = upgrade_bonuses.to_vec();
         }
         self.cached_upgrade.damage =
-            self.calculate_projectile_damage(&self.cached_upgrade.bonuses, 1.0);
+            self.calculate_projectile_damage(&self.cached_upgrade.bonuses, FixedRatio::ONE);
         self.cached_upgrade.revision = revision;
     }
 
-    pub fn cached_upgrade_damage(&self) -> f32 {
+    pub fn cached_upgrade_damage(&self) -> Damage {
         self.cached_upgrade.damage
     }
 
@@ -243,37 +243,38 @@ impl Tower {
     pub fn calculate_projectile_damage(
         &self,
         tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
-        stage_damage_multiplier: f32,
-    ) -> f32 {
+        stage_damage_multiplier: FixedRatio,
+    ) -> Damage {
         let mut damage = self.default_damage;
 
         self.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::DamageAdd { add } = status_effect.kind {
-                damage += add;
+                damage = damage.saturating_add_delta(add);
             }
         });
 
-        if damage < 0.0 {
-            return 0.0;
+        if damage.is_zero() {
+            return Damage::ZERO;
         }
 
+        let mut ratios = RatioProduct::one();
         self.status_effects.iter().for_each(|status_effect| {
             if let TowerStatusEffectKind::DamageMul { mul } = status_effect.kind {
-                damage *= mul;
+                ratios = ratios.clone().with(mul);
             }
         });
 
-        let bonus_sum: f32 = tower_upgrade_bonuses
+        let bonus_sum = tower_upgrade_bonuses
             .iter()
-            .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self))
-            .sum();
+            .map(|upgrade_bonus| upgrade_bonus.effective_bonus_pct_for_tower(self).raw())
+            .fold(0_i64, i64::saturating_add)
+            .saturating_add(self.card_polish_pct().raw());
+        ratios = ratios.with(FixedRatio::from_raw(
+            FixedRatio::ONE.raw().saturating_add(bonus_sum),
+        ));
+        ratios = ratios.with(stage_damage_multiplier);
 
-        let card_bonus_sum: f32 = self.card_polish_pct();
-        damage *= 1.0 + bonus_sum + card_bonus_sum;
-
-        damage *= stage_damage_multiplier;
-
-        damage
+        Damage::from_raw(ratios.apply_raw(damage.raw()))
     }
 
     pub(crate) fn attack_range_radius(&self) -> f32 {
@@ -297,7 +298,7 @@ pub struct TowerTemplate {
     pub rerolled_count: usize,
     pub shoot_interval: SimTickSpan,
     pub default_attack_range_radius: f32,
-    pub default_damage: f32,
+    pub default_damage: Damage,
     pub suit: Option<Suit>,
     pub rank: Option<Rank>,
     pub skill_templates: Vec<TowerSkillTemplate>,
@@ -365,12 +366,17 @@ impl TowerTemplate {
         self.rank
     }
 
-    pub fn calculate_rating(&self, damage_multiplier: f32) -> f32 {
-        self.default_damage * damage_multiplier
+    pub fn calculate_rating(&self, damage_multiplier: FixedRatio) -> Damage {
+        self.default_damage.scaled_by(damage_multiplier)
     }
 
-    pub fn card_polish_pct(&self) -> f32 {
-        self.used_cards.iter().map(|card| card.polish_pct()).sum()
+    pub fn card_polish_pct(&self) -> FixedRatio {
+        self.used_cards
+            .iter()
+            .map(|card| card.polish_pct())
+            .fold(FixedRatio::ZERO, |sum, value| {
+                FixedRatio::from_raw(sum.raw().saturating_add(value.raw()))
+            })
     }
 
     pub fn engraving_modifier(&self) -> crate::card::TowerEngravingModifier {
@@ -389,13 +395,14 @@ impl TowerTemplate {
     pub fn attack_power_with_upgrade_bonuses(
         &self,
         tower_upgrade_bonuses: &[crate::game_state::upgrade::TowerUpgradeDamageBonus],
-    ) -> f32 {
-        let upgrade_bonus_sum: f32 = tower_upgrade_bonuses
+    ) -> Damage {
+        let upgrade_bonus_sum = tower_upgrade_bonuses
             .iter()
-            .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self))
-            .sum();
-        let total_bonus_sum = upgrade_bonus_sum + self.card_polish_pct();
-        let damage_multiplier = 1.0 + total_bonus_sum;
+            .map(|bonus| bonus.effective_bonus_pct_for_tower_template(self).raw())
+            .fold(0_i64, i64::saturating_add)
+            .saturating_add(self.card_polish_pct().raw());
+        let damage_multiplier =
+            FixedRatio::from_raw(FixedRatio::ONE.raw().saturating_add(upgrade_bonus_sum));
         self.calculate_rating(damage_multiplier)
     }
 }
@@ -468,19 +475,19 @@ impl TowerKind {
             Self::RoyalFlush => 15.0,
         }
     }
-    pub fn default_damage(&self) -> f32 {
+    pub fn default_damage(&self) -> Damage {
         match self {
-            Self::RubberCone => 0.0,
-            Self::High => 5.0,
-            Self::OnePair => 6.0,
-            Self::TwoPair => 10.0,
-            Self::ThreeOfAKind => 12.0,
-            Self::Straight => 14.0,
-            Self::Flush => 32.0,
-            Self::FullHouse => 50.0,
-            Self::FourOfAKind => 100.0,
-            Self::StraightFlush => 250.0,
-            Self::RoyalFlush => 1200.0,
+            Self::RubberCone => Damage::from_integer(0),
+            Self::High => Damage::from_integer(5),
+            Self::OnePair => Damage::from_integer(6),
+            Self::TwoPair => Damage::from_integer(10),
+            Self::ThreeOfAKind => Damage::from_integer(12),
+            Self::Straight => Damage::from_integer(14),
+            Self::Flush => Damage::from_integer(32),
+            Self::FullHouse => Damage::from_integer(50),
+            Self::FourOfAKind => Damage::from_integer(100),
+            Self::StraightFlush => Damage::from_integer(250),
+            Self::RoyalFlush => Damage::from_integer(1200),
         }
     }
     pub fn skill_templates(&self) -> Vec<TowerSkillTemplate> {
@@ -577,7 +584,9 @@ mod tests {
         plain_tower.mark_fired(sim_tick);
         overcharged_tower.mark_fired(sim_tick);
 
-        let expected = plain.shoot_interval.scale_ceil(1.0 / 1.5);
+        let expected = plain
+            .shoot_interval
+            .scale_ratio_ceil(overcharged.engraving_modifier().shoot_interval_mul);
         assert_eq!(overcharged_tower.cooldown, expected);
         assert!(overcharged_tower.cooldown < plain_tower.cooldown);
     }
@@ -593,7 +602,7 @@ mod tests {
         template.set_used_cards(vec![card_with_engraving(
             crate::card::Engraving::Overcharge,
         )]);
-        assert!(template.engraving_modifier().shoot_interval_mul < 1.0);
+        assert!(template.engraving_modifier().shoot_interval_mul < FixedRatio::ONE);
 
         template.set_used_cards(vec![Card::new(Rank::Two, Suit::Hearts)]);
         assert_eq!(
@@ -610,7 +619,9 @@ mod tests {
         )]);
 
         assert_eq!(plain.effective_shoot_interval(), plain.shoot_interval);
-        let expected = plain.shoot_interval.scale_ceil(1.0 / 1.5);
+        let expected = plain
+            .shoot_interval
+            .scale_ratio_ceil(overcharged.engraving_modifier().shoot_interval_mul);
         assert_eq!(overcharged.effective_shoot_interval(), expected);
     }
 
@@ -627,7 +638,13 @@ mod tests {
         let one_mul = one.engraving_modifier().shoot_interval_mul;
         let two_mul = two.engraving_modifier().shoot_interval_mul;
 
-        assert!((two_mul - one_mul * one_mul).abs() < 1e-6);
+        assert_eq!(
+            two_mul.raw(),
+            crate::RatioProduct::one()
+                .with(one_mul)
+                .with(one_mul)
+                .apply_raw(crate::combat_number::RATIO_SCALE)
+        );
     }
 
     #[test]
@@ -657,14 +674,14 @@ mod tests {
         tower.cached_upgrade.revision = 1;
         tower.cached_upgrade.bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
             target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
-            bonus_pct: 0.0,
+            bonus_pct: FixedRatio::ZERO,
         }];
         tower.cached_upgrade.damage =
-            tower.calculate_projectile_damage(&tower.cached_upgrade.bonuses, 1.0);
+            tower.calculate_projectile_damage(&tower.cached_upgrade.bonuses, FixedRatio::ONE);
 
         let new_upgrade_bonuses = vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
             target: crate::game_state::upgrade::TowerUpgradeTarget::Suit { suit: Suit::Hearts },
-            bonus_pct: 1.0,
+            bonus_pct: FixedRatio::ONE,
         }];
 
         tower.refresh_cached_upgrade_damage(1, &new_upgrade_bonuses);
@@ -675,7 +692,7 @@ mod tests {
             tower.cached_upgrade.bonuses,
             vec![crate::game_state::upgrade::TowerUpgradeDamageBonus {
                 target: crate::game_state::upgrade::TowerUpgradeTarget::Global,
-                bonus_pct: 0.0,
+                bonus_pct: FixedRatio::ZERO,
             }]
         );
     }

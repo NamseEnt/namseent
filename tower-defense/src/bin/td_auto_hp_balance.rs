@@ -17,7 +17,7 @@ use tower_defense::simulator::strategies::{
     card_service::HeuristicCardServiceStrategy, item_use::HeuristicItemUseStrategy,
     shop::SynergyShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
-use tower_defense::{MonsterKind, config::GameConfig, set_headless};
+use tower_defense::{Health, MonsterKind, config::GameConfig, set_headless};
 
 const TARGET_WIN_RATE: f32 = 0.05;
 const MIN_ZERO_DAMAGE_SCALE: f32 = 0.05;
@@ -282,7 +282,7 @@ fn tune_hp_balance(
         .monsters
         .stats
         .iter()
-        .map(|(&kind, stat)| (kind, stat.base_hp))
+        .map(|(&kind, stat)| (kind, stat.base_hp.as_f32()))
         .collect();
     let mut stage_primary = build_stage_primary_monster(&config);
     let mut stage_momentum = build_initial_stage_scale_curve(stages, cli);
@@ -528,14 +528,16 @@ fn tune_hp_balance(
                 let base_hp = original_hp
                     .get(&monster_kind)
                     .copied()
-                    .unwrap_or(stat.base_hp);
+                    .unwrap_or(stat.base_hp.as_f32());
                 let global_scale = if cli.rough_initial_balance {
                     rough_global_scale
                 } else {
                     1.0
                 };
                 let applied_scale = kind_scale * global_scale;
-                stat.base_hp = (base_hp * applied_scale).max(base_hp * 0.25);
+                stat.base_hp =
+                    Health::from_f64((base_hp * applied_scale).max(base_hp * 0.25) as f64)
+                        .expect("auto HP balance must produce finite non-negative HP");
                 max_change = max_change.max((applied_scale - 1.0).abs());
             }
         }
@@ -617,7 +619,7 @@ fn tune_hp_balance(
 fn zero_boss_hp(config: &mut GameConfig) {
     for (kind, stat) in config.monsters.stats.iter_mut() {
         if !kind.is_normal_monster() {
-            stat.base_hp = 0.0;
+            stat.base_hp = Health::ZERO;
         }
     }
 }
@@ -625,7 +627,8 @@ fn zero_boss_hp(config: &mut GameConfig) {
 fn normalize_normal_monster_hp(config: &mut GameConfig, hp: f32) {
     for (kind, stat) in config.monsters.stats.iter_mut() {
         if kind.is_normal_monster() {
-            stat.base_hp = hp;
+            stat.base_hp = Health::from_f64(hp as f64)
+                .expect("auto HP balance input must produce finite non-negative HP");
         }
     }
 }
@@ -683,10 +686,11 @@ fn apply_boss_hp_from_stage(config: &mut GameConfig) {
                 .monsters
                 .stats
                 .get(&normal_kind)
-                .map(|stat| stat.base_hp)
+                .map(|stat| stat.base_hp.as_f32())
             && let Some(boss_stat) = config.monsters.stats.get_mut(&boss_kind)
         {
-            boss_stat.base_hp = normal_hp * 1.5;
+            boss_stat.base_hp = Health::from_f64((normal_hp * 1.5) as f64)
+                .expect("auto HP balance must produce finite non-negative HP");
         }
     }
 }

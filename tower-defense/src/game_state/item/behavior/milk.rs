@@ -4,16 +4,16 @@ use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct MilkItem {
-    pub shield_amount: f32,
+    pub shield_amount: crate::Shield,
 }
 
 impl MilkItem {
-    pub fn new(shield_amount: f32) -> Self {
+    pub fn new(shield_amount: crate::Shield) -> Self {
         Self { shield_amount }
     }
 
     pub fn standard() -> Self {
-        Self::new(12.0)
+        Self::new(crate::Shield::from_integer(12))
     }
 
     pub fn into_item(self) -> Item {

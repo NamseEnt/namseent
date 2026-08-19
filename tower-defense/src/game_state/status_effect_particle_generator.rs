@@ -67,7 +67,7 @@ pub fn tick_status_effect_particle_generator(
 
 fn should_create_monster_particle(effect_kind: MonsterStatusEffectKind) -> bool {
     match effect_kind {
-        MonsterStatusEffectKind::SpeedMul { mul } => mul < 1.0,
+        MonsterStatusEffectKind::SpeedMul { mul } => mul < crate::FixedRatio::ONE,
         MonsterStatusEffectKind::Invincible => true,
         MonsterStatusEffectKind::ImmuneToSlow => false,
     }

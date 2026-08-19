@@ -73,7 +73,7 @@ impl Component for PreviewEntryComponent {
             let damage = template.attack_power_with_upgrade_bonuses(&tower_upgrade_bonuses);
             let shoot_interval_secs = template.effective_shoot_interval().as_secs_f32();
             let dps = if shoot_interval_secs > 0.0 {
-                damage / shoot_interval_secs
+                damage.as_f32() / shoot_interval_secs
             } else {
                 0.0
             };

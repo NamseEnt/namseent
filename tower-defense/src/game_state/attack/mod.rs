@@ -6,6 +6,7 @@ use super::projectile::{
     HOMING_TURN_RATE_MAX_TILE, HOMING_TURN_RATE_MIN_TILE, ProjectileBehavior, ProjectileKind,
     ProjectileTargetIndicator, ProjectileTrail, random_rotation_speed,
 };
+use crate::Damage;
 use crate::SimTick;
 use crate::card::Suit;
 use crate::game_state::TILE_PX_SIZE;
@@ -225,7 +226,7 @@ static NEXT_IN_FLIGHT_ATTACK_ID: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, State)]
 pub struct InFlightAttack {
     pub id: u64,
-    pub damage: f32,
+    pub damage: Damage,
     pub source_tower: Option<TowerInfo>,
     pub kind: InFlightAttackKind,
     pub on_hit_splashes: Vec<crate::card::EngravingSplash>,
@@ -239,7 +240,7 @@ impl InFlightAttack {
 
     pub fn new_spatial(
         spatial: SpatialAttack,
-        damage: f32,
+        damage: Damage,
         source_tower: Option<TowerInfo>,
     ) -> Self {
         Self {
@@ -254,7 +255,7 @@ impl InFlightAttack {
     pub fn new_timed(
         target_monster_id: usize,
         execute_at: SimTick,
-        damage: f32,
+        damage: Damage,
         source_tower: Option<TowerInfo>,
         hit_sound: HitSound,
     ) -> Self {
@@ -271,7 +272,11 @@ impl InFlightAttack {
         }
     }
 
-    pub fn new_laser(beam: laser::LaserBeam, damage: f32, source_tower: Option<TowerInfo>) -> Self {
+    pub fn new_laser(
+        beam: laser::LaserBeam,
+        damage: Damage,
+        source_tower: Option<TowerInfo>,
+    ) -> Self {
         Self {
             id: NEXT_IN_FLIGHT_ATTACK_ID.fetch_add(1, Ordering::Relaxed),
             damage,

@@ -119,7 +119,7 @@ impl CardServiceBehavior for PliersCardService {
             .filter(|card| card.engraving().is_some())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)
@@ -176,7 +176,7 @@ mod tests {
         let unrelated = game_state.deck.all_cards()[1].id;
         game_state.deck.modify_card(selected, |card| {
             card.effects.engraving = Some(Engraving::Cactus);
-            card.add_polish_pct(1.0);
+            card.add_polish_pct(crate::FixedRatio::ONE);
         });
         game_state.deck.modify_card(unrelated, |card| {
             card.effects.engraving = Some(Engraving::Overcharge);

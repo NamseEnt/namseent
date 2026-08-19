@@ -1,3 +1,4 @@
+use crate::Damage;
 use crate::card::Card;
 use crate::game_state::GameState;
 use crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent;
@@ -38,7 +39,7 @@ pub(super) fn apply_cost(game_state: &mut GameState, health_cost: usize) {
     game_state.left_dice -= 1;
     game_state.rerolled_count += 1;
     game_state.action(crate::game_state::GameStateAction::TakeDamage(
-        health_cost as f32,
+        Damage::from_usize(health_cost),
     ));
 }
 

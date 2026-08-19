@@ -1,8 +1,8 @@
 //! Item use strategies.
 
 use super::ItemUseStrategy;
-use crate::game_state::GameState;
 use crate::game_state::item::Item;
+use crate::{Damage, Health, game_state::GameState};
 
 /// Heuristic item use strategy that immediately uses rubber cone items and preserves heal/shield.
 pub struct HeuristicItemUseStrategy;
@@ -17,7 +17,7 @@ impl ItemUseStrategy for HeuristicItemUseStrategy {
         use_heal_if_needed(game_state);
     }
 
-    fn on_damage_taken(&self, game_state: &mut GameState, _damage: f32) {
+    fn on_damage_taken(&self, game_state: &mut GameState, _damage: Damage) {
         use_shield_items(game_state);
         use_heal_if_needed(game_state);
     }
@@ -51,7 +51,9 @@ fn use_heal_if_needed(game_state: &mut GameState) {
         let heal_item_id = game_state.items.iter().find_map(|item| {
             let max_hp = game_state.max_hp();
             let heal_amount = item_heal_amount(&item.item)?;
-            if game_state.hp + heal_amount > max_hp || game_state.hp < max_hp * 0.5 {
+            if game_state.hp.saturating_add(heal_amount) > max_hp
+                || game_state.hp < max_hp.scaled_by(crate::FixedRatio::from_raw(500_000))
+            {
                 Some(item.id)
             } else {
                 None
@@ -66,7 +68,7 @@ fn use_heal_if_needed(game_state: &mut GameState) {
     }
 }
 
-fn item_heal_amount(item: &Item) -> Option<f32> {
+fn item_heal_amount(item: &Item) -> Option<Health> {
     match item {
         Item::Bread(bread) => Some(bread.heal_amount),
         Item::Gimbap(gimbap) => Some(gimbap.heal_amount),

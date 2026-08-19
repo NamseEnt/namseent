@@ -27,12 +27,12 @@ use crate::*;
 
 #[derive(Clone, Debug, Default, State)]
 pub struct Multipliers {
-    pub damage: f32,
-    pub damage_reduction: f32,
-    pub incoming_damage: f32,
-    pub gold_gain: f32,
-    pub enemy_health: f32,
-    pub enemy_speed: f32,
+    pub damage: RatioProduct,
+    pub damage_reduction: RatioProduct,
+    pub incoming_damage: RatioProduct,
+    pub gold_gain: RatioProduct,
+    pub enemy_health: RatioProduct,
+    pub enemy_speed: RatioProduct,
 }
 
 #[derive(Clone, Debug, Default, State)]
@@ -82,12 +82,12 @@ impl StageModifiers {
     pub fn new() -> Self {
         Self {
             multipliers: Multipliers {
-                damage: 1.0,
-                damage_reduction: 1.0,
-                incoming_damage: 1.0,
-                gold_gain: 1.0,
-                enemy_health: 1.0,
-                enemy_speed: 1.0,
+                damage: RatioProduct::one(),
+                damage_reduction: RatioProduct::one(),
+                incoming_damage: RatioProduct::one(),
+                gold_gain: RatioProduct::one(),
+                enemy_health: RatioProduct::one(),
+                enemy_speed: RatioProduct::one(),
             },
             adjustments: Adjustments::default(),
             reroll_costs: RerollCosts::default(),
@@ -98,12 +98,12 @@ impl StageModifiers {
 
     pub fn reset_stage_state(&mut self) {
         self.multipliers = Multipliers {
-            damage: 1.0,
-            damage_reduction: 1.0,
-            incoming_damage: 1.0,
-            gold_gain: 1.0,
-            enemy_health: 1.0,
-            enemy_speed: 1.0,
+            damage: RatioProduct::one(),
+            damage_reduction: RatioProduct::one(),
+            incoming_damage: RatioProduct::one(),
+            gold_gain: RatioProduct::one(),
+            enemy_health: RatioProduct::one(),
+            enemy_speed: RatioProduct::one(),
         };
         self.adjustments = Adjustments::default();
         self.reroll_costs = RerollCosts::default();
@@ -111,23 +111,35 @@ impl StageModifiers {
     }
 
     // ----- Getters -----
-    pub fn get_damage_multiplier(&self) -> f32 {
-        self.multipliers.damage
+    pub fn get_damage_multiplier(&self) -> FixedRatio {
+        self.multipliers.damage.combined_ratio()
     }
-    pub fn get_damage_reduction_multiplier(&self) -> f32 {
-        self.multipliers.damage_reduction
+    pub fn get_damage_reduction_multiplier(&self) -> FixedRatio {
+        self.multipliers.damage_reduction.combined_ratio()
     }
-    pub fn get_incoming_damage_multiplier(&self) -> f32 {
-        self.multipliers.incoming_damage
+    pub fn get_incoming_damage_multiplier(&self) -> FixedRatio {
+        self.multipliers.incoming_damage.combined_ratio()
     }
-    pub fn get_gold_gain_multiplier(&self) -> f32 {
-        self.multipliers.gold_gain
+    pub fn get_gold_gain_multiplier(&self) -> FixedRatio {
+        self.multipliers.gold_gain.combined_ratio()
     }
-    pub fn get_enemy_health_multiplier(&self) -> f32 {
-        self.multipliers.enemy_health
+    pub fn get_enemy_health_multiplier(&self) -> FixedRatio {
+        self.multipliers.enemy_health.combined_ratio()
     }
-    pub fn get_enemy_speed_multiplier(&self) -> f32 {
-        self.multipliers.enemy_speed
+    pub fn get_enemy_speed_multiplier(&self) -> FixedRatio {
+        self.multipliers.enemy_speed.combined_ratio()
+    }
+    pub(crate) fn damage_reduction_multipliers(&self) -> &[FixedRatio] {
+        self.multipliers.damage_reduction.factors()
+    }
+    pub(crate) fn incoming_damage_multipliers(&self) -> &[FixedRatio] {
+        self.multipliers.incoming_damage.factors()
+    }
+    pub(crate) fn gold_gain_multipliers(&self) -> &[FixedRatio] {
+        self.multipliers.gold_gain.factors()
+    }
+    pub(crate) fn enemy_health_multipliers(&self) -> &RatioProduct {
+        &self.multipliers.enemy_health
     }
     pub fn get_max_hand_slots_bonus(&self) -> usize {
         self.adjustments.card_selection_hand_max_slots_bonus
@@ -189,24 +201,24 @@ impl StageModifiers {
     }
 
     // ----- Mutators -----
-    pub fn apply_damage_multiplier(&mut self, m: f32) {
-        self.multipliers.damage *= m;
+    pub fn apply_damage_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.damage.push(m);
     }
-    pub fn apply_damage_reduction_multiplier(&mut self, m: f32) {
-        self.multipliers.damage_reduction *= m;
+    pub fn apply_damage_reduction_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.damage_reduction.push(m);
     }
-    pub fn apply_incoming_damage_multiplier(&mut self, m: f32) {
-        self.multipliers.incoming_damage *= m;
+    pub fn apply_incoming_damage_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.incoming_damage.push(m);
     }
-    pub fn apply_gold_gain_multiplier(&mut self, m: f32) {
-        self.multipliers.gold_gain *= m;
+    pub fn apply_gold_gain_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.gold_gain.push(m);
     }
-    pub fn apply_enemy_health_multiplier(&mut self, m: f32) {
-        self.multipliers.enemy_health *= m;
+    pub fn apply_enemy_health_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.enemy_health.push(m);
     }
 
-    pub fn apply_enemy_speed_multiplier(&mut self, m: f32) {
-        self.multipliers.enemy_speed *= m;
+    pub fn apply_enemy_speed_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.enemy_speed.push(m);
     }
 
     pub fn apply_max_hand_slots_bonus(&mut self, v: usize) {
@@ -257,5 +269,39 @@ impl StageModifiers {
 
     pub fn enqueue_free_card_service(&mut self) {
         self.stage_grants.free_card_services += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multiplier_stacks_are_order_independent_and_round_only_when_applied() {
+        let factors = [
+            FixedRatio::from_raw(500_001),
+            FixedRatio::from_raw(500_001),
+            FixedRatio::from_raw(771_635),
+        ];
+        let mut first = StageModifiers::new();
+        let mut second = StageModifiers::new();
+        for factor in factors {
+            first.apply_enemy_health_multiplier(factor);
+        }
+        for factor in factors.into_iter().rev() {
+            second.apply_enemy_health_multiplier(factor);
+        }
+
+        assert_eq!(
+            first.get_enemy_health_multiplier(),
+            second.get_enemy_health_multiplier()
+        );
+        assert_eq!(first.get_enemy_health_multiplier().raw(), 192_910);
+
+        let base = Health::from_raw(1_086);
+        let first_scaled = base.scaled_by_product(first.enemy_health_multipliers());
+        let second_scaled = base.scaled_by_product(second.enemy_health_multipliers());
+        assert_eq!(first_scaled, second_scaled);
+        assert_eq!(first_scaled.raw(), 209);
     }
 }

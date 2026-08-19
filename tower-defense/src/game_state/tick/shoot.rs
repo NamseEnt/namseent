@@ -96,9 +96,8 @@ pub fn shoot_attacks(game_state: &mut GameState, presentation_instant: crate::Pr
                 }
                 AttackType::FullHouseRain { tower_xy } => {
                     let target_indicator = monsters[target_idx].projectile_target_indicator;
-                    let damage_per_projectile = damage / 4.0;
                     tower.mark_fired(sim_tick);
-                    for _ in 0..4 {
+                    for damage_per_projectile in damage.split_evenly(4) {
                         new_attacks.push(
                             InFlightAttack::new_spatial(
                                 SpatialAttack::new_homing(

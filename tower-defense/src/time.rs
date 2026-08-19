@@ -1,3 +1,4 @@
+use crate::FixedRatio;
 use namui::*;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
@@ -79,6 +80,15 @@ impl SimTickSpan {
 
     pub fn scale_ceil(self, multiplier: f32) -> Self {
         Self::from_seconds_ceil(self.as_seconds() * multiplier as f64)
+    }
+
+    pub fn scale_ratio_ceil(self, multiplier: FixedRatio) -> Self {
+        if self.0 == 0 || multiplier.is_zero() {
+            return Self::ZERO;
+        }
+        let numerator = self.0 as u128 * multiplier.raw() as u128;
+        let ticks = numerator.div_ceil(crate::combat_number::RATIO_SCALE as u128);
+        Self(ticks.min(u64::MAX as u128) as u64)
     }
 
     pub fn as_seconds(self) -> f64 {

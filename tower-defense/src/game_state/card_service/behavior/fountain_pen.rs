@@ -10,11 +10,11 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct FountainPenCardService {
-    pub polish_pct: f32,
+    pub polish_pct: crate::FixedRatio,
 }
 
 impl FountainPenCardService {
-    pub fn new(polish_pct: f32) -> Self {
+    pub fn new(polish_pct: crate::FixedRatio) -> Self {
         Self { polish_pct }
     }
 
@@ -126,5 +126,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_fountain_pen_card_service() -> CardService {
-    FountainPenCardService::new(3.0).into_card_service()
+    FountainPenCardService::new(crate::FixedRatio::from_integer(3)).into_card_service()
 }

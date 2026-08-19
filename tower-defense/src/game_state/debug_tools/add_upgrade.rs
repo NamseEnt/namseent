@@ -179,7 +179,12 @@ fn generate_mock_upgrade(
     rng: &mut rand::rngs::ThreadRng,
 ) -> Upgrade {
     use crate::game_state::upgrade::*;
-    let damage_bonus_pct = rarity_gen(rarity, rng, (0.2..0.5, 0.3..0.75, 0.5..1.5, 1.0..2.5));
+    let damage_bonus_pct = crate::FixedRatio::from_f64(rarity_gen(
+        rarity,
+        rng,
+        (0.2..0.5, 0.3..0.75, 0.5..1.5, 1.0..2.5),
+    ) as f64)
+    .expect("debug upgrade percentage must be finite");
     match disc {
         UpgradeDiscriminants::Apple => crate::game_state::upgrade::AppleUpgrade::into_upgrade(),
         UpgradeDiscriminants::Banana => crate::game_state::upgrade::BananaUpgrade::into_upgrade(),
@@ -247,9 +252,15 @@ fn generate_mock_upgrade(
         UpgradeDiscriminants::Camera => crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
         UpgradeDiscriminants::GiftBox => crate::game_state::upgrade::GiftBoxUpgrade::into_upgrade(),
         UpgradeDiscriminants::Fang => crate::game_state::upgrade::FangUpgrade::into_upgrade(),
-        UpgradeDiscriminants::Popcorn => {
-            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(1.0 + damage_bonus_pct, 5, 5)
-        }
+        UpgradeDiscriminants::Popcorn => crate::game_state::upgrade::PopcornUpgrade::into_upgrade(
+            crate::FixedRatio::from_raw(
+                crate::FixedRatio::ONE
+                    .raw()
+                    .saturating_add(damage_bonus_pct.raw()),
+            ),
+            5,
+            5,
+        ),
         UpgradeDiscriminants::MembershipCard => {
             crate::game_state::upgrade::MembershipCardUpgrade::into_upgrade()
         }

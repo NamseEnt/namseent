@@ -1,3 +1,4 @@
+use crate::Health;
 use crate::game_state::{
     GameState,
     tower::Tower,
@@ -113,7 +114,8 @@ impl GameState {
                     self.action(crate::game_state::GameStateAction::Heal(amount));
                 }
                 UpgradeAcquireRecovery::ToFull => {
-                    let amount = self.max_hp() - self.hp;
+                    let amount =
+                        Health::from_raw(self.max_hp().raw().saturating_sub(self.hp.raw()));
                     self.action(crate::game_state::GameStateAction::Heal(amount));
                 }
             }

@@ -134,7 +134,7 @@ impl CardServiceBehavior for SpinningTopCardService {
             .filter(|card| card.engraving().is_none())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)

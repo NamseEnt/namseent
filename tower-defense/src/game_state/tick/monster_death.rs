@@ -9,17 +9,30 @@ pub fn handle_monster_death(
     if target_idx >= game_state.monsters.len() {
         return;
     }
-    let monster_max_hp = game_state.monsters[target_idx].max_hp;
     let monster_reward = game_state.monsters[target_idx].reward;
     let monster_kind = game_state.monsters[target_idx].kind;
     let rotation = game_state.monsters[target_idx].animation.rotation;
 
-    if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
-        defense_flow.stage_progress.processed_hp += monster_max_hp;
+    if !game_state.monsters[target_idx].stage_progress_counted {
+        let remaining_hp = game_state.monsters[target_idx].hp;
+        if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
+            defense_flow.stage_progress.processed_hp = defense_flow
+                .stage_progress
+                .processed_hp
+                .saturating_add(remaining_hp);
+        }
+        game_state.monsters[target_idx].stage_progress_counted = true;
     }
 
-    let earn =
-        (monster_reward as f32 * game_state.stage_modifiers.get_gold_gain_multiplier()) as usize;
+    let earn = RatioProduct::one()
+        .with_all(
+            game_state
+                .stage_modifiers
+                .gold_gain_multipliers()
+                .iter()
+                .copied(),
+        )
+        .apply_usize(monster_reward);
 
     let wh = monster::monster_wh(monster_kind);
 

@@ -10,11 +10,11 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct BrushCardService {
-    pub polish_pct: f32,
+    pub polish_pct: crate::FixedRatio,
 }
 
 impl BrushCardService {
-    pub fn new(polish_pct: f32) -> Self {
+    pub fn new(polish_pct: crate::FixedRatio) -> Self {
         Self { polish_pct }
     }
 
@@ -128,5 +128,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_brush_card_service() -> CardService {
-    BrushCardService::new(3.0).into_card_service()
+    BrushCardService::new(crate::FixedRatio::from_integer(3)).into_card_service()
 }

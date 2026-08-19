@@ -32,8 +32,8 @@ impl Component for RenderTowerCard<'_> {
             .find_map(|card| card.engraving());
         let on_enter = move || {
             let mut words = Vec::new();
-            if bonus_pct > 0.0 {
-                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct)));
+            if !bonus_pct.is_zero() {
+                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct.as_f32())));
             }
             if let Some(engraving) = engraving {
                 words.push(crate::l10n::word::Word::Engraving(Some(engraving)));
@@ -52,7 +52,7 @@ impl Component for RenderTowerCard<'_> {
             on_exit: || {},
         });
 
-        if let Some((color, strength)) = polish_halo_config(bonus_pct) {
+        if let Some((color, strength)) = polish_halo_config(bonus_pct.as_f32()) {
             let seed = (tower_template.kind as u32 as f32 * 0.618034).fract();
             ctx.add(CardHaloFx {
                 wh,
@@ -72,7 +72,7 @@ impl<'a> Component for RenderTowerCardInner<'a> {
             .used_cards()
             .iter()
             .find_map(|card| card.engraving());
-        render_polish_overlay(ctx, wh, tower_template.card_polish_pct(), 1.0);
+        render_polish_overlay(ctx, wh, tower_template.card_polish_pct().as_f32(), 1.0);
         render_engraving_overlay(ctx, wh, engraving, 1.0);
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();

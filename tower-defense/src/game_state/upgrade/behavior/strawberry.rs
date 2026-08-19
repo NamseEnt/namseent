@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const STRAWBERRY_HP_PLUS: f32 = 2.0;
-const STRAWBERRY_HEAL_AMOUNT: f32 = 3.0;
+const STRAWBERRY_HP_PLUS: HealthDelta = HealthDelta::from_integer(2);
+const STRAWBERRY_HEAL_AMOUNT: Health = Health::from_integer(3);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct StrawberryUpgrade;
@@ -24,7 +24,7 @@ impl UpgradeBehavior for StrawberryUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         STRAWBERRY_HP_PLUS
     }
 

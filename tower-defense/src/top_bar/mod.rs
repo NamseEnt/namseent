@@ -35,7 +35,7 @@ impl Component for TopBar {
         ctx.compose(|ctx| {
             let locale = game_state.text().locale();
             let stage = game_state.stage;
-            let current_hp = game_state.hp.clamp(0.0, game_state.max_hp());
+            let current_hp = game_state.hp.clamp(crate::Health::ZERO, game_state.max_hp());
             let max_hp = game_state.max_hp();
             let shield = game_state.shield;
             let gold = game_state.gold;
@@ -57,14 +57,14 @@ impl Component for TopBar {
                         table::fixed_no_clip(PADDING * 4, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, |ctx| {
                             ctx.add(HealthText {
-                                current_hp,
-                                max_hp,
+                                current_hp: current_hp.as_f32(),
+                                max_hp: max_hp.as_f32(),
                                 height: wh.height,
                             });
                         }),
                         table::fit(table::FitAlign::LeftTop, |ctx| {
                             ctx.add(ShieldText {
-                                shield,
+                                shield: shield.as_f32(),
                                 height: wh.height,
                             });
                         }),

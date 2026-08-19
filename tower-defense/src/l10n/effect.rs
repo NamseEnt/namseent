@@ -26,40 +26,34 @@ impl EffectText {
                 Effect::Heal { amount } => builder.with_bold(format!("+{:.0}", amount)),
                 Effect::Shield { amount } => builder.with_bold(format!("{:.0}", amount)),
                 Effect::EarnGold { amount } => builder.with_bold(format!("+{}", amount)),
-                Effect::Lottery {
-                    amount,
-                    probability,
-                } => builder
-                    .text(format!("{:.0}% ", probability * 100.0))
-                    .with_bold(format!("{}", amount)),
                 Effect::DamageReduction {
                     damage_multiply, ..
                 } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - damage_multiply) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - damage_multiply.as_f32()) * 100.0))
                     .static_text(" 피해"),
                 Effect::LoseHealth { amount } => builder.with_bold(format!("-{:.0}", amount)),
                 Effect::LoseGold { amount } => builder.with_bold(format!("-{}", amount)),
                 Effect::GrantUpgrade { .. } => builder.text("업그레이드"),
                 Effect::GrantItem { .. } => builder.text("아이템"),
                 Effect::IncreaseAllTowersDamage { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" 타워"),
                 Effect::DecreaseAllTowersDamage { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" 타워"),
                 Effect::IncreaseIncomingDamage { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" 받는 피해"),
                 Effect::DecreaseIncomingDamage { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" 받는 피해"),
                 Effect::IncreaseGoldGain { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" 골드"),
                 Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => builder
-                    .with_bold(format!("-{:.0}%", reduction_percentage * 100.0))
+                    .with_bold(format!("-{:.0}%", reduction_percentage.as_f32() * 100.0))
                     .static_text(" 골드"),
                 Effect::DisableItemAndUpgradePurchases => builder.text("구매 불가"),
                 Effect::DisableItemUse => builder.text("사용 불가"),
@@ -82,10 +76,10 @@ impl EffectText {
                     .with_bold(format!("-{:.0}%", percentage))
                     .static_text(" 적 체력"),
                 Effect::IncreaseEnemySpeed { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" 적속도"),
                 Effect::DecreaseEnemySpeed { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" 적속도"),
                 Effect::RankTowerDisable { rank } => {
                     builder.card_rank(rank).static_text(" 랭크 타워")
@@ -126,16 +120,10 @@ impl EffectText {
                 Effect::EarnGold { amount } => builder
                     .with_bold(format!("{}", amount))
                     .static_text(" gold"),
-                Effect::Lottery {
-                    amount,
-                    probability,
-                } => builder
-                    .text(format!("{:.0}% chance to get ", probability * 100.0))
-                    .with_bold(format!("{}", amount)),
                 Effect::DamageReduction {
                     damage_multiply, ..
                 } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - damage_multiply) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - damage_multiply.as_f32()) * 100.0))
                     .static_text(" damage"),
                 Effect::LoseHealth { amount } => builder
                     .with_bold(format!("-{:.0}", amount))
@@ -146,24 +134,24 @@ impl EffectText {
                 Effect::GrantUpgrade { .. } => builder.text("Upgrade"),
                 Effect::GrantItem { .. } => builder.text("Item"),
                 Effect::IncreaseAllTowersDamage { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" tower damage"),
                 Effect::DecreaseAllTowersDamage { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" tower damage"),
                 Effect::IncreaseIncomingDamage { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" incoming damage"),
                 Effect::DecreaseIncomingDamage { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" incoming damage"),
                 Effect::IncreaseGoldGain { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" gold"),
                 Effect::DecreaseGoldGainPercent {
                     reduction_percentage,
                 } => builder
-                    .with_bold(format!("-{:.0}%", reduction_percentage * 100.0))
+                    .with_bold(format!("-{:.0}%", reduction_percentage.as_f32() * 100.0))
                     .static_text(" gold"),
                 Effect::DisableItemAndUpgradePurchases => builder.text("Buy disabled"),
                 Effect::DisableItemUse => builder.text("Use disabled"),
@@ -186,10 +174,10 @@ impl EffectText {
                     .with_bold(format!("-{:.0}%", percentage))
                     .static_text(" enemy HP"),
                 Effect::IncreaseEnemySpeed { multiplier } => builder
-                    .with_bold(format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+                    .with_bold(format!("+{:.0}%", (multiplier.as_f32() - 1.0) * 100.0))
                     .static_text(" speed"),
                 Effect::DecreaseEnemySpeed { multiplier } => builder
-                    .with_bold(format!("-{:.0}%", (1.0 - multiplier) * 100.0))
+                    .with_bold(format!("-{:.0}%", (1.0 - multiplier.as_f32()) * 100.0))
                     .static_text(" speed"),
                 Effect::RankTowerDisable { rank } => {
                     builder.card_rank(rank).static_text(" rank tower")

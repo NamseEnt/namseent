@@ -38,8 +38,8 @@ impl Component for RenderCard<'_> {
         let engraving = card.engraving();
         let on_enter = move || {
             let mut words = Vec::new();
-            if bonus_pct > 0.0 {
-                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct)));
+            if !bonus_pct.is_zero() {
+                words.push(crate::l10n::word::Word::Polish(Some(bonus_pct.as_f32())));
             }
             if let Some(engraving) = engraving {
                 words.push(crate::l10n::word::Word::Engraving(Some(engraving)));
@@ -60,7 +60,7 @@ impl Component for RenderCard<'_> {
             on_exit: || {},
         });
 
-        if let Some((color, strength)) = polish_halo_config(bonus_pct) {
+        if let Some((color, strength)) = polish_halo_config(bonus_pct.as_f32()) {
             ctx.add(CardHaloFx {
                 wh,
                 radius: wh.width * 0.25,
@@ -116,7 +116,7 @@ impl<'a> Component for RenderCardInner<'a> {
 
         render_top_left_rank_and_suit(ctx, card.rank, card.suit, opacity);
 
-        render_polish_overlay(ctx, wh, card.polish_pct(), opacity);
+        render_polish_overlay(ctx, wh, card.polish_pct().as_f32(), opacity);
 
         render_engraving_overlay(ctx, wh, card.engraving(), opacity);
 

@@ -47,9 +47,10 @@ impl Component for TowerDamagePanel<'_> {
             let max_damage = towers
                 .first()
                 .map(|entry| entry.total_damage)
-                .unwrap_or(1.0)
-                .max(1.0);
-            let total_damage: f32 = towers.iter().map(|t| t.total_damage).sum();
+                .unwrap_or(crate::Damage::from_integer(1))
+                .max(crate::Damage::from_integer(1))
+                .as_f32();
+            let total_damage: f32 = towers.iter().map(|t| t.total_damage.as_f32()).sum();
             let scroll_bar_width = px(4.0);
             let item_wh = Wh {
                 width: wh.width - scroll_bar_width,
@@ -102,8 +103,9 @@ impl Component for TowerDamageRow {
             max_damage,
             total_damage,
         } = self;
-        let bar_ratio = (stat.total_damage / max_damage).clamp(0.0, 1.0);
-        let damage_ratio = (stat.total_damage / total_damage.max(1.0)).clamp(0.0, 1.0);
+        let damage = stat.total_damage.as_f32();
+        let bar_ratio = (damage / max_damage).clamp(0.0, 1.0);
+        let damage_ratio = (damage / total_damage.max(1.0)).clamp(0.0, 1.0);
         ctx.compose(|ctx| {
             table::horizontal([
                 table::fixed_no_clip(wh.height, |wh, ctx| {
@@ -129,7 +131,7 @@ impl Component for TowerDamageRow {
                                         .bold()
                                         .with_icon_bold(
                                             IconKind::Damage,
-                                            format!("{:.0}", stat.total_damage),
+                                            format!("{:.0}", stat.total_damage.as_f32()),
                                         )
                                         .render_right_top(wh.width)
                                 }));

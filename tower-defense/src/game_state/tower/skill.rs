@@ -43,9 +43,9 @@ impl Deref for TowerSkill {
 
 #[derive(Clone, Copy, PartialEq, Debug, State)]
 pub enum TowerSkillKind {
-    NearbyTowerDamageMul { mul: f32, range_radius: f32 },
-    NearbyTowerDamageAdd { add: f32, range_radius: f32 },
-    NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
+    NearbyTowerDamageMul { mul: FixedRatio, range_radius: f32 },
+    NearbyTowerDamageAdd { add: DamageDelta, range_radius: f32 },
+    NearbyMonsterSpeedMul { mul: FixedRatio, range_radius: f32 },
     MoneyIncomeAdd { add: u32 },
     TopCardBonus { rank: Rank, bonus_damage: usize },
 }
@@ -58,8 +58,8 @@ pub struct TowerStatusEffect {
 
 #[derive(Clone, Copy, Debug, PartialEq, State)]
 pub enum TowerStatusEffectKind {
-    DamageMul { mul: f32 },
-    DamageAdd { add: f32 },
+    DamageMul { mul: FixedRatio },
+    DamageAdd { add: DamageDelta },
 }
 
 impl TowerStatusEffectKind {
@@ -187,7 +187,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
                 {
                     let effect = TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd {
-                            add: bonus_damage as f32,
+                            add: DamageDelta::from_usize(bonus_damage),
                         },
                         end_at: TowerStatusEffectEnd::Time {
                             end_at: sim_tick + skill.duration,
@@ -239,7 +239,7 @@ mod tests {
             matches!(
                 effect.kind,
                 TowerStatusEffectKind::DamageAdd { add }
-                if add == 15.0_f32
+                if add == DamageDelta::from_integer(15)
             )
         }));
     }
@@ -272,6 +272,9 @@ mod tests {
         activate_tower_skills(&mut game_state, now);
 
         let tower = game_state.towers.iter().next().expect("tower should exist");
-        assert_eq!(tower.cached_upgrade_damage(), bonus_damage as f32);
+        assert_eq!(
+            tower.cached_upgrade_damage(),
+            Damage::from_usize(bonus_damage)
+        );
     }
 }

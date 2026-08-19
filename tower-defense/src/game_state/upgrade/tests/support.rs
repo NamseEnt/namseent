@@ -24,7 +24,10 @@ pub fn first_hand_tower_template(game_state: &GameState) -> TowerTemplate {
 
 #[cfg(test)]
 pub fn assert_tower_cached_damage_mul(tower: &Tower, expected_mul: f32) {
-    let base_damage = tower.calculate_projectile_damage(&[], 1.0);
+    let base_damage = tower.calculate_projectile_damage(&[], crate::FixedRatio::ONE);
     let boosted_damage = tower.cached_upgrade_damage();
-    assert!((boosted_damage / base_damage - expected_mul).abs() < f32::EPSILON);
+    assert_eq!(
+        boosted_damage.ratio_of(base_damage),
+        crate::FixedRatio::from_f64(expected_mul as f64).unwrap()
+    );
 }

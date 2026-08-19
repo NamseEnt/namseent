@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const CUP_NOODLES_MAX_HP_DECREASE: f32 = 2.0;
-const CUP_NOODLES_HEAL_AMOUNT: f32 = 6.0;
+const CUP_NOODLES_MAX_HP_DECREASE: HealthDelta = HealthDelta::from_integer(2);
+const CUP_NOODLES_HEAL_AMOUNT: Health = Health::from_integer(6);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CupNoodlesUpgrade;
@@ -24,8 +24,8 @@ impl UpgradeBehavior for CupNoodlesUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        -CUP_NOODLES_MAX_HP_DECREASE
+    fn max_hp_plus(&self) -> HealthDelta {
+        HealthDelta::from_raw(-CUP_NOODLES_MAX_HP_DECREASE.raw())
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {

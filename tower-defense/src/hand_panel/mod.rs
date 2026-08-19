@@ -78,8 +78,11 @@ impl Component for HandPanel {
         let animated_xy = xy_with_spring(ctx, target_xy, closed_xy);
 
         let reroll_health_cost = game_state.stage_modifiers.get_reroll_health_cost();
-        let reroll_disabled =
-            game_state.left_dice == 0 || (game_state.hp - reroll_health_cost as f32) < 1.0;
+        let reroll_disabled = game_state.left_dice == 0
+            || game_state
+                .hp
+                .saturating_sub(crate::Health::from_usize(reroll_health_cost))
+                < crate::Health::from_integer(1);
 
         ctx.add_with_key(
             "selecting-tower-next-fab",

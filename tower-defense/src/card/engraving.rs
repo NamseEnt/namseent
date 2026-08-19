@@ -1,6 +1,6 @@
-use crate::SimTickSpan;
 use crate::l10n::Locale;
 use crate::theme::typography::TypographyBuilder;
+use crate::{FixedRatio, SimTickSpan};
 use namui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
@@ -12,8 +12,8 @@ pub enum Engraving {
 }
 
 const CACTUS_SPLASH_RADIUS: f32 = 2.0;
-const CACTUS_SPLASH_DAMAGE_PCT: f32 = 0.3;
-const OVERCHARGE_ATTACK_SPEED_MUL: f32 = 1.5;
+const CACTUS_SPLASH_DAMAGE_PCT: FixedRatio = FixedRatio::from_raw(300_000);
+const OVERCHARGE_ATTACK_SPEED_MUL: FixedRatio = FixedRatio::from_raw(1_500_000);
 
 impl Engraving {
     pub fn key(&self) -> &'static str {
@@ -38,7 +38,7 @@ impl Engraving {
         match self {
             Engraving::Magnet => TowerEngravingModifier::NONE,
             Engraving::Overcharge => TowerEngravingModifier {
-                shoot_interval_mul: 1.0 / OVERCHARGE_ATTACK_SPEED_MUL,
+                shoot_interval_mul: OVERCHARGE_ATTACK_SPEED_MUL.reciprocal(),
                 ..TowerEngravingModifier::NONE
             },
             Engraving::Cactus => TowerEngravingModifier {
@@ -66,7 +66,7 @@ impl Engraving {
     }
 
     pub fn l10n_description<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
-        let overcharge_pct = ((OVERCHARGE_ATTACK_SPEED_MUL - 1.0) * 100.0).round();
+        let overcharge_pct = ((OVERCHARGE_ATTACK_SPEED_MUL.as_f32() - 1.0) * 100.0).round();
         match (self, locale.language) {
             (Engraving::Magnet, crate::l10n::Language::Korean) => builder.static_text(
                 "이 카드를 뽑으면 뽑을 카드 더미에 있는 자석이 각인된 카드를 모두 손으로 가져옵니다",
@@ -99,7 +99,7 @@ impl Engraving {
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerEngravingModifier {
     pub attack_range_mul: f32,
-    pub shoot_interval_mul: f32,
+    pub shoot_interval_mul: FixedRatio,
     pub on_hit_splashes: Vec<EngravingSplash>,
     pub on_attack_splashes: Vec<EngravingSplash>,
 }
@@ -107,13 +107,13 @@ pub struct TowerEngravingModifier {
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct EngravingSplash {
     pub radius: f32,
-    pub damage_pct: f32,
+    pub damage_pct: FixedRatio,
 }
 
 impl TowerEngravingModifier {
     pub const NONE: Self = Self {
         attack_range_mul: 1.0,
-        shoot_interval_mul: 1.0,
+        shoot_interval_mul: FixedRatio::ONE,
         on_hit_splashes: Vec::new(),
         on_attack_splashes: Vec::new(),
     };
@@ -123,7 +123,7 @@ impl TowerEngravingModifier {
     }
 
     pub fn apply_shoot_interval(&self, base_interval: SimTickSpan) -> SimTickSpan {
-        base_interval.scale_ceil(self.shoot_interval_mul)
+        base_interval.scale_ratio_ceil(self.shoot_interval_mul)
     }
 
     pub fn combine(self, other: Self) -> Self {
@@ -134,7 +134,12 @@ impl TowerEngravingModifier {
 
         Self {
             attack_range_mul: self.attack_range_mul * other.attack_range_mul,
-            shoot_interval_mul: self.shoot_interval_mul * other.shoot_interval_mul,
+            shoot_interval_mul: FixedRatio::from_raw(
+                crate::RatioProduct::one()
+                    .with(self.shoot_interval_mul)
+                    .with(other.shoot_interval_mul)
+                    .apply_raw(FixedRatio::ONE.raw()),
+            ),
             on_hit_splashes,
             on_attack_splashes,
         }
@@ -153,7 +158,7 @@ mod tests {
 
     fn modifier(
         range: f32,
-        interval: f32,
+        interval: FixedRatio,
         splash: Option<EngravingSplash>,
     ) -> TowerEngravingModifier {
         TowerEngravingModifier {
@@ -168,10 +173,10 @@ mod tests {
     fn none_is_the_identity_of_combine() {
         let target = modifier(
             1.5,
-            0.8,
+            FixedRatio::from_raw(800_000),
             Some(EngravingSplash {
                 radius: 2.0,
-                damage_pct: 0.4,
+                damage_pct: FixedRatio::from_raw(400_000),
             }),
         );
 
@@ -181,15 +186,22 @@ mod tests {
 
     #[test]
     fn combine_multiplies_multipliers() {
-        let combined = modifier(1.5, 0.5, None).combine(modifier(2.0, 0.5, None));
+        let combined = modifier(1.5, FixedRatio::from_raw(500_000), None).combine(modifier(
+            2.0,
+            FixedRatio::from_raw(500_000),
+            None,
+        ));
 
         assert_eq!(combined.attack_range_mul, 3.0);
-        assert_eq!(combined.shoot_interval_mul, 0.25);
+        assert_eq!(combined.shoot_interval_mul, FixedRatio::from_raw(250_000));
     }
 
     #[test]
     fn apply_attack_range_scales_by_the_multiplier() {
-        assert_eq!(modifier(1.5, 1.0, None).apply_attack_range(8.0), 12.0);
+        assert_eq!(
+            modifier(1.5, FixedRatio::ONE, None).apply_attack_range(8.0),
+            12.0
+        );
         assert_eq!(TowerEngravingModifier::NONE.apply_attack_range(8.0), 8.0);
     }
 
@@ -198,7 +210,7 @@ mod tests {
         let base = SimTickSpan::from_millis_ceil(1_000);
 
         assert_eq!(
-            modifier(1.0, 0.5, None).apply_shoot_interval(base),
+            modifier(1.0, FixedRatio::from_raw(500_000), None).apply_shoot_interval(base),
             SimTickSpan::from_millis_ceil(500)
         );
         assert_eq!(
@@ -211,13 +223,17 @@ mod tests {
     fn combine_preserves_duplicate_splashes() {
         let first = EngravingSplash {
             radius: 3.0,
-            damage_pct: 0.2,
+            damage_pct: FixedRatio::from_raw(200_000),
         };
         let second = EngravingSplash {
             radius: 1.0,
-            damage_pct: 0.9,
+            damage_pct: FixedRatio::from_raw(900_000),
         };
-        let combined = modifier(1.0, 1.0, Some(first)).combine(modifier(1.0, 1.0, Some(second)));
+        let combined = modifier(1.0, FixedRatio::ONE, Some(first)).combine(modifier(
+            1.0,
+            FixedRatio::ONE,
+            Some(second),
+        ));
 
         assert_eq!(combined.on_hit_splashes, vec![first, second]);
     }

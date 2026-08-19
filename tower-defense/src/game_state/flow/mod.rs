@@ -10,7 +10,7 @@ pub enum GameFlow {
     PlacingTower,
     Defense(DefenseFlow),
     TreasureSelection(TreasureSelectionFlow),
-    Result { clear_rate: f32 },
+    Result { clear_rate: ClearRate },
 }
 
 #[derive(Clone, Debug, State)]
@@ -86,7 +86,7 @@ impl DefenseFlow {
         Self {
             stage_progress: StageProgress {
                 start_total_hp,
-                processed_hp: 0.0,
+                processed_hp: Health::ZERO,
             },
             took_damage: false,
         }
@@ -95,6 +95,6 @@ impl DefenseFlow {
 
 #[derive(Clone, Debug, State)]
 pub struct StageProgress {
-    pub start_total_hp: f32,
-    pub processed_hp: f32,
+    pub start_total_hp: Health,
+    pub processed_hp: Health,
 }

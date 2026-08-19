@@ -51,7 +51,7 @@ pub fn spawn_monster_status_effect_icons(
 fn create_monster_debuff_icon(debuff_kind: MonsterStatusEffectKind) -> Icon {
     let (icon_kind, attribute_icon) = match &debuff_kind {
         MonsterStatusEffectKind::SpeedMul { mul } => {
-            if *mul < 1.0 {
+            if *mul < crate::FixedRatio::ONE {
                 (IconKind::MoveSpeed, Some(IconKind::Down))
             } else {
                 (IconKind::MoveSpeed, Some(IconKind::Up))

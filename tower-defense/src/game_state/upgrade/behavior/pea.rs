@@ -1,7 +1,7 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const PEA_HP_PLUS: f32 = 3.0;
+const PEA_HP_PLUS: HealthDelta = HealthDelta::from_integer(3);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PeaUpgrade;
@@ -23,7 +23,7 @@ impl UpgradeBehavior for PeaUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         PEA_HP_PLUS
     }
 
@@ -89,17 +89,25 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.hp = 1.0;
+        game_state.hp = crate::Health::from_integer(1);
 
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::PeaUpgrade::into_upgrade(),
             None,
         ));
 
-        assert_eq!(game_state.upgrade_state.max_hp_plus(), 3.0);
-        assert!(
-            (game_state.max_hp() - (game_state.config.player.max_hp + 3.0)).abs() < f32::EPSILON
+        assert_eq!(
+            game_state.upgrade_state.max_hp_plus(),
+            crate::HealthDelta::from_integer(3)
         );
-        assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
+        assert_eq!(
+            game_state.max_hp(),
+            game_state
+                .config
+                .player
+                .max_hp
+                .saturating_add_delta(crate::HealthDelta::from_integer(3))
+        );
+        assert_eq!(game_state.hp, game_state.max_hp());
     }
 }
