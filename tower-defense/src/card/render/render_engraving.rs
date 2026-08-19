@@ -6,7 +6,7 @@ const SIDE_RATIO: f32 = 1.0 / 2.0;
 const OFFSET_RATIO: f32 = 1.0 / 12.0;
 const OPACITY: f32 = 0.75;
 
-pub(super) fn render_engraving_overlay(
+pub(crate) fn render_engraving_overlay(
     ctx: &RenderCtx,
     wh: Wh<Px>,
     engraving: Option<Engraving>,

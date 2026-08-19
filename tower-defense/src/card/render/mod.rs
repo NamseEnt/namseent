@@ -13,6 +13,7 @@ use crate::{
 };
 use namui::*;
 pub use render_card::RenderCard;
+pub(crate) use render_engraving::render_engraving_overlay;
 pub use render_polish::polish_halo_config;
 pub(crate) use render_polish::render_polish_overlay;
 pub use render_tower_card::RenderTowerCard;

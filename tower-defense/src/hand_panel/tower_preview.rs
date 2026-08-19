@@ -1,47 +1,20 @@
-use crate::card::render::polish_halo_config;
+use crate::card::RenderTowerCard;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::tower::render::{TowerImage, TowerSpriteWithOverlay};
-use crate::game_state::tower::{AnimationKind, TowerKind, TowerTemplate};
-use crate::rarity::Rarity;
+use crate::game_state::tower::TowerTemplate;
+use crate::hand::HAND_SLOT_WH;
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::theme::{
-    card_halo_fx::CardHaloFx,
-    halo::Halo,
     palette,
     paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
 };
 use namui::*;
-use namui_prebuilt::table;
+use rand::Rng;
 
 use crate::animation::with_spring;
 
 const EXIT_ANIMATION_DURATION: f32 = 0.5;
-
-fn halo_config_for_tower_kind(kind: TowerKind) -> Option<(Color, f32)> {
-    match kind {
-        TowerKind::RubberCone | TowerKind::High | TowerKind::OnePair => None,
-        TowerKind::TwoPair => Some((Rarity::Common.color(), 0.05)),
-        TowerKind::ThreeOfAKind => Some((Rarity::Rare.color(), 0.1)),
-        TowerKind::Straight | TowerKind::Flush => Some((Rarity::Epic.color(), 0.15)),
-        TowerKind::FullHouse => Some((Rarity::Epic.color(), 0.2)),
-        TowerKind::FourOfAKind | TowerKind::StraightFlush => Some((Rarity::Legendary.color(), 0.3)),
-        TowerKind::RoyalFlush => Some((Rarity::Legendary.color(), 0.4)),
-    }
-}
-
-fn rarity_for_tower_kind(kind: TowerKind) -> Rarity {
-    match kind {
-        TowerKind::RubberCone | TowerKind::High | TowerKind::OnePair | TowerKind::TwoPair => {
-            Rarity::Common
-        }
-        TowerKind::ThreeOfAKind => Rarity::Rare,
-        TowerKind::Straight | TowerKind::Flush | TowerKind::FullHouse => Rarity::Epic,
-        TowerKind::FourOfAKind | TowerKind::StraightFlush | TowerKind::RoyalFlush => {
-            Rarity::Legendary
-        }
-    }
-}
+const CARD_MAX_ROTATION_DEG: f32 = 7.0;
 
 #[derive(Debug, Clone, Copy, State)]
 struct ExitAnimation {
@@ -63,18 +36,22 @@ struct PreviewEntry {
     id: usize,
     template: TowerTemplate,
     exit_animation: Option<ExitAnimation>,
+    rotation_deg: f32,
 }
 
 struct PreviewEntryComponent {
     wh: Wh<Px>,
+    visible_wh: Wh<Px>,
     template: TowerTemplate,
     active: bool,
+    rotation_deg: f32,
 }
 
 impl Component for PreviewEntryComponent {
     fn render(self, ctx: &RenderCtx) {
         let game_state = crate::game_state::use_game_state(ctx);
-        let this_wh = self.wh;
+        let container_wh = self.wh;
+        let visible_wh = self.visible_wh;
         let template = self.template;
         let tower_upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
@@ -84,106 +61,66 @@ impl Component for PreviewEntryComponent {
             template.suit,
             template.rank,
             template.rerolled_count,
+            template.card_polish_pct(),
+            template.effective_shoot_interval(),
         ));
 
-        let attack_power_text_signal = ctx.memo(|| {
+        let dps_text_signal = ctx.memo(|| {
             tracked_upgrade_revision.record_as_used();
             tracked_template.record_as_used();
 
-            let attack_power = template.attack_power_with_upgrade_bonuses(&tower_upgrade_bonuses);
-            format_compact_number(attack_power)
+            let damage = template.attack_power_with_upgrade_bonuses(&tower_upgrade_bonuses);
+            let shoot_interval_secs = template.effective_shoot_interval().as_secs_f32();
+            let dps = if shoot_interval_secs > 0.0 {
+                damage / shoot_interval_secs
+            } else {
+                0.0
+            };
+            format_compact_number(dps)
         });
-        let attack_power_text = attack_power_text_signal.as_ref();
+        let dps_text = dps_text_signal.as_ref();
 
         let target = if self.active { 1.0 } else { 0.0 };
         let position: f32 = with_spring(ctx, target, 0.0f32, |v| v * v, || 0.0f32);
         let scale = position.max(0.0001);
-        let tower_name = game_state.text().tower(template.kind.to_text());
+        let preview_width = container_wh.width;
+        let card_scale = (visible_wh.width / HAND_SLOT_WH.width)
+            .min(visible_wh.height / HAND_SLOT_WH.height)
+            .min(1.0);
+        let card_wh = HAND_SLOT_WH * card_scale;
+        let card_xy = Xy::new(
+            (container_wh.width - card_wh.width) / 2.0,
+            (visible_wh.height - card_wh.height) / 2.0,
+        );
+        let card_center = card_wh.to_xy() * 0.5;
 
         ctx.compose(|ctx| {
-            let anchor = Xy::new(this_wh.width, this_wh.height / 2.0);
+            let anchor = Xy::new(container_wh.width, container_wh.height / 2.0);
             let ctx = ctx
                 .translate(anchor)
                 .scale(Xy::single(scale))
                 .translate(-anchor);
 
-            let halo_config = halo_config_for_tower_kind(template.kind);
-            let bonus_halo_config = polish_halo_config(template.card_polish_pct());
-
             ctx.compose(|ctx| {
-                table::padding_no_clip(
-                    8.px(),
-                    table::vertical([
-                        table::ratio_no_clip(1, move |wh, ctx| {
-                            let img_wh = wh * 1.2;
-                            let row_center = wh.to_xy() * 0.5;
-                            let image_center = Xy::new(row_center.x, row_center.y - 8.px());
+                let badge_height = 28.px();
+                let _ = render_attack_power_badge(&ctx, dps_text, preview_width, badge_height);
 
-                            let badge_height = 28.px();
-                            let badge_origin = Xy::new(
-                                image_center.x - (img_wh.width / 2.0) + 16.px(),
-                                image_center.y - (wh.height / 2.0) + 8.px(),
-                            );
-                            let _ = render_attack_power_badge(
-                                &ctx.translate(badge_origin),
-                                attack_power_text,
-                                img_wh.width,
-                                badge_height,
-                            );
-
-                            ctx.translate(image_center - (img_wh.to_xy() * 0.5)).add(
-                                TowerSpriteWithOverlay {
-                                    image: (template.kind, AnimationKind::Idle1).image(),
-                                    wh: img_wh,
-                                    suit: template.suit,
-                                    rank: template.rank,
-                                    alpha: 1.0,
-                                },
-                            );
-
-                            if let Some((color, strength)) = halo_config {
-                                ctx.translate(image_center - (img_wh.to_xy() * 0.5))
-                                    .add(Halo {
-                                        wh: img_wh,
-                                        radius: 40.px(),
-                                        color,
-                                        strength,
-                                        rotation_deg_per_sec: 45.0,
-                                    });
-                            }
-                            if let Some((color, strength)) = bonus_halo_config {
-                                ctx.translate(image_center - (img_wh.to_xy() * 0.5)).add(
-                                    CardHaloFx {
-                                        wh: img_wh,
-                                        radius: img_wh.width * 0.5,
-                                        color,
-                                        strength,
-                                        seed: (template.kind as u32 as f32 * 0.618034).fract(),
-                                    },
-                                );
-                            }
-                        }),
-                        table::fixed_no_clip(4.px(), |_, _| {}),
-                        table::fixed_no_clip(22.px(), move |wh, ctx| {
-                            ctx.add(memoized_text((&wh.width, &template.kind), |mut builder| {
-                                builder
-                                    .headline()
-                                    .size(FontSize::Medium)
-                                    .color(rarity_for_tower_kind(template.kind).color())
-                                    .max_width(wh.width);
-                                builder.text(tower_name).render_center_bottom(wh)
-                            }));
-                        }),
-                    ]),
-                )(this_wh, ctx);
+                ctx.translate(card_xy)
+                    .translate(card_center)
+                    .rotate(self.rotation_deg.deg())
+                    .translate(-card_center)
+                    .add(RenderTowerCard {
+                        wh: card_wh,
+                        tower_template: &template,
+                    });
             });
 
             ctx.add(PaperContainerBackground {
-                width: this_wh.width,
-                height: this_wh.height,
+                width: container_wh.width,
+                height: container_wh.height,
                 texture: PaperTexture::Rough,
                 variant: PaperVariant::Tape,
-                color: palette::PRIMARY,
+                color: palette::SURFACE_CONTAINER_LOW,
                 outline_color: None,
                 shadow: true,
                 arrow: None,
@@ -194,6 +131,7 @@ impl Component for PreviewEntryComponent {
 
 pub struct HandTowerPreview {
     pub wh: Wh<Px>,
+    pub visible_wh: Wh<Px>,
     pub tower_template: Option<TowerTemplate>,
 }
 
@@ -222,6 +160,8 @@ impl Component for HandTowerPreview {
                 id: next_id,
                 template: template.clone(),
                 exit_animation: None,
+                rotation_deg: rand::thread_rng()
+                    .gen_range(-CARD_MAX_ROTATION_DEG..=CARD_MAX_ROTATION_DEG),
             });
             next_id += 1;
         }
@@ -248,8 +188,10 @@ impl Component for HandTowerPreview {
                 entry.id,
                 PreviewEntryComponent {
                     wh: self.wh,
+                    visible_wh: self.visible_wh,
                     template: entry.template.clone(),
                     active,
+                    rotation_deg: entry.rotation_deg,
                 },
             );
         }
@@ -261,14 +203,13 @@ impl Component for HandTowerPreview {
 
 fn render_attack_power_badge(
     ctx: &ComposeCtx<'_, '_>,
-    attack_power_text: &str,
+    dps_text: &str,
     container_width: Px,
-    container_height: Px,
+    badge_height: Px,
 ) -> Px {
-    let badge_text_string = attack_power_text.to_string();
+    let badge_text_string = dps_text.to_string();
     let badge_text_ref: &String = &badge_text_string;
 
-    let badge_height = container_height;
     let badge_text = ctx.ghost_add(
         "attack-power-text",
         memoized_text((badge_text_ref, &container_width), move |mut builder| {
@@ -290,8 +231,8 @@ fn render_attack_power_badge(
     let badge_icon_width = 16.px();
     let badge_width =
         badge_padding + badge_icon_width + badge_gap + badge_text_width + badge_padding;
-    let badge_x = 0.px();
-    let badge_y = (container_height - badge_height) / 2.0;
+    let badge_x = (container_width - badge_width) / 2.0;
+    let badge_y = -badge_height / 2.0;
     let badge_rect = Rect::Xywh {
         x: badge_x,
         y: badge_y,

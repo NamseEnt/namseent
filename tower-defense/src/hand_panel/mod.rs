@@ -119,14 +119,6 @@ impl Component for HandPanel {
         ctx.absolute(animated_xy).compose(|ctx| {
             ctx.add(PaperContent);
 
-            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
-            ctx.translate((preview_x, CONTAINER_PADDING)).add(
-                crate::hand_panel::tower_preview::HandTowerPreview {
-                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
-                    tower_template: tower_template.clone_inner(),
-                },
-            );
-
             ctx.add(PaperContainerBackground {
                 width: panel_wh.width,
                 height: PAPER_HEIGHT,
@@ -145,6 +137,18 @@ impl Component for HandPanel {
                     event.stop_propagation();
                 }
             });
+
+            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
+            let preview_height = (screen_wh.height - open_xy.y - CONTAINER_PADDING)
+                .min(PREVIEW_HEIGHT)
+                .max(0.px());
+            ctx.translate((preview_x, CONTAINER_PADDING)).add(
+                crate::hand_panel::tower_preview::HandTowerPreview {
+                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
+                    visible_wh: Wh::new(PREVIEW_WIDTH, preview_height),
+                    tower_template: tower_template.clone_inner(),
+                },
+            );
         });
     }
 }

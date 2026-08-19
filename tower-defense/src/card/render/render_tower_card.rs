@@ -1,5 +1,6 @@
 use super::*;
 use crate::{
+    card::render::render_engraving_overlay,
     card::render::render_polish::{polish_halo_config, render_polish_overlay},
     game_state::tower::{
         AnimationKind, TowerTemplate,
@@ -58,7 +59,12 @@ impl Component for RenderTowerCard<'_> {
 impl<'a> Component for RenderTowerCardInner<'a> {
     fn render(self, ctx: &RenderCtx) {
         let Self { wh, tower_template } = self;
+        let engraving = tower_template
+            .used_cards()
+            .iter()
+            .find_map(|card| card.engraving());
         render_polish_overlay(ctx, wh, tower_template.card_polish_pct(), 1.0);
+        render_engraving_overlay(ctx, wh, engraving, 1.0);
 
         let tower_image = (tower_template.kind, AnimationKind::Idle1).image();
 
