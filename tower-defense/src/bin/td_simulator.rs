@@ -1,5 +1,6 @@
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
+use rand::{SeedableRng, rngs::StdRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -15,7 +16,7 @@ use tower_defense::simulator::stats::Database;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::SynergyTreasureStrategy;
 use tower_defense::simulator::strategies::{
-    CardServiceStrategy, card_reroll::ItemAwareRerollStrategy,
+    CardServiceStrategy, card_reroll::SmartRerollStrategy,
     card_service::HeuristicCardServiceStrategy, item_use::HeuristicItemUseStrategy,
     shop::SynergyShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
@@ -69,6 +70,8 @@ struct Cli {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+    tower_defense::init_simulator_kv_store();
 
     set_headless(true);
 
@@ -130,14 +133,14 @@ fn main() -> anyhow::Result<()> {
     };
 
     pool.install(|| {
-        (0..cli.samples).into_par_iter().for_each(|_i| {
-            let mut rng = rand::thread_rng();
-            let seed: u64 = rand::Rng::r#gen(&mut rng);
+        (0..cli.samples).into_par_iter().for_each(|sample| {
+            let seed = sample as u64;
+            let mut rng = StdRng::seed_from_u64(seed);
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
                 Box::new(SynergyShopStrategy);
             let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                Box::new(ItemAwareRerollStrategy);
+                Box::new(SmartRerollStrategy);
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
                 Box::new(HeuristicItemUseStrategy);
@@ -159,7 +162,7 @@ fn main() -> anyhow::Result<()> {
                 return;
             }
 
-            let mut game = HeadlessGame::new_with_config(config.clone());
+            let mut game = HeadlessGame::new(config.clone(), seed);
 
             let strategies = tower_defense::simulator::SimulationStrategies {
                 shop_strategy: shop_strategy.as_ref(),

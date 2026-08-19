@@ -44,12 +44,12 @@ impl UpgradeBehavior for SlotMachineUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(format!(" +{}", self.next_round_dice))
+                .with_bold(format!(" +{}", self.next_round_dice))
                 .static_text(" next stage"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("다음 스테이지 ")
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(format!(" +{}", self.next_round_dice)),
+                .with_bold(format!(" +{}", self.next_round_dice)),
         };
     }
 }

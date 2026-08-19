@@ -5,7 +5,7 @@ mod tower_skill_injector;
 mod tower_status_effect_injector;
 mod tower_template_factory;
 
-use self::tower_hand_ranking::{check_flush, check_straight, count_rank};
+use self::tower_hand_ranking::{check_flush, check_straight, count_rank, flush_groups};
 use self::tower_skill_injector::inject_skills;
 use self::tower_status_effect_injector::inject_status_effects;
 use self::tower_template_factory::create_tower_template;
@@ -24,34 +24,29 @@ pub fn get_highest_tower_template(
     let straight_result = check_straight(cards, upgrade_state);
     let flush_result = check_flush(cards, upgrade_state);
 
-    if let (Some(straight_result), Some(flush_result)) = (&straight_result, &flush_result) {
-        if straight_result.royal && straight_result.top.rank == Rank::Ace {
+    let straight_flush_result = flush_groups(cards, upgrade_state)
+        .into_iter()
+        .filter_map(|(suit, flush_cards)| {
+            check_straight(&flush_cards, upgrade_state).map(|straight| (suit, straight))
+        })
+        .max_by_key(|(_, straight)| straight.top.rank.ordinal());
+
+    if let Some((suit, straight_result)) = straight_flush_result {
+        if straight_result.royal {
             let mut template =
-                create_tower_template(TowerKind::RoyalFlush, flush_result.suit, Rank::Ace, config);
-            template.set_used_cards(
-                cards
-                    .iter()
-                    .filter(|card| card.suit == flush_result.suit)
-                    .cloned()
-                    .collect(),
-            );
+                create_tower_template(TowerKind::RoyalFlush, suit, Rank::Ace, config);
+            template.set_used_cards(straight_result.cards);
             inject_skills(&mut template);
             inject_status_effects(&mut template, upgrade_state, rerolled_count);
             return template;
         }
         let mut template = create_tower_template(
             TowerKind::StraightFlush,
-            flush_result.suit,
+            suit,
             straight_result.top.rank,
             config,
         );
-        template.set_used_cards(
-            cards
-                .iter()
-                .filter(|card| card.suit == flush_result.suit)
-                .cloned()
-                .collect(),
-        );
+        template.set_used_cards(straight_result.cards);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -106,18 +101,15 @@ pub fn get_highest_tower_template(
     }
 
     if let Some(flush_result) = flush_result {
-        let mut sorted_cards = cards.to_vec();
-        sorted_cards.sort();
-        let top_card = sorted_cards.last().unwrap();
+        let flush_cards = flush_groups(cards, upgrade_state)
+            .into_iter()
+            .find(|(suit, _)| *suit == flush_result.suit)
+            .map(|(_, cards)| cards)
+            .unwrap_or_default();
+        let top_card = flush_cards.iter().max().unwrap();
         let mut template =
             create_tower_template(TowerKind::Flush, flush_result.suit, top_card.rank, config);
-        template.set_used_cards(
-            cards
-                .iter()
-                .filter(|card| card.suit == flush_result.suit)
-                .cloned()
-                .collect(),
-        );
+        template.set_used_cards(flush_cards);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;
@@ -130,7 +122,7 @@ pub fn get_highest_tower_template(
             straight_result.top.rank,
             config,
         );
-        template.set_used_cards(cards.to_vec());
+        template.set_used_cards(straight_result.cards);
         inject_skills(&mut template);
         inject_status_effects(&mut template, upgrade_state, rerolled_count);
         return template;

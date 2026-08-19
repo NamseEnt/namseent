@@ -7,10 +7,41 @@ use std::collections::HashMap;
 pub struct StraightResult {
     pub royal: bool,
     pub top: Card,
+    pub cards: Vec<Card>,
 }
 
 pub struct FlushResult {
     pub suit: Suit,
+}
+
+pub fn flush_groups(cards: &[Card], upgrade_state: &UpgradeState) -> Vec<(Suit, Vec<Card>)> {
+    let flush_card_count = match upgrade_state.shorten_straight_flush_to_4_cards() {
+        true => 4,
+        false => 5,
+    };
+    let treat_suits_as_same = upgrade_state.treat_suits_as_same();
+
+    if cards.len() < flush_card_count {
+        return Vec::new();
+    }
+
+    let mut suit_map = HashMap::<Suit, Vec<Card>>::new();
+    for card in cards {
+        let suit = if treat_suits_as_same {
+            match card.suit {
+                Suit::Clubs | Suit::Spades => Suit::Spades,
+                Suit::Hearts | Suit::Diamonds => Suit::Hearts,
+            }
+        } else {
+            card.suit
+        };
+        suit_map.entry(suit).or_default().push(*card);
+    }
+
+    suit_map
+        .into_iter()
+        .filter(|(_, cards)| cards.len() >= flush_card_count)
+        .collect()
 }
 
 pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<StraightResult> {
@@ -24,165 +55,89 @@ pub fn check_straight(cards: &[Card], upgrade_state: &UpgradeState) -> Option<St
         return None;
     }
 
-    let mut cards_ace_as_high = cards
-        .iter()
-        .map(|card| {
-            let rank = if card.rank == Rank::Ace {
-                Rank::Ace.ace_high_value()
-            } else {
-                card.rank.ordinal() + 1
-            };
-            (rank, card)
-        })
-        .collect::<Vec<_>>();
-    cards_ace_as_high.sort_by_key(|a| a.0);
-    if let Some((start_idx, end_idx, _)) = check_rank(
-        &cards_ace_as_high,
-        straight_card_count,
-        skip_rank_for_straight,
-    ) {
-        let straight_slice = &cards_ace_as_high[start_idx..=end_idx];
-        let ranks: Vec<usize> = straight_slice.iter().map(|(r, _)| *r).collect();
-        let is_royal = if straight_card_count == 5 {
-            [
-                Rank::Ten.ordinal() + 1,
-                Rank::Jack.ordinal() + 1,
-                Rank::Queen.ordinal() + 1,
-                Rank::King.ordinal() + 1,
-                Rank::Ace.ace_high_value(),
-            ]
-            .iter()
-            .all(|r| ranks.contains(r))
-        } else if straight_card_count == 4 {
-            if skip_rank_for_straight {
-                // 10-J-Q-A, J-Q-K-A, 10-Q-K-A 등 4장 royal 허용 (랭크 건너뛰기 포함)
-                let has_10 = ranks.contains(&(Rank::Ten.ordinal() + 1));
-                let has_j = ranks.contains(&(Rank::Jack.ordinal() + 1));
-                let has_q = ranks.contains(&(Rank::Queen.ordinal() + 1));
-                let has_k = ranks.contains(&(Rank::King.ordinal() + 1));
-                let has_a = ranks.contains(&Rank::Ace.ace_high_value());
-                has_a && has_q && (has_10 || has_j) && (has_j || has_k)
-            } else {
-                // 연속된 4장 royal 확인: 10-J-Q-K 또는 J-Q-K-A
-                let royal_sequences = [
-                    [
-                        Rank::Ten.ordinal() + 1,
-                        Rank::Jack.ordinal() + 1,
-                        Rank::Queen.ordinal() + 1,
-                        Rank::King.ordinal() + 1,
-                    ],
-                    [
-                        Rank::Jack.ordinal() + 1,
-                        Rank::Queen.ordinal() + 1,
-                        Rank::King.ordinal() + 1,
-                        Rank::Ace.ace_high_value(),
-                    ],
-                ];
-                royal_sequences
-                    .iter()
-                    .any(|sequence| sequence.iter().all(|r| ranks.contains(r)))
-            }
-        } else {
-            false
-        };
-        return Some(StraightResult {
-            royal: is_royal,
-            top: *straight_slice.last().unwrap().1,
-        });
-    }
-
-    let mut cards_ace_as_low = cards
-        .iter()
-        .map(|card| {
-            let rank = if card.rank == Rank::Ace {
+    let mut best = None;
+    for ace_value in [false, true] {
+        let mut cards_by_value = HashMap::<usize, Vec<&Card>>::new();
+        for card in cards {
+            let value = if ace_value {
+                if card.rank == Rank::Ace {
+                    Rank::Ace.ace_high_value()
+                } else {
+                    card.rank.ordinal() + 1
+                }
+            } else if card.rank == Rank::Ace {
                 0
             } else {
                 card.rank.ordinal() + 1
             };
-            (rank, card)
-        })
-        .collect::<Vec<_>>();
-    cards_ace_as_low.sort_by_key(|a| a.0);
-    if let Some((start_idx, end_idx, _)) = check_rank(
-        &cards_ace_as_low,
-        straight_card_count,
-        skip_rank_for_straight,
-    ) {
-        let straight_slice = &cards_ace_as_low[start_idx..=end_idx];
-        return Some(StraightResult {
-            royal: false,
-            top: *straight_slice.last().unwrap().1,
-        });
-    }
+            cards_by_value.entry(value).or_default().push(card);
+        }
 
-    return None;
+        let mut values = cards_by_value.keys().copied().collect::<Vec<_>>();
+        values.sort_unstable();
+        if values.len() < straight_card_count {
+            continue;
+        }
 
-    fn check_rank(
-        cards: &[(usize, &Card)],
-        straight_card_count: usize,
-        skip_rank: bool,
-    ) -> Option<(usize, usize, usize)> {
-        let mut count = 1;
-        let mut skips = 0;
-        let mut start = 0;
-        for i in 1..cards.len() {
-            let prev = cards[i - 1].0;
-            let curr = cards[i].0;
-
-            if curr == prev {
+        for window in values.windows(straight_card_count) {
+            let missing_count = window
+                .last()
+                .unwrap()
+                .saturating_sub(*window.first().unwrap())
+                .saturating_sub(straight_card_count - 1);
+            if missing_count > usize::from(skip_rank_for_straight) {
                 continue;
             }
 
-            let missing_non_removed_count = (prev + 1..curr).count();
+            let selected_cards = window
+                .iter()
+                .map(|value| {
+                    cards_by_value
+                        .get(value)
+                        .unwrap()
+                        .iter()
+                        .max_by_key(|card| **card)
+                        .map(|card| **card)
+                        .unwrap()
+                })
+                .collect::<Vec<_>>();
+            let candidate = StraightResult {
+                royal: is_royal(window, straight_card_count, skip_rank_for_straight),
+                top: *selected_cards.last().unwrap(),
+                cards: selected_cards,
+            };
 
-            if missing_non_removed_count == 0 {
-                count += 1;
-            } else if skip_rank && skips + missing_non_removed_count <= 1 {
-                count += 1;
-                skips += missing_non_removed_count;
-            } else {
-                count = 1;
-                skips = 0;
-                start = i;
-            }
-
-            if count == straight_card_count {
-                return Some((start, i, skips));
+            if best
+                .as_ref()
+                .is_none_or(|(_, best_value)| *best_value < *window.last().unwrap())
+            {
+                best = Some((candidate, *window.last().unwrap()));
             }
         }
-        None
     }
+
+    fn is_royal(ranks: &[usize], straight_card_count: usize, _skip_rank: bool) -> bool {
+        let ten = Rank::Ten.ordinal() + 1;
+        let jack = Rank::Jack.ordinal() + 1;
+        let queen = Rank::Queen.ordinal() + 1;
+        let king = Rank::King.ordinal() + 1;
+        let ace = Rank::Ace.ace_high_value();
+        let royal_ranks = [ten, jack, queen, king, ace];
+
+        if straight_card_count == 5 {
+            return royal_ranks.iter().all(|rank| ranks.contains(rank));
+        }
+        straight_card_count == 4 && ranks.iter().all(|rank| royal_ranks.contains(rank))
+    }
+
+    best.map(|(result, _)| result)
 }
 
 pub fn check_flush(cards: &[Card], upgrade_state: &UpgradeState) -> Option<FlushResult> {
-    let flush_card_count = match upgrade_state.shorten_straight_flush_to_4_cards() {
-        true => 4,
-        false => 5,
-    };
-    let treat_suits_as_same = upgrade_state.treat_suits_as_same();
-
-    if cards.len() < flush_card_count {
-        return None;
-    }
-
-    let mut suit_map = HashMap::new();
-    for card in cards {
-        let suit = if treat_suits_as_same {
-            match card.suit {
-                Suit::Clubs | Suit::Spades => Suit::Spades,
-                Suit::Hearts | Suit::Diamonds => Suit::Hearts,
-            }
-        } else {
-            card.suit
-        };
-        suit_map.entry(suit).or_insert_with(Vec::new).push(card);
-    }
-    for (suit, cards) in suit_map {
-        if cards.len() >= flush_card_count {
-            return Some(FlushResult { suit });
-        }
-    }
-    None
+    flush_groups(cards, upgrade_state)
+        .into_iter()
+        .max_by_key(|(_, cards)| cards.iter().map(|card| card.rank.ordinal()).max())
+        .map(|(suit, _)| FlushResult { suit })
 }
 
 pub fn count_rank(cards: &[Card]) -> HashMap<Rank, Vec<Card>> {

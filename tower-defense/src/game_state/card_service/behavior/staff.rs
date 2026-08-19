@@ -124,7 +124,7 @@ impl CardServiceBehavior for StaffCardService {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_staff_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Rare,
     );
 
 fn generate_staff_card_service() -> CardService {

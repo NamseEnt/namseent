@@ -50,21 +50,21 @@ impl UpgradeBehavior for AppleUpgrade {
     ) {
         match locale.language {
             crate::l10n::locale::Language::English => builder
-                .with_heal_icon("Max Health")
+                .with_bold("Max Health")
                 .static_text(" increased by ")
-                .with_health_value(format!("{:.0}", APPLE_HP_PLUS))
+                .with_bold(format!("{:.0}", APPLE_HP_PLUS))
                 .static_text(", ")
-                .with_heal_icon("Health")
+                .with_bold("Health")
                 .static_text(" recovered by ")
-                .with_health_value(format!("{:.0}", APPLE_HEAL_AMOUNT))
+                .with_bold(format!("{:.0}", APPLE_HEAL_AMOUNT))
                 .static_text("."),
             crate::l10n::locale::Language::Korean => builder
-                .with_heal_icon("최대 체력")
+                .with_bold("최대 체력")
                 .static_text("을 ")
-                .with_health_value(format!("{:.0}", APPLE_HP_PLUS))
+                .with_bold(format!("{:.0}", APPLE_HP_PLUS))
                 .static_text(" 늘리고, ")
-                .with_heal_icon("체력을 ")
-                .with_health_value(format!("{:.0}", APPLE_HEAL_AMOUNT))
+                .with_bold("체력을 ")
+                .with_bold(format!("{:.0}", APPLE_HEAL_AMOUNT))
                 .static_text(" 회복합니다."),
         };
     }

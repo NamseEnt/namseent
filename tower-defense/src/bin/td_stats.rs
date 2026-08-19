@@ -158,6 +158,7 @@ impl App {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    tower_defense::init_simulator_kv_store();
     set_headless(true);
 
     let db = Database::open(&cli.db)

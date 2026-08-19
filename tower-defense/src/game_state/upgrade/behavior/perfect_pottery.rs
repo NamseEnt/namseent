@@ -67,10 +67,10 @@ impl UpgradeBehavior for PerfectPotteryUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .static_text("No-reroll tower ")
-                .with_damage_value(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
+                .with_bold(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("리롤 안한 타워 ")
-                .with_damage_value(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
+                .with_bold(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
         };
     }
 }

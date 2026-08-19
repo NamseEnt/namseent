@@ -74,12 +74,12 @@ impl UpgradeBehavior for MetronomeUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_text(" +2")
+                .with_bold(" +2")
                 .static_text(" every 2 stages"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("2 스테이지마다")
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_text(" +2"),
+                .with_bold(" +2"),
         };
     }
 }

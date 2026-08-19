@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::Rng;
+use rand::{SeedableRng, rngs::StdRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -13,7 +13,7 @@ use tower_defense::simulator::recording::SimRecorder;
 use tower_defense::simulator::strategies::TowerPlacementStrategy;
 use tower_defense::simulator::strategies::treasure::SynergyTreasureStrategy;
 use tower_defense::simulator::strategies::{
-    CardServiceStrategy, card_reroll::ItemAwareRerollStrategy,
+    CardServiceStrategy, card_reroll::SmartRerollStrategy,
     card_service::HeuristicCardServiceStrategy, item_use::HeuristicItemUseStrategy,
     shop::SynergyShopStrategy, tower_placement::HeuristicPlacementStrategy,
 };
@@ -210,6 +210,8 @@ struct DistributionControl {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    tower_defense::init_simulator_kv_store();
+
     set_headless(true);
 
     let mut base_config = if let Some(path) = &cli.config {
@@ -310,6 +312,7 @@ fn tune_hp_balance(
             pool,
             Arc::new(config.clone()),
             cli.samples,
+            iteration,
             &recorder,
             cli.quiet,
             &stop_requested,
@@ -1072,6 +1075,7 @@ fn run_simulations(
     pool: &rayon::ThreadPool,
     config: Arc<GameConfig>,
     samples: usize,
+    iteration: usize,
     recorder: &Arc<SimRecorder>,
     quiet: bool,
     stop_requested: &Arc<AtomicBool>,
@@ -1098,26 +1102,26 @@ fn run_simulations(
     };
 
     pool.install(|| {
-        (0..samples).into_par_iter().for_each(|_| {
+        (0..samples).into_par_iter().for_each(|sample| {
             if stop_requested.load(Ordering::SeqCst) {
                 canceled.store(true, Ordering::SeqCst);
                 return;
             }
 
-            let mut rng = rand::thread_rng();
-            let seed: u64 = rng.r#gen();
+            let seed = sample as u64;
+            let mut rng = StdRng::seed_from_u64(seed);
 
             let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
                 Box::new(SynergyShopStrategy);
             let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                Box::new(ItemAwareRerollStrategy);
+                Box::new(SmartRerollStrategy);
             let tower_strategy = HeuristicPlacementStrategy;
             let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
                 Box::new(HeuristicItemUseStrategy);
             let card_service_strategy = HeuristicCardServiceStrategy;
             let treasure_strategy = SynergyTreasureStrategy;
 
-            let sim_id = format!("sim_{seed:016x}");
+            let sim_id = format!("iteration_{iteration}_sim_{seed:016x}");
 
             if let Err(e) = recorder.record_simulation_start(
                 &sim_id,
@@ -1131,7 +1135,7 @@ fn run_simulations(
                 eprintln!("Failed to record start for {sim_id}: {e}");
             }
 
-            let mut game = HeadlessGame::new_with_config(config.clone());
+            let mut game = HeadlessGame::new(config.clone(), seed);
 
             let strategies = tower_defense::simulator::SimulationStrategies {
                 shop_strategy: shop_strategy.as_ref(),

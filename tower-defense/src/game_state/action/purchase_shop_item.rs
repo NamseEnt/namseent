@@ -4,9 +4,9 @@ use crate::game_state::*;
 use crate::shop::ShopSlot;
 use namui::Instant;
 
-pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) {
+pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) -> bool {
     if !game_state.shop_purchase_status(slot_id).is_available() {
-        return;
+        return false;
     }
 
     let slot = match &game_state.flow {
@@ -22,15 +22,15 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
 
     let shop = match &mut game_state.flow {
         GameFlow::Shopping(flow) => &mut flow.shop,
-        _ => return,
+        _ => return false,
     };
 
     let Some(slot_data) = shop.get_slot_by_id_mut(slot_id) else {
-        return;
+        return false;
     };
 
     if slot_data.purchased {
-        return;
+        return false;
     }
 
     match &slot_data.slot {
@@ -42,14 +42,14 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             };
 
             if game_state.gold < cost_value {
-                return;
+                return false;
             }
 
             if game_state
                 .stage_modifiers
                 .is_item_and_upgrade_purchases_disabled()
             {
-                return;
+                return false;
             }
 
             let item = item.clone();
@@ -73,14 +73,14 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             };
 
             if game_state.gold < cost_value {
-                return;
+                return false;
             }
 
             if game_state
                 .stage_modifiers
                 .is_item_and_upgrade_purchases_disabled()
             {
-                return;
+                return false;
             }
 
             let upgrade_value = *upgrade;
@@ -98,14 +98,14 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             };
 
             if game_state.gold < cost_value {
-                return;
+                return false;
             }
 
             if game_state
                 .stage_modifiers
                 .is_item_and_upgrade_purchases_disabled()
             {
-                return;
+                return false;
             }
 
             let card_service_value = card_service.clone();
@@ -122,6 +122,8 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             game_state.action(GameStateAction::UseCardService(card_service_value));
         }
     }
+
+    true
 }
 
 #[cfg(all(test, feature = "simulator"))]
@@ -146,7 +148,7 @@ mod tests {
             panic!("expected shopping flow");
         };
 
-        game_state.action(GameStateAction::PurchaseShopItem(slot_id));
+        assert!(game_state.action(GameStateAction::PurchaseShopItem(slot_id)));
 
         let purchased =
             game_state
@@ -179,7 +181,7 @@ mod tests {
             panic!("expected shopping flow");
         };
 
-        game_state.action(GameStateAction::PurchaseShopItem(slot_id));
+        assert!(!game_state.action(GameStateAction::PurchaseShopItem(slot_id)));
 
         let slot = if let GameFlow::Shopping(flow) = &game_state.flow {
             flow.shop.get_slot_by_id(slot_id).unwrap()

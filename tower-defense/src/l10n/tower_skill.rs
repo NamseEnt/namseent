@@ -1,6 +1,5 @@
 use super::{Language, Locale, LocalizedText, rich_text_helpers::*};
 use crate::card::Rank;
-use crate::icon::IconKind;
 use crate::theme::typography::TypographyBuilder;
 use crate::*;
 
@@ -48,21 +47,21 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => {
                 builder
                     .static_text("주변 타워의 ")
-                    .with_icon_bold(IconKind::Damage, "공격력")
+                    .with_bold("공격력")
                     .static_text("를 ")
                     .with_percentage_increase(format!("{:.0}", mul * 100.0))
                     .static_text(" 증가시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
+                    .with_bold(format!("{range_radius} 타일"))
                     .static_text(")");
             }
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => {
                 builder
                     .static_text("주변 타워의 ")
-                    .with_icon_bold(IconKind::Damage, "공격력")
+                    .with_bold("공격력")
                     .static_text("를 ")
-                    .with_value_increase(format!("{add:.0}"))
+                    .with_bold(format!("{add:.0}"))
                     .static_text("만큼 증가시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
+                    .with_bold(format!("{range_radius} 타일"))
                     .static_text(")");
             }
             TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => {
@@ -70,13 +69,13 @@ impl TowerSkillText {
                     .static_text("주변 몬스터의 속도를 ")
                     .with_percentage_decrease(format!("{:.0}", mul * 100.0))
                     .static_text(" 감소시킵니다 (반경 ")
-                    .with_range(format!("{range_radius} 타일"))
+                    .with_bold(format!("{range_radius} 타일"))
                     .static_text(")");
             }
             TowerSkillText::MoneyIncomeAddDesc { add } => {
                 builder
                     .static_text("적 처치시 ")
-                    .with_icon_bold(IconKind::Gold, format!("{add}"))
+                    .with_bold(format!("{add}"))
                     .static_text(" 골드를 추가로 획득합니다");
             }
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
@@ -84,7 +83,7 @@ impl TowerSkillText {
                     .static_text("탑 카드 보너스: ")
                     .with_card_rank(rank)
                     .static_text(" (")
-                    .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
+                    .with_bold(format!("+{bonus_damage}"))
                     .static_text(")");
             }
         }
@@ -110,21 +109,21 @@ impl TowerSkillText {
             TowerSkillText::NearbyTowerDamageMulDesc { mul, range_radius } => {
                 builder
                     .static_text("Increases nearby towers' ")
-                    .with_icon_bold(IconKind::Damage, "damage")
+                    .with_bold("damage")
                     .static_text(" by ")
                     .with_percentage_increase(format!("{:.0}", mul * 100.0))
                     .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
+                    .with_bold(format!("{range_radius}"))
                     .static_text(" tiles)");
             }
             TowerSkillText::NearbyTowerDamageAddDesc { add, range_radius } => {
                 builder
                     .static_text("Increases nearby towers' ")
-                    .with_icon_bold(IconKind::Damage, "damage")
+                    .with_bold("damage")
                     .static_text(" by ")
-                    .with_value_increase(format!("{add:.0}"))
+                    .with_bold(format!("{add:.0}"))
                     .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
+                    .with_bold(format!("{range_radius}"))
                     .static_text(" tiles)");
             }
             TowerSkillText::NearbyMonsterSpeedMulDesc { mul, range_radius } => {
@@ -132,13 +131,13 @@ impl TowerSkillText {
                     .static_text("Decreases nearby monsters' speed by ")
                     .with_percentage_decrease(format!("{:.0}", mul * 100.0))
                     .static_text(" (within ")
-                    .with_range(format!("{range_radius}"))
+                    .with_bold(format!("{range_radius}"))
                     .static_text(" tiles)");
             }
             TowerSkillText::MoneyIncomeAddDesc { add } => {
                 builder
                     .static_text("Gain an additional ")
-                    .with_icon_bold(IconKind::Gold, format!("{add}"))
+                    .with_bold(format!("{add}"))
                     .static_text(" when defeating enemies");
             }
             TowerSkillText::TopCardBonusDesc { rank, bonus_damage } => {
@@ -146,7 +145,7 @@ impl TowerSkillText {
                     .static_text("Top Card Bonus: ")
                     .with_card_rank(rank)
                     .static_text(" (")
-                    .with_icon_bold(IconKind::Damage, format!("+{bonus_damage}"))
+                    .with_bold(format!("+{bonus_damage}"))
                     .static_text(")");
             }
         }

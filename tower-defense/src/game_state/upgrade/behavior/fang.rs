@@ -64,12 +64,12 @@ impl UpgradeBehavior for FangUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Health.name(), locale)
-                .with_health_value(format!(" +{}", self.add))
+                .with_bold(format!(" +{}", self.add))
                 .static_text(" when a monster dies"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("적 처시 시 ")
                 .l10n(Word::Health.name(), locale)
-                .with_health_value(format!(" +{}", self.add)),
+                .with_bold(format!(" +{}", self.add)),
         };
     }
 }

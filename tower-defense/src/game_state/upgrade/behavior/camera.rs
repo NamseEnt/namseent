@@ -57,14 +57,14 @@ impl UpgradeBehavior for CameraUpgrade {
                 builder
                     .static_text("Gain ")
                     .l10n(Word::Gold.name(), locale)
-                    .with_gold_value(format!(" +{}", CAMERA_GOLD_REWARD))
+                    .with_bold(format!(" +{}", CAMERA_GOLD_REWARD))
                     .static_text(" when placing a face tower");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .static_text("그림 카드 타워를 배치 시 ")
                     .l10n(Word::Gold.name(), locale)
-                    .with_gold_value(format!(" +{}", CAMERA_GOLD_REWARD));
+                    .with_bold(format!(" +{}", CAMERA_GOLD_REWARD));
             }
         }
     }

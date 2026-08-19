@@ -65,10 +65,10 @@ impl UpgradeBehavior for DiceBundleUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => builder
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(format!(" +{}", self.add)),
+                .with_bold(format!(" +{}", self.add)),
             crate::l10n::locale::Language::Korean => builder
                 .l10n(Word::Dice.name(), locale)
-                .with_dice_value(format!(" +{}", self.add)),
+                .with_bold(format!(" +{}", self.add)),
         };
     }
 }

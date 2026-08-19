@@ -88,14 +88,14 @@ impl UpgradeBehavior for PopcornUpgrade {
                     .static_text("For ")
                     .text(self.duration.to_string())
                     .static_text(" stages, all tower")
-                    .with_damage_value(format!("damage +{:.0}%", self.max_multiplier * 100.0))
+                    .with_bold(format!("damage +{:.0}%", self.max_multiplier * 100.0))
                     .static_text(", decreasing each stage");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.duration.to_string())
                     .static_text("스테이지 동안 모든 타워 ")
-                    .with_damage_value(format!("데미지 +{:.0}%", self.max_multiplier * 100.0))
+                    .with_bold(format!("데미지 +{:.0}%", self.max_multiplier * 100.0))
                     .static_text(", 스테이지가 지날수록 감소합니다");
             }
         }

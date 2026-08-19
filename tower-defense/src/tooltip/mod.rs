@@ -52,6 +52,10 @@ pub enum TooltipContent {
     Item(Item),
     Upgrade(Upgrade),
     CardService(crate::game_state::card_service::CardService),
+    Tower {
+        kind: crate::game_state::tower::TowerKind,
+        words: Vec<crate::l10n::word::Word>,
+    },
     Shop {
         content: Box<TooltipContent>,
         slot_id: crate::shop::ShopSlotId,
@@ -135,18 +139,31 @@ impl TooltipContent {
     ) -> Vec<TooltipSection<'_>> {
         match self {
             TooltipContent::Item(item) => {
-                let mut sections = Word::Item.tooltip_sections(locale);
-                sections.extend(item.tooltip_sections(locale));
+                let mut sections = item.tooltip_sections(locale);
+                sections.extend(Word::Item.tooltip_sections(locale));
                 sections
             }
             TooltipContent::Upgrade(upgrade) => {
-                let mut sections = Word::Treasure.tooltip_sections(locale);
-                sections.extend(upgrade.tooltip_sections(locale));
+                let mut sections = upgrade.tooltip_sections(locale);
+                sections.extend(Word::Treasure.tooltip_sections(locale));
                 sections
             }
             TooltipContent::CardService(card_service) => {
-                let mut sections = Word::CardService.tooltip_sections(locale);
-                sections.extend(card_service.tooltip_sections(locale));
+                let mut sections = card_service.tooltip_sections(locale);
+                sections.extend(Word::CardService.tooltip_sections(locale));
+                sections
+            }
+            TooltipContent::Tower { kind, words } => {
+                let mut sections = vec![TooltipSection {
+                    title: None,
+                    body: SectionText {
+                        key: format!("tower:{kind:?}:name"),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(kind.to_text(), &locale);
+                        }),
+                    },
+                }];
+                sections.extend(words.iter().flat_map(|word| word.tooltip_sections(locale)));
                 sections
             }
             TooltipContent::Shop { content, slot_id } => {
@@ -460,8 +477,8 @@ impl Component for SectionBox<'_> {
                                 .headline()
                                 .size(FontSize::Medium)
                                 .max_width(text_max)
-                                .color(palette::WHITE)
-                                .stroke(2.px(), palette::DARK_CHARCOAL);
+                                .bold()
+                                .color(palette::BRIGHT_ORANGE);
                             (title.apply)(&mut builder);
                             builder.render_left_top()
                         },
@@ -478,9 +495,7 @@ impl Component for SectionBox<'_> {
                         builder
                             .paragraph()
                             .size(FontSize::Large)
-                            .max_width(text_max)
-                            .color(palette::WHITE)
-                            .stroke(2.px(), palette::DARK_CHARCOAL);
+                            .max_width(text_max);
                         (body.apply)(&mut builder);
                         builder.render_left_top()
                     },

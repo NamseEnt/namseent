@@ -13,7 +13,9 @@ use crate::{
 };
 use namui::*;
 pub use render_card::RenderCard;
+pub(crate) use render_engraving::render_engraving_overlay;
 pub use render_polish::polish_halo_config;
+pub(crate) use render_polish::render_polish_overlay;
 pub use render_tower_card::RenderTowerCard;
 
 /// suit에 따른 색상을 반환하는 헬퍼 함수
@@ -24,12 +26,7 @@ pub fn get_suit_color(suit: Suit) -> Color {
     }
 }
 
-pub(super) fn render_top_left_rank_and_suit_with_opacity(
-    ctx: &RenderCtx,
-    rank: Rank,
-    suit: Suit,
-    opacity: f32,
-) {
+pub(super) fn render_top_left_rank_and_suit(ctx: &RenderCtx, rank: Rank, suit: Suit, opacity: f32) {
     let padding = px(4.0);
     let icon_wh = Wh::new(20.px(), 12.px());
 
@@ -43,6 +40,7 @@ pub(super) fn render_top_left_rank_and_suit_with_opacity(
             .headline()
             .size(FontSize::Small)
             .color(text_color)
+            .stroke(0.px(), Color::TRANSPARENT)
             .text(rank.to_string())
             .render_center(icon_wh)
     }));

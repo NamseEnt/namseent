@@ -1,7 +1,7 @@
 use super::renderer::RichTextRenderer;
 use super::style::{StyleContext, StyleDelta};
 use super::token::Token;
-use super::{DEFAULT_TEXT_STYLE, FontSize, palette};
+use super::{DEFAULT_TEXT_STYLE, FontSize};
 use crate::card::{Rank, Suit};
 use crate::icon::{IconAttribute, IconAttributePosition, IconKind};
 use namui::*;
@@ -240,13 +240,11 @@ impl<'a> TypographyBuilder<'a> {
             TypographyVariant::Headline => StyleContext::new(
                 super::HEADLINE_FONT_NAME.to_string(),
                 super::HEADLINE_FONT_SIZE_MEDIUM,
-                palette::ON_SURFACE,
                 DEFAULT_TEXT_STYLE,
             ),
             TypographyVariant::Paragraph => StyleContext::new(
                 super::PARAGRAPH_FONT_NAME.to_string(),
                 super::PARAGRAPH_FONT_SIZE_MEDIUM,
-                palette::ON_SURFACE,
                 DEFAULT_TEXT_STYLE,
             ),
         };

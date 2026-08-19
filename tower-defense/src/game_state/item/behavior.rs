@@ -1,4 +1,3 @@
-use crate::card::Card;
 use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -9,7 +8,6 @@ mod cannoli;
 mod cookie;
 mod donut;
 mod gimbap;
-mod grant_card;
 mod lump_sugar;
 mod lunch_box;
 mod milk;
@@ -22,7 +20,6 @@ pub use cannoli::*;
 pub use cookie::*;
 pub use donut::*;
 pub use gimbap::*;
-pub use grant_card::*;
 pub use lump_sugar::*;
 pub use lunch_box::*;
 pub use milk::*;
@@ -96,7 +93,6 @@ pub enum Item {
     Milk(MilkItem),
     RubberCone(RubberConeItem),
     Gimbap(GimbapItem),
-    GrantCard(GrantCardItem),
 }
 
 #[derive(Debug, Clone, Copy, State, PartialEq, Eq)]
@@ -197,7 +193,6 @@ impl ItemDiscriminants {
             ItemDiscriminants::Milk => milk::DEFINITION,
             ItemDiscriminants::RubberCone => rubber_cone::DEFINITION,
             ItemDiscriminants::Gimbap => gimbap::DEFINITION,
-            ItemDiscriminants::GrantCard => grant_card::DEFINITION,
         }
     }
 

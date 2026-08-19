@@ -7,7 +7,7 @@ pub mod shop;
 pub mod tower_placement;
 pub mod treasure;
 
-pub use card_reroll::{ItemAwareRerollStrategy, SmartRerollStrategy};
+pub use card_reroll::SmartRerollStrategy;
 pub use card_service::{CardServiceStrategy, HeuristicCardServiceStrategy};
 pub use item_use::HeuristicItemUseStrategy;
 pub use shop::SynergyShopStrategy;

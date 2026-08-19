@@ -97,7 +97,7 @@ impl UpgradeBehavior for CrockUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_damage_value(format!("damage +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .with_bold(format!("damage +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
                     .static_text(" for every ")
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text(" ")
@@ -109,7 +109,7 @@ impl UpgradeBehavior for CrockUpgrade {
                     .l10n(Word::Gold.name(), locale)
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text("당 모든 타워 ")
-                    .with_damage_value(format!("데미지 +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0));
+                    .with_bold(format!("데미지 +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0));
             }
         }
     }

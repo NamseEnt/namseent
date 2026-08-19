@@ -38,8 +38,6 @@ impl Component for TowerDamagePanel<'_> {
                         .headline()
                         .size(typography::FontSize::Medium)
                         .bold()
-                        .stroke(2.px(), palette::DARK_CHARCOAL)
-                        .color(palette::WHITE)
                         .text(empty_text)
                         .render_center(wh)
                 }));
@@ -129,8 +127,6 @@ impl Component for TowerDamageRow {
                                         .paragraph()
                                         .size(typography::FontSize::Medium)
                                         .bold()
-                                        .stroke(2.px(), palette::DARK_CHARCOAL)
-                                        .color(palette::WHITE)
                                         .with_icon_bold(
                                             IconKind::Damage,
                                             format!("{:.0}", stat.total_damage),
@@ -150,8 +146,6 @@ impl Component for TowerDamageRow {
                                         .headline()
                                         .size(typography::FontSize::Medium)
                                         .bold()
-                                        .color(palette::WHITE)
-                                        .stroke(2.px(), palette::DARK_CHARCOAL)
                                         .text(format!("{:.2}%", damage_ratio * 100.0))
                                         .render_center(wh)
                                 }));

@@ -1,4 +1,5 @@
 mod constants;
+mod deck_pile_buttons;
 mod paper_content;
 mod placing_tower_next_fab;
 mod reroll_fab;
@@ -18,6 +19,7 @@ use constants::{
     BOTTOM_OUTSIDE_HEIGHT, CONTAINER_PADDING, PAPER_HEIGHT, PREVIEW_HEIGHT, PREVIEW_RIGHT_OVERLAP,
     PREVIEW_WIDTH, panel_width,
 };
+use deck_pile_buttons::DeckPileButtons;
 use paper_content::PaperContent;
 use placing_tower_next_fab::PlacingTowerNextFab;
 use reroll_fab::HandRerollFab;
@@ -91,6 +93,7 @@ impl Component for HandPanel {
             "placing-tower-next-fab",
             PlacingTowerNextFab {
                 screen_wh,
+                has_unplaced_towers: !game_state.hand.is_empty(),
                 visible: placing_tower,
             },
         );
@@ -103,17 +106,18 @@ impl Component for HandPanel {
                 health_cost: reroll_health_cost,
             },
         );
+        ctx.add_with_key(
+            "deck-pile-buttons",
+            DeckPileButtons {
+                screen_wh,
+                visible: selecting_tower,
+                draw_count: game_state.deck.draw_pile().len(),
+                discard_count: game_state.deck.discard_pile().len(),
+            },
+        );
 
         ctx.absolute(animated_xy).compose(|ctx| {
             ctx.add(PaperContent);
-
-            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
-            ctx.translate((preview_x, CONTAINER_PADDING)).add(
-                crate::hand_panel::tower_preview::HandTowerPreview {
-                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
-                    tower_template: tower_template.clone_inner(),
-                },
-            );
 
             ctx.add(PaperContainerBackground {
                 width: panel_wh.width,
@@ -133,6 +137,18 @@ impl Component for HandPanel {
                     event.stop_propagation();
                 }
             });
+
+            let preview_x = PREVIEW_RIGHT_OVERLAP - PREVIEW_WIDTH;
+            let preview_height = (screen_wh.height - open_xy.y - CONTAINER_PADDING)
+                .min(PREVIEW_HEIGHT)
+                .max(0.px());
+            ctx.translate((preview_x, CONTAINER_PADDING)).add(
+                crate::hand_panel::tower_preview::HandTowerPreview {
+                    wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
+                    visible_wh: Wh::new(PREVIEW_WIDTH, preview_height),
+                    tower_template: tower_template.clone_inner(),
+                },
+            );
         });
     }
 }

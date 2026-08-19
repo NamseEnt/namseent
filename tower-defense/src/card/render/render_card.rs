@@ -114,7 +114,7 @@ impl<'a> Component for RenderCardInner<'a> {
                 }));
         });
 
-        render_top_left_rank_and_suit_with_opacity(ctx, card.rank, card.suit, opacity);
+        render_top_left_rank_and_suit(ctx, card.rank, card.suit, opacity);
 
         render_polish_overlay(ctx, wh, card.polish_pct(), opacity);
 

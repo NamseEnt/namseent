@@ -130,7 +130,10 @@ use tricycle::TricycleCardService;
 
 #[enum_dispatch(CardServiceBehavior)]
 #[derive(Clone, Debug, State, PartialEq, strum_macros::EnumDiscriminants)]
-#[strum_discriminants(derive(strum_macros::EnumIter), name(CardServiceDiscriminants))]
+#[strum_discriminants(
+    derive(strum_macros::EnumIter, strum_macros::AsRefStr),
+    name(CardServiceDiscriminants)
+)]
 pub enum CardService {
     LongSword(LongSwordCardService),
     Staff(StaffCardService),

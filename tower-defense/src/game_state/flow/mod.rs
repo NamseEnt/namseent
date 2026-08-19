@@ -49,7 +49,7 @@ pub struct ShoppingFlow {
 }
 
 impl ShoppingFlow {
-    pub fn new(game_state: &GameState) -> Self {
+    pub fn new(game_state: &mut GameState) -> Self {
         let shop = Shop::new(game_state);
         ShoppingFlow { shop }
     }

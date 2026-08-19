@@ -23,7 +23,6 @@ const SPEED_INDICATOR_WIDTH: Px = px(192.);
 
 const BG_OVERSIZE_H: Px = px(4.);
 const BG_OVERSIZE_V: Px = px(4.);
-const TOP_BAR_TEXT_STROKE_WIDTH: Px = px(2.);
 
 pub struct TopBar {
     pub wh: Wh<Px>,
@@ -107,7 +106,6 @@ impl Component for TopBar {
                                                 builder
                                                     .headline()
                                                     .size(FontSize::Custom { size: px(40.) })
-                                                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                                     .icon(IconKind::Deck)
                                                     .render_center(wh)
                                             }));
@@ -132,7 +130,6 @@ impl Component for TopBar {
                                                 builder
                                                     .headline()
                                                     .size(FontSize::Custom { size: px(40.) })
-                                                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                                                     .icon(IconKind::Encyclopedia)
                                                     .render_center(wh)
                                             }));
@@ -223,8 +220,6 @@ impl<'a> Component for StageText<'a> {
             builder
                 .headline()
                 .size(FontSize::Medium)
-                .color(palette::WHITE)
-                .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                 .l10n(crate::l10n::ui::TopBarText::Stage, locale)
                 .text(format!(" {stage}"))
                 .render_left_center(height)
@@ -251,7 +246,6 @@ impl Component for HealthText {
                     .headline()
                     .size(FontSize::Medium)
                     .color(palette::RED)
-                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                     .with_style(|builder| {
                         builder
                             .size(FontSize::Custom { size: px(40.) })
@@ -282,7 +276,6 @@ impl Component for ShieldText {
                         .headline()
                         .size(FontSize::Medium)
                         .color(palette::GREEN)
-                        .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                         .with_style(|builder| {
                             builder
                                 .size(FontSize::Custom { size: px(40.) })
@@ -315,7 +308,6 @@ impl Component for GoldText {
                     .headline()
                     .size(FontSize::Medium)
                     .color(palette::YELLOW)
-                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                     .with_style(|builder| {
                         builder
                             .size(FontSize::Custom { size: px(40.) })
@@ -350,7 +342,6 @@ impl Component for DiceText {
                     .headline()
                     .size(FontSize::Medium)
                     .color(palette::BLUE)
-                    .stroke(TOP_BAR_TEXT_STROKE_WIDTH, palette::DARK_CHARCOAL)
                     .with_style(|builder| {
                         builder
                             .size(FontSize::Custom { size: px(40.) })

@@ -1,6 +1,7 @@
 mod animation;
 mod camera_controller;
 pub mod config;
+pub mod deterministic_rng;
 mod flow_ui;
 mod game_state;
 mod image_filter_utils; // now private; selective re-exports below
@@ -25,18 +26,28 @@ mod tooltip;
 mod top_bar;
 mod upgrades;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "simulator"))]
 extern crate namui_kv_store_memory;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "simulator"))]
 mod kv_store_memory_provider_link {
-    #[test]
-    fn links_provider_symbols() {
+    pub fn link() {
         let get = namui_kv_store_memory::_kv_store_get as extern "C" fn(u32, *const u8, u32);
         let put = namui_kv_store_memory::_kv_store_put
             as extern "C" fn(u32, *const u8, u32, *const u8, u32);
         std::hint::black_box((get, put));
     }
+
+    #[cfg(test)]
+    #[test]
+    fn links_provider_symbols() {
+        link();
+    }
+}
+
+#[cfg(feature = "simulator")]
+pub fn init_simulator_kv_store() {
+    kv_store_memory_provider_link::link();
 }
 
 use crate::camera_controller::CameraController;
@@ -210,9 +221,6 @@ impl Component for Game {
             }
         });
 
-        ctx.add(shop_panel::ShopPanel);
-        ctx.add(hand_panel::HandPanel);
-
         ctx.add(flow_ui::FlowUi);
 
         ctx.compose(|ctx| {
@@ -238,6 +246,9 @@ impl Component for Game {
                 table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
             ])(screen_wh, ctx);
         });
+
+        ctx.add(shop_panel::ShopPanel);
+        ctx.add(hand_panel::HandPanel);
 
         ctx.add(sound::SoundRenderer);
 

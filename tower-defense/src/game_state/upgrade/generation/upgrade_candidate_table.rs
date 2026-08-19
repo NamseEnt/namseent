@@ -18,15 +18,6 @@ pub(super) struct UpgradeRarityWeights {
 }
 
 impl UpgradeRarityWeights {
-    pub(super) fn shop() -> Self {
-        Self {
-            common: 50.0,
-            rare: 25.0,
-            epic: 10.0,
-            legendary: 5.0,
-        }
-    }
-
     pub(super) fn boss_reward() -> Self {
         Self {
             common: 5.0,

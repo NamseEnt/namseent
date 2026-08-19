@@ -28,9 +28,12 @@ pub const PARAGRAPH_FONT_SIZE_MEDIUM: IntPx = int_px(14);
 pub const PARAGRAPH_FONT_SIZE_SMALL: IntPx = int_px(12);
 
 pub const DEFAULT_TEXT_STYLE: TextStyle = TextStyle {
-    border: None,
+    border: Some(TextStyleBorder {
+        width: px(2.0),
+        color: palette::DARK_CHARCOAL,
+    }),
     drop_shadow: None,
-    color: palette::ON_SURFACE,
+    color: palette::WARM_WHITE,
     background: None,
     line_height_percent: percent(130.0),
     underline: None,

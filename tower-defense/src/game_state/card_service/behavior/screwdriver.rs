@@ -125,7 +125,7 @@ fn next_rank(rank: Rank) -> Rank {
 pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
     crate::game_state::card_service::definition::CardServiceDefinition::new(
         generate_screwdriver_card_service,
-        || crate::Rarity::Common,
+        || crate::Rarity::Rare,
     );
 
 fn generate_screwdriver_card_service() -> CardService {

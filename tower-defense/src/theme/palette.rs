@@ -28,8 +28,10 @@ pub const YELLOW: Color = Color::from_u8(255, 193, 7, 255);
 pub const GREEN: Color = Color::from_u8(76, 175, 80, 255);
 
 pub const WHITE: Color = Color::from_u8(255, 255, 255, 255);
+pub const WARM_WHITE: Color = Color::from_u8(247, 243, 235, 255);
 pub const BLACK: Color = Color::from_u8(0, 0, 0, 255);
 pub const DARK_CHARCOAL: Color = Color::from_u8(43, 43, 43, 196);
+pub const BRIGHT_ORANGE: Color = Color::from_u8(255, 153, 51, 255);
 pub const DISABLED_TEXT: Color = Color::from_u8(160, 160, 160, 255);
 
 pub const DISABLED_CONTAINER: Color = Color::from_u8(115, 85, 80, 255);

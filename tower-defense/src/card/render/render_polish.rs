@@ -1,4 +1,4 @@
-use crate::rarity::Rarity;
+use crate::{rarity::Rarity, theme::palette};
 use namui::*;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -89,7 +89,7 @@ impl PolishCounts {
     }
 }
 
-pub(super) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32, opacity: f32) {
+pub(crate) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32, opacity: f32) {
     if bonus_pct <= 0.0 {
         return;
     }
@@ -101,14 +101,14 @@ pub(super) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32,
     }
 
     let alpha = (96.0 * opacity).round() as u8;
-    let bar_chevron_color = Color::from_u8(0, 255, 0, alpha);
+    let bar_chevron_color = palette::PRIMARY.with_alpha(alpha);
     let bar_chevron_paint = Paint::new(bar_chevron_color)
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(wh.height * 0.075)
         .set_stroke_cap(StrokeCap::Round);
-    let purple_color = Color::from_u8(160, 0, 255, alpha);
-    let purple_fill_paint = Paint::new(purple_color).set_style(PaintStyle::Fill);
-    let purple_stroke_paint = Paint::new(purple_color)
+    let symbol_color = palette::YELLOW.with_alpha(alpha);
+    let symbol_fill_paint = Paint::new(symbol_color).set_style(PaintStyle::Fill);
+    let symbol_stroke_paint = Paint::new(symbol_color)
         .set_style(PaintStyle::Stroke)
         .set_stroke_width(3.px())
         .set_stroke_cap(StrokeCap::Round);
@@ -120,8 +120,8 @@ pub(super) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32,
             wh,
             symbol,
             counts.symbol_count,
-            purple_fill_paint,
-            purple_stroke_paint,
+            symbol_fill_paint,
+            symbol_stroke_paint,
         );
     }
     render_center_markers(

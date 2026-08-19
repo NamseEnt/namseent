@@ -1,4 +1,3 @@
-use crate::theme::palette;
 use crate::theme::typography::{FontSize, TypographyBuilder};
 use namui::*;
 
@@ -49,14 +48,12 @@ pub fn render_thumbnail_overlay(overlay: &ThumbnailOverlay, width_height: Wh<Px>
                     .headline()
                     .size(FontSize::Medium)
                     .color(*color)
-                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .static_text(text)
                     .render_right_top(width_height.width),
                 ThumbnailOverlayAnchor::RightBottom => TypographyBuilder::new()
                     .headline()
                     .size(FontSize::Medium)
                     .color(*color)
-                    .stroke(2.px(), palette::DARK_CHARCOAL)
                     .static_text(text)
                     .render_right_bottom(width_height),
             };

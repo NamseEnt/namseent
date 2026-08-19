@@ -52,18 +52,18 @@ impl UpgradeBehavior for PiggyBankUpgrade {
             crate::l10n::locale::Language::English => builder
                 .static_text("At stage end, gain ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP))
+                .with_bold(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP))
                 .static_text(" for every ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" {}", PIGGY_BANK_GOLD_STEP))
+                .with_bold(format!(" {}", PIGGY_BANK_GOLD_STEP))
                 .static_text(" you hold"),
             crate::l10n::locale::Language::Korean => builder
                 .static_text("스테이지 종료 시 보유한 ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" {}", PIGGY_BANK_GOLD_STEP))
+                .with_bold(format!(" {}", PIGGY_BANK_GOLD_STEP))
                 .static_text("당 ")
                 .l10n(Word::Gold.name(), locale)
-                .with_gold_value(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP)),
+                .with_bold(format!(" +{}", PIGGY_BANK_GOLD_REWARD_PER_STEP)),
         };
     }
 }

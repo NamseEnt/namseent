@@ -20,6 +20,7 @@ pub mod modal;
 pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
+pub(crate) mod rng;
 pub(crate) use action::GameStateAction;
 pub mod card_notification;
 pub mod card_service;
@@ -62,6 +63,7 @@ use play_history::PlayHistory;
 use projectile::*;
 use rand::Rng;
 pub use render::*;
+use rng::GameRngState;
 pub(crate) use status_effect_particle_generator::StatusEffectParticleGenerator;
 use std::sync::Arc;
 use tower::*;
@@ -147,6 +149,7 @@ pub struct GameState {
     pub effect_events: EffectEventQueue,
     pub base_animation_state: BaseAnimationState,
     pub(crate) discovery: discovery::DiscoveryState,
+    pub(crate) rng: GameRngState,
 
     // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
     pub(crate) headless: bool,
@@ -601,6 +604,10 @@ impl Component for &FloorTile {
 static GAME_STATE_ATOM: Atom<GameState> = Atom::uninitialized();
 
 fn create_initial_game_state() -> GameState {
+    create_game_state_with_seed(rand::thread_rng().r#gen())
+}
+
+pub fn create_game_state_with_seed(seed: u64) -> GameState {
     let config = Arc::new(GameConfig::default_config());
     let now = Instant::now();
     let decorations = background::generate_decorations();
@@ -654,6 +661,8 @@ fn create_initial_game_state() -> GameState {
             tower_damage_stats: Vec::new(),
             total_rerolled_count: 0,
         },
+
+        rng: GameRngState::new(seed),
 
         headless: false,
     };
@@ -750,6 +759,7 @@ impl GameState {
                 total_rerolled_count: self.metrics.total_rerolled_count,
             },
             card_service_notifications: self.card_service_notifications.clone(),
+            rng: self.rng.clone(),
             headless: self.headless,
             discovery: self.discovery.clone(),
         }
@@ -821,7 +831,7 @@ mod tests {
     #[test]
     fn shopping_allows_shop_panel() {
         let mut gs = create_initial_game_state();
-        gs.flow = GameFlow::Shopping(crate::game_state::flow::ShoppingFlow::new(&gs));
+        gs.flow = GameFlow::Shopping(crate::game_state::flow::ShoppingFlow::new(&mut gs));
         assert!(gs.can_open_shop_panel());
     }
 
