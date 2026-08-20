@@ -465,6 +465,13 @@ fn hash_attack(writer: &mut CanonicalWriter, attack: &crate::game_state::attack:
 
 fn hash_metrics(writer: &mut CanonicalWriter, metrics: &crate::game_state::GameMetrics) {
     writer.u64(metrics.total_gold_earned as u64);
+    writer.i64(metrics.total_escaped_hp.raw());
+    writer.i64(metrics.total_player_damage.raw());
+    writer.u64(metrics.stage_damage.len() as u64);
+    for (stage, damage) in &metrics.stage_damage {
+        writer.u64(*stage as u64);
+        writer.i64(damage.raw());
+    }
     writer.u64(metrics.total_gold_spent as u64);
     writer.u64(metrics.current_consecutive_perfect_clears as u64);
     writer.u64(metrics.max_consecutive_perfect_clears as u64);

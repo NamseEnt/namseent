@@ -20,6 +20,10 @@ pub fn resolve_base_damage(game_state: &mut GameState) {
     for monster in &mut game_state.monsters {
         if monster.move_on_route.is_finished() {
             if !monster.stage_progress_counted {
+                game_state.metrics.total_escaped_hp = game_state
+                    .metrics
+                    .total_escaped_hp
+                    .saturating_add(monster.hp);
                 if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
                     defense_flow.stage_progress.processed_hp = defense_flow
                         .stage_progress
@@ -80,8 +84,15 @@ fn adjusted_incoming_damage(game_state: &GameState, damage: Damage) -> Damage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game_state::create_game_state_with_seed;
     use crate::game_state::user_status_effect::UserStatusEffect;
     use crate::{FixedRatio, Health, Shield, SimTick};
+
+    #[test]
+    fn escaped_hp_starts_at_zero() {
+        let game_state = create_game_state_with_seed(7);
+        assert!(game_state.metrics.total_escaped_hp.is_zero());
+    }
 
     #[test]
     fn damage_defense_shield_heal_and_multiplier_stack_golden() {

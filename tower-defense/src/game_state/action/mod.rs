@@ -148,6 +148,7 @@ impl GameState {
                 true
             }
             GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {
+                tower.assign_id(self.allocate_tower_id());
                 place_tower::prepare_tower_stats(&mut tower, &self.upgrade_state);
                 if place_tower::place_tower(self, &mut tower) {
                     if let Some(slot_id) = placing_tower_slot_id {

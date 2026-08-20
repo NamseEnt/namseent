@@ -132,8 +132,13 @@ fn run_hp_balance_procedure(gs: &mut crate::game_state::GameState) {
         // Get first monster kind from spawn table
         let first_monster_kind = get_first_monster_kind_from_spawn_table(gs);
         if let Some(kind) = first_monster_kind {
-            let base_max_hp =
-                crate::game_state::monster::MonsterTemplate::get_base_max_hp(kind).as_f32();
+            let base_max_hp = crate::config::GameConfig::default_config()
+                .monsters
+                .stats
+                .get(&kind)
+                .expect("missing monster stats for kind")
+                .base_hp
+                .as_f32();
             let increment = base_max_hp * 0.1; // 10% of base max_hp
             set_balance_state(Some(BalanceState {
                 hp_offset: 0.0,

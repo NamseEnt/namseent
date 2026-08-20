@@ -2,7 +2,7 @@
 
 use super::environment::{
     AgentAction, ENVIRONMENT_VERSION, LegalAction, Observation, RewardComponents, StepInfo,
-    StepOutcome,
+    StepOutcome, StepReason,
 };
 use crate::config::{GAME_CONFIG_VERSION, GameConfig};
 use crate::deterministic_rng::RNG_ALGORITHM_VERSION;
@@ -11,7 +11,18 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::io::{BufWriter, Write};
 
-pub const TRAJECTORY_SCHEMA_VERSION: u32 = 1;
+pub const TRAJECTORY_SCHEMA_VERSION: u32 = 5;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TrajectoryOutcome {
+    pub victory: bool,
+    pub clear_rate: f32,
+    pub terminated: bool,
+    pub truncated: bool,
+    pub termination_reason: StepReason,
+    pub final_stage: usize,
+    pub episode_return: f32,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrajectoryMetadata {
@@ -79,6 +90,7 @@ impl TrajectoryStep {
 pub struct Trajectory {
     pub metadata: TrajectoryMetadata,
     pub steps: Vec<TrajectoryStep>,
+    pub outcome: Option<TrajectoryOutcome>,
 }
 
 impl Trajectory {
@@ -86,6 +98,7 @@ impl Trajectory {
         Self {
             metadata,
             steps: Vec::new(),
+            outcome: None,
         }
     }
 
@@ -97,6 +110,28 @@ impl Trajectory {
         self.steps
             .last()
             .is_some_and(|step| step.terminated || step.truncated)
+    }
+
+    pub fn from_policy_steps(
+        config: &GameConfig,
+        seed: u64,
+        steps: &[crate::simulator::policy_runner::PolicyStep],
+    ) -> Self {
+        let mut trajectory = Self::new(TrajectoryMetadata::new(config, seed));
+        for step in steps {
+            trajectory.push(TrajectoryStep::from_step(
+                step.observation.clone(),
+                step.legal_actions.clone(),
+                vec![true; step.legal_actions.len()],
+                step.action.clone(),
+                step.outcome.clone(),
+            ));
+        }
+        trajectory
+    }
+
+    pub fn set_outcome(&mut self, outcome: TrajectoryOutcome) {
+        self.outcome = Some(outcome);
     }
 
     pub fn to_json(&self) -> Result<String, TrajectoryError> {
@@ -227,6 +262,15 @@ mod tests {
             Trajectory::from_json(&trajectory.to_json().expect("serialize")).expect("deserialize");
 
         assert_eq!(decoded, trajectory);
+        assert_eq!(
+            decoded.steps[0].legal_actions,
+            trajectory.steps[0].legal_actions
+        );
+        assert_eq!(
+            decoded.steps[0].action_mask,
+            trajectory.steps[0].action_mask
+        );
+        assert_eq!(decoded.steps[0].action, trajectory.steps[0].action);
     }
 
     #[test]

@@ -21,5 +21,9 @@ target/
 *.db-shm
 *.db-wal
 
+/artifacts/ml/
+*.mpk
+!ml_policy_checkpoint.mpk
+
 
 # End of https://www.toptal.com/developers/gitignore/api/rust

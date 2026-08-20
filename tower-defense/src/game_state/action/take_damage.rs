@@ -19,15 +19,36 @@ pub(super) fn shake_camera(game_state: &mut GameState, damage: Damage) {
 
 /// Returns the actual damage after shield absorption.
 pub(super) fn apply_shield_and_damage(game_state: &mut GameState, damage: Damage) -> Damage {
-    let mut actual_damage = damage;
+    let hp_before = game_state.hp;
+    let mut damage_after_shield = damage;
     if !game_state.shield.is_zero() {
         let absorbed = Shield::from_raw(damage.raw().min(game_state.shield.raw()));
-        actual_damage = damage.saturating_sub(Damage::from_raw(absorbed.raw()));
+        damage_after_shield = damage.saturating_sub(Damage::from_raw(absorbed.raw()));
         game_state.shield = game_state.shield.saturating_sub(absorbed);
     }
     game_state.hp = game_state
         .hp
-        .saturating_sub(Health::from_raw(actual_damage.raw()));
+        .saturating_sub(Health::from_raw(damage_after_shield.raw()));
+    let actual_damage = Damage::from_raw(hp_before.raw().saturating_sub(game_state.hp.raw()));
+    if !actual_damage.is_zero() {
+        game_state.metrics.total_player_damage = game_state
+            .metrics
+            .total_player_damage
+            .saturating_add(Health::from_raw(actual_damage.raw()));
+        if let Some((_, stage_damage)) = game_state
+            .metrics
+            .stage_damage
+            .iter_mut()
+            .find(|(stage, _)| *stage == game_state.stage)
+        {
+            *stage_damage = stage_damage.saturating_add(Health::from_raw(actual_damage.raw()));
+        } else {
+            game_state
+                .metrics
+                .stage_damage
+                .push((game_state.stage, Health::from_raw(actual_damage.raw())));
+        }
+    }
     if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
         defense_flow.took_damage = true;
     }
@@ -93,5 +114,63 @@ pub(super) fn check_game_over(game_state: &mut GameState) {
             ),
         ));
         game_state.action(crate::game_state::GameStateAction::GameOver);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::apply_shield_and_damage;
+    use crate::game_state::create_game_state_with_seed;
+    use crate::{Damage, Health, Shield};
+
+    #[test]
+    fn damage_is_capped_by_remaining_hp() {
+        let mut game_state = create_game_state_with_seed(0xDAAA_000E);
+        game_state.hp = Health::from_integer(10);
+
+        let actual_damage = apply_shield_and_damage(&mut game_state, Damage::from_integer(100));
+
+        assert_eq!(actual_damage, Damage::from_integer(10));
+        assert_eq!(game_state.hp, Health::ZERO);
+        assert_eq!(
+            game_state.metrics.total_player_damage,
+            Health::from_integer(10)
+        );
+        assert_eq!(
+            game_state.metrics.stage_damage,
+            vec![(game_state.stage, Health::from_integer(10))]
+        );
+    }
+
+    #[test]
+    fn shield_absorption_and_hp_damage_are_recorded_separately() {
+        let mut game_state = create_game_state_with_seed(0xDAAA_000E);
+        game_state.hp = Health::from_integer(100);
+        game_state.shield = Shield::from_integer(25);
+
+        let actual_damage = apply_shield_and_damage(&mut game_state, Damage::from_integer(50));
+
+        assert_eq!(actual_damage, Damage::from_integer(25));
+        assert_eq!(game_state.hp, Health::from_integer(75));
+        assert_eq!(game_state.shield, Shield::ZERO);
+        assert_eq!(
+            game_state.metrics.total_player_damage,
+            Health::from_integer(25)
+        );
+    }
+
+    #[test]
+    fn shield_only_damage_records_zero_authoritative_damage() {
+        let mut game_state = create_game_state_with_seed(0xDAAA_000E);
+        game_state.hp = Health::from_integer(100);
+        game_state.shield = Shield::from_integer(25);
+
+        let actual_damage = apply_shield_and_damage(&mut game_state, Damage::from_integer(10));
+
+        assert_eq!(actual_damage, Damage::ZERO);
+        assert_eq!(game_state.hp, Health::from_integer(100));
+        assert_eq!(game_state.shield, Shield::from_integer(15));
+        assert_eq!(game_state.metrics.total_player_damage, Health::ZERO);
+        assert!(game_state.metrics.stage_damage.is_empty());
     }
 }

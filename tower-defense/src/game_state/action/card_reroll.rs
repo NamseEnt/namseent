@@ -40,7 +40,9 @@ pub(super) fn reroll(game_state: &mut GameState) -> usize {
 }
 
 pub(super) fn apply_cost(game_state: &mut GameState, health_cost: usize) {
-    game_state.left_dice -= 1;
+    if game_state.left_dice > 0 {
+        game_state.left_dice -= 1;
+    }
     game_state.rerolled_count += 1;
     game_state.action(crate::game_state::GameStateAction::TakeDamage(
         Damage::from_usize(health_cost),
@@ -49,4 +51,26 @@ pub(super) fn apply_cost(game_state: &mut GameState, health_cost: usize) {
 
 pub(super) fn trigger_upgrades(game_state: &mut GameState) {
     game_state.handle_upgrade_trigger(UpgradeTriggerEvent::CardReroll);
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Health;
+    use crate::game_state::{GameStateAction, create_game_state_with_seed};
+
+    #[test]
+    fn health_paid_reroll_does_not_consume_missing_die() {
+        let mut game_state = create_game_state_with_seed(0xC4D0_7E77);
+        game_state.left_dice = 0;
+        let health_before = game_state.hp;
+        let health_cost = game_state.stage_modifiers.get_reroll_health_cost();
+
+        game_state.action(GameStateAction::CardReroll);
+
+        assert_eq!(game_state.left_dice, 0);
+        assert_eq!(
+            game_state.hp,
+            health_before.saturating_sub(Health::from_usize(health_cost))
+        );
+    }
 }

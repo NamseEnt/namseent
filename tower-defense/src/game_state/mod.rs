@@ -115,6 +115,9 @@ pub struct GameMetrics {
     pub max_consecutive_perfect_clears: usize,
     pub tower_damage_stats: Vec<TowerDamageStats>,
     pub total_rerolled_count: usize,
+    pub total_escaped_hp: Health,
+    pub total_player_damage: Health,
+    pub stage_damage: Vec<(usize, Health)>,
 }
 
 #[derive(State)]
@@ -802,6 +805,9 @@ pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) 
             max_consecutive_perfect_clears: 0,
             tower_damage_stats: Vec::new(),
             total_rerolled_count: 0,
+            total_escaped_hp: Health::ZERO,
+            total_player_damage: Health::ZERO,
+            stage_damage: Vec::new(),
         },
 
         rng: GameRngState::new(seed),
@@ -915,6 +921,9 @@ impl GameState {
                 max_consecutive_perfect_clears: self.metrics.max_consecutive_perfect_clears,
                 tower_damage_stats: self.metrics.tower_damage_stats.clone(),
                 total_rerolled_count: self.metrics.total_rerolled_count,
+                total_escaped_hp: self.metrics.total_escaped_hp,
+                total_player_damage: self.metrics.total_player_damage,
+                stage_damage: self.metrics.stage_damage.clone(),
             },
             card_service_notifications: self.card_service_notifications.clone(),
             rng: self.rng.clone(),

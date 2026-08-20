@@ -20,6 +20,7 @@ pub mod domain {
     pub const SHOP_CONTENT_CARD_SERVICE: u64 = 0x5348_4f50_0000_0006;
     pub const SHOP_CONTENT_UPGRADE: u64 = 0x5348_4f50_0000_0007;
     pub const SHOP_ITEM_PAYLOAD: u64 = 0x5348_4f50_0000_0008;
+    pub const ML_TOWER_EXPERT: u64 = 0x4d4c_544f_0000_0001;
     pub const SHOP_PRICE: u64 = 0x5348_4f50_0000_0009;
 }
 

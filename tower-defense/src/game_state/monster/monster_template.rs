@@ -46,13 +46,4 @@ impl MonsterTemplate {
             reward: Self::reward(stats.reward),
         }
     }
-
-    pub fn get_base_max_hp(kind: MonsterKind) -> Health {
-        crate::config::GameConfig::default_config()
-            .monsters
-            .stats
-            .get(&kind)
-            .expect("missing monster stats for kind")
-            .base_hp
-    }
 }

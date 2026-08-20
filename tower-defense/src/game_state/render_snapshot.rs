@@ -158,19 +158,10 @@ impl SpatialProjectileRenderSnapshot {
     }
 }
 
-#[derive(Clone, State)]
+#[derive(Clone, Default, State)]
 pub(crate) struct RenderSnapshotHistory {
     previous: Option<WorldRenderSnapshot>,
     current: Option<WorldRenderSnapshot>,
-}
-
-impl Default for RenderSnapshotHistory {
-    fn default() -> Self {
-        Self {
-            previous: None,
-            current: None,
-        }
-    }
 }
 
 impl RenderSnapshotHistory {
