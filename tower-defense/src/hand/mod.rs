@@ -80,6 +80,10 @@ impl<Item: State + PartialOrd + Debug> Hand<Item> {
     pub fn active_slot_ids(&self) -> Vec<HandSlotId> {
         self.active_slots().map(|slot| slot.id).collect()
     }
+
+    pub fn active_slot_id_by_index(&self, index: usize) -> Option<HandSlotId> {
+        self.active_slots().nth(index).map(|slot| slot.id)
+    }
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
         self.active_slots()
             .filter_map(|slot| match slot.selected {

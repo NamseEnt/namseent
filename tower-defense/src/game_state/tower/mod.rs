@@ -90,6 +90,10 @@ impl Tower {
         self.cooldown > SimTickSpan::ZERO
     }
 
+    pub(crate) fn cooldown_ticks(&self) -> u64 {
+        self.cooldown.ticks()
+    }
+
     pub fn shoot_projectile(&mut self, params: ShootProjectileParams) -> attack::InFlightAttack {
         self.mark_fired(params.sim_tick);
 

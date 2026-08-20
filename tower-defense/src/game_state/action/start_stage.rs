@@ -28,7 +28,11 @@ pub(super) fn renew_game_state(game_state: &mut GameState, stage: usize) {
     game_state.item_used = false;
     game_state.metrics.total_rerolled_count += game_state.rerolled_count;
     game_state.rerolled_count = 0;
-    game_state.deck.prepare_draw_pile(&mut rand::thread_rng());
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::DECK_SHUFFLE,
+        &[stage as u64],
+    );
+    game_state.deck.prepare_draw_pile(&mut rng);
     game_state.left_dice = game_state.max_dice_chance();
     game_state.stage = stage;
 }
@@ -39,7 +43,11 @@ pub(super) fn draw_hand(game_state: &mut GameState) {
     .saturating_sub(game_state.stage_modifiers.get_max_hand_slots_penalty())
     .max(1);
 
-    let cards = game_state.deck.draw(&mut rand::thread_rng(), max_slots);
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::DECK_DRAW,
+        &[game_state.stage as u64],
+    );
+    let cards = game_state.deck.draw(&mut rng, max_slots);
     for card in cards {
         game_state.hand.push(HandItem::Card(card));
     }

@@ -6,6 +6,7 @@ use rand::seq::SliceRandom;
 #[derive(Debug, Clone, State)]
 pub struct Deck {
     revision: usize,
+    next_card_id: usize,
     all_cards: Vec<Card>,
     draw_pile: Vec<Card>,
     discard_pile: Vec<Card>,
@@ -16,11 +17,13 @@ impl Deck {
         let mut all_cards = Vec::with_capacity(SUITS.len() * RANKS.len());
         for &rank in &RANKS {
             for &suit in &SUITS {
-                all_cards.push(Card::new(rank, suit));
+                let card_id = CardId(all_cards.len());
+                all_cards.push(Card::with_id(card_id, rank, suit));
             }
         }
         Self {
             revision: 0,
+            next_card_id: all_cards.len(),
             all_cards,
             draw_pile: Vec::new(),
             discard_pile: Vec::new(),
@@ -33,6 +36,10 @@ impl Deck {
 
     pub(crate) fn revision(&self) -> usize {
         self.revision
+    }
+
+    pub(crate) fn next_card_id(&self) -> usize {
+        self.next_card_id
     }
 
     pub fn get_card(&self, card_id: CardId) -> Option<Card> {
@@ -66,8 +73,10 @@ impl Deck {
         }
     }
 
-    pub fn add_card(&mut self, card: Card) {
+    pub fn add_card(&mut self, mut card: Card) {
         self.increment_revision();
+        card.id = CardId(self.next_card_id);
+        self.next_card_id = self.next_card_id.wrapping_add(1);
         self.all_cards.push(card);
         if self.draw_pile.is_empty() {
             self.discard_pile.push(card);

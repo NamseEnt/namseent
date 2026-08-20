@@ -3,13 +3,13 @@ use namui::*;
 
 use super::GameState;
 
-#[derive(State, Clone)]
+#[derive(Debug, State, Clone)]
 pub struct UserStatusEffect {
     pub kind: UserStatusEffectKind,
     pub end_at: SimTick,
 }
 
-#[derive(State, Clone)]
+#[derive(Debug, State, Clone)]
 pub enum UserStatusEffectKind {
     DamageReduction { damage_multiply: FixedRatio },
 }

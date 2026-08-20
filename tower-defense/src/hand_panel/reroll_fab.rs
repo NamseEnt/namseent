@@ -1,4 +1,4 @@
-use crate::game_state::{GameStateAction, mutate_game_state};
+use crate::game_state::{PlayerCommand, mutate_game_state};
 use crate::icon::IconKind;
 use crate::l10n::ui::FabTooltipText;
 use crate::theme::fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton};
@@ -10,6 +10,7 @@ pub(super) struct HandRerollFab {
     pub visible: bool,
     pub disabled: bool,
     pub health_cost: usize,
+    pub selected_slot_indices: Vec<usize>,
 }
 
 impl Component for HandRerollFab {
@@ -19,13 +20,17 @@ impl Component for HandRerollFab {
             visible,
             disabled,
             health_cost,
+            selected_slot_indices,
         } = self;
         let reroll = || {
             if !visible || disabled {
                 return;
             }
+            let selected_slot_indices = selected_slot_indices.clone();
             mutate_game_state(|game_state| {
-                game_state.action(GameStateAction::CardReroll);
+                let _ = game_state.apply_player_command(PlayerCommand::Reroll {
+                    selected_slot_indices,
+                });
             });
         };
 

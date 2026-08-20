@@ -59,6 +59,10 @@ impl Default for EntityIdAllocator {
 }
 
 impl EntityIdAllocator {
+    pub(crate) fn next_id(&self) -> u64 {
+        self.next
+    }
+
     pub(crate) fn allocate(&mut self) -> EntityId {
         let id = EntityId::from_raw(self.next);
         self.next = self.next.checked_add(1).expect("entity ID space exhausted");

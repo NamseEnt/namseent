@@ -2,13 +2,11 @@ use crate::game_state::tower::render::{TowerAttackRange, TowerImage, TowerSprite
 use crate::{
     MapCoordF32,
     game_state::{
-        MAP_SIZE, TILE_PX_SIZE, TRAVEL_POINTS,
-        action::GameStateAction,
+        MAP_SIZE, PlayerCommand, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
         flow::GameFlow,
-        hand::HandSlotId,
         mutate_game_state,
-        tower::{AnimationKind, Tower, TowerTemplate},
+        tower::{AnimationKind, TowerTemplate},
         use_game_state,
     },
     palette,
@@ -18,20 +16,19 @@ use namui::*;
 pub struct TowerCursorPreview<'a> {
     pub tower_template: &'a TowerTemplate,
     pub map_coord: MapCoordF32,
-    pub placing_tower_slot_id: HandSlotId,
+    pub placing_tower_slot_index: usize,
 }
 impl Component for TowerCursorPreview<'_> {
     fn render(self, ctx: &namui::RenderCtx) {
         let Self {
             tower_template,
             map_coord,
-            placing_tower_slot_id,
+            placing_tower_slot_index,
         } = self;
 
         let game_state = use_game_state(ctx);
 
         let tower_template = tower_template.clone();
-        let tower_template_for_placement = tower_template.clone();
         let clamped_left_top_xy = ctx.track_eq(&{
             let rounded = map_coord.map(|f| (f.round() as usize).saturating_sub(1));
             let x = rounded.x.min(MAP_SIZE.width.saturating_sub(2));
@@ -63,22 +60,24 @@ impl Component for TowerCursorPreview<'_> {
                 if !matches!(game_state.flow, GameFlow::PlacingTower) {
                     unreachable!()
                 }
-                game_state.hand.deselect_slot(placing_tower_slot_id);
+                let Some(slot_id) = game_state
+                    .hand
+                    .active_slot_id_by_index(placing_tower_slot_index)
+                else {
+                    return;
+                };
+                game_state.hand.deselect_slot(slot_id);
             });
         };
 
         let left_top = *clamped_left_top_xy;
         let place_tower = || {
-            let tower_template_for_placement = tower_template_for_placement.clone();
             mutate_game_state(move |game_state| {
-                game_state.action(GameStateAction::PlaceTower(
-                    Box::new(Tower::new(
-                        &tower_template_for_placement,
-                        left_top,
-                        game_state.sim_tick(),
-                    )),
-                    Some(placing_tower_slot_id),
-                ));
+                let _ = game_state.apply_player_command(PlayerCommand::PlaceTower {
+                    hand_slot_index: placing_tower_slot_index,
+                    left: left_top.x,
+                    top: left_top.y,
+                });
             });
         };
 

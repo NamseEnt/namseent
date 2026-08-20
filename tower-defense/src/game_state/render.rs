@@ -388,11 +388,19 @@ fn render_cursor_preview(ctx: &RenderCtx, game_state: &GameState) {
                 .get_item(selected_slot_id)
                 .and_then(|item| item.as_tower())
         {
+            let Some(placing_tower_slot_index) = game_state
+                .hand
+                .active_slot_ids()
+                .iter()
+                .position(|slot_id| *slot_id == selected_slot_id)
+            else {
+                return;
+            };
             ctx.add(
                 crate::game_state::cursor_preview::tower::TowerCursorPreview {
                     tower_template,
                     map_coord: game_state.cursor_preview.map_coord,
-                    placing_tower_slot_id: selected_slot_id,
+                    placing_tower_slot_index,
                 },
             );
         }

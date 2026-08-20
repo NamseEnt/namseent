@@ -2,7 +2,8 @@
 
 use super::ItemUseStrategy;
 use crate::game_state::item::Item;
-use crate::{Damage, Health, game_state::GameState};
+use crate::game_state::{GameState, PlayerCommand};
+use crate::{Damage, Health};
 
 /// Heuristic item use strategy that immediately uses rubber cone items and preserves heal/shield.
 pub struct HeuristicItemUseStrategy;
@@ -30,41 +31,55 @@ impl ItemUseStrategy for HeuristicItemUseStrategy {
 
 fn use_rubber_cone(game_state: &mut GameState) {
     loop {
-        let rubber_cone_id = game_state.items.iter().find_map(|item| {
+        let rubber_cone_index = game_state.items.iter().position(|item| {
             if matches!(item.item, Item::RubberCone(..)) {
-                Some(item.id)
+                true
             } else {
-                None
+                false
             }
         });
 
-        let Some(id) = rubber_cone_id else {
+        let Some(item_index) = rubber_cone_index else {
             break;
         };
 
-        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
+        if game_state
+            .apply_player_command(PlayerCommand::UseInventoryItem { item_index })
+            .is_err()
+        {
+            break;
+        }
     }
 }
 
 fn use_heal_if_needed(game_state: &mut GameState) {
     loop {
-        let heal_item_id = game_state.items.iter().find_map(|item| {
-            let max_hp = game_state.max_hp();
-            let heal_amount = item_heal_amount(&item.item)?;
-            if game_state.hp.saturating_add(heal_amount) > max_hp
-                || game_state.hp < max_hp.scaled_by(crate::FixedRatio::from_raw(500_000))
-            {
-                Some(item.id)
-            } else {
-                None
-            }
-        });
+        let heal_item_index = game_state
+            .items
+            .iter()
+            .enumerate()
+            .find_map(|(index, item)| {
+                let max_hp = game_state.max_hp();
+                let heal_amount = item_heal_amount(&item.item)?;
+                if game_state.hp.saturating_add(heal_amount) > max_hp
+                    || game_state.hp < max_hp.scaled_by(crate::FixedRatio::from_raw(500_000))
+                {
+                    Some(index)
+                } else {
+                    None
+                }
+            });
 
-        let Some(id) = heal_item_id else {
+        let Some(item_index) = heal_item_index else {
             break;
         };
 
-        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
+        if game_state
+            .apply_player_command(PlayerCommand::UseInventoryItem { item_index })
+            .is_err()
+        {
+            break;
+        }
     }
 }
 
@@ -83,7 +98,7 @@ fn item_heal_amount(item: &Item) -> Option<Health> {
 }
 fn use_shield_items(game_state: &mut GameState) {
     loop {
-        let shield_id = game_state.items.iter().find_map(|item| {
+        let shield_index = game_state.items.iter().position(|item| {
             if matches!(
                 item.item,
                 Item::Bread(..)
@@ -92,16 +107,21 @@ fn use_shield_items(game_state: &mut GameState) {
                     | Item::Milk(..)
                     | Item::RiceBall(..)
             ) {
-                Some(item.id)
+                true
             } else {
-                None
+                false
             }
         });
 
-        let Some(id) = shield_id else {
+        let Some(item_index) = shield_index else {
             break;
         };
 
-        game_state.action(crate::game_state::GameStateAction::UseInventoryItem(id));
+        if game_state
+            .apply_player_command(PlayerCommand::UseInventoryItem { item_index })
+            .is_err()
+        {
+            break;
+        }
     }
 }

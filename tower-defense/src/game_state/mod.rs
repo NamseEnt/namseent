@@ -23,14 +23,18 @@ pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) mod rng;
 pub(crate) use action::GameStateAction;
+pub(crate) use player_command::{PlayerCommand, RecordedPlayerCommand};
 pub mod card_notification;
 pub mod card_service;
 pub(crate) mod discovery;
 pub(crate) mod play_history;
+pub(crate) mod player_command;
 pub mod poker_action;
 pub mod projectile;
 mod render;
 mod render_snapshot;
+#[allow(dead_code)]
+pub(crate) mod replay;
 pub(crate) mod shop_purchase;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
@@ -147,6 +151,9 @@ pub struct GameState {
     pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
+    pub(crate) player_command_sequence: u64,
+    pub(crate) player_commands: Vec<RecordedPlayerCommand>,
+    pub(crate) replay_checkpoints: Vec<replay::ReplayCheckpoint>,
     pub card_service_notifications: card_notification::CardServiceNotificationState,
     pub config: Arc<GameConfig>,
     pub opened_modals: modal::OpenedModals,
@@ -225,6 +232,20 @@ impl GameState {
 
     pub fn is_headless(&self) -> bool {
         self.headless
+    }
+
+    pub(crate) fn authoritative_hash(&self) -> String {
+        replay::authoritative_hash(self)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn export_replay(&self) -> replay::Replay {
+        replay::Replay::from_game_state(self)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn export_replay_json(&self) -> serde_json::Result<String> {
+        self.export_replay().to_json()
     }
 
     pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: Damage) {
@@ -694,7 +715,10 @@ fn create_initial_game_state() -> GameState {
 }
 
 pub fn create_game_state_with_seed(seed: u64) -> GameState {
-    let config = Arc::new(GameConfig::default_config());
+    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+}
+
+pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) -> GameState {
     let presentation_instant = PresentationInstant::capture();
     let decorations = background::generate_decorations();
     let mut game_state = GameState {
@@ -732,6 +756,9 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
+        player_command_sequence: 0,
+        player_commands: Vec::new(),
+        replay_checkpoints: Vec::new(),
         card_service_notifications: card_notification::CardServiceNotificationState::default(),
         config: Arc::clone(&config),
         opened_modals: modal::OpenedModals::default(),
@@ -840,6 +867,9 @@ impl GameState {
             rerolled_count: self.rerolled_count,
             locale: self.locale,
             play_history: self.play_history.clone(),
+            player_command_sequence: self.player_command_sequence,
+            player_commands: self.player_commands.clone(),
+            replay_checkpoints: self.replay_checkpoints.clone(),
             config: Arc::clone(&self.config),
             opened_modals: modal::OpenedModals::default(),
             stage_modifiers: self.stage_modifiers.clone(),
@@ -1001,6 +1031,37 @@ mod tests {
                 right_monster.stage_progress_counted
             );
         }
+    }
+
+    #[test]
+    fn same_seed_repeats_authoritative_random_choices() {
+        let mut left = create_game_state_with_seed(0xA11C_E123);
+        let mut right = create_game_state_with_seed(0xA11C_E123);
+
+        assert_eq!(left.deck.draw_pile(), right.deck.draw_pile());
+
+        left.action(GameStateAction::CardReroll);
+        right.action(GameStateAction::CardReroll);
+
+        let active_cards = |game_state: &GameState| {
+            game_state
+                .hand
+                .active_slot_ids()
+                .into_iter()
+                .filter_map(|slot_id| {
+                    game_state
+                        .hand
+                        .get_item(slot_id)
+                        .and_then(HandItem::as_card)
+                        .copied()
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(active_cards(&left), active_cards(&right));
+
+        let left_reward = upgrade::generate_boss_reward_upgrade(&mut left);
+        let right_reward = upgrade::generate_boss_reward_upgrade(&mut right);
+        assert_eq!(format!("{left_reward:?}"), format!("{right_reward:?}"));
     }
 
     #[test]

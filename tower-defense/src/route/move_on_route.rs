@@ -48,6 +48,10 @@ impl MoveOnRoute {
     pub fn motion_revision(&self) -> u64 {
         self.motion_revision
     }
+
+    pub(crate) fn movement_remainder(&self) -> i64 {
+        self.movement_remainder
+    }
     pub fn route_index(&self) -> usize {
         self.route_index
     }

@@ -1,10 +1,10 @@
 //! Shop strategies.
 
 use super::ShopStrategy;
-use crate::game_state::GameState;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::item::ItemDiscriminants;
 use crate::game_state::upgrade::Upgrade;
+use crate::game_state::{GameState, PlayerCommand};
 use rand::RngCore;
 
 /// Synergy-aware shop strategy that values upgrades and items based on current economy, tower build, and future selection needs.
@@ -22,9 +22,7 @@ impl ShopStrategy for SynergyShopStrategy {
             }
 
             if let Some(slot_id) = self.choose_best_slot(game_state, _rng) {
-                if !game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                    slot_id,
-                )) {
+                if !purchase_slot(game_state, slot_id) {
                     break;
                 }
                 continue;
@@ -50,9 +48,7 @@ impl SynergyShopStrategy {
                     .scaled_by(crate::FixedRatio::from_raw(750_000))
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::RiceBall)
         {
-            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                slot_id,
-            ));
+            return purchase_slot(game_state, slot_id);
         }
 
         if count_item_kind(game_state, ItemDiscriminants::Milk) < 1
@@ -65,25 +61,19 @@ impl SynergyShopStrategy {
                     .scaled_by(crate::FixedRatio::from_raw(850_000))
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::Milk)
         {
-            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                slot_id,
-            ));
+            return purchase_slot(game_state, slot_id);
         }
 
         if count_item_kind(game_state, ItemDiscriminants::RubberCone) < 1
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::RubberCone)
         {
-            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                slot_id,
-            ));
+            return purchase_slot(game_state, slot_id);
         }
 
         if game_state.left_dice < game_state.max_dice_chance().saturating_sub(1)
             && let Some(slot_id) = find_item_slot(game_state, ItemDiscriminants::LumpSugar)
         {
-            return game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                slot_id,
-            ));
+            return purchase_slot(game_state, slot_id);
         }
 
         false
@@ -150,6 +140,24 @@ impl SynergyShopStrategy {
             crate::Rarity::Common => 5,
         }
     }
+}
+
+fn purchase_slot(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) -> bool {
+    let Some(slot_index) = (match &game_state.flow {
+        GameFlow::Shopping(flow) => flow
+            .shop
+            .slots
+            .iter()
+            .filter(|slot| slot.exit_animation.is_none())
+            .position(|slot| slot.id == slot_id),
+        _ => None,
+    }) else {
+        return false;
+    };
+
+    game_state
+        .apply_player_command(PlayerCommand::PurchaseShopItem { slot_index })
+        .is_ok()
 }
 
 fn find_item_slot(

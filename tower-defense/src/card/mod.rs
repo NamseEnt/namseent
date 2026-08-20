@@ -211,6 +211,12 @@ impl Default for CardEffects {
 #[derive(Eq, Debug, PartialEq, Hash, Clone, Copy, State)]
 pub struct CardId(usize);
 
+impl CardId {
+    pub const fn raw(self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, State)]
 pub struct Card {
     pub id: CardId,
@@ -250,14 +256,18 @@ impl PartialOrd for Card {
 }
 
 impl Card {
-    pub fn new(rank: Rank, suit: Suit) -> Self {
-        let id = CardId(NEXT_CARD_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst));
+    pub(crate) fn with_id(id: CardId, rank: Rank, suit: Suit) -> Self {
         Self {
             id,
             suit,
             rank,
             effects: CardEffects::default(),
         }
+    }
+
+    pub fn new(rank: Rank, suit: Suit) -> Self {
+        let id = CardId(NEXT_CARD_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst));
+        Self::with_id(id, rank, suit)
     }
 
     pub fn polish_pct(&self) -> FixedRatio {

@@ -26,7 +26,11 @@ pub(super) fn reroll(game_state: &mut GameState) -> usize {
     game_state.hand.delete_slots(&target_slot_ids);
     game_state.deck.discard(target_cards);
 
-    let cards = game_state.deck.draw(&mut rand::thread_rng(), target_count);
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::CARD_REROLL,
+        &[game_state.stage as u64, game_state.rerolled_count as u64],
+    );
+    let cards = game_state.deck.draw(&mut rng, target_count);
     let draw_count = cards.len();
     for card in cards {
         game_state.hand.push(crate::hand::HandItem::Card(card));

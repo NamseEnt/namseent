@@ -1,6 +1,7 @@
 use crate::deterministic_rng;
 use namui::*;
 use rand_chacha::ChaCha8Rng;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, State)]
 pub(crate) struct ShopGenerationConfig {
@@ -64,6 +65,7 @@ impl Default for ShopBagState {
 pub(crate) struct GameRngState {
     pub(crate) seed: u64,
     pub(crate) shop: ShopBagState,
+    pub(crate) domain_sequences: BTreeMap<u64, u64>,
 }
 
 impl GameRngState {
@@ -71,6 +73,7 @@ impl GameRngState {
         Self {
             seed,
             shop: ShopBagState::default(),
+            domain_sequences: BTreeMap::new(),
         }
     }
 
@@ -78,9 +81,65 @@ impl GameRngState {
         deterministic_rng::rng_for(self.seed, domain, coordinates)
     }
 
+    pub(crate) fn next_rng(&mut self, domain: u64, coordinates: &[u64]) -> ChaCha8Rng {
+        let sequence = self.domain_sequences.entry(domain).or_default();
+        let sequence_value = *sequence;
+        *sequence = sequence.wrapping_add(1);
+
+        let mut derived_coordinates = Vec::with_capacity(coordinates.len() + 1);
+        derived_coordinates.push(sequence_value);
+        derived_coordinates.extend_from_slice(coordinates);
+        deterministic_rng::rng_for(self.seed, domain, &derived_coordinates)
+    }
+
     pub(crate) fn next_shop_generation_sequence(&mut self) -> u64 {
         let sequence = self.shop.generation_sequence;
         self.shop.generation_sequence = self.shop.generation_sequence.wrapping_add(1);
         sequence
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::RngCore;
+
+    #[test]
+    fn next_rng_is_reproducible_and_advances_per_domain() {
+        let mut left = GameRngState::new(42);
+        let mut right = GameRngState::new(42);
+
+        let left_first = left
+            .next_rng(crate::deterministic_rng::domain::CARD_REROLL, &[7])
+            .next_u64();
+        let left_second = left
+            .next_rng(crate::deterministic_rng::domain::CARD_REROLL, &[7])
+            .next_u64();
+        let right_first = right
+            .next_rng(crate::deterministic_rng::domain::CARD_REROLL, &[7])
+            .next_u64();
+
+        assert_eq!(left_first, right_first);
+        assert_ne!(left_first, left_second);
+        assert_eq!(
+            left.domain_sequences
+                .get(&crate::deterministic_rng::domain::CARD_REROLL),
+            Some(&2)
+        );
+    }
+
+    #[test]
+    fn next_rng_keeps_domains_independent() {
+        let mut left = GameRngState::new(42);
+        let mut right = GameRngState::new(42);
+
+        let left_value = left
+            .next_rng(crate::deterministic_rng::domain::DECK_SHUFFLE, &[1])
+            .next_u64();
+        let right_value = right
+            .next_rng(crate::deterministic_rng::domain::DECK_DRAW, &[1])
+            .next_u64();
+
+        assert_ne!(left_value, right_value);
     }
 }

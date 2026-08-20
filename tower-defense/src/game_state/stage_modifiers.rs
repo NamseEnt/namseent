@@ -96,6 +96,10 @@ impl StageModifiers {
         }
     }
 
+    pub(crate) fn canonical_debug(&self) -> String {
+        format!("{self:?}")
+    }
+
     pub fn reset_stage_state(&mut self) {
         self.multipliers = Multipliers {
             damage: RatioProduct::one(),

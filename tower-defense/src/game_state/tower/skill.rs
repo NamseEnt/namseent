@@ -18,7 +18,7 @@ impl TowerSkillTemplate {
     }
 }
 
-#[derive(Clone, PartialEq, State)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerSkill {
     pub last_used_at: SimTick,
     pub template: TowerSkillTemplate,

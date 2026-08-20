@@ -2479,6 +2479,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "toml 0.7.8",

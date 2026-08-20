@@ -105,8 +105,10 @@ pub enum Effect {
 }
 
 pub fn run_effect(game_state: &mut GameState, effect: &Effect) {
-    use rand::thread_rng;
-    let mut rng = thread_rng();
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::EFFECT_PAYLOAD,
+        &[game_state.stage as u64],
+    );
     run_effect_with_rng(game_state, effect, &mut rng);
 }
 
@@ -427,6 +429,9 @@ pub mod tests_support {
             },
             locale: crate::l10n::Locale::KOREAN,
             play_history: crate::game_state::play_history::PlayHistory::new(),
+            player_command_sequence: 0,
+            player_commands: Vec::new(),
+            replay_checkpoints: Vec::new(),
             card_service_notifications:
                 crate::game_state::card_notification::CardServiceNotificationState::default(),
             opened_modals: crate::game_state::modal::OpenedModals::default(),

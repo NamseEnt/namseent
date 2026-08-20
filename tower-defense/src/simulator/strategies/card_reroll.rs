@@ -4,9 +4,9 @@ use super::CardRerollStrategy;
 use crate::card::{Card, Deck};
 use crate::config::GameConfig;
 use crate::flow_ui::selecting_tower::tower_selecting_hand::get_highest_tower::get_highest_tower_template;
-use crate::game_state::GameState;
 use crate::game_state::tower::TowerKind;
 use crate::game_state::upgrade::UpgradeState;
+use crate::game_state::{GameState, PlayerCommand};
 use rand::RngCore;
 
 /// Holds strong partial hands and simulates reroll outcomes before selecting cards to reroll.
@@ -64,16 +64,9 @@ impl CardRerollStrategy for SmartRerollStrategy {
             return;
         }
 
-        let tower_template = get_highest_tower_template(
-            &cards,
-            &game_state.upgrade_state,
-            game_state.rerolled_count,
-            &game_state.config,
-        );
-
-        game_state.action(crate::game_state::GameStateAction::StartPlacingTower(
-            tower_template,
-        ));
+        let _ = game_state.apply_player_command(PlayerCommand::SelectTower {
+            selected_slot_indices: Vec::new(),
+        });
     }
 }
 
@@ -191,27 +184,22 @@ fn choose_best_hold_indices(
 }
 
 fn reroll_selected_cards(game_state: &mut GameState, hold_indices: &[usize]) {
-    let active_ids = game_state.hand.active_slot_ids();
-
-    let reroll_ids: Vec<_> = active_ids
+    let reroll_indices: Vec<_> = game_state
+        .hand
+        .active_slot_ids()
         .iter()
         .enumerate()
-        .filter_map(|(index, id)| {
+        .filter_map(|(index, _)| {
             if !hold_indices.contains(&index) {
-                Some(*id)
+                Some(index)
             } else {
                 None
             }
         })
         .collect();
-    for id in game_state.hand.selected_slot_ids() {
-        game_state.hand.deselect_slot(id);
-    }
-    for id in &reroll_ids {
-        game_state.hand.select_slot(*id);
-    }
-
-    game_state.action(crate::game_state::GameStateAction::CardReroll);
+    let _ = game_state.apply_player_command(PlayerCommand::Reroll {
+        selected_slot_indices: reroll_indices,
+    });
 }
 
 fn tower_kind_rating(kind: TowerKind) -> u32 {

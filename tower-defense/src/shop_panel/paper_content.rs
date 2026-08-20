@@ -1,5 +1,5 @@
 use crate::game_state::card_service::CardServicePurchaseContext;
-use crate::game_state::{flow::GameFlow, mutate_game_state, use_game_state};
+use crate::game_state::{PlayerCommand, flow::GameFlow, mutate_game_state, use_game_state};
 use crate::shop::ShopSlotId;
 use crate::shop_panel::constants::*;
 use crate::shop_panel::slot_layout_calculator::SlotLayoutCalculator;
@@ -25,9 +25,19 @@ impl Component for ShopPaperContent {
         if let Some(shop) = shop_context {
             let purchase_item = |slot_id: ShopSlotId| {
                 mutate_game_state(move |game_state| {
-                    game_state.action(crate::game_state::GameStateAction::PurchaseShopItem(
-                        slot_id,
-                    ));
+                    let Some(slot_index) = (match &game_state.flow {
+                        GameFlow::Shopping(flow) => flow
+                            .shop
+                            .slots
+                            .iter()
+                            .filter(|slot| slot.exit_animation.is_none())
+                            .position(|slot| slot.id == slot_id),
+                        _ => None,
+                    }) else {
+                        return;
+                    };
+                    let _ = game_state
+                        .apply_player_command(PlayerCommand::PurchaseShopItem { slot_index });
                 });
             };
             let deck_revision = ctx.track_eq(&game_state.deck.revision());

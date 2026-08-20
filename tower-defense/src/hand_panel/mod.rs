@@ -36,6 +36,16 @@ impl Component for HandPanel {
         let hand_flow_active = selecting_tower || placing_tower;
 
         let selected_slot_ids = ctx.track_eq(&game_state.hand.selected_slot_ids());
+        let selected_slot_indices = ctx.memo(|| {
+            if selected_slot_ids.is_empty() {
+                return Vec::new();
+            }
+            let active_slot_ids = game_state.hand.active_slot_ids();
+            selected_slot_ids
+                .iter()
+                .filter_map(|slot_id| active_slot_ids.iter().position(|id| id == slot_id))
+                .collect::<Vec<_>>()
+        });
         let using_cards = ctx.memo(|| {
             let slot_ids = if !selected_slot_ids.is_empty() {
                 selected_slot_ids.clone_inner()
@@ -89,7 +99,8 @@ impl Component for HandPanel {
             SelectingTowerNextFab {
                 screen_wh,
                 visible: selecting_tower,
-                tower_template: tower_template.clone_inner(),
+                tower_template_available: tower_template.is_some(),
+                selected_slot_indices: selected_slot_indices.clone_inner(),
             },
         );
         ctx.add_with_key(
@@ -107,6 +118,7 @@ impl Component for HandPanel {
                 visible: selecting_tower,
                 disabled: reroll_disabled,
                 health_cost: reroll_health_cost,
+                selected_slot_indices: selected_slot_indices.clone_inner(),
             },
         );
         ctx.add_with_key(

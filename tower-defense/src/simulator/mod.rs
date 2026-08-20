@@ -15,7 +15,8 @@ use crate::game_state::play_history::HistoryEventType;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::game_state::tick::tick_headless;
 use crate::game_state::{
-    EffectEventQueue, GameMetrics, GameState, MAP_SIZE, TRAVEL_POINTS, play_history::PlayHistory,
+    EffectEventQueue, GameMetrics, GameState, MAP_SIZE, PlayerCommand, TRAVEL_POINTS,
+    play_history::PlayHistory,
 };
 use crate::hand::{Hand, HandItem};
 use crate::route::calculate_routes;
@@ -107,8 +108,9 @@ impl HeadlessGame {
                         .execute_card_service(&mut self.game_state, rng);
                     self.drain_play_history_events(&mut last_history_event_index);
 
-                    self.game_state
-                        .action(crate::game_state::GameStateAction::StartSelectingTower);
+                    let _ = self
+                        .game_state
+                        .apply_player_command(PlayerCommand::StartSelectingTower);
                 }
                 GameFlow::SelectingTower(_) => {
                     let stage = self.game_state.stage;
@@ -147,8 +149,9 @@ impl HeadlessGame {
 
                     // If still in PlacingTower, force defense
                     if matches!(self.game_state.flow, GameFlow::PlacingTower) {
-                        self.game_state
-                            .action(crate::game_state::GameStateAction::StartDefense);
+                        let _ = self
+                            .game_state
+                            .apply_player_command(PlayerCommand::StartDefense);
                     }
 
                     self.events.push(SimEvent::DefenseStart {
@@ -216,15 +219,11 @@ impl HeadlessGame {
                             stage: self.game_state.stage,
                             upgrade_kind,
                         });
-                        self.game_state
-                            .action(crate::game_state::GameStateAction::Upgrade(
-                                options[choice],
-                                None,
-                            ));
-                        self.game_state
-                            .action(crate::game_state::GameStateAction::StartStage {
-                                stage: self.game_state.stage,
-                            });
+                        let _ =
+                            self.game_state
+                                .apply_player_command(PlayerCommand::SelectTreasure {
+                                    option_index: choice,
+                                });
                     } else {
                         self.game_state
                             .action(crate::game_state::GameStateAction::StartStage {
@@ -435,6 +434,9 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
+        player_command_sequence: 0,
+        player_commands: Vec::new(),
+        replay_checkpoints: Vec::new(),
         card_service_notifications:
             crate::game_state::card_notification::CardServiceNotificationState::default(),
         opened_modals: crate::game_state::modal::OpenedModals::default(),

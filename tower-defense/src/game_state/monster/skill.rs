@@ -3,7 +3,7 @@ use crate::{FixedRatio, SimTick, SimTickSpan};
 use namui::*;
 use std::ops::Deref;
 
-#[derive(Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State)]
 pub struct MonsterSkillTemplate {
     pub kind: MonsterSkillKind,
     pub target: Target,
@@ -11,7 +11,7 @@ pub struct MonsterSkillTemplate {
     pub duration: SimTickSpan,
 }
 
-#[derive(State, Clone)]
+#[derive(Debug, State, Clone)]
 pub struct MonsterSkill {
     pub last_used_at: SimTick,
     pub template: MonsterSkillTemplate,
@@ -34,7 +34,7 @@ impl Deref for MonsterSkill {
     }
 }
 
-#[derive(Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum MonsterSkillKind {
     Invincible,
     SpeedMul { mul: FixedRatio },
@@ -48,19 +48,19 @@ impl MonsterSkillKind {
     }
 }
 
-#[derive(Clone, State)]
+#[derive(Debug, Clone, State)]
 pub struct MonsterStatusEffect {
     pub kind: MonsterStatusEffectKind,
     pub end_at: SimTick,
 }
 
-#[derive(Clone, Copy, State)]
+#[derive(Debug, Clone, Copy, State)]
 pub enum Target {
     MySelf,
     AllMonsters,
 }
 
-#[derive(Clone, Copy, PartialEq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum MonsterStatusEffectKind {
     SpeedMul { mul: FixedRatio },
     Invincible,

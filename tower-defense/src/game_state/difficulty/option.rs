@@ -4,7 +4,6 @@ use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::game_state::poker_action::{NextStageOffer, PokerAction};
 use namui::*;
-use rand::thread_rng;
 
 #[derive(Clone, Debug, State)]
 pub struct DifficultyOption {
@@ -46,8 +45,12 @@ pub struct DifficultyChoices {
     pub all_in: DifficultyOption,
 }
 
-pub fn generate_difficulty_choices(stage: usize) -> DifficultyChoices {
-    let mut rng = thread_rng();
+pub fn generate_difficulty_choices(game_state: &mut GameState) -> DifficultyChoices {
+    let stage = game_state.stage;
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::DIFFICULTY_OFFER,
+        &[stage as u64],
+    );
 
     let fold = crate::game_state::difficulty::group::action_to_difficulty_option(
         PokerAction::Fold,
@@ -88,7 +91,9 @@ mod tests {
 
     #[test]
     fn generate_difficulty_choices_has_fold_call_raise_all_in() {
-        let choices = generate_difficulty_choices(10);
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        game_state.stage = 10;
+        let choices = generate_difficulty_choices(&mut game_state);
 
         assert_eq!(choices.fold.action, PokerAction::Fold);
         assert_eq!(choices.call.action, PokerAction::Call);
@@ -103,14 +108,15 @@ mod tests {
 
     #[test]
     fn call_option_preconfirms_next_stage_offer() {
-        let choices = generate_difficulty_choices(10);
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        game_state.stage = 10;
+        let choices = generate_difficulty_choices(&mut game_state);
         let preselected = choices.call.next_stage_offer;
         assert!(matches!(
             preselected,
             NextStageOffer::None | NextStageOffer::Shop | NextStageOffer::TreasureSelection
         ));
 
-        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
         choices.call.apply(&mut game_state);
         // Difficulty option should apply effects without requiring legacy GameState fields.
         assert!(matches!(

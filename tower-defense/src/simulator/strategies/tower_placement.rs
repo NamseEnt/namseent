@@ -4,8 +4,8 @@ use super::TowerPlacementStrategy;
 use crate::MapCoord;
 use crate::game_state::can_place_tower::can_place_tower;
 use crate::game_state::flow::GameFlow;
-use crate::game_state::tower::{Tower, TowerKind};
-use crate::game_state::{GameState, MAP_SIZE, TRAVEL_POINTS};
+use crate::game_state::tower::TowerKind;
+use crate::game_state::{GameState, MAP_SIZE, PlayerCommand, TRAVEL_POINTS};
 use crate::hand::HandSlotId;
 use namui::*;
 
@@ -24,7 +24,6 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                 None => break,
             };
 
-            let sim_tick = game_state.sim_tick();
             let mut placed = false;
 
             for step in placement_plan() {
@@ -32,8 +31,9 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                     PlanStep::Remove(coord) => {
                         if let Some(tower_id) = game_state.towers.find_by_xy(coord).map(|t| t.id())
                         {
-                            game_state
-                                .action(crate::game_state::GameStateAction::RemoveTower(tower_id));
+                            let _ = game_state.apply_player_command(PlayerCommand::RemoveTower {
+                                tower_id: tower_id.raw(),
+                            });
                         }
                     }
                     PlanStep::Place(left_top) => {
@@ -51,32 +51,26 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
                             &route_coords,
                             MAP_SIZE,
                         ) {
-                            let tower = Tower::new(&template, left_top, sim_tick);
-                            game_state.action(crate::game_state::GameStateAction::PlaceTower(
-                                Box::new(tower),
-                                None,
-                            ));
-                            game_state.hand.delete_slots(&[slot_id]);
-
-                            if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
-                                && game_state
-                                    .hand
-                                    .get_item(first_id)
-                                    .and_then(|item| item.as_tower())
-                                    .is_some()
+                            let Some(hand_slot_index) = hand_slot_index(game_state, slot_id) else {
+                                continue;
+                            };
+                            if game_state
+                                .apply_player_command(PlayerCommand::PlaceTower {
+                                    hand_slot_index,
+                                    left: left_top.x,
+                                    top: left_top.y,
+                                })
+                                .is_ok()
                             {
-                                game_state.hand.select_slot(first_id);
+                                placed = true;
+                                break;
                             }
-
-                            placed = true;
-                            break;
                         }
                     }
                 }
             }
 
-            if !placed && self.replace_central_rubber_cone(game_state, &template, slot_id, sim_tick)
-            {
+            if !placed && self.replace_central_rubber_cone(game_state, &template, slot_id) {
                 placed = true;
             }
 
@@ -85,13 +79,13 @@ impl TowerPlacementStrategy for HeuristicPlacementStrategy {
             }
 
             if game_state.hand.is_empty() {
-                game_state.action(crate::game_state::GameStateAction::StartDefense);
+                let _ = game_state.apply_player_command(PlayerCommand::StartDefense);
                 break;
             }
         }
 
         if matches!(game_state.flow, GameFlow::PlacingTower) {
-            game_state.action(crate::game_state::GameStateAction::StartDefense);
+            let _ = game_state.apply_player_command(PlayerCommand::StartDefense);
         }
     }
 }
@@ -102,7 +96,7 @@ impl HeuristicPlacementStrategy {
         game_state: &mut GameState,
     ) -> Option<(HandSlotId, crate::game_state::tower::TowerTemplate)> {
         let Some(&slot_id) = game_state.hand.selected_slot_ids().first() else {
-            if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
+            if let Some(first_id) = game_state.hand.active_slot_id_by_index(0)
                 && game_state
                     .hand
                     .get_item(first_id)
@@ -127,9 +121,8 @@ impl HeuristicPlacementStrategy {
     fn replace_central_rubber_cone(
         &self,
         game_state: &mut GameState,
-        template: &crate::game_state::tower::TowerTemplate,
+        _template: &crate::game_state::tower::TowerTemplate,
         slot_id: HandSlotId,
-        sim_tick: crate::SimTick,
     ) -> bool {
         let center = MapCoord::new(MAP_SIZE.width / 2, MAP_SIZE.height / 2);
 
@@ -147,7 +140,12 @@ impl HeuristicPlacementStrategy {
         rubber_cones.sort_by_key(|(dist, _, _)| *dist);
 
         for (_, tower_id, left_top) in rubber_cones {
-            if !game_state.action(crate::game_state::GameStateAction::RemoveTower(tower_id)) {
+            if game_state
+                .apply_player_command(PlayerCommand::RemoveTower {
+                    tower_id: tower_id.raw(),
+                })
+                .is_err()
+            {
                 continue;
             }
 
@@ -161,29 +159,32 @@ impl HeuristicPlacementStrategy {
                 &route_coords,
                 MAP_SIZE,
             ) {
-                let tower = Tower::new(template, left_top, sim_tick);
-                game_state.action(crate::game_state::GameStateAction::PlaceTower(
-                    Box::new(tower),
-                    None,
-                ));
-                game_state.hand.delete_slots(&[slot_id]);
-
-                if let Some(first_id) = game_state.hand.get_slot_id_by_index(0)
-                    && game_state
-                        .hand
-                        .get_item(first_id)
-                        .and_then(|item| item.as_tower())
-                        .is_some()
+                let Some(hand_slot_index) = hand_slot_index(game_state, slot_id) else {
+                    continue;
+                };
+                if game_state
+                    .apply_player_command(PlayerCommand::PlaceTower {
+                        hand_slot_index,
+                        left: left_top.x,
+                        top: left_top.y,
+                    })
+                    .is_ok()
                 {
-                    game_state.hand.select_slot(first_id);
+                    return true;
                 }
-
-                return true;
             }
         }
 
         false
     }
+}
+
+fn hand_slot_index(game_state: &GameState, slot_id: HandSlotId) -> Option<usize> {
+    game_state
+        .hand
+        .active_slot_ids()
+        .iter()
+        .position(|id| *id == slot_id)
 }
 
 #[derive(Clone, Copy)]

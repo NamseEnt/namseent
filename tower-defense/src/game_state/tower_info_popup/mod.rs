@@ -175,11 +175,13 @@ impl Component for TowerInfoPopup<'_> {
                                         wh,
                                         &move || {
                                             mutate_game_state(move |game_state| {
-                                                let tower_removed = game_state.action(
-                                                    crate::game_state::GameStateAction::RemoveTower(
-                                                        tower_id,
-                                                    ),
-                                                );
+                                                let tower_removed = game_state
+                                                    .apply_player_command(
+                                                        crate::game_state::PlayerCommand::RemoveTower {
+                                                            tower_id: tower_id.raw(),
+                                                        },
+                                                    )
+                                                    .is_ok();
                                                 if tower_removed {
                                                     game_state.effect_events.push(
                                                         GameEffectEvent::PlaySound(

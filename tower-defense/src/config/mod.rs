@@ -8,6 +8,7 @@ use anyhow::Context;
 use namui::*;
 
 pub const DEFAULT_BASE_DICE_CHANCE: usize = 3;
+pub const GAME_CONFIG_VERSION: u32 = 1;
 
 const EMBEDDED_GAMECONFIG_TOML: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/gameconfig.toml"));
