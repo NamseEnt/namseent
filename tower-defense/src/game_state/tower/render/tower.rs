@@ -2,51 +2,65 @@ use crate::game_state::TILE_PX_SIZE;
 use namui::*;
 
 use super::{TowerImage, TowerSpriteWithOverlay};
-use crate::SimTick;
+use crate::SimRenderTime;
 use crate::card::render::polish_halo_config;
 use crate::game_state::tower::Tower;
 use crate::theme::card_halo_fx::CardHaloFx;
 
 pub struct RenderTower<'a> {
     pub tower: &'a Tower,
-    pub sim_tick: SimTick,
+    pub sim_render_time: SimRenderTime,
+    pub y_ratio_offset: f32,
 }
 
 impl Component for RenderTower<'_> {
     fn render(self, ctx: &RenderCtx) {
-        let RenderTower { tower, sim_tick } = self;
+        let RenderTower {
+            tower,
+            sim_render_time,
+            y_ratio_offset,
+        } = self;
 
         if let Some(visual) = tower.royal_straight_flush_visual() {
-            render_tower_sprite(ctx, tower, (0.0, 0.0), visual.original_alpha(sim_tick));
+            render_tower_sprite(
+                ctx,
+                tower,
+                (0.0, 0.0),
+                visual.original_alpha_at(sim_render_time),
+                y_ratio_offset,
+            );
 
-            let clone_alpha = visual.clone_alpha(sim_tick);
+            let clone_alpha = visual.clone_alpha_at(sim_render_time);
             let tower_left_top = tower.left_top.map(|t| t as f32);
-            for clone_center_xy in visual.clone_positions(sim_tick) {
+            for clone_center_xy in visual.clone_positions_at(sim_render_time) {
                 let clone_left_top = Xy::new(clone_center_xy.0 - 1.0, clone_center_xy.1 - 1.0);
                 let local_offset = (
                     clone_left_top.x - tower_left_top.x,
                     clone_left_top.y - tower_left_top.y,
                 );
-                render_tower_sprite(ctx, tower, local_offset, clone_alpha);
+                render_tower_sprite(ctx, tower, local_offset, clone_alpha, y_ratio_offset);
             }
             return;
         }
 
-        render_tower_sprite(ctx, tower, (0.0, 0.0), 1.0);
+        render_tower_sprite(ctx, tower, (0.0, 0.0), 1.0, y_ratio_offset);
     }
 }
 
-fn render_tower_sprite(ctx: &RenderCtx, tower: &Tower, local_left_top_xy: (f32, f32), alpha: f32) {
+fn render_tower_sprite(
+    ctx: &RenderCtx,
+    tower: &Tower,
+    local_left_top_xy: (f32, f32),
+    alpha: f32,
+    y_ratio_offset: f32,
+) {
     if alpha <= 0.01 {
         return;
     }
 
     let image = (tower.kind, tower.animation.kind).image();
     let image_wh = image.info().wh();
-    let scale = Xy::new(
-        1.0 + tower.animation.y_ratio_offset * -0.5,
-        1.0 + tower.animation.y_ratio_offset,
-    );
+    let scale = Xy::new(1.0 + y_ratio_offset * -0.5, 1.0 + y_ratio_offset);
 
     let tile_xy = TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1);
     let center = (image_wh.width * 0.5, image_wh.height);

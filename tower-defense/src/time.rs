@@ -4,6 +4,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 pub const SIM_TICKS_PER_SECOND: u64 = 60;
 const NANOS_PER_SECOND: u128 = 1_000_000_000;
+pub const INTERPOLATION_UNITS_PER_TICK: u64 = 1_000_000_000;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, State)]
 pub struct SimTick(u64);
@@ -132,6 +133,42 @@ impl SubAssign for SimTickSpan {
     }
 }
 
+/// Fraction of the way from the previous fixed simulation tick to the current
+/// fixed simulation tick. This value is presentation-only.
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, State)]
+pub struct InterpolationAlpha(f32);
+
+impl InterpolationAlpha {
+    pub const ZERO: Self = Self(0.0);
+    pub const ONE: Self = Self(1.0);
+
+    pub fn from_fractional_units(units: u64) -> Self {
+        let units = units.min(INTERPOLATION_UNITS_PER_TICK);
+        Self(units as f32 / INTERPOLATION_UNITS_PER_TICK as f32)
+    }
+
+    pub fn from_f32(value: f32) -> Self {
+        Self(value.clamp(0.0, 1.0))
+    }
+
+    pub const fn as_f32(self) -> f32 {
+        self.0
+    }
+}
+
+/// The presentation time between two authoritative fixed simulation ticks.
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, State)]
+pub struct SimRenderTime {
+    pub tick: SimTick,
+    pub alpha: InterpolationAlpha,
+}
+
+impl SimRenderTime {
+    pub const fn new(tick: SimTick, alpha: InterpolationAlpha) -> Self {
+        Self { tick, alpha }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, State)]
 pub struct PresentationInstant(Instant);
 
@@ -227,5 +264,23 @@ mod tests {
 
         assert_eq!(second.delta_since(first).as_nanos(), 250_000_000);
         assert_eq!(first.delta_since(second), PresentationDelta::ZERO);
+    }
+
+    #[test]
+    fn interpolation_alpha_is_bounded_and_uses_fractional_units() {
+        assert_eq!(
+            InterpolationAlpha::from_fractional_units(0),
+            InterpolationAlpha::ZERO
+        );
+        assert_eq!(
+            InterpolationAlpha::from_fractional_units(INTERPOLATION_UNITS_PER_TICK / 2).as_f32(),
+            0.5
+        );
+        assert_eq!(
+            InterpolationAlpha::from_fractional_units(INTERPOLATION_UNITS_PER_TICK + 1),
+            InterpolationAlpha::ONE
+        );
+        assert_eq!(InterpolationAlpha::from_f32(-1.0), InterpolationAlpha::ZERO);
+        assert_eq!(InterpolationAlpha::from_f32(2.0), InterpolationAlpha::ONE);
     }
 }

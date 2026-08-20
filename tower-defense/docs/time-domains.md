@@ -34,3 +34,17 @@
 - At most 32 steps execute in one frame. Backlog is retained for later frames.
 - Backlog is capped at 240 ticks. Time above that cap is discarded intentionally and reported in `ScheduleReport::discarded_units` and `GameState::sim_scheduler_report()`; cumulative discarded units remain available through `GameState::sim_scheduler_discarded_units()`.
 - The latest backlog, fractional accumulator, executed-step count, and discarded amount remain observable for diagnostics.
+
+## Fixed-tick render interpolation
+
+- `FixedTickScheduler` exposes the previous and current lightweight world render snapshots together with the fractional accumulator as `SimRenderTime { tick, alpha }`.
+- `tick` identifies the previous snapshot and `alpha` is the clamped progress toward the current snapshot. It is never used by gameplay, targeting, collision, damage, or HP calculations.
+- Snapshots contain only render state for entity IDs, world position, direction, continuity revision, and visual state. A new ID starts at its current position; an ID absent from the current snapshot is not rendered.
+- A changed continuity revision (route reset, teleport, restore, or other discontinuity) snaps to the current position instead of interpolating.
+
+## World and screen VFX classification
+
+- Simulation-coupled world animation uses `SimRenderTime`: monster and spatial projectile poses, tower/base spring poses, and Royal Straight Flush world phases.
+- World-space cosmetic playback remains presentation-only: death corpse/soul events, field particles, projectile trails, damage text, and sound use `PresentationInstant`/`PresentationDelta` and do not affect authoritative state.
+- Screen UI VFX and interaction animation—notifications, hover, long press, menus, and camera/UI transitions—also use `PresentationInstant`/`PresentationDelta`.
+- The raw `namui::Instant` particle adapter remains on the presentation side of this boundary.

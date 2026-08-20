@@ -30,6 +30,7 @@ pub(crate) mod play_history;
 pub mod poker_action;
 pub mod projectile;
 mod render;
+mod render_snapshot;
 pub(crate) mod shop_purchase;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
@@ -216,6 +217,10 @@ impl GameState {
 
     pub fn sim_scheduler_backlog(&self) -> SimTickSpan {
         self.sim_scheduler.backlog()
+    }
+
+    pub fn sim_render_snapshot_revision(&self) -> u64 {
+        self.sim_scheduler.render_snapshot_revision()
     }
 
     pub fn is_headless(&self) -> bool {
@@ -756,6 +761,10 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         stage: game_state.stage,
     });
     game_state.action(GameStateAction::GameStart);
+    let initial_render_snapshot = render_snapshot::WorldRenderSnapshot::capture(&game_state);
+    game_state
+        .sim_scheduler
+        .rebase_render_snapshot(initial_render_snapshot);
     game_state
 }
 
@@ -798,6 +807,8 @@ impl GameState {
     /// Create a deep-ish clone of the current state for debug snapshotting.
     /// Particle systems are cleared and opened modal is dropped to avoid UI leakage.
     pub fn clone_for_debug(&self) -> GameState {
+        let mut sim_scheduler = self.sim_scheduler.clone();
+        sim_scheduler.rebase_render_snapshot(render_snapshot::WorldRenderSnapshot::capture(self));
         GameState {
             monsters: self.monsters.clone(),
             towers: self.towers.clone(),
@@ -823,7 +834,7 @@ impl GameState {
             item_used: self.item_used,
             next_entity_id: self.next_entity_id,
             sim_tick: self.sim_tick,
-            sim_scheduler: self.sim_scheduler,
+            sim_scheduler,
             sim_scheduler_report: self.sim_scheduler_report,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,

@@ -148,6 +148,10 @@ impl Tower {
         self.cached_upgrade.damage
     }
 
+    pub(crate) fn render_animation_state(&self) -> (AnimationKind, f32) {
+        (self.animation.kind, self.animation.y_ratio_offset)
+    }
+
     pub fn attack_type(&self, params: AttackTypeParams) -> AttackType {
         match self.kind {
             TowerKind::RubberCone => AttackType::Projectile {

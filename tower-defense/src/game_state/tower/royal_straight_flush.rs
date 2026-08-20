@@ -6,7 +6,7 @@ use crate::game_state::field_particle::emitter::{
 };
 use crate::game_state::{EffectEventQueue, GameEffectEvent, GameState, Monster};
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
-use crate::{MonsterId, SimTick, SimTickSpan};
+use crate::{MonsterId, SimRenderTime, SimTick, SimTickSpan};
 use namui::*;
 
 const ROYAL_STRAIGHT_FLUSH_CLONE_SPAWN_RADIUS_MIN: f32 = 2.5;
@@ -91,12 +91,32 @@ impl RoyalStraightFlushVisual {
         }
     }
 
+    pub fn original_alpha_at(&self, render_time: SimRenderTime) -> f32 {
+        let (phase, progress) = self.phase_and_progress_at(render_time);
+        match phase {
+            RoyalStraightFlushPhase::Spawning => 1.0 - progress,
+            RoyalStraightFlushPhase::Dashing => 0.0,
+            RoyalStraightFlushPhase::Returning => progress,
+            RoyalStraightFlushPhase::Finished => 1.0,
+        }
+    }
+
     pub fn clone_alpha(&self, sim_tick: SimTick) -> f32 {
         let t = self.phase_progress(sim_tick);
         match self.phase_at(sim_tick) {
             RoyalStraightFlushPhase::Spawning => t,
             RoyalStraightFlushPhase::Dashing => 1.0,
             RoyalStraightFlushPhase::Returning => 1.0 - t,
+            RoyalStraightFlushPhase::Finished => 0.0,
+        }
+    }
+
+    pub fn clone_alpha_at(&self, render_time: SimRenderTime) -> f32 {
+        let (phase, progress) = self.phase_and_progress_at(render_time);
+        match phase {
+            RoyalStraightFlushPhase::Spawning => progress,
+            RoyalStraightFlushPhase::Dashing => 1.0,
+            RoyalStraightFlushPhase::Returning => 1.0 - progress,
             RoyalStraightFlushPhase::Finished => 0.0,
         }
     }
@@ -113,6 +133,48 @@ impl RoyalStraightFlushVisual {
                 clone.end_center_xy
             }
         })
+    }
+
+    pub fn clone_positions_at(
+        &self,
+        render_time: SimRenderTime,
+    ) -> impl Iterator<Item = (f32, f32)> + '_ {
+        let (phase, progress) = self.phase_and_progress_at(render_time);
+        let eased_t = ease_out_cubic(progress);
+        self.clones.iter().map(move |clone| match phase {
+            RoyalStraightFlushPhase::Spawning => clone.spawn_center_xy,
+            RoyalStraightFlushPhase::Dashing => {
+                lerp_xy(clone.spawn_center_xy, clone.end_center_xy, eased_t)
+            }
+            RoyalStraightFlushPhase::Returning | RoyalStraightFlushPhase::Finished => {
+                clone.end_center_xy
+            }
+        })
+    }
+
+    fn phase_and_progress_at(&self, render_time: SimRenderTime) -> (RoyalStraightFlushPhase, f32) {
+        let elapsed_ticks =
+            (render_time.tick - self.created_at).ticks() as f32 + render_time.alpha.as_f32();
+        let fade_ticks = Self::FADE_DURATION.ticks() as f32;
+        let dash_ticks = Self::DASH_DURATION.ticks() as f32;
+        let (phase, phase_elapsed, phase_duration) = if elapsed_ticks < fade_ticks {
+            (RoyalStraightFlushPhase::Spawning, elapsed_ticks, fade_ticks)
+        } else if elapsed_ticks < fade_ticks + dash_ticks {
+            (
+                RoyalStraightFlushPhase::Dashing,
+                elapsed_ticks - fade_ticks,
+                dash_ticks,
+            )
+        } else if elapsed_ticks < fade_ticks + dash_ticks + fade_ticks {
+            (
+                RoyalStraightFlushPhase::Returning,
+                elapsed_ticks - fade_ticks - dash_ticks,
+                fade_ticks,
+            )
+        } else {
+            (RoyalStraightFlushPhase::Finished, 1.0, 1.0)
+        };
+        (phase, (phase_elapsed / phase_duration).clamp(0.0, 1.0))
     }
 
     fn tick(

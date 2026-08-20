@@ -41,6 +41,13 @@ impl Component for Ticker {
         let presentation_instant = self.presentation_instant;
         ctx.interval("game state tick", TICK_MAX_DURATION, |real_dt| {
             mutate_game_state(move |game_state| {
+                if !game_state.sim_scheduler.has_render_snapshot() {
+                    game_state.sim_scheduler.rebase_render_snapshot(
+                        crate::game_state::render_snapshot::WorldRenderSnapshot::capture(
+                            game_state,
+                        ),
+                    );
+                }
                 let presentation_delta = PresentationDelta::from_namui(real_dt);
                 let report = game_state
                     .sim_scheduler
@@ -48,6 +55,13 @@ impl Component for Ticker {
                 game_state.sim_scheduler_report = report;
                 for _ in 0..report.executed_steps {
                     step_simulation(game_state, presentation_instant);
+                    let render_snapshot =
+                        crate::game_state::render_snapshot::WorldRenderSnapshot::capture(
+                            game_state,
+                        );
+                    game_state
+                        .sim_scheduler
+                        .commit_render_snapshot(render_snapshot);
                     if !game_state.headless {
                         game_state.flush_effect_events();
                     } else {
@@ -150,6 +164,51 @@ pub(crate) fn tick_headless(game_state: &mut GameState) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::hash::{Hash, Hasher};
+
+    fn authoritative_hash(game_state: &GameState) -> u64 {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        game_state.sim_tick.hash(&mut hasher);
+        game_state.hp.raw().hash(&mut hasher);
+        game_state.shield.raw().hash(&mut hasher);
+        game_state.gold.hash(&mut hasher);
+        game_state.monsters.len().hash(&mut hasher);
+        for monster in &game_state.monsters {
+            monster.id().hash(&mut hasher);
+            monster.world_xy().hash(&mut hasher);
+            monster.move_on_route.route_index().hash(&mut hasher);
+            monster.move_on_route.route_progress().hash(&mut hasher);
+            monster.hp.raw().hash(&mut hasher);
+            monster.max_hp.raw().hash(&mut hasher);
+            monster.damage.raw().hash(&mut hasher);
+            monster.stage_progress_counted.hash(&mut hasher);
+        }
+        game_state.in_flight_attacks.len().hash(&mut hasher);
+        for attack in &game_state.in_flight_attacks {
+            attack.id.hash(&mut hasher);
+            attack.damage.raw().hash(&mut hasher);
+            std::mem::discriminant(&attack.kind).hash(&mut hasher);
+            match &attack.kind {
+                crate::game_state::attack::InFlightAttackKind::Spatial(spatial) => {
+                    spatial.xy.hash(&mut hasher);
+                    spatial.velocity.hash(&mut hasher);
+                    spatial.target_indicator.id().hash(&mut hasher);
+                    spatial.stable_key.hash(&mut hasher);
+                }
+                crate::game_state::attack::InFlightAttackKind::Timed(timed) => {
+                    timed.target_monster_id.hash(&mut hasher);
+                    timed.execute_at.hash(&mut hasher);
+                }
+                crate::game_state::attack::InFlightAttackKind::Laser(laser) => {
+                    laser.start_xy.hash(&mut hasher);
+                    laser.end_xy.hash(&mut hasher);
+                    laser.created_at.hash(&mut hasher);
+                    laser.target_monster_id.hash(&mut hasher);
+                }
+            }
+        }
+        hasher.finish()
+    }
 
     #[test]
     fn rendered_and_headless_modes_share_the_same_simulation_step() {
@@ -293,5 +352,61 @@ mod tests {
             "injected attack must resolve a death"
         );
         assert!(left.in_flight_attacks.is_empty());
+    }
+
+    #[test]
+    fn interpolation_on_and_off_do_not_mutate_authoritative_state() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(0x51A7);
+        game_state.action(crate::game_state::GameStateAction::StartDefense);
+        step_simulation(&mut game_state, PresentationInstant::zero());
+        game_state.sim_scheduler.commit_render_snapshot(
+            crate::game_state::render_snapshot::WorldRenderSnapshot::capture(&game_state),
+        );
+        let before = authoritative_hash(&game_state);
+        {
+            let frame = game_state.sim_scheduler.render_frame().unwrap();
+            if let Some(snapshot) = frame.current_snapshot() {
+                for monster in snapshot.monsters() {
+                    let _ = frame.sample_monster(monster.id, true);
+                    let _ = frame.sample_monster(monster.id, false);
+                }
+                for projectile in snapshot.spatial_projectiles() {
+                    let _ = frame.sample_projectile(projectile.id, true);
+                    let _ = frame.sample_projectile(projectile.id, false);
+                }
+            }
+        }
+        assert_eq!(authoritative_hash(&game_state), before);
+    }
+
+    fn run_fixed_cadence(
+        multiplier: crate::game_state::fast_forward::FastForwardMultiplier,
+        frames: usize,
+    ) -> GameState {
+        let mut game_state = crate::game_state::create_game_state_with_seed(0xCADA_2026);
+        game_state.action(crate::game_state::GameStateAction::StartDefense);
+        let mut scheduler = crate::game_state::tick::scheduler::FixedTickScheduler::default();
+        for _ in 0..frames {
+            let report = scheduler.advance(PresentationDelta::from_nanos(16_666_667), multiplier);
+            for _ in 0..report.executed_steps {
+                step_simulation(&mut game_state, PresentationInstant::zero());
+            }
+        }
+        game_state
+    }
+
+    #[test]
+    fn x1_and_x8_have_the_same_authoritative_hash_at_the_same_tick() {
+        let x1 = run_fixed_cadence(
+            crate::game_state::fast_forward::FastForwardMultiplier::X1,
+            120,
+        );
+        let x8 = run_fixed_cadence(
+            crate::game_state::fast_forward::FastForwardMultiplier::X8,
+            15,
+        );
+        assert_eq!(x1.sim_tick(), SimTick::from_ticks(120));
+        assert_eq!(x8.sim_tick(), SimTick::from_ticks(120));
+        assert_eq!(authoritative_hash(&x1), authoritative_hash(&x8));
     }
 }

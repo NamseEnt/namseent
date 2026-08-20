@@ -33,7 +33,9 @@ pub mod world;
 pub use combat_number::{
     ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct, Shield,
 };
-pub use time::{PresentationDelta, PresentationInstant, SimTick, SimTickSpan};
+pub use time::{
+    InterpolationAlpha, PresentationDelta, PresentationInstant, SimRenderTime, SimTick, SimTickSpan,
+};
 pub use world::{
     WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, segment_hits_point,
 };

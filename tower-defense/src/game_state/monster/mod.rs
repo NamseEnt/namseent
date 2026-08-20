@@ -14,6 +14,7 @@ pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
 pub use move_monsters::{move_monsters, resolve_base_damage};
 use namui::*;
+pub(crate) use render::RenderMonsterPose;
 pub use render::{monster_animation_tick, monster_wh};
 #[allow(unused_imports)]
 pub use skill::{

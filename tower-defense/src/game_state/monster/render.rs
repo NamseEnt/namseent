@@ -7,42 +7,76 @@ use namui::*;
 
 impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {
-        let Monster {
-            kind, animation, ..
-        } = self;
-
-        let image = kind.image();
-        let monster_wh = monster_wh(*kind);
-
-        ctx.translate(Xy::new(
-            TILE_PX_SIZE.width * 0.5,
-            TILE_PX_SIZE.height - monster_wh.height * 0.5
-                + TILE_PX_SIZE.height * animation.y_offset,
-        ))
-        .rotate(animation.rotation)
-        .add(namui::image(ImageParam {
-            rect: Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh),
-            image,
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
-
-        let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
-        ctx.translate(Xy::new(
-            TILE_PX_SIZE.width * 0.5,
-            TILE_PX_SIZE.width * 0.5 + monster_wh.height * 0.6,
-        ))
-        .add(MonsterHpBar {
-            wh: hp_bar_wh,
-            progress: if self.max_hp.is_zero() {
-                0.0
-            } else {
-                self.hp.as_f32() / self.max_hp.as_f32()
-            },
-        });
+        render_monster_pose(
+            ctx,
+            self.kind,
+            self.hp,
+            self.max_hp,
+            self.animation.rotation,
+            self.animation.y_offset,
+        );
     }
+}
+
+pub(crate) struct RenderMonsterPose {
+    pub(crate) kind: MonsterKind,
+    pub(crate) hp: crate::Health,
+    pub(crate) max_hp: crate::Health,
+    pub(crate) rotation: Angle,
+    pub(crate) y_offset: f32,
+}
+
+impl Component for RenderMonsterPose {
+    fn render(self, ctx: &RenderCtx) {
+        render_monster_pose(
+            ctx,
+            self.kind,
+            self.hp,
+            self.max_hp,
+            self.rotation,
+            self.y_offset,
+        );
+    }
+}
+
+fn render_monster_pose(
+    ctx: &RenderCtx,
+    kind: MonsterKind,
+    hp: crate::Health,
+    max_hp: crate::Health,
+    rotation: Angle,
+    y_offset: f32,
+) {
+    let image = kind.image();
+    let monster_wh = monster_wh(kind);
+
+    ctx.translate(Xy::new(
+        TILE_PX_SIZE.width * 0.5,
+        TILE_PX_SIZE.height - monster_wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
+    ))
+    .rotate(rotation)
+    .add(namui::image(ImageParam {
+        rect: Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: None,
+        },
+    }));
+
+    let hp_bar_wh = Wh::new(monster_wh.width, MONSTER_HP_BAR_HEIGHT);
+    ctx.translate(Xy::new(
+        TILE_PX_SIZE.width * 0.5,
+        TILE_PX_SIZE.width * 0.5 + monster_wh.height * 0.6,
+    ))
+    .add(MonsterHpBar {
+        wh: hp_bar_wh,
+        progress: if max_hp.is_zero() {
+            0.0
+        } else {
+            hp.as_f32() / max_hp.as_f32()
+        },
+    });
 }
 
 pub fn monster_wh(kind: MonsterKind) -> Wh<Px> {

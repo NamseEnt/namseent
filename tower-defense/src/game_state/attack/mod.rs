@@ -244,18 +244,37 @@ mod movement_tests {
 
 impl Component for &SpatialAttack {
     fn render(self, ctx: &RenderCtx) {
-        let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
-        let image = self.projectile_kind.image();
-
-        ctx.add(namui::image(ImageParam {
-            rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
-            image,
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+        render_projectile_sprite(
+            ctx,
+            self.projectile_kind,
+            Xy::new(self.velocity.x as f32, self.velocity.y as f32),
+        );
     }
+}
+
+pub(crate) struct RenderProjectileSnapshot {
+    pub(crate) projectile_kind: ProjectileKind,
+    pub(crate) direction: Xy<f32>,
+}
+
+impl Component for RenderProjectileSnapshot {
+    fn render(self, ctx: &RenderCtx) {
+        render_projectile_sprite(ctx, self.projectile_kind, self.direction);
+    }
+}
+
+fn render_projectile_sprite(ctx: &RenderCtx, projectile_kind: ProjectileKind, direction: Xy<f32>) {
+    let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
+    let image = projectile_kind.image();
+
+    ctx.rotate(direction.atan2()).add(namui::image(ImageParam {
+        rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: None,
+        },
+    }));
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]

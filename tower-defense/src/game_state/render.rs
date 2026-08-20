@@ -1,4 +1,5 @@
 use super::*;
+use crate::game_state::tick::scheduler::RenderFrame;
 
 pub struct RenderGameState<'a> {
     pub game_state: &'a GameState,
@@ -13,6 +14,7 @@ impl Component for RenderGameState<'_> {
 
         let visual_left_top = self.game_state.camera.visual_left_top();
         let final_offset = TILE_PX_SIZE.to_xy() * visual_left_top * -1.0;
+        let render_frame = self.game_state.sim_scheduler.render_frame();
 
         ctx.scale(Xy::single(self.game_state.camera.zoom_level))
             .translate(final_offset)
@@ -20,8 +22,14 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_tower_info_popup, self.game_state));
                 ctx.add((render_cursor_preview, self.game_state));
                 ctx.add((render_field_particles, self.game_state));
-                ctx.add((render_projectiles, self.game_state));
-                ctx.add((render_monsters, self.game_state));
+                ctx.add(RenderProjectiles {
+                    game_state: self.game_state,
+                    frame: render_frame,
+                });
+                ctx.add(RenderMonsters {
+                    game_state: self.game_state,
+                    frame: render_frame,
+                });
                 ctx.add((render_towers, self.game_state));
                 ctx.add((render_bases, self.game_state));
                 ctx.add(render_route_flag);
@@ -31,6 +39,71 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_decorations, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
             });
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RenderMonsters<'a> {
+    game_state: &'a GameState,
+    frame: Option<RenderFrame<'a>>,
+}
+
+impl Component for RenderMonsters<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Some(frame) = self.frame else {
+            render_monsters(ctx, self.game_state);
+            return;
+        };
+        let Some(current_snapshot) = frame.current_snapshot() else {
+            render_monsters(ctx, self.game_state);
+            return;
+        };
+
+        for snapshot in current_snapshot.monsters() {
+            let Some(sample) = frame.sample_monster(snapshot.id, true) else {
+                continue;
+            };
+            ctx.translate(TILE_PX_SIZE.to_xy() * sample.position).add(
+                crate::game_state::monster::RenderMonsterPose {
+                    kind: sample.current.kind,
+                    hp: sample.current.hp,
+                    max_hp: sample.current.max_hp,
+                    rotation: sample.rotation,
+                    y_offset: sample.y_offset,
+                },
+            );
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct RenderProjectiles<'a> {
+    game_state: &'a GameState,
+    frame: Option<RenderFrame<'a>>,
+}
+
+impl Component for RenderProjectiles<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Some(frame) = self.frame else {
+            render_projectiles(ctx, self.game_state);
+            return;
+        };
+        let Some(current_snapshot) = frame.current_snapshot() else {
+            render_projectiles(ctx, self.game_state);
+            return;
+        };
+
+        for snapshot in current_snapshot.spatial_projectiles() {
+            let Some(sample) = frame.sample_projectile(snapshot.id, true) else {
+                continue;
+            };
+            ctx.translate(TILE_PX_SIZE.to_xy() * sample.position).add(
+                crate::game_state::attack::RenderProjectileSnapshot {
+                    projectile_kind: sample.current.projectile_kind,
+                    direction: sample.direction,
+                },
+            );
+        }
     }
 }
 
@@ -206,6 +279,11 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         })
     };
 
+    let render_frame = game_state.sim_scheduler.render_frame();
+    let sim_render_time = render_frame.map(|frame| frame.time).unwrap_or_else(|| {
+        crate::SimRenderTime::new(game_state.sim_tick(), crate::InterpolationAlpha::ZERO)
+    });
+
     for tower in game_state.towers.iter() {
         let tower_xy = tower.left_top.map(|t| t.as_f32());
 
@@ -217,7 +295,9 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
         }
 
         let px_xy = TILE_PX_SIZE.to_xy() * tower_xy;
-        let sim_tick = game_state.sim_tick();
+        let y_ratio_offset = render_frame
+            .and_then(|frame| frame.sample_tower(tower.id(), true))
+            .unwrap_or_else(|| tower.render_animation_state().1);
         ctx.translate(px_xy).compose(move |ctx| {
             if game_state.ui_state.selected_tower_id == Some(tower.id()) {
                 ctx.add(crate::game_state::tower::render::TowerAttackRange {
@@ -227,36 +307,38 @@ fn render_towers(ctx: &RenderCtx, game_state: &GameState) {
 
             ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Pointer))
                 .add(
-                    crate::game_state::tower::render::RenderTower { tower, sim_tick }.attach_event(
-                        {
-                            let tower_id = tower.id();
-                            move |event| {
-                                let Event::MouseDown { event } = event else {
-                                    return;
-                                };
-                                if event.button != Some(MouseButton::Left) {
-                                    return;
-                                }
-                                if !event.is_local_xy_in() {
-                                    return;
-                                }
-                                event.stop_propagation();
-                                mutate_game_state(move |game_state| {
-                                    let next_selected = if game_state.ui_state.selected_tower_id
-                                        == Some(tower_id)
-                                    {
+                    crate::game_state::tower::render::RenderTower {
+                        tower,
+                        sim_render_time,
+                        y_ratio_offset,
+                    }
+                    .attach_event({
+                        let tower_id = tower.id();
+                        move |event| {
+                            let Event::MouseDown { event } = event else {
+                                return;
+                            };
+                            if event.button != Some(MouseButton::Left) {
+                                return;
+                            }
+                            if !event.is_local_xy_in() {
+                                return;
+                            }
+                            event.stop_propagation();
+                            mutate_game_state(move |game_state| {
+                                let next_selected =
+                                    if game_state.ui_state.selected_tower_id == Some(tower_id) {
                                         None
                                     } else {
                                         Some(tower_id)
                                     };
-                                    game_state.set_selected_tower(
-                                        next_selected,
-                                        crate::PresentationInstant::capture(),
-                                    );
-                                });
-                            }
-                        },
-                    ),
+                                game_state.set_selected_tower(
+                                    next_selected,
+                                    crate::PresentationInstant::capture(),
+                                );
+                            });
+                        }
+                    }),
                 );
         });
     }

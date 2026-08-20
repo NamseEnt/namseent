@@ -124,19 +124,27 @@ impl GameState {
     pub fn update_base_animations(&mut self, sim_tick: SimTick) {
         self.base_animation_state.update(sim_tick);
     }
+
+    pub(crate) fn render_base_scales(&self) -> (Xy<f32>, Xy<f32>) {
+        (
+            self.base_animation_state.enemy_base_animation.scale_xy(),
+            self.base_animation_state.player_base_animation.scale_xy(),
+        )
+    }
 }
 
 pub fn render_bases(ctx: &RenderCtx, game_state: &GameState) {
-    render_enemy_base(ctx, game_state);
-    render_player_base(ctx, game_state);
+    let scales = game_state
+        .sim_scheduler
+        .render_frame()
+        .and_then(|frame| frame.base_scales(true))
+        .unwrap_or_else(|| game_state.render_base_scales());
+    render_enemy_base(ctx, scales.0);
+    render_player_base(ctx, scales.1);
 }
 
-fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
+fn render_enemy_base(ctx: &RenderCtx, animated_scale: Xy<f32>) {
     let center = coord_center_px(TRAVEL_POINTS[0]) + Xy::new(0.px(), TILE_PX_SIZE.height * -1.0);
-    let animated_scale = game_state
-        .base_animation_state
-        .enemy_base_animation
-        .scale_xy();
 
     draw_base_image(
         ctx,
@@ -146,13 +154,9 @@ fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
     );
 }
 
-fn render_player_base(ctx: &RenderCtx, game_state: &GameState) {
+fn render_player_base(ctx: &RenderCtx, animated_scale: Xy<f32>) {
     let center = coord_center_px(TRAVEL_POINTS[TRAVEL_POINTS.len() - 1])
         + Xy::new(TILE_PX_SIZE.width * 1.0, TILE_PX_SIZE.height * -1.0);
-    let animated_scale = game_state
-        .base_animation_state
-        .player_base_animation
-        .scale_xy();
 
     draw_base_image(
         ctx,
