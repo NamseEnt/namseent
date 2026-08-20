@@ -168,6 +168,8 @@ pub struct GameState {
 
     // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
     pub(crate) headless: bool,
+    #[cfg(feature = "simulator")]
+    pub(crate) defer_card_service_selection: bool,
 }
 impl GameState {
     #[allow(dead_code)]
@@ -232,6 +234,30 @@ impl GameState {
 
     pub fn is_headless(&self) -> bool {
         self.headless
+    }
+
+    pub(crate) fn should_defer_card_service_selection(&self) -> bool {
+        #[cfg(feature = "simulator")]
+        {
+            self.defer_card_service_selection
+        }
+        #[cfg(not(feature = "simulator"))]
+        {
+            false
+        }
+    }
+
+    pub(crate) fn set_user_modal(&mut self, modal: Option<modal::UserModal>) {
+        #[cfg(feature = "simulator")]
+        if self.should_defer_card_service_selection() {
+            self.opened_modals.user = modal;
+            return;
+        }
+        if self.headless {
+            self.opened_modals.user = modal;
+        } else {
+            set_modal(modal);
+        }
     }
 
     pub(crate) fn authoritative_hash(&self) -> String {
@@ -781,6 +807,8 @@ pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) 
         rng: GameRngState::new(seed),
 
         headless: false,
+        #[cfg(feature = "simulator")]
+        defer_card_service_selection: false,
     };
 
     // Start with selecting tower flow and default shop mode (normal shop).
@@ -891,6 +919,8 @@ impl GameState {
             card_service_notifications: self.card_service_notifications.clone(),
             rng: self.rng.clone(),
             headless: self.headless,
+            #[cfg(feature = "simulator")]
+            defer_card_service_selection: self.defer_card_service_selection,
             discovery: self.discovery.clone(),
         }
     }

@@ -4,7 +4,6 @@ use crate::{
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
-        set_modal,
     },
 };
 
@@ -60,7 +59,7 @@ impl CardServiceBehavior for BatteryCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),

@@ -2,10 +2,13 @@
 //!
 //! Runs game simulations without rendering, collects statistics into SQLite.
 
+pub mod batch;
+pub mod environment;
 pub mod events;
 pub mod recording;
 pub mod stats;
 pub mod strategies;
+pub mod trajectory;
 
 use crate::card::Deck;
 use crate::config::GameConfig;
@@ -449,6 +452,7 @@ fn create_headless_game_state(config: Arc<GameConfig>, seed: u64) -> GameState {
         config: config.clone(),
         rng: crate::game_state::rng::GameRngState::new(seed),
         headless: true,
+        defer_card_service_selection: false,
         discovery: Default::default(),
     }
 }

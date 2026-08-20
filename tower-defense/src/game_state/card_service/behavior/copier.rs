@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     card::{Card, CardId, Rank},
-    game_state::{GameState, action::DeckEdit, set_modal},
+    game_state::{GameState, action::DeckEdit},
 };
 
 const ROYAL_RANKS: [Rank; 5] = [Rank::Ten, Rank::Jack, Rank::Queen, Rank::King, Rank::Ace];
@@ -43,7 +43,7 @@ impl CardServiceBehavior for CopierCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),

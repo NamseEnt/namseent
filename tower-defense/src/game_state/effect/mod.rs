@@ -448,6 +448,8 @@ pub mod tests_support {
 
             rng: crate::game_state::rng::GameRngState::new(0),
             headless: false,
+            #[cfg(feature = "simulator")]
+            defer_card_service_selection: false,
             discovery: Default::default(),
         }
     }
