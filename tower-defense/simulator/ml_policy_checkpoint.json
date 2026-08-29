@@ -1,0 +1,67 @@
+{
+  "checkpoint_schema_version": 5,
+  "policy_schema_version": 5,
+  "entity_encoder_schema_version": 6,
+  "contract": {
+    "contract_schema_version": 1,
+    "environment_version": 5,
+    "action_schema_version": 4,
+    "observation_schema_version": 1,
+    "catalog_schema_version": 1,
+    "action_wire_schema_version": 1,
+    "trajectory_schema_version": 5,
+    "dataset_schema_version": 5,
+    "feature_schema_version": 6,
+    "config_version": 1,
+    "config_digest_version": 1,
+    "config_digest": "6af7ba6f7d3f5bab4dd6c2faf804165b3812b375bee614fd8b5be75c43a24ee1",
+    "rng_algorithm_version": 1
+  },
+  "seed_schedule": {
+    "schema_version": 1,
+    "train": {
+      "start": 0,
+      "end_inclusive": 0
+    },
+    "validation": {
+      "start": 18446744073709551615,
+      "end_inclusive": 18446744073709551615
+    },
+    "train_digest": "2859d77eeebd5d5d36add2c73b8830b659a79adf04884f70ade49cf9798aa9aa",
+    "validation_digest": "3eadce6072c6f8e57776f6ff3548eaabf89a9404f4eafbd3c06f16532fbc2b12"
+  },
+  "iteration": 0,
+  "best_iteration": 0,
+  "git_revision": "d763765ecca6824a74046e33db1c67ffbfd2978b",
+  "model_config": {
+    "hidden_size": 8
+  },
+  "model_file": "ml_policy_checkpoint.mpk",
+  "train_clear_rate": 0.0,
+  "validation_clear_rate": 0.0,
+  "best_validation_clear_rate": 0.0,
+  "best_validation_full_clear_count": 0,
+  "best_validation_truncated_count": 1,
+  "reward_config": {
+    "terminal_win": 1.0,
+    "terminal_loss": -1.0,
+    "escaped_hp_penalty_scale": 50.0,
+    "player_hp_loss_penalty_scale": 60.0,
+    "potential_weight": 0.0,
+    "potential_gamma": 0.99,
+    "damage_progress_weight": 0.0,
+    "no_progress_cycle_penalty": -0.25
+  },
+  "hyperparameters": {
+    "hidden_size": "8",
+    "iterations": "1",
+    "learning_rate": "0.0001",
+    "max_decisions": "1",
+    "max_queued_steps": "0",
+    "minibatch_size": "1",
+    "no_progress_cycle_penalty": "-0.25",
+    "ppo_epochs": "1",
+    "rollout_chunk_size": "0",
+    "rollout_step_budget": "0"
+  }
+}

@@ -1,0 +1,131 @@
+use crate::PresentationInstant;
+use crate::{
+    game_state::{
+        card_service::{CardService, CardServiceDiscriminants},
+        item::Item,
+        upgrade::Upgrade,
+    },
+    *,
+};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static SHOP_SLOT_ID: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, State)]
+pub struct ShopSlotId(usize);
+impl ShopSlotId {
+    pub fn new() -> Self {
+        let id = SHOP_SLOT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Self(id)
+    }
+
+    pub fn from_raw(raw: usize) -> Self {
+        let next = raw.saturating_add(1);
+        let mut current = SHOP_SLOT_ID.load(Ordering::Relaxed);
+        while current < next {
+            match SHOP_SLOT_ID.compare_exchange_weak(
+                current,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(updated) => current = updated,
+            }
+        }
+        Self(raw)
+    }
+
+    pub const fn raw(self) -> usize {
+        self.0
+    }
+
+    pub fn halo_seed(self) -> f32 {
+        (self.0 as f32 * 0.618034).fract()
+    }
+}
+impl Default for ShopSlotId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl From<ShopSlotId> for AddKey {
+    fn from(val: ShopSlotId) -> Self {
+        AddKey::U128(val.0 as u128)
+    }
+}
+
+#[derive(Debug, Clone, Copy, State)]
+pub struct ExitAnimation {
+    pub start_time: PresentationInstant,
+}
+
+impl ExitAnimation {
+    pub fn new(start_time: PresentationInstant) -> Self {
+        Self { start_time }
+    }
+
+    pub fn is_complete(&self, current_time: PresentationInstant) -> bool {
+        let elapsed = (current_time - self.start_time).as_secs_f32();
+        elapsed >= 0.5 // 0.5초 후 완료
+    }
+}
+
+#[derive(Clone, Debug, State)]
+pub struct ShopSlotData {
+    pub id: ShopSlotId,
+    pub slot: ShopSlot,
+    pub purchased: bool,
+    pub exit_animation: Option<ExitAnimation>,
+}
+
+impl ShopSlotData {
+    pub fn new(slot: ShopSlot) -> Self {
+        Self {
+            id: ShopSlotId::new(),
+            slot,
+            purchased: false,
+            exit_animation: None,
+        }
+    }
+
+    pub fn start_exit_animation(&mut self, presentation_instant: PresentationInstant) {
+        self.exit_animation = Some(ExitAnimation::new(presentation_instant));
+    }
+
+    pub fn is_exit_animation_complete(&self, presentation_instant: PresentationInstant) -> bool {
+        if let Some(exit_anim) = self.exit_animation {
+            exit_anim.is_complete(presentation_instant)
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Debug, Clone, State)]
+pub enum ShopSlot {
+    Item {
+        item: Item,
+        cost: usize,
+    },
+    Upgrade {
+        upgrade: Upgrade,
+        cost: usize,
+    },
+    CardService {
+        card_service: CardService,
+        cost: usize,
+    },
+}
+
+impl ShopSlot {
+    pub fn rarity(&self) -> Rarity {
+        match self {
+            Self::Item { item, .. } => item.discriminant().rarity(),
+            Self::Upgrade { upgrade, .. } => upgrade.discriminant().rarity(),
+            Self::CardService { card_service, .. } => {
+                CardServiceDiscriminants::from(card_service).rarity()
+            }
+        }
+    }
+}

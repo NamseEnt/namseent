@@ -32,7 +32,7 @@
 - The scheduler stores an integer accumulator in nanosecond-times-tick units; it does not use a floating-point accumulator.
 - Each frame adds `real_dt * FastForwardMultiplier * 60` to the accumulator and executes zero or more 1-tick steps.
 - At most 32 steps execute in one frame. Backlog is retained for later frames.
-- Backlog is capped at 240 ticks. Time above that cap is discarded intentionally and reported in `ScheduleReport::discarded_units` and `GameState::sim_scheduler_report()`; cumulative discarded units remain available through `GameState::sim_scheduler_discarded_units()`.
+- Backlog is capped at 240 ticks. Time above that cap is discarded intentionally and reported in `ScheduleReport::discarded_units` and `GameState::sim_scheduler_report()`; cumulative discarded units remain available through `GameState::sim_scheduler_discarded_units()`. `ScheduleReport::executed_ticks` counts fixed simulation ticks, not presentation frames.
 - The latest backlog, fractional accumulator, executed-step count, and discarded amount remain observable for diagnostics.
 
 ## Fixed-tick render interpolation
