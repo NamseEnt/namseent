@@ -119,8 +119,7 @@ impl SparkleParticle {
         if self.is_done(now) && self.respawn_count < MAX_RESPAWN_COUNT {
             let mut rng = rand::thread_rng();
             if rng.gen_range(0.0..1.0) < RESPAWN_CHANCE {
-                let new = self.respawn_from(now, &mut rng);
-                crate::game_state::field_particle::spawn_sparkle(new);
+                *self = self.respawn_from(now, &mut rng);
             }
         }
     }
