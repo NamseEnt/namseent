@@ -4,7 +4,6 @@ use crate::game_state::GameState;
 use crate::game_state::effect::{Effect, run_effect};
 use crate::game_state::poker_action::{NextStageOffer, PokerAction};
 use namui::*;
-use rand::thread_rng;
 
 #[derive(Clone, Debug, State)]
 pub struct DifficultyOption {
@@ -46,8 +45,12 @@ pub struct DifficultyChoices {
     pub all_in: DifficultyOption,
 }
 
-pub fn generate_difficulty_choices(stage: usize) -> DifficultyChoices {
-    let mut rng = thread_rng();
+pub fn generate_difficulty_choices(game_state: &mut GameState) -> DifficultyChoices {
+    let stage = game_state.stage;
+    let mut rng = game_state.rng.next_rng(
+        crate::deterministic_rng::domain::DIFFICULTY_OFFER,
+        &[stage as u64],
+    );
 
     let fold = crate::game_state::difficulty::group::action_to_difficulty_option(
         PokerAction::Fold,
@@ -88,7 +91,9 @@ mod tests {
 
     #[test]
     fn generate_difficulty_choices_has_fold_call_raise_all_in() {
-        let choices = generate_difficulty_choices(10);
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        game_state.stage = 10;
+        let choices = generate_difficulty_choices(&mut game_state);
 
         assert_eq!(choices.fold.action, PokerAction::Fold);
         assert_eq!(choices.call.action, PokerAction::Call);
@@ -103,14 +108,15 @@ mod tests {
 
     #[test]
     fn call_option_preconfirms_next_stage_offer() {
-        let choices = generate_difficulty_choices(10);
+        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
+        game_state.stage = 10;
+        let choices = generate_difficulty_choices(&mut game_state);
         let preselected = choices.call.next_stage_offer;
         assert!(matches!(
             preselected,
             NextStageOffer::None | NextStageOffer::Shop | NextStageOffer::TreasureSelection
         ));
 
-        let mut game_state = crate::game_state::effect::tests_support::make_test_state();
         choices.call.apply(&mut game_state);
         // Difficulty option should apply effects without requiring legacy GameState fields.
         assert!(matches!(
@@ -127,40 +133,55 @@ mod tests {
     #[test]
     fn applying_effects_modifies_stage_modifiers() {
         let mut modifiers = StageModifiers::new();
-        let effect = Effect::DecreaseEnemyHealthPercent { percentage: 20.0 };
+        let effect = Effect::DecreaseEnemyHealthPercent {
+            percentage: crate::FixedRatio::from_integer(20),
+        };
         effect.apply_to_stage_modifiers(&mut modifiers);
-        assert!((modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
+        assert_eq!(
+            modifiers.get_enemy_health_multiplier(),
+            crate::FixedRatio::from_raw(1_200_000)
+        );
 
         let effect2 = Effect::DecreaseGoldGainPercent {
-            reduction_percentage: 0.10,
+            reduction_percentage: crate::FixedRatio::from_raw(100_000),
         };
         effect2.apply_to_stage_modifiers(&mut modifiers);
-        assert!((modifiers.get_gold_gain_multiplier() - 0.9).abs() < 0.0001);
+        assert_eq!(
+            modifiers.get_gold_gain_multiplier(),
+            crate::FixedRatio::from_raw(900_000)
+        );
     }
 
     #[test]
     fn applying_option_runs_effects_on_game_state() {
         let mut game_state = crate::game_state::effect::tests_support::make_test_state();
-        game_state.hp = 40.0;
+        game_state.hp = crate::Health::from_integer(40);
         game_state.gold = 0;
 
         let option = DifficultyOption {
             action: PokerAction::Call,
             effects: vec![
-                Effect::Heal { amount: 10.0 },
-                Effect::GainGold {
-                    min_amount: 5.0,
-                    max_amount: 5.0,
+                Effect::Heal {
+                    amount: crate::Health::from_integer(10),
                 },
-                Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
+                Effect::GainGold {
+                    min_amount: 5,
+                    max_amount: 5,
+                },
+                Effect::IncreaseEnemyHealthPercent {
+                    percentage: crate::FixedRatio::from_integer(20),
+                },
             ],
             next_stage_offer: NextStageOffer::None,
         };
 
         option.apply(&mut game_state);
 
-        assert!((game_state.hp - 50.0).abs() < 0.0001);
+        assert_eq!(game_state.hp, crate::Health::from_integer(50));
         assert_eq!(game_state.gold, 5);
-        assert!((game_state.stage_modifiers.get_enemy_health_multiplier() - 1.2).abs() < 0.0001);
+        assert_eq!(
+            game_state.stage_modifiers.get_enemy_health_multiplier(),
+            crate::FixedRatio::from_raw(1_200_000)
+        );
     }
 }

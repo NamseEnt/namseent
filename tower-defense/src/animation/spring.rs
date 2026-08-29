@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use namui::*;
 use std::ops::{Add, Mul, Sub};
 
@@ -27,7 +28,7 @@ where
     T: Copy + PartialEq + std::fmt::Debug + Send + Sync + 'static + State,
     T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>,
 {
-    let now = Instant::now();
+    let now = PresentationInstant::capture();
     let (context, set_context) = ctx.state(|| SpringAnimationContext {
         last_tick_at: now,
         velocity: zero(),
@@ -86,7 +87,7 @@ where
 
 #[derive(State)]
 struct SpringAnimationContext<T: std::fmt::Debug + State> {
-    last_tick_at: Instant,
+    last_tick_at: PresentationInstant,
     velocity: T,
     position: T,
 }

@@ -4,12 +4,12 @@ use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct BreadItem {
-    pub heal_amount: f32,
-    pub shield_amount: f32,
+    pub heal_amount: crate::Health,
+    pub shield_amount: crate::Shield,
 }
 
 impl BreadItem {
-    pub fn new(heal_amount: f32, shield_amount: f32) -> Self {
+    pub fn new(heal_amount: crate::Health, shield_amount: crate::Shield) -> Self {
         Self {
             heal_amount,
             shield_amount,
@@ -17,7 +17,10 @@ impl BreadItem {
     }
 
     pub fn standard() -> Self {
-        Self::new(6.0, 6.0)
+        Self::new(
+            crate::Health::from_integer(6),
+            crate::Shield::from_integer(6),
+        )
     }
 
     pub fn into_item(self) -> Item {
@@ -133,11 +136,14 @@ mod tests {
     fn using_bread_heals_six_health_and_gains_six_shield() {
         let mut game_state = crate::game_state::create_initial_game_state();
         let max_hp = game_state.max_hp();
-        game_state.hp = max_hp - 10.0;
+        game_state.hp = max_hp.saturating_sub(crate::Health::from_integer(10));
 
         BreadItem::standard().use_item(&mut game_state);
 
-        assert_eq!(game_state.hp, max_hp - 4.0);
-        assert_eq!(game_state.shield, 6.0);
+        assert_eq!(
+            game_state.hp,
+            max_hp.saturating_sub(crate::Health::from_integer(4))
+        );
+        assert_eq!(game_state.shield, crate::Shield::from_integer(6));
     }
 }

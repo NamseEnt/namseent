@@ -1,7 +1,7 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const CARROT_HP_PLUS: f32 = 6.0;
+const CARROT_HP_PLUS: HealthDelta = HealthDelta::from_integer(6);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct CarrotUpgrade;
@@ -23,7 +23,7 @@ impl UpgradeBehavior for CarrotUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         CARROT_HP_PLUS
     }
 

@@ -4,7 +4,6 @@ use crate::{
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
-        set_modal,
     },
 };
 
@@ -60,7 +59,7 @@ impl CardServiceBehavior for CactusCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),
@@ -131,7 +130,7 @@ impl CardServiceBehavior for CactusCardService {
             .filter(|card| card.engraving().is_none())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)
@@ -161,8 +160,8 @@ mod tests {
         assert_eq!(
             Engraving::Cactus.tower_modifier().on_attack_splashes,
             vec![crate::card::EngravingSplash {
-                radius: 2.0,
-                damage_pct: 0.3,
+                radius: crate::WorldDistance::from_tiles(2),
+                damage_pct: crate::FixedRatio::from_raw(300_000),
             }]
         );
     }

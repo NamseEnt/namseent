@@ -4,12 +4,12 @@ use crate::l10n::word::Word;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct RiceBallItem {
-    pub heal_amount: f32,
-    pub shield_amount: f32,
+    pub heal_amount: crate::Health,
+    pub shield_amount: crate::Shield,
 }
 
 impl RiceBallItem {
-    pub fn new(heal_amount: f32, shield_amount: f32) -> Self {
+    pub fn new(heal_amount: crate::Health, shield_amount: crate::Shield) -> Self {
         Self {
             heal_amount,
             shield_amount,
@@ -17,7 +17,10 @@ impl RiceBallItem {
     }
 
     pub fn standard() -> Self {
-        Self::new(3.0, 3.0)
+        Self::new(
+            crate::Health::from_integer(3),
+            crate::Shield::from_integer(3),
+        )
     }
 
     pub fn into_item(self) -> Item {
@@ -132,11 +135,14 @@ mod tests {
     fn using_rice_ball_heals_three_health_and_gains_three_shield() {
         let mut game_state = crate::game_state::create_initial_game_state();
         let max_hp = game_state.max_hp();
-        game_state.hp = max_hp - 10.0;
+        game_state.hp = max_hp.saturating_sub(crate::Health::from_integer(10));
 
         RiceBallItem::standard().use_item(&mut game_state);
 
-        assert_eq!(game_state.hp, max_hp - 7.0);
-        assert_eq!(game_state.shield, 3.0);
+        assert_eq!(
+            game_state.hp,
+            max_hp.saturating_sub(crate::Health::from_integer(7))
+        );
+        assert_eq!(game_state.shield, crate::Shield::from_integer(3));
     }
 }

@@ -8,11 +8,13 @@ mod state;
 mod volume;
 
 pub use asset::{
-    random_cloth_footstep, random_coin_sounds, random_crackling_fire, random_fail,
-    random_flamethrower, random_knife_slash, random_luggage_drop, random_murchunga,
-    random_orch_hit, random_paper_crumpling, random_pick_up_cards, random_pickaxe,
-    random_red_laser_shot, random_shining_ringing, random_small_button, random_smoke_bomb,
-    random_trumpet_fanfares, random_whoop, random_whoosh, random_wind,
+    deterministic_flamethrower, deterministic_knife_slash, deterministic_red_laser_shot,
+    deterministic_smoke_bomb, deterministic_whoop, deterministic_wind, random_cloth_footstep,
+    random_coin_sounds, random_crackling_fire, random_fail, random_flamethrower,
+    random_knife_slash, random_luggage_drop, random_murchunga, random_orch_hit,
+    random_paper_crumpling, random_pick_up_cards, random_pickaxe, random_red_laser_shot,
+    random_shining_ringing, random_small_button, random_smoke_bomb, random_trumpet_fanfares,
+    random_whoop, random_whoosh, random_wind,
 };
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
 pub use coin::play_coin_sound_for_gold;

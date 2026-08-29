@@ -1,33 +1,34 @@
-use super::*;
-use rand::{Rng, thread_rng};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use crate::{
+    FixedRatio, MonsterId, WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec,
+};
+use namui::*;
 
-const PROJECTILE_ROTATION_SPEED_DEG_RANGE: std::ops::RangeInclusive<f32> = -720.0..=720.0;
-
-#[derive(Debug, Clone, Copy, PartialEq, State)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum ProjectileBehavior {
     Direct,
     Homing {
-        velocity: Xy<f32>,
-        acceleration: f32,
-        turn_rate: f32,
-        max_speed: f32,
+        velocity: WorldVec,
+        acceleration: WorldAcceleration,
+        turn_rate: FixedRatio,
+        max_speed: WorldSpeed,
+        acceleration_remainder: i64,
+        turn_remainder: i64,
     },
 }
 
-pub(crate) const HOMING_INITIAL_SPEED_MIN_TILE: f32 = 24.0;
-pub(crate) const HOMING_INITIAL_SPEED_MAX_TILE: f32 = 32.0;
-pub(crate) const HOMING_MAX_SPEED_TILE: f32 = 36.0;
-pub(crate) const HOMING_ACCELERATION_TILE: f32 = 1024.0;
-pub(crate) const HOMING_TURN_RATE_MIN_TILE: f32 = 2.0;
-pub(crate) const HOMING_TURN_RATE_MAX_TILE: f32 = 8.0;
-pub(crate) const HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE: f32 = 4.0;
-pub(crate) const HOMING_DIRECT_ACCELERATION_MULTIPLIER: f32 = 0.1;
-
-pub(crate) fn random_rotation_speed() -> Angle {
-    let degrees_per_sec = thread_rng().gen_range(PROJECTILE_ROTATION_SPEED_DEG_RANGE);
-    degrees_per_sec.deg()
-}
+pub(crate) const HOMING_INITIAL_SPEED_MIN: WorldSpeed =
+    WorldSpeed::from_raw(24 * crate::world::WORLD_UNITS_PER_TILE);
+pub(crate) const HOMING_INITIAL_SPEED_MAX: WorldSpeed =
+    WorldSpeed::from_raw(32 * crate::world::WORLD_UNITS_PER_TILE);
+pub(crate) const HOMING_MAX_SPEED: WorldSpeed =
+    WorldSpeed::from_raw(36 * crate::world::WORLD_UNITS_PER_TILE);
+pub(crate) const HOMING_ACCELERATION: WorldAcceleration =
+    WorldAcceleration::from_raw(1024 * crate::world::WORLD_UNITS_PER_TILE);
+pub(crate) const HOMING_TURN_RATE_MIN: FixedRatio = FixedRatio::from_raw(2_000_000);
+pub(crate) const HOMING_TURN_RATE_MAX: FixedRatio = FixedRatio::from_raw(8_000_000);
+pub(crate) const HOMING_SWITCH_TO_DIRECT_DISTANCE: WorldDistance = WorldDistance::from_tiles(4);
+pub(crate) const HOMING_DIRECT_ACCELERATION_MULTIPLIER: FixedRatio = FixedRatio::from_raw(100_000);
+pub(crate) const PROJECTILE_COLLISION_RADIUS: WorldDistance = WorldDistance::from_raw(100_000);
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub enum ProjectileKind {
@@ -44,48 +45,36 @@ pub enum ProjectileKind {
     Heart00,
 }
 impl ProjectileKind {
-    pub fn random_trash() -> Self {
-        match thread_rng().gen_range(0..4) {
-            0 => ProjectileKind::Trash01,
-            1 => ProjectileKind::Trash02,
-            2 => ProjectileKind::Trash03,
-            3 => ProjectileKind::Trash04,
-            _ => unreachable!(),
+    pub fn deterministic_trash(key: u64) -> Self {
+        match key % 4 {
+            0 => Self::Trash01,
+            1 => Self::Trash02,
+            2 => Self::Trash03,
+            _ => Self::Trash04,
         }
     }
-
-    pub fn random_girl() -> Self {
-        match thread_rng().gen_range(0..5) {
-            0 => ProjectileKind::Girl00,
-            1 => ProjectileKind::Girl01,
-            2 => ProjectileKind::Girl02,
-            3 => ProjectileKind::Girl03,
-            4 => ProjectileKind::Girl04,
-            _ => unreachable!(),
+    pub fn deterministic_girl(key: u64) -> Self {
+        match key % 5 {
+            0 => Self::Girl00,
+            1 => Self::Girl01,
+            2 => Self::Girl02,
+            3 => Self::Girl03,
+            _ => Self::Girl04,
         }
     }
-
-    pub fn random_cards() -> Self {
-        ProjectileKind::Cards00
-    }
-
-    pub fn random_heart() -> Self {
-        ProjectileKind::Heart00
-    }
-
     pub fn image(&self) -> Image {
         match self {
-            ProjectileKind::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
-            ProjectileKind::Trash02 => crate::asset::image::attack::projectile::TRASH_02,
-            ProjectileKind::Trash03 => crate::asset::image::attack::projectile::TRASH_03,
-            ProjectileKind::Trash04 => crate::asset::image::attack::projectile::TRASH_04,
-            ProjectileKind::Girl00 => crate::asset::image::attack::projectile::GIRL_00,
-            ProjectileKind::Girl01 => crate::asset::image::attack::projectile::GIRL_01,
-            ProjectileKind::Girl02 => crate::asset::image::attack::projectile::GIRL_02,
-            ProjectileKind::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
-            ProjectileKind::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
-            ProjectileKind::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
-            ProjectileKind::Heart00 => crate::asset::image::attack::projectile::HEART_00,
+            Self::Trash01 => crate::asset::image::attack::projectile::TRASH_01,
+            Self::Trash02 => crate::asset::image::attack::projectile::TRASH_02,
+            Self::Trash03 => crate::asset::image::attack::projectile::TRASH_03,
+            Self::Trash04 => crate::asset::image::attack::projectile::TRASH_04,
+            Self::Girl00 => crate::asset::image::attack::projectile::GIRL_00,
+            Self::Girl01 => crate::asset::image::attack::projectile::GIRL_01,
+            Self::Girl02 => crate::asset::image::attack::projectile::GIRL_02,
+            Self::Girl03 => crate::asset::image::attack::projectile::GIRL_03,
+            Self::Girl04 => crate::asset::image::attack::projectile::GIRL_04,
+            Self::Cards00 => crate::asset::image::attack::projectile::CARDS_00,
+            Self::Heart00 => crate::asset::image::attack::projectile::HEART_00,
         }
     }
 }
@@ -101,12 +90,10 @@ pub enum ProjectileTrail {
 }
 
 impl ProjectileTrail {
-    /// 투사체가 명중할 때 재생할 사운드 함수. 없으면 None.
-    /// Trail 타입이 자신의 사운드 책임을 소유함으로써 처리 루프의 하드코딩을 제거.
     pub fn hit_sound(self) -> Option<fn() -> namui::AudioAsset> {
         match self {
-            Self::Burning => Some(crate::sound::random_flamethrower),
-            Self::LightningSparkle => Some(crate::sound::random_smoke_bomb),
+            Self::Burning => Some(crate::sound::deterministic_flamethrower),
+            Self::LightningSparkle => Some(crate::sound::deterministic_smoke_bomb),
             _ => None,
         }
     }
@@ -114,20 +101,43 @@ impl ProjectileTrail {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, State)]
 pub struct ProjectileTargetIndicator {
-    id: usize,
+    id: MonsterId,
 }
-
-impl Default for ProjectileTargetIndicator {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ProjectileTargetIndicator {
-    pub fn new() -> Self {
-        static ID: AtomicUsize = AtomicUsize::new(0);
-        Self {
-            id: ID.fetch_add(1, Ordering::Relaxed),
-        }
+    pub const fn from_id(id: MonsterId) -> Self {
+        Self { id }
     }
+    pub const fn id(self) -> MonsterId {
+        self.id
+    }
+}
+
+pub(crate) fn homing_speed_for_key(key: u64) -> WorldSpeed {
+    let span = HOMING_INITIAL_SPEED_MAX.raw() - HOMING_INITIAL_SPEED_MIN.raw();
+    WorldSpeed::from_raw(HOMING_INITIAL_SPEED_MIN.raw() + (key % (span as u64 + 1)) as i64)
+}
+pub(crate) fn homing_turn_rate_for_key(key: u64) -> FixedRatio {
+    let span = HOMING_TURN_RATE_MAX.raw() - HOMING_TURN_RATE_MIN.raw();
+    FixedRatio::from_raw(HOMING_TURN_RATE_MIN.raw() + (key % (span as u64 + 1)) as i64)
+}
+
+pub(crate) fn move_direct(
+    position: &mut WorldCoord,
+    velocity: &mut WorldVec,
+    movement_remainder: &mut i64,
+    target: WorldCoord,
+    speed: WorldSpeed,
+) {
+    let direction = target - *position;
+    let distance = direction.length();
+    let numerator = speed.raw() as i128 + *movement_remainder as i128;
+    let step = (numerator / crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+    *movement_remainder = (numerator % crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+    if distance.is_zero() || step >= distance.raw() {
+        *position = target;
+        *velocity = WorldVec::ZERO;
+        return;
+    }
+    *velocity = direction.scaled_by_distance(WorldDistance::from_raw(speed.raw()), distance);
+    *position += direction.scaled_by_distance(WorldDistance::from_raw(step), distance);
 }

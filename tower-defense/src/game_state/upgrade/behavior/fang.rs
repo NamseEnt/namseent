@@ -41,7 +41,10 @@ impl UpgradeBehavior for FangUpgrade {
     }
 
     fn on_monster_death(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
-        game_state.hp = (game_state.hp + self.add as f32).min(game_state.max_hp());
+        game_state.hp = game_state
+            .hp
+            .saturating_add(crate::Health::from_usize(self.add))
+            .min(game_state.max_hp());
         UpgradeUpdateFlags::NONE
     }
 
@@ -99,7 +102,7 @@ mod tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.hp = 10.0;
+        game_state.hp = crate::Health::from_integer(10);
 
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             crate::game_state::upgrade::FangUpgrade::into_upgrade(),
@@ -112,14 +115,25 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(&template, game_state.route.clone(), game_state.now(), 1.0);
-        let target_xy = target.center_xy_tile();
-        let now = game_state.now();
+        let target = Monster::new_with_id(
+            &template,
+            game_state.route.clone(),
+            game_state.sim_tick(),
+            &crate::RatioProduct::one(),
+            crate::MonsterId::from_entity_id(game_state.allocate_entity_id()),
+        );
+        let target_xy = target.center_world_xy();
+        let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);
-        tick::monster_death::handle_monster_death(&mut game_state, 0, target_xy, now);
+        tick::monster_death::handle_monster_death(
+            &mut game_state,
+            0,
+            target_xy,
+            presentation_instant,
+        );
 
-        assert!((game_state.hp - 11.0).abs() < f32::EPSILON);
+        assert_eq!(game_state.hp, crate::Health::from_integer(11));
     }
 
     #[test]
@@ -140,13 +154,24 @@ mod tests {
             .front()
             .expect("expected at least one monster template in stage 1")
             .clone();
-        let target = Monster::new(&template, game_state.route.clone(), game_state.now(), 1.0);
-        let target_xy = target.center_xy_tile();
-        let now = game_state.now();
+        let target = Monster::new_with_id(
+            &template,
+            game_state.route.clone(),
+            game_state.sim_tick(),
+            &crate::RatioProduct::one(),
+            crate::MonsterId::from_entity_id(game_state.allocate_entity_id()),
+        );
+        let target_xy = target.center_world_xy();
+        let presentation_instant = crate::PresentationInstant::capture();
 
         game_state.monsters.push(target);
-        tick::monster_death::handle_monster_death(&mut game_state, 0, target_xy, now);
+        tick::monster_death::handle_monster_death(
+            &mut game_state,
+            0,
+            target_xy,
+            presentation_instant,
+        );
 
-        assert!((game_state.hp - game_state.max_hp()).abs() < f32::EPSILON);
+        assert_eq!(game_state.hp, game_state.max_hp());
     }
 }

@@ -3,10 +3,10 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PopcornUpgrade {
-    pub max_multiplier: f32,
+    pub max_multiplier: FixedRatio,
     pub duration: usize,
     pub waves_remaining: usize,
-    pub active_stage_damage_bonus: f32,
+    pub active_stage_damage_bonus: FixedRatio,
 }
 
 impl UpgradeBehavior for PopcornUpgrade {
@@ -22,17 +22,17 @@ impl UpgradeBehavior for PopcornUpgrade {
         &self,
         _game_state: &GameState,
     ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
-        if self.active_stage_damage_bonus <= 0.0 {
+        if self.active_stage_damage_bonus.is_zero() {
             return Vec::new();
         }
         vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
-            format!("{:.0}%", self.active_stage_damage_bonus * 100.0),
+            format!("{:.0}%", self.active_stage_damage_bonus.as_f32() * 100.0),
             crate::theme::palette::RED,
         )]
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
-        if self.active_stage_damage_bonus > 0.0 {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
+        if !self.active_stage_damage_bonus.is_zero() {
             Some((TowerUpgradeTarget::Global, self.active_stage_damage_bonus))
         } else {
             None
@@ -40,18 +40,30 @@ impl UpgradeBehavior for PopcornUpgrade {
     }
 
     fn on_stage_start(&mut self, _game_state: &mut GameState, _stage: usize) -> UpgradeUpdateFlags {
-        self.active_stage_damage_bonus = 0.0;
+        self.active_stage_damage_bonus = FixedRatio::ZERO;
         if self.waves_remaining > 0 {
             let duration = self.duration.max(1);
             let elapsed = duration.saturating_sub(self.waves_remaining);
             let popcorn_multiplier = if duration <= 1 {
                 self.max_multiplier
             } else {
-                let step = (self.max_multiplier - 1.0) / (duration - 1) as f32;
-                (self.max_multiplier - step * elapsed as f32).max(1.0)
+                let step = self
+                    .max_multiplier
+                    .saturating_sub(FixedRatio::ONE)
+                    .div_usize(duration - 1);
+                FixedRatio::from_raw(
+                    self.max_multiplier
+                        .raw()
+                        .saturating_sub(step.saturating_mul_usize(elapsed).raw())
+                        .max(FixedRatio::ONE.raw()),
+                )
             };
 
-            self.active_stage_damage_bonus = popcorn_multiplier - 1.0;
+            self.active_stage_damage_bonus = FixedRatio::from_raw(
+                popcorn_multiplier
+                    .raw()
+                    .saturating_sub(FixedRatio::ONE.raw()),
+            );
             self.waves_remaining -= 1;
             UpgradeUpdateFlags::TOWER_STATS
         } else {
@@ -88,14 +100,20 @@ impl UpgradeBehavior for PopcornUpgrade {
                     .static_text("For ")
                     .text(self.duration.to_string())
                     .static_text(" stages, all tower")
-                    .with_bold(format!("damage +{:.0}%", self.max_multiplier * 100.0))
+                    .with_bold(format!(
+                        "damage +{:.0}%",
+                        self.max_multiplier.as_f32() * 100.0
+                    ))
                     .static_text(", decreasing each stage");
             }
             crate::l10n::locale::Language::Korean => {
                 builder
                     .text(self.duration.to_string())
                     .static_text("스테이지 동안 모든 타워 ")
-                    .with_bold(format!("데미지 +{:.0}%", self.max_multiplier * 100.0))
+                    .with_bold(format!(
+                        "데미지 +{:.0}%",
+                        self.max_multiplier.as_f32() * 100.0
+                    ))
                     .static_text(", 스테이지가 지날수록 감소합니다");
             }
         }
@@ -103,12 +121,16 @@ impl UpgradeBehavior for PopcornUpgrade {
 }
 
 impl PopcornUpgrade {
-    pub fn into_upgrade(max_multiplier: f32, duration: usize, waves_remaining: usize) -> Upgrade {
+    pub fn into_upgrade(
+        max_multiplier: FixedRatio,
+        duration: usize,
+        waves_remaining: usize,
+    ) -> Upgrade {
         Upgrade::Popcorn(PopcornUpgrade {
             max_multiplier,
             duration,
             waves_remaining,
-            active_stage_damage_bonus: 0.0,
+            active_stage_damage_bonus: FixedRatio::ZERO,
         })
     }
 }
@@ -120,7 +142,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    PopcornUpgrade::into_upgrade(5.0, 5, 5)
+    PopcornUpgrade::into_upgrade(FixedRatio::from_integer(5), 5, 5)
 }
 #[cfg(test)]
 mod tests {
@@ -135,7 +157,11 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(5.0, 5, 5),
+            crate::game_state::upgrade::PopcornUpgrade::into_upgrade(
+                crate::FixedRatio::from_integer(5),
+                5,
+                5,
+            ),
             None,
         ));
         game_state.action(crate::game_state::GameStateAction::StartStage { stage: 1 });
@@ -149,7 +175,7 @@ mod tests {
         let tower = Tower::new(
             &tower_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(tower),

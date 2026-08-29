@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use namui::*;
 
 const RAY_SHARPNESS: f32 = 10.0;
@@ -6,7 +7,7 @@ const THICK_BASE_SHARPNESS: f32 = 0.1;
 
 #[derive(Debug, Clone, Copy, State)]
 struct HaloState {
-    last_time: Instant,
+    last_time: PresentationInstant,
     rotation: f32,
 }
 
@@ -33,7 +34,7 @@ pub struct Halo {
 
 impl Component for Halo {
     fn render(self, ctx: &RenderCtx) {
-        let now = Instant::now();
+        let now = PresentationInstant::capture();
         let (state_sig, set_state) = ctx.state(|| HaloState {
             last_time: now,
             rotation: 0.0,

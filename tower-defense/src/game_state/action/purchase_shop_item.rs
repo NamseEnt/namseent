@@ -1,8 +1,8 @@
+use crate::PresentationInstant;
 use crate::game_state::action::upgrade_trigger::UpgradeTriggerEvent;
 use crate::game_state::card_service::CardServiceBehavior;
 use crate::game_state::*;
 use crate::shop::ShopSlot;
-use namui::Instant;
 
 pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::ShopSlotId) -> bool {
     if !game_state.shop_purchase_status(slot_id).is_available() {
@@ -54,7 +54,7 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
 
             let item = item.clone();
             slot_data.purchased = true;
-            slot_data.start_exit_animation(Instant::now());
+            slot_data.start_exit_animation(PresentationInstant::capture());
             game_state.items.push(item.clone().with_unique_id());
             game_state.handle_upgrade_trigger(UpgradeTriggerEvent::ItemBought);
             game_state.record_event(
@@ -86,7 +86,7 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             let upgrade_value = *upgrade;
 
             slot_data.purchased = true;
-            slot_data.start_exit_animation(Instant::now());
+            slot_data.start_exit_animation(PresentationInstant::capture());
             game_state.action(GameStateAction::SpendGold(cost_value));
             game_state.action(GameStateAction::Upgrade(upgrade_value, Some(cost_value)));
         }
@@ -111,7 +111,7 @@ pub(super) fn try_purchase(game_state: &mut GameState, slot_id: crate::shop::Sho
             let card_service_value = card_service.clone();
 
             slot_data.purchased = true;
-            slot_data.start_exit_animation(Instant::now());
+            slot_data.start_exit_animation(PresentationInstant::capture());
             game_state.record_event(
                 crate::game_state::play_history::HistoryEventType::CardServicePurchased {
                     service_kind: card_service_value.key().to_string(),

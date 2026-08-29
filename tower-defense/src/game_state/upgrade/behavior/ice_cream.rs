@@ -3,7 +3,7 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct IceCreamUpgrade {
-    pub damage_bonus_pct: f32,
+    pub damage_bonus_pct: FixedRatio,
     pub waves_remaining: usize,
 }
 
@@ -24,7 +24,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
             return Vec::new();
         }
         vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
-            format!("{:.0}%", self.damage_bonus_pct * 100.0),
+            format!("{:.0}%", self.damage_bonus_pct.as_f32() * 100.0),
             crate::theme::palette::RED,
         )]
     }
@@ -45,7 +45,7 @@ impl UpgradeBehavior for IceCreamUpgrade {
         }
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         if self.waves_remaining > 0 {
             Some((TowerUpgradeTarget::Global, self.damage_bonus_pct))
         } else {
@@ -94,7 +94,10 @@ impl UpgradeBehavior for IceCreamUpgrade {
         match locale.language {
             crate::l10n::locale::Language::English => {
                 builder
-                    .with_bold(format!("Damage +{:.0}%", self.damage_bonus_pct * 100.0))
+                    .with_bold(format!(
+                        "Damage +{:.0}%",
+                        self.damage_bonus_pct.as_f32() * 100.0
+                    ))
                     .static_text(" for ")
                     .text(self.waves_remaining.to_string())
                     .static_text(" stages");
@@ -103,14 +106,17 @@ impl UpgradeBehavior for IceCreamUpgrade {
                 builder
                     .text(self.waves_remaining.to_string())
                     .static_text("스테이지 동안 모든 타워 ")
-                    .with_bold(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0));
+                    .with_bold(format!(
+                        "데미지 +{:.0}%",
+                        self.damage_bonus_pct.as_f32() * 100.0
+                    ));
             }
         }
     }
 }
 
 impl IceCreamUpgrade {
-    pub fn into_upgrade(damage_bonus_pct: f32, waves_remaining: usize) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: FixedRatio, waves_remaining: usize) -> Upgrade {
         Upgrade::IceCream(IceCreamUpgrade {
             damage_bonus_pct,
             waves_remaining,
@@ -125,7 +131,7 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    IceCreamUpgrade::into_upgrade(3.0, 5)
+    IceCreamUpgrade::into_upgrade(crate::FixedRatio::from_integer(3), 5)
 }
 #[cfg(test)]
 mod tests {
@@ -139,7 +145,10 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
-        let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(2.0, 2);
+        let upgrade = crate::game_state::upgrade::IceCreamUpgrade::into_upgrade(
+            crate::FixedRatio::from_integer(2),
+            2,
+        );
         game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
         let tower_template = TowerTemplate::new(
@@ -150,7 +159,7 @@ mod tests {
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(tower),
@@ -162,11 +171,14 @@ mod tests {
             .iter()
             .next()
             .expect("expected tower placed");
-        let base_damage = placed_tower.calculate_projectile_damage(&[], 1.0);
+        let base_damage = placed_tower.calculate_projectile_damage(&[], crate::FixedRatio::ONE);
         let boosted_damage = placed_tower.cached_upgrade_damage();
 
         assert!(boosted_damage > base_damage);
-        assert!((boosted_damage / base_damage - 3.0).abs() < f32::EPSILON);
+        assert_eq!(
+            boosted_damage.ratio_of(base_damage),
+            crate::FixedRatio::from_integer(3)
+        );
 
         crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
         let first_tower_after_second_wave = game_state
@@ -175,7 +187,10 @@ mod tests {
             .find(|tower| tower.left_top == crate::MapCoord::new(0, 0))
             .expect("expected tower to still exist after first stage");
         let second_boosted_damage = first_tower_after_second_wave.cached_upgrade_damage();
-        assert!((second_boosted_damage / base_damage - 3.0).abs() < f32::EPSILON);
+        assert_eq!(
+            second_boosted_damage.ratio_of(base_damage),
+            crate::FixedRatio::from_integer(3)
+        );
 
         game_state.flow = crate::game_state::GameFlow::Defense(DefenseFlow::new(&game_state));
         crate::game_state::tick::defense_end::check_defense_end(&mut game_state);
@@ -187,6 +202,6 @@ mod tests {
             .expect("expected tower to still exist after second stage");
         let expired_damage = expired_tower.cached_upgrade_damage();
 
-        assert!((expired_damage / base_damage - 1.0).abs() < f32::EPSILON);
+        assert_eq!(expired_damage.ratio_of(base_damage), crate::FixedRatio::ONE);
     }
 }

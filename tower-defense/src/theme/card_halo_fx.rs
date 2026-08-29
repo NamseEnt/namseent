@@ -1,9 +1,10 @@
 use super::palette;
+use crate::PresentationInstant;
 use namui::*;
 
 #[derive(Debug, Clone, Copy, State)]
 struct CardHaloFxState {
-    last_time: Instant,
+    last_time: PresentationInstant,
     elapsed_seconds: f32,
 }
 
@@ -17,7 +18,7 @@ pub struct CardHaloFx {
 
 impl Component for CardHaloFx {
     fn render(self, ctx: &RenderCtx) {
-        let now = Instant::now();
+        let now = PresentationInstant::capture();
         let (state_sig, set_state) = ctx.state(|| CardHaloFxState {
             last_time: now,
             elapsed_seconds: 0.0,

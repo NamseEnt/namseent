@@ -11,7 +11,7 @@ pub(super) fn prepare_tower_stats(tower: &mut Tower, upgrade_state: &UpgradeStat
         &upgrade_state.tower_upgrade_damage_bonuses(),
     );
 }
-pub(super) fn place_tower(game_state: &mut GameState, tower: &Tower) -> bool {
+pub(super) fn place_tower(game_state: &mut GameState, tower: &mut Tower) -> bool {
     game_state.towers.place_tower(tower.clone())
 }
 

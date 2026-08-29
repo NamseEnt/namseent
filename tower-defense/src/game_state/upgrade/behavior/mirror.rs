@@ -79,7 +79,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(1.0),
+            crate::game_state::upgrade::NameTagUpgrade::into_upgrade(crate::FixedRatio::ONE),
             None,
         ));
         game_state.action(crate::game_state::GameStateAction::Upgrade(
@@ -109,7 +109,7 @@ mod tests {
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(tower),
@@ -132,7 +132,7 @@ mod tests {
         );
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::NameTag(upgrade) = &upgrade.upgrade {
-                (upgrade.damage_bonus_pct - 1.0).abs() < f32::EPSILON
+                upgrade.damage_bonus_pct == crate::FixedRatio::ONE
             } else {
                 false
             }
@@ -143,8 +143,11 @@ mod tests {
             .iter()
             .next()
             .expect("expected tower placed");
-        let base_damage = placed_tower.calculate_projectile_damage(&[], 1.0);
+        let base_damage = placed_tower.calculate_projectile_damage(&[], crate::FixedRatio::ONE);
         let boosted_damage = placed_tower.cached_upgrade_damage();
-        assert!((boosted_damage / base_damage - 2.0).abs() < f32::EPSILON);
+        assert_eq!(
+            boosted_damage.ratio_of(base_damage),
+            crate::FixedRatio::from_integer(2)
+        );
     }
 }

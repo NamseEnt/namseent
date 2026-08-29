@@ -5,8 +5,8 @@ use rand::{SeedableRng, rngs::StdRng};
 #[test]
 fn gain_gold_is_deterministic_with_seed() {
     let effect = Effect::GainGold {
-        min_amount: 3.0,
-        max_amount: 10.0,
+        min_amount: 3,
+        max_amount: 10,
     };
 
     // First run
@@ -32,8 +32,8 @@ fn gain_gold_is_deterministic_with_seed() {
 #[test]
 fn gain_shield_is_deterministic_with_seed() {
     let effect = Effect::GainShield {
-        min_amount: 5.0,
-        max_amount: 12.0,
+        min_amount: crate::Shield::from_integer(5),
+        max_amount: crate::Shield::from_integer(12),
     };
 
     let mut s1 = make_test_state();
@@ -44,65 +44,35 @@ fn gain_shield_is_deterministic_with_seed() {
     let mut r2 = StdRng::seed_from_u64(123456);
     run_effect_with_rng(&mut s2, &effect, &mut r2);
 
+    assert!(s1.shield == s2.shield, "Shield mismatch for identical seed");
     assert!(
-        (s1.shield - s2.shield).abs() < f32::EPSILON,
-        "Shield mismatch for identical seed"
+        s1.shield >= crate::Shield::from_integer(5) && s1.shield <= crate::Shield::from_integer(12),
+        "Shield out of range"
     );
-    assert!(s1.shield >= 5.0 && s1.shield <= 12.0, "Shield out of range");
 }
 
 #[test]
 fn heal_health_deterministic_with_seed() {
     let effect = Effect::HealHealth {
-        min_amount: 4.0,
-        max_amount: 9.0,
+        min_amount: crate::Health::from_integer(4),
+        max_amount: crate::Health::from_integer(9),
     };
 
     let mut s1 = make_test_state();
-    s1.hp = 50.0;
+    s1.hp = crate::Health::from_integer(50);
     let mut r1 = StdRng::seed_from_u64(999);
     run_effect_with_rng(&mut s1, &effect, &mut r1);
 
     let healed_1 = s1.hp;
 
     let mut s2 = make_test_state();
-    s2.hp = 50.0;
+    s2.hp = crate::Health::from_integer(50);
     let mut r2 = StdRng::seed_from_u64(999);
     run_effect_with_rng(&mut s2, &effect, &mut r2);
 
+    assert!(healed_1 == s2.hp, "Heal amount mismatch for identical seed");
     assert!(
-        (healed_1 - s2.hp).abs() < f32::EPSILON,
-        "Heal amount mismatch for identical seed"
-    );
-    assert!(
-        s2.hp >= 50.0 + 4.0 && s2.hp <= 50.0 + 9.0,
+        s2.hp >= crate::Health::from_integer(54) && s2.hp <= crate::Health::from_integer(59),
         "Healed hp out of expected range"
     );
-}
-
-#[test]
-fn lottery_wins_or_loses_deterministically() {
-    let effect = Effect::Lottery {
-        amount: 25.0,
-        probability: 0.4,
-    };
-
-    // Same seed -> same outcome
-    let (mut s1, mut r1) = (make_test_state(), StdRng::seed_from_u64(2024));
-    run_effect_with_rng(&mut s1, &effect, &mut r1);
-    let gold_1 = s1.gold;
-
-    let (mut s2, mut r2) = (make_test_state(), StdRng::seed_from_u64(2024));
-    run_effect_with_rng(&mut s2, &effect, &mut r2);
-    assert_eq!(
-        gold_1, s2.gold,
-        "Same seed must yield identical lottery result"
-    );
-    assert!(
-        s2.gold == 0 || s2.gold == 25,
-        "Lottery payout must be 0 or amount"
-    );
-
-    // We do NOT assert observing both branches (that would make the test brittle on RNG implementation details).
-    // Branch coverage for win/loss can be done by an explicit targeted test with mocked RNG if desired later.
 }

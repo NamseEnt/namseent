@@ -1,32 +1,33 @@
 use super::*;
+use crate::{SimTick, SimTickSpan, WorldDistance};
 use std::ops::Deref;
 
 #[derive(Debug, Clone, Copy, PartialEq, State)]
 pub struct TowerSkillTemplate {
     pub kind: TowerSkillKind,
-    pub cooldown: Duration,
-    pub duration: Duration,
+    pub cooldown: SimTickSpan,
+    pub duration: SimTickSpan,
 }
 impl TowerSkillTemplate {
     pub fn new_passive(kind: TowerSkillKind) -> Self {
         Self {
             kind,
-            cooldown: Duration::from_secs(1),
-            duration: Duration::from_secs(1),
+            cooldown: SimTickSpan::from_millis_ceil(1_000),
+            duration: SimTickSpan::from_millis_ceil(1_000),
         }
     }
 }
 
-#[derive(Clone, PartialEq, State)]
+#[derive(Debug, Clone, PartialEq, State)]
 pub struct TowerSkill {
-    pub last_used_at: Instant,
+    pub last_used_at: SimTick,
     pub template: TowerSkillTemplate,
 }
 
 impl TowerSkill {
-    pub fn new(template: TowerSkillTemplate, now: Instant) -> Self {
+    pub fn new(template: TowerSkillTemplate, sim_tick: SimTick) -> Self {
         Self {
-            last_used_at: now,
+            last_used_at: sim_tick,
             template,
         }
     }
@@ -42,11 +43,25 @@ impl Deref for TowerSkill {
 
 #[derive(Clone, Copy, PartialEq, Debug, State)]
 pub enum TowerSkillKind {
-    NearbyTowerDamageMul { mul: f32, range_radius: f32 },
-    NearbyTowerDamageAdd { add: f32, range_radius: f32 },
-    NearbyMonsterSpeedMul { mul: f32, range_radius: f32 },
-    MoneyIncomeAdd { add: u32 },
-    TopCardBonus { rank: Rank, bonus_damage: usize },
+    NearbyTowerDamageMul {
+        mul: FixedRatio,
+        range_radius: WorldDistance,
+    },
+    NearbyTowerDamageAdd {
+        add: DamageDelta,
+        range_radius: WorldDistance,
+    },
+    NearbyMonsterSpeedMul {
+        mul: FixedRatio,
+        range_radius: WorldDistance,
+    },
+    MoneyIncomeAdd {
+        add: u32,
+    },
+    TopCardBonus {
+        rank: Rank,
+        bonus_damage: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, State)]
@@ -57,8 +72,8 @@ pub struct TowerStatusEffect {
 
 #[derive(Clone, Copy, Debug, PartialEq, State)]
 pub enum TowerStatusEffectKind {
-    DamageMul { mul: f32 },
-    DamageAdd { add: f32 },
+    DamageMul { mul: FixedRatio },
+    DamageAdd { add: DamageDelta },
 }
 
 impl TowerStatusEffectKind {
@@ -72,11 +87,11 @@ impl TowerStatusEffectKind {
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum TowerStatusEffectEnd {
-    Time { end_at: Instant },
+    Time { end_at: SimTick },
     NeverEnd,
 }
 
-pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Instant) {
+pub fn remove_tower_finished_status_effects(game_state: &mut GameState, sim_tick: SimTick) {
     let upgrade_revision = game_state.upgrade_state.revision;
     let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
@@ -84,7 +99,7 @@ pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Ins
         let mut removed_damage_effect = false;
         tower.status_effects.retain(|e| {
             let keep = match e.end_at {
-                TowerStatusEffectEnd::Time { end_at } => now < end_at,
+                TowerStatusEffectEnd::Time { end_at } => sim_tick < end_at,
                 TowerStatusEffectEnd::NeverEnd => true,
             };
             if !keep && e.kind.affects_damage() {
@@ -99,17 +114,18 @@ pub fn remove_tower_finished_status_effects(game_state: &mut GameState, now: Ins
     }
 }
 
-pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
+pub fn activate_tower_skills(game_state: &mut GameState, sim_tick: SimTick) {
     let mut activated_skills = vec![];
 
     for tower in game_state.towers.iter_mut() {
+        let tower_id = tower.id();
         for skill in tower.skills.iter_mut() {
-            if now < skill.last_used_at + skill.cooldown {
+            if sim_tick < skill.last_used_at + skill.cooldown {
                 continue;
             }
 
-            skill.last_used_at = now;
-            activated_skills.push((tower.id, skill.template));
+            skill.last_used_at = sim_tick;
+            activated_skills.push((tower_id, skill.template));
         }
     }
 
@@ -117,16 +133,18 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
         let caster_xy = game_state
             .towers
             .iter()
-            .find(|m| m.id == tower_id)
+            .find(|m| m.id() == tower_id)
             .unwrap()
-            .center_xy_f32();
+            .center_world_xy();
 
         let upgrade_revision = game_state.upgrade_state.revision;
         let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
 
-        let mut on_nearby_towers = |range_radius: f32, effect: TowerStatusEffect| {
+        let mut on_nearby_towers = |range_radius: WorldDistance, effect: TowerStatusEffect| {
             for tower in game_state.towers.iter_mut() {
-                if caster_xy.distance(tower.center_xy_f32()) <= range_radius {
+                if (caster_xy - tower.center_world_xy()).length_squared()
+                    <= (range_radius.raw() as u128).saturating_mul(range_radius.raw() as u128)
+                {
                     let affects_damage = effect.kind.affects_damage();
                     tower.status_effects.push(effect.clone());
                     if affects_damage {
@@ -136,9 +154,11 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
             }
         };
 
-        let mut on_nearby_monsters = |range_radius: f32, effect: MonsterStatusEffect| {
+        let mut on_nearby_monsters = |range_radius: WorldDistance, effect: MonsterStatusEffect| {
             for monster in game_state.monsters.iter_mut() {
-                if caster_xy.distance(monster.center_xy_tile()) <= range_radius {
+                if (caster_xy - monster.center_world_xy()).length_squared()
+                    <= (range_radius.raw() as u128).saturating_mul(range_radius.raw() as u128)
+                {
                     monster.status_effects.push(effect.clone());
                 }
             }
@@ -151,7 +171,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageMul { mul },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     },
                 );
@@ -162,7 +182,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd { add },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     },
                 );
@@ -172,7 +192,7 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     range_radius,
                     MonsterStatusEffect {
                         kind: MonsterStatusEffectKind::SpeedMul { mul },
-                        end_at: now + skill.duration,
+                        end_at: sim_tick + skill.duration,
                     },
                 );
             }
@@ -182,14 +202,14 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
                     && let Some(tower) = game_state
                         .towers
                         .iter_mut()
-                        .find(|tower| tower.id == tower_id)
+                        .find(|tower| tower.id() == tower_id)
                 {
                     let effect = TowerStatusEffect {
                         kind: TowerStatusEffectKind::DamageAdd {
-                            add: bonus_damage as f32,
+                            add: DamageDelta::from_usize(bonus_damage),
                         },
                         end_at: TowerStatusEffectEnd::Time {
-                            end_at: now + skill.duration,
+                            end_at: sim_tick + skill.duration,
                         },
                     };
                     tower.status_effects.push(effect.clone());
@@ -203,13 +223,14 @@ pub fn activate_tower_skills(game_state: &mut GameState, now: Instant) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{SimTick, SimTickSpan};
 
     use crate::game_state::effect::tests_support::make_test_state;
 
     #[test]
     fn top_card_bonus_activates_damage_add_status_effect() {
         let mut game_state = make_test_state();
-        let now = Instant::now();
+        let now = SimTick::from_ticks(120);
 
         let mut tower = Tower::new(
             &TowerTemplate::new(TowerKind::RubberCone, Suit::Spades, Rank::Ace),
@@ -223,12 +244,13 @@ mod tests {
                     rank: Rank::Ace,
                     bonus_damage: 15,
                 },
-                cooldown: Duration::from_secs(1),
-                duration: Duration::from_secs(1),
+                cooldown: SimTickSpan::from_millis_ceil(1_000),
+                duration: SimTickSpan::from_millis_ceil(1_000),
             },
-            now - Duration::from_secs(2),
+            SimTick::ZERO,
         ));
 
+        tower.assign_id(game_state.allocate_tower_id());
         game_state.towers.place_tower(tower);
         activate_tower_skills(&mut game_state, now);
 
@@ -237,7 +259,7 @@ mod tests {
             matches!(
                 effect.kind,
                 TowerStatusEffectKind::DamageAdd { add }
-                if add == 15.0_f32
+                if add == DamageDelta::from_integer(15)
             )
         }));
     }
@@ -245,7 +267,7 @@ mod tests {
     #[test]
     fn top_card_bonus_updates_cached_upgrade_damage() {
         let mut game_state = make_test_state();
-        let now = Instant::now();
+        let now = SimTick::from_ticks(120);
         let bonus_damage = 15;
 
         let mut tower = Tower::new(
@@ -260,16 +282,20 @@ mod tests {
                     rank: Rank::Ace,
                     bonus_damage,
                 },
-                cooldown: Duration::from_secs(1),
-                duration: Duration::from_secs(1),
+                cooldown: SimTickSpan::from_millis_ceil(1_000),
+                duration: SimTickSpan::from_millis_ceil(1_000),
             },
-            now - Duration::from_secs(2),
+            SimTick::ZERO,
         ));
 
+        tower.assign_id(game_state.allocate_tower_id());
         game_state.towers.place_tower(tower);
         activate_tower_skills(&mut game_state, now);
 
         let tower = game_state.towers.iter().next().expect("tower should exist");
-        assert_eq!(tower.cached_upgrade_damage(), bonus_damage as f32);
+        assert_eq!(
+            tower.cached_upgrade_damage(),
+            Damage::from_usize(bonus_damage)
+        );
     }
 }

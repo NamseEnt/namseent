@@ -2,7 +2,7 @@ use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 const TAPE_WAVE_INTERVAL: usize = 4;
-const TAPE_ENEMY_SPEED_MULTIPLIER: f32 = 0.75;
+const TAPE_ENEMY_SPEED_MULTIPLIER: crate::FixedRatio = crate::FixedRatio::from_raw(750_000);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct TapeUpgrade {
@@ -35,7 +35,7 @@ impl UpgradeBehavior for TapeUpgrade {
                 stage_color,
             ),
             crate::thumbnail::ThumbnailOverlay::right_bottom(
-                format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0),
+                format!("{}%", (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER.as_f32()) * 100.0),
                 crate::theme::palette::BLUE,
             ),
         ]
@@ -84,7 +84,7 @@ impl UpgradeBehavior for TapeUpgrade {
                     .static_text("Slow enemies by ")
                     .with_bold(format!(
                         "-{:.0}%",
-                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER.as_f32()) * 100.0
                     ))
                     .static_text(" every ")
                     .text(TAPE_WAVE_INTERVAL.to_string())
@@ -97,7 +97,7 @@ impl UpgradeBehavior for TapeUpgrade {
                     .static_text("스테이지마다 적 ")
                     .with_bold(format!(
                         "이동속도 -{:.0}%",
-                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER) * 100.0
+                        (1.0 - TAPE_ENEMY_SPEED_MULTIPLIER.as_f32()) * 100.0
                     ));
             }
         }
@@ -137,13 +137,22 @@ mod tests {
             TapeUpgrade::into_upgrade(0),
             None,
         ));
-        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
+        assert_eq!(
+            game_state.stage_modifiers.get_enemy_speed_multiplier(),
+            crate::FixedRatio::ONE
+        );
 
         game_state.action(crate::game_state::GameStateAction::StartStage { stage: 4 });
-        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
+        assert_eq!(
+            game_state.stage_modifiers.get_enemy_speed_multiplier(),
+            crate::FixedRatio::ONE
+        );
 
         game_state.action(crate::game_state::GameStateAction::StartStage { stage: 5 });
-        assert_eq!(game_state.stage_modifiers.get_enemy_speed_multiplier(), 1.0);
+        assert_eq!(
+            game_state.stage_modifiers.get_enemy_speed_multiplier(),
+            crate::FixedRatio::ONE
+        );
 
         game_state.action(crate::game_state::GameStateAction::StartStage { stage: 6 });
         assert_eq!(

@@ -119,7 +119,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
         (slot_id, template)
     };
 
-    let now = gs.now();
+    let sim_tick = gs.sim_tick();
     let mut placed_coords = gs.towers.coords();
     let mut route_coords: Vec<MapCoord> = gs.route.iter_coords().to_vec();
     let mut placed_at: Option<MapCoord> = None;
@@ -149,7 +149,7 @@ pub fn place_selected_tower_in_spiral(gs: &mut GameState) {
                     &route_coords,
                     MAP_SIZE,
                 ) {
-                    let tower = Tower::new(&template, left_top, now);
+                    let tower = Tower::new(&template, left_top, sim_tick);
                     gs.action(crate::game_state::GameStateAction::PlaceTower(
                         Box::new(tower),
                         None,

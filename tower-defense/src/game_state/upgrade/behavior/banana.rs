@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const BANANA_HP_PLUS: f32 = 6.0;
-const BANANA_HEAL_AMOUNT: f32 = 9.0;
+const BANANA_HP_PLUS: HealthDelta = HealthDelta::from_integer(6);
+const BANANA_HEAL_AMOUNT: Health = Health::from_integer(9);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct BananaUpgrade;
@@ -24,7 +24,7 @@ impl UpgradeBehavior for BananaUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         BANANA_HP_PLUS
     }
 

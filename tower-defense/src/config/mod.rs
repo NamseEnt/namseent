@@ -3,10 +3,12 @@ pub mod towers;
 
 use self::monsters::MonsterConfig;
 use self::towers::TowerConfig;
+use crate::Health;
 use anyhow::Context;
 use namui::*;
 
 pub const DEFAULT_BASE_DICE_CHANCE: usize = 3;
+pub const GAME_CONFIG_VERSION: u32 = 1;
 
 const EMBEDDED_GAMECONFIG_TOML: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/gameconfig.toml"));
@@ -20,9 +22,9 @@ pub struct GameConfig {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, State)]
 pub struct PlayerConfig {
-    pub max_hp: f32,
+    pub max_hp: Health,
     pub starting_gold: usize,
-    pub starting_hp: f32,
+    pub starting_hp: Health,
     pub base_dice_chance: usize,
     pub max_stages: usize,
     pub base_hand_slots: usize,
@@ -60,9 +62,10 @@ impl Default for GameConfig {
     }
 }
 
-#[cfg(all(test, feature = "simulator"))]
+#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::MonsterKind;
 
     #[test]
     fn serialize_default_config_deterministically() -> anyhow::Result<()> {
@@ -77,5 +80,24 @@ mod tests {
     fn default_base_dice_chance_matches_config_default() {
         let config = GameConfig::default_config();
         assert_eq!(config.player.base_dice_chance, DEFAULT_BASE_DICE_CHANCE);
+    }
+
+    #[test]
+    fn decimal_config_values_have_stable_fixed_point_raw_values() {
+        let config = GameConfig::default_config();
+        assert_eq!(config.player.max_hp.raw(), 60_000);
+        assert_eq!(config.player.starting_hp.raw(), 60_000);
+        assert_eq!(
+            config.monsters.stats[&MonsterKind::Mob01].base_hp.raw(),
+            67_657
+        );
+        assert_eq!(
+            config.monsters.stats[&MonsterKind::Mob02].base_hp.raw(),
+            80_455
+        );
+        assert_eq!(
+            config.monsters.stats[&MonsterKind::Mob02].damage.raw(),
+            2_000
+        );
     }
 }

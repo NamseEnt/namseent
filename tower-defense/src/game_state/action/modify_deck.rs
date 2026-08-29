@@ -1,13 +1,12 @@
+use crate::FixedRatio;
 use crate::card::{Card, CardId, Engraving, Rank, Suit};
 use crate::game_state::GameState;
 use crate::game_state::card_notification::CardServiceNotification;
-#[cfg(not(feature = "simulator"))]
-use namui::time::now;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub(crate) enum DeckEditChange {
-    AddPolishPct(f32),
+    AddPolishPct(FixedRatio),
     SetSuit(Suit),
     SetRank(Rank),
     SetEngraving(Option<Engraving>),
@@ -80,9 +79,7 @@ pub(super) fn apply(game_state: &mut GameState, edit: DeckEdit) {
         }
     }
     #[cfg(not(feature = "simulator"))]
-    game_state
-        .card_service_notifications
-        .enqueue(now(), notification);
+    game_state.card_service_notifications.enqueue(notification);
 }
 
 #[cfg(test)]
@@ -135,14 +132,14 @@ mod tests {
         DeckEnhance {
             card_id: card.id,
             changes: vec![
-                DeckEditChange::AddPolishPct(0.5),
+                DeckEditChange::AddPolishPct(crate::FixedRatio::from_raw(500_000)),
                 DeckEditChange::SetEngraving(Some(Engraving::Magnet)),
-                DeckEditChange::AddPolishPct(0.25),
+                DeckEditChange::AddPolishPct(crate::FixedRatio::from_raw(250_000)),
             ],
         }
         .apply(&mut card);
 
-        assert_eq!(card.polish_pct(), 0.75);
+        assert_eq!(card.polish_pct(), crate::FixedRatio::from_raw(750_000));
         assert_eq!(card.engraving(), Some(Engraving::Magnet));
     }
 }

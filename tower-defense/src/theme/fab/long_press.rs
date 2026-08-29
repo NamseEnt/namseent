@@ -1,4 +1,5 @@
 use super::{FAB_SIZE, FAB_WIDTH, FabSurface};
+use crate::PresentationInstant;
 use crate::icon::IconKind;
 use crate::sound::{self, EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
 use crate::theme::palette;
@@ -13,11 +14,11 @@ const FAB_LONG_PRESS_INDICATOR_RADIUS: Px = px(84.0);
 
 #[derive(Clone, Copy, State)]
 struct FabLongPressState {
-    press_start_time: Option<Instant>,
+    press_start_time: Option<PresentationInstant>,
     accumulated_seconds: f32,
-    release_time: Option<Instant>,
+    release_time: Option<PresentationInstant>,
     release_duration_seconds: f32,
-    last_sound_time: Option<Instant>,
+    last_sound_time: Option<PresentationInstant>,
     completed: bool,
 }
 
@@ -33,15 +34,15 @@ impl FabLongPressState {
         }
     }
 
-    fn progress(self, now: Instant, duration_seconds: f32) -> f32 {
+    fn progress(self, presentation_instant: PresentationInstant, duration_seconds: f32) -> f32 {
         if self.completed {
             return 1.0;
         }
 
         let seconds = if let Some(start_time) = self.press_start_time {
-            self.accumulated_seconds + (now - start_time).as_secs_f32()
+            self.accumulated_seconds + (presentation_instant - start_time).as_secs_f32()
         } else if let Some(release_time) = self.release_time {
-            let elapsed = (now - release_time).as_secs_f32();
+            let elapsed = (presentation_instant - release_time).as_secs_f32();
             self.accumulated_seconds * (1.0 - elapsed / self.release_duration_seconds.max(0.001))
         } else {
             self.accumulated_seconds
@@ -50,20 +51,22 @@ impl FabLongPressState {
         (seconds / duration_seconds.max(0.001)).clamp(0.0, 1.0)
     }
 
-    fn start_press(&mut self, now: Instant, duration_seconds: f32) {
-        self.accumulated_seconds = self.progress(now, duration_seconds) * duration_seconds;
-        self.press_start_time = Some(now);
+    fn start_press(&mut self, presentation_instant: PresentationInstant, duration_seconds: f32) {
+        self.accumulated_seconds =
+            self.progress(presentation_instant, duration_seconds) * duration_seconds;
+        self.press_start_time = Some(presentation_instant);
         self.release_time = None;
         self.release_duration_seconds = 0.0;
-        self.last_sound_time = Some(now);
+        self.last_sound_time = Some(presentation_instant);
         self.completed = false;
     }
 
-    fn release_press(&mut self, now: Instant, duration_seconds: f32) {
-        self.accumulated_seconds = (self.progress(now, duration_seconds) * duration_seconds)
+    fn release_press(&mut self, presentation_instant: PresentationInstant, duration_seconds: f32) {
+        self.accumulated_seconds = (self.progress(presentation_instant, duration_seconds)
+            * duration_seconds)
             .max(duration_seconds * FAB_LONG_PRESS_MIN_VISIBLE_PROGRESS);
         self.press_start_time = None;
-        self.release_time = Some(now);
+        self.release_time = Some(presentation_instant);
         self.release_duration_seconds = self
             .accumulated_seconds
             .max(FAB_LONG_PRESS_MIN_RELEASE_SECONDS);
@@ -94,7 +97,7 @@ impl Component for FabLongPressButton<'_> {
         } = self;
         let wh = Wh::new(FAB_WIDTH, FAB_SIZE);
         let duration_seconds = duration.as_secs_f32().max(0.001);
-        let now = Instant::now();
+        let presentation_instant = PresentationInstant::capture();
         let (state, set_state) = ctx.state(FabLongPressState::new);
         let mut state_value = *state;
         let has_active_state = state_value.press_start_time.is_some()
@@ -108,7 +111,7 @@ impl Component for FabLongPressButton<'_> {
         let linear_progress = if disabled {
             0.0
         } else {
-            state_value.progress(now, duration_seconds)
+            state_value.progress(presentation_instant, duration_seconds)
         };
 
         if !disabled && state_value.press_start_time.is_some() {
@@ -122,10 +125,10 @@ impl Component for FabLongPressButton<'_> {
                     state_value.accumulated_seconds = duration_seconds;
                     state_value.last_sound_time = None;
                 } else if let Some(last_sound_time) = state_value.last_sound_time {
-                    let elapsed = (now - last_sound_time).as_secs_f32();
+                    let elapsed = (presentation_instant - last_sound_time).as_secs_f32();
                     if elapsed >= fab_long_press_sound_interval(linear_progress) {
                         play_fab_long_press_sound();
-                        state_value.last_sound_time = Some(now);
+                        state_value.last_sound_time = Some(presentation_instant);
                     }
                 }
             }
@@ -206,7 +209,7 @@ impl Component for FabLongPressButton<'_> {
                 Event::MouseDown { event } if event.is_local_xy_in() => {
                     event.stop_propagation();
                     let mut next = *state;
-                    next.start_press(Instant::now(), duration_seconds);
+                    next.start_press(PresentationInstant::capture(), duration_seconds);
                     play_fab_long_press_sound();
                     set_state.set(next);
                 }
@@ -216,7 +219,7 @@ impl Component for FabLongPressButton<'_> {
                         next.reset();
                         set_state.set(next);
                     } else if next.press_start_time.is_some() {
-                        next.release_press(Instant::now(), duration_seconds);
+                        next.release_press(PresentationInstant::capture(), duration_seconds);
                         set_state.set(next);
                     }
                     if event.is_local_xy_in() {

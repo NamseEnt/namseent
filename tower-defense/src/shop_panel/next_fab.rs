@@ -1,4 +1,4 @@
-use crate::game_state::{GameStateAction, mutate_game_state};
+use crate::game_state::{PlayerCommand, mutate_game_state};
 use crate::icon::IconKind;
 use crate::l10n::ui::FabTooltipText;
 use crate::theme::fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton};
@@ -18,7 +18,7 @@ impl Component for ShopNextFab {
                 return;
             }
             mutate_game_state(|game_state| {
-                game_state.action(GameStateAction::StartSelectingTower);
+                let _ = game_state.apply_player_command(PlayerCommand::StartSelectingTower);
             });
         };
 

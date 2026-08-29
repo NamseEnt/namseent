@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use crate::animation::xy_with_spring;
 use crate::game_state::modal::deck::{DeckKind, DeckModal};
 use crate::game_state::{UserModal, set_modal};
@@ -67,9 +68,9 @@ impl Component for DeckPileButton {
             visible,
             count,
         } = self;
-        let (hover_start, set_hover_start) = ctx.state(|| None::<Instant>);
+        let (hover_start, set_hover_start) = ctx.state(|| None::<PresentationInstant>);
         let hover_rotation = if let Some(start) = *hover_start {
-            ((Instant::now() - start).as_secs_f32() * 25.0).sin() * 3.0
+            ((PresentationInstant::capture() - start).as_secs_f32() * 25.0).sin() * 3.0
         } else {
             0.0
         };
@@ -140,7 +141,7 @@ impl Component for DeckPileButton {
             placement: TooltipPlacement::RightOf,
             on_enter: move || {
                 if enabled {
-                    set_hover_start.set(Some(Instant::now()));
+                    set_hover_start.set(Some(PresentationInstant::capture()));
                 }
                 visible.then_some(TooltipContent::Fab {
                     text: tooltip_text,

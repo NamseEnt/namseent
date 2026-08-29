@@ -33,6 +33,7 @@ use crate::game_state::{
     upgrade::Upgrade,
     user_status_effect::UserStatusEffect,
 };
+use crate::{Damage, Health, Shield, TowerId};
 
 pub(crate) use modify_deck::{DeckEdit, DeckEditChange, DeckEnhance};
 
@@ -42,14 +43,14 @@ pub(crate) enum GameStateAction {
         stage: usize,
     },
     EarnGold(usize),
-    Heal(f32),
+    Heal(Health),
     GainRerolls(usize),
     CardReroll,
-    GainShield(f32),
+    GainShield(Shield),
     SpendGold(usize),
     Upgrade(Upgrade, Option<usize>),
     PlaceTower(Box<Tower>, Option<HandSlotId>),
-    RemoveTower(usize),
+    RemoveTower(TowerId),
     MonsterDeath,
     PurchaseShopItem(crate::shop::ShopSlotId),
     GrantItem(item::Item),
@@ -63,7 +64,7 @@ pub(crate) enum GameStateAction {
     #[allow(dead_code)]
     ApplyUserStatusEffect(UserStatusEffect),
     UseInventoryItem(item::ItemId),
-    TakeDamage(f32),
+    TakeDamage(Damage),
     StageEnd {
         perfect_clear: bool,
         gold: usize,
@@ -117,7 +118,10 @@ impl GameState {
             }
             GameStateAction::CardReroll => {
                 let health_cost = self.stage_modifiers.get_reroll_health_cost();
-                if (self.left_dice > 0) || (self.hp - health_cost as f32) > 1.0 {
+                if (self.left_dice > 0)
+                    || self.hp.saturating_sub(Health::from_usize(health_cost))
+                        > Health::from_integer(1)
+                {
                     let rerolled = card_reroll::reroll(self);
                     crate::sound::play_card_draw_sounds(rerolled);
                     card_reroll::apply_cost(self, health_cost);
@@ -144,8 +148,9 @@ impl GameState {
                 true
             }
             GameStateAction::PlaceTower(mut tower, placing_tower_slot_id) => {
+                tower.assign_id(self.allocate_tower_id());
                 place_tower::prepare_tower_stats(&mut tower, &self.upgrade_state);
-                if place_tower::place_tower(self, &tower) {
+                if place_tower::place_tower(self, &mut tower) {
                     if let Some(slot_id) = placing_tower_slot_id {
                         self.hand.delete_slots(&[slot_id]);
                         place_tower::auto_select_first_tower(self);

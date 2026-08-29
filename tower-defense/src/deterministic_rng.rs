@@ -5,6 +5,13 @@ use rand_chacha::ChaCha8Rng;
 pub const RNG_ALGORITHM_VERSION: u32 = 1;
 
 pub mod domain {
+    pub const DECK_SHUFFLE: u64 = 0x4445_434b_0000_0001;
+    pub const DECK_DRAW: u64 = 0x4445_434b_0000_0002;
+    pub const CARD_REROLL: u64 = 0x4341_5244_0000_0001;
+    pub const DIFFICULTY_OFFER: u64 = 0x4449_4646_0000_0001;
+    pub const EFFECT_PAYLOAD: u64 = 0x4546_4645_0000_0001;
+    pub const ITEM_GENERATION: u64 = 0x4954_454d_0000_0001;
+    pub const REWARD_UPGRADE: u64 = 0x5245_5741_0000_0001;
     pub const SHOP_CATEGORY_BAG: u64 = 0x5348_4f50_0000_0001;
     pub const SHOP_RARITY_ITEM: u64 = 0x5348_4f50_0000_0002;
     pub const SHOP_RARITY_CARD_SERVICE: u64 = 0x5348_4f50_0000_0003;
@@ -13,6 +20,7 @@ pub mod domain {
     pub const SHOP_CONTENT_CARD_SERVICE: u64 = 0x5348_4f50_0000_0006;
     pub const SHOP_CONTENT_UPGRADE: u64 = 0x5348_4f50_0000_0007;
     pub const SHOP_ITEM_PAYLOAD: u64 = 0x5348_4f50_0000_0008;
+    pub const ML_TOWER_EXPERT: u64 = 0x4d4c_544f_0000_0001;
     pub const SHOP_PRICE: u64 = 0x5348_4f50_0000_0009;
 }
 

@@ -42,18 +42,25 @@ fn reroll_penalty_then_bonus_via_run_effect() {
 #[test]
 fn stacking_damage_multiplier_via_run_effect() {
     let mut gs = make_test_state();
-    assert!((gs.stage_modifiers.get_damage_multiplier() - 1.0).abs() < f32::EPSILON);
-    run_effect(
-        &mut gs,
-        &Effect::IncreaseAllTowersDamage { multiplier: 1.5 },
+    assert_eq!(
+        gs.stage_modifiers.get_damage_multiplier(),
+        crate::FixedRatio::ONE
     );
     run_effect(
         &mut gs,
-        &Effect::IncreaseAllTowersDamage { multiplier: 2.0 },
+        &Effect::IncreaseAllTowersDamage {
+            multiplier: crate::FixedRatio::from_raw(1_500_000),
+        },
+    );
+    run_effect(
+        &mut gs,
+        &Effect::IncreaseAllTowersDamage {
+            multiplier: crate::FixedRatio::from_integer(2),
+        },
     );
     // 1.0 * 1.5 * 2.0 = 3.0
     assert!(
-        (gs.stage_modifiers.get_damage_multiplier() - 3.0).abs() < 1e-6,
+        gs.stage_modifiers.get_damage_multiplier() == crate::FixedRatio::from_integer(3),
         "누적 데미지 배율 계산"
     );
 }
@@ -61,16 +68,19 @@ fn stacking_damage_multiplier_via_run_effect() {
 #[test]
 fn decrease_gold_gain_percent_via_run_effect() {
     let mut gs = make_test_state();
-    assert!((gs.stage_modifiers.get_gold_gain_multiplier() - 1.0).abs() < f32::EPSILON);
+    assert_eq!(
+        gs.stage_modifiers.get_gold_gain_multiplier(),
+        crate::FixedRatio::ONE
+    );
     run_effect(
         &mut gs,
         &Effect::DecreaseGoldGainPercent {
-            reduction_percentage: 0.25,
+            reduction_percentage: crate::FixedRatio::from_raw(250_000),
         },
     );
     // 1.0 * (1 - 0.25) = 0.75
     assert!(
-        (gs.stage_modifiers.get_gold_gain_multiplier() - 0.75).abs() < 1e-6,
+        gs.stage_modifiers.get_gold_gain_multiplier() == crate::FixedRatio::from_raw(750_000),
         "골드 획득 감소 적용"
     );
 }
@@ -89,13 +99,23 @@ fn disable_item_use_via_run_effect() {
 #[test]
 fn heal_and_shield_and_earngold_via_run_effect() {
     let mut gs = make_test_state();
-    gs.hp = 90.0;
-    run_effect(&mut gs, &Effect::Heal { amount: 20.0 });
+    gs.hp = crate::Health::from_integer(90);
+    run_effect(
+        &mut gs,
+        &Effect::Heal {
+            amount: crate::Health::from_integer(20),
+        },
+    );
     assert_eq!(gs.hp, gs.config.player.max_hp, "체력은 최대치로 제한됨");
 
     let mut gs = make_test_state();
-    run_effect(&mut gs, &Effect::Shield { amount: 15.0 });
-    assert_eq!(gs.shield, 15.0, "실드 증가 적용");
+    run_effect(
+        &mut gs,
+        &Effect::Shield {
+            amount: crate::Shield::from_integer(15),
+        },
+    );
+    assert_eq!(gs.shield, crate::Shield::from_integer(15), "실드 증가 적용");
 
     let mut gs = make_test_state();
     run_effect(&mut gs, &Effect::EarnGold { amount: 50 });
@@ -105,23 +125,36 @@ fn heal_and_shield_and_earngold_via_run_effect() {
 #[test]
 fn lose_health_and_lose_gold_via_run_effect() {
     let mut gs = make_test_state();
-    gs.hp = 20.0;
-    run_effect(&mut gs, &Effect::LoseHealth { amount: 25.0 });
-    assert_eq!(gs.hp, 1.0, "체력이 1.0 최솟값으로 포화됨");
+    gs.hp = crate::Health::from_integer(20);
+    run_effect(
+        &mut gs,
+        &Effect::LoseHealth {
+            amount: crate::Health::from_integer(25),
+        },
+    );
+    assert_eq!(
+        gs.hp,
+        crate::Health::from_integer(1),
+        "체력이 1.0 최솟값으로 포화됨"
+    );
 
     let mut gs = make_test_state();
     gs.gold = 10;
-    gs.hp = 100.0;
+    gs.hp = crate::Health::from_integer(100);
     run_effect(&mut gs, &Effect::LoseGold { amount: 5 });
     assert_eq!(gs.gold, 5, "골드 감소 정상");
-    assert_eq!(gs.hp, 100.0, "체력은 변함 없음");
+    assert_eq!(gs.hp, crate::Health::from_integer(100), "체력은 변함 없음");
 
     let mut gs = make_test_state();
     gs.gold = 3;
-    gs.hp = 100.0;
+    gs.hp = crate::Health::from_integer(100);
     run_effect(&mut gs, &Effect::LoseGold { amount: 15 });
     assert_eq!(gs.gold, 0, "골드 부족 시 0으로");
-    assert!((gs.hp - 98.8).abs() < 1e-6, "부족한 골드 비례 체력 페널티");
+    assert_eq!(
+        gs.hp,
+        crate::Health::from_raw(98_800),
+        "부족한 골드 비례 체력 페널티"
+    );
 }
 
 #[test]
@@ -130,8 +163,8 @@ fn damage_reduction_effects_add_status_effects() {
     run_effect(
         &mut gs,
         &Effect::DamageReduction {
-            damage_multiply: 0.8,
-            duration: namui::Duration::from_secs(5),
+            damage_multiply: crate::FixedRatio::from_raw(800_000),
+            duration: crate::SimTickSpan::from_millis_ceil(5_000),
         },
     );
     assert_eq!(gs.user_status_effects.len(), 1);
@@ -165,24 +198,60 @@ fn grant_upgrade_and_item_via_run_effect() {
 #[test]
 fn stage_modifiers_via_run_effect() {
     let mut gs = make_test_state();
-    run_effect(&mut gs, &Effect::IncreaseIncomingDamage { multiplier: 1.2 });
-    run_effect(&mut gs, &Effect::DecreaseIncomingDamage { multiplier: 0.8 });
-    assert!((gs.stage_modifiers.get_incoming_damage_multiplier() - 1.2).abs() < 1e-6);
-    assert!((gs.stage_modifiers.get_damage_reduction_multiplier() - 0.8).abs() < 1e-6);
-
     run_effect(
         &mut gs,
-        &Effect::IncreaseEnemyHealthPercent { percentage: 20.0 },
+        &Effect::IncreaseIncomingDamage {
+            multiplier: crate::FixedRatio::from_raw(1_200_000),
+        },
     );
     run_effect(
         &mut gs,
-        &Effect::DecreaseEnemyHealthPercent { percentage: 10.0 },
+        &Effect::DecreaseIncomingDamage {
+            multiplier: crate::FixedRatio::from_raw(800_000),
+        },
     );
-    assert!((gs.stage_modifiers.get_enemy_health_multiplier() - 1.08).abs() < 1e-6);
+    assert_eq!(
+        gs.stage_modifiers.get_incoming_damage_multiplier(),
+        crate::FixedRatio::from_raw(1_200_000)
+    );
+    assert_eq!(
+        gs.stage_modifiers.get_damage_reduction_multiplier(),
+        crate::FixedRatio::from_raw(800_000)
+    );
 
-    run_effect(&mut gs, &Effect::IncreaseEnemySpeed { multiplier: 1.3 });
-    run_effect(&mut gs, &Effect::DecreaseEnemySpeed { multiplier: 0.5 });
-    assert!((gs.stage_modifiers.get_enemy_speed_multiplier() - 0.65).abs() < 1e-6);
+    run_effect(
+        &mut gs,
+        &Effect::IncreaseEnemyHealthPercent {
+            percentage: crate::FixedRatio::from_integer(20),
+        },
+    );
+    run_effect(
+        &mut gs,
+        &Effect::DecreaseEnemyHealthPercent {
+            percentage: crate::FixedRatio::from_integer(10),
+        },
+    );
+    assert_eq!(
+        gs.stage_modifiers.get_enemy_health_multiplier(),
+        crate::FixedRatio::from_raw(1_080_000)
+    );
+
+    run_effect(
+        &mut gs,
+        &Effect::IncreaseEnemySpeed {
+            multiplier: crate::FixedRatio::from_raw(1_300_000),
+        },
+    );
+    run_effect(
+        &mut gs,
+        &Effect::DecreaseEnemySpeed {
+            multiplier: crate::FixedRatio::from_raw(500_000),
+        },
+    );
+    assert_eq!(
+        gs.stage_modifiers.get_enemy_speed_multiplier(),
+        crate::FixedRatio::from_raw(650_000)
+    );
 
     run_effect(&mut gs, &Effect::DisableItemAndUpgradePurchases);
     assert!(gs.stage_modifiers.is_item_and_upgrade_purchases_disabled());

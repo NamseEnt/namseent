@@ -34,6 +34,15 @@ pub struct StrategyStats {
     pub clear_rate_variance: f64,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProvenanceStats {
+    pub policy_kind: String,
+    pub sample_count: usize,
+    pub win_count: usize,
+    pub win_rate: f64,
+    pub average_clear_rate: f64,
+}
+
 #[derive(Clone, Debug)]
 pub struct PickBin {
     pub count: usize,
@@ -147,6 +156,22 @@ impl Database {
             }
         }
         Ok(result)
+    }
+
+    pub fn list_policy_provenance_stats(&self) -> anyhow::Result<Vec<ProvenanceStats>> {
+        let mut statement = self.conn.prepare(
+            "SELECT policy_kind, COUNT(*), SUM(COALESCE(victory, 0)), AVG(CAST(COALESCE(victory, 0) AS REAL)), AVG(COALESCE(clear_rate, 0.0)) FROM simulations WHERE completed_at IS NOT NULL GROUP BY policy_kind ORDER BY policy_kind",
+        )?;
+        let rows = statement.query_map([], |row| {
+            Ok(ProvenanceStats {
+                policy_kind: row.get(0)?,
+                sample_count: row.get::<_, i64>(1)? as usize,
+                win_count: row.get::<_, i64>(2)? as usize,
+                win_rate: row.get(3)?,
+                average_clear_rate: row.get(4)?,
+            })
+        })?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
     fn query_strategy_stats(&self, column: &str) -> anyhow::Result<Vec<StrategyStats>> {
@@ -586,6 +611,35 @@ impl Database {
     }
 }
 
+#[cfg(test)]
+mod provenance_tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    #[test]
+    fn policy_provenance_aggregate_matches_recorded_rows() {
+        let connection = Connection::open_in_memory().expect("in-memory sqlite");
+        connection
+            .execute_batch(
+                "CREATE TABLE simulations (policy_kind TEXT, completed_at TEXT, victory INTEGER, clear_rate REAL); INSERT INTO simulations VALUES ('random_legal', 'done', 0, 10.0); INSERT INTO simulations VALUES ('random_legal', 'done', 1, 30.0); INSERT INTO simulations VALUES ('heuristic', 'done', 1, 80.0);",
+            )
+            .expect("fixture schema");
+        let database = Database { conn: connection };
+
+        let rows = database
+            .list_policy_provenance_stats()
+            .expect("aggregate query");
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].policy_kind, "heuristic");
+        assert_eq!(rows[0].sample_count, 1);
+        assert_eq!(rows[0].win_count, 1);
+        assert_eq!(rows[1].policy_kind, "random_legal");
+        assert_eq!(rows[1].sample_count, 2);
+        assert_eq!(rows[1].win_count, 1);
+        assert_eq!(rows[1].average_clear_rate, 20.0);
+    }
+}
+
 pub fn upgrade_rarity_prefix(name: &str) -> Option<&'static str> {
     use crate::Rarity;
     use crate::game_state::upgrade::UpgradeDiscriminants;
@@ -810,6 +864,122 @@ mod tests {
 
         let upgrades = db.list_upgrades_and_treasures().unwrap();
         assert!(upgrades.iter().all(|row| row.name != "long_sword"));
+
+        fs::remove_file(&db_path).unwrap();
+    }
+
+    #[test]
+    fn episode_metrics_match_sqlite_rows_and_aggregate_exactly() {
+        use crate::config::GameConfig;
+        use crate::simulator::environment::RewardConfig;
+        use crate::simulator::policy_runner::{PolicyRunnerConfig, run_episode};
+        use std::sync::Arc;
+
+        let config = Arc::new(GameConfig::default_config());
+        let runner_config = PolicyRunnerConfig {
+            max_decisions_per_episode: 200,
+            record_steps: false,
+            max_stage: Some(2),
+            reward_config: RewardConfig::default(),
+        };
+        let episode = run_episode(
+            config,
+            7u64,
+            &runner_config,
+            |_observation: &crate::simulator::environment::Observation,
+             legal_actions: &[crate::simulator::environment::LegalAction]| {
+                legal_actions
+                    .first()
+                    .map(|legal| legal.action.clone())
+                    .ok_or_else(|| anyhow::anyhow!("no legal actions"))
+            },
+        )
+        .unwrap();
+
+        let db_path = temp_db_path("episode_metrics_exact");
+        let recorder = SimRecorder::new(&db_path).unwrap();
+        recorder
+            .record_simulation_start_with_provenance(
+                "sim_metrics",
+                "environment",
+                "environment",
+                "environment",
+                "environment",
+                "environment",
+                episode.seed,
+                &crate::simulator::recording::SimulationProvenance {
+                    runner_kind: "environment".to_string(),
+                    policy_kind: "environment".to_string(),
+                    checkpoint_path: None,
+                    checkpoint_iteration: None,
+                    environment_version: None,
+                    action_schema_version: None,
+                    config_digest: None,
+                    config_override: false,
+                    seed_schedule: None,
+                },
+            )
+            .unwrap();
+        recorder
+            .record_simulation_end(
+                "sim_metrics",
+                episode.victory,
+                episode.final_observation.stage,
+                episode.clear_rate,
+                episode.final_observation.hp_raw as f32 / 1000.0,
+                episode.final_observation.gold,
+                episode.metrics.total_towers_placed,
+                episode.metrics.total_items_used,
+                episode.metrics.total_player_damage,
+                episode.metrics.total_gold_earned,
+            )
+            .unwrap();
+
+        let connection = rusqlite::Connection::open(&db_path).unwrap();
+        let (victory, final_stage, clear_rate, towers, items, damage, gold): (
+            i64,
+            i64,
+            f64,
+            i64,
+            i64,
+            f64,
+            i64,
+        ) = connection
+            .query_row(
+                "SELECT victory, final_stage, clear_rate, total_towers_placed, total_items_used, total_damage_taken, total_gold_earned FROM simulations WHERE id = 'sim_metrics'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                    ))
+                },
+            )
+            .unwrap();
+
+        assert_eq!(victory, episode.victory as i64);
+        assert_eq!(final_stage, episode.final_observation.stage as i64);
+        assert_eq!(clear_rate, f64::from(episode.clear_rate));
+        assert_eq!(towers, episode.metrics.total_towers_placed as i64);
+        assert_eq!(items, episode.metrics.total_items_used as i64);
+        assert_eq!(damage, f64::from(episode.metrics.total_player_damage));
+        assert_eq!(gold, episode.metrics.total_gold_earned as i64);
+
+        let database = Database::open(&db_path).unwrap();
+        let aggregate = database
+            .list_policy_provenance_stats()
+            .unwrap()
+            .into_iter()
+            .find(|row| row.policy_kind == "environment")
+            .expect("aggregate row for environment policy");
+        assert_eq!(aggregate.sample_count, 1);
+        assert_eq!(aggregate.win_count, episode.victory as usize);
+        assert_eq!(aggregate.average_clear_rate, f64::from(episode.clear_rate));
 
         fs::remove_file(&db_path).unwrap();
     }

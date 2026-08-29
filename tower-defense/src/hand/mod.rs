@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 mod hand_slot;
 
 pub use crate::animation::xy_with_spring;
@@ -47,38 +48,41 @@ impl<Item: State + PartialOrd + Debug> Hand<Item> {
         hand
     }
     pub fn delete_slots(&mut self, ids: &[HandSlotId]) {
-        let now = Instant::now();
+        let presentation_instant = PresentationInstant::capture();
         // 삭제할 슬롯들에 exit 애니메이션 시작
         for slot in self.slots.iter_mut() {
             if ids.contains(&slot.id) {
-                slot.start_exit_animation(now);
+                slot.start_exit_animation(presentation_instant);
                 slot.selected = false; // 선택 해제
             }
         }
         self.calculate_slot_xy();
     }
 
-    pub fn remove_completed_exit_animations(&mut self) {
-        let now = Instant::now();
+    pub fn remove_completed_exit_animations(&mut self, presentation_instant: PresentationInstant) {
         // 완료된 exit 애니메이션이 있는지 먼저 확인
         let has_completed_animations = self
             .slots
             .iter()
-            .any(|slot| slot.is_exit_animation_complete(now));
+            .any(|slot| slot.is_exit_animation_complete(presentation_instant));
 
         // 완료된 애니메이션이 있을 때만 retain 실행
         if has_completed_animations {
             self.slots
-                .retain(|slot| !slot.is_exit_animation_complete(now));
+                .retain(|slot| !slot.is_exit_animation_complete(presentation_instant));
         }
     }
 
-    pub fn update(&mut self) {
-        self.remove_completed_exit_animations();
+    pub fn update(&mut self, presentation_instant: PresentationInstant) {
+        self.remove_completed_exit_animations(presentation_instant);
     }
 
     pub fn active_slot_ids(&self) -> Vec<HandSlotId> {
         self.active_slots().map(|slot| slot.id).collect()
+    }
+
+    pub fn active_slot_id_by_index(&self, index: usize) -> Option<HandSlotId> {
+        self.active_slots().nth(index).map(|slot| slot.id)
     }
     pub fn selected_slot_ids(&self) -> Vec<HandSlotId> {
         self.active_slots()

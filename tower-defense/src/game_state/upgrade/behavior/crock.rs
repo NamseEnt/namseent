@@ -7,11 +7,11 @@ pub struct CrockUpgrade {
 }
 
 const CROCK_GOLD_PER_DAMAGE: usize = 100;
-const CROCK_DAMAGE_PER_STEP: f32 = 0.25;
+const CROCK_DAMAGE_PER_STEP: FixedRatio = FixedRatio::from_raw(250_000);
 
 impl CrockUpgrade {
-    fn current_damage_bonus(&self) -> f32 {
-        self.current_step as f32 * CROCK_DAMAGE_PER_STEP
+    fn current_damage_bonus(&self) -> FixedRatio {
+        CROCK_DAMAGE_PER_STEP.saturating_mul_usize(self.current_step)
     }
 
     fn update_step_from_gold(&mut self, game_state: &mut GameState) -> UpgradeUpdateFlags {
@@ -39,12 +39,12 @@ impl UpgradeBehavior for CrockUpgrade {
         _game_state: &GameState,
     ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
-            format!("{:.0}%", self.current_damage_bonus() * 100.0),
+            format!("{:.0}%", self.current_damage_bonus().as_f32() * 100.0),
             crate::theme::palette::RED,
         )]
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         if self.current_step > 0 {
             Some((TowerUpgradeTarget::Global, self.current_damage_bonus()))
         } else {
@@ -97,7 +97,10 @@ impl UpgradeBehavior for CrockUpgrade {
             crate::l10n::locale::Language::English => {
                 builder
                     .static_text("Gain ")
-                    .with_bold(format!("damage +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0))
+                    .with_bold(format!(
+                        "damage +{:.0}%",
+                        CROCK_DAMAGE_PER_STEP.as_f32() * 100.0
+                    ))
                     .static_text(" for every ")
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text(" ")
@@ -109,7 +112,10 @@ impl UpgradeBehavior for CrockUpgrade {
                     .l10n(Word::Gold.name(), locale)
                     .text(CROCK_GOLD_PER_DAMAGE.to_string())
                     .static_text("당 모든 타워 ")
-                    .with_bold(format!("데미지 +{:.0}%", CROCK_DAMAGE_PER_STEP * 100.0));
+                    .with_bold(format!(
+                        "데미지 +{:.0}%",
+                        CROCK_DAMAGE_PER_STEP.as_f32() * 100.0
+                    ));
             }
         }
     }
@@ -148,7 +154,7 @@ mod tests {
         let tower = crate::game_state::tower::Tower::new(
             &tower_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(tower),
@@ -166,7 +172,7 @@ mod tests {
             .iter()
             .find(|tower| tower.id() == tower_id)
             .expect("expected placed tower")
-            .calculate_projectile_damage(&[], 1.0);
+            .calculate_projectile_damage(&[], crate::FixedRatio::ONE);
 
         game_state.gold = 2500;
         game_state.action(crate::game_state::GameStateAction::Upgrade(
@@ -181,10 +187,10 @@ mod tests {
                 .find(|tower| tower.id() == tower_id)
                 .expect("expected placed tower");
             let upgrade_bonuses = game_state.upgrade_state.tower_upgrade_damage_bonuses();
-            tower.calculate_projectile_damage(&upgrade_bonuses, 1.0)
+            tower.calculate_projectile_damage(&upgrade_bonuses, crate::FixedRatio::ONE)
         };
 
-        assert!(before_damage > 0.0);
+        assert!(!before_damage.is_zero());
         assert!(after_damage > before_damage);
     }
 }

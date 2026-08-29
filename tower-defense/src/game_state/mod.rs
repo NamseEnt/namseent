@@ -10,6 +10,7 @@ mod debug_tools;
 pub mod difficulty;
 pub mod effect;
 pub mod effect_event;
+mod entity_id;
 pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
@@ -22,13 +23,18 @@ pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) mod rng;
 pub(crate) use action::GameStateAction;
+pub(crate) use player_command::{PlayerCommand, RecordedPlayerCommand};
 pub mod card_notification;
 pub mod card_service;
 pub(crate) mod discovery;
 pub(crate) mod play_history;
+pub(crate) mod player_command;
 pub mod poker_action;
 pub mod projectile;
 mod render;
+mod render_snapshot;
+#[allow(dead_code)]
+pub(crate) mod replay;
 pub(crate) mod shop_purchase;
 pub mod stage_modifiers;
 mod status_effect_particle_generator;
@@ -40,6 +46,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::card::{Deck, Rank, Suit};
+use crate::combat_number::RATIO_SCALE;
 use crate::config::GameConfig;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
@@ -51,6 +58,8 @@ pub use base::*;
 pub(crate) use camera::Camera;
 use cursor_preview::CursorPreview;
 pub use effect_event::*;
+pub(crate) use entity_id::EntityIdAllocator;
+pub use entity_id::{AttackId, EntityId, MonsterId, TowerId};
 use fast_forward::FastForwardMultiplier;
 use flow::GameFlow;
 use item::{LumpSugarItem, RubberConeItem};
@@ -91,11 +100,11 @@ const PROJECTILE_WHOOSH_INTERVAL_MAX_SECS: f32 = 0.75;
 
 #[derive(Debug, Clone, State)]
 pub struct TowerDamageStats {
-    pub tower_id: usize,
+    pub tower_id: TowerId,
     pub tower_kind: TowerKind,
     pub rank: Option<Rank>,
     pub suit: Option<Suit>,
-    pub total_damage: f32,
+    pub total_damage: Damage,
 }
 
 #[derive(Debug, Clone, State)]
@@ -106,6 +115,9 @@ pub struct GameMetrics {
     pub max_consecutive_perfect_clears: usize,
     pub tower_damage_stats: Vec<TowerDamageStats>,
     pub total_rerolled_count: usize,
+    pub total_escaped_hp: Health,
+    pub total_player_damage: Health,
+    pub stage_damage: Vec<(usize, Health)>,
 }
 
 #[derive(State)]
@@ -128,17 +140,23 @@ pub struct GameState {
     pub items: Vec<item::ItemWithId>,
     pub gold: usize,
     pub cursor_preview: CursorPreview,
-    pub hp: f32,
-    pub shield: f32,
+    pub hp: Health,
+    pub shield: Shield,
     pub user_status_effects: Vec<UserStatusEffect>,
     pub left_quest_board_refresh_chance: usize,
     pub item_used: bool,
-    pub(crate) game_now: Instant,
+    pub(crate) next_entity_id: EntityIdAllocator,
+    pub(crate) sim_tick: SimTick,
+    pub(crate) sim_scheduler: tick::scheduler::FixedTickScheduler,
+    pub(crate) sim_scheduler_report: tick::scheduler::ScheduleReport,
     pub fast_forward_multiplier: FastForwardMultiplier,
     pub rerolled_count: usize,
     pub metrics: GameMetrics,
     pub locale: crate::l10n::Locale,
     pub play_history: PlayHistory,
+    pub(crate) player_command_sequence: u64,
+    pub(crate) player_commands: Vec<RecordedPlayerCommand>,
+    pub(crate) replay_checkpoints: Vec<replay::ReplayCheckpoint>,
     pub card_service_notifications: card_notification::CardServiceNotificationState,
     pub config: Arc<GameConfig>,
     pub opened_modals: modal::OpenedModals,
@@ -153,8 +171,19 @@ pub struct GameState {
 
     // headless mode for simulator (no UI side-effects like modals, tooltips, notifications)
     pub(crate) headless: bool,
+    #[cfg(feature = "simulator")]
+    pub(crate) defer_card_service_selection: bool,
 }
 impl GameState {
+    #[allow(dead_code)]
+    pub(crate) fn allocate_entity_id(&mut self) -> EntityId {
+        self.next_entity_id.allocate()
+    }
+
+    pub(crate) fn allocate_tower_id(&mut self) -> TowerId {
+        self.next_entity_id.allocate_tower_id()
+    }
+
     /// 현대적인 텍스트 매니저 반환
     pub fn text(&self) -> crate::l10n::TextManager {
         crate::l10n::TextManager::new(self.locale)
@@ -164,8 +193,11 @@ impl GameState {
         self.upgrade_state.shop_slot_expand() + 2
     }
 
-    pub fn max_hp(&self) -> f32 {
-        self.config.player.max_hp + self.upgrade_state.max_hp_plus()
+    pub fn max_hp(&self) -> Health {
+        self.config
+            .player
+            .max_hp
+            .saturating_add_delta(self.upgrade_state.max_hp_plus())
     }
 
     pub fn max_dice_chance(&self) -> usize {
@@ -183,16 +215,70 @@ impl GameState {
     pub fn can_open_shop_panel(&self) -> bool {
         matches!(self.flow, GameFlow::Shopping(_))
     }
-    pub fn now(&self) -> Instant {
-        self.game_now
+    pub fn sim_tick(&self) -> SimTick {
+        self.sim_tick
+    }
+
+    pub fn sim_scheduler_report(&self) -> tick::scheduler::ScheduleReport {
+        self.sim_scheduler_report
+    }
+
+    pub fn sim_scheduler_discarded_units(&self) -> u64 {
+        self.sim_scheduler.discarded_units()
+    }
+
+    pub fn sim_scheduler_backlog(&self) -> SimTickSpan {
+        self.sim_scheduler.backlog()
+    }
+
+    pub fn sim_render_snapshot_revision(&self) -> u64 {
+        self.sim_scheduler.render_snapshot_revision()
     }
 
     pub fn is_headless(&self) -> bool {
         self.headless
     }
 
-    pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: f32) {
-        if damage <= 0.0 {
+    pub(crate) fn should_defer_card_service_selection(&self) -> bool {
+        #[cfg(feature = "simulator")]
+        {
+            self.defer_card_service_selection
+        }
+        #[cfg(not(feature = "simulator"))]
+        {
+            false
+        }
+    }
+
+    pub(crate) fn set_user_modal(&mut self, modal: Option<modal::UserModal>) {
+        #[cfg(feature = "simulator")]
+        if self.should_defer_card_service_selection() {
+            self.opened_modals.user = modal;
+            return;
+        }
+        if self.headless {
+            self.opened_modals.user = modal;
+        } else {
+            set_modal(modal);
+        }
+    }
+
+    pub(crate) fn authoritative_hash(&self) -> String {
+        replay::authoritative_hash(self)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn export_replay(&self) -> replay::Replay {
+        replay::Replay::from_game_state(self)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn export_replay_json(&self) -> serde_json::Result<String> {
+        self.export_replay().to_json()
+    }
+
+    pub fn record_tower_damage(&mut self, tower: &attack::TowerInfo, damage: Damage) {
+        if damage.is_zero() {
             return;
         }
 
@@ -202,7 +288,7 @@ impl GameState {
             .iter_mut()
             .find(|entry| entry.tower_id == tower.id)
         {
-            entry.total_damage += damage;
+            entry.total_damage = entry.total_damage.saturating_add(damage);
         } else {
             self.metrics.tower_damage_stats.push(TowerDamageStats {
                 tower_id: tower.id,
@@ -212,10 +298,6 @@ impl GameState {
                 total_damage: damage,
             });
         }
-    }
-
-    pub fn advance_time(&mut self, dt: Duration) {
-        self.game_now += dt;
     }
 
     pub fn flush_effect_events(&mut self) {
@@ -270,52 +352,96 @@ impl GameState {
                     start_xy,
                     end_xy,
                     count,
-                    now,
-                } => match trail {
-                    ProjectileTrail::Burning => {
-                        field_particle::emitter::spawn_burning_trail(start_xy, end_xy, count, now);
+                    presentation_instant,
+                } => {
+                    let presentation_now = presentation_instant.as_namui();
+                    match trail {
+                        ProjectileTrail::Burning => {
+                            field_particle::emitter::spawn_burning_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::Sparkle => {
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::WindCurve => {
+                            field_particle::emitter::spawn_wind_curve_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::Heart => {
+                            field_particle::emitter::spawn_heart_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::LightningSparkle => {
+                            field_particle::emitter::spawn_lightning_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                            field_particle::emitter::spawn_sparkle_trail(
+                                start_xy,
+                                end_xy,
+                                count,
+                                presentation_now,
+                            );
+                        }
+                        ProjectileTrail::None => {}
                     }
-                    ProjectileTrail::Sparkle => {
-                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::WindCurve => {
-                        field_particle::emitter::spawn_wind_curve_trail(
-                            start_xy, end_xy, count, now,
-                        );
-                    }
-                    ProjectileTrail::Heart => {
-                        field_particle::emitter::spawn_heart_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::LightningSparkle => {
-                        field_particle::emitter::spawn_lightning_trail(
-                            start_xy, end_xy, count, now,
-                        );
-                        field_particle::emitter::spawn_sparkle_trail(start_xy, end_xy, count, now);
-                    }
-                    ProjectileTrail::None => {}
-                },
-                GameEffectEvent::SpawnProjectileHitEffect(hit_effect, impact_xy, now) => {
+                }
+                GameEffectEvent::SpawnProjectileHitEffect(
+                    hit_effect,
+                    impact_xy,
+                    presentation_instant,
+                ) => {
+                    let presentation_now = presentation_instant.as_namui();
                     use crate::game_state::attack::ProjectileHitEffect;
                     match hit_effect {
                         ProjectileHitEffect::CardBurst => {
-                            field_particle::emitter::spawn_card_burst(impact_xy, now);
+                            field_particle::emitter::spawn_card_burst(impact_xy, presentation_now);
                         }
                         ProjectileHitEffect::SparkleBurst => {
-                            field_particle::emitter::spawn_sparkle_burst(impact_xy, now);
+                            field_particle::emitter::spawn_sparkle_burst(
+                                impact_xy,
+                                presentation_now,
+                            );
                         }
                         ProjectileHitEffect::HeartBurst => {
-                            field_particle::emitter::spawn_heart_burst(impact_xy, now);
+                            field_particle::emitter::spawn_heart_burst(impact_xy, presentation_now);
                         }
                         ProjectileHitEffect::TrashBounce => {
                             // Trash bounce is handled as direct projectile activity elsewhere.
                         }
                     }
                 }
-                GameEffectEvent::SpawnLaserBeam(start_xy, end_xy, now) => {
-                    field_particle::emitter::spawn_laser_beam(start_xy, end_xy, now);
+                GameEffectEvent::SpawnLaserBeam(start_xy, end_xy, presentation_instant) => {
+                    field_particle::emitter::spawn_laser_beam(
+                        start_xy,
+                        end_xy,
+                        presentation_instant.as_namui(),
+                    );
                 }
-                GameEffectEvent::SpawnTowerRemoveDustBurst(center_xy, now) => {
-                    field_particle::emitter::spawn_tower_remove_dust_burst(center_xy, now);
+                GameEffectEvent::SpawnTowerRemoveDustBurst(center_xy, presentation_instant) => {
+                    field_particle::emitter::spawn_tower_remove_dust_burst(
+                        center_xy,
+                        presentation_instant.as_namui(),
+                    );
                 }
                 GameEffectEvent::SyncProjectileTrailState {
                     projectile_id,
@@ -324,8 +450,9 @@ impl GameState {
                     end_xy,
                     moved_distance,
                     dt_secs,
-                    now,
+                    presentation_instant,
                 } => {
+                    let presentation_now = presentation_instant.as_namui();
                     active_trail_sound_projectiles.insert(projectile_id);
                     let mut effect_states = PROJECTILE_TRAIL_EFFECT_STATE.lock().unwrap();
                     let state = effect_states.entry(projectile_id).or_default();
@@ -361,7 +488,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::Sparkle => {
@@ -369,7 +496,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::WindCurve => {
@@ -377,7 +504,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::Heart => {
@@ -385,7 +512,7 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::LightningSparkle => {
@@ -393,13 +520,13 @@ impl GameState {
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                     field_particle::emitter::spawn_sparkle_trail(
                                         start_xy,
                                         end_xy,
                                         spawn_count,
-                                        now,
+                                        presentation_now,
                                     );
                                 }
                                 ProjectileTrail::None => {}
@@ -557,7 +684,7 @@ impl GameState {
             }
         }
 
-        let stale_keys: Vec<u64> = active_projectile_sound_ids
+        let stale_keys: Vec<AttackId> = active_projectile_sound_ids
             .keys()
             .filter(|key| !active_trail_sound_projectiles.contains(key))
             .cloned()
@@ -569,20 +696,29 @@ impl GameState {
         }
     }
 
-    pub fn set_selected_tower(&mut self, tower_id: Option<usize>) {
-        self.ui_state.set_selected_tower(tower_id, self.now());
+    pub fn set_selected_tower(
+        &mut self,
+        tower_id: Option<TowerId>,
+        presentation_instant: crate::PresentationInstant,
+    ) {
+        self.ui_state
+            .set_selected_tower(tower_id, presentation_instant);
     }
 
     pub fn cleanup_unused_tower_popup_states(&mut self) {
-        let existing_tower_ids: std::collections::HashSet<usize> =
+        let existing_tower_ids: std::collections::HashSet<TowerId> =
             self.towers.iter().map(|tower| tower.id()).collect();
 
         self.ui_state.cleanup_unused_states(&existing_tower_ids);
     }
 
-    pub fn update_camera_shake(&mut self, dt: Duration) {
+    pub fn update_camera_shake(
+        &mut self,
+        dt: Duration,
+        presentation_instant: crate::PresentationInstant,
+    ) {
         self.camera
-            .update_shake(dt, self.game_now - Instant::new(Duration::ZERO));
+            .update_shake(dt, presentation_instant - PresentationInstant::zero());
     }
 }
 
@@ -608,8 +744,11 @@ fn create_initial_game_state() -> GameState {
 }
 
 pub fn create_game_state_with_seed(seed: u64) -> GameState {
-    let config = Arc::new(GameConfig::default_config());
-    let now = Instant::now();
+    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+}
+
+pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) -> GameState {
+    let presentation_instant = PresentationInstant::capture();
     let decorations = background::generate_decorations();
     let mut game_state = GameState {
         monsters: Default::default(),
@@ -633,25 +772,31 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         gold: config.player.starting_gold,
         cursor_preview: Default::default(),
         hp: config.player.starting_hp,
-        shield: 0.0,
+        shield: Shield::ZERO,
         user_status_effects: Default::default(),
         left_quest_board_refresh_chance: 0,
         item_used: false,
-        game_now: now,
+        next_entity_id: EntityIdAllocator::default(),
+        sim_tick: SimTick::ZERO,
+        sim_scheduler: tick::scheduler::FixedTickScheduler::default(),
+        sim_scheduler_report: tick::scheduler::ScheduleReport::default(),
         fast_forward_multiplier: Default::default(),
         rerolled_count: 0,
         locale: crate::l10n::Locale::KOREAN,
         deck: Deck::new(),
         play_history: PlayHistory::new(),
+        player_command_sequence: 0,
+        player_commands: Vec::new(),
+        replay_checkpoints: Vec::new(),
         card_service_notifications: card_notification::CardServiceNotificationState::default(),
         config: Arc::clone(&config),
         opened_modals: modal::OpenedModals::default(),
         stage_modifiers: StageModifiers::new(),
         ui_state: UIState::new(),
-        status_effect_particle_generator: StatusEffectParticleGenerator::new(now),
+        status_effect_particle_generator: StatusEffectParticleGenerator::new(presentation_instant),
         black_smoke_sources: Default::default(),
         effect_events: EffectEventQueue::default(),
-        base_animation_state: BaseAnimationState::new(now),
+        base_animation_state: BaseAnimationState::new(SimTick::ZERO),
         discovery: Default::default(),
         metrics: GameMetrics {
             total_gold_earned: 0,
@@ -660,11 +805,16 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
             max_consecutive_perfect_clears: 0,
             tower_damage_stats: Vec::new(),
             total_rerolled_count: 0,
+            total_escaped_hp: Health::ZERO,
+            total_player_damage: Health::ZERO,
+            stage_damage: Vec::new(),
         },
 
         rng: GameRngState::new(seed),
 
         headless: false,
+        #[cfg(feature = "simulator")]
+        defer_card_service_selection: false,
     };
 
     // Start with selecting tower flow and default shop mode (normal shop).
@@ -672,6 +822,10 @@ pub fn create_game_state_with_seed(seed: u64) -> GameState {
         stage: game_state.stage,
     });
     game_state.action(GameStateAction::GameStart);
+    let initial_render_snapshot = render_snapshot::WorldRenderSnapshot::capture(&game_state);
+    game_state
+        .sim_scheduler
+        .rebase_render_snapshot(initial_render_snapshot);
     game_state
 }
 
@@ -714,6 +868,8 @@ impl GameState {
     /// Create a deep-ish clone of the current state for debug snapshotting.
     /// Particle systems are cleared and opened modal is dropped to avoid UI leakage.
     pub fn clone_for_debug(&self) -> GameState {
+        let mut sim_scheduler = self.sim_scheduler.clone();
+        sim_scheduler.rebase_render_snapshot(render_snapshot::WorldRenderSnapshot::capture(self));
         GameState {
             monsters: self.monsters.clone(),
             towers: self.towers.clone(),
@@ -737,16 +893,24 @@ impl GameState {
             user_status_effects: self.user_status_effects.clone(),
             left_quest_board_refresh_chance: self.left_quest_board_refresh_chance,
             item_used: self.item_used,
-            game_now: self.game_now,
+            next_entity_id: self.next_entity_id,
+            sim_tick: self.sim_tick,
+            sim_scheduler,
+            sim_scheduler_report: self.sim_scheduler_report,
             fast_forward_multiplier: self.fast_forward_multiplier,
             rerolled_count: self.rerolled_count,
             locale: self.locale,
             play_history: self.play_history.clone(),
+            player_command_sequence: self.player_command_sequence,
+            player_commands: self.player_commands.clone(),
+            replay_checkpoints: self.replay_checkpoints.clone(),
             config: Arc::clone(&self.config),
             opened_modals: modal::OpenedModals::default(),
             stage_modifiers: self.stage_modifiers.clone(),
             ui_state: self.ui_state.clone(),
-            status_effect_particle_generator: StatusEffectParticleGenerator::new(self.game_now),
+            status_effect_particle_generator: StatusEffectParticleGenerator::new(
+                crate::PresentationInstant::capture(),
+            ),
             black_smoke_sources: Default::default(),
             effect_events: self.effect_events.clone(),
             base_animation_state: self.base_animation_state.clone(),
@@ -757,23 +921,29 @@ impl GameState {
                 max_consecutive_perfect_clears: self.metrics.max_consecutive_perfect_clears,
                 tower_damage_stats: self.metrics.tower_damage_stats.clone(),
                 total_rerolled_count: self.metrics.total_rerolled_count,
+                total_escaped_hp: self.metrics.total_escaped_hp,
+                total_player_damage: self.metrics.total_player_damage,
+                stage_damage: self.metrics.stage_damage.clone(),
             },
             card_service_notifications: self.card_service_notifications.clone(),
             rng: self.rng.clone(),
             headless: self.headless,
+            #[cfg(feature = "simulator")]
+            defer_card_service_selection: self.defer_card_service_selection,
             discovery: self.discovery.clone(),
         }
     }
 
     /// 현재 스테이지의 클리어율을 계산합니다.
-    /// 각 스테이지는 2% (100/50), 스테이지 내에서는 (총 체력 - 남은 체력) / 총 체력 비율로 계산
-    /// 체력 회복을 고려하여 실제 남은 몬스터 체력을 기준으로 계산합니다.
-    pub fn calculate_clear_rate(&self) -> f32 {
-        let total_stages = 50.0;
-        let stage_weight = 100.0 / total_stages; // 2%
+    /// 각 스테이지는 2% (100/50), 스테이지 내에서는 누적 처리 체력 / 총 체력으로 계산합니다.
+    /// 처리 체력은 피해와 기지 도달 시점에만 증가하므로 몬스터 회복으로 감소하지 않습니다.
+    pub fn calculate_clear_rate(&self) -> ClearRate {
+        let total_stages = 50_i128;
+        let stage_weight_raw = FixedRatio::ONE.div_integer(total_stages as i64).raw() as i128;
 
-        // 이전 스테이지 완료율
-        let previous_stages_progress = (self.stage.saturating_sub(1) as f32) * stage_weight;
+        let previous_stages_progress = (self.stage.saturating_sub(1) as i128)
+            .min(total_stages)
+            .saturating_mul(stage_weight_raw);
 
         // 스테이지 진행 데이터는 DefenseFlow에 저장되어 있음
         let (start_total_hp, processed_hp_so_far) = match &self.flow {
@@ -783,26 +953,23 @@ impl GameState {
             ),
             _ => (
                 Self::calculate_stage_total_hp(self.stage, &self.config, &self.stage_modifiers),
-                0.0,
+                Health::ZERO,
             ),
         };
 
-        // 현재 남아있는 몬스터들의 이미 소모된 체력(= max_hp - 현재 hp)을 합산
-        let remaining_processed_hp: f32 = self
-            .monsters
-            .iter()
-            .map(|monster| (monster.max_hp - monster.hp.max(0.0)).max(0.0))
-            .sum();
-
-        let total_processed_hp = processed_hp_so_far + remaining_processed_hp;
-
-        let current_stage_progress = if start_total_hp > 0.0 {
-            (total_processed_hp / start_total_hp).min(1.0) * stage_weight
+        let current_stage_progress = if !start_total_hp.is_zero() {
+            let stage_ratio = processed_hp_so_far.ratio_of(start_total_hp);
+            RatioProduct::one()
+                .with(FixedRatio::from_raw(stage_weight_raw as i64))
+                .apply_raw(stage_ratio.raw()) as i128
         } else {
-            0.0
+            0
         };
 
-        (previous_stages_progress + current_stage_progress).min(100.0)
+        let total_raw = previous_stages_progress
+            .saturating_add(current_stage_progress)
+            .min(RATIO_SCALE as i128) as i64;
+        ClearRate::from_ratio(FixedRatio::from_raw(total_raw))
     }
 
     /// 특정 스테이지의 총 몬스터 체력을 계산합니다.
@@ -810,13 +977,13 @@ impl GameState {
         stage: usize,
         config: &GameConfig,
         stage_modifiers: &StageModifiers,
-    ) -> f32 {
-        let health_multiplier = stage_modifiers.get_enemy_health_multiplier();
+    ) -> Health {
+        let health_multipliers = stage_modifiers.enemy_health_multipliers();
         let (template_queue, _) = monster_spawn::monster_template_queue_table(stage, config);
         template_queue
             .iter()
-            .map(|t| t.max_hp * health_multiplier)
-            .sum()
+            .map(|t| t.max_hp.scaled_by_product(health_multipliers))
+            .fold(Health::ZERO, Health::saturating_add)
     }
 }
 
@@ -841,5 +1008,165 @@ mod tests {
             assert!(is_boss_stage(stage), "expected stage {} to be boss", stage);
         }
         assert!(!is_boss_stage(51));
+    }
+
+    #[test]
+    fn authoritative_clone_replay_is_bit_exact() {
+        let mut left = create_game_state_with_seed(0x5eed);
+        let mut right = left.clone_for_debug();
+        let apply_commands = |game_state: &mut GameState| {
+            game_state.action(GameStateAction::TakeDamage(Damage::from_raw(7_125)));
+            game_state.action(GameStateAction::GainShield(Shield::from_raw(2_500)));
+            game_state.action(GameStateAction::TakeDamage(Damage::from_raw(3_250)));
+            game_state.action(GameStateAction::Heal(Health::from_raw(1_125)));
+            crate::game_state::effect::run_effect(
+                game_state,
+                &crate::game_state::effect::Effect::IncreaseEnemyHealthPercent {
+                    percentage: FixedRatio::from_integer(20),
+                },
+            );
+            crate::game_state::effect::run_effect(
+                game_state,
+                &crate::game_state::effect::Effect::DecreaseIncomingDamage {
+                    multiplier: FixedRatio::from_raw(750_001),
+                },
+            );
+        };
+        apply_commands(&mut left);
+        apply_commands(&mut right);
+        for _ in 0..120 {
+            tick::step_simulation(&mut left, PresentationInstant::zero());
+            tick::step_simulation(&mut right, PresentationInstant::zero());
+        }
+
+        assert_eq!(left.hp, right.hp);
+        assert_eq!(left.shield, right.shield);
+        assert_eq!(left.max_hp(), right.max_hp());
+        assert_eq!(left.calculate_clear_rate(), right.calculate_clear_rate());
+        assert_eq!(left.stage, right.stage);
+        assert_eq!(left.left_dice, right.left_dice);
+        assert_eq!(left.gold, right.gold);
+        assert_eq!(left.sim_tick, right.sim_tick);
+        assert_eq!(
+            left.stage_modifiers.get_enemy_health_multiplier(),
+            right.stage_modifiers.get_enemy_health_multiplier()
+        );
+        assert_eq!(
+            left.stage_modifiers.get_damage_reduction_multiplier(),
+            right.stage_modifiers.get_damage_reduction_multiplier()
+        );
+        assert_eq!(left.rng.seed, right.rng.seed);
+        assert_eq!(
+            left.rng.shop.generation_sequence,
+            right.rng.shop.generation_sequence
+        );
+        assert_eq!(left.monsters.len(), right.monsters.len());
+        for (left_monster, right_monster) in left.monsters.iter().zip(&right.monsters) {
+            assert_eq!(left_monster.hp, right_monster.hp);
+            assert_eq!(left_monster.max_hp, right_monster.max_hp);
+            assert_eq!(left_monster.damage, right_monster.damage);
+            assert_eq!(
+                left_monster.stage_progress_counted,
+                right_monster.stage_progress_counted
+            );
+        }
+    }
+
+    #[test]
+    fn same_seed_repeats_authoritative_random_choices() {
+        let mut left = create_game_state_with_seed(0xA11C_E123);
+        let mut right = create_game_state_with_seed(0xA11C_E123);
+
+        assert_eq!(left.deck.draw_pile(), right.deck.draw_pile());
+
+        left.action(GameStateAction::CardReroll);
+        right.action(GameStateAction::CardReroll);
+
+        let active_cards = |game_state: &GameState| {
+            game_state
+                .hand
+                .active_slot_ids()
+                .into_iter()
+                .filter_map(|slot_id| {
+                    game_state
+                        .hand
+                        .get_item(slot_id)
+                        .and_then(HandItem::as_card)
+                        .copied()
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(active_cards(&left), active_cards(&right));
+
+        let left_reward = upgrade::generate_boss_reward_upgrade(&mut left);
+        let right_reward = upgrade::generate_boss_reward_upgrade(&mut right);
+        assert_eq!(format!("{left_reward:?}"), format!("{right_reward:?}"));
+    }
+
+    #[test]
+    fn entity_ids_are_sequential_and_owned_by_game_state() {
+        let mut game_state = create_game_state_with_seed(0x1D);
+        game_state.action(GameStateAction::StartDefense);
+
+        let queued_count = game_state.monster_spawn_state.monster_queue.len();
+        assert!(queued_count > 0);
+        assert_eq!(
+            game_state.monster_spawn_state.monster_queue[0].id(),
+            MonsterId::from_raw(1)
+        );
+
+        crate::game_state::monster_spawn::tick(&mut game_state, SimTick::ZERO);
+        assert_eq!(game_state.monsters[0].id(), MonsterId::from_raw(1));
+
+        let mut expected_state = game_state.clone_for_debug();
+        let tower_id = expected_state.allocate_tower_id();
+        let template = crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            crate::card::Suit::Spades,
+            crate::card::Rank::Ace,
+        );
+        game_state.action(GameStateAction::PlaceTower(
+            Box::new(crate::game_state::tower::Tower::new(
+                &template,
+                MapCoord::new(0, 0),
+                SimTick::ZERO,
+            )),
+            None,
+        ));
+
+        assert_eq!(game_state.towers.iter().next().unwrap().id(), tower_id);
+
+        let cloned = game_state.clone_for_debug();
+        assert_eq!(cloned.next_entity_id, game_state.next_entity_id);
+    }
+
+    #[test]
+    fn clear_rate_is_monotonic_and_bounded() {
+        let mut game_state = create_game_state_with_seed(0xc1ea);
+        let defense = flow::DefenseFlow::new(&game_state);
+        game_state.flow = GameFlow::Defense(defense);
+        let mut previous = game_state.calculate_clear_rate();
+        for processed in [1, 7, 19, 37, 61] {
+            if let GameFlow::Defense(defense_flow) = &mut game_state.flow {
+                defense_flow.stage_progress.processed_hp = Health::from_integer(processed);
+            }
+            let current = game_state.calculate_clear_rate();
+            assert!(current >= previous);
+            assert!(current <= ClearRate::FULL);
+            previous = current;
+        }
+    }
+
+    #[test]
+    fn representative_stage_hp_matches_integer_migration_baseline() {
+        let config = GameConfig::default_config();
+        let modifiers = StageModifiers::new();
+        for (stage, expected_raw) in [(1, 338_285), (25, 60_058_670), (50, 179_198_724_000)] {
+            assert_eq!(
+                GameState::calculate_stage_total_hp(stage, &config, &modifiers).raw(),
+                expected_raw,
+                "stage {stage} total HP changed"
+            );
+        }
     }
 }

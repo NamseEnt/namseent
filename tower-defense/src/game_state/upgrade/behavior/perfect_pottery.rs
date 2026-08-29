@@ -3,7 +3,7 @@ use crate::l10n::rich_text_helpers::RichTextHelpers;
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PerfectPotteryUpgrade {
-    pub damage_bonus_pct: f32,
+    pub damage_bonus_pct: FixedRatio,
 }
 
 impl UpgradeBehavior for PerfectPotteryUpgrade {
@@ -20,7 +20,7 @@ impl UpgradeBehavior for PerfectPotteryUpgrade {
         _game_state: &GameState,
     ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
         vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
-            format!("{:.0}%", self.damage_bonus_pct * 100.0),
+            format!("{:.0}%", self.damage_bonus_pct.as_f32() * 100.0),
             crate::theme::palette::RED,
         )]
     }
@@ -32,7 +32,12 @@ impl UpgradeBehavior for PerfectPotteryUpgrade {
     fn acquire(self, game_state: &mut GameState) -> UpgradeUpdateFlags {
         for upgrade in game_state.upgrade_state.upgrades.iter_mut() {
             if let Upgrade::PerfectPottery(upgrade) = &mut upgrade.upgrade {
-                upgrade.damage_bonus_pct += self.damage_bonus_pct;
+                upgrade.damage_bonus_pct = FixedRatio::from_raw(
+                    upgrade
+                        .damage_bonus_pct
+                        .raw()
+                        .saturating_add(self.damage_bonus_pct.raw()),
+                );
                 return UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION;
             }
         }
@@ -44,7 +49,7 @@ impl UpgradeBehavior for PerfectPotteryUpgrade {
         UpgradeUpdateFlags::TOWER_STATS | UpgradeUpdateFlags::REVISION
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         Some((TowerUpgradeTarget::NoRerollTower, self.damage_bonus_pct))
     }
 
@@ -65,18 +70,24 @@ impl UpgradeBehavior for PerfectPotteryUpgrade {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => builder
-                .static_text("No-reroll tower ")
-                .with_bold(format!("damage +{:.0}%", self.damage_bonus_pct * 100.0)),
-            crate::l10n::locale::Language::Korean => builder
-                .static_text("리롤 안한 타워 ")
-                .with_bold(format!("데미지 +{:.0}%", self.damage_bonus_pct * 100.0)),
+            crate::l10n::locale::Language::English => {
+                builder.static_text("No-reroll tower ").with_bold(format!(
+                    "damage +{:.0}%",
+                    self.damage_bonus_pct.as_f32() * 100.0
+                ))
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder.static_text("리롤 안한 타워 ").with_bold(format!(
+                    "데미지 +{:.0}%",
+                    self.damage_bonus_pct.as_f32() * 100.0
+                ))
+            }
         };
     }
 }
 
 impl PerfectPotteryUpgrade {
-    pub fn into_upgrade(damage_bonus_pct: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct: FixedRatio) -> Upgrade {
         Upgrade::PerfectPottery(PerfectPotteryUpgrade { damage_bonus_pct })
     }
 }
@@ -88,5 +99,5 @@ pub(super) const UPGRADE_DEFINITION: UpgradeDefinition = UpgradeDefinition::new(
 );
 
 fn generate_upgrade(_upgrade_state: &UpgradeState) -> Upgrade {
-    PerfectPotteryUpgrade::into_upgrade(0.5)
+    PerfectPotteryUpgrade::into_upgrade(FixedRatio::from_raw(500_000))
 }

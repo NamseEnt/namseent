@@ -1,6 +1,6 @@
 use crate::game_state::{action::upgrade_trigger::UpgradeTriggerEvent, *};
 
-pub(super) fn remove_tower(game_state: &mut GameState, tower_id: usize) -> Option<Tower> {
+pub(super) fn remove_tower(game_state: &mut GameState, tower_id: TowerId) -> Option<Tower> {
     game_state.towers.remove_tower(tower_id)
 }
 
@@ -24,7 +24,7 @@ pub(super) fn play_removal_sound(game_state: &mut GameState) {
     ));
 }
 
-pub(super) fn record_history_event(game_state: &mut GameState, tower_id: usize) {
+pub(super) fn record_history_event(game_state: &mut GameState, tower_id: TowerId) {
     game_state.record_event(
         crate::game_state::play_history::HistoryEventType::TowerRemovedById { tower_id },
     );

@@ -1,11 +1,11 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const DAMAGE_BONUS_PCT_PER_REROLL: f32 = 0.25;
+const DAMAGE_BONUS_PCT_PER_REROLL: FixedRatio = FixedRatio::from_raw(250_000);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ResolutionUpgrade {
-    pub damage_bonus_pct_per_reroll: f32,
+    pub damage_bonus_pct_per_reroll: FixedRatio,
     pub stored_rerolls: usize,
 }
 
@@ -25,7 +25,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
         vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
             format!(
                 "{:.0}%",
-                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll * 100.0
+                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll.as_f32() * 100.0
             ),
             crate::theme::palette::RED,
         )]
@@ -39,11 +39,12 @@ impl UpgradeBehavior for ResolutionUpgrade {
         self.update_stored_rerolls(game_state)
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         if self.stored_rerolls > 0 {
             Some((
                 TowerUpgradeTarget::Global,
-                self.stored_rerolls as f32 * self.damage_bonus_pct_per_reroll,
+                self.damage_bonus_pct_per_reroll
+                    .saturating_mul_usize(self.stored_rerolls),
             ))
         } else {
             None
@@ -79,7 +80,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
                     .static_text("Remaining rerolls give ")
                     .with_bold(format!(
                         "damage +{:.0}%",
-                        self.damage_bonus_pct_per_reroll * 100.0
+                        self.damage_bonus_pct_per_reroll.as_f32() * 100.0
                     ))
                     .static_text("for all towers");
             }
@@ -89,7 +90,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
                     .static_text(" ")
                     .with_bold(format!(
                         "데미지 +{:.0}%",
-                        self.damage_bonus_pct_per_reroll * 100.0
+                        self.damage_bonus_pct_per_reroll.as_f32() * 100.0
                     ));
             }
         }
@@ -97,7 +98,7 @@ impl UpgradeBehavior for ResolutionUpgrade {
 }
 
 impl ResolutionUpgrade {
-    pub fn into_upgrade(damage_bonus_pct_per_reroll: f32) -> Upgrade {
+    pub fn into_upgrade(damage_bonus_pct_per_reroll: FixedRatio) -> Upgrade {
         Upgrade::Resolution(ResolutionUpgrade {
             damage_bonus_pct_per_reroll,
             stored_rerolls: 0,
@@ -139,7 +140,9 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         game_state.action(crate::game_state::GameStateAction::Upgrade(
-            crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(0.25),
+            crate::game_state::upgrade::ResolutionUpgrade::into_upgrade(
+                crate::FixedRatio::from_raw(250_000),
+            ),
             None,
         ));
         game_state.action(crate::game_state::GameStateAction::StageEnd {
@@ -160,8 +163,7 @@ mod tests {
 
         assert!(game_state.upgrade_state.upgrades.iter().any(|upgrade| {
             if let Upgrade::Resolution(upgrade) = &upgrade.upgrade {
-                (upgrade.damage_bonus_pct_per_reroll - DAMAGE_BONUS_PCT_PER_REROLL).abs()
-                    < f32::EPSILON
+                upgrade.damage_bonus_pct_per_reroll == DAMAGE_BONUS_PCT_PER_REROLL
             } else {
                 false
             }
@@ -175,7 +177,7 @@ mod tests {
         let tower = crate::game_state::tower::Tower::new(
             &placed_template,
             crate::MapCoord::new(0, 0),
-            game_state.now(),
+            game_state.sim_tick(),
         );
         game_state.action(crate::game_state::GameStateAction::PlaceTower(
             Box::new(tower),
@@ -190,7 +192,7 @@ mod tests {
             .expect("expected tower placed");
         support::assert_tower_cached_damage_mul(
             placed_tower,
-            DAMAGE_BONUS_PCT_PER_REROLL * DEFAULT_BASE_DICE_CHANCE.as_f32() + 1.0,
+            DAMAGE_BONUS_PCT_PER_REROLL.as_f32() * DEFAULT_BASE_DICE_CHANCE as f32 + 1.0,
         );
     }
 
@@ -200,7 +202,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         let mut upgrade = ResolutionUpgrade {
-            damage_bonus_pct_per_reroll: 0.25,
+            damage_bonus_pct_per_reroll: crate::FixedRatio::from_raw(250_000),
             stored_rerolls: 2,
         };
         game_state.left_dice = 2;
@@ -216,7 +218,7 @@ mod tests {
 
         let mut game_state = support::create_mock_game_state();
         let mut upgrade = ResolutionUpgrade {
-            damage_bonus_pct_per_reroll: 0.25,
+            damage_bonus_pct_per_reroll: crate::FixedRatio::from_raw(250_000),
             stored_rerolls: 2,
         };
         game_state.left_dice = 1;

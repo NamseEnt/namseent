@@ -86,7 +86,7 @@ impl LightningBoltParticle {
         if !self.has_spawned && self.is_done(now) && self.points.len() >= 2 {
             self.has_spawned = true;
             if let Some(child) = self.try_spawn_child(now) {
-                crate::game_state::field_particle::spawn_lightning_bolt(child);
+                *self = child;
             }
         }
     }

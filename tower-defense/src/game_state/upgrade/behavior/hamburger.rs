@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const HAMBURGER_MAX_HP_DECREASE: f32 = 6.0;
-const HAMBURGER_HEAL_AMOUNT: f32 = 18.0;
+const HAMBURGER_MAX_HP_DECREASE: HealthDelta = HealthDelta::from_integer(6);
+const HAMBURGER_HEAL_AMOUNT: Health = Health::from_integer(18);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct HamburgerUpgrade;
@@ -24,8 +24,8 @@ impl UpgradeBehavior for HamburgerUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        -HAMBURGER_MAX_HP_DECREASE
+    fn max_hp_plus(&self) -> HealthDelta {
+        HealthDelta::from_raw(-HAMBURGER_MAX_HP_DECREASE.raw())
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {

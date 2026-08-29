@@ -1,23 +1,18 @@
-use clap::{Parser, ValueEnum};
+use crate::simulator::environment::{
+    AgentAction, DecisionPoint, LegalAction, Observation, StepReason,
+};
+use crate::simulator::ml::MlContract;
+use crate::simulator::policy_runner::{PolicyRunnerConfig, run_batch};
+use crate::simulator::recording::{SimRecorder, SimulationProvenance};
+use crate::{Health, MonsterKind, config::GameConfig};
+use clap::{Args, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::{SeedableRng, rngs::StdRng};
-use rayon::prelude::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::sync::{
-    Arc, Mutex,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc,
+    atomic::{AtomicBool, Ordering},
 };
-use tower_defense::simulator::HeadlessGame;
-use tower_defense::simulator::recording::SimRecorder;
-use tower_defense::simulator::strategies::TowerPlacementStrategy;
-use tower_defense::simulator::strategies::treasure::SynergyTreasureStrategy;
-use tower_defense::simulator::strategies::{
-    CardServiceStrategy, card_reroll::SmartRerollStrategy,
-    card_service::HeuristicCardServiceStrategy, item_use::HeuristicItemUseStrategy,
-    shop::SynergyShopStrategy, tower_placement::HeuristicPlacementStrategy,
-};
-use tower_defense::{MonsterKind, config::GameConfig, set_headless};
 
 const TARGET_WIN_RATE: f32 = 0.05;
 const MIN_ZERO_DAMAGE_SCALE: f32 = 0.05;
@@ -88,12 +83,8 @@ enum CdfProfile {
     Trapezoid,
 }
 
-#[derive(Parser)]
-#[command(
-    name = "td-auto-hp-balance",
-    about = "Automatically tune monster HP for balanced stage progression"
-)]
-struct Cli {
+#[derive(Args)]
+pub struct BalanceOptions {
     /// Number of simulation samples to run
     #[arg(short, long, default_value_t = 1000)]
     samples: usize,
@@ -194,6 +185,16 @@ struct BalanceStats {
     clear_rates: Vec<f32>,
     overall_damage_mean: f32,
     below_15_frac: f32,
+    termination_counts: BTreeMap<String, usize>,
+    stage_one_termination_counts: BTreeMap<String, usize>,
+    stage_one_cycle_action_pairs: BTreeMap<String, usize>,
+    terminal_tower_mean: f32,
+    terminal_player_damage_mean: f32,
+    terminal_escaped_hp_mean: f32,
+    terminal_item_use_mean: f32,
+    terminal_tower_damage_mean: f32,
+    config_digest: String,
+    policy_id: String,
 }
 
 #[derive(Default)]
@@ -207,13 +208,7 @@ struct DistributionControl {
     dominant_bin_escape_strength: f32,
 }
 
-fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-
-    tower_defense::init_simulator_kv_store();
-
-    set_headless(true);
-
+pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     let mut base_config = if let Some(path) = &cli.config {
         GameConfig::from_toml(path)?
     } else {
@@ -273,7 +268,7 @@ fn target_stage_survival(stage: usize, stages: usize) -> f32 {
 fn tune_hp_balance(
     pool: &rayon::ThreadPool,
     mut config: GameConfig,
-    cli: &Cli,
+    cli: &BalanceOptions,
     recorder: Arc<SimRecorder>,
     stop_requested: Arc<AtomicBool>,
 ) -> anyhow::Result<GameConfig> {
@@ -282,7 +277,7 @@ fn tune_hp_balance(
         .monsters
         .stats
         .iter()
-        .map(|(&kind, stat)| (kind, stat.base_hp))
+        .map(|(&kind, stat)| (kind, stat.base_hp.as_f32()))
         .collect();
     let mut stage_primary = build_stage_primary_monster(&config);
     let mut stage_momentum = build_initial_stage_scale_curve(stages, cli);
@@ -325,12 +320,30 @@ fn tune_hp_balance(
 
         let overall_mean = metrics.overall_damage_mean;
         let target_message = format!(
-            "win {:.1}%, below15 {:.1}%, mean {:.1}",
+            "win {:.1}%, below15 {:.1}%, mean {:.1}, termination {:?}, stage1 {:?}, config_digest={}, policy={}",
             metrics.win_rate * 100.0,
             metrics.below_15_frac * 100.0,
-            overall_mean
+            overall_mean,
+            metrics.termination_counts,
+            metrics.stage_one_termination_counts,
+            metrics.config_digest,
+            metrics.policy_id,
         );
         println!("Iteration {iteration}: {target_message}");
+        println!(
+            "Iteration {iteration}: terminal metrics towers {:.2}, player_damage {:.2}, escaped_hp {:.2}, items {:.2}, tower_damage {:.2}",
+            metrics.terminal_tower_mean,
+            metrics.terminal_player_damage_mean,
+            metrics.terminal_escaped_hp_mean,
+            metrics.terminal_item_use_mean,
+            metrics.terminal_tower_damage_mean,
+        );
+        if !metrics.stage_one_cycle_action_pairs.is_empty() {
+            println!(
+                "Iteration {iteration}: stage1 cycle pairs {:?}",
+                metrics.stage_one_cycle_action_pairs
+            );
+        }
 
         let reference_damage_mean = compute_robust_reference_damage(&metrics.stage_means);
         let win_error = metrics.win_rate - TARGET_WIN_RATE;
@@ -528,14 +541,16 @@ fn tune_hp_balance(
                 let base_hp = original_hp
                     .get(&monster_kind)
                     .copied()
-                    .unwrap_or(stat.base_hp);
+                    .unwrap_or(stat.base_hp.as_f32());
                 let global_scale = if cli.rough_initial_balance {
                     rough_global_scale
                 } else {
                     1.0
                 };
                 let applied_scale = kind_scale * global_scale;
-                stat.base_hp = (base_hp * applied_scale).max(base_hp * 0.25);
+                stat.base_hp =
+                    Health::from_f64((base_hp * applied_scale).max(base_hp * 0.25) as f64)
+                        .expect("auto HP balance must produce finite non-negative HP");
                 max_change = max_change.max((applied_scale - 1.0).abs());
             }
         }
@@ -617,7 +632,7 @@ fn tune_hp_balance(
 fn zero_boss_hp(config: &mut GameConfig) {
     for (kind, stat) in config.monsters.stats.iter_mut() {
         if !kind.is_normal_monster() {
-            stat.base_hp = 0.0;
+            stat.base_hp = Health::ZERO;
         }
     }
 }
@@ -625,12 +640,13 @@ fn zero_boss_hp(config: &mut GameConfig) {
 fn normalize_normal_monster_hp(config: &mut GameConfig, hp: f32) {
     for (kind, stat) in config.monsters.stats.iter_mut() {
         if kind.is_normal_monster() {
-            stat.base_hp = hp;
+            stat.base_hp = Health::from_f64(hp as f64)
+                .expect("auto HP balance input must produce finite non-negative HP");
         }
     }
 }
 
-fn build_initial_stage_scale_curve(stages: usize, cli: &Cli) -> Vec<f32> {
+fn build_initial_stage_scale_curve(stages: usize, cli: &BalanceOptions) -> Vec<f32> {
     let mut curve = vec![1.0_f32; stages + 1];
     if !cli.rough_initial_balance || stages <= 1 {
         return curve;
@@ -683,10 +699,11 @@ fn apply_boss_hp_from_stage(config: &mut GameConfig) {
                 .monsters
                 .stats
                 .get(&normal_kind)
-                .map(|stat| stat.base_hp)
+                .map(|stat| stat.base_hp.as_f32())
             && let Some(boss_stat) = config.monsters.stats.get_mut(&boss_kind)
         {
-            boss_stat.base_hp = normal_hp * 1.5;
+            boss_stat.base_hp = Health::from_f64((normal_hp * 1.5) as f64)
+                .expect("auto HP balance must produce finite non-negative HP");
         }
     }
 }
@@ -767,7 +784,7 @@ fn compute_stage_adjustment_signal(
     stages: usize,
     arrival_weight: f32,
     damage_weight: f32,
-    cli: &Cli,
+    cli: &BalanceOptions,
 ) -> f32 {
     let observed_arrival = arrival_count as f32 / samples as f32;
     let target_arrival =
@@ -1002,7 +1019,7 @@ fn build_target_bin_weights(profile: CdfProfile) -> Vec<f32> {
     weights
 }
 
-fn compute_stage_segment_gain(stage: usize, stages: usize, cli: &Cli) -> f32 {
+fn compute_stage_segment_gain(stage: usize, stages: usize, cli: &BalanceOptions) -> f32 {
     if stages <= 1 {
         return cli.mid_segment_gain;
     }
@@ -1080,181 +1097,282 @@ fn run_simulations(
     quiet: bool,
     stop_requested: &Arc<AtomicBool>,
 ) -> anyhow::Result<Option<BalanceStats>> {
-    let stage_count = config.player.max_stages;
-    let stage_sums = Arc::new(Mutex::new(vec![0.0_f32; stage_count]));
-    let stage_arrivals = Arc::new(Mutex::new(vec![0_usize; stage_count]));
-    let stage_visits = Arc::new(Mutex::new(vec![0_usize; stage_count]));
-    let below_15_count = AtomicUsize::new(0);
-    let victories = AtomicUsize::new(0);
-    let canceled = AtomicBool::new(false);
-    let clear_rates = Arc::new(Mutex::new(Vec::<f32>::new()));
-
-    let overall_pb = if quiet {
-        None
-    } else {
-        let pb = ProgressBar::new(samples as u64);
-        let style = ProgressStyle::with_template(
-            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}",
-        )?;
-        pb.set_style(style);
-        pb.set_message("wins 0");
-        Some(pb)
-    };
-
-    pool.install(|| {
-        (0..samples).into_par_iter().for_each(|sample| {
-            if stop_requested.load(Ordering::SeqCst) {
-                canceled.store(true, Ordering::SeqCst);
-                return;
-            }
-
-            let seed = sample as u64;
-            let mut rng = StdRng::seed_from_u64(seed);
-
-            let shop_strategy: Box<dyn tower_defense::simulator::strategies::ShopStrategy> =
-                Box::new(SynergyShopStrategy);
-            let card_strategy: Box<dyn tower_defense::simulator::strategies::CardRerollStrategy> =
-                Box::new(SmartRerollStrategy);
-            let tower_strategy = HeuristicPlacementStrategy;
-            let item_strategy: Box<dyn tower_defense::simulator::strategies::ItemUseStrategy> =
-                Box::new(HeuristicItemUseStrategy);
-            let card_service_strategy = HeuristicCardServiceStrategy;
-            let treasure_strategy = SynergyTreasureStrategy;
-
-            let sim_id = format!("iteration_{iteration}_sim_{seed:016x}");
-
-            if let Err(e) = recorder.record_simulation_start(
-                &sim_id,
-                shop_strategy.name(),
-                card_strategy.name(),
-                tower_strategy.name(),
-                item_strategy.name(),
-                card_service_strategy.name(),
-                seed,
-            ) {
-                eprintln!("Failed to record start for {sim_id}: {e}");
-            }
-
-            let mut game = HeadlessGame::new(config.clone(), seed);
-
-            let strategies = tower_defense::simulator::SimulationStrategies {
-                shop_strategy: shop_strategy.as_ref(),
-                card_reroll_strategy: card_strategy.as_ref(),
-                tower_placement_strategy: &tower_strategy,
-                item_use_strategy: item_strategy.as_ref(),
-                card_service_strategy: &card_service_strategy,
-                treasure_strategy: &treasure_strategy,
-            };
-
-            let result = game.run(&strategies, &mut rng, |_clear_rate| {
-                !stop_requested.load(Ordering::SeqCst)
-            });
-
-            let mut arrived = vec![false; stage_count];
-            {
-                let mut sums = stage_sums.lock().unwrap();
-                let mut arrivals = stage_arrivals.lock().unwrap();
-                let mut visits = stage_visits.lock().unwrap();
-                for &(stage, damage) in &result.stage_damage {
-                    if stage == 0 || stage > stage_count {
-                        continue;
-                    }
-                    let idx = stage - 1;
-                    sums[idx] += damage;
-                    visits[idx] += 1;
-                    if !arrived[idx] {
-                        arrived[idx] = true;
-                        arrivals[idx] += 1;
-                    }
-                }
-            }
-
-            {
-                let mut rates = clear_rates.lock().unwrap();
-                rates.push(result.clear_rate);
-            }
-
-            if let Err(e) = recorder.record_simulation_end(
-                &sim_id,
-                result.victory,
-                result.final_stage,
-                result.clear_rate,
-                result.final_hp,
-                result.final_gold,
-                result.total_towers_placed,
-                result.total_items_used,
-                result.total_damage_taken,
-                result.total_gold_earned,
-            ) {
-                eprintln!("Failed to record end for {sim_id}: {e}");
-            }
-
-            if let Err(e) = recorder.record_events(&sim_id, &game.events) {
-                eprintln!("Failed to record events for {sim_id}: {e}");
-            }
-
-            if result.victory {
-                victories.fetch_add(1, Ordering::Relaxed);
-            }
-
-            if result.final_stage < 15 {
-                below_15_count.fetch_add(1, Ordering::Relaxed);
-            }
-
-            if let Some(pb) = &overall_pb {
-                pb.inc(1);
-                let win_count = victories.load(Ordering::Relaxed);
-                pb.set_message(format!("wins {win_count}"));
-            }
-        });
-    });
-
-    if let Some(pb) = overall_pb {
-        pb.finish_and_clear();
-    }
-
-    let stage_arrivals = Arc::try_unwrap(stage_arrivals)
-        .unwrap()
-        .into_inner()
-        .unwrap();
-    let stage_visits = Arc::try_unwrap(stage_visits).unwrap().into_inner().unwrap();
-    let stage_sums = Arc::try_unwrap(stage_sums).unwrap().into_inner().unwrap();
-    let total_wins = victories.load(Ordering::Relaxed);
-    let below_15_count = below_15_count.load(Ordering::Relaxed);
-    let clear_rates = Arc::try_unwrap(clear_rates).unwrap().into_inner().unwrap();
-
-    if canceled.load(Ordering::SeqCst) {
+    if stop_requested.load(Ordering::SeqCst) {
         return Ok(None);
     }
 
-    let mut stage_means = vec![0.0_f32; stage_count];
+    let stage_count = config.player.max_stages;
+    let seeds = (0..samples as u64).collect::<Vec<_>>();
+    let progress = if quiet {
+        None
+    } else {
+        let progress = ProgressBar::new(samples as u64);
+        let style = ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})",
+        )?;
+        progress.set_style(style);
+        Some(progress)
+    };
+    let batch = pool.install(|| {
+        run_batch::<_, _>(
+            Arc::clone(&config),
+            &seeds,
+            &PolicyRunnerConfig {
+                record_steps: samples <= 100,
+                ..PolicyRunnerConfig::default()
+            },
+            |_| balance_policy,
+        )
+    })?;
+    if let Some(progress) = progress {
+        progress.set_position(samples as u64);
+        progress.finish_and_clear();
+    }
+    if stop_requested.load(Ordering::SeqCst) {
+        return Ok(None);
+    }
+
+    let mut stage_sums = vec![0.0_f32; stage_count];
+    let mut stage_arrivals = vec![0_usize; stage_count];
+    let mut stage_visits = vec![0_usize; stage_count];
+    let mut clear_rates = Vec::with_capacity(batch.episodes.len());
     let mut total_damage = 0.0_f32;
     let mut total_visits = 0_usize;
+    let mut total_wins = 0_usize;
+    let mut below_15_count = 0_usize;
+    let mut termination_counts = BTreeMap::new();
+    let mut stage_one_termination_counts = BTreeMap::new();
+    let mut stage_one_cycle_action_pairs = BTreeMap::new();
+    let mut terminal_tower_total = 0_usize;
+    let mut terminal_player_damage_total = 0.0_f32;
+    let mut terminal_escaped_hp_total = 0.0_f32;
+    let mut terminal_item_use_total = 0_usize;
+    let mut terminal_tower_damage_total = 0.0_f32;
+    let mut terminal_count = 0_usize;
+    let contract = MlContract::from_config(config.as_ref());
+    let provenance = SimulationProvenance {
+        runner_kind: "policy_runner".to_string(),
+        policy_kind: "auto_balance_heuristic".to_string(),
+        checkpoint_path: None,
+        checkpoint_iteration: None,
+        environment_version: Some(contract.environment_version),
+        action_schema_version: Some(contract.action_schema_version),
+        config_digest: Some(contract.config_digest.clone()),
+        config_override: false,
+        seed_schedule: Some(format!("0..={}", samples.saturating_sub(1))),
+    };
 
-    for stage in 0..stage_count {
-        if stage_visits[stage] > 0 {
-            stage_means[stage] = stage_sums[stage] / stage_visits[stage] as f32;
-            total_damage += stage_sums[stage];
-            total_visits += stage_visits[stage];
+    for episode in &batch.episodes {
+        let sim_id = format!("iteration_{iteration}_sim_{:016x}", episode.seed);
+        recorder.record_simulation_start_with_provenance(
+            &sim_id,
+            "environment_policy",
+            "environment_policy",
+            "environment_policy",
+            "environment_policy",
+            "environment_policy",
+            episode.seed,
+            &provenance,
+        )?;
+
+        let episode_damage = episode
+            .metrics
+            .stage_damage
+            .iter()
+            .map(|&(stage, damage)| {
+                if stage > 0 && stage <= stage_count {
+                    let index = stage - 1;
+                    stage_sums[index] += damage;
+                    stage_visits[index] += 1;
+                    stage_arrivals[index] += 1;
+                    total_damage += damage;
+                    total_visits += 1;
+                }
+                damage
+            })
+            .sum::<f32>();
+        recorder.record_simulation_end(
+            &sim_id,
+            episode.victory,
+            episode.final_observation.stage,
+            episode.clear_rate,
+            episode.final_observation.hp_raw as f32 / 1_000.0,
+            episode.final_observation.gold,
+            episode.metrics.total_towers_placed,
+            episode.metrics.total_items_used,
+            episode_damage,
+            episode.metrics.total_gold_earned,
+        )?;
+
+        clear_rates.push(episode.clear_rate);
+        total_wins += usize::from(episode.victory);
+        below_15_count += usize::from(episode.final_observation.stage < 15);
+        let reason = termination_reason_name(&episode.termination_reason);
+        *termination_counts.entry(reason.to_string()).or_insert(0) += 1;
+        if episode.final_observation.stage == 1 {
+            *stage_one_termination_counts
+                .entry(reason.to_string())
+                .or_insert(0) += 1;
+            if episode.termination_reason == StepReason::NoProgressCycle
+                && let Some(steps) = &episode.steps
+                && steps.len() >= 2
+            {
+                let previous = &steps[steps.len() - 2];
+                let last = &steps[steps.len() - 1];
+                let pair = format!(
+                    "{:?}:{} -> {:?}:{}",
+                    previous.observation.decision_point,
+                    previous.action.action_id(),
+                    last.observation.decision_point,
+                    last.action.action_id()
+                );
+                *stage_one_cycle_action_pairs.entry(pair).or_insert(0) += 1;
+            }
+        }
+        if episode.terminated {
+            terminal_count += 1;
+            terminal_tower_total += episode.metrics.total_towers_placed;
+            terminal_player_damage_total += episode.metrics.total_player_damage;
+            terminal_escaped_hp_total += episode.metrics.total_escaped_hp;
+            terminal_item_use_total += episode.metrics.total_items_used;
+            terminal_tower_damage_total += episode.metrics.total_tower_damage;
         }
     }
 
-    let overall_damage_mean = if total_visits > 0 {
-        total_damage / total_visits as f32
-    } else {
-        0.0
-    };
-
-    let below_15_frac = below_15_count as f32 / samples as f32;
+    let mut stage_means = vec![0.0_f32; stage_count];
+    for stage in 0..stage_count {
+        if stage_visits[stage] > 0 {
+            stage_means[stage] = stage_sums[stage] / stage_visits[stage] as f32;
+        }
+    }
 
     Ok(Some(BalanceStats {
-        win_rate: total_wins as f32 / samples as f32,
+        win_rate: total_wins as f32 / samples.max(1) as f32,
         stage_means,
         stage_arrivals,
         clear_rates,
-        overall_damage_mean,
-        below_15_frac,
+        overall_damage_mean: if total_visits > 0 {
+            total_damage / total_visits as f32
+        } else {
+            0.0
+        },
+        below_15_frac: below_15_count as f32 / samples.max(1) as f32,
+        termination_counts,
+        stage_one_termination_counts,
+        stage_one_cycle_action_pairs,
+        terminal_tower_mean: terminal_tower_total as f32 / terminal_count.max(1) as f32,
+        terminal_player_damage_mean: terminal_player_damage_total / terminal_count.max(1) as f32,
+        terminal_escaped_hp_mean: terminal_escaped_hp_total / terminal_count.max(1) as f32,
+        terminal_item_use_mean: terminal_item_use_total as f32 / terminal_count.max(1) as f32,
+        terminal_tower_damage_mean: terminal_tower_damage_total / terminal_count.max(1) as f32,
+        config_digest: contract.config_digest,
+        policy_id: provenance.policy_kind,
     }))
+}
+
+fn termination_reason_name(reason: &StepReason) -> &'static str {
+    match reason {
+        StepReason::DecisionPoint => "DecisionPoint",
+        StepReason::Terminal => "Terminal",
+        StepReason::MaxTicks => "MaxTicks",
+        StepReason::MaxDecisions => "MaxDecisions",
+        StepReason::NoProgressCycle => "NoProgressCycle",
+        StepReason::CurriculumComplete => "CurriculumComplete",
+    }
+}
+
+fn balance_policy(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> anyhow::Result<AgentAction> {
+    match &observation.decision_point {
+        DecisionPoint::Shop => legal_actions
+            .iter()
+            .find(|legal| matches!(legal.action, AgentAction::PurchaseShopItem { .. }))
+            .or_else(|| {
+                find_action(legal_actions, |action| {
+                    matches!(action, AgentAction::StartSelectingTower)
+                })
+            }),
+        DecisionPoint::CardSelection => legal_actions
+            .iter()
+            .find(|legal| {
+                matches!(
+                    legal.action,
+                    AgentAction::SelectHandCard { hand_slot_index }
+                        if !observation
+                            .selected_hand_slot_indices
+                            .contains(&hand_slot_index)
+                )
+            })
+            .or_else(|| {
+                find_action(legal_actions, |action| {
+                    matches!(action, AgentAction::ConfirmCardSelection)
+                })
+            })
+            .or_else(|| legal_actions.first()),
+        DecisionPoint::TowerPlacement => {
+            let placement_action = find_action(legal_actions, |action| {
+                matches!(action, AgentAction::PlaceTower { .. })
+            });
+            placement_action.or_else(|| {
+                find_action(legal_actions, |action| {
+                    matches!(action, AgentAction::StartDefense)
+                })
+            })
+        }
+        DecisionPoint::CardServiceSelection => {
+            let selected = observation
+                .card_service
+                .as_ref()
+                .map(|service| service.selected_card_indices.as_slice())
+                .unwrap_or(&[]);
+            if observation
+                .card_service
+                .as_ref()
+                .is_some_and(|service| selected.len() >= service.required_count)
+            {
+                return find_action(legal_actions, |action| {
+                    matches!(action, AgentAction::ConfirmCardServiceSelection)
+                })
+                .map(|legal| legal.action.clone())
+                .ok_or_else(|| {
+                    anyhow::anyhow!("card service selection is complete without confirm")
+                });
+            }
+            legal_actions
+                .iter()
+                .find(|legal| {
+                    matches!(
+                        legal.action,
+                        AgentAction::SelectCardServiceCard { card_index }
+                            if !selected.contains(&card_index)
+                    )
+                })
+                .or_else(|| {
+                    find_action(legal_actions, |action| {
+                        matches!(action, AgentAction::ConfirmCardServiceSelection)
+                    })
+                })
+        }
+        DecisionPoint::TreasureSelection => legal_actions.first(),
+        DecisionPoint::Defense => find_action(legal_actions, |action| {
+            matches!(action, AgentAction::Continue)
+        }),
+        DecisionPoint::PreDefenseItem
+        | DecisionPoint::DamageResponseItem
+        | DecisionPoint::Terminal => legal_actions.first(),
+    }
+    .or_else(|| legal_actions.first())
+    .map(|legal| legal.action.clone())
+    .ok_or_else(|| anyhow::anyhow!("environment returned no legal actions"))
+}
+
+fn find_action(
+    legal_actions: &[LegalAction],
+    predicate: impl Fn(&AgentAction) -> bool,
+) -> Option<&LegalAction> {
+    legal_actions.iter().find(|legal| predicate(&legal.action))
 }
 
 fn print_clear_rate_histogram(clear_rates: &[f32]) {

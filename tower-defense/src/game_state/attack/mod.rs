@@ -1,23 +1,26 @@
 pub mod laser;
 
 use super::projectile::{
-    HOMING_ACCELERATION_TILE, HOMING_DIRECT_ACCELERATION_MULTIPLIER, HOMING_INITIAL_SPEED_MAX_TILE,
-    HOMING_INITIAL_SPEED_MIN_TILE, HOMING_MAX_SPEED_TILE, HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE,
-    HOMING_TURN_RATE_MAX_TILE, HOMING_TURN_RATE_MIN_TILE, ProjectileBehavior, ProjectileKind,
-    ProjectileTargetIndicator, ProjectileTrail, random_rotation_speed,
+    HOMING_ACCELERATION, HOMING_DIRECT_ACCELERATION_MULTIPLIER, HOMING_MAX_SPEED,
+    HOMING_SWITCH_TO_DIRECT_DISTANCE, ProjectileBehavior, ProjectileKind,
+    ProjectileTargetIndicator, ProjectileTrail, homing_speed_for_key, homing_turn_rate_for_key,
+    move_direct,
 };
+use crate::SimTick;
 use crate::card::Suit;
 use crate::game_state::TILE_PX_SIZE;
-use crate::{MapCoordF32, game_state::card::Rank};
+use crate::{AttackId, Damage, MonsterId, TowerId};
+use crate::{
+    FixedRatio, RatioProduct, WorldCoord, WorldDistance, WorldSpeed, WorldVec,
+    game_state::card::Rank,
+};
 use namui::*;
-use rand::Rng;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 데미지를 가한 타워의 신원 정보. rank와 suit는 optional로 둬서
 /// 일부 타워에서 값이 없을 때도 안전하게 처리할 수 있다.
 #[derive(Clone, Copy, Debug, PartialEq, State)]
 pub struct TowerInfo {
-    pub id: usize,
+    pub id: TowerId,
     pub kind: crate::game_state::tower::TowerKind,
     pub rank: Option<Rank>,
     pub suit: Option<Suit>,
@@ -40,12 +43,12 @@ pub enum ProjectileGroup {
 }
 
 impl ProjectileGroup {
-    pub fn random_kind(&self) -> ProjectileKind {
+    pub fn kind_for(&self, key: u64) -> ProjectileKind {
         match self {
-            Self::Trash => ProjectileKind::random_trash(),
-            Self::Girl => ProjectileKind::random_girl(),
-            Self::Cards => ProjectileKind::random_cards(),
-            Self::Heart => ProjectileKind::random_heart(),
+            Self::Trash => ProjectileKind::deterministic_trash(key),
+            Self::Girl => ProjectileKind::deterministic_girl(key),
+            Self::Cards => ProjectileKind::Cards00,
+            Self::Heart => ProjectileKind::Heart00,
         }
     }
 }
@@ -53,17 +56,17 @@ impl ProjectileGroup {
 #[derive(Debug, Clone, PartialEq)]
 pub enum AttackType {
     Projectile {
-        speed: Per<f32, Duration>,
+        speed: WorldSpeed,
         trail: ProjectileTrail,
         projectile_group: ProjectileGroup,
         hit_effect: ProjectileHitEffect,
     },
     Laser,
     FullHouseRain {
-        tower_xy: (f32, f32),
+        tower_xy: WorldCoord,
     },
     RoyalStraightFlush {
-        target_xy: (f32, f32),
+        target_xy: WorldCoord,
     },
 }
 
@@ -71,145 +74,213 @@ pub enum AttackType {
 
 #[derive(Clone, State)]
 pub struct SpatialAttack {
-    pub xy: MapCoordF32,
+    pub xy: WorldCoord,
     pub target_indicator: ProjectileTargetIndicator,
-    pub velocity: Xy<f32>,
+    pub velocity: WorldVec,
     pub projectile_kind: ProjectileKind,
-    pub rotation: Angle,
-    pub rotation_speed: Angle,
     pub trail: ProjectileTrail,
     pub behavior: ProjectileBehavior,
     pub hit_effect: ProjectileHitEffect,
+    pub movement_remainder: i64,
+    pub stable_key: u64,
 }
 
 impl SpatialAttack {
     pub fn new_direct(
-        xy: MapCoordF32,
+        xy: WorldCoord,
         target_indicator: ProjectileTargetIndicator,
+        key: u64,
         projectile_kind: ProjectileKind,
-        speed: Per<f32, Duration>,
+        speed: WorldSpeed,
         trail: ProjectileTrail,
         hit_effect: ProjectileHitEffect,
     ) -> Self {
-        let speed_scalar = speed * Duration::from_secs(1);
-        let initial_direction = Xy::new(0.0f32, -1.0f32);
+        let initial_direction = WorldVec::new(0, -speed.raw());
         Self {
             xy,
             target_indicator,
-            velocity: initial_direction * speed_scalar,
+            velocity: initial_direction,
             projectile_kind,
-            rotation: 0.0.deg(),
-            rotation_speed: random_rotation_speed(),
             trail,
             behavior: ProjectileBehavior::Direct,
             hit_effect,
+            movement_remainder: 0,
+            stable_key: key,
         }
     }
 
     pub fn new_homing(
-        xy: MapCoordF32,
+        xy: WorldCoord,
         target_indicator: ProjectileTargetIndicator,
+        key: u64,
         projectile_kind: ProjectileKind,
         trail: ProjectileTrail,
         hit_effect: ProjectileHitEffect,
     ) -> Self {
-        let mut rng = rand::thread_rng();
-        let initial_speed =
-            rng.gen_range(HOMING_INITIAL_SPEED_MIN_TILE..=HOMING_INITIAL_SPEED_MAX_TILE);
-        let turn_rate = rng.gen_range(HOMING_TURN_RATE_MIN_TILE..=HOMING_TURN_RATE_MAX_TILE);
-        let initial_velocity = Xy::new(0.0f32, -initial_speed);
+        let initial_speed = homing_speed_for_key(key);
+        let turn_rate = homing_turn_rate_for_key(key);
+        let initial_velocity = WorldVec::new(0, -initial_speed.raw());
         Self {
             xy,
             target_indicator,
             velocity: initial_velocity,
             projectile_kind,
-            rotation: 0.0.deg(),
-            rotation_speed: random_rotation_speed(),
             trail,
             behavior: ProjectileBehavior::Homing {
                 velocity: initial_velocity,
-                acceleration: HOMING_ACCELERATION_TILE,
+                acceleration: HOMING_ACCELERATION,
                 turn_rate,
-                max_speed: HOMING_MAX_SPEED_TILE,
+                max_speed: HOMING_MAX_SPEED,
+                acceleration_remainder: 0,
+                turn_remainder: 0,
             },
             hit_effect,
+            movement_remainder: 0,
+            stable_key: key,
         }
     }
 
-    pub(crate) fn move_by(&mut self, dt: Duration, dest_xy: MapCoordF32) {
-        let direction = (dest_xy - self.xy).normalize();
-        let speed = self.velocity.length();
-        self.xy += direction * speed * dt.as_secs_f32();
-        self.velocity = direction * speed;
-        self.rotation += self.rotation_speed * dt.as_secs_f32();
+    pub(crate) fn move_by(&mut self, dest_xy: WorldCoord) {
+        let speed = WorldSpeed::from_raw(self.velocity.length().raw());
+        move_direct(
+            &mut self.xy,
+            &mut self.velocity,
+            &mut self.movement_remainder,
+            dest_xy,
+            speed,
+        );
     }
 
-    pub(crate) fn move_homing(&mut self, dt: Duration, dest_xy: MapCoordF32) {
-        let dt_secs = dt.as_secs_f32();
+    pub(crate) fn move_homing(&mut self, dest_xy: WorldCoord) {
         if let ProjectileBehavior::Homing {
             velocity,
             acceleration,
             turn_rate,
             max_speed,
+            acceleration_remainder,
+            turn_remainder,
         } = &mut self.behavior
         {
-            let distance_to_target = (dest_xy - self.xy).length();
-            let desired_dir = (dest_xy - self.xy).normalize();
-
-            if distance_to_target > HOMING_SWITCH_TO_DIRECT_DISTANCE_TILE {
-                let mut speed = velocity.length();
-                let acceleration = *acceleration;
-                let turn_rate = *turn_rate;
-                let max_speed = *max_speed;
-                speed = (speed + acceleration * dt_secs).min(max_speed);
-                let target_velocity = desired_dir * speed;
-                let t = (turn_rate * dt_secs).clamp(0.0, 1.0);
-                *velocity += (target_velocity - *velocity) * t;
-                self.xy += *velocity * dt_secs;
-            } else {
-                let acceleration = *acceleration;
-                let max_speed = *max_speed;
-                let mut speed = velocity.length();
-                speed = (speed + acceleration * dt_secs * HOMING_DIRECT_ACCELERATION_MULTIPLIER)
-                    .min(max_speed);
-                *velocity = desired_dir * speed;
-                self.xy += *velocity * dt_secs;
+            let distance = (dest_xy - self.xy).length();
+            if distance.is_zero() {
+                self.xy = dest_xy;
+                *velocity = WorldVec::ZERO;
+                self.velocity = WorldVec::ZERO;
+                return;
             }
-
+            let direct_steering = distance <= HOMING_SWITCH_TO_DIRECT_DISTANCE;
+            let effective_acceleration = if direct_steering {
+                RatioProduct::one()
+                    .with(HOMING_DIRECT_ACCELERATION_MULTIPLIER)
+                    .apply_raw(acceleration.raw())
+            } else {
+                acceleration.raw()
+            };
+            let full_acceleration =
+                effective_acceleration as i128 + *acceleration_remainder as i128;
+            let acceleration_per_tick =
+                full_acceleration / crate::world::SIM_TICKS_PER_SECOND as i128;
+            *acceleration_remainder =
+                (full_acceleration % crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+            let acceleration_per_tick = acceleration_per_tick.clamp(0, i64::MAX as i128) as i64;
+            let speed = WorldSpeed::from_raw(
+                velocity
+                    .length()
+                    .raw()
+                    .saturating_add(acceleration_per_tick)
+                    .min(max_speed.raw()),
+            );
+            let desired = (dest_xy - self.xy)
+                .scaled_by_distance(WorldDistance::from_raw(speed.raw()), distance);
+            if direct_steering {
+                *velocity = desired;
+            } else {
+                let turn_numerator = turn_rate.raw() as i128 + *turn_remainder as i128;
+                let turn_per_tick = turn_numerator / crate::world::SIM_TICKS_PER_SECOND as i128;
+                *turn_remainder =
+                    (turn_numerator % crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+                let turn_per_tick = FixedRatio::from_raw(
+                    turn_per_tick.clamp(0, FixedRatio::ONE.raw() as i128) as i64,
+                );
+                *velocity += (desired - *velocity).scaled_by_ratio(turn_per_tick);
+            }
+            let current_speed = WorldSpeed::from_raw(velocity.length().raw());
+            let numerator = current_speed.raw() as i128 + self.movement_remainder as i128;
+            let step = (numerator / crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+            self.movement_remainder =
+                (numerator % crate::world::SIM_TICKS_PER_SECOND as i128) as i64;
+            self.xy += velocity.scaled_by_distance(
+                WorldDistance::from_raw(step),
+                WorldDistance::from_raw(current_speed.raw()),
+            );
             self.velocity = *velocity;
         }
+    }
+}
 
-        self.rotation += self.rotation_speed * dt.as_secs_f32();
+#[cfg(test)]
+mod movement_tests {
+    use super::*;
+
+    #[test]
+    fn homing_uses_direct_steering_inside_switch_distance() {
+        let mut attack = SpatialAttack::new_homing(
+            WorldCoord::ZERO,
+            ProjectileTargetIndicator::from_id(crate::MonsterId::from_raw(1)),
+            7,
+            ProjectileKind::Cards00,
+            ProjectileTrail::None,
+            ProjectileHitEffect::CardBurst,
+        );
+
+        attack.move_homing(WorldCoord::from_tile(1, 0));
+
+        assert!(attack.velocity.x > 0);
+        assert_eq!(attack.velocity.y, 0);
+        assert!(attack.xy.x > 0);
+        assert_eq!(attack.xy.y, 0);
     }
 }
 
 impl Component for &SpatialAttack {
     fn render(self, ctx: &RenderCtx) {
-        let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
-        let image = self.projectile_kind.image();
-
-        ctx.rotate(self.rotation).add(namui::image(ImageParam {
-            rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
-            image,
-            style: ImageStyle {
-                fit: ImageFit::Contain,
-                paint: None,
-            },
-        }));
+        render_projectile_sprite(
+            ctx,
+            self.projectile_kind,
+            Xy::new(self.velocity.x as f32, self.velocity.y as f32),
+        );
     }
+}
+
+pub(crate) struct RenderProjectileSnapshot {
+    pub(crate) projectile_kind: ProjectileKind,
+    pub(crate) direction: Xy<f32>,
+}
+
+impl Component for RenderProjectileSnapshot {
+    fn render(self, ctx: &RenderCtx) {
+        render_projectile_sprite(ctx, self.projectile_kind, self.direction);
+    }
+}
+
+fn render_projectile_sprite(ctx: &RenderCtx, projectile_kind: ProjectileKind, direction: Xy<f32>) {
+    let projectile_wh = TILE_PX_SIZE * Wh::new(0.4, 0.4);
+    let image = projectile_kind.image();
+
+    ctx.rotate(direction.atan2()).add(namui::image(ImageParam {
+        rect: Rect::from_xy_wh(projectile_wh.to_xy() * -0.5, projectile_wh),
+        image,
+        style: ImageStyle {
+            fit: ImageFit::Contain,
+            paint: None,
+        },
+    }));
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]
 pub struct TimedAttack {
-    pub target_monster_id: usize,
-    pub execute_at: Instant,
-    pub hit_sound: HitSound,
-}
-
-/// 지연 타격 시 재생할 사운드. TimedAttack이 직접 소유하여 호출부 하드코딩을 제거.
-#[derive(Clone, Copy, PartialEq, Eq, State)]
-pub enum HitSound {
-    KnifeSlash,
+    pub target_monster_id: MonsterId,
+    pub execute_at: SimTick,
 }
 
 #[derive(Clone, State)]
@@ -219,12 +290,10 @@ pub enum InFlightAttackKind {
     Laser(laser::LaserBeam),
 }
 
-static NEXT_IN_FLIGHT_ATTACK_ID: AtomicU64 = AtomicU64::new(1);
-
 #[derive(Clone, State)]
 pub struct InFlightAttack {
-    pub id: u64,
-    pub damage: f32,
+    pub id: AttackId,
+    pub damage: Damage,
     pub source_tower: Option<TowerInfo>,
     pub kind: InFlightAttackKind,
     pub on_hit_splashes: Vec<crate::card::EngravingSplash>,
@@ -236,13 +305,14 @@ impl InFlightAttack {
         self
     }
 
-    pub fn new_spatial(
+    pub(crate) fn new_spatial(
+        id: AttackId,
         spatial: SpatialAttack,
-        damage: f32,
+        damage: Damage,
         source_tower: Option<TowerInfo>,
     ) -> Self {
         Self {
-            id: NEXT_IN_FLIGHT_ATTACK_ID.fetch_add(1, Ordering::Relaxed),
+            id,
             damage,
             source_tower,
             kind: InFlightAttackKind::Spatial(spatial),
@@ -250,29 +320,33 @@ impl InFlightAttack {
         }
     }
 
-    pub fn new_timed(
-        target_monster_id: usize,
-        execute_at: Instant,
-        damage: f32,
+    pub(crate) fn new_timed(
+        id: AttackId,
+        target_monster_id: MonsterId,
+        execute_at: SimTick,
+        damage: Damage,
         source_tower: Option<TowerInfo>,
-        hit_sound: HitSound,
     ) -> Self {
         Self {
-            id: NEXT_IN_FLIGHT_ATTACK_ID.fetch_add(1, Ordering::Relaxed),
+            id,
             damage,
             source_tower,
             kind: InFlightAttackKind::Timed(TimedAttack {
                 target_monster_id,
                 execute_at,
-                hit_sound,
             }),
             on_hit_splashes: Vec::new(),
         }
     }
 
-    pub fn new_laser(beam: laser::LaserBeam, damage: f32, source_tower: Option<TowerInfo>) -> Self {
+    pub(crate) fn new_laser(
+        id: AttackId,
+        beam: laser::LaserBeam,
+        damage: Damage,
+        source_tower: Option<TowerInfo>,
+    ) -> Self {
         Self {
-            id: NEXT_IN_FLIGHT_ATTACK_ID.fetch_add(1, Ordering::Relaxed),
+            id,
             damage,
             source_tower,
             kind: InFlightAttackKind::Laser(beam),

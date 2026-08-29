@@ -1,5 +1,5 @@
-use crate::game_state::GameState;
+use crate::{Shield, game_state::GameState};
 
-pub(super) fn apply(game_state: &mut GameState, amount: f32) {
-    game_state.shield += amount;
+pub(super) fn apply(game_state: &mut GameState, amount: Shield) {
+    game_state.shield = game_state.shield.saturating_add(amount);
 }

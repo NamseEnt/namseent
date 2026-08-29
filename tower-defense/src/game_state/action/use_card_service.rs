@@ -4,7 +4,7 @@ pub(super) fn use_card_service(
     game_state: &mut crate::game_state::GameState,
     card_service: crate::game_state::card_service::CardService,
 ) {
-    if game_state.is_headless() {
+    if game_state.is_headless() && !game_state.should_defer_card_service_selection() {
         let selected = card_service.heuristic_best_selection(game_state);
         let service_kind = card_service.key().to_string();
         let cards_selected = selected.len();

@@ -8,64 +8,70 @@ pub fn start_spawn(game_state: &mut GameState) {
         return;
     }
 
-    let health_multiplier = game_state.stage_modifiers.get_enemy_health_multiplier();
-    let now = game_state.now();
+    let health_multipliers = game_state.stage_modifiers.enemy_health_multipliers();
+    let sim_tick = game_state.sim_tick();
     let (monster_queue, spawn_interval) = monster_queue_table(
         game_state.stage,
         game_state.route.clone(),
-        now,
-        health_multiplier,
+        sim_tick,
+        health_multipliers,
         &game_state.config,
+        &mut game_state.next_entity_id,
     );
 
     game_state.monster_spawn_state.monster_queue = monster_queue;
     game_state.monster_spawn_state.spawn_interval = spawn_interval;
-    game_state.monster_spawn_state.next_spawn_time = Some(now);
+    game_state.monster_spawn_state.next_spawn_tick = Some(sim_tick);
 }
 
-pub fn tick(game_state: &mut GameState, now: namui::Instant) {
-    if let Some(next_time) = game_state.monster_spawn_state.next_spawn_time
-        && now < next_time
+pub fn tick(game_state: &mut GameState, sim_tick: SimTick) {
+    if let Some(next_time) = game_state.monster_spawn_state.next_spawn_tick
+        && sim_tick < next_time
     {
         return;
     }
 
     let Some(mut next_monster) = game_state.monster_spawn_state.monster_queue.pop_front() else {
-        game_state.monster_spawn_state.next_spawn_time = None;
+        game_state.monster_spawn_state.next_spawn_tick = None;
         return;
     };
 
     for skill in next_monster.skills.iter_mut() {
-        skill.last_used_at = now;
+        skill.last_used_at = sim_tick;
     }
 
     #[cfg(feature = "debug-tools")]
     {
         let hp_offset = crate::game_state::debug_tools::monster_hp_balance::get_hp_offset();
-        next_monster.max_hp += hp_offset;
+        let hp_offset = crate::Health::from_f64(hp_offset as f64).unwrap_or(crate::Health::ZERO);
+        next_monster.max_hp = next_monster.max_hp.saturating_add(hp_offset);
         next_monster.hp = next_monster.max_hp;
     }
 
     game_state.monsters.push(next_monster);
     game_state.on_enemy_spawned();
 
-    game_state.monster_spawn_state.next_spawn_time =
-        Some(now + game_state.monster_spawn_state.spawn_interval);
+    game_state.monster_spawn_state.next_spawn_tick =
+        Some(sim_tick + game_state.monster_spawn_state.spawn_interval);
 }
 
-pub fn monster_queue_table(
+pub(crate) fn monster_queue_table(
     stage: usize,
     route: Arc<Route>,
-    now: namui::Instant,
-    health_multiplier: f32,
+    sim_tick: SimTick,
+    health_multipliers: &crate::RatioProduct,
     config: &crate::config::GameConfig,
-) -> (VecDeque<Monster>, namui::Duration) {
+    allocator: &mut super::super::entity_id::EntityIdAllocator,
+) -> (VecDeque<Monster>, SimTickSpan) {
     let (template_queue, spawn_interval) = monster_template_queue_table(stage, config);
 
     let monster_queue = template_queue
         .into_iter()
-        .map(|template| Monster::new(&template, route.clone(), now, health_multiplier))
-        .collect();
+        .map(|template| {
+            let id = allocator.allocate_monster_id();
+            Monster::new_with_id(&template, route.clone(), sim_tick, health_multipliers, id)
+        })
+        .collect::<VecDeque<_>>();
 
     (monster_queue, spawn_interval)
 }
@@ -73,9 +79,9 @@ pub fn monster_queue_table(
 pub fn monster_template_queue_table(
     stage: usize,
     config: &crate::config::GameConfig,
-) -> (VecDeque<MonsterTemplate>, namui::Duration) {
+) -> (VecDeque<MonsterTemplate>, SimTickSpan) {
     let spawn_interval =
-        namui::Duration::from_millis((10000.0 / (26.0 * (stage as f32 / 50.0) + 4.0)) as i64);
+        SimTickSpan::from_millis_ceil((10000.0 / (26.0 * (stage as f32 / 50.0) + 4.0)) as u64);
 
     let stage_wave = config
         .monsters
@@ -88,7 +94,7 @@ pub fn monster_template_queue_table(
         .entries
         .iter()
         .flat_map(|entry| std::iter::repeat_n(entry.kind, entry.count))
-        .map(|kind| MonsterTemplate::new_with_config(kind, config))
+        .map(|kind| MonsterTemplate::new(kind, config))
         .collect::<VecDeque<_>>();
 
     (template_queue, spawn_interval)

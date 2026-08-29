@@ -4,17 +4,16 @@ use crate::{
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
-        set_modal,
     },
 };
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct ClubSwordCardService {
-    pub polish_pct: f32,
+    pub polish_pct: crate::FixedRatio,
 }
 
 impl ClubSwordCardService {
-    pub fn new(polish_pct: f32) -> Self {
+    pub fn new(polish_pct: crate::FixedRatio) -> Self {
         Self { polish_pct }
     }
 
@@ -47,7 +46,7 @@ impl CardServiceBehavior for ClubSwordCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),
@@ -127,5 +126,5 @@ pub(super) const DEFINITION: crate::game_state::card_service::definition::CardSe
     );
 
 fn generate_club_sword_card_service() -> CardService {
-    ClubSwordCardService::new(2.0).into_card_service()
+    ClubSwordCardService::new(crate::FixedRatio::from_integer(2)).into_card_service()
 }

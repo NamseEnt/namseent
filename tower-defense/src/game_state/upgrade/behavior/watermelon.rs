@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const WATERMELON_HP_PLUS: f32 = 8.0;
-const WATERMELON_HEAL_AMOUNT: f32 = 12.0;
+const WATERMELON_HP_PLUS: HealthDelta = HealthDelta::from_integer(8);
+const WATERMELON_HEAL_AMOUNT: Health = Health::from_integer(12);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct WatermelonUpgrade;
@@ -24,7 +24,7 @@ impl UpgradeBehavior for WatermelonUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
+    fn max_hp_plus(&self) -> HealthDelta {
         WATERMELON_HP_PLUS
     }
 

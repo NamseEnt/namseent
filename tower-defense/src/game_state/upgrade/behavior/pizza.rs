@@ -1,8 +1,8 @@
 use super::*;
 use crate::l10n::rich_text_helpers::RichTextHelpers;
 
-const PIZZA_MAX_HP_DECREASE: f32 = 8.0;
-const PIZZA_HEAL_AMOUNT: f32 = 24.0;
+const PIZZA_MAX_HP_DECREASE: HealthDelta = HealthDelta::from_integer(8);
+const PIZZA_HEAL_AMOUNT: Health = Health::from_integer(24);
 
 #[derive(Debug, Clone, Copy, State, PartialEq)]
 pub struct PizzaUpgrade;
@@ -24,8 +24,8 @@ impl UpgradeBehavior for PizzaUpgrade {
         UpgradeUpdateFlags::REVISION | UpgradeUpdateFlags::CACHE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        -PIZZA_MAX_HP_DECREASE
+    fn max_hp_plus(&self) -> HealthDelta {
+        HealthDelta::from_raw(-PIZZA_MAX_HP_DECREASE.raw())
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {

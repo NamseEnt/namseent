@@ -1,0 +1,72 @@
+{
+  "checkpoint_schema_version": 5,
+  "policy_schema_version": 5,
+  "entity_encoder_schema_version": 6,
+  "contract": {
+    "environment_version": 5,
+    "action_schema_version": 4,
+    "trajectory_schema_version": 5,
+    "dataset_schema_version": 5,
+    "feature_schema_version": 6,
+    "config_version": 1,
+    "config_digest": "6af7ba6f7d3f5bab4dd6c2faf804165b3812b375bee614fd8b5be75c43a24ee1",
+    "rng_algorithm_version": 1
+  },
+  "seed_schedule": {
+    "schema_version": 1,
+    "train": {
+      "start": 0,
+      "end_inclusive": 127
+    },
+    "validation": {
+      "start": 18446744073709551552,
+      "end_inclusive": 18446744073709551615
+    },
+    "train_digest": "8b113fe97106f1805bdc4b4c55f4f19b34da74037a6e59cb5a2a3d3859b49d6d",
+    "validation_digest": "57016a114cffddd88d537eeee94ebbe1a79aac76c19aaa0dd7fc4ff9e7090678"
+  },
+  "iteration": 13,
+  "best_iteration": 4,
+  "git_revision": "fd640602a3edf5a0f68e33e9b2f90dafd6b350b2",
+  "model_config": {
+    "hidden_size": 64
+  },
+  "model_file": "ml_policy_checkpoint.mpk",
+  "train_clear_rate": 0.23955157946329564,
+  "validation_clear_rate": 0.2151870639063418,
+  "best_validation_clear_rate": 0.2701429855078459,
+  "best_validation_full_clear_count": 0,
+  "best_validation_truncated_count": 0,
+  "reward_config": {
+    "terminal_win": 1.0,
+    "terminal_loss": -1.0,
+    "escaped_hp_penalty_scale": 50.0,
+    "player_hp_loss_penalty_scale": 60.0,
+    "potential_weight": 0.0,
+    "potential_gamma": 0.99,
+    "damage_progress_weight": 0.0,
+    "no_progress_cycle_penalty": 0.0
+  },
+  "hyperparameters": {
+    "adaptive_exploration": "false",
+    "clip_epsilon": "0.1",
+    "curriculum_validation": "none",
+    "elite_train_seeds": "1,4,5,6,8,12,13,15,16,17,21,22,25,26,28,30,32,34,35,37,40,41,43,44,47,49,52,53,57,59,63,67",
+    "entropy_coefficient": "0.01",
+    "gae_lambda": "0.95",
+    "gamma": "0.99",
+    "greedy": "false",
+    "hidden_size": "64",
+    "learning_rate": "0.0001",
+    "max_decisions_per_episode": "512",
+    "max_queued_steps": "0",
+    "max_stage": "none",
+    "minibatch_size": "8192",
+    "ppo_epochs": "2",
+    "reward_config": "{\"terminal_win\":1.0,\"terminal_loss\":-1.0,\"escaped_hp_penalty_scale\":50.0,\"player_hp_loss_penalty_scale\":60.0,\"potential_weight\":0.0,\"potential_gamma\":0.99,\"damage_progress_weight\":0.0,\"no_progress_cycle_penalty\":0.0}",
+    "rollout_chunk_size": "0",
+    "rollout_step_budget": "0",
+    "temperature": "1",
+    "value_coefficient": "0.5"
+  }
+}

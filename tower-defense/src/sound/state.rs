@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
@@ -44,8 +45,8 @@ pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
         return 0;
     }
     let sound_id = NEXT_SOUND_ID.fetch_add(1, Ordering::Relaxed);
-    let now = Instant::now();
-    let play_at = now + delay;
+    let presentation_instant = PresentationInstant::capture();
+    let play_at = PresentationInstant::from_namui(presentation_instant.as_namui() + delay);
     SOUND_EVENTS.lock().unwrap().push(SoundEvent {
         id: sound_id,
         asset: params.asset,
@@ -54,7 +55,7 @@ pub fn emit_sound_after(params: EmitSoundParams, delay: Duration) -> SoundId {
         spatial: params.spatial,
         repeat: params.repeat,
         play_at,
-        created_at: now,
+        created_at: presentation_instant,
         max_duration: params.max_duration.or_else(|| {
             if params.repeat {
                 None
@@ -89,11 +90,11 @@ pub fn update_sound_position(sound_id: SoundId, position: crate::MapCoordF32) {
     sound.spatial = SpatialMode::Spatial { position };
 }
 
-pub fn cleanup_expired_sounds(now: Instant) {
+pub fn cleanup_expired_sounds(presentation_instant: PresentationInstant) {
     SOUND_EVENTS
         .lock()
         .unwrap()
-        .retain(|sound| !sound.is_expired(now));
+        .retain(|sound| !sound.is_expired(presentation_instant));
 }
 
 pub fn set_master_volume(volume: f32) {

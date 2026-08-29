@@ -1,11 +1,13 @@
 mod animation;
 mod camera_controller;
+pub mod combat_number;
 pub mod config;
 pub mod deterministic_rng;
 mod flow_ui;
 mod game_state;
 mod image_filter_utils; // now private; selective re-exports below
 pub use game_state::monster::MonsterKind;
+pub use game_state::{AttackId, EntityId, MonsterId, TowerId};
 pub mod card;
 mod hand;
 mod hand_panel;
@@ -22,9 +24,21 @@ pub mod simulator;
 pub mod sound;
 pub mod theme;
 mod thumbnail;
+pub mod time;
 mod tooltip;
 mod top_bar;
 mod upgrades;
+pub mod world;
+
+pub use combat_number::{
+    ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct, Shield,
+};
+pub use time::{
+    InterpolationAlpha, PresentationDelta, PresentationInstant, SimRenderTime, SimTick, SimTickSpan,
+};
+pub use world::{
+    WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, segment_hits_point,
+};
 
 #[cfg(any(test, feature = "simulator"))]
 extern crate namui_kv_store_memory;
@@ -103,6 +117,7 @@ struct Game {}
 impl Component for Game {
     fn render(self, ctx: &RenderCtx) {
         let screen_wh = screen::size().into_type::<Px>();
+        let presentation_instant = PresentationInstant::capture();
         let _settings = crate::settings::Settings::init(ctx);
         let game_state = game_state::init_game_state(ctx);
         let _sound_state = sound::init_sound_state(ctx);
@@ -158,7 +173,11 @@ impl Component for Game {
             set_bgm_started.set(true);
         }
 
-        ctx.add(game_state::card_notification::CardServiceNotificationLayer);
+        ctx.add(
+            game_state::card_notification::CardServiceNotificationLayer {
+                presentation_instant,
+            },
+        );
 
         ctx.add(tooltip::TooltipLayer);
 
@@ -254,6 +273,7 @@ impl Component for Game {
 
         ctx.add(game_state::RenderGameState {
             game_state: game_state.as_ref(),
+            presentation_instant,
         });
 
         ctx.add(CameraController);

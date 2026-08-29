@@ -4,7 +4,6 @@ use crate::{
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
-        set_modal,
     },
 };
 
@@ -60,7 +59,7 @@ impl CardServiceBehavior for BatteryCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),
@@ -133,7 +132,7 @@ impl CardServiceBehavior for BatteryCardService {
             .filter(|card| card.engraving().is_none())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)
@@ -184,7 +183,7 @@ mod tests {
             .unwrap()
             .id;
         game_state.deck.modify_card(polished, |card| {
-            card.add_polish_pct(1.0);
+            card.add_polish_pct(crate::FixedRatio::ONE);
         });
 
         let selected = BatteryCardService.heuristic_best_selection(&game_state);

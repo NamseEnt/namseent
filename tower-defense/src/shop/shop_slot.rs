@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use crate::{
     game_state::{
         card_service::{CardService, CardServiceDiscriminants},
@@ -35,15 +36,15 @@ impl From<ShopSlotId> for AddKey {
 
 #[derive(Debug, Clone, Copy, State)]
 pub struct ExitAnimation {
-    pub start_time: Instant,
+    pub start_time: PresentationInstant,
 }
 
 impl ExitAnimation {
-    pub fn new(start_time: Instant) -> Self {
+    pub fn new(start_time: PresentationInstant) -> Self {
         Self { start_time }
     }
 
-    pub fn is_complete(&self, current_time: Instant) -> bool {
+    pub fn is_complete(&self, current_time: PresentationInstant) -> bool {
         let elapsed = (current_time - self.start_time).as_secs_f32();
         elapsed >= 0.5 // 0.5초 후 완료
     }
@@ -67,13 +68,13 @@ impl ShopSlotData {
         }
     }
 
-    pub fn start_exit_animation(&mut self, now: Instant) {
-        self.exit_animation = Some(ExitAnimation::new(now));
+    pub fn start_exit_animation(&mut self, presentation_instant: PresentationInstant) {
+        self.exit_animation = Some(ExitAnimation::new(presentation_instant));
     }
 
-    pub fn is_exit_animation_complete(&self, now: Instant) -> bool {
+    pub fn is_exit_animation_complete(&self, presentation_instant: PresentationInstant) -> bool {
         if let Some(exit_anim) = self.exit_animation {
-            exit_anim.is_complete(now)
+            exit_anim.is_complete(presentation_instant)
         } else {
             false
         }

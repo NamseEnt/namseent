@@ -10,7 +10,7 @@ pub enum GameFlow {
     PlacingTower,
     Defense(DefenseFlow),
     TreasureSelection(TreasureSelectionFlow),
-    Result { clear_rate: f32 },
+    Result { clear_rate: ClearRate },
 }
 
 #[derive(Clone, Debug, State)]
@@ -20,7 +20,7 @@ pub struct TreasureSelectionFlow {
 }
 
 impl TreasureSelectionFlow {
-    pub fn new(game_state: &GameState) -> Self {
+    pub fn new(game_state: &mut GameState) -> Self {
         let options = (0..3)
             .map(|_| crate::game_state::upgrade::generate_boss_reward_upgrade(game_state))
             .collect();
@@ -33,9 +33,9 @@ impl TreasureSelectionFlow {
     fn update(&mut self) {}
 }
 impl GameFlow {
-    pub(crate) fn update(&mut self) {
+    pub(crate) fn update(&mut self, presentation_instant: PresentationInstant) {
         match self {
-            GameFlow::Shopping(shopping_flow) => shopping_flow.update(),
+            GameFlow::Shopping(shopping_flow) => shopping_flow.update(presentation_instant),
             GameFlow::SelectingTower(selecting_tower) => selecting_tower.update(),
             GameFlow::TreasureSelection(treasure_flow) => treasure_flow.update(),
             _ => {}
@@ -54,8 +54,8 @@ impl ShoppingFlow {
         ShoppingFlow { shop }
     }
 
-    fn update(&mut self) {
-        self.shop.update();
+    fn update(&mut self, presentation_instant: PresentationInstant) {
+        self.shop.update(presentation_instant);
     }
 }
 
@@ -86,7 +86,7 @@ impl DefenseFlow {
         Self {
             stage_progress: StageProgress {
                 start_total_hp,
-                processed_hp: 0.0,
+                processed_hp: Health::ZERO,
             },
             took_damage: false,
         }
@@ -95,6 +95,6 @@ impl DefenseFlow {
 
 #[derive(Clone, Debug, State)]
 pub struct StageProgress {
-    pub start_total_hp: f32,
-    pub processed_hp: f32,
+    pub start_total_hp: Health,
+    pub processed_hp: Health,
 }

@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use crate::card::RenderTowerCard;
 use crate::format_compact_number;
 use crate::game_state::flow::GameFlow;
@@ -18,16 +19,16 @@ const CARD_MAX_ROTATION_DEG: f32 = 7.0;
 
 #[derive(Debug, Clone, Copy, State)]
 struct ExitAnimation {
-    start_time: Instant,
+    start_time: PresentationInstant,
 }
 
 impl ExitAnimation {
-    fn new(start_time: Instant) -> Self {
+    fn new(start_time: PresentationInstant) -> Self {
         Self { start_time }
     }
 
-    fn is_complete(self, now: Instant) -> bool {
-        (now - self.start_time).as_secs_f32() >= EXIT_ANIMATION_DURATION
+    fn is_complete(self, presentation_instant: PresentationInstant) -> bool {
+        (presentation_instant - self.start_time).as_secs_f32() >= EXIT_ANIMATION_DURATION
     }
 }
 
@@ -72,7 +73,7 @@ impl Component for PreviewEntryComponent {
             let damage = template.attack_power_with_upgrade_bonuses(&tower_upgrade_bonuses);
             let shoot_interval_secs = template.effective_shoot_interval().as_secs_f32();
             let dps = if shoot_interval_secs > 0.0 {
-                damage / shoot_interval_secs
+                damage.as_f32() / shoot_interval_secs
             } else {
                 0.0
             };
@@ -137,7 +138,7 @@ pub struct HandTowerPreview {
 
 impl Component for HandTowerPreview {
     fn render(self, ctx: &RenderCtx) {
-        let now = Instant::now();
+        let presentation_instant = PresentationInstant::capture();
         let game_state = crate::game_state::use_game_state(ctx);
         let (entries_sig, set_entries) = ctx.state(Vec::<PreviewEntry>::new);
         let (next_id_sig, set_next_id) = ctx.state(|| 0_usize);
@@ -153,7 +154,7 @@ impl Component for HandTowerPreview {
             if let Some(previous_entry) = entries.last_mut()
                 && previous_entry.exit_animation.is_none()
             {
-                previous_entry.exit_animation = Some(ExitAnimation::new(now));
+                previous_entry.exit_animation = Some(ExitAnimation::new(presentation_instant));
             }
 
             entries.push(PreviewEntry {
@@ -169,7 +170,7 @@ impl Component for HandTowerPreview {
         entries.retain(|entry| {
             entry
                 .exit_animation
-                .is_none_or(|exit_animation| !exit_animation.is_complete(now))
+                .is_none_or(|exit_animation| !exit_animation.is_complete(presentation_instant))
         });
 
         let active_id = if matches!(game_state.flow, GameFlow::SelectingTower(_)) {

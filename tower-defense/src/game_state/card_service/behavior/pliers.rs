@@ -4,7 +4,6 @@ use crate::{
     game_state::{
         GameState,
         action::{DeckEdit, DeckEditChange, DeckEnhance},
-        set_modal,
     },
 };
 
@@ -58,7 +57,7 @@ impl CardServiceBehavior for PliersCardService {
             self.into_card_service(),
         );
 
-        set_modal(Some(crate::game_state::modal::UserModal::Deck(
+        game_state.set_user_modal(Some(crate::game_state::modal::UserModal::Deck(
             crate::game_state::modal::deck::DeckModal {
                 deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
                 selection: Some(selection),
@@ -119,7 +118,7 @@ impl CardServiceBehavior for PliersCardService {
             .filter(|card| card.engraving().is_some())
             .max_by(|a, b| {
                 a.polish_pct()
-                    .total_cmp(&b.polish_pct())
+                    .cmp(&b.polish_pct())
                     .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
             })
             .map(|card| card.id)
@@ -176,7 +175,7 @@ mod tests {
         let unrelated = game_state.deck.all_cards()[1].id;
         game_state.deck.modify_card(selected, |card| {
             card.effects.engraving = Some(Engraving::Cactus);
-            card.add_polish_pct(1.0);
+            card.add_polish_pct(crate::FixedRatio::ONE);
         });
         game_state.deck.modify_card(unrelated, |card| {
             card.effects.engraving = Some(Engraving::Overcharge);

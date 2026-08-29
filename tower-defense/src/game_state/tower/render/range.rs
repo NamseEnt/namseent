@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use crate::game_state::TILE_PX_SIZE;
 use crate::game_state::tower::TowerTemplate;
 use crate::palette;
@@ -11,13 +12,16 @@ impl Component for TowerAttackRange<'_> {
     fn render(self, ctx: &RenderCtx) {
         let Self { tower_template } = self;
 
-        let range_radius_px = TILE_PX_SIZE.width * tower_template.attack_range_radius();
+        let range_radius_px = TILE_PX_SIZE.width
+            * (tower_template.attack_range_radius().raw() as f32
+                / crate::world::WORLD_UNITS_PER_TILE as f32);
 
         const ROTATION_SPEED_PX_PER_SEC: f32 = 120.0;
         const DASH_ON_PX: f32 = 40.0;
         const DASH_OFF_PX: f32 = 24.0;
 
-        let elapsed_secs = (Instant::now() - Instant::new(Duration::ZERO)).as_secs_f32();
+        let elapsed_secs =
+            (PresentationInstant::capture() - PresentationInstant::zero()).as_secs_f32();
         let phase_px = (elapsed_secs * ROTATION_SPEED_PX_PER_SEC) % (DASH_ON_PX + DASH_OFF_PX);
 
         let ctx = ctx.translate(TILE_PX_SIZE.to_xy());
@@ -47,7 +51,8 @@ impl Component for TowerAttackRange<'_> {
             .collect::<Vec<_>>();
 
         for splash_radius in splash_radii {
-            let splash_radius_px = TILE_PX_SIZE.width * splash_radius;
+            let splash_radius_px = TILE_PX_SIZE.width
+                * (splash_radius.raw() as f32 / crate::world::WORLD_UNITS_PER_TILE as f32);
             let splash_oval = Rect::Ltrb {
                 left: -splash_radius_px,
                 top: -splash_radius_px,

@@ -5,6 +5,7 @@ use crate::game_state::GameState;
 use crate::game_state::tower::{Tower, TowerKind, TowerTemplate};
 use crate::game_state::upgrade::tower::TowerUpgradeTarget;
 use crate::rarity::Rarity;
+use crate::{FixedRatio, Health, HealthDelta, TowerId};
 use enum_dispatch::enum_dispatch;
 use namui::*;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -44,7 +45,7 @@ impl std::ops::BitOrAssign for UpgradeUpdateFlags {
 #[derive(Clone, Copy, Debug, PartialEq, State)]
 pub enum UpgradeAcquireRecovery {
     None,
-    Amount(f32),
+    Amount(Health),
     ToFull,
 }
 
@@ -73,7 +74,7 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
-    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, f32)> {
+    fn tower_upgrade_damage_bonus(&self) -> Option<(TowerUpgradeTarget, FixedRatio)> {
         None
     }
 
@@ -99,8 +100,8 @@ pub trait UpgradeBehavior {
         UpgradeUpdateFlags::NONE
     }
 
-    fn max_hp_plus(&self) -> f32 {
-        0.0
+    fn max_hp_plus(&self) -> HealthDelta {
+        HealthDelta::ZERO
     }
 
     fn recovery_on_acquire(&self) -> UpgradeAcquireRecovery {
@@ -265,7 +266,7 @@ pub(super) fn no_current_and_max(_upgrade_state: &UpgradeState) -> Option<(usize
 
 #[derive(Clone, Copy, PartialEq, Eq, State)]
 pub enum SelectedTowerId {
-    Placed(usize),
+    Placed(TowerId),
     ToBePlaced,
 }
 
@@ -588,26 +589,34 @@ mod food_upgrade_tests {
         use crate::game_state::upgrade::tests::support;
 
         let cases = [
-            (Upgrade::Apple(AppleUpgrade), 4.0, 6.0),
-            (Upgrade::Banana(BananaUpgrade), 6.0, 9.0),
-            (Upgrade::Strawberry(StrawberryUpgrade), 2.0, 3.0),
-            (Upgrade::Watermelon(WatermelonUpgrade), 8.0, 12.0),
-            (Upgrade::FrenchFries(FrenchFriesUpgrade), -4.0, 12.0),
-            (Upgrade::Hamburger(HamburgerUpgrade), -6.0, 18.0),
-            (Upgrade::Pizza(PizzaUpgrade), -8.0, 24.0),
+            (Upgrade::Apple(AppleUpgrade), 4_i64, 6_i64),
+            (Upgrade::Banana(BananaUpgrade), 6, 9),
+            (Upgrade::Strawberry(StrawberryUpgrade), 2, 3),
+            (Upgrade::Watermelon(WatermelonUpgrade), 8, 12),
+            (Upgrade::FrenchFries(FrenchFriesUpgrade), -4, 12),
+            (Upgrade::Hamburger(HamburgerUpgrade), -6, 18),
+            (Upgrade::Pizza(PizzaUpgrade), -8, 24),
         ];
 
         for (upgrade, max_hp_plus, heal_amount) in cases {
             let mut game_state = support::create_mock_game_state();
             let base_max_hp = game_state.max_hp();
-            game_state.hp = base_max_hp - 10.0;
+            game_state.hp = base_max_hp.saturating_sub(crate::Health::from_integer(10));
 
             game_state.action(crate::game_state::GameStateAction::Upgrade(upgrade, None));
 
-            assert_eq!(game_state.max_hp(), base_max_hp + max_hp_plus);
+            let hp_delta = crate::HealthDelta::from_integer(max_hp_plus);
+            let heal_amount = crate::Health::from_integer(heal_amount);
+            assert_eq!(
+                game_state.max_hp(),
+                base_max_hp.saturating_add_delta(hp_delta)
+            );
             assert_eq!(
                 game_state.hp,
-                (base_max_hp - 10.0 + heal_amount).min(game_state.max_hp())
+                base_max_hp
+                    .saturating_sub(crate::Health::from_integer(10))
+                    .saturating_add(heal_amount)
+                    .min(game_state.max_hp())
             );
         }
     }
@@ -617,14 +626,17 @@ mod food_upgrade_tests {
         use crate::game_state::upgrade::tests::support;
 
         let mut game_state = support::create_mock_game_state();
-        game_state.hp = 1.0;
+        game_state.hp = crate::Health::from_integer(1);
 
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             Upgrade::Carrot(CarrotUpgrade),
             None,
         ));
 
-        assert_eq!(game_state.upgrade_state.max_hp_plus(), 6.0);
+        assert_eq!(
+            game_state.upgrade_state.max_hp_plus(),
+            crate::HealthDelta::from_integer(6)
+        );
         assert_eq!(game_state.hp, game_state.max_hp());
     }
     #[test]
@@ -633,15 +645,24 @@ mod food_upgrade_tests {
 
         let mut game_state = support::create_mock_game_state();
         let base_max_hp = game_state.max_hp();
-        game_state.hp = base_max_hp - 10.0;
+        game_state.hp = base_max_hp.saturating_sub(crate::Health::from_integer(10));
 
         game_state.action(crate::game_state::GameStateAction::Upgrade(
             Upgrade::CupNoodles(CupNoodlesUpgrade),
             None,
         ));
 
-        assert_eq!(game_state.upgrade_state.max_hp_plus(), -2.0);
-        assert_eq!(game_state.max_hp(), base_max_hp - 2.0);
-        assert_eq!(game_state.hp, base_max_hp - 4.0);
+        assert_eq!(
+            game_state.upgrade_state.max_hp_plus(),
+            crate::HealthDelta::from_integer(-2)
+        );
+        assert_eq!(
+            game_state.max_hp(),
+            base_max_hp.saturating_add_delta(crate::HealthDelta::from_integer(-2))
+        );
+        assert_eq!(
+            game_state.hp,
+            base_max_hp.saturating_sub(crate::Health::from_integer(4))
+        );
     }
 }

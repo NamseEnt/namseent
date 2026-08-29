@@ -32,7 +32,7 @@ impl Component for ResultModal {
         let game_state = use_game_state(ctx);
         let clear_rate = match &game_state.flow {
             GameFlow::Result { clear_rate } => *clear_rate,
-            _ => 0.0,
+            _ => crate::ClearRate::ZERO,
         };
 
         let screen_wh = screen::size().into_type::<Px>();
@@ -60,7 +60,10 @@ impl Component for ResultModal {
                         }),
                         table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                         table::fixed_no_clip(PROGRESS_BAR_HEIGHT, |wh, ctx| {
-                            ctx.add(ClearProgress { wh, clear_rate });
+                            ctx.add(ClearProgress {
+                                wh,
+                                clear_rate: clear_rate.as_percent_f32(),
+                            });
                         }),
                         table::fixed_no_clip(PADDING, |_wh, _ctx| {}),
                         table::ratio_no_clip(
@@ -102,7 +105,7 @@ impl Component for ResultModal {
                                                 .metrics
                                                 .tower_damage_stats
                                                 .iter()
-                                                .map(|stat| stat.total_damage)
+                                                .map(|stat| stat.total_damage.as_f32())
                                                 .sum::<f32>();
                                             ctx.add(StatRow {
                                                 wh,

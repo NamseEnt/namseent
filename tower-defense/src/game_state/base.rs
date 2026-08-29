@@ -1,9 +1,10 @@
 use super::*;
 use crate::game_state::camera::ShakeIntensity;
+use crate::{SimTick, SimTickSpan};
 use namui::*;
 
 const BASE_SIZE_TILE: f32 = 3.0;
-const BASE_TRANSIT_FORCE_DURATION: Duration = Duration::from_millis(33);
+const BASE_TRANSIT_FORCE_DURATION: SimTickSpan = SimTickSpan::from_millis_ceil(33);
 const ENEMY_BASE_SPAWN_FORCE: f32 = -320.0;
 const PLAYER_DAMAGE_FORCE_MULTIPLIER: f32 = 14.0;
 const BASE_SPRING_STIFFNESS: f32 = -1500.0;
@@ -17,70 +18,68 @@ pub struct BaseAnimationState {
 
 impl Default for BaseAnimationState {
     fn default() -> Self {
-        Self::new(Instant::now())
+        Self::new(SimTick::ZERO)
     }
 }
 
 impl BaseAnimationState {
-    pub fn new(now: Instant) -> Self {
+    pub fn new(sim_tick: SimTick) -> Self {
         Self {
-            enemy_base_animation: BaseSpringAnimation::new(now),
-            player_base_animation: BaseSpringAnimation::new(now),
+            enemy_base_animation: BaseSpringAnimation::new(sim_tick),
+            player_base_animation: BaseSpringAnimation::new(sim_tick),
         }
     }
 
-    fn trigger_enemy_spawn(&mut self, now: Instant) {
+    fn trigger_enemy_spawn(&mut self, sim_tick: SimTick) {
         self.enemy_base_animation
-            .trigger(ENEMY_BASE_SPAWN_FORCE, now);
+            .trigger(ENEMY_BASE_SPAWN_FORCE, sim_tick);
     }
 
-    fn trigger_player_damage(&mut self, now: Instant, intensity: ShakeIntensity) {
+    fn trigger_player_damage(&mut self, sim_tick: SimTick, intensity: ShakeIntensity) {
         self.player_base_animation
-            .trigger(intensity.value() * PLAYER_DAMAGE_FORCE_MULTIPLIER, now);
+            .trigger(intensity.value() * PLAYER_DAMAGE_FORCE_MULTIPLIER, sim_tick);
     }
 
-    fn update(&mut self, now: Instant) {
-        self.enemy_base_animation.update(now);
-        self.player_base_animation.update(now);
+    fn update(&mut self, sim_tick: SimTick) {
+        self.enemy_base_animation.update(sim_tick);
+        self.player_base_animation.update(sim_tick);
     }
 }
 
 #[derive(Clone, PartialEq, State)]
 struct BaseSpringAnimation {
-    tick_at: Instant,
+    tick_at: SimTick,
     y_ratio_offset: f32,
     y_ratio_velocity: f32,
     transit_force: Option<TransitForce>,
 }
 
 impl BaseSpringAnimation {
-    fn new(now: Instant) -> Self {
+    fn new(sim_tick: SimTick) -> Self {
         Self {
-            tick_at: now,
+            tick_at: sim_tick,
             y_ratio_offset: 0.0,
             y_ratio_velocity: 0.0,
             transit_force: None,
         }
     }
 
-    fn trigger(&mut self, force: f32, now: Instant) {
+    fn trigger(&mut self, force: f32, sim_tick: SimTick) {
         self.transit_force = Some(TransitForce {
             force,
-            end_at: now + BASE_TRANSIT_FORCE_DURATION,
+            end_at: sim_tick + BASE_TRANSIT_FORCE_DURATION,
         });
-        self.tick_at = now;
+        self.tick_at = sim_tick;
     }
 
-    fn update(&mut self, now: Instant) {
-        let delta_time = (now - self.tick_at).as_secs_f32();
-        self.tick_at = now;
-        if delta_time <= 0.0 {
-            return;
-        }
+    fn update(&mut self, sim_tick: SimTick) {
+        const DELTA_TIME_SECONDS: f32 = 1.0 / 60.0;
+        let delta_time = DELTA_TIME_SECONDS;
+        self.tick_at = sim_tick;
 
         let transit_force_expired = self
             .transit_force
-            .is_some_and(|transit_force| transit_force.end_at < now);
+            .is_some_and(|transit_force| transit_force.end_at < sim_tick);
         let transit_force = self
             .transit_force
             .map(|transit_force| transit_force.force)
@@ -108,35 +107,44 @@ impl BaseSpringAnimation {
 #[derive(Clone, Copy, PartialEq, State)]
 struct TransitForce {
     force: f32,
-    end_at: Instant,
+    end_at: SimTick,
 }
 
 impl GameState {
     pub fn on_enemy_spawned(&mut self) {
-        self.base_animation_state.trigger_enemy_spawn(self.now());
+        self.base_animation_state
+            .trigger_enemy_spawn(self.sim_tick());
     }
 
     pub fn on_player_damaged(&mut self, intensity: ShakeIntensity) {
         self.base_animation_state
-            .trigger_player_damage(self.now(), intensity);
+            .trigger_player_damage(self.sim_tick(), intensity);
     }
 
-    pub fn update_base_animations(&mut self, now: Instant) {
-        self.base_animation_state.update(now);
+    pub fn update_base_animations(&mut self, sim_tick: SimTick) {
+        self.base_animation_state.update(sim_tick);
+    }
+
+    pub(crate) fn render_base_scales(&self) -> (Xy<f32>, Xy<f32>) {
+        (
+            self.base_animation_state.enemy_base_animation.scale_xy(),
+            self.base_animation_state.player_base_animation.scale_xy(),
+        )
     }
 }
 
 pub fn render_bases(ctx: &RenderCtx, game_state: &GameState) {
-    render_enemy_base(ctx, game_state);
-    render_player_base(ctx, game_state);
+    let scales = game_state
+        .sim_scheduler
+        .render_frame()
+        .and_then(|frame| frame.base_scales(true))
+        .unwrap_or_else(|| game_state.render_base_scales());
+    render_enemy_base(ctx, scales.0);
+    render_player_base(ctx, scales.1);
 }
 
-fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
+fn render_enemy_base(ctx: &RenderCtx, animated_scale: Xy<f32>) {
     let center = coord_center_px(TRAVEL_POINTS[0]) + Xy::new(0.px(), TILE_PX_SIZE.height * -1.0);
-    let animated_scale = game_state
-        .base_animation_state
-        .enemy_base_animation
-        .scale_xy();
 
     draw_base_image(
         ctx,
@@ -146,13 +154,9 @@ fn render_enemy_base(ctx: &RenderCtx, game_state: &GameState) {
     );
 }
 
-fn render_player_base(ctx: &RenderCtx, game_state: &GameState) {
+fn render_player_base(ctx: &RenderCtx, animated_scale: Xy<f32>) {
     let center = coord_center_px(TRAVEL_POINTS[TRAVEL_POINTS.len() - 1])
         + Xy::new(TILE_PX_SIZE.width * 1.0, TILE_PX_SIZE.height * -1.0);
-    let animated_scale = game_state
-        .base_animation_state
-        .player_base_animation
-        .scale_xy();
 
     draw_base_image(
         ctx,

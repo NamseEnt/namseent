@@ -11,6 +11,34 @@ pub struct SimRecorder {
     conn: Mutex<Connection>,
 }
 
+pub struct SimulationProvenance {
+    pub runner_kind: String,
+    pub policy_kind: String,
+    pub checkpoint_path: Option<String>,
+    pub checkpoint_iteration: Option<usize>,
+    pub environment_version: Option<u32>,
+    pub action_schema_version: Option<u32>,
+    pub config_digest: Option<String>,
+    pub config_override: bool,
+    pub seed_schedule: Option<String>,
+}
+
+impl SimulationProvenance {
+    pub fn legacy() -> Self {
+        Self {
+            runner_kind: "legacy".to_string(),
+            policy_kind: "legacy".to_string(),
+            checkpoint_path: None,
+            checkpoint_iteration: None,
+            environment_version: None,
+            action_schema_version: None,
+            config_digest: None,
+            config_override: false,
+            seed_schedule: None,
+        }
+    }
+}
+
 impl SimRecorder {
     pub fn new(db_path: &Path) -> anyhow::Result<Self> {
         let conn = Connection::open(db_path)?;
@@ -44,7 +72,16 @@ impl SimRecorder {
                 total_towers_placed INTEGER DEFAULT 0,
                 total_items_used INTEGER DEFAULT 0,
                 total_damage_taken REAL DEFAULT 0,
-                total_gold_earned INTEGER DEFAULT 0
+                total_gold_earned INTEGER DEFAULT 0,
+                runner_kind TEXT NOT NULL DEFAULT 'legacy',
+                policy_kind TEXT NOT NULL DEFAULT 'legacy',
+                checkpoint_path TEXT,
+                checkpoint_iteration INTEGER,
+                environment_version INTEGER,
+                action_schema_version INTEGER,
+                config_digest TEXT,
+                config_override INTEGER NOT NULL DEFAULT 0,
+                seed_schedule TEXT
             );
 
             CREATE TABLE IF NOT EXISTS simulation_upgrades (
@@ -100,6 +137,36 @@ impl SimRecorder {
             "ALTER TABLE simulations RENAME COLUMN total_gold_ered TO total_gold_earned",
             [],
         );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN runner_kind TEXT NOT NULL DEFAULT 'legacy'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN policy_kind TEXT NOT NULL DEFAULT 'legacy'",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN checkpoint_path TEXT",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN checkpoint_iteration INTEGER",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN environment_version INTEGER",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN action_schema_version INTEGER",
+            [],
+        );
+        let _ = conn.execute("ALTER TABLE simulations ADD COLUMN config_digest TEXT", []);
+        let _ = conn.execute(
+            "ALTER TABLE simulations ADD COLUMN config_override INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        let _ = conn.execute("ALTER TABLE simulations ADD COLUMN seed_schedule TEXT", []);
 
         Ok(())
     }
@@ -115,10 +182,51 @@ impl SimRecorder {
         card_service_strategy: &str,
         seed: u64,
     ) -> anyhow::Result<()> {
+        self.record_simulation_start_with_provenance(
+            sim_id,
+            shop_strategy,
+            card_reroll_strategy,
+            tower_placement_strategy,
+            item_use_strategy,
+            card_service_strategy,
+            seed,
+            &SimulationProvenance::legacy(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn record_simulation_start_with_provenance(
+        &self,
+        sim_id: &str,
+        shop_strategy: &str,
+        card_reroll_strategy: &str,
+        tower_placement_strategy: &str,
+        item_use_strategy: &str,
+        card_service_strategy: &str,
+        seed: u64,
+        provenance: &SimulationProvenance,
+    ) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![sim_id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed as i64],
+            "INSERT INTO simulations (id, shop_strategy, card_reroll_strategy, tower_placement_strategy, item_use_strategy, card_service_strategy, seed, runner_kind, policy_kind, checkpoint_path, checkpoint_iteration, environment_version, action_schema_version, config_digest, config_override, seed_schedule) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            params![
+                sim_id,
+                shop_strategy,
+                card_reroll_strategy,
+                tower_placement_strategy,
+                item_use_strategy,
+                card_service_strategy,
+                seed as i64,
+                provenance.runner_kind,
+                provenance.policy_kind,
+                provenance.checkpoint_path,
+                provenance.checkpoint_iteration.map(|value| value as i64),
+                provenance.environment_version.map(|value| value as i64),
+                provenance.action_schema_version.map(|value| value as i64),
+                provenance.config_digest,
+                provenance.config_override as i32,
+                provenance.seed_schedule,
+            ],
         )?;
         Ok(())
     }

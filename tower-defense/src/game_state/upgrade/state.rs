@@ -10,7 +10,7 @@ pub struct UpgradeState {
 
 #[derive(Debug, Clone, State)]
 pub struct UpgradeCache {
-    pub max_hp_plus: f32,
+    pub max_hp_plus: HealthDelta,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
     pub shop_item_price_minus: usize,
@@ -24,7 +24,7 @@ pub struct UpgradeCache {
 impl Default for UpgradeCache {
     fn default() -> Self {
         UpgradeCache {
-            max_hp_plus: 0.0,
+            max_hp_plus: HealthDelta::ZERO,
             shop_slot_expand: 0,
             dice_chance_plus: 0,
             shop_item_price_minus: 0,
@@ -42,7 +42,7 @@ impl UpgradeCache {
         let mut cache = UpgradeCache::default();
 
         for upgrade in &state.upgrades {
-            cache.max_hp_plus += upgrade.max_hp_plus();
+            cache.max_hp_plus = cache.max_hp_plus.saturating_add(upgrade.max_hp_plus());
             cache.shop_slot_expand += upgrade.shop_slot_expand();
             cache.dice_chance_plus += upgrade.dice_chance_plus();
             cache.shop_item_price_minus += upgrade.shop_item_price_minus();
@@ -78,7 +78,7 @@ impl UpgradeState {
         self.cache().clear_shield_on_stage_start
     }
 
-    pub fn max_hp_plus(&self) -> f32 {
+    pub fn max_hp_plus(&self) -> HealthDelta {
         self.cache().max_hp_plus
     }
 
