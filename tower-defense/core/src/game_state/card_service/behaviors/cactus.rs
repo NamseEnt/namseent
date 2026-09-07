@@ -1,6 +1,6 @@
 use super::CardServiceBehavior;
+use super::support::one_unengraved_purchase_blocks;
 use super::support::validate_selection;
-use super::support::{one_unengraved_purchase_blocks, selection_any};
 
 #[derive(Clone, Copy)]
 pub(crate) struct Behavior;
