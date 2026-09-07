@@ -11,7 +11,7 @@ impl CardServiceBehavior for Behavior {
     }
 
     fn selection_steps(&self) -> Vec<crate::CardServiceSelectionStepState> {
-super::support::selection_any()
+        super::support::selection_any()
     }
 
     fn purchase_block_reasons(
