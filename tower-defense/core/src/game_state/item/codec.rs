@@ -88,7 +88,7 @@ pub(super) fn encode_runtime(
             item.signed_values = vec![state.heal_raw, state.shield_raw]
         }
         super::behaviors::ItemRuntimeState::Milk(state) => {
-            item.signed_values = vec![state.heal_raw]
+            item.signed_values = vec![state.shield_raw]
         }
         super::behaviors::ItemRuntimeState::RiceBall(state) => {
             item.signed_values = vec![state.heal_raw, state.shield_raw]
@@ -237,7 +237,7 @@ pub(super) fn decode_milk(
     validate_shape(item, 0, 1)?;
     Ok(super::behaviors::ItemRuntimeState::Milk(
         super::behaviors::milk::MilkItemState {
-            heal_raw: item.signed_values[0],
+            shield_raw: item.signed_values[0],
         },
     ))
 }

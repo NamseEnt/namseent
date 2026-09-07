@@ -32,8 +32,11 @@ impl ItemBehavior for Behavior {
         &self,
         core: &mut crate::CoreState,
         state: ItemRuntimeState,
-        prepared: Option<crate::TowerTemplateState>,
+        _: Option<crate::TowerTemplateState>,
     ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
-        apply_heal(core, state, prepared)
+        let ItemRuntimeState::Donut(state) = state else {
+            return Err(crate::CommandError::Rejected);
+        };
+        apply_heal(core, state.heal_raw)
     }
 }

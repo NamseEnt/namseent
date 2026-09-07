@@ -1,9 +1,9 @@
-use super::support::{always_can_use, apply_heal, no_prepare_use};
+use super::support::{always_can_use, apply_shield, no_prepare_use};
 use super::{ItemBehavior, ItemRuntimeState};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct MilkItemState {
-    pub heal_raw: i64,
+    pub shield_raw: i64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -17,7 +17,7 @@ impl ItemBehavior for Behavior {
         crate::Rarity::Rare
     }
     fn generated_state(&self) -> ItemRuntimeState {
-        ItemRuntimeState::Milk(MilkItemState { heal_raw: 12_000 })
+        ItemRuntimeState::Milk(MilkItemState { shield_raw: 12_000 })
     }
     fn can_use(&self, core: &crate::CoreState) -> bool {
         always_can_use(core)
@@ -32,8 +32,11 @@ impl ItemBehavior for Behavior {
         &self,
         core: &mut crate::CoreState,
         state: ItemRuntimeState,
-        prepared: Option<crate::TowerTemplateState>,
+        _: Option<crate::TowerTemplateState>,
     ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
-        apply_heal(core, state, prepared)
+        let ItemRuntimeState::Milk(state) = state else {
+            return Err(crate::CommandError::Rejected);
+        };
+        apply_shield(core, state.shield_raw)
     }
 }

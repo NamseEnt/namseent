@@ -30,7 +30,7 @@ impl ItemEntry {
             ItemRuntimeState::LunchBox(state) => {
                 [state.heal_raw, state.shield_raw].get(index).copied()
             }
-            ItemRuntimeState::Milk(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::Milk(state) => [state.shield_raw].get(index).copied(),
             ItemRuntimeState::RiceBall(state) => {
                 [state.heal_raw, state.shield_raw].get(index).copied()
             }
@@ -93,7 +93,7 @@ impl ItemEntry {
             },
             ItemRuntimeState::Milk(state) => {
                 if index == 0 {
-                    state.heal_raw = value
+                    state.shield_raw = value
                 } else {
                     return false;
                 }
@@ -595,10 +595,7 @@ mod tests {
                 ),
                 8 => assert_eq!(
                     output.effects,
-                    vec![ItemUseEffect::Heal {
-                        requested_raw: 12_000,
-                        actual_raw: 10_000
-                    }]
+                    vec![ItemUseEffect::GainShield { amount_raw: 12_000 }]
                 ),
                 9 => assert_eq!(
                     output.effects,
