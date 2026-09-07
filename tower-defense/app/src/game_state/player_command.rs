@@ -553,7 +553,7 @@ mod tests {
         game_state
             .raw_core
             .edit_snapshot(|parts| {
-                parts.upgrades.upgrades.push(
+                parts.upgrades.entries_mut().push(
                     crate::game_state::upgrade::UpgradeWithId::new(
                         crate::game_state::upgrade::MirrorUpgrade::into_upgrade(),
                     )
@@ -607,7 +607,7 @@ mod tests {
         game_state
             .raw_core
             .edit_snapshot(|parts| {
-                parts.upgrades.upgrades.push(
+                parts.upgrades.entries_mut().push(
                     crate::game_state::upgrade::UpgradeWithId::new(
                         crate::game_state::upgrade::NameTagUpgrade::into_upgrade(
                             crate::FixedRatio::from_integer(2),
@@ -638,12 +638,8 @@ mod tests {
             .id
             .expect("tower should have an ID");
         assert_eq!(
-            game_state.raw_core.upgrades().upgrades[0]
-                .optional_ids
-                .first()
-                .copied()
-                .flatten(),
-            Some(tower_id)
+            game_state.raw_core.upgrades().upgrades[0].optional_id_value(0),
+            Some(Some(tower_id))
         );
         assert!(game_state.raw_core.towers()[0].damage_multiplier_raw > 1_000_000);
     }
@@ -655,7 +651,7 @@ mod tests {
         game_state
             .raw_core
             .edit_snapshot(|parts| {
-                parts.upgrades.upgrades.push(
+                parts.upgrades.entries_mut().push(
                     crate::game_state::upgrade::UpgradeWithId::new(
                         crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
                     )

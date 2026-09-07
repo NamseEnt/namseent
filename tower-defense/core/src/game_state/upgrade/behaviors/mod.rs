@@ -1,76 +1,259 @@
-mod apple;
-mod backpack;
-mod banana;
-mod black_white;
-mod broken_pottery;
-mod camera;
-mod carrot;
-mod cat;
-mod crock;
-mod cup_noodles;
-mod demolition_hammer;
-mod dice_bundle;
-mod energy_drink;
-mod fang;
-mod four_leaf_clover;
-mod french_fries;
-mod gift_box;
-mod hamburger;
-mod ice_cream;
-mod membership_card;
-mod metronome;
-mod mirror;
-mod name_tag;
-mod pea;
-mod perfect_pottery;
-mod piggy_bank;
-mod pizza;
-mod popcorn;
-mod rabbit;
-mod resolution;
-mod shopping_bag;
-mod slot_machine;
-mod spanner;
-mod strawberry;
+pub(super) mod apple;
+pub(super) mod backpack;
+pub(super) mod banana;
+pub(super) mod black_white;
+pub(super) mod broken_pottery;
+pub(super) mod camera;
+pub(super) mod carrot;
+pub(super) mod cat;
+pub(super) mod crock;
+pub(super) mod cup_noodles;
+pub(super) mod demolition_hammer;
+pub(super) mod dice_bundle;
+pub(super) mod energy_drink;
+pub(super) mod fang;
+pub(super) mod four_leaf_clover;
+pub(super) mod french_fries;
+pub(super) mod gift_box;
+pub(super) mod hamburger;
+pub(super) mod ice_cream;
+pub(super) mod membership_card;
+pub(super) mod metronome;
+pub(super) mod mirror;
+pub(super) mod name_tag;
+pub(super) mod pea;
+pub(super) mod perfect_pottery;
+pub(super) mod piggy_bank;
+pub(super) mod pizza;
+pub(super) mod popcorn;
+pub(super) mod rabbit;
+pub(super) mod resolution;
+pub(super) mod shopping_bag;
+pub(super) mod slot_machine;
+pub(super) mod spanner;
+pub(super) mod strawberry;
 pub(crate) mod support;
-mod tape;
-mod trophy;
-mod watermelon;
+pub(super) mod tape;
+pub(super) mod trophy;
+pub(super) mod watermelon;
 
-pub(crate) use apple::DEFINITION as APPLE;
-pub(crate) use backpack::DEFINITION as BACKPACK;
-pub(crate) use banana::DEFINITION as BANANA;
-pub(crate) use black_white::DEFINITION as BLACK_WHITE;
-pub(crate) use broken_pottery::DEFINITION as BROKEN_POTTERY;
-pub(crate) use camera::DEFINITION as CAMERA;
-pub(crate) use carrot::DEFINITION as CARROT;
-pub(crate) use cat::DEFINITION as CAT;
-pub(crate) use crock::DEFINITION as CROCK;
-pub(crate) use cup_noodles::DEFINITION as CUP_NOODLES;
-pub(crate) use demolition_hammer::DEFINITION as DEMOLITION_HAMMER;
-pub(crate) use dice_bundle::DEFINITION as DICE_BUNDLE;
-pub(crate) use energy_drink::DEFINITION as ENERGY_DRINK;
-pub(crate) use fang::DEFINITION as FANG;
-pub(crate) use four_leaf_clover::DEFINITION as FOUR_LEAF_CLOVER;
-pub(crate) use french_fries::DEFINITION as FRENCH_FRIES;
-pub(crate) use gift_box::DEFINITION as GIFT_BOX;
-pub(crate) use hamburger::DEFINITION as HAMBURGER;
-pub(crate) use ice_cream::DEFINITION as ICE_CREAM;
-pub(crate) use membership_card::DEFINITION as MEMBERSHIP_CARD;
-pub(crate) use metronome::DEFINITION as METRONOME;
-pub(crate) use mirror::DEFINITION as MIRROR;
-pub(crate) use name_tag::DEFINITION as NAME_TAG;
-pub(crate) use pea::DEFINITION as PEA;
-pub(crate) use perfect_pottery::DEFINITION as PERFECT_POTTERY;
-pub(crate) use piggy_bank::DEFINITION as PIGGY_BANK;
-pub(crate) use pizza::DEFINITION as PIZZA;
-pub(crate) use popcorn::DEFINITION as POPCORN;
-pub(crate) use rabbit::DEFINITION as RABBIT;
-pub(crate) use resolution::DEFINITION as RESOLUTION;
-pub(crate) use shopping_bag::DEFINITION as SHOPPING_BAG;
-pub(crate) use slot_machine::DEFINITION as SLOT_MACHINE;
-pub(crate) use spanner::DEFINITION as SPANNER;
-pub(crate) use strawberry::DEFINITION as STRAWBERRY;
-pub(crate) use tape::DEFINITION as TAPE;
-pub(crate) use trophy::DEFINITION as TROPHY;
-pub(crate) use watermelon::DEFINITION as WATERMELON;
+use super::{
+    UpgradeAcquireRecovery, UpgradeCacheContribution, UpgradeEntry, UpgradeTriggerContext,
+};
+use crate::{CoreState, TowerState, TowerTemplateState};
+use enum_dispatch::enum_dispatch;
+
+#[enum_dispatch]
+pub(crate) trait UpgradeBehavior {
+    fn kind(&self) -> crate::UpgradeKind;
+    fn rarity(&self) -> crate::Rarity;
+    fn generate(&self) -> super::UpgradeRuntimeState;
+
+    fn cache(&self, _: &UpgradeEntry) -> UpgradeCacheContribution {
+        UpgradeCacheContribution {
+            clear_shield_on_stage_start: true,
+            ..Default::default()
+        }
+    }
+
+    fn acquire(&self, core: &mut CoreState, mut upgrade: UpgradeEntry) -> usize {
+        upgrade.id = core.next_upgrade_id();
+        core.upgrades.upgrades.push(upgrade);
+        0
+    }
+
+    fn recovery(&self) -> UpgradeAcquireRecovery {
+        UpgradeAcquireRecovery::None
+    }
+
+    fn tower_bonus(&self, _: &UpgradeEntry, _: &TowerState) -> i64 {
+        0
+    }
+
+    fn tower_bonus_for_template(&self, _: &UpgradeEntry, _: &TowerTemplateState) -> i64 {
+        0
+    }
+
+    fn current_and_max(&self, _: &CoreState) -> Option<(usize, usize)> {
+        None
+    }
+
+    fn monster_death(
+        &self,
+        _: &mut UpgradeTriggerContext,
+        _: &UpgradeEntry,
+        _: &mut usize,
+        _: &mut i64,
+    ) {
+    }
+
+    fn gold_earned(&self, _: &mut UpgradeTriggerContext, _: &mut UpgradeEntry) -> bool {
+        false
+    }
+
+    fn card_rerolled(&self, _: &mut UpgradeTriggerContext, _: &mut UpgradeEntry) -> bool {
+        false
+    }
+
+    fn shop_purchase(&self, _: &mut UpgradeTriggerContext, _: &mut UpgradeEntry, _: bool) -> bool {
+        false
+    }
+
+    fn tower_placed(
+        &self,
+        _: &mut UpgradeTriggerContext,
+        _: &mut UpgradeEntry,
+        _: u64,
+        _: bool,
+        _: &TowerTemplateState,
+        _: &mut usize,
+    ) -> bool {
+        false
+    }
+
+    fn tower_removed(&self, _: &mut UpgradeTriggerContext, _: &mut UpgradeEntry, _: usize) {}
+
+    fn stage_start(&self, _: &mut UpgradeTriggerContext, _: &mut UpgradeEntry, _: usize) -> bool {
+        false
+    }
+
+    fn stage_end(
+        &self,
+        _: &mut UpgradeTriggerContext,
+        _: &mut UpgradeEntry,
+        _: bool,
+        _: usize,
+        _: usize,
+    ) -> (bool, usize) {
+        (false, 0)
+    }
+}
+
+#[enum_dispatch(UpgradeBehavior)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UpgradeBehaviorImpl {
+    Apple(apple::Behavior),
+    Backpack(backpack::Behavior),
+    Banana(banana::Behavior),
+    BlackWhite(black_white::Behavior),
+    BrokenPottery(broken_pottery::Behavior),
+    Camera(camera::Behavior),
+    Carrot(carrot::Behavior),
+    Cat(cat::Behavior),
+    Crock(crock::Behavior),
+    CupNoodles(cup_noodles::Behavior),
+    DemolitionHammer(demolition_hammer::Behavior),
+    DiceBundle(dice_bundle::Behavior),
+    EnergyDrink(energy_drink::Behavior),
+    Fang(fang::Behavior),
+    FourLeafClover(four_leaf_clover::Behavior),
+    FrenchFries(french_fries::Behavior),
+    GiftBox(gift_box::Behavior),
+    Hamburger(hamburger::Behavior),
+    IceCream(ice_cream::Behavior),
+    MembershipCard(membership_card::Behavior),
+    Metronome(metronome::Behavior),
+    Mirror(mirror::Behavior),
+    NameTag(name_tag::Behavior),
+    Pea(pea::Behavior),
+    PerfectPottery(perfect_pottery::Behavior),
+    PiggyBank(piggy_bank::Behavior),
+    Pizza(pizza::Behavior),
+    Popcorn(popcorn::Behavior),
+    Rabbit(rabbit::Behavior),
+    Resolution(resolution::Behavior),
+    ShoppingBag(shopping_bag::Behavior),
+    SlotMachine(slot_machine::Behavior),
+    Spanner(spanner::Behavior),
+    Strawberry(strawberry::Behavior),
+    Tape(tape::Behavior),
+    Trophy(trophy::Behavior),
+    Watermelon(watermelon::Behavior),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UpgradeRuntimeState {
+    Apple(apple::AppleUpgradeState),
+    Banana(banana::BananaUpgradeState),
+    Carrot(carrot::CarrotUpgradeState),
+    Cat(cat::CatUpgradeState),
+    Backpack(backpack::BackpackUpgradeState),
+    DiceBundle(dice_bundle::DiceBundleUpgradeState),
+    EnergyDrink(energy_drink::EnergyDrinkUpgradeState),
+    Popcorn(popcorn::PopcornUpgradeState),
+    FourLeafClover(four_leaf_clover::FourLeafCloverUpgradeState),
+    Rabbit(rabbit::RabbitUpgradeState),
+    BlackWhite(black_white::BlackWhiteUpgradeState),
+    Trophy(trophy::TrophyUpgradeState),
+    Crock(crock::CrockUpgradeState),
+    CupNoodles(cup_noodles::CupNoodlesUpgradeState),
+    FrenchFries(french_fries::FrenchFriesUpgradeState),
+    Hamburger(hamburger::HamburgerUpgradeState),
+    Pizza(pizza::PizzaUpgradeState),
+    DemolitionHammer(demolition_hammer::DemolitionHammerUpgradeState),
+    Metronome(metronome::MetronomeUpgradeState),
+    Tape(tape::TapeUpgradeState),
+    NameTag(name_tag::NameTagUpgradeState),
+    ShoppingBag(shopping_bag::ShoppingBagUpgradeState),
+    Resolution(resolution::ResolutionUpgradeState),
+    Mirror(mirror::MirrorUpgradeState),
+    IceCream(ice_cream::IceCreamUpgradeState),
+    Spanner(spanner::SpannerUpgradeState),
+    Pea(pea::PeaUpgradeState),
+    SlotMachine(slot_machine::SlotMachineUpgradeState),
+    PiggyBank(piggy_bank::PiggyBankUpgradeState),
+    Camera(camera::CameraUpgradeState),
+    GiftBox(gift_box::GiftBoxUpgradeState),
+    Fang(fang::FangUpgradeState),
+    PerfectPottery(perfect_pottery::PerfectPotteryUpgradeState),
+    MembershipCard(membership_card::MembershipCardUpgradeState),
+    BrokenPottery(broken_pottery::BrokenPotteryUpgradeState),
+    Strawberry(strawberry::StrawberryUpgradeState),
+    Watermelon(watermelon::WatermelonUpgradeState),
+}
+
+impl UpgradeBehaviorImpl {
+    pub(crate) fn for_kind(kind: crate::UpgradeKind) -> Self {
+        match kind {
+            crate::UpgradeKind::Apple => Self::Apple(apple::Behavior),
+            crate::UpgradeKind::Backpack => Self::Backpack(backpack::Behavior),
+            crate::UpgradeKind::Banana => Self::Banana(banana::Behavior),
+            crate::UpgradeKind::BlackWhite => Self::BlackWhite(black_white::Behavior),
+            crate::UpgradeKind::BrokenPottery => Self::BrokenPottery(broken_pottery::Behavior),
+            crate::UpgradeKind::Camera => Self::Camera(camera::Behavior),
+            crate::UpgradeKind::Carrot => Self::Carrot(carrot::Behavior),
+            crate::UpgradeKind::Cat => Self::Cat(cat::Behavior),
+            crate::UpgradeKind::Crock => Self::Crock(crock::Behavior),
+            crate::UpgradeKind::CupNoodles => Self::CupNoodles(cup_noodles::Behavior),
+            crate::UpgradeKind::DemolitionHammer => {
+                Self::DemolitionHammer(demolition_hammer::Behavior)
+            }
+            crate::UpgradeKind::DiceBundle => Self::DiceBundle(dice_bundle::Behavior),
+            crate::UpgradeKind::EnergyDrink => Self::EnergyDrink(energy_drink::Behavior),
+            crate::UpgradeKind::Fang => Self::Fang(fang::Behavior),
+            crate::UpgradeKind::FourLeafClover => Self::FourLeafClover(four_leaf_clover::Behavior),
+            crate::UpgradeKind::FrenchFries => Self::FrenchFries(french_fries::Behavior),
+            crate::UpgradeKind::GiftBox => Self::GiftBox(gift_box::Behavior),
+            crate::UpgradeKind::Hamburger => Self::Hamburger(hamburger::Behavior),
+            crate::UpgradeKind::IceCream => Self::IceCream(ice_cream::Behavior),
+            crate::UpgradeKind::MembershipCard => Self::MembershipCard(membership_card::Behavior),
+            crate::UpgradeKind::Metronome => Self::Metronome(metronome::Behavior),
+            crate::UpgradeKind::Mirror => Self::Mirror(mirror::Behavior),
+            crate::UpgradeKind::NameTag => Self::NameTag(name_tag::Behavior),
+            crate::UpgradeKind::Pea => Self::Pea(pea::Behavior),
+            crate::UpgradeKind::PerfectPottery => Self::PerfectPottery(perfect_pottery::Behavior),
+            crate::UpgradeKind::PiggyBank => Self::PiggyBank(piggy_bank::Behavior),
+            crate::UpgradeKind::Pizza => Self::Pizza(pizza::Behavior),
+            crate::UpgradeKind::Popcorn => Self::Popcorn(popcorn::Behavior),
+            crate::UpgradeKind::Rabbit => Self::Rabbit(rabbit::Behavior),
+            crate::UpgradeKind::Resolution => Self::Resolution(resolution::Behavior),
+            crate::UpgradeKind::ShoppingBag => Self::ShoppingBag(shopping_bag::Behavior),
+            crate::UpgradeKind::SlotMachine => Self::SlotMachine(slot_machine::Behavior),
+            crate::UpgradeKind::Spanner => Self::Spanner(spanner::Behavior),
+            crate::UpgradeKind::Strawberry => Self::Strawberry(strawberry::Behavior),
+            crate::UpgradeKind::Tape => Self::Tape(tape::Behavior),
+            crate::UpgradeKind::Trophy => Self::Trophy(trophy::Behavior),
+            crate::UpgradeKind::Watermelon => Self::Watermelon(watermelon::Behavior),
+        }
+    }
+}

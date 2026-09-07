@@ -1,9 +1,10 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::super::{UpgradeCacheContribution, UpgradeEntryState};
-use super::support::{
-    NO_TRIGGERS, base_cache, merge_scalar_upgrade, recovery_none, scalar, scalar_five,
-    tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct EnergyDrinkUpgradeState {
+    pub discount: usize,
+}
+use super::super::UpgradeCacheContribution;
+use super::support::base_cache;
 
 const MAX_SHOP_ITEM_PRICE_MINUS: usize = 15;
 
@@ -12,18 +13,30 @@ fn max_shop_discount(core: &crate::CoreState) -> Option<(usize, usize)> {
         core.upgrades
             .upgrades
             .iter()
-            .filter(|u| {
-                u.upgrade_kind()
-                    .is_ok_and(|kind| kind == crate::UpgradeKind::EnergyDrink)
-            })
-            .map(|u| scalar(u, 0))
+            .filter(|u| u.kind() == crate::UpgradeKind::EnergyDrink)
+            .map(|u| u.energy_drink().discount)
             .sum(),
         MAX_SHOP_ITEM_PRICE_MINUS,
     ))
 }
 
-fn acquire_discount(core: &mut crate::CoreState, upgrade: UpgradeEntryState) -> usize {
-    let discount = scalar(&upgrade, 0);
+fn merge_energy_drink(core: &mut crate::CoreState, mut upgrade: super::super::UpgradeEntry) {
+    let add = upgrade.energy_drink().discount;
+    if let Some(existing) = core
+        .upgrades
+        .upgrades
+        .iter_mut()
+        .find(|entry| entry.kind() == crate::UpgradeKind::EnergyDrink)
+    {
+        existing.energy_drink_mut().discount = existing.energy_drink().discount.saturating_add(add);
+    } else {
+        upgrade.id = core.next_upgrade_id();
+        core.upgrades.upgrades.push(upgrade);
+    }
+}
+
+fn acquire_discount(core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+    let discount = upgrade.energy_drink().discount;
     if let crate::GameFlowState::Shopping(shop) = &mut core.flow {
         for slot in &mut shop.slots {
             let cost = match &mut slot.slot {
@@ -34,35 +47,39 @@ fn acquire_discount(core: &mut crate::CoreState, upgrade: UpgradeEntryState) -> 
             *cost = cost.saturating_sub(discount);
         }
     }
-    merge_scalar_upgrade(core, upgrade);
+    merge_energy_drink(core, upgrade);
     0
 }
 
-fn cache_discount(upgrade: &UpgradeEntryState) -> UpgradeCacheContribution {
+fn cache_discount(upgrade: &super::super::UpgradeEntry) -> UpgradeCacheContribution {
     UpgradeCacheContribution {
-        shop_item_price_minus: scalar(upgrade, 0),
+        shop_item_price_minus: upgrade.energy_drink().discount,
         ..base_cache()
     }
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::EnergyDrink,
-    generate_payload: scalar_five,
-    rarity: crate::Rarity::Common,
-    cache: cache_discount,
-    acquire: acquire_discount,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: max_shop_discount,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::EnergyDrink
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Common
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::EnergyDrink(
+            super::super::codec_impl::EnergyDrinkUpgradeState { discount: 5 },
+        )
+    }
+    fn cache(&self, entry: &super::super::UpgradeEntry) -> super::super::UpgradeCacheContribution {
+        cache_discount(entry)
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_discount(core, upgrade)
+    }
+    fn current_and_max(&self, core: &crate::CoreState) -> Option<(usize, usize)> {
+        max_shop_discount(core)
+    }
+}

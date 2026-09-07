@@ -1,47 +1,61 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, push_acquired_upgrade, recovery_none, scalar, scalar_zero,
-    set_scalar, tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TapeUpgradeState {
+    pub acquired_stage: usize,
+}
+use super::support::push_acquired_upgrade;
 
 const TAPE_ENEMY_SPEED_MULTIPLIER_RAW: i64 = 750_000;
 
 const TAPE_STAGE_INTERVAL: usize = 4;
 
-fn acquire_stage_marker(core: &mut crate::CoreState, mut u: UpgradeEntryState) -> usize {
-    set_scalar(&mut u, 0, core.progress.stage as u64);
-    push_acquired_upgrade(core, u)
+fn acquire_stage_marker(
+    core: &mut crate::CoreState,
+    mut upgrade: super::super::UpgradeEntry,
+) -> usize {
+    upgrade.tape_mut().acquired_stage = core.progress.stage;
+    push_acquired_upgrade(core, upgrade)
 }
 
-fn stage_start_tape(core: &mut crate::CoreState, index: usize, stage: usize) -> bool {
-    let acquired_stage = scalar(&core.upgrades.upgrades[index], 0);
+fn stage_start_tape(
+    context: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+    stage: usize,
+) -> bool {
+    let acquired_stage = entry.tape().acquired_stage;
     if stage.saturating_sub(acquired_stage) % TAPE_STAGE_INTERVAL == TAPE_STAGE_INTERVAL - 1 {
-        core.stage_modifiers
+        context
+            .stage_modifiers
             .enemy_speed_multipliers_raw
             .push(TAPE_ENEMY_SPEED_MULTIPLIER_RAW);
     }
     false
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::Tape,
-    generate_payload: scalar_zero,
-    rarity: crate::Rarity::Epic,
-    cache: no_cache,
-    acquire: acquire_stage_marker,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: stage_start_tape,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::Tape
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Epic
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::Tape(super::super::codec_impl::TapeUpgradeState {
+            acquired_stage: 0,
+        })
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_stage_marker(core, upgrade)
+    }
+    fn stage_start(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        stage: usize,
+    ) -> bool {
+        stage_start_tape(context, entry, stage)
+    }
+}

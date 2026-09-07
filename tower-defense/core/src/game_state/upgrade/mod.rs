@@ -1,9 +1,23 @@
 mod behaviors;
-mod definition;
+pub mod codec;
+mod codec_impl;
+pub(crate) mod payload;
 
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use definition::definition;
+pub(crate) use behaviors::UpgradeRuntimeState;
+use behaviors::{UpgradeBehavior, UpgradeBehaviorImpl};
+pub use codec_impl::UpgradeCodecError;
+#[cfg(test)]
+pub(crate) use codec_impl::UpgradeWireEntry as TestUpgradeWireEntry;
+use codec_impl::UpgradeWireEntry;
+
+pub(crate) struct UpgradeTriggerContext<'a> {
+    pub(crate) progress: &'a mut crate::CoreProgress,
+    pub(crate) stage_modifiers: &'a mut crate::StageModifiersState,
+    pub(crate) hand: &'a mut crate::HandState,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UpgradeCacheState {
@@ -24,47 +38,439 @@ pub struct UpgradeEntryIdentityState {
     pub kind: u8,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct UpgradeEntryState {
-    pub id: u64,
-    pub kind: u8,
-    pub scalar_values: Vec<u64>,
-    pub ratio_values_raw: Vec<i64>,
-    pub bool_values: Vec<bool>,
-    pub optional_ids: Vec<Option<u64>>,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UpgradeEntry {
+    pub(crate) id: u64,
+    pub(crate) behavior: UpgradeBehaviorImpl,
+    pub(crate) upgrade: UpgradeRuntimeState,
 }
 
-impl UpgradeEntryState {
-    /// Parses the persisted kind at the boundary where the entry enters core
-    /// upgrade semantics.
+macro_rules! runtime_state_accessors {
+    ($name:ident, $name_mut:ident, $variant:ident, $state:ty) => {
+        #[allow(dead_code)]
+        pub(crate) fn $name(&self) -> &$state {
+            match &self.upgrade {
+                UpgradeRuntimeState::$variant(state) => state,
+                _ => panic!("upgrade runtime kind does not match behavior callback"),
+            }
+        }
+
+        #[allow(dead_code)]
+        pub(crate) fn $name_mut(&mut self) -> &mut $state {
+            match &mut self.upgrade {
+                UpgradeRuntimeState::$variant(state) => state,
+                _ => panic!("upgrade runtime kind does not match behavior callback"),
+            }
+        }
+    };
+}
+
+impl UpgradeEntry {
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    pub fn with_id(mut self, id: u64) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn scalar_value(&self, index: usize) -> Option<usize> {
+        match self.upgrade {
+            UpgradeRuntimeState::Backpack(state) => [state.shop_slot_expand].get(index).copied(),
+            UpgradeRuntimeState::Cat(state) => [state.gold_per_kill].get(index).copied(),
+            UpgradeRuntimeState::Crock(state) => [state.damage_steps].get(index).copied(),
+            UpgradeRuntimeState::DiceBundle(state) => [state.dice_chance_plus].get(index).copied(),
+            UpgradeRuntimeState::EnergyDrink(state) => [state.discount].get(index).copied(),
+            UpgradeRuntimeState::Fang(state) => [state.heal_per_kill].get(index).copied(),
+            UpgradeRuntimeState::GiftBox(state) => [state.gold_per_item].get(index).copied(),
+            UpgradeRuntimeState::Metronome(state) => [state.acquired_stage].get(index).copied(),
+            UpgradeRuntimeState::Tape(state) => [state.acquired_stage].get(index).copied(),
+            UpgradeRuntimeState::SlotMachine(state) => [state.dice].get(index).copied(),
+            UpgradeRuntimeState::Popcorn(state) => [state.duration_waves, state.waves_remaining]
+                .get(index)
+                .copied(),
+            UpgradeRuntimeState::Resolution(state) => [state.saved_rerolls].get(index).copied(),
+            UpgradeRuntimeState::IceCream(state) => [state.waves_remaining].get(index).copied(),
+            UpgradeRuntimeState::Apple(_)
+            | UpgradeRuntimeState::Banana(_)
+            | UpgradeRuntimeState::Carrot(_)
+            | UpgradeRuntimeState::BlackWhite(_)
+            | UpgradeRuntimeState::BrokenPottery(_)
+            | UpgradeRuntimeState::Camera(_)
+            | UpgradeRuntimeState::CupNoodles(_)
+            | UpgradeRuntimeState::DemolitionHammer(_)
+            | UpgradeRuntimeState::FourLeafClover(_)
+            | UpgradeRuntimeState::FrenchFries(_)
+            | UpgradeRuntimeState::Hamburger(_)
+            | UpgradeRuntimeState::Pea(_)
+            | UpgradeRuntimeState::Pizza(_)
+            | UpgradeRuntimeState::Rabbit(_)
+            | UpgradeRuntimeState::ShoppingBag(_)
+            | UpgradeRuntimeState::Spanner(_)
+            | UpgradeRuntimeState::Strawberry(_)
+            | UpgradeRuntimeState::Trophy(_)
+            | UpgradeRuntimeState::Watermelon(_)
+            | UpgradeRuntimeState::PiggyBank(_)
+            | UpgradeRuntimeState::MembershipCard(_)
+            | UpgradeRuntimeState::Mirror(_)
+            | UpgradeRuntimeState::NameTag(_)
+            | UpgradeRuntimeState::PerfectPottery(_) => None,
+        }
+    }
+
+    pub fn ratio_value(&self, index: usize) -> Option<i64> {
+        match self.upgrade {
+            UpgradeRuntimeState::Popcorn(state) => {
+                [state.max_multiplier_raw, state.active_multiplier_raw]
+                    .get(index)
+                    .copied()
+            }
+            UpgradeRuntimeState::NameTag(state) => [state.bonus_raw].get(index).copied(),
+            UpgradeRuntimeState::Resolution(state) => [state.reroll_damage_raw].get(index).copied(),
+            UpgradeRuntimeState::IceCream(state) => [state.damage_bonus_raw].get(index).copied(),
+            UpgradeRuntimeState::PerfectPottery(state) => {
+                [state.damage_bonus_raw].get(index).copied()
+            }
+            _ => None,
+        }
+    }
+
+    pub fn bool_value(&self, index: usize) -> Option<bool> {
+        match self.upgrade {
+            UpgradeRuntimeState::MembershipCard(state) => [state.pending].get(index).copied(),
+            UpgradeRuntimeState::Mirror(state) => [state.pending].get(index).copied(),
+            _ => None,
+        }
+    }
+
+    pub fn optional_id_value(&self, index: usize) -> Option<Option<u64>> {
+        match self.upgrade {
+            UpgradeRuntimeState::NameTag(state) => [state.tower_id].get(index).copied(),
+            _ => None,
+        }
+    }
+
+    pub fn set_scalar_value(&mut self, index: usize, value: usize) -> bool {
+        match &mut self.upgrade {
+            UpgradeRuntimeState::Backpack(state) if index == 0 => state.shop_slot_expand = value,
+            UpgradeRuntimeState::Cat(state) if index == 0 => state.gold_per_kill = value,
+            UpgradeRuntimeState::Crock(state) if index == 0 => state.damage_steps = value,
+            UpgradeRuntimeState::DiceBundle(state) if index == 0 => state.dice_chance_plus = value,
+            UpgradeRuntimeState::EnergyDrink(state) if index == 0 => state.discount = value,
+            UpgradeRuntimeState::Fang(state) if index == 0 => state.heal_per_kill = value,
+            UpgradeRuntimeState::GiftBox(state) if index == 0 => state.gold_per_item = value,
+            UpgradeRuntimeState::Metronome(state) if index == 0 => state.acquired_stage = value,
+            UpgradeRuntimeState::Tape(state) if index == 0 => state.acquired_stage = value,
+            UpgradeRuntimeState::SlotMachine(state) if index == 0 => state.dice = value,
+            UpgradeRuntimeState::Popcorn(state) => match index {
+                0 => state.duration_waves = value,
+                1 => state.waves_remaining = value,
+                _ => return false,
+            },
+            UpgradeRuntimeState::Resolution(state) if index == 0 => state.saved_rerolls = value,
+            UpgradeRuntimeState::IceCream(state) if index == 0 => state.waves_remaining = value,
+            _ => return false,
+        }
+        true
+    }
+
+    pub fn set_ratio_value(&mut self, index: usize, value: i64) -> bool {
+        match &mut self.upgrade {
+            UpgradeRuntimeState::Popcorn(state) => match index {
+                0 => state.max_multiplier_raw = value,
+                1 => state.active_multiplier_raw = value,
+                _ => return false,
+            },
+            UpgradeRuntimeState::NameTag(state) if index == 0 => state.bonus_raw = value,
+            UpgradeRuntimeState::Resolution(state) if index == 0 => state.reroll_damage_raw = value,
+            UpgradeRuntimeState::IceCream(state) if index == 0 => state.damage_bonus_raw = value,
+            UpgradeRuntimeState::PerfectPottery(state) if index == 0 => {
+                state.damage_bonus_raw = value
+            }
+            _ => return false,
+        }
+        true
+    }
+
+    pub fn set_bool_value(&mut self, index: usize, value: bool) -> bool {
+        match &mut self.upgrade {
+            UpgradeRuntimeState::MembershipCard(state) if index == 0 => state.pending = value,
+            UpgradeRuntimeState::Mirror(state) if index == 0 => state.pending = value,
+            _ => return false,
+        }
+        true
+    }
+
+    pub fn set_optional_id_value(&mut self, index: usize, value: Option<u64>) -> bool {
+        match &mut self.upgrade {
+            UpgradeRuntimeState::NameTag(state) if index == 0 => state.tower_id = value,
+            _ => return false,
+        }
+        true
+    }
+
+    pub(crate) fn from_raw(entry: UpgradeWireEntry) -> Result<Self, codec_impl::UpgradeCodecError> {
+        let upgrade = UpgradeRuntimeState::decode(&entry)?;
+        let behavior = UpgradeBehaviorImpl::for_kind(upgrade.kind());
+        Ok(Self {
+            id: entry.id,
+            behavior,
+            upgrade,
+        })
+    }
+
+    pub(crate) fn to_raw(&self) -> UpgradeWireEntry {
+        self.upgrade.encode(self.id)
+    }
+
+    pub fn kind(&self) -> crate::UpgradeKind {
+        self.behavior.kind()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn to_wire(&self) -> UpgradeWireEntry {
+        self.to_raw()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn from_wire(entry: UpgradeWireEntry) -> Result<Self, UpgradeCodecError> {
+        Self::from_raw(entry)
+    }
+
     pub fn upgrade_kind(&self) -> Result<crate::UpgradeKind, crate::CommandError> {
-        crate::UpgradeKind::from_raw(self.kind)
-            .ok_or(crate::CommandError::InvalidUpgradeKind { raw: self.kind })
+        Ok(self.kind())
     }
 
-    /// Returns the persisted kind without interpreting it.
-    pub const fn upgrade_kind_raw(&self) -> u8 {
-        self.kind
+    runtime_state_accessors!(apple, apple_mut, Apple, codec_impl::AppleUpgradeState);
+    runtime_state_accessors!(banana, banana_mut, Banana, codec_impl::BananaUpgradeState);
+    runtime_state_accessors!(carrot, carrot_mut, Carrot, codec_impl::CarrotUpgradeState);
+    runtime_state_accessors!(cat, cat_mut, Cat, codec_impl::CatUpgradeState);
+    runtime_state_accessors!(
+        backpack,
+        backpack_mut,
+        Backpack,
+        codec_impl::BackpackUpgradeState
+    );
+    runtime_state_accessors!(
+        dice_bundle,
+        dice_bundle_mut,
+        DiceBundle,
+        codec_impl::DiceBundleUpgradeState
+    );
+    runtime_state_accessors!(
+        energy_drink,
+        energy_drink_mut,
+        EnergyDrink,
+        codec_impl::EnergyDrinkUpgradeState
+    );
+    runtime_state_accessors!(
+        popcorn,
+        popcorn_mut,
+        Popcorn,
+        codec_impl::PopcornUpgradeState
+    );
+    runtime_state_accessors!(
+        four_leaf_clover,
+        four_leaf_clover_mut,
+        FourLeafClover,
+        codec_impl::FourLeafCloverUpgradeState
+    );
+    runtime_state_accessors!(rabbit, rabbit_mut, Rabbit, codec_impl::RabbitUpgradeState);
+    runtime_state_accessors!(
+        black_white,
+        black_white_mut,
+        BlackWhite,
+        codec_impl::BlackWhiteUpgradeState
+    );
+    runtime_state_accessors!(trophy, trophy_mut, Trophy, codec_impl::TrophyUpgradeState);
+    runtime_state_accessors!(crock, crock_mut, Crock, codec_impl::CrockUpgradeState);
+    runtime_state_accessors!(
+        cup_noodles,
+        cup_noodles_mut,
+        CupNoodles,
+        codec_impl::CupNoodlesUpgradeState
+    );
+    runtime_state_accessors!(
+        french_fries,
+        french_fries_mut,
+        FrenchFries,
+        codec_impl::FrenchFriesUpgradeState
+    );
+    runtime_state_accessors!(
+        hamburger,
+        hamburger_mut,
+        Hamburger,
+        codec_impl::HamburgerUpgradeState
+    );
+    runtime_state_accessors!(pizza, pizza_mut, Pizza, codec_impl::PizzaUpgradeState);
+    runtime_state_accessors!(
+        demolition_hammer,
+        demolition_hammer_mut,
+        DemolitionHammer,
+        codec_impl::DemolitionHammerUpgradeState
+    );
+    runtime_state_accessors!(
+        metronome,
+        metronome_mut,
+        Metronome,
+        codec_impl::MetronomeUpgradeState
+    );
+    runtime_state_accessors!(tape, tape_mut, Tape, codec_impl::TapeUpgradeState);
+    runtime_state_accessors!(
+        name_tag,
+        name_tag_mut,
+        NameTag,
+        codec_impl::NameTagUpgradeState
+    );
+    runtime_state_accessors!(
+        shopping_bag,
+        shopping_bag_mut,
+        ShoppingBag,
+        codec_impl::ShoppingBagUpgradeState
+    );
+    runtime_state_accessors!(
+        resolution,
+        resolution_mut,
+        Resolution,
+        codec_impl::ResolutionUpgradeState
+    );
+    runtime_state_accessors!(mirror, mirror_mut, Mirror, codec_impl::MirrorUpgradeState);
+    runtime_state_accessors!(
+        ice_cream,
+        ice_cream_mut,
+        IceCream,
+        codec_impl::IceCreamUpgradeState
+    );
+    runtime_state_accessors!(
+        spanner,
+        spanner_mut,
+        Spanner,
+        codec_impl::SpannerUpgradeState
+    );
+    runtime_state_accessors!(pea, pea_mut, Pea, codec_impl::PeaUpgradeState);
+    runtime_state_accessors!(
+        slot_machine,
+        slot_machine_mut,
+        SlotMachine,
+        codec_impl::SlotMachineUpgradeState
+    );
+    runtime_state_accessors!(
+        piggy_bank,
+        piggy_bank_mut,
+        PiggyBank,
+        codec_impl::PiggyBankUpgradeState
+    );
+    runtime_state_accessors!(camera, camera_mut, Camera, codec_impl::CameraUpgradeState);
+    runtime_state_accessors!(
+        gift_box,
+        gift_box_mut,
+        GiftBox,
+        codec_impl::GiftBoxUpgradeState
+    );
+    runtime_state_accessors!(fang, fang_mut, Fang, codec_impl::FangUpgradeState);
+    runtime_state_accessors!(
+        perfect_pottery,
+        perfect_pottery_mut,
+        PerfectPottery,
+        codec_impl::PerfectPotteryUpgradeState
+    );
+    runtime_state_accessors!(
+        membership_card,
+        membership_card_mut,
+        MembershipCard,
+        codec_impl::MembershipCardUpgradeState
+    );
+    runtime_state_accessors!(
+        broken_pottery,
+        broken_pottery_mut,
+        BrokenPottery,
+        codec_impl::BrokenPotteryUpgradeState
+    );
+    runtime_state_accessors!(
+        strawberry,
+        strawberry_mut,
+        Strawberry,
+        codec_impl::StrawberryUpgradeState
+    );
+    runtime_state_accessors!(
+        watermelon,
+        watermelon_mut,
+        Watermelon,
+        codec_impl::WatermelonUpgradeState
+    );
+}
+
+impl Serialize for UpgradeEntry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        codec::encode_upgrade_entry(self, serializer)
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct UpgradeCollectionState {
-    pub upgrades: Vec<UpgradeEntryState>,
-    pub revision: usize,
+impl<'de> Deserialize<'de> for UpgradeEntry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        codec::decode_upgrade_entry(deserializer)
+    }
 }
 
-impl UpgradeCollectionState {
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct UpgradeCollection {
+    pub upgrades: Vec<UpgradeEntry>,
+    pub(crate) revision: usize,
+}
+
+impl UpgradeCollection {
+    pub fn from_entries(entries: Vec<UpgradeEntry>, revision: usize) -> Self {
+        Self {
+            upgrades: entries,
+            revision,
+        }
+    }
+
+    pub fn entries(&self) -> &[UpgradeEntry] {
+        &self.upgrades
+    }
+
+    pub fn entries_mut(&mut self) -> &mut Vec<UpgradeEntry> {
+        &mut self.upgrades
+    }
+
+    pub fn revision(&self) -> usize {
+        self.revision
+    }
+
+    pub(crate) fn shorten_straight_flush_to_4_cards(&self) -> bool {
+        self.cache_state().shorten_straight_flush_to_4_cards
+    }
+
+    pub(crate) fn skip_rank_for_straight(&self) -> bool {
+        self.cache_state().skip_rank_for_straight
+    }
+
+    pub(crate) fn treat_suits_as_same(&self) -> bool {
+        self.cache_state().treat_suits_as_same
+    }
+
+    pub(crate) fn next_id(&self) -> u64 {
+        self.upgrades
+            .iter()
+            .map(|upgrade| upgrade.id)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1)
+    }
+
     pub fn cache_state(&self) -> UpgradeCacheState {
         let contributions = self
             .upgrades
             .iter()
-            .map(|upgrade| {
-                let kind = upgrade
-                    .upgrade_kind()
-                    .expect("persisted upgrade kind must be valid before cache calculation");
-                (definition(kind).cache)(upgrade)
-            })
+            .map(|upgrade| upgrade.behavior.cache(upgrade))
             .fold(
                 UpgradeCacheContribution {
                     clear_shield_on_stage_start: true,
@@ -103,20 +509,12 @@ impl UpgradeCollectionState {
         }
     }
 
-    pub fn shorten_straight_flush_to_4_cards(&self) -> bool {
-        self.cache_state().shorten_straight_flush_to_4_cards
-    }
-
-    pub fn skip_rank_for_straight(&self) -> bool {
-        self.cache_state().skip_rank_for_straight
-    }
-
-    pub fn treat_suits_as_same(&self) -> bool {
-        self.cache_state().treat_suits_as_same
-    }
-
     pub fn tower_damage_bonus_raw(&self, tower: &crate::TowerState) -> i64 {
-        let upgrade_bonus = self.tower_upgrade_bonus_raw(tower);
+        let upgrade_bonus = self
+            .upgrades
+            .iter()
+            .map(|upgrade| upgrade.behavior.tower_bonus(upgrade, tower))
+            .fold(0_i64, i64::saturating_add);
         let polish_bonus = tower
             .template
             .used_cards
@@ -127,7 +525,11 @@ impl UpgradeCollectionState {
     }
 
     pub fn tower_damage_bonus_raw_for_template(&self, template: &crate::TowerTemplateState) -> i64 {
-        let upgrade_bonus = self.tower_upgrade_bonus_raw_for_template(template);
+        let upgrade_bonus = self
+            .upgrades
+            .iter()
+            .map(|upgrade| upgrade.behavior.tower_bonus_for_template(upgrade, template))
+            .fold(0_i64, i64::saturating_add);
         let polish_bonus = template
             .used_cards
             .iter()
@@ -139,12 +541,7 @@ impl UpgradeCollectionState {
     pub fn tower_upgrade_bonus_raw(&self, tower: &crate::TowerState) -> i64 {
         self.upgrades
             .iter()
-            .map(|upgrade| {
-                let kind = upgrade
-                    .upgrade_kind()
-                    .expect("persisted upgrade kind must be valid before bonus calculation");
-                (definition(kind).tower_bonus)(upgrade, tower)
-            })
+            .map(|upgrade| upgrade.behavior.tower_bonus(upgrade, tower))
             .fold(0_i64, i64::saturating_add)
     }
 
@@ -154,13 +551,26 @@ impl UpgradeCollectionState {
     ) -> i64 {
         self.upgrades
             .iter()
-            .map(|upgrade| {
-                let kind = upgrade
-                    .upgrade_kind()
-                    .expect("persisted upgrade kind must be valid before bonus calculation");
-                (definition(kind).tower_bonus_for_template)(upgrade, template)
-            })
+            .map(|upgrade| upgrade.behavior.tower_bonus_for_template(upgrade, template))
             .fold(0_i64, i64::saturating_add)
+    }
+}
+
+impl Serialize for UpgradeCollection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        codec::encode_upgrade_collection(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for UpgradeCollection {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        codec::decode_upgrade_collection(deserializer)
     }
 }
 
@@ -176,26 +586,16 @@ pub(crate) struct UpgradeCacheContribution {
     pub(crate) clear_shield_on_stage_start: bool,
 }
 
-fn trigger_definition(kind: crate::UpgradeKind) -> definition::UpgradeTriggerDefinition {
-    definition(kind).triggers
-}
-
-pub fn generated_upgrade(kind: crate::UpgradeKind) -> crate::UpgradeEntryState {
-    let mut upgrade = crate::UpgradeEntryState {
+pub fn generated_upgrade(kind: crate::UpgradeKind) -> crate::UpgradeEntry {
+    let behavior = UpgradeBehaviorImpl::for_kind(kind);
+    UpgradeEntry {
         id: 0,
-        kind: kind.raw(),
-        scalar_values: Vec::new(),
-        ratio_values_raw: Vec::new(),
-        bool_values: Vec::new(),
-        optional_ids: Vec::new(),
-    };
-    let definition = definition(kind).generate_payload;
-    definition(&mut upgrade);
-    upgrade
+        behavior,
+        upgrade: behavior.generate(),
+    }
 }
 
-/// Generates an upgrade after decoding a persisted or wire raw kind.
-pub fn generated_upgrade_raw(raw: u8) -> Result<crate::UpgradeEntryState, crate::CommandError> {
+pub fn generated_upgrade_raw(raw: u8) -> Result<crate::UpgradeEntry, crate::CommandError> {
     let kind =
         crate::UpgradeKind::from_raw(raw).ok_or(crate::CommandError::InvalidUpgradeKind { raw })?;
     Ok(generated_upgrade(kind))
@@ -203,7 +603,7 @@ pub fn generated_upgrade_raw(raw: u8) -> Result<crate::UpgradeEntryState, crate:
 
 /// Returns the definition rarity for a validated upgrade kind.
 pub fn upgrade_rarity(kind: crate::UpgradeKind) -> crate::Rarity {
-    definition(kind).rarity
+    UpgradeBehaviorImpl::for_kind(kind).rarity()
 }
 
 /// Returns the definition rarity after decoding a persisted or wire raw kind.
@@ -214,10 +614,10 @@ pub fn upgrade_rarity_raw(raw: u8) -> Result<crate::Rarity, crate::CommandError>
 }
 
 fn current_and_max(core: &crate::CoreState, kind: crate::UpgradeKind) -> Option<(usize, usize)> {
-    (definition(kind).current_and_max)(core)
+    UpgradeBehaviorImpl::for_kind(kind).current_and_max(core)
 }
 
-pub fn generate_boss_reward_option(core: &mut crate::CoreState) -> crate::UpgradeEntryState {
+pub fn generate_boss_reward_option(core: &mut crate::CoreState) -> crate::UpgradeEntry {
     let mut rng = core.rng.next_rng(
         crate::deterministic_rng::domain::REWARD_UPGRADE,
         &[core.progress.stage as u64],
@@ -241,7 +641,7 @@ pub fn generate_boss_reward_option(core: &mut crate::CoreState) -> crate::Upgrad
 
 pub(crate) fn generate_boss_reward_options(
     core: &mut crate::CoreState,
-) -> Vec<crate::UpgradeEntryState> {
+) -> Vec<crate::UpgradeEntry> {
     (0..3).map(|_| generate_boss_reward_option(core)).collect()
 }
 
@@ -258,14 +658,26 @@ pub struct UpgradeAcquireOutput {
     pub additional_shop_slots: usize,
 }
 
+pub trait UpgradeAcquireInput {
+    fn into_runtime(self) -> Result<UpgradeEntry, crate::CommandError>;
+}
+
+impl UpgradeAcquireInput for UpgradeEntry {
+    fn into_runtime(self) -> Result<UpgradeEntry, crate::CommandError> {
+        Ok(self)
+    }
+}
+
 impl crate::CoreState {
     pub fn acquire_upgrade(
         &mut self,
-        upgrade: UpgradeEntryState,
+        upgrade: impl UpgradeAcquireInput,
     ) -> Result<UpgradeAcquireOutput, crate::CommandError> {
-        let kind = upgrade.upgrade_kind()?;
+        let upgrade = upgrade.into_runtime()?;
+        let kind = upgrade.kind();
         let recovery = upgrade_acquire_recovery(kind);
-        let additional_shop_slots = (definition(kind).acquire)(self, upgrade);
+        let behavior = upgrade.behavior;
+        let additional_shop_slots = behavior.acquire(self, upgrade);
 
         self.refresh_upgrade_damage_multipliers();
         self.bump_upgrade_revision();
@@ -290,11 +702,14 @@ impl crate::CoreState {
     pub fn trigger_monster_death_upgrades(&mut self) {
         let mut gold = 0_usize;
         let mut healing = 0_i64;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            (trigger_definition(kind).monster_death)(self, index, &mut gold, &mut healing);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            behavior.monster_death(&mut context, entry, &mut gold, &mut healing);
         }
         if gold > 0 {
             self.earn_gold(gold);
@@ -306,11 +721,14 @@ impl crate::CoreState {
 
     pub fn trigger_gold_earned_upgrades(&mut self) {
         let mut changed = false;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            changed |= (trigger_definition(kind).gold_earned)(self, index);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            changed |= behavior.gold_earned(&mut context, entry);
         }
         if changed {
             self.refresh_upgrade_damage_multipliers();
@@ -324,11 +742,14 @@ impl crate::CoreState {
 
     pub fn trigger_card_reroll_upgrades(&mut self) {
         let mut changed = false;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            changed |= (trigger_definition(kind).card_rerolled)(self, index);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            changed |= behavior.card_rerolled(&mut context, entry);
         }
         if changed {
             self.refresh_upgrade_damage_multipliers();
@@ -338,11 +759,14 @@ impl crate::CoreState {
 
     pub fn trigger_shop_purchase_upgrades(&mut self, item_purchase: bool) {
         let mut changed = false;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            changed |= (trigger_definition(kind).shop_purchase)(self, index, item_purchase);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            changed |= behavior.shop_purchase(&mut context, entry, item_purchase);
         }
         if changed {
             self.refresh_upgrade_damage_multipliers();
@@ -358,13 +782,16 @@ impl crate::CoreState {
     ) {
         let mut changed = false;
         let mut camera_reward: usize = 0;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            changed |= (trigger_definition(kind).tower_placed)(
-                self,
-                index,
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            changed |= behavior.tower_placed(
+                &mut context,
+                entry,
                 tower_id,
                 is_face,
                 tower_template,
@@ -384,21 +811,27 @@ impl crate::CoreState {
     }
 
     pub fn trigger_tower_removed_upgrades(&mut self, rerolled_count: usize) {
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            (trigger_definition(kind).tower_removed)(self, index, rerolled_count);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            behavior.tower_removed(&mut context, entry, rerolled_count);
         }
     }
 
     pub fn trigger_stage_start_upgrades(&mut self, stage: usize) {
         let mut changed = false;
-        for index in 0..self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            changed |= (trigger_definition(kind).stage_start)(self, index, stage);
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for entry in &mut self.upgrades.upgrades {
+            let behavior = entry.behavior;
+            changed |= behavior.stage_start(&mut context, entry, stage);
         }
         if changed {
             self.refresh_upgrade_damage_multipliers();
@@ -413,21 +846,24 @@ impl crate::CoreState {
         item_count: usize,
     ) {
         let mut changed = false;
-        let mut index = 0;
-        while index < self.upgrades.upgrades.len() {
-            let kind = self.upgrades.upgrades[index]
-                .upgrade_kind()
-                .expect("stored upgrade kind must be valid");
-            let (upgrade_changed, gold_reward) =
-                (trigger_definition(kind).stage_end)(self, index, perfect_clear, gold, item_count);
+        let mut gold_reward: usize = 0;
+        let mut context = UpgradeTriggerContext {
+            progress: &mut self.progress,
+            stage_modifiers: &mut self.stage_modifiers,
+            hand: &mut self.hand,
+        };
+        for upgrade in &mut self.upgrades.upgrades {
+            let behavior = upgrade.behavior;
+            let (upgrade_changed, reward) =
+                behavior.stage_end(&mut context, upgrade, perfect_clear, gold, item_count);
             changed |= upgrade_changed;
-            if gold_reward > 0 {
-                self.progress.gold = self.progress.gold.saturating_add(gold_reward);
-                self.metrics.total_gold_earned =
-                    self.metrics.total_gold_earned.saturating_add(gold_reward);
-                self.trigger_gold_earned_upgrades();
-            }
-            index += 1;
+            gold_reward = gold_reward.saturating_add(reward);
+        }
+        if gold_reward > 0 {
+            self.progress.gold = self.progress.gold.saturating_add(gold_reward);
+            self.metrics.total_gold_earned =
+                self.metrics.total_gold_earned.saturating_add(gold_reward);
+            self.trigger_gold_earned_upgrades();
         }
         if changed {
             self.refresh_upgrade_damage_multipliers();
@@ -447,23 +883,29 @@ impl crate::CoreState {
     }
 
     fn next_upgrade_id(&self) -> u64 {
-        self.upgrades
-            .upgrades
-            .iter()
-            .map(|upgrade| upgrade.id)
-            .max()
-            .unwrap_or(0)
-            .saturating_add(1)
+        self.upgrades.next_id()
     }
 }
 
 fn upgrade_acquire_recovery(kind: crate::UpgradeKind) -> UpgradeAcquireRecovery {
-    (definition(kind).recovery)()
+    UpgradeBehaviorImpl::for_kind(kind).recovery()
 }
 
 #[cfg(test)]
 mod tests {
+    use super::codec_impl::UpgradeWireEntry;
     use super::*;
+
+    fn typed_collection(entries: Vec<UpgradeWireEntry>) -> UpgradeCollection {
+        UpgradeCollection::from_entries(
+            entries
+                .into_iter()
+                .map(UpgradeEntry::from_raw)
+                .collect::<Result<Vec<_>, _>>()
+                .expect("test upgrades must decode"),
+            0,
+        )
+    }
 
     fn tower(id: u64, rerolled_count: usize, polish_pct_raw: i64) -> crate::TowerState {
         crate::TowerState {
@@ -499,36 +941,33 @@ mod tests {
     }
 
     #[test]
-    fn tower_damage_bonus_sums_upgrade_payloads_and_card_polish_once() {
-        let upgrades = UpgradeCollectionState {
-            upgrades: vec![
-                UpgradeEntryState {
-                    id: 1,
-                    kind: 7,
-                    scalar_values: Vec::new(),
-                    ratio_values_raw: vec![125_000],
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-                UpgradeEntryState {
-                    id: 2,
-                    kind: 20,
-                    scalar_values: Vec::new(),
-                    ratio_values_raw: vec![250_000],
-                    bool_values: Vec::new(),
-                    optional_ids: vec![Some(9)],
-                },
-                UpgradeEntryState {
-                    id: 3,
-                    kind: 22,
-                    scalar_values: vec![2],
-                    ratio_values_raw: vec![50_000],
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-            ],
-            revision: 0,
-        };
+    fn tower_damage_bonus_sums_upgrade_states_and_card_polish_once() {
+        let upgrades = typed_collection(vec![
+            UpgradeWireEntry {
+                id: 1,
+                kind: 7,
+                scalar_values: Vec::new(),
+                ratio_values_raw: vec![125_000],
+                bool_values: Vec::new(),
+                optional_ids: Vec::new(),
+            },
+            UpgradeWireEntry {
+                id: 2,
+                kind: 20,
+                scalar_values: Vec::new(),
+                ratio_values_raw: vec![250_000],
+                bool_values: Vec::new(),
+                optional_ids: vec![Some(9)],
+            },
+            UpgradeWireEntry {
+                id: 3,
+                kind: 22,
+                scalar_values: vec![2],
+                ratio_values_raw: vec![50_000],
+                bool_values: Vec::new(),
+                optional_ids: Vec::new(),
+            },
+        ]);
         let tower = tower(9, 0, 75_000);
 
         assert_eq!(
@@ -539,44 +978,38 @@ mod tests {
 
     #[test]
     fn tower_damage_bonus_excludes_no_reroll_bonus_after_reroll() {
-        let upgrades = UpgradeCollectionState {
-            upgrades: vec![UpgradeEntryState {
-                id: 1,
-                kind: 7,
-                scalar_values: Vec::new(),
-                ratio_values_raw: vec![125_000],
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            }],
-            revision: 0,
-        };
+        let upgrades = typed_collection(vec![UpgradeWireEntry {
+            id: 1,
+            kind: 7,
+            scalar_values: Vec::new(),
+            ratio_values_raw: vec![125_000],
+            bool_values: Vec::new(),
+            optional_ids: Vec::new(),
+        }]);
 
         assert_eq!(upgrades.tower_damage_bonus_raw(&tower(1, 1, 0)), 0);
     }
 
     #[test]
     fn template_damage_observation_matches_placed_tower_for_previewable_upgrades() {
-        let upgrades = UpgradeCollectionState {
-            upgrades: vec![
-                UpgradeEntryState {
-                    id: 1,
-                    kind: 7,
-                    scalar_values: Vec::new(),
-                    ratio_values_raw: vec![125_000],
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-                UpgradeEntryState {
-                    id: 2,
-                    kind: 22,
-                    scalar_values: vec![2],
-                    ratio_values_raw: vec![50_000],
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-            ],
-            revision: 0,
-        };
+        let upgrades = typed_collection(vec![
+            UpgradeWireEntry {
+                id: 1,
+                kind: 7,
+                scalar_values: Vec::new(),
+                ratio_values_raw: vec![125_000],
+                bool_values: Vec::new(),
+                optional_ids: Vec::new(),
+            },
+            UpgradeWireEntry {
+                id: 2,
+                kind: 22,
+                scalar_values: vec![2],
+                ratio_values_raw: vec![50_000],
+                bool_values: Vec::new(),
+                optional_ids: Vec::new(),
+            },
+        ]);
         let placed = tower(9, 0, 75_000);
 
         assert_eq!(
@@ -587,19 +1020,16 @@ mod tests {
 
     #[test]
     fn cache_observation_matches_legacy_upgrade_effect_values() {
-        let upgrades = UpgradeCollectionState {
-            upgrades: vec![
-                generated_upgrade(crate::UpgradeKind::Apple),
-                generated_upgrade(crate::UpgradeKind::Backpack),
-                generated_upgrade(crate::UpgradeKind::DiceBundle),
-                generated_upgrade(crate::UpgradeKind::EnergyDrink),
-                generated_upgrade(crate::UpgradeKind::FourLeafClover),
-                generated_upgrade(crate::UpgradeKind::Rabbit),
-                generated_upgrade(crate::UpgradeKind::BlackWhite),
-                generated_upgrade(crate::UpgradeKind::Spanner),
-            ],
-            revision: 0,
-        };
+        let upgrades = typed_collection(vec![
+            generated_upgrade(crate::UpgradeKind::Apple).to_wire(),
+            generated_upgrade(crate::UpgradeKind::Backpack).to_wire(),
+            generated_upgrade(crate::UpgradeKind::DiceBundle).to_wire(),
+            generated_upgrade(crate::UpgradeKind::EnergyDrink).to_wire(),
+            generated_upgrade(crate::UpgradeKind::FourLeafClover).to_wire(),
+            generated_upgrade(crate::UpgradeKind::Rabbit).to_wire(),
+            generated_upgrade(crate::UpgradeKind::BlackWhite).to_wire(),
+            generated_upgrade(crate::UpgradeKind::Spanner).to_wire(),
+        ]);
         let cache = upgrades.cache_state();
 
         assert_eq!(cache.max_hp_plus_raw, 4_000);
@@ -649,13 +1079,22 @@ mod tests {
         crate::CoreState::new_initial(config, 7)
     }
 
-    fn with_upgrades(core: &mut crate::CoreState, upgrades: Vec<crate::UpgradeEntryState>) {
-        core.edit_snapshot(|parts| parts.upgrades.upgrades = upgrades)
-            .expect("test upgrade state must be valid");
+    fn with_upgrades(core: &mut crate::CoreState, upgrades: Vec<UpgradeWireEntry>) {
+        core.edit_snapshot(|parts| {
+            parts.upgrades = UpgradeCollection::from_entries(
+                upgrades
+                    .into_iter()
+                    .map(UpgradeEntry::from_raw)
+                    .collect::<Result<Vec<_>, _>>()
+                    .expect("test upgrades must decode"),
+                0,
+            )
+        })
+        .expect("test upgrade state must be valid");
     }
 
     #[test]
-    fn acquisition_applies_kind_payload_and_recovery() {
+    fn acquisition_applies_kind_state_and_recovery() {
         let mut core = test_core();
         core.edit_snapshot(|parts| parts.hp_raw = 10_000)
             .expect("test health must be valid");
@@ -677,6 +1116,7 @@ mod tests {
                 .upgrades
                 .last()
                 .expect("metronome must be acquired")
+                .to_wire()
                 .scalar_values,
             vec![core.progress().stage as u64]
         );
@@ -688,7 +1128,7 @@ mod tests {
         with_upgrades(
             &mut core,
             vec![
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 1,
                     kind: 3,
                     scalar_values: vec![7],
@@ -696,7 +1136,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 2,
                     kind: 31,
                     scalar_values: vec![2],
@@ -720,11 +1160,11 @@ mod tests {
     }
 
     #[test]
-    fn gold_trigger_refreshes_crock_payload() {
+    fn gold_trigger_refreshes_crock_state() {
         let mut core = test_core();
         with_upgrades(
             &mut core,
-            vec![crate::UpgradeEntryState {
+            vec![crate::UpgradeWireEntry {
                 id: 1,
                 kind: 12,
                 scalar_values: vec![0],
@@ -738,7 +1178,10 @@ mod tests {
 
         core.trigger_gold_earned_upgrades();
 
-        assert_eq!(core.upgrades().upgrades[0].scalar_values, vec![2]);
+        assert_eq!(
+            core.upgrades().entries()[0].to_wire().scalar_values,
+            vec![2]
+        );
     }
 
     #[test]
@@ -747,7 +1190,7 @@ mod tests {
         with_upgrades(
             &mut core,
             vec![
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 1,
                     kind: 22,
                     scalar_values: vec![0],
@@ -755,7 +1198,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 2,
                     kind: 34,
                     scalar_values: vec![],
@@ -773,7 +1216,10 @@ mod tests {
 
         core.trigger_card_reroll_upgrades();
 
-        assert_eq!(core.upgrades().upgrades[0].scalar_values, vec![3]);
+        assert_eq!(
+            core.upgrades().entries()[0].to_wire().scalar_values,
+            vec![3]
+        );
         assert_eq!(core.progress().left_dice, 4);
     }
 
@@ -782,7 +1228,7 @@ mod tests {
         let mut core = test_core();
         with_upgrades(
             &mut core,
-            vec![crate::UpgradeEntryState {
+            vec![crate::UpgradeWireEntry {
                 id: 1,
                 kind: 21,
                 scalar_values: vec![],
@@ -805,7 +1251,7 @@ mod tests {
         with_upgrades(
             &mut core,
             vec![
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 1,
                     kind: 20,
                     scalar_values: vec![],
@@ -813,7 +1259,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![None],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 2,
                     kind: 23,
                     scalar_values: vec![],
@@ -821,7 +1267,7 @@ mod tests {
                     bool_values: vec![true],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 3,
                     kind: 29,
                     scalar_values: vec![],
@@ -829,7 +1275,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 4,
                     kind: 17,
                     scalar_values: vec![],
@@ -853,8 +1299,11 @@ mod tests {
         };
 
         core.trigger_tower_placed_upgrades(9, true, &template);
-        assert_eq!(core.upgrades().upgrades[0].optional_ids, vec![Some(9)]);
-        assert!(!core.upgrades().upgrades[1].bool_values[0]);
+        assert_eq!(
+            core.upgrades().entries()[0].to_wire().optional_ids,
+            vec![Some(9)]
+        );
+        assert!(!core.upgrades().entries()[1].to_wire().bool_values[0]);
         assert_eq!(core.progress().gold, 150);
         assert_eq!(core.hand().slots.len(), 6);
 
@@ -865,12 +1314,12 @@ mod tests {
     }
 
     #[test]
-    fn stage_triggers_apply_start_and_end_payloads() {
+    fn stage_triggers_apply_start_and_end_states() {
         let mut core = test_core();
         with_upgrades(
             &mut core,
             vec![
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 1,
                     kind: 18,
                     scalar_values: vec![0],
@@ -878,7 +1327,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 2,
                     kind: 19,
                     scalar_values: vec![0],
@@ -886,7 +1335,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 3,
                     kind: 11,
                     scalar_values: vec![],
@@ -894,7 +1343,7 @@ mod tests {
                     bool_values: vec![],
                     optional_ids: vec![],
                 },
-                crate::UpgradeEntryState {
+                crate::UpgradeWireEntry {
                     id: 4,
                     kind: 30,
                     scalar_values: vec![5],
@@ -921,22 +1370,14 @@ mod tests {
     }
 
     #[test]
-    fn generated_upgrade_payloads_cover_every_catalog_kind() {
+    fn generated_upgrade_states_cover_every_catalog_kind() {
         let mut seen_rarities = [false; 4];
-        assert_eq!(
-            definition::UPGRADE_DEFINITIONS.len(),
-            crate::UpgradeKind::COUNT
-        );
-        assert_eq!(
-            definition::UPGRADE_DEFINITIONS.len(),
-            crate::UpgradeKind::ALL.len()
-        );
-        for (index, &kind) in crate::UpgradeKind::ALL.iter().enumerate() {
-            let definition = &definition::UPGRADE_DEFINITIONS[index];
-            assert_eq!(definition.kind, kind);
-            assert_eq!(super::definition(kind).kind, kind);
+        assert_eq!(crate::UpgradeKind::ALL.len(), crate::UpgradeKind::COUNT);
+        for &kind in crate::UpgradeKind::ALL {
+            let behavior = UpgradeBehaviorImpl::for_kind(kind);
+            assert_eq!(behavior.kind(), kind);
             let upgrade = generated_upgrade(kind);
-            assert_eq!(upgrade.kind, kind.raw());
+            assert_eq!(upgrade.kind().raw(), kind.raw());
             assert!(upgrade_rarity(kind).index() < crate::Rarity::ALL.len());
             seen_rarities[upgrade_rarity(kind).index()] = true;
         }
@@ -947,7 +1388,7 @@ mod tests {
     fn raw_upgrade_boundaries_round_trip_and_reject_unknown_kinds() {
         for &kind in crate::UpgradeKind::ALL {
             let generated = generated_upgrade_raw(kind.raw()).expect("catalog kind is valid");
-            assert_eq!(generated.upgrade_kind_raw(), kind.raw());
+            assert_eq!(generated.kind().raw(), kind.raw());
             assert_eq!(
                 generated.upgrade_kind().expect("catalog kind is valid"),
                 kind
@@ -969,7 +1410,7 @@ mod tests {
             upgrade_rarity_raw(u8::MAX),
             Err(crate::CommandError::InvalidUpgradeKind { raw: u8::MAX })
         );
-        let invalid = crate::UpgradeEntryState {
+        let invalid = crate::UpgradeWireEntry {
             id: 0,
             kind: u8::MAX,
             scalar_values: Vec::new(),
@@ -977,11 +1418,7 @@ mod tests {
             bool_values: Vec::new(),
             optional_ids: Vec::new(),
         };
-        let mut core = test_core();
-        assert_eq!(
-            core.acquire_upgrade(invalid),
-            Err(crate::CommandError::InvalidUpgradeKind { raw: u8::MAX })
-        );
+        assert!(UpgradeEntry::from_raw(invalid).is_err());
     }
 
     #[test]
@@ -989,9 +1426,9 @@ mod tests {
         for &kind in crate::UpgradeKind::ALL {
             let generated = generated_upgrade(kind);
             let encoded = serde_json::to_string(&generated).expect("upgrade serializes");
-            let decoded: UpgradeEntryState =
+            let decoded: UpgradeWireEntry =
                 serde_json::from_str(&encoded).expect("upgrade deserializes");
-            assert_eq!(decoded, generated);
+            assert_eq!(decoded, generated.to_wire());
             assert_eq!(decoded.upgrade_kind(), Ok(kind));
         }
     }
@@ -1036,5 +1473,66 @@ mod tests {
             crate::authoritative_hash(&first),
             crate::authoritative_hash(&second)
         );
+    }
+
+    #[test]
+    fn typed_trigger_dispatch_preserves_entry_order_and_identity() {
+        let mut core = test_core();
+        with_upgrades(
+            &mut core,
+            vec![
+                crate::UpgradeWireEntry {
+                    id: 41,
+                    kind: 12,
+                    scalar_values: vec![0],
+                    ratio_values_raw: vec![],
+                    bool_values: vec![],
+                    optional_ids: vec![],
+                },
+                crate::UpgradeWireEntry {
+                    id: 42,
+                    kind: 22,
+                    scalar_values: vec![0],
+                    ratio_values_raw: vec![250_000],
+                    bool_values: vec![],
+                    optional_ids: vec![],
+                },
+                crate::UpgradeWireEntry {
+                    id: 43,
+                    kind: 33,
+                    scalar_values: vec![],
+                    ratio_values_raw: vec![],
+                    bool_values: vec![true],
+                    optional_ids: vec![],
+                },
+            ],
+        );
+        let before = core
+            .upgrades()
+            .entries()
+            .iter()
+            .map(|entry| (entry.id(), entry.kind()))
+            .collect::<Vec<_>>();
+
+        core.edit_snapshot(|parts| {
+            parts.progress.gold = 250;
+            parts.progress.left_dice = 3;
+        })
+        .expect("typed trigger fixture");
+        core.trigger_gold_earned_upgrades();
+        core.trigger_card_reroll_upgrades();
+        core.trigger_stage_start_upgrades(1);
+
+        let after = core
+            .upgrades()
+            .entries()
+            .iter()
+            .map(|entry| (entry.id(), entry.kind()))
+            .collect::<Vec<_>>();
+        assert_eq!(before, after);
+        assert_eq!(core.upgrades().entries()[0].crock().damage_steps, 2);
+        assert_eq!(core.upgrades().entries()[1].resolution().saved_rerolls, 3);
+        assert!(!core.upgrades().entries()[2].membership_card().pending);
+        assert!(core.stage_modifiers().free_shop_this_stage);
     }
 }

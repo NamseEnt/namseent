@@ -68,7 +68,9 @@ impl GameFlow {
             } => Self::TreasureSelection(TreasureSelectionFlow {
                 options: options
                     .into_iter()
-                    .map(crate::game_state::upgrade::UpgradeWithId::from_core_state)
+                    .map(|upgrade| {
+                        crate::game_state::upgrade::UpgradeWithId::from_core_state(upgrade)
+                    })
                     .collect::<Option<Vec<_>>>()?
                     .into_iter()
                     .map(|upgrade| upgrade.upgrade)

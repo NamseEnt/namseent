@@ -372,7 +372,7 @@ impl GameState {
                 self.grant_core_item(
                     crate::game_state::item::ItemWithId::new(item).to_core_state(),
                 )
-                .expect("raw item grant must be restorable in headed adapter");
+                .expect("typed item grant must be restorable in headed adapter");
                 true
             }
             CompatibilityAction::ApplyUserStatusEffect(status_effect) => {

@@ -1786,11 +1786,10 @@ impl GameState {
         self.raw_core
             .items()
             .iter()
-            .enumerate()
-            .map(|(index, item)| {
-                let mut item = item::ItemWithId::from_core_state(item.clone())
+            .map(|entry| {
+                let mut item = item::ItemWithId::from_core_state(entry.clone())
                     .expect("raw item must be restorable for presentation");
-                item.id = crate::game_state::item::ItemId(self.raw_core.items()[index].id);
+                item.id = crate::game_state::item::ItemId(entry.id());
                 item
             })
             .collect()
@@ -2159,13 +2158,10 @@ impl GameState {
         self.locale
     }
 
-    pub(crate) fn grant_core_item(
-        &mut self,
-        item: td_core::ItemEntryState,
-    ) -> Option<item::ItemWithId> {
+    pub(crate) fn grant_core_item(&mut self, item: td_core::ItemEntry) -> Option<item::ItemWithId> {
         let mut raw = self.raw_core.state().clone();
         raw.grant_inventory_item(item).ok()?;
-        let granted = raw.items().last()?.clone();
+        let granted = raw.items().entries().last()?.clone();
         self.restore_raw_core_projection(raw).ok()?;
         let item = item::ItemWithId::from_core_state(granted)?;
         self.discover_item(&item.item);

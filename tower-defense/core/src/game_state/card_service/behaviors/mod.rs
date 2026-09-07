@@ -1,3 +1,9 @@
+use super::{
+    CardServicePurchaseBlockReason, CardServiceSelectionState, CardServiceSelectionStepState,
+    DeckState,
+};
+use enum_dispatch::enum_dispatch;
+
 pub(super) mod battery;
 pub(super) mod brush;
 pub(super) mod cactus;
@@ -16,19 +22,41 @@ pub(super) mod staff;
 pub(super) mod support;
 pub(super) mod tricycle;
 
-pub(crate) use battery::DEFINITION as BATTERY;
-pub(crate) use brush::DEFINITION as BRUSH;
-pub(crate) use cactus::DEFINITION as CACTUS;
-pub(crate) use club_sword::DEFINITION as CLUB_SWORD;
-pub(crate) use copier::DEFINITION as COPIER;
-pub(crate) use eraser::DEFINITION as ERASER;
-pub(crate) use fountain_pen::DEFINITION as FOUNTAIN_PEN;
-pub(crate) use long_sword::DEFINITION as LONG_SWORD;
-pub(crate) use mace::DEFINITION as MACE;
-pub(crate) use magic_wand::DEFINITION as MAGIC_WAND;
-pub(crate) use magnet::DEFINITION as MAGNET;
-pub(crate) use pliers::DEFINITION as PLIERS;
-pub(crate) use screwdriver::DEFINITION as SCREWDRIVER;
-pub(crate) use spinning_top::DEFINITION as SPINNING_TOP;
-pub(crate) use staff::DEFINITION as STAFF;
-pub(crate) use tricycle::DEFINITION as TRICYCLE;
+#[enum_dispatch]
+pub(crate) trait CardServiceBehavior {
+    fn kind(&self) -> crate::CardServiceKind;
+    fn selection_steps(&self) -> Vec<CardServiceSelectionStepState>;
+    fn purchase_block_reasons(&self, deck: &DeckState) -> Vec<CardServicePurchaseBlockReason>;
+    fn validate(
+        &self,
+        selection: &CardServiceSelectionState,
+        deck: &DeckState,
+        selected_card_ids: &[Vec<usize>],
+    ) -> Result<(), crate::CommandError>;
+    fn apply(
+        &self,
+        state: &mut crate::CoreState,
+        selected_card_ids: &[Vec<usize>],
+    ) -> Result<(), crate::CommandError>;
+}
+
+#[enum_dispatch(CardServiceBehavior)]
+#[derive(Clone, Copy)]
+pub(crate) enum CardServiceBehaviorImpl {
+    Battery(battery::Behavior),
+    Brush(brush::Behavior),
+    Cactus(cactus::Behavior),
+    ClubSword(club_sword::Behavior),
+    Copier(copier::Behavior),
+    Eraser(eraser::Behavior),
+    FountainPen(fountain_pen::Behavior),
+    LongSword(long_sword::Behavior),
+    Mace(mace::Behavior),
+    MagicWand(magic_wand::Behavior),
+    Magnet(magnet::Behavior),
+    Pliers(pliers::Behavior),
+    Screwdriver(screwdriver::Behavior),
+    SpinningTop(spinning_top::Behavior),
+    Staff(staff::Behavior),
+    Tricycle(tricycle::Behavior),
+}

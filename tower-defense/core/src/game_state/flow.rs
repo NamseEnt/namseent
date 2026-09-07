@@ -1,4 +1,4 @@
-use crate::{ItemEntryState, UpgradeEntryState};
+use crate::{ItemEntry, UpgradeEntry};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DefenseEndTransitionState {
@@ -25,18 +25,9 @@ pub struct DefenseFlowState {
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ShopSlotState {
-    Item {
-        item: ItemEntryState,
-        cost: usize,
-    },
-    Upgrade {
-        upgrade: UpgradeEntryState,
-        cost: usize,
-    },
-    CardService {
-        kind: u8,
-        cost: usize,
-    },
+    Item { item: ItemEntry, cost: usize },
+    Upgrade { upgrade: UpgradeEntry, cost: usize },
+    CardService { kind: u8, cost: usize },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -66,7 +57,7 @@ pub enum GameFlowState {
     PlacingTower,
     Defense(DefenseFlowState),
     TreasureSelection {
-        options: Vec<UpgradeEntryState>,
+        options: Vec<UpgradeEntry>,
         pending_selection: Option<usize>,
     },
     Result {

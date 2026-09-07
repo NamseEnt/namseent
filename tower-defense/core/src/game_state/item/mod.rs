@@ -1,17 +1,274 @@
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ItemEntryState {
-    pub id: u64,
-    pub kind: u8,
-    pub scalar_values: Vec<u64>,
-    pub signed_values: Vec<i64>,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemEntry {
+    pub(crate) id: u64,
+    pub(crate) behavior: ItemBehaviorImpl,
+    pub(crate) item: ItemRuntimeState,
+}
+
+impl ItemEntry {
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    pub fn with_id(mut self, id: u64) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn value(&self, index: usize) -> Option<i64> {
+        match self.item {
+            ItemRuntimeState::Bread(state) => {
+                [state.heal_raw, state.shield_raw].get(index).copied()
+            }
+            ItemRuntimeState::Candy(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::Cannoli(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::Cookie(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::Donut(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::Gimbap(state) => {
+                [state.heal_raw, state.shield_raw].get(index).copied()
+            }
+            ItemRuntimeState::LunchBox(state) => {
+                [state.heal_raw, state.shield_raw].get(index).copied()
+            }
+            ItemRuntimeState::Milk(state) => [state.heal_raw].get(index).copied(),
+            ItemRuntimeState::RiceBall(state) => {
+                [state.heal_raw, state.shield_raw].get(index).copied()
+            }
+            ItemRuntimeState::LumpSugar(_) | ItemRuntimeState::RubberCone(_) => None,
+        }
+    }
+
+    pub fn count(&self) -> Option<usize> {
+        match self.item {
+            ItemRuntimeState::LumpSugar(state) => Some(state.amount),
+            ItemRuntimeState::RubberCone(state) => Some(state.count),
+            _ => None,
+        }
+    }
+
+    pub fn set_value(&mut self, index: usize, value: i64) -> bool {
+        match &mut self.item {
+            ItemRuntimeState::Bread(state) => match index {
+                0 => state.heal_raw = value,
+                1 => state.shield_raw = value,
+                _ => return false,
+            },
+            ItemRuntimeState::Candy(state) => {
+                if index == 0 {
+                    state.heal_raw = value
+                } else {
+                    return false;
+                }
+            }
+            ItemRuntimeState::Cannoli(state) => {
+                if index == 0 {
+                    state.heal_raw = value
+                } else {
+                    return false;
+                }
+            }
+            ItemRuntimeState::Cookie(state) => {
+                if index == 0 {
+                    state.heal_raw = value
+                } else {
+                    return false;
+                }
+            }
+            ItemRuntimeState::Donut(state) => {
+                if index == 0 {
+                    state.heal_raw = value
+                } else {
+                    return false;
+                }
+            }
+            ItemRuntimeState::Gimbap(state) => match index {
+                0 => state.heal_raw = value,
+                1 => state.shield_raw = value,
+                _ => return false,
+            },
+            ItemRuntimeState::LunchBox(state) => match index {
+                0 => state.heal_raw = value,
+                1 => state.shield_raw = value,
+                _ => return false,
+            },
+            ItemRuntimeState::Milk(state) => {
+                if index == 0 {
+                    state.heal_raw = value
+                } else {
+                    return false;
+                }
+            }
+            ItemRuntimeState::RiceBall(state) => match index {
+                0 => state.heal_raw = value,
+                1 => state.shield_raw = value,
+                _ => return false,
+            },
+            ItemRuntimeState::LumpSugar(_) | ItemRuntimeState::RubberCone(_) => return false,
+        }
+        true
+    }
+
+    pub fn set_count(&mut self, value: usize) -> bool {
+        match &mut self.item {
+            ItemRuntimeState::LumpSugar(state) => state.amount = value,
+            ItemRuntimeState::RubberCone(state) => state.count = value,
+            _ => return false,
+        }
+        true
+    }
+
+    pub fn kind(&self) -> crate::ItemKind {
+        self.behavior.kind()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn to_wire(&self) -> ItemWireEntry {
+        self.to_raw()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn from_wire(item: ItemWireEntry) -> Result<Self, crate::CommandError> {
+        Self::from_raw(item)
+    }
+
+    pub(crate) fn from_raw(item: ItemWireEntry) -> Result<Self, crate::CommandError> {
+        let kind = crate::ItemKind::from_raw(item.kind)
+            .ok_or(crate::CommandError::InvalidItemKind { raw: item.kind })?;
+        let behavior = ItemBehaviorImpl::for_kind(kind);
+        let state = codec::decode_runtime(&item)?;
+        Ok(Self {
+            id: item.id,
+            behavior,
+            item: state,
+        })
+    }
+
+    pub(crate) fn to_raw(&self) -> ItemWireEntry {
+        codec::encode_runtime(self.id, self.kind(), self.item)
+    }
+}
+
+impl Serialize for ItemEntry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        codec::encode_item_entry(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ItemEntry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        codec::decode_item_entry(deserializer)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct ItemCollection {
+    pub(crate) items: Vec<ItemEntry>,
+}
+
+impl ItemCollection {
+    pub fn from_entries(items: Vec<ItemEntry>) -> Self {
+        Self { items }
+    }
+
+    pub fn entries(&self) -> &[ItemEntry] {
+        &self.items
+    }
+
+    pub fn entries_mut(&mut self) -> &mut Vec<ItemEntry> {
+        &mut self.items
+    }
+
+    pub(crate) fn next_id(&self) -> u64 {
+        self.items
+            .iter()
+            .map(|item| item.id)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ItemEntry> {
+        self.items.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub(crate) fn get(&self, index: usize) -> Option<&ItemEntry> {
+        self.items.get(index)
+    }
+}
+
+impl std::ops::Index<usize> for ItemCollection {
+    type Output = ItemEntry;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.items[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for ItemCollection {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.items[index]
+    }
+}
+
+impl FromIterator<ItemEntry> for ItemCollection {
+    fn from_iter<T: IntoIterator<Item = ItemEntry>>(iter: T) -> Self {
+        Self {
+            items: iter.into_iter().collect(),
+        }
+    }
+}
+
+pub trait ItemGrantInput {
+    fn into_runtime(self) -> Result<ItemEntry, crate::CommandError>;
+}
+
+impl ItemGrantInput for ItemEntry {
+    fn into_runtime(self) -> Result<ItemEntry, crate::CommandError> {
+        Ok(self)
+    }
+}
+
+impl Serialize for ItemCollection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        codec::encode_item_collection(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ItemCollection {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        codec::decode_item_collection(deserializer)
+    }
 }
 
 mod behaviors;
-mod definition;
+pub mod codec;
 
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use definition::item_definition;
+pub(crate) use behaviors::ItemRuntimeState;
+use behaviors::{ItemBehavior, ItemBehaviorImpl};
+use codec::ItemWireEntry;
 
 pub const ITEM_KIND_COUNT: usize = crate::ItemKind::COUNT;
 
@@ -25,58 +282,60 @@ pub enum ItemUseEffect {
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ItemUseOutput {
-    pub item: ItemEntryState,
+    pub item: ItemEntry,
     pub effects: Vec<ItemUseEffect>,
 }
 
 pub fn item_rarity(kind: crate::ItemKind) -> Option<crate::Rarity> {
-    item_definition(kind).map(|definition| definition.rarity)
+    Some(ItemBehaviorImpl::for_kind(kind).rarity())
 }
 
-pub fn generated_item(kind: crate::ItemKind) -> Option<ItemEntryState> {
-    item_definition(kind).map(|definition| (definition.generate)())
+pub fn generated_item(kind: crate::ItemKind) -> Option<ItemEntry> {
+    let behavior = ItemBehaviorImpl::for_kind(kind);
+    Some(ItemEntry {
+        id: 0,
+        behavior,
+        item: behavior.generated_state(),
+    })
 }
 
 pub fn item_rarity_raw(raw: u8) -> Option<crate::Rarity> {
     crate::ItemKind::from_raw(raw).and_then(item_rarity)
 }
 
-pub fn generated_item_raw(raw: u8) -> Option<ItemEntryState> {
+pub fn generated_item_raw(raw: u8) -> Option<ItemEntry> {
     crate::ItemKind::from_raw(raw).and_then(generated_item)
 }
 
 pub fn generate_item_of_rarity_with_rng<R: rand::Rng + ?Sized>(
     rarity: crate::Rarity,
     rng: &mut R,
-) -> Option<ItemEntryState> {
-    let candidates: Vec<_> = definition::ITEM_DEFINITIONS
+) -> Option<ItemEntry> {
+    let candidates: Vec<_> = crate::ItemKind::ALL
         .iter()
-        .filter(|definition| definition.rarity == rarity)
+        .map(|&kind| ItemBehaviorImpl::for_kind(kind))
+        .filter(|behavior| behavior.rarity() == rarity)
         .collect();
-    candidates
-        .choose(rng)
-        .map(|definition| (definition.generate)())
+    candidates.choose(rng).map(|behavior| ItemEntry {
+        id: 0,
+        behavior: *behavior,
+        item: behavior.generated_state(),
+    })
 }
 
-pub fn validate_item_payload(
+#[cfg(test)]
+pub(crate) fn validate_item_codec(
     kind: crate::ItemKind,
-    item: &ItemEntryState,
+    item: &ItemWireEntry,
 ) -> Result<(), crate::CommandError> {
-    item_definition(kind)
-        .ok_or(crate::CommandError::Rejected)
-        .and_then(|definition| (definition.validate)(item))
-}
-
-pub fn validate_item_payload_raw(item: &ItemEntryState) -> Result<(), crate::CommandError> {
-    let definition = definition::item_definition_raw(item.kind)
-        .ok_or(crate::CommandError::InvalidItemKind { raw: item.kind })?;
-    (definition.validate)(item)
+    if item.kind != kind.raw() {
+        return Err(crate::CommandError::Rejected);
+    }
+    codec::validate_kind(item)
 }
 
 pub(crate) fn can_use_item(core: &crate::CoreState, kind: crate::ItemKind) -> bool {
-    item_definition(kind)
-        .map(|definition| (definition.can_use)(core))
-        .unwrap_or(false)
+    ItemBehaviorImpl::for_kind(kind).can_use(core)
 }
 
 pub(crate) fn apply_inventory_item_use(
@@ -86,16 +345,17 @@ pub(crate) fn apply_inventory_item_use(
 ) -> Result<ItemUseOutput, crate::CommandError> {
     let item = core
         .items
+        .items
         .get(item_index)
         .cloned()
         .ok_or(crate::CommandError::InvalidIndex)?;
-    core.item_use_error_with_kind(kind, &item)?;
-    let definition = item_definition(kind).ok_or(crate::CommandError::Rejected)?;
-    let prepared = (definition.prepare_use)(core, &item)?;
+    core.item_use_error_with_kind(kind)?;
+    let prepared = item.behavior.prepare_use(core)?;
+    let state = item.item;
 
-    core.items.remove(item_index);
+    core.items.items.remove(item_index);
     core.progress.item_used = true;
-    let effects = (definition.apply_use)(core, &item, prepared)?;
+    let effects = item.behavior.apply_use(core, state, prepared)?;
     Ok(ItemUseOutput { item, effects })
 }
 
@@ -106,15 +366,17 @@ mod tests {
     use rand::{SeedableRng, rngs::StdRng};
 
     #[test]
-    fn generated_payloads_are_valid_for_every_item_kind() {
+    fn generated_states_are_valid_for_every_item_kind() {
         for &kind in crate::ItemKind::ALL {
-            let definition = item_definition(kind).expect("all catalog kinds are defined");
-            let item = generated_item(kind).expect("all catalog kinds generate");
+            let behavior = ItemBehaviorImpl::for_kind(kind);
+            let item = generated_item(kind)
+                .expect("all catalog kinds generate")
+                .to_wire();
             assert_eq!(item.id, 0);
             assert_eq!(item.kind, kind.raw());
-            assert_eq!(definition.kind.raw(), kind.raw());
-            assert!(validate_item_payload(kind, &item).is_ok(), "kind {kind:?}");
-            let round_trip = serde_json::from_str::<ItemEntryState>(
+            assert_eq!(behavior.kind(), kind);
+            assert!(validate_item_codec(kind, &item).is_ok(), "kind {kind:?}");
+            let round_trip = serde_json::from_str::<ItemWireEntry>(
                 &serde_json::to_string(&item).expect("item serializes"),
             )
             .expect("item deserializes");
@@ -123,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_payload_shapes_match_the_item_contract() {
+    fn generated_raw_shapes_match_the_item_contract() {
         let expected = [
             (0, 2),
             (0, 1),
@@ -139,7 +401,8 @@ mod tests {
         ];
         for (kind, (scalar_count, signed_count)) in expected.into_iter().enumerate() {
             let item = generated_item(crate::ItemKind::from_raw(kind as u8).expect("catalog item"))
-                .expect("catalog item");
+                .expect("catalog item")
+                .to_wire();
             assert_eq!(item.scalar_values.len(), scalar_count);
             assert_eq!(item.signed_values.len(), signed_count);
         }
@@ -155,7 +418,7 @@ mod tests {
             assert_eq!(left, right);
             assert_eq!(
                 left.as_ref().and_then(|item| {
-                    crate::ItemKind::from_raw(item.kind).and_then(item_rarity)
+                    crate::ItemKind::from_raw(item.kind().raw()).and_then(item_rarity)
                 }),
                 if rarity == Rarity::Legendary {
                     None
@@ -167,25 +430,31 @@ mod tests {
     }
 
     #[test]
-    fn invalid_item_payloads_are_rejected_without_partial_shapes() {
-        let mut missing = generated_item(crate::ItemKind::Bread).expect("bread");
+    fn invalid_item_entries_are_rejected_without_partial_shapes() {
+        let mut missing = generated_item(crate::ItemKind::Bread)
+            .expect("bread")
+            .to_wire();
         missing.signed_values.pop();
         assert_eq!(
-            validate_item_payload(crate::ItemKind::Bread, &missing),
+            validate_item_codec(crate::ItemKind::Bread, &missing),
             Err(crate::CommandError::Rejected)
         );
 
-        let mut extra = generated_item(crate::ItemKind::LumpSugar).expect("lump sugar");
+        let mut extra = generated_item(crate::ItemKind::LumpSugar)
+            .expect("lump sugar")
+            .to_wire();
         extra.scalar_values.push(99);
         assert_eq!(
-            validate_item_payload(crate::ItemKind::LumpSugar, &extra),
+            validate_item_codec(crate::ItemKind::LumpSugar, &extra),
             Err(crate::CommandError::Rejected)
         );
 
-        let mut negative = generated_item(crate::ItemKind::Candy).expect("candy");
+        let mut negative = generated_item(crate::ItemKind::Candy)
+            .expect("candy")
+            .to_wire();
         negative.signed_values[0] = -1;
         assert_eq!(
-            validate_item_payload(crate::ItemKind::Candy, &negative),
+            validate_item_codec(crate::ItemKind::Candy, &negative),
             Err(crate::CommandError::Rejected)
         );
     }
@@ -209,27 +478,18 @@ mod tests {
                 stage_waves: Vec::new(),
             },
         };
-        let mut state = crate::CoreState::new_initial(config, 7);
-        state.items.push(ItemEntryState {
+        let _state = crate::CoreState::new_initial(config, 7);
+        let result = ItemEntry::from_raw(ItemWireEntry {
             id: 1,
             kind: u8::MAX,
             scalar_values: Vec::new(),
             signed_values: Vec::new(),
         });
-
-        let item_index = state.items.len() - 1;
-        assert_eq!(
-            state.use_inventory_item(item_index),
-            Err(crate::CommandError::InvalidItemKind { raw: u8::MAX })
-        );
-        assert_eq!(
-            validate_item_payload_raw(state.items.last().expect("item")),
-            Err(crate::CommandError::InvalidItemKind { raw: u8::MAX })
-        );
+        assert!(result.is_err());
     }
 
     #[test]
-    fn applying_each_item_kind_uses_its_raw_payload_contract() {
+    fn applying_each_item_kind_uses_its_raw_codec_contract() {
         let config = crate::GameConfigState {
             player: crate::PlayerConfigState {
                 max_hp_raw: 60_000,
@@ -264,7 +524,10 @@ mod tests {
             let output = state
                 .apply_inventory_item_use(3)
                 .expect("generated item can be used");
-            assert_eq!(output.item.kind, kind);
+            assert_eq!(
+                output.item.kind(),
+                crate::ItemKind::from_raw(kind).expect("item kind")
+            );
             assert_eq!(state.items().len(), 3);
             assert!(state.progress().item_used);
             match kind {

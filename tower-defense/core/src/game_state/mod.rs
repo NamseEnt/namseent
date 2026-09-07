@@ -60,10 +60,10 @@ pub struct CoreState {
     route: crate::RouteState,
     config: crate::GameConfigState,
     stage_modifiers: crate::StageModifiersState,
-    upgrades: crate::UpgradeCollectionState,
+    upgrades: crate::game_state::upgrade::UpgradeCollection,
     hand: crate::HandState,
     deck: crate::DeckState,
-    items: Vec<crate::ItemEntryState>,
+    items: crate::game_state::item::ItemCollection,
     monster_spawn: crate::MonsterSpawnState,
     in_flight_attacks: Vec<crate::InFlightAttackState>,
     user_status_effects: Vec<crate::UserStatusEffect>,
@@ -225,7 +225,7 @@ impl CoreState {
         &self.stage_modifiers
     }
 
-    pub fn upgrades(&self) -> &crate::UpgradeCollectionState {
+    pub fn upgrades(&self) -> &crate::UpgradeCollection {
         &self.upgrades
     }
 
@@ -237,7 +237,7 @@ impl CoreState {
         &self.deck
     }
 
-    pub fn items(&self) -> &[crate::ItemEntryState] {
+    pub fn items(&self) -> &crate::ItemCollection {
         &self.items
     }
 
@@ -357,7 +357,7 @@ impl CoreState {
                 extra_tower_cards: Vec::new(),
                 free_card_services: 0,
             },
-            upgrades: crate::UpgradeCollectionState {
+            upgrades: crate::game_state::upgrade::UpgradeCollection {
                 upgrades: Vec::new(),
                 revision: 0,
             },
@@ -366,26 +366,17 @@ impl CoreState {
                 next_hand_slot_id: 1,
             },
             deck,
-            items: vec![
-                crate::ItemEntryState {
-                    id: 1,
-                    kind: 7,
-                    scalar_values: vec![1],
-                    signed_values: Vec::new(),
-                },
-                crate::ItemEntryState {
-                    id: 2,
-                    kind: 7,
-                    scalar_values: vec![1],
-                    signed_values: Vec::new(),
-                },
-                crate::ItemEntryState {
-                    id: 3,
-                    kind: 9,
-                    scalar_values: vec![4],
-                    signed_values: Vec::new(),
-                },
-            ],
+            items: crate::game_state::item::ItemCollection::from_entries(vec![
+                crate::generated_item(crate::ItemKind::LumpSugar)
+                    .expect("initial item kind must be valid")
+                    .with_id(1),
+                crate::generated_item(crate::ItemKind::LumpSugar)
+                    .expect("initial item kind must be valid")
+                    .with_id(2),
+                crate::generated_item(crate::ItemKind::RubberCone)
+                    .expect("initial item kind must be valid")
+                    .with_id(3),
+            ]),
             monster_spawn: crate::MonsterSpawnState {
                 monster_queue: Vec::new(),
                 next_spawn_tick: None,
@@ -877,20 +868,12 @@ impl CoreState {
 
     pub fn grant_inventory_item(
         &mut self,
-        item: crate::ItemEntryState,
+        item: impl crate::game_state::item::ItemGrantInput,
     ) -> Result<(), crate::CommandError> {
-        crate::game_state::item::validate_item_payload_raw(&item)?;
-        let next_id = self
-            .items
-            .iter()
-            .map(|item| item.id)
-            .max()
-            .unwrap_or(0)
-            .saturating_add(1);
-        self.items.push(crate::ItemEntryState {
-            id: next_id,
-            ..item
-        });
+        let next_id = self.items.next_id();
+        let mut item = item.into_runtime()?;
+        item.id = next_id;
+        self.items.items.push(item);
         Ok(())
     }
 
@@ -929,35 +912,29 @@ impl CoreState {
             .items
             .get(item_index)
             .ok_or(crate::CommandError::InvalidIndex)?;
-        let kind = crate::ItemKind::from_raw(item.kind)
-            .ok_or(crate::CommandError::InvalidItemKind { raw: item.kind })?;
-        self.item_use_error_with_kind(kind, item)
+        let kind = item.kind();
+        self.item_use_error_with_kind(kind)
     }
 
-    fn item_use_error_with_kind(
-        &self,
-        kind: crate::ItemKind,
-        item: &crate::ItemEntryState,
-    ) -> Result<(), crate::CommandError> {
+    fn item_use_error_with_kind(&self, kind: crate::ItemKind) -> Result<(), crate::CommandError> {
         if self.stage_modifiers.disable_item_use {
             return Err(crate::CommandError::Rejected);
         }
         if !crate::game_state::item::can_use_item(self, kind) {
             return Err(crate::CommandError::Rejected);
         }
-        crate::game_state::item::validate_item_payload(kind, item)
+        Ok(())
     }
 
     pub fn use_inventory_item(
         &mut self,
         item_index: usize,
-    ) -> Result<crate::ItemEntryState, crate::CommandError> {
+    ) -> Result<crate::ItemEntry, crate::CommandError> {
         let item = self
             .items
             .get(item_index)
             .ok_or(crate::CommandError::InvalidIndex)?;
-        let kind = crate::ItemKind::from_raw(item.kind)
-            .ok_or(crate::CommandError::InvalidItemKind { raw: item.kind })?;
+        let kind = item.kind();
         Ok(crate::game_state::item::apply_inventory_item_use(self, item_index, kind)?.item)
     }
 
@@ -969,8 +946,7 @@ impl CoreState {
             .items
             .get(item_index)
             .ok_or(crate::CommandError::InvalidIndex)?;
-        let kind = crate::ItemKind::from_raw(item.kind)
-            .ok_or(crate::CommandError::InvalidItemKind { raw: item.kind })?;
+        let kind = item.kind();
         crate::game_state::item::apply_inventory_item_use(self, item_index, kind)
     }
 
@@ -1306,19 +1282,8 @@ impl CoreState {
             .upgrades
             .upgrades
             .iter()
-            .filter(|upgrade| {
-                upgrade
-                    .upgrade_kind()
-                    .is_ok_and(|kind| kind == crate::UpgradeKind::DiceBundle)
-            })
-            .map(|upgrade| {
-                upgrade
-                    .scalar_values
-                    .first()
-                    .copied()
-                    .and_then(|value| usize::try_from(value).ok())
-                    .unwrap_or(0)
-            })
+            .filter(|upgrade| upgrade.kind() == crate::UpgradeKind::DiceBundle)
+            .map(|upgrade| upgrade.dice_bundle().dice_chance_plus)
             .sum::<usize>();
         (dice_bonus
             + self.config.player.base_dice_chance
@@ -1852,7 +1817,6 @@ pub struct EntitySnapshots {
 
 pub use crate::{
     CardState, DefenseFlowState, GameFlowState, HandItemState, HandSlotState, HandState,
-    ItemEntryState, MonsterSpawnState, MonsterState, ShopPurchaseOutput, ShopSlotDataState,
-    ShopSlotState, ShopState, TowerState, TowerTemplateState, UpgradeCacheState,
-    UpgradeCollectionState, UpgradeEntryIdentityState, UpgradeEntryState,
+    MonsterSpawnState, MonsterState, ShopPurchaseOutput, ShopSlotDataState, ShopSlotState,
+    ShopState, TowerState, TowerTemplateState, UpgradeCacheState, UpgradeEntryIdentityState,
 };

@@ -1,41 +1,58 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::super::{UpgradeCacheContribution, UpgradeEntryState};
-use super::support::{
-    NO_TRIGGERS, base_cache, merge_scalar_upgrade, no_limit, recovery_none, scalar, scalar_one,
-    tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DiceBundleUpgradeState {
+    pub dice_chance_plus: usize,
+}
+use super::super::UpgradeCacheContribution;
+use super::support::base_cache;
 
-fn acquire_dice(core: &mut crate::CoreState, upgrade: UpgradeEntryState) -> usize {
-    core.progress.left_dice = core.progress.left_dice.saturating_add(scalar(&upgrade, 0));
-    merge_scalar_upgrade(core, upgrade);
+fn acquire_dice(core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+    let add = upgrade.dice_bundle().dice_chance_plus;
+    core.progress.left_dice = core.progress.left_dice.saturating_add(add);
+    if let Some(existing) = core
+        .upgrades
+        .upgrades
+        .iter_mut()
+        .find(|entry| entry.kind() == crate::UpgradeKind::DiceBundle)
+    {
+        existing.dice_bundle_mut().dice_chance_plus =
+            existing.dice_bundle().dice_chance_plus.saturating_add(add);
+    } else {
+        let mut upgrade = upgrade;
+        upgrade.id = core.next_upgrade_id();
+        core.upgrades.upgrades.push(upgrade);
+    }
     0
 }
 
-fn cache_dice(upgrade: &UpgradeEntryState) -> UpgradeCacheContribution {
+fn cache_dice(upgrade: &super::super::UpgradeEntry) -> UpgradeCacheContribution {
     UpgradeCacheContribution {
-        dice_chance_plus: scalar(upgrade, 0),
+        dice_chance_plus: upgrade.dice_bundle().dice_chance_plus,
         ..base_cache()
     }
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::DiceBundle,
-    generate_payload: scalar_one,
-    rarity: crate::Rarity::Rare,
-    cache: cache_dice,
-    acquire: acquire_dice,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::DiceBundle
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::DiceBundle(
+            super::super::codec_impl::DiceBundleUpgradeState {
+                dice_chance_plus: 1,
+            },
+        )
+    }
+    fn cache(&self, entry: &super::super::UpgradeEntry) -> super::super::UpgradeCacheContribution {
+        cache_dice(entry)
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_dice(core, upgrade)
+    }
+}

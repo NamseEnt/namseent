@@ -1,69 +1,88 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, push_acquired_upgrade, recovery_none, scalar, set_scalar,
-};
-
-fn card_rerolled_resolution(core: &mut crate::CoreState, index: usize) -> bool {
-    set_scalar(
-        &mut core.upgrades.upgrades[index],
-        0,
-        core.progress.left_dice as u64,
-    )
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ResolutionUpgradeState {
+    pub reroll_damage_raw: i64,
+    pub saved_rerolls: usize,
 }
 
-fn stage_start_resolution(core: &mut crate::CoreState, index: usize, _: usize) -> bool {
-    set_scalar(
-        &mut core.upgrades.upgrades[index],
-        0,
-        core.progress.left_dice as u64,
-    )
+fn card_rerolled_resolution(
+    context: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+) -> bool {
+    let state = entry.resolution_mut();
+    let saved_rerolls = context.progress.left_dice;
+    let changed = state.saved_rerolls != saved_rerolls;
+    state.saved_rerolls = saved_rerolls;
+    changed
 }
 
-fn tower_bonus_resolution(upgrade: &UpgradeEntryState, _: &crate::TowerState) -> i64 {
-    upgrade
-        .ratio_values_raw
-        .first()
-        .copied()
-        .unwrap_or(0)
-        .saturating_mul(scalar(upgrade, 0).min(i64::MAX as usize) as i64)
+fn stage_start_resolution(
+    context: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+    _: usize,
+) -> bool {
+    card_rerolled_resolution(context, entry)
+}
+
+fn resolution_bonus(upgrade: &super::super::UpgradeEntry) -> i64 {
+    let state = upgrade.resolution();
+    state
+        .reroll_damage_raw
+        .saturating_mul(state.saved_rerolls.min(i64::MAX as usize) as i64)
+}
+
+fn tower_bonus_resolution(upgrade: &super::super::UpgradeEntry, _: &crate::TowerState) -> i64 {
+    resolution_bonus(upgrade)
 }
 
 fn tower_template_bonus_resolution(
-    upgrade: &UpgradeEntryState,
+    upgrade: &super::super::UpgradeEntry,
     _: &crate::TowerTemplateState,
 ) -> i64 {
-    upgrade
-        .ratio_values_raw
-        .first()
-        .copied()
-        .unwrap_or(0)
-        .saturating_mul(scalar(upgrade, 0).min(i64::MAX as usize) as i64)
+    resolution_bonus(upgrade)
 }
 
-fn resolution_payload(u: &mut UpgradeEntryState) {
-    u.ratio_values_raw.push(250_000);
-    u.scalar_values.push(0);
-}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::Resolution,
-    generate_payload: resolution_payload,
-    rarity: crate::Rarity::Rare,
-    cache: no_cache,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_resolution,
-    tower_bonus_for_template: tower_template_bonus_resolution,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: card_rerolled_resolution,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: stage_start_resolution,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::Resolution
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::Resolution(
+            super::super::codec_impl::ResolutionUpgradeState {
+                reroll_damage_raw: 250_000,
+                saved_rerolls: 0,
+            },
+        )
+    }
+    fn tower_bonus(&self, entry: &super::super::UpgradeEntry, tower: &crate::TowerState) -> i64 {
+        tower_bonus_resolution(entry, tower)
+    }
+    fn tower_bonus_for_template(
+        &self,
+        entry: &super::super::UpgradeEntry,
+        template: &crate::TowerTemplateState,
+    ) -> i64 {
+        tower_template_bonus_resolution(entry, template)
+    }
+    fn card_rerolled(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+    ) -> bool {
+        card_rerolled_resolution(context, entry)
+    }
+    fn stage_start(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        stage: usize,
+    ) -> bool {
+        stage_start_resolution(context, entry, stage)
+    }
+}

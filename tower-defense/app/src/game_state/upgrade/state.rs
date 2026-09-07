@@ -78,22 +78,22 @@ impl UpgradeCache {
 
 impl UpgradeState {
     /// Encodes the headed projection for a core observation or legacy codec.
-    pub(crate) fn to_core_state(&self) -> td_core::UpgradeCollectionState {
-        td_core::UpgradeCollectionState {
-            upgrades: self
-                .upgrades
+    pub(crate) fn to_core_state(&self) -> td_core::UpgradeCollection {
+        td_core::UpgradeCollection::from_entries(
+            self.upgrades
                 .iter()
                 .copied()
                 .map(UpgradeWithId::to_core_state)
                 .collect(),
-            revision: self.revision,
-        }
+            self.revision,
+        )
     }
 
-    pub(crate) fn from_core_state(state: td_core::UpgradeCollectionState) -> Option<Self> {
+    pub(crate) fn from_core_state(state: td_core::UpgradeCollection) -> Option<Self> {
         let upgrades = state
-            .upgrades
-            .into_iter()
+            .entries()
+            .iter()
+            .cloned()
             .map(UpgradeWithId::from_core_state)
             .collect::<Option<Vec<_>>>()?;
         let mut ids = Vec::with_capacity(upgrades.len());
@@ -105,7 +105,7 @@ impl UpgradeState {
         }
         let mut restored = Self {
             upgrades,
-            revision: state.revision,
+            revision: state.revision(),
             cache: UpgradeCache::default(),
         };
         restored.rebuild_cache();
@@ -173,7 +173,7 @@ mod tests {
     use strum::IntoEnumIterator;
 
     #[test]
-    fn cache_raw_state_round_trip_preserves_derived_payload() {
+    fn cache_raw_state_round_trip_preserves_derived_state() {
         let cache = UpgradeCache {
             max_hp_plus: HealthDelta::from_raw(1_250),
             shop_slot_expand: 2,
@@ -211,16 +211,16 @@ mod tests {
         assert_eq!(
             state
                 .to_core_state()
-                .upgrades
-                .into_iter()
-                .map(|entry| entry.kind)
+                .entries()
+                .iter()
+                .map(|entry| entry.kind().raw())
                 .collect::<Vec<_>>(),
             vec![0, 1]
         );
     }
 
     #[test]
-    fn upgrade_payloads_round_trip_through_core_state() {
+    fn upgrade_states_round_trip_through_core_state() {
         let state = UpgradeState::with_upgrades(vec![
             Upgrade::Backpack(BackpackUpgrade { add: 2 }),
             Upgrade::Crock(CrockUpgrade { current_step: 3 }),

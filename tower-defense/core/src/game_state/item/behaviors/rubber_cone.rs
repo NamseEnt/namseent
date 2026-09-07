@@ -1,24 +1,26 @@
-use super::super::definition::ItemDefinition;
-use super::support::{always_can_use, generate_item, validate_one_scalar_value};
-use crate::game_state::item::ItemEntryState;
+use super::support::always_can_use;
+use super::{ItemBehavior, ItemRuntimeState};
 
-fn generate() -> ItemEntryState {
-    generate_item(crate::ItemKind::RubberCone, &[4], &[])
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct RubberConeItemState {
+    pub count: usize,
 }
 
 fn prepare_use(
     core: &crate::CoreState,
-    _: &ItemEntryState,
 ) -> Result<Option<crate::TowerTemplateState>, crate::CommandError> {
     Ok(Some(core.rubber_cone_template()?))
 }
 
 fn apply_use(
     core: &mut crate::CoreState,
-    item: &ItemEntryState,
+    state: ItemRuntimeState,
     prepared: Option<crate::TowerTemplateState>,
 ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
-    let count = super::support::scalar(item, 0)?;
+    let super::ItemRuntimeState::RubberCone(state) = state else {
+        return Err(crate::CommandError::Rejected);
+    };
+    let count = state.count;
     let tower = prepared.expect("rubber cone template was prepared for the item");
     if matches!(core.flow, crate::GameFlowState::PlacingTower) {
         for _ in 0..count {
@@ -47,12 +49,34 @@ fn apply_use(
     }])
 }
 
-pub(crate) const DEFINITION: ItemDefinition = ItemDefinition {
-    kind: crate::ItemKind::RubberCone,
-    rarity: crate::Rarity::Rare,
-    generate,
-    validate: validate_one_scalar_value,
-    can_use: always_can_use,
-    prepare_use,
-    apply_use,
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl ItemBehavior for Behavior {
+    fn kind(&self) -> crate::ItemKind {
+        crate::ItemKind::RubberCone
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generated_state(&self) -> ItemRuntimeState {
+        ItemRuntimeState::RubberCone(RubberConeItemState { count: 4 })
+    }
+    fn can_use(&self, core: &crate::CoreState) -> bool {
+        always_can_use(core)
+    }
+    fn prepare_use(
+        &self,
+        core: &crate::CoreState,
+    ) -> Result<Option<crate::TowerTemplateState>, crate::CommandError> {
+        prepare_use(core)
+    }
+    fn apply_use(
+        &self,
+        core: &mut crate::CoreState,
+        state: ItemRuntimeState,
+        prepared: Option<crate::TowerTemplateState>,
+    ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
+        apply_use(core, state, prepared)
+    }
+}

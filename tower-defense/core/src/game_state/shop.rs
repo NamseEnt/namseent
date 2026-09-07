@@ -1,8 +1,6 @@
 use crate::deterministic_rng::{self, domain};
 use crate::game_state::rng::RngState;
-use crate::{
-    GameFlowState, ItemEntryState, ShopSlotDataState, ShopSlotState, ShopState, UpgradeEntryState,
-};
+use crate::{GameFlowState, ShopSlotDataState, ShopSlotState, ShopState};
 
 pub const ITEM_CATEGORY: usize = 0;
 pub const CARD_SERVICE_CATEGORY: usize = 1;
@@ -97,25 +95,12 @@ fn card_service_rarity(kind: crate::CardServiceKind) -> u8 {
     }
 }
 
-fn scalar(upgrade: &UpgradeEntryState, index: usize) -> usize {
-    upgrade
-        .scalar_values
-        .get(index)
-        .copied()
-        .and_then(|value| usize::try_from(value).ok())
-        .unwrap_or(0)
-}
-
 fn shop_slot_expand(core: &crate::CoreState) -> usize {
     core.upgrades
         .upgrades
         .iter()
-        .filter(|upgrade| {
-            upgrade
-                .upgrade_kind()
-                .is_ok_and(|kind| kind == crate::UpgradeKind::Backpack)
-        })
-        .map(|upgrade| scalar(upgrade, 0))
+        .filter(|upgrade| upgrade.kind() == crate::UpgradeKind::Backpack)
+        .map(|upgrade| upgrade.backpack().shop_slot_expand)
         .sum()
 }
 
@@ -127,12 +112,8 @@ fn shop_item_price_minus(core: &crate::CoreState) -> usize {
     core.upgrades
         .upgrades
         .iter()
-        .filter(|upgrade| {
-            upgrade
-                .upgrade_kind()
-                .is_ok_and(|kind| kind == crate::UpgradeKind::EnergyDrink)
-        })
-        .map(|upgrade| scalar(upgrade, 0))
+        .filter(|upgrade| upgrade.kind() == crate::UpgradeKind::EnergyDrink)
+        .map(|upgrade| upgrade.energy_drink().discount)
         .sum()
 }
 
@@ -303,16 +284,13 @@ fn choose_candidate(
     (candidate, false, false, true)
 }
 
-fn generated_item(kind: crate::ItemKind) -> ItemEntryState {
+fn generated_item(kind: crate::ItemKind) -> crate::ItemEntry {
     crate::generated_item(kind).expect("invalid item kind")
 }
 
 fn content_key_for_slot(slot: &ShopSlotState) -> String {
     match slot {
-        ShopSlotState::Item { item, .. } => stable_key(
-            ITEM_CATEGORY,
-            item_key(crate::ItemKind::from_raw(item.kind).expect("invalid item kind")),
-        ),
+        ShopSlotState::Item { item, .. } => stable_key(ITEM_CATEGORY, item_key(item.kind())),
         ShopSlotState::CardService { kind, .. } => stable_key(
             CARD_SERVICE_CATEGORY,
             legacy_card_service_key(
@@ -417,9 +395,7 @@ fn apply_deterministic_cost(
 
 fn slot_rarity(slot: &ShopSlotState) -> u8 {
     match slot {
-        ShopSlotState::Item { item, .. } => {
-            item_rarity(crate::ItemKind::from_raw(item.kind).expect("invalid item kind"))
-        }
+        ShopSlotState::Item { item, .. } => item_rarity(item.kind()),
         ShopSlotState::CardService { kind, .. } => card_service_rarity(
             crate::CardServiceKind::from_raw(*kind).expect("invalid card service kind"),
         ),

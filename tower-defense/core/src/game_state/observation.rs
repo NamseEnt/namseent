@@ -209,7 +209,7 @@ impl crate::CoreState {
                 Vec::new(),
                 options
                     .iter()
-                    .map(|upgrade| upgrade_key(upgrade.kind).0.to_string())
+                    .map(|upgrade| upgrade_key(upgrade.kind().raw()).0.to_string())
                     .collect(),
             ),
             _ => (Vec::new(), Vec::new()),
@@ -288,7 +288,7 @@ impl crate::CoreState {
                 .iter()
                 .enumerate()
                 .map(|(index, item)| {
-                    let (key, key_id) = item_key(item.kind);
+                    let (key, key_id) = item_key(item.kind().raw());
                     InventoryObservation {
                         index,
                         key: key.to_string(),
@@ -301,7 +301,7 @@ impl crate::CoreState {
                 .upgrades
                 .iter()
                 .map(|upgrade| {
-                    let (key, key_id) = upgrade_key(upgrade.kind);
+                    let (key, key_id) = upgrade_key(upgrade.kind().raw());
                     OwnedUpgradeObservation {
                         id: upgrade.id,
                         key: key.to_string(),
@@ -332,25 +332,10 @@ impl crate::CoreState {
     }
 
     pub fn max_hp_raw(&self) -> i64 {
-        self.config.player.max_hp_raw.saturating_add(
-            self.upgrades
-                .upgrades
-                .iter()
-                .map(|upgrade| match upgrade.kind {
-                    0 => 4_000,
-                    1 => 6_000,
-                    2 => 6_000,
-                    13 => -2_000,
-                    14 => -4_000,
-                    15 => -6_000,
-                    16 => -8_000,
-                    26 => 3_000,
-                    35 => 2_000,
-                    36 => 8_000,
-                    _ => 0,
-                })
-                .sum::<i64>(),
-        )
+        self.config
+            .player
+            .max_hp_raw
+            .saturating_add(self.upgrades.cache_state().max_hp_plus_raw)
     }
 }
 
@@ -416,11 +401,11 @@ fn shop_slot_observation(
 ) -> ShopSlotObservation {
     let (kind, kind_id, key, key_id, cost) = match &slot.slot {
         crate::ShopSlotState::Item { item, cost } => {
-            let (key, key_id) = item_key(item.kind);
+            let (key, key_id) = item_key(item.kind().raw());
             ("item", 1, key, key_id, *cost)
         }
         crate::ShopSlotState::Upgrade { upgrade, cost } => {
-            let (key, key_id) = upgrade_key(upgrade.kind);
+            let (key, key_id) = upgrade_key(upgrade.kind().raw());
             ("upgrade", 2, key, key_id, *cost)
         }
         crate::ShopSlotState::CardService { kind, cost } => {

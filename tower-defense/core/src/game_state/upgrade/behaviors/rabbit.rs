@@ -1,9 +1,8 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::super::{UpgradeCacheContribution, UpgradeEntryState};
-use super::support::{
-    NO_TRIGGERS, base_cache, empty_payload, push_acquired_upgrade, recovery_none, tower_bonus_none,
-    tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RabbitUpgradeState;
+use super::super::UpgradeCacheContribution;
+use super::support::base_cache;
 
 fn max_skip_rank(core: &crate::CoreState) -> Option<(usize, usize)> {
     Some((
@@ -15,31 +14,30 @@ fn max_skip_rank(core: &crate::CoreState) -> Option<(usize, usize)> {
     ))
 }
 
-fn cache_skip_rank(_: &UpgradeEntryState) -> UpgradeCacheContribution {
+fn cache_skip_rank(_: &super::super::UpgradeEntry) -> UpgradeCacheContribution {
     UpgradeCacheContribution {
         skip_rank_for_straight: true,
         ..base_cache()
     }
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::Rabbit,
-    generate_payload: empty_payload,
-    rarity: crate::Rarity::Rare,
-    cache: cache_skip_rank,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: max_skip_rank,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::Rabbit
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::Rabbit(super::super::codec_impl::RabbitUpgradeState)
+    }
+    fn cache(&self, entry: &super::super::UpgradeEntry) -> super::super::UpgradeCacheContribution {
+        cache_skip_rank(entry)
+    }
+    fn current_and_max(&self, core: &crate::CoreState) -> Option<(usize, usize)> {
+        max_skip_rank(core)
+    }
+}

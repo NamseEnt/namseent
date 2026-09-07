@@ -1,69 +1,118 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, popcorn_damage_bonus_raw, popcorn_damage_bonus_raw_with_waves,
-    push_acquired_upgrade, recovery_none, scalar, set_ratio, set_scalar,
-};
-
-fn popcorn_payload(u: &mut UpgradeEntryState) {
-    u.ratio_values_raw.extend([5_000_000, 0]);
-    u.scalar_values.extend([5, 5]);
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PopcornUpgradeState {
+    pub max_multiplier_raw: i64,
+    pub duration_waves: usize,
+    pub active_multiplier_raw: i64,
+    pub waves_remaining: usize,
 }
 
-fn stage_start_popcorn(core: &mut crate::CoreState, index: usize, _: usize) -> bool {
-    let active = popcorn_damage_bonus_raw(&core.upgrades.upgrades[index]);
-    set_ratio(&mut core.upgrades.upgrades[index], 1, active)
+impl PopcornUpgradeState {
+    pub(crate) fn damage_bonus_raw(self, waves_remaining: usize) -> i64 {
+        if waves_remaining == 0 {
+            return 0;
+        }
+        let duration = self.duration_waves.max(1);
+        let elapsed = duration.saturating_sub(waves_remaining);
+        let multiplier = if duration <= 1 {
+            self.max_multiplier_raw
+        } else {
+            let step = self
+                .max_multiplier_raw
+                .saturating_sub(crate::RATIO_SCALE)
+                .max(0)
+                .saturating_div((duration - 1).min(i64::MAX as usize) as i64);
+            self.max_multiplier_raw
+                .saturating_sub(step.saturating_mul(elapsed.min(i64::MAX as usize) as i64))
+                .max(crate::RATIO_SCALE)
+        };
+        multiplier.saturating_sub(crate::RATIO_SCALE)
+    }
+}
+
+fn stage_start_popcorn(
+    _: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+    _: usize,
+) -> bool {
+    let state = entry.popcorn_mut();
+    let active = state.damage_bonus_raw(state.waves_remaining);
+    let changed = state.active_multiplier_raw != active;
+    state.active_multiplier_raw = active;
+    changed
 }
 
 fn stage_end_popcorn(
-    core: &mut crate::CoreState,
-    index: usize,
+    _: &mut super::super::UpgradeTriggerContext,
+    upgrade: &mut super::super::UpgradeEntry,
     _: bool,
     _: usize,
     _: usize,
 ) -> (bool, usize) {
-    let waves_remaining = scalar(&core.upgrades.upgrades[index], 1);
-    if waves_remaining == 0 {
+    let state = upgrade.popcorn_mut();
+    if state.waves_remaining == 0 {
         return (false, 0);
     }
-    let next_waves_remaining = waves_remaining - 1;
-    let active =
-        popcorn_damage_bonus_raw_with_waves(&core.upgrades.upgrades[index], next_waves_remaining);
-    let changed = set_scalar(
-        &mut core.upgrades.upgrades[index],
-        1,
-        next_waves_remaining as u64,
-    );
-    let changed = set_ratio(&mut core.upgrades.upgrades[index], 1, active) || changed;
-    (changed, 0)
+    state.waves_remaining -= 1;
+    state.active_multiplier_raw = state.damage_bonus_raw(state.waves_remaining);
+    (true, 0)
 }
 
-fn tower_bonus_popcorn(upgrade: &UpgradeEntryState, _: &crate::TowerState) -> i64 {
-    upgrade.ratio_values_raw.get(1).copied().unwrap_or(0)
+fn tower_bonus_popcorn(upgrade: &super::super::UpgradeEntry, _: &crate::TowerState) -> i64 {
+    upgrade.popcorn().active_multiplier_raw
 }
 
-fn tower_template_bonus_popcorn(upgrade: &UpgradeEntryState, _: &crate::TowerTemplateState) -> i64 {
-    upgrade.ratio_values_raw.get(1).copied().unwrap_or(0)
+fn tower_template_bonus_popcorn(
+    upgrade: &super::super::UpgradeEntry,
+    _: &crate::TowerTemplateState,
+) -> i64 {
+    upgrade.popcorn().active_multiplier_raw
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::Popcorn,
-    generate_payload: popcorn_payload,
-    rarity: crate::Rarity::Rare,
-    cache: no_cache,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_popcorn,
-    tower_bonus_for_template: tower_template_bonus_popcorn,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: stage_start_popcorn,
-        stage_end: stage_end_popcorn,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::Popcorn
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::Popcorn(super::super::codec_impl::PopcornUpgradeState {
+            max_multiplier_raw: 5_000_000,
+            duration_waves: 5,
+            active_multiplier_raw: 0,
+            waves_remaining: 5,
+        })
+    }
+    fn tower_bonus(&self, entry: &super::super::UpgradeEntry, tower: &crate::TowerState) -> i64 {
+        tower_bonus_popcorn(entry, tower)
+    }
+    fn tower_bonus_for_template(
+        &self,
+        entry: &super::super::UpgradeEntry,
+        template: &crate::TowerTemplateState,
+    ) -> i64 {
+        tower_template_bonus_popcorn(entry, template)
+    }
+    fn stage_start(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        stage: usize,
+    ) -> bool {
+        stage_start_popcorn(context, entry, stage)
+    }
+    fn stage_end(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        perfect_clear: bool,
+        gold: usize,
+        item_count: usize,
+    ) -> (bool, usize) {
+        stage_end_popcorn(context, entry, perfect_clear, gold, item_count)
+    }
+}

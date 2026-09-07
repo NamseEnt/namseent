@@ -9,5 +9,6 @@ serde_json = "1"
 sha2 = "0.10"
 rand = { version = "0.8.5", features = ["alloc"] }
 rand_chacha = "=0.3.1"
+enum_dispatch = "0.3"
 
 [dev-dependencies]

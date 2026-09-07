@@ -1,16 +1,36 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, merge_scalar_upgrade, no_cache, no_limit, recovery_none, scalar_ten,
-    tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PiggyBankUpgradeState {
+    pub gold_per_step: usize,
+}
 
 const PIGGY_BANK_GOLD_REWARD_PER_STEP: usize = 10;
 
 const PIGGY_BANK_GOLD_STEP: usize = 100;
 
+fn acquire_piggy_bank(
+    core: &mut crate::CoreState,
+    mut upgrade: super::super::UpgradeEntry,
+) -> usize {
+    let add = upgrade.piggy_bank().gold_per_step;
+    if let Some(existing) = core
+        .upgrades
+        .upgrades
+        .iter_mut()
+        .find(|entry| entry.kind() == crate::UpgradeKind::PiggyBank)
+    {
+        existing.piggy_bank_mut().gold_per_step =
+            existing.piggy_bank().gold_per_step.saturating_add(add);
+    } else {
+        upgrade.id = core.next_upgrade_id();
+        core.upgrades.upgrades.push(upgrade);
+    }
+    0
+}
+
 fn stage_end_piggy_bank(
-    _: &mut crate::CoreState,
-    _: usize,
+    _: &mut super::super::UpgradeTriggerContext,
+    _: &mut super::super::UpgradeEntry,
     _: bool,
     gold: usize,
     _: usize,
@@ -21,24 +41,32 @@ fn stage_end_piggy_bank(
     )
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::PiggyBank,
-    generate_payload: scalar_ten,
-    rarity: crate::Rarity::Rare,
-    cache: no_cache,
-    acquire: merge_scalar_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: stage_end_piggy_bank,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::PiggyBank
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::PiggyBank(
+            super::super::codec_impl::PiggyBankUpgradeState { gold_per_step: 10 },
+        )
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_piggy_bank(core, upgrade)
+    }
+    fn stage_end(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        perfect_clear: bool,
+        gold: usize,
+        item_count: usize,
+    ) -> (bool, usize) {
+        stage_end_piggy_bank(context, entry, perfect_clear, gold, item_count)
+    }
+}

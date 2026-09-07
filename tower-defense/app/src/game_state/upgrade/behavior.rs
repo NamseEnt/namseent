@@ -185,11 +185,11 @@ pub use tape::*;
 pub use trophy::*;
 pub use watermelon::*;
 
-/// Legacy typed upgrade payload.
+/// Legacy typed upgrade state.
 ///
 /// This enum is not authoritative gameplay state. Its fields are retained so
 /// old saves/replays and headed presentation caches can be decoded losslessly.
-/// Convert it to [`td_core::UpgradeEntryState`] before any gameplay mutation.
+/// Convert it to a typed [`td_core::UpgradeEntry`] before any gameplay mutation.
 #[enum_dispatch(UpgradePresentation)]
 #[derive(Debug, Clone, Copy, State, PartialEq, strum_macros::EnumDiscriminants)]
 #[strum_discriminants(
@@ -253,7 +253,7 @@ pub struct UpgradeWithId {
 static NEXT_UPGRADE_ID: AtomicU64 = AtomicU64::new(1);
 
 impl UpgradeWithId {
-    /// Legacy headed codec for the stable core upgrade payload.
+    /// Legacy headed codec for the stable core upgrade state.
     pub fn new(upgrade: Upgrade) -> Self {
         Self {
             id: UpgradeId(NEXT_UPGRADE_ID.fetch_add(1, Ordering::Relaxed)),
@@ -261,58 +261,68 @@ impl UpgradeWithId {
         }
     }
 
-    /// Encodes the legacy typed payload without changing its wire shape.
-    pub fn to_core_state(self) -> td_core::UpgradeEntryState {
-        let mut state = td_core::UpgradeEntryState {
-            id: self.id.0,
-            kind: self.upgrade.core_kind().raw(),
-            scalar_values: Vec::new(),
-            ratio_values_raw: Vec::new(),
-            bool_values: Vec::new(),
-            optional_ids: Vec::new(),
-        };
+    /// Encodes the legacy typed state without changing its wire shape.
+    pub fn to_core_state(self) -> td_core::UpgradeEntry {
+        let mut state = td_core::generated_upgrade(self.upgrade.core_kind()).with_id(self.id.0);
         match &self.upgrade {
-            Upgrade::Backpack(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::Cat(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::Crock(upgrade) => state.scalar_values.push(upgrade.current_step as u64),
-            Upgrade::DiceBundle(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::EnergyDrink(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::Fang(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::GiftBox(upgrade) => state.scalar_values.push(upgrade.add as u64),
-            Upgrade::IceCream(upgrade) => {
-                state.ratio_values_raw.push(upgrade.damage_bonus_pct.raw());
-                state.scalar_values.push(upgrade.waves_remaining as u64);
+            Upgrade::Backpack(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
             }
-            Upgrade::MembershipCard(upgrade) => state.bool_values.push(upgrade.pending_free_shop),
-            Upgrade::Metronome(upgrade) => state.scalar_values.push(upgrade.acquired_stage as u64),
-            Upgrade::Mirror(upgrade) => state.bool_values.push(upgrade.pending),
+            Upgrade::Cat(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
+            }
+            Upgrade::Crock(upgrade) => {
+                state.set_scalar_value(0, upgrade.current_step);
+            }
+            Upgrade::DiceBundle(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
+            }
+            Upgrade::EnergyDrink(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
+            }
+            Upgrade::Fang(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
+            }
+            Upgrade::GiftBox(upgrade) => {
+                state.set_scalar_value(0, upgrade.add);
+            }
+            Upgrade::IceCream(upgrade) => {
+                state.set_ratio_value(0, upgrade.damage_bonus_pct.raw());
+                state.set_scalar_value(0, upgrade.waves_remaining);
+            }
+            Upgrade::MembershipCard(upgrade) => {
+                state.set_bool_value(0, upgrade.pending_free_shop);
+            }
+            Upgrade::Metronome(upgrade) => {
+                state.set_scalar_value(0, upgrade.acquired_stage);
+            }
+            Upgrade::Mirror(upgrade) => {
+                state.set_bool_value(0, upgrade.pending);
+            }
             Upgrade::NameTag(upgrade) => {
-                state.ratio_values_raw.push(upgrade.damage_bonus_pct.raw());
-                state
-                    .optional_ids
-                    .push(upgrade.target_tower_id.map(|id| id.raw()));
+                state.set_ratio_value(0, upgrade.damage_bonus_pct.raw());
+                state.set_optional_id_value(0, upgrade.target_tower_id.map(|id| id.raw()));
             }
             Upgrade::PerfectPottery(upgrade) => {
-                state.ratio_values_raw.push(upgrade.damage_bonus_pct.raw())
+                state.set_ratio_value(0, upgrade.damage_bonus_pct.raw());
             }
             Upgrade::Popcorn(upgrade) => {
-                state.ratio_values_raw.push(upgrade.max_multiplier.raw());
-                state.scalar_values.push(upgrade.duration as u64);
-                state.scalar_values.push(upgrade.waves_remaining as u64);
-                state
-                    .ratio_values_raw
-                    .push(upgrade.active_stage_damage_bonus.raw());
+                state.set_ratio_value(0, upgrade.max_multiplier.raw());
+                state.set_scalar_value(0, upgrade.duration);
+                state.set_scalar_value(1, upgrade.waves_remaining);
+                state.set_ratio_value(1, upgrade.active_stage_damage_bonus.raw());
             }
             Upgrade::Resolution(upgrade) => {
-                state
-                    .ratio_values_raw
-                    .push(upgrade.damage_bonus_pct_per_reroll.raw());
-                state.scalar_values.push(upgrade.stored_rerolls as u64);
+                state.set_ratio_value(0, upgrade.damage_bonus_pct_per_reroll.raw());
+                state.set_scalar_value(0, upgrade.stored_rerolls);
             }
             Upgrade::SlotMachine(upgrade) => {
-                state.scalar_values.push(upgrade.next_round_dice as u64)
+                state.set_scalar_value(0, upgrade.next_round_dice);
             }
-            Upgrade::Tape(upgrade) => state.scalar_values.push(upgrade.acquired_stage as u64),
+            Upgrade::PiggyBank(_) => {}
+            Upgrade::Tape(upgrade) => {
+                state.set_scalar_value(0, upgrade.acquired_stage);
+            }
             Upgrade::Apple(_)
             | Upgrade::Banana(_)
             | Upgrade::BlackWhite(_)
@@ -325,7 +335,6 @@ impl UpgradeWithId {
             | Upgrade::FrenchFries(_)
             | Upgrade::Hamburger(_)
             | Upgrade::Pea(_)
-            | Upgrade::PiggyBank(_)
             | Upgrade::Pizza(_)
             | Upgrade::Rabbit(_)
             | Upgrade::ShoppingBag(_)
@@ -337,19 +346,17 @@ impl UpgradeWithId {
         state
     }
 
-    /// Rehydrates a presentation record from a core payload without granting
+    /// Rehydrates a presentation record from a core state without granting
     /// the record any authority over the core state.
-    pub fn from_core_state(state: td_core::UpgradeEntryState) -> Option<Self> {
-        let core_kind = td_core::UpgradeKind::from_raw(state.kind)?;
+    pub fn from_core_state(state: td_core::UpgradeEntry) -> Option<Self> {
+        let core_kind = state.kind();
         let kind = UpgradeDiscriminants::from_core_kind(core_kind);
-        let scalar = |index: usize| usize::try_from(*state.scalar_values.get(index)?).ok();
-        let ratio = |index: usize| Some(FixedRatio::from_raw(*state.ratio_values_raw.get(index)?));
-        let boolean = |index: usize| state.bool_values.get(index).copied();
+        let scalar = |index: usize| state.scalar_value(index);
+        let ratio = |index: usize| Some(FixedRatio::from_raw(state.ratio_value(index)?));
+        let boolean = |index: usize| state.bool_value(index);
         let optional_id = |index: usize| {
             state
-                .optional_ids
-                .get(index)
-                .copied()
+                .optional_id_value(index)
                 .map(|id| id.map(TowerId::from_raw))
         };
         let upgrade = match kind {
@@ -432,10 +439,10 @@ impl UpgradeWithId {
             UpgradeDiscriminants::Watermelon => Upgrade::Watermelon(WatermelonUpgrade),
         };
         let restored = Self {
-            id: UpgradeId(state.id),
+            id: UpgradeId(state.id()),
             upgrade,
         };
-        (restored.to_core_state() == state).then_some(restored)
+        Some(restored)
     }
 }
 

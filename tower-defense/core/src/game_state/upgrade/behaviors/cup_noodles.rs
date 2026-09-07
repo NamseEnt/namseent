@@ -1,13 +1,12 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::super::{UpgradeCacheContribution, UpgradeEntryState};
-use super::support::{
-    NO_TRIGGERS, cache_hp, empty_payload, no_limit, push_acquired_upgrade, recovery_amount,
-    tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CupNoodlesUpgradeState;
+use super::super::UpgradeCacheContribution;
+use super::support::{cache_hp, recovery_amount};
 
 const CUP_NOODLES_HEAL_AMOUNT_RAW: i64 = 6_000;
 
-fn cache_cup_noodles(_: &UpgradeEntryState) -> UpgradeCacheContribution {
+fn cache_cup_noodles(_: &super::super::UpgradeEntry) -> UpgradeCacheContribution {
     cache_hp(-2_000)
 }
 
@@ -15,24 +14,25 @@ fn recovery_cup_noodles() -> super::super::UpgradeAcquireRecovery {
     recovery_amount(CUP_NOODLES_HEAL_AMOUNT_RAW)
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::CupNoodles,
-    generate_payload: empty_payload,
-    rarity: crate::Rarity::Common,
-    cache: cache_cup_noodles,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_cup_noodles,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::CupNoodles
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Common
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::CupNoodles(
+            super::super::codec_impl::CupNoodlesUpgradeState,
+        )
+    }
+    fn cache(&self, entry: &super::super::UpgradeEntry) -> super::super::UpgradeCacheContribution {
+        cache_cup_noodles(entry)
+    }
+    fn recovery(&self) -> super::super::UpgradeAcquireRecovery {
+        recovery_cup_noodles()
+    }
+}

@@ -1,6 +1,6 @@
 use super::super::{
-    CardSelectionFilterState, CardServicePurchaseBlockReason, CardServiceSelectionStepState,
-    DeckState,
+    CardSelectionFilterState, CardServicePurchaseBlockReason, CardServiceSelectionState,
+    CardServiceSelectionStepState, DeckState,
 };
 
 pub(super) fn selection_any() -> Vec<CardServiceSelectionStepState> {
@@ -175,4 +175,33 @@ pub(super) fn apply_engraving(
             });
         }
     }
+}
+
+pub(super) fn validate_selection(
+    selection: &CardServiceSelectionState,
+    deck: &DeckState,
+    selected_card_ids: &[Vec<usize>],
+) -> Result<(), crate::CommandError> {
+    if selected_card_ids.len() != selection.steps.len() {
+        return Err(crate::CommandError::InvalidSelection);
+    }
+
+    let mut selected_ids = std::collections::HashSet::new();
+    for (step, card_ids) in selection.steps.iter().zip(selected_card_ids) {
+        if card_ids.len() != step.count {
+            return Err(crate::CommandError::InvalidSelection);
+        }
+        for card_id in card_ids {
+            if !selected_ids.insert(*card_id) {
+                return Err(crate::CommandError::InvalidSelection);
+            }
+            let Some(card) = deck.all_cards.iter().find(|card| card.id == *card_id) else {
+                return Err(crate::CommandError::InvalidIndex);
+            };
+            if !step.filter.matches(card) {
+                return Err(crate::CommandError::InvalidSelection);
+            }
+        }
+    }
+    Ok(())
 }

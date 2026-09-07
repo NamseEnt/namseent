@@ -1768,6 +1768,7 @@ dependencies = [
 name = "td-core"
 version = "0.1.0"
 dependencies = [
+ "enum_dispatch",
  "rand",
  "rand_chacha",
  "serde",

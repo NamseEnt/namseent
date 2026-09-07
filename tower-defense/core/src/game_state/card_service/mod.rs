@@ -4,7 +4,8 @@ use rand_chacha::ChaCha8Rng;
 mod behaviors;
 mod definition;
 
-use definition::card_service_definition;
+use behaviors::CardServiceBehavior;
+use definition::card_service_behavior;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CardSelectionFilterState {
@@ -61,15 +62,15 @@ impl CardServiceSelectionState {
     }
 
     pub fn new(service_kind: crate::CardServiceKind) -> Option<Self> {
-        let definition = card_service_definition(service_kind)?;
-        Some(Self::from_definition(service_kind, definition))
+        let behavior = card_service_behavior(service_kind)?;
+        Some(Self::from_behavior(service_kind, behavior))
     }
 
-    fn from_definition(
+    fn from_behavior(
         service_kind: crate::CardServiceKind,
-        definition: &'static definition::CardServiceDefinition,
+        behavior: &behaviors::CardServiceBehaviorImpl,
     ) -> Self {
-        let steps = (definition.selection_steps)();
+        let steps = behavior.selection_steps();
         let selected_card_ids = steps.iter().map(|_| Vec::new()).collect();
         Self {
             service_kind: service_kind.raw(),
@@ -81,8 +82,8 @@ impl CardServiceSelectionState {
 
     pub fn new_raw(service_kind: u8) -> Option<Self> {
         let kind = crate::CardServiceKind::from_raw(service_kind)?;
-        let definition = definition::card_service_definition_raw(service_kind)?;
-        Some(Self::from_definition(kind, definition))
+        let behavior = definition::card_service_behavior(kind)?;
+        Some(Self::from_behavior(kind, behavior))
     }
 
     pub fn current_step(&self) -> Option<&CardServiceSelectionStepState> {
@@ -98,9 +99,9 @@ impl CardServiceSelectionState {
         if self.service_kind != service_kind.raw() {
             return Err(crate::CommandError::InvalidSelection);
         }
-        let definition =
-            card_service_definition(service_kind).ok_or(crate::CommandError::InvalidSelection)?;
-        (definition.validate)(self, deck, selected_card_ids)
+        let behavior =
+            card_service_behavior(service_kind).ok_or(crate::CommandError::InvalidSelection)?;
+        behavior.validate(self, deck, selected_card_ids)
     }
 }
 
@@ -117,9 +118,8 @@ impl crate::CoreState {
         let selection =
             CardServiceSelectionState::new(service_kind).ok_or(crate::CommandError::InvalidFlow)?;
         selection.validate(service_kind, &self.deck, selected_card_ids)?;
-        let definition =
-            card_service_definition(service_kind).ok_or(crate::CommandError::Rejected)?;
-        (definition.apply)(self, selected_card_ids)?;
+        let behavior = card_service_behavior(service_kind).ok_or(crate::CommandError::Rejected)?;
+        behavior.apply(self, selected_card_ids)?;
         self.clear_card_service_selection();
         Ok(())
     }
@@ -242,9 +242,8 @@ pub fn purchase_block_reasons(
     kind: crate::CardServiceKind,
     deck: &DeckState,
 ) -> Vec<CardServicePurchaseBlockReason> {
-    card_service_definition(kind).map_or_else(Vec::new, |definition| {
-        (definition.purchase_block_reasons)(deck)
-    })
+    card_service_behavior(kind)
+        .map_or_else(Vec::new, |behavior| behavior.purchase_block_reasons(deck))
 }
 
 pub fn purchase_block_reasons_raw(
@@ -404,11 +403,15 @@ mod purchase_tests {
     #[test]
     fn every_valid_kind_has_one_registry_definition() {
         for kind in crate::CardServiceKind::ALL {
-            let definition = card_service_definition(*kind).expect("valid kind is registered");
-            assert_eq!(definition.kind, *kind);
+            let behavior = card_service_behavior(*kind).expect("valid kind is registered");
+            assert_eq!(behavior.kind(), *kind);
             assert_eq!(CardServiceSelectionState::service_key(*kind), kind.key());
         }
-        assert!(definition::card_service_definition_raw(16).is_none());
+        assert!(
+            crate::CardServiceKind::from_raw(16)
+                .and_then(definition::card_service_behavior)
+                .is_none()
+        );
         assert!(CardServiceSelectionState::new_raw(u8::MAX).is_none());
     }
 

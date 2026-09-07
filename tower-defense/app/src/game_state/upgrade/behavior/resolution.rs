@@ -189,9 +189,9 @@ mod tests {
         raw.edit_snapshot(|parts| parts.progress.left_dice = 2)
             .expect("valid dice count");
         raw.trigger_card_reroll_upgrades();
-        let before = raw.upgrades().upgrades[0].scalar_values.clone();
+        let before = raw.upgrades().upgrades[0].scalar_value(0);
         raw.trigger_card_reroll_upgrades();
-        assert_eq!(raw.upgrades().upgrades[0].scalar_values, before);
+        assert_eq!(raw.upgrades().upgrades[0].scalar_value(0), before);
     }
 
     #[test]
@@ -207,9 +207,6 @@ mod tests {
         raw.edit_snapshot(|parts| parts.progress.left_dice = 1)
             .expect("valid dice count");
         raw.trigger_card_reroll_upgrades();
-        assert_eq!(
-            raw.upgrades().upgrades[0].scalar_values.first().copied(),
-            Some(1)
-        );
+        assert_eq!(raw.upgrades().upgrades[0].scalar_value(0), Some(1));
     }
 }

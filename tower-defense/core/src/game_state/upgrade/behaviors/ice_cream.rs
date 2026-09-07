@@ -1,72 +1,82 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, push_acquired_upgrade, recovery_none, scalar, set_scalar,
-};
-
-fn hamburger_payload(u: &mut UpgradeEntryState) {
-    u.ratio_values_raw.push(3_000_000);
-    u.scalar_values.push(5);
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct IceCreamUpgradeState {
+    pub damage_bonus_raw: i64,
+    pub waves_remaining: usize,
 }
 
 fn stage_end_hamburger(
-    core: &mut crate::CoreState,
-    index: usize,
+    _: &mut super::super::UpgradeTriggerContext,
+    upgrade: &mut super::super::UpgradeEntry,
     _: bool,
     _: usize,
     _: usize,
 ) -> (bool, usize) {
-    let waves_remaining = scalar(&core.upgrades.upgrades[index], 0);
-    if waves_remaining > 0 {
-        return (
-            set_scalar(
-                &mut core.upgrades.upgrades[index],
-                0,
-                (waves_remaining - 1) as u64,
-            ),
-            0,
-        );
+    let state = upgrade.ice_cream_mut();
+    if state.waves_remaining > 0 {
+        state.waves_remaining -= 1;
+        return (true, 0);
     }
     (false, 0)
 }
 
-fn tower_bonus_hamburger(upgrade: &UpgradeEntryState, _: &crate::TowerState) -> i64 {
-    if scalar(upgrade, 0) > 0 {
-        upgrade.ratio_values_raw.first().copied().unwrap_or(0)
+fn tower_bonus_hamburger(upgrade: &super::super::UpgradeEntry, _: &crate::TowerState) -> i64 {
+    let state = upgrade.ice_cream();
+    if state.waves_remaining > 0 {
+        state.damage_bonus_raw
     } else {
         0
     }
 }
 
 fn tower_template_bonus_hamburger(
-    upgrade: &UpgradeEntryState,
+    upgrade: &super::super::UpgradeEntry,
     _: &crate::TowerTemplateState,
 ) -> i64 {
-    if scalar(upgrade, 0) > 0 {
-        upgrade.ratio_values_raw.first().copied().unwrap_or(0)
+    let state = upgrade.ice_cream();
+    if state.waves_remaining > 0 {
+        state.damage_bonus_raw
     } else {
         0
     }
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::IceCream,
-    generate_payload: hamburger_payload,
-    rarity: crate::Rarity::Rare,
-    cache: no_cache,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_hamburger,
-    tower_bonus_for_template: tower_template_bonus_hamburger,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: stage_end_hamburger,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::IceCream
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Rare
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::IceCream(
+            super::super::codec_impl::IceCreamUpgradeState {
+                damage_bonus_raw: 3_000_000,
+                waves_remaining: 5,
+            },
+        )
+    }
+    fn tower_bonus(&self, entry: &super::super::UpgradeEntry, tower: &crate::TowerState) -> i64 {
+        tower_bonus_hamburger(entry, tower)
+    }
+    fn tower_bonus_for_template(
+        &self,
+        entry: &super::super::UpgradeEntry,
+        template: &crate::TowerTemplateState,
+    ) -> i64 {
+        tower_template_bonus_hamburger(entry, template)
+    }
+    fn stage_end(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        perfect_clear: bool,
+        gold: usize,
+        item_count: usize,
+    ) -> (bool, usize) {
+        stage_end_hamburger(context, entry, perfect_clear, gold, item_count)
+    }
+}

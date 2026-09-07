@@ -106,11 +106,7 @@ impl LegacyProjectionCodec {
                 .items
                 .iter()
                 .enumerate()
-                .map(|(index, item)| {
-                    let mut state = item.to_core_state();
-                    state.id = index as u64 + 1;
-                    state
-                })
+                .map(|(index, item)| item.to_core_state().with_id(index as u64 + 1))
                 .collect(),
             monster_spawn: self.monster_spawn_state.to_core_state(),
             in_flight_attacks: self
@@ -165,7 +161,9 @@ impl LegacyProjectionCodec {
         let deck = Deck::from_core_state(snapshot.deck)?;
         let items = snapshot
             .items
-            .into_iter()
+            .entries()
+            .iter()
+            .cloned()
             .enumerate()
             .map(|(index, item_state)| {
                 let mut item = crate::game_state::item::ItemWithId::from_core_state(item_state)?;

@@ -20,10 +20,10 @@ pub struct CoreSnapshotParts {
     pub route: crate::RouteState,
     pub config: crate::GameConfigState,
     pub stage_modifiers: crate::StageModifiersState,
-    pub upgrades: crate::UpgradeCollectionState,
+    pub upgrades: crate::UpgradeCollection,
     pub hand: crate::HandState,
     pub deck: crate::DeckState,
-    pub items: Vec<crate::ItemEntryState>,
+    pub items: crate::ItemCollection,
     pub monster_spawn: crate::MonsterSpawnState,
     pub in_flight_attacks: Vec<crate::InFlightAttackState>,
     pub user_status_effects: Vec<crate::UserStatusEffect>,
@@ -134,7 +134,7 @@ impl CoreState {
     }
 
     pub fn from_snapshot_parts(parts: CoreSnapshotParts) -> Result<Self, SnapshotValidationError> {
-        let mut state = Self::from_snapshot_parts_unvalidated(parts);
+        let mut state = Self::from_snapshot_parts_unvalidated(parts)?;
         state.hand.migrate_slot_ids();
         if !state.validate_snapshot() {
             return Err(SnapshotValidationError::InvalidState);
@@ -142,8 +142,10 @@ impl CoreState {
         Ok(state)
     }
 
-    fn from_snapshot_parts_unvalidated(parts: CoreSnapshotParts) -> Self {
-        Self {
+    fn from_snapshot_parts_unvalidated(
+        parts: CoreSnapshotParts,
+    ) -> Result<Self, SnapshotValidationError> {
+        Ok(Self {
             progress: parts.progress,
             sim_tick: parts.sim_tick,
             rng: parts.rng,
@@ -169,7 +171,7 @@ impl CoreState {
             pending_card_service_kind: parts.pending_card_service_kind,
             card_service_selection: parts.card_service_selection,
             events: Default::default(),
-        }
+        })
     }
 }
 

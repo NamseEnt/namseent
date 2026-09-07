@@ -1,61 +1,62 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, push_acquired_upgrade, recovery_none, set_optional_id,
-    tower_template_bonus_none,
-};
-
-fn mirror_payload(u: &mut UpgradeEntryState) {
-    u.ratio_values_raw.push(2_000_000);
-    u.optional_ids.push(None);
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NameTagUpgradeState {
+    pub bonus_raw: i64,
+    pub tower_id: Option<u64>,
 }
 
 fn tower_placed_mirror(
-    core: &mut crate::CoreState,
-    index: usize,
+    _: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
     tower_id: u64,
     _: bool,
     _: &crate::TowerTemplateState,
     _: &mut usize,
 ) -> bool {
-    if core.upgrades.upgrades[index]
-        .optional_ids
-        .first()
-        .copied()
-        .flatten()
-        .is_none()
-    {
-        return set_optional_id(&mut core.upgrades.upgrades[index], 0, Some(tower_id));
+    if entry.name_tag().tower_id.is_none() {
+        entry.name_tag_mut().tower_id = Some(tower_id);
+        return true;
     }
     false
 }
 
-fn tower_bonus_mirror(upgrade: &UpgradeEntryState, tower: &crate::TowerState) -> i64 {
-    if upgrade.optional_ids.first().copied().flatten() == tower.id {
-        upgrade.ratio_values_raw.first().copied().unwrap_or(0)
+fn tower_bonus_mirror(upgrade: &super::super::UpgradeEntry, tower: &crate::TowerState) -> i64 {
+    let state = upgrade.name_tag();
+    if state.tower_id == tower.id {
+        state.bonus_raw
     } else {
         0
     }
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::NameTag,
-    generate_payload: mirror_payload,
-    rarity: crate::Rarity::Epic,
-    cache: no_cache,
-    acquire: push_acquired_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_mirror,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: tower_placed_mirror,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: NO_TRIGGERS.stage_start,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::NameTag
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Epic
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::NameTag(super::super::codec_impl::NameTagUpgradeState {
+            bonus_raw: 2_000_000,
+            tower_id: None,
+        })
+    }
+    fn tower_bonus(&self, entry: &super::super::UpgradeEntry, tower: &crate::TowerState) -> i64 {
+        tower_bonus_mirror(entry, tower)
+    }
+    fn tower_placed(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        tower_id: u64,
+        is_face: bool,
+        template: &crate::TowerTemplateState,
+        reward: &mut usize,
+    ) -> bool {
+        tower_placed_mirror(context, entry, tower_id, is_face, template, reward)
+    }
+}

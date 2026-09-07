@@ -174,7 +174,8 @@ fn validate_entity_snapshots(state: &td_core::CoreState) -> bool {
         return false;
     }
     if state.items().iter().any(|item| {
-        item.id == 0 || crate::game_state::item::ItemWithId::from_core_state(item.clone()).is_none()
+        item.id() == 0
+            || crate::game_state::item::ItemWithId::from_core_state(item.clone()).is_none()
     }) {
         return false;
     }
@@ -208,7 +209,7 @@ fn validate_entity_snapshots(state: &td_core::CoreState) -> bool {
             state
                 .items()
                 .iter()
-                .all(|item| item.id != 0 && item_ids.insert(item.id))
+                .all(|item| item.id() != 0 && item_ids.insert(item.id()))
         }
 }
 
@@ -612,7 +613,7 @@ mod tests {
         assert_eq!(target.authoritative_hash(), expected_hash);
 
         let mut duplicate_items = capture(&original);
-        let duplicate_item_id = duplicate_items.raw_core.state().items()[0].id;
+        let duplicate_item_id = duplicate_items.raw_core.state().items()[0].id();
         let mut duplicate_items_json =
             serde_json::to_value(duplicate_items.raw_core.state()).expect("raw state JSON");
         duplicate_items_json["items"][1]["id"] = serde_json::json!(duplicate_item_id);

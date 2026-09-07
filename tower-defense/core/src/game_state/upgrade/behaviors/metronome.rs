@@ -1,47 +1,60 @@
-use super::super::UpgradeEntryState;
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, no_cache, no_limit, push_acquired_upgrade, recovery_none, scalar, scalar_zero,
-    set_scalar, tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MetronomeUpgradeState {
+    pub acquired_stage: usize,
+}
+use super::support::push_acquired_upgrade;
 
 const DICE_BONUS: usize = 2;
 
 const METRONOME_STAGE_INTERVAL: usize = 2;
 
-fn acquire_stage_marker(core: &mut crate::CoreState, mut u: UpgradeEntryState) -> usize {
-    set_scalar(&mut u, 0, core.progress.stage as u64);
-    push_acquired_upgrade(core, u)
+fn acquire_stage_marker(
+    core: &mut crate::CoreState,
+    mut upgrade: super::super::UpgradeEntry,
+) -> usize {
+    upgrade.metronome_mut().acquired_stage = core.progress.stage;
+    push_acquired_upgrade(core, upgrade)
 }
 
-fn stage_start_metronome(core: &mut crate::CoreState, index: usize, stage: usize) -> bool {
-    let acquired_stage = scalar(&core.upgrades.upgrades[index], 0);
+fn stage_start_metronome(
+    context: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+    stage: usize,
+) -> bool {
+    let acquired_stage = entry.metronome().acquired_stage;
     if stage.saturating_sub(acquired_stage) % METRONOME_STAGE_INTERVAL
         == METRONOME_STAGE_INTERVAL - 1
     {
-        core.progress.left_dice = core.progress.left_dice.saturating_add(DICE_BONUS);
+        context.progress.left_dice = context.progress.left_dice.saturating_add(DICE_BONUS);
     }
     false
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::Metronome,
-    generate_payload: scalar_zero,
-    rarity: crate::Rarity::Common,
-    cache: no_cache,
-    acquire: acquire_stage_marker,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: stage_start_metronome,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::Metronome
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Common
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::Metronome(
+            super::super::codec_impl::MetronomeUpgradeState { acquired_stage: 0 },
+        )
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_stage_marker(core, upgrade)
+    }
+    fn stage_start(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        stage: usize,
+    ) -> bool {
+        stage_start_metronome(context, entry, stage)
+    }
+}

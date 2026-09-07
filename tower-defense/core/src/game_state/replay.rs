@@ -365,7 +365,7 @@ fn normalize_for_hash(state: &mut crate::CoreState) {
     state.player_commands.clear();
     state.replay_checkpoints.clear();
 
-    for item in &mut state.items {
+    for item in &mut state.items.items {
         item.id = 0;
     }
     for slot in &mut state.hand.slots {

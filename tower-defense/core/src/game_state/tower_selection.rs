@@ -2,9 +2,29 @@ use crate::{CardState, CoreState, GameConfigState, HandItemState, TowerTemplateS
 
 const CARD_COUNT: usize = 5;
 
-pub(crate) fn select_tower_build_template(
+pub(crate) trait UpgradeSelectionSource {
+    fn shorten_straight_flush_to_4_cards(&self) -> bool;
+    fn treat_suits_as_same(&self) -> bool;
+    fn skip_rank_for_straight(&self) -> bool;
+}
+
+impl UpgradeSelectionSource for crate::UpgradeCollection {
+    fn shorten_straight_flush_to_4_cards(&self) -> bool {
+        self.shorten_straight_flush_to_4_cards()
+    }
+
+    fn treat_suits_as_same(&self) -> bool {
+        self.treat_suits_as_same()
+    }
+
+    fn skip_rank_for_straight(&self) -> bool {
+        self.skip_rank_for_straight()
+    }
+}
+
+pub(crate) fn select_tower_build_template<U: UpgradeSelectionSource>(
     cards: &[CardState],
-    upgrades: &crate::UpgradeCollectionState,
+    upgrades: &U,
     config: &GameConfigState,
     rerolled_count: usize,
 ) -> Option<TowerTemplateState> {
@@ -191,9 +211,10 @@ pub(crate) fn select_tower_from_core(
         };
         cards.push(card.clone());
     }
+    let upgrades = state.upgrades();
     let selected_template = select_tower_build_template(
         &cards,
-        &state.upgrades,
+        upgrades,
         &state.config,
         state.progress.rerolled_count,
     )
@@ -402,10 +423,7 @@ mod tests {
 
     #[test]
     fn raw_selection_matches_basic_poker_tower_kinds() {
-        let upgrades = crate::UpgradeCollectionState {
-            upgrades: Vec::new(),
-            revision: 0,
-        };
+        let upgrades = crate::UpgradeCollection::default();
         let cards = vec![
             card(1, 0, 12),
             card(2, 1, 12),
@@ -421,17 +439,10 @@ mod tests {
 
     #[test]
     fn raw_selection_supports_four_card_straight_and_royal_flush_upgrades() {
-        let upgrades = crate::UpgradeCollectionState {
-            upgrades: vec![crate::UpgradeEntryState {
-                id: 1,
-                kind: 8,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            }],
-            revision: 0,
-        };
+        let upgrades = crate::UpgradeCollection::from_entries(
+            vec![crate::generated_upgrade(crate::UpgradeKind::FourLeafClover).with_id(1)],
+            0,
+        );
         let cards = vec![
             card(1, 1, 9),
             card(2, 1, 10),
@@ -446,17 +457,10 @@ mod tests {
 
     #[test]
     fn raw_selection_matches_root_skip_rank_selection_semantics() {
-        let upgrades = crate::UpgradeCollectionState {
-            upgrades: vec![crate::UpgradeEntryState {
-                id: 1,
-                kind: 9,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            }],
-            revision: 0,
-        };
+        let upgrades = crate::UpgradeCollection::from_entries(
+            vec![crate::generated_upgrade(crate::UpgradeKind::Rabbit).with_id(1)],
+            0,
+        );
         let cards = vec![card(1, 0, 5), card(2, 1, 6), card(3, 2, 7), card(4, 3, 9)];
         let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
             .expect("template should be generated");
@@ -466,10 +470,7 @@ mod tests {
 
     #[test]
     fn raw_selection_supports_ace_low_straight() {
-        let upgrades = crate::UpgradeCollectionState {
-            upgrades: Vec::new(),
-            revision: 0,
-        };
+        let upgrades = crate::UpgradeCollection::default();
         let cards = vec![
             card(1, 0, 12),
             card(2, 1, 0),
@@ -485,10 +486,7 @@ mod tests {
 
     #[test]
     fn raw_template_derives_overcharge_interval_and_preserves_card_payload() {
-        let upgrades = crate::UpgradeCollectionState {
-            upgrades: Vec::new(),
-            revision: 0,
-        };
+        let upgrades = crate::UpgradeCollection::default();
         let mut overcharge = card(1, 0, 12);
         overcharge.engraving = Some(1);
         let cards = vec![overcharge];

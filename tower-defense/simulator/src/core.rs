@@ -1140,14 +1140,10 @@ mod tests {
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
         mutate_raw_state(&mut core, |state| {
-            state.upgrades.upgrades.push(td_core::UpgradeEntryState {
-                id: 0,
-                kind: 34,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            });
+            state
+                .upgrades
+                .entries_mut()
+                .push(td_core::generated_upgrade_raw(34).expect("catalog upgrade"));
         });
         core.session
             .edit_snapshot(|parts| {
@@ -1681,24 +1677,10 @@ mod tests {
             })
             .expect("test shop edit must preserve a valid snapshot");
         mutate_raw_state(&mut core, |state| {
-            state.upgrades.upgrades.extend([
-                td_core::UpgradeEntryState {
-                    id: 0,
-                    kind: 21,
-                    scalar_values: Vec::new(),
-                    ratio_values_raw: Vec::new(),
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-                td_core::UpgradeEntryState {
-                    id: 1,
-                    kind: 12,
-                    scalar_values: vec![0],
-                    ratio_values_raw: Vec::new(),
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                },
-            ]);
+            let first = td_core::generated_upgrade_raw(21).expect("catalog upgrade");
+            let mut second = td_core::generated_upgrade_raw(12).expect("catalog upgrade");
+            second.set_scalar_value(0, 0);
+            state.upgrades.entries_mut().extend([first, second]);
         });
 
         let slot_index = inspect_raw_state(&core, |state| {
@@ -1715,12 +1697,9 @@ mod tests {
             shop.slots.push(td_core::ShopSlotDataState {
                 id: slot_id,
                 slot: td_core::ShopSlotState::Item {
-                    item: td_core::ItemEntryState {
-                        id: 0,
-                        kind: 7,
-                        scalar_values: vec![1],
-                        signed_values: Vec::new(),
-                    },
+                    item: td_core::generated_item(td_core::ItemKind::LumpSugar)
+                        .expect("fixture item")
+                        .with_id(0),
                     cost: 100,
                 },
                 purchased: false,
@@ -1732,16 +1711,18 @@ mod tests {
 
         assert_eq!(core.left_dice(), 1);
         assert_eq!(core.gold(), 100);
+        assert!(core.session.items().iter().any(|item| {
+            item.kind() == td_core::ItemKind::LumpSugar && item.count() == Some(1)
+        }));
         assert!(
             core.session
                 .items()
                 .iter()
-                .any(|item| item.kind == 7 && item.scalar_values == vec![1])
+                .any(|item| item.kind().raw() == 7)
         );
-        assert!(core.session.items().iter().any(|item| item.kind == 7));
         assert!(core.session.upgrades().upgrades.iter().any(|upgrade| {
             upgrade.upgrade_kind() == Ok(td_core::UpgradeKind::Crock)
-                && upgrade.scalar_values == vec![1]
+                && upgrade.scalar_value(0) == Some(1)
         }));
     }
 
@@ -1769,12 +1750,12 @@ mod tests {
         core.session
             .edit_snapshot(|parts| {
                 parts.hp_raw = max_hp.saturating_sub(10_000);
-                parts.items[0] = td_core::ItemEntryState {
-                    id: 1,
-                    kind: 0,
-                    scalar_values: Vec::new(),
-                    signed_values: vec![7_000, 5_000],
-                };
+                let mut item = td_core::generated_item(td_core::ItemKind::Bread)
+                    .expect("bread item")
+                    .with_id(1);
+                item.set_value(0, 7_000);
+                item.set_value(1, 5_000);
+                parts.items[0] = item;
             })
             .expect("test food edit must preserve a valid snapshot");
 
@@ -1805,12 +1786,12 @@ mod tests {
 
         core.session
             .edit_snapshot(|parts| {
-                parts.items[0] = td_core::ItemEntryState {
-                    id: 1,
-                    kind: 0,
-                    scalar_values: Vec::new(),
-                    signed_values: vec![1_000, 1_000],
-                };
+                let mut item = td_core::generated_item(td_core::ItemKind::Bread)
+                    .expect("bread item")
+                    .with_id(1);
+                item.set_value(0, 1_000);
+                item.set_value(1, 1_000);
+                parts.items[0] = item;
                 parts.stage_modifiers.disable_item_use = true;
             })
             .expect("test item edit must preserve a valid snapshot");
@@ -1826,12 +1807,11 @@ mod tests {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
         core.session
             .edit_snapshot(|parts| {
-                parts.items[0] = td_core::ItemEntryState {
-                    id: 1,
-                    kind: 9,
-                    scalar_values: vec![2],
-                    signed_values: Vec::new(),
-                };
+                let mut item = td_core::generated_item(td_core::ItemKind::RubberCone)
+                    .expect("rubber cone item")
+                    .with_id(1);
+                item.set_count(2);
+                parts.items[0] = item;
             })
             .expect("test item edit must preserve a valid snapshot");
 
@@ -1877,14 +1857,7 @@ mod tests {
 
         let acquire = mutate_session(&mut core.session, |state| {
             state
-                .acquire_upgrade(td_core::UpgradeEntryState {
-                    id: 0,
-                    kind: 2,
-                    scalar_values: Vec::new(),
-                    ratio_values_raw: Vec::new(),
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
-                })
+                .acquire_upgrade(td_core::generated_upgrade_raw(2).expect("catalog upgrade"))
                 .expect("test upgrade kind must be valid")
         });
         mutate_session(&mut core.session, |state| {
@@ -1914,13 +1887,10 @@ mod tests {
 
         mutate_session(&mut core.session, |state| {
             state
-                .acquire_upgrade(td_core::UpgradeEntryState {
-                    id: 0,
-                    kind: 6,
-                    scalar_values: vec![5],
-                    ratio_values_raw: Vec::new(),
-                    bool_values: Vec::new(),
-                    optional_ids: Vec::new(),
+                .acquire_upgrade({
+                    let mut upgrade = td_core::generated_upgrade_raw(6).expect("catalog upgrade");
+                    upgrade.set_scalar_value(0, 5);
+                    upgrade
                 })
                 .expect("test upgrade kind must be valid");
         });
@@ -1950,14 +1920,10 @@ mod tests {
     fn tower_placement_camera_reward_runs_in_core() {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
         mutate_raw_state(&mut core, |state| {
-            state.upgrades.upgrades.push(td_core::UpgradeEntryState {
-                id: 0,
-                kind: 29,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            });
+            state
+                .upgrades
+                .entries_mut()
+                .push(td_core::generated_upgrade_raw(29).expect("catalog upgrade"));
         });
         let initial_gold = core.gold();
 
@@ -1990,14 +1956,10 @@ mod tests {
             .edit_snapshot(|parts| parts.progress.left_dice = 0)
             .expect("test dice edit must preserve a valid snapshot");
         mutate_raw_state(&mut core, |state| {
-            state.upgrades.upgrades.push(td_core::UpgradeEntryState {
-                id: 0,
-                kind: 17,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: Vec::new(),
-                optional_ids: Vec::new(),
-            });
+            state
+                .upgrades
+                .entries_mut()
+                .push(td_core::generated_upgrade_raw(17).expect("catalog upgrade"));
         });
 
         mutate_session(&mut core.session, |state| {
@@ -2011,14 +1973,9 @@ mod tests {
     fn mirror_tower_placement_duplication_runs_in_core() {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
         mutate_raw_state(&mut core, |state| {
-            state.upgrades.upgrades.push(td_core::UpgradeEntryState {
-                id: 0,
-                kind: 23,
-                scalar_values: Vec::new(),
-                ratio_values_raw: Vec::new(),
-                bool_values: vec![true],
-                optional_ids: Vec::new(),
-            });
+            let mut upgrade = td_core::generated_upgrade_raw(23).expect("catalog upgrade");
+            upgrade.set_bool_value(0, true);
+            state.upgrades.entries_mut().push(upgrade);
         });
         let template = td_core::TowerTemplateState {
             kind: 1,
@@ -2042,7 +1999,10 @@ mod tests {
             inspect_raw_state(&core, |state| state.hand().slots.len()),
             initial_hand_len + 1
         );
-        assert_eq!(core.session.upgrades().upgrades[0].bool_values, vec![false]);
+        assert_eq!(
+            core.session.upgrades().upgrades[0].bool_value(0),
+            Some(false)
+        );
     }
 
     #[test]

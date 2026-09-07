@@ -1,9 +1,9 @@
-use super::super::definition::ItemDefinition;
-use super::support::{generate_item, no_prepare_use, validate_one_scalar_value};
-use crate::game_state::item::ItemEntryState;
+use super::support::no_prepare_use;
+use super::{ItemBehavior, ItemRuntimeState};
 
-fn generate() -> ItemEntryState {
-    generate_item(crate::ItemKind::LumpSugar, &[1], &[])
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct LumpSugarItemState {
+    pub amount: usize,
 }
 
 fn can_use(core: &crate::CoreState) -> bool {
@@ -15,20 +15,45 @@ fn can_use(core: &crate::CoreState) -> bool {
 
 fn apply_use(
     core: &mut crate::CoreState,
-    item: &ItemEntryState,
+    state: super::ItemRuntimeState,
     _: Option<crate::TowerTemplateState>,
 ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
-    let amount = super::support::scalar(item, 0)?;
+    let super::ItemRuntimeState::LumpSugar(state) = state else {
+        return Err(crate::CommandError::Rejected);
+    };
+    let amount = state.amount;
     core.progress.left_dice = core.progress.left_dice.saturating_add(amount);
     Ok(vec![super::super::ItemUseEffect::GainRerolls { amount }])
 }
 
-pub(crate) const DEFINITION: ItemDefinition = ItemDefinition {
-    kind: crate::ItemKind::LumpSugar,
-    rarity: crate::Rarity::Epic,
-    generate,
-    validate: validate_one_scalar_value,
-    can_use,
-    prepare_use: no_prepare_use,
-    apply_use,
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl ItemBehavior for Behavior {
+    fn kind(&self) -> crate::ItemKind {
+        crate::ItemKind::LumpSugar
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Epic
+    }
+    fn generated_state(&self) -> ItemRuntimeState {
+        ItemRuntimeState::LumpSugar(LumpSugarItemState { amount: 1 })
+    }
+    fn can_use(&self, core: &crate::CoreState) -> bool {
+        can_use(core)
+    }
+    fn prepare_use(
+        &self,
+        core: &crate::CoreState,
+    ) -> Result<Option<crate::TowerTemplateState>, crate::CommandError> {
+        no_prepare_use(core)
+    }
+    fn apply_use(
+        &self,
+        core: &mut crate::CoreState,
+        state: ItemRuntimeState,
+        prepared: Option<crate::TowerTemplateState>,
+    ) -> Result<Vec<super::super::ItemUseEffect>, crate::CommandError> {
+        apply_use(core, state, prepared)
+    }
+}

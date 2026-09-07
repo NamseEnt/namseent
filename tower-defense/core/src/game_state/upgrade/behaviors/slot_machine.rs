@@ -1,36 +1,64 @@
-use super::super::definition::{UpgradeDefinition, UpgradeTriggerDefinition};
-use super::support::{
-    NO_TRIGGERS, merge_scalar_upgrade, no_cache, no_limit, recovery_none, scalar, scalar_ten,
-    set_scalar, tower_bonus_none, tower_template_bonus_none,
-};
+use super::UpgradeBehavior;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SlotMachineUpgradeState {
+    pub dice: usize,
+}
 
-fn stage_start_piggy_bank(core: &mut crate::CoreState, index: usize, _: usize) -> bool {
-    let dice = scalar(&core.upgrades.upgrades[index], 0);
+fn acquire_slot_machine(core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+    let add = upgrade.slot_machine().dice;
+    if let Some(existing) = core
+        .upgrades
+        .upgrades
+        .iter_mut()
+        .find(|entry| entry.kind() == crate::UpgradeKind::SlotMachine)
+    {
+        existing.slot_machine_mut().dice = existing.slot_machine().dice.saturating_add(add);
+    } else {
+        let mut upgrade = upgrade;
+        upgrade.id = core.next_upgrade_id();
+        core.upgrades.upgrades.push(upgrade);
+    }
+    0
+}
+
+fn stage_start_slot_machine(
+    context: &mut super::super::UpgradeTriggerContext,
+    entry: &mut super::super::UpgradeEntry,
+    _: usize,
+) -> bool {
+    let dice = entry.slot_machine().dice;
     if dice > 0 {
-        core.progress.left_dice = core.progress.left_dice.saturating_add(dice);
-        return set_scalar(&mut core.upgrades.upgrades[index], 0, 0);
+        context.progress.left_dice = context.progress.left_dice.saturating_add(dice);
+        entry.slot_machine_mut().dice = 0;
+        return true;
     }
     false
 }
 
-pub(crate) const DEFINITION: UpgradeDefinition = UpgradeDefinition {
-    kind: crate::UpgradeKind::SlotMachine,
-    generate_payload: scalar_ten,
-    rarity: crate::Rarity::Epic,
-    cache: no_cache,
-    acquire: merge_scalar_upgrade,
-    recovery: recovery_none,
-    tower_bonus: tower_bonus_none,
-    tower_bonus_for_template: tower_template_bonus_none,
-    current_and_max: no_limit,
-    triggers: UpgradeTriggerDefinition {
-        monster_death: NO_TRIGGERS.monster_death,
-        gold_earned: NO_TRIGGERS.gold_earned,
-        card_rerolled: NO_TRIGGERS.card_rerolled,
-        shop_purchase: NO_TRIGGERS.shop_purchase,
-        tower_placed: NO_TRIGGERS.tower_placed,
-        tower_removed: NO_TRIGGERS.tower_removed,
-        stage_start: stage_start_piggy_bank,
-        stage_end: NO_TRIGGERS.stage_end,
-    },
-};
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Behavior;
+
+impl UpgradeBehavior for Behavior {
+    fn kind(&self) -> crate::UpgradeKind {
+        crate::UpgradeKind::SlotMachine
+    }
+    fn rarity(&self) -> crate::Rarity {
+        crate::Rarity::Epic
+    }
+    fn generate(&self) -> super::super::UpgradeRuntimeState {
+        super::super::UpgradeRuntimeState::SlotMachine(
+            super::super::codec_impl::SlotMachineUpgradeState { dice: 10 },
+        )
+    }
+    fn acquire(&self, core: &mut crate::CoreState, upgrade: super::super::UpgradeEntry) -> usize {
+        acquire_slot_machine(core, upgrade)
+    }
+    fn stage_start(
+        &self,
+        context: &mut super::super::UpgradeTriggerContext,
+        entry: &mut super::super::UpgradeEntry,
+        stage: usize,
+    ) -> bool {
+        stage_start_slot_machine(context, entry, stage)
+    }
+}

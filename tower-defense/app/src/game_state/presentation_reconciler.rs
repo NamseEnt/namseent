@@ -62,7 +62,7 @@ mod tests {
             .upgrades()
             .upgrades
             .iter()
-            .map(|upgrade| upgrade.id)
+            .map(|upgrade| upgrade.id())
             .collect::<Vec<_>>();
 
         assert_eq!(active_ids.len(), core_ids.len());

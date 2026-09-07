@@ -106,45 +106,57 @@ impl ItemWithId {
         }
     }
 
-    pub fn to_core_state(&self) -> td_core::ItemEntryState {
-        let mut state = td_core::ItemEntryState {
-            id: self.id.0,
-            kind: self.item.discriminant().to_core_raw(),
-            scalar_values: Vec::new(),
-            signed_values: Vec::new(),
-        };
+    pub fn to_core_state(&self) -> td_core::ItemEntry {
+        let kind = self.item.discriminant().to_core_kind();
+        let mut state = td_core::generated_item(kind)
+            .expect("presentation item discriminant must exist in core catalog")
+            .with_id(self.id.0);
         match &self.item {
             Item::Bread(item) => {
-                state.signed_values.push(item.heal_amount.raw());
-                state.signed_values.push(item.shield_amount.raw());
+                state.set_value(0, item.heal_amount.raw());
+                state.set_value(1, item.shield_amount.raw());
             }
-            Item::Candy(item) => state.signed_values.push(item.heal_amount.raw()),
-            Item::Cannoli(item) => state.signed_values.push(item.heal_amount.raw()),
-            Item::Cookie(item) => state.signed_values.push(item.heal_amount.raw()),
-            Item::Donut(item) => state.signed_values.push(item.heal_amount.raw()),
+            Item::Candy(item) => {
+                state.set_value(0, item.heal_amount.raw());
+            }
+            Item::Cannoli(item) => {
+                state.set_value(0, item.heal_amount.raw());
+            }
+            Item::Cookie(item) => {
+                state.set_value(0, item.heal_amount.raw());
+            }
+            Item::Donut(item) => {
+                state.set_value(0, item.heal_amount.raw());
+            }
             Item::Gimbap(item) => {
-                state.signed_values.push(item.heal_amount.raw());
-                state.signed_values.push(item.shield_amount.raw());
+                state.set_value(0, item.heal_amount.raw());
+                state.set_value(1, item.shield_amount.raw());
             }
             Item::LunchBox(item) => {
-                state.signed_values.push(item.heal_amount.raw());
-                state.signed_values.push(item.shield_amount.raw());
+                state.set_value(0, item.heal_amount.raw());
+                state.set_value(1, item.shield_amount.raw());
             }
             Item::RiceBall(item) => {
-                state.signed_values.push(item.heal_amount.raw());
-                state.signed_values.push(item.shield_amount.raw());
+                state.set_value(0, item.heal_amount.raw());
+                state.set_value(1, item.shield_amount.raw());
             }
-            Item::LumpSugar(item) => state.scalar_values.push(item.reroll_amount as u64),
-            Item::Milk(item) => state.signed_values.push(item.shield_amount.raw()),
-            Item::RubberCone(item) => state.scalar_values.push(item.count as u64),
+            Item::LumpSugar(item) => {
+                state.set_count(item.reroll_amount);
+            }
+            Item::Milk(item) => {
+                state.set_value(0, item.shield_amount.raw());
+            }
+            Item::RubberCone(item) => {
+                state.set_count(item.count);
+            }
         }
         state
     }
 
-    pub fn from_core_state(state: td_core::ItemEntryState) -> Option<Self> {
-        let discriminant = ItemDiscriminants::from_core_raw(state.kind)?;
-        let scalar = |index: usize| usize::try_from(*state.scalar_values.get(index)?).ok();
-        let signed = |index: usize| state.signed_values.get(index).copied();
+    pub fn from_core_state(state: td_core::ItemEntry) -> Option<Self> {
+        let discriminant = ItemDiscriminants::from_core_kind(state.kind());
+        let scalar = |_: usize| state.count();
+        let signed = |index: usize| state.value(index);
         let item = match discriminant {
             ItemDiscriminants::Bread => Item::Bread(BreadItem {
                 heal_amount: Health::from_raw(signed(0)?),
@@ -183,10 +195,10 @@ impl ItemWithId {
             ItemDiscriminants::RubberCone => Item::RubberCone(RubberConeItem { count: scalar(0)? }),
         };
         let restored = Self {
-            id: ItemId(state.id),
+            id: ItemId(state.id()),
             item,
         };
-        (restored.to_core_state() == state).then_some(restored)
+        Some(restored)
     }
 }
 
@@ -204,17 +216,6 @@ impl ItemDiscriminants {
             Self::Milk => td_core::ItemKind::Milk,
             Self::RubberCone => td_core::ItemKind::RubberCone,
             Self::Gimbap => td_core::ItemKind::Gimbap,
-        }
-    }
-
-    pub(crate) const fn to_core_raw(self) -> u8 {
-        self.to_core_kind().raw()
-    }
-
-    pub(crate) const fn from_core_raw(value: u8) -> Option<Self> {
-        match td_core::ItemKind::from_raw(value) {
-            Some(kind) => Some(Self::from_core_kind(kind)),
-            None => None,
         }
     }
 
@@ -338,14 +339,7 @@ mod tests {
 
     #[test]
     fn item_raw_state_rejects_invalid_kind() {
-        let mut raw = ItemWithId::new(Item::Bread(BreadItem {
-            heal_amount: Health::from_raw(1),
-            shield_amount: Shield::from_raw(1),
-        }))
-        .to_core_state();
-        raw.kind = 11;
-
-        assert!(ItemWithId::from_core_state(raw).is_none());
+        assert!(td_core::generated_item_raw(u8::MAX).is_none());
     }
 
     #[test]

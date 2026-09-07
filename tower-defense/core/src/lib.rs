@@ -47,10 +47,14 @@ pub use game_state::flow::{
     ShopPurchaseOutput, ShopSlotDataState, ShopSlotState, ShopState,
 };
 pub use game_state::hand::{HandItemState, HandSlotState, HandState};
+pub use game_state::item::codec::{
+    decode_item_collection, decode_item_entry, encode_item_collection, encode_item_entry,
+};
+#[allow(deprecated)]
 pub use game_state::item::{
-    ITEM_KIND_COUNT, ItemEntryState, ItemUseEffect, ItemUseOutput,
+    ITEM_KIND_COUNT, ItemCollection, ItemEntry, ItemUseEffect, ItemUseOutput,
     generate_item_of_rarity_with_rng, generated_item, generated_item_raw, item_rarity,
-    item_rarity_raw, validate_item_payload, validate_item_payload_raw,
+    item_rarity_raw,
 };
 pub use game_state::monster::{
     ActivatedMonsterSkill, MonsterDamageResult, MonsterDeathResult, MonsterEscapeResult,
@@ -97,9 +101,15 @@ pub(crate) use game_state::tower::{
     activate_tower_skills, advance_tower_cooldowns, apply_tower_skill_activations,
     generate_tower_attacks,
 };
+#[cfg(test)]
+pub(crate) use game_state::upgrade::TestUpgradeWireEntry as UpgradeWireEntry;
+pub use game_state::upgrade::codec::{
+    decode_upgrade_collection, decode_upgrade_entry, encode_upgrade_collection,
+    encode_upgrade_entry,
+};
 pub use game_state::upgrade::{
-    UpgradeAcquireOutput, UpgradeAcquireRecovery, UpgradeCacheState, UpgradeCollectionState,
-    UpgradeEntryIdentityState, UpgradeEntryState, generate_boss_reward_option, generated_upgrade,
+    UpgradeAcquireOutput, UpgradeAcquireRecovery, UpgradeCacheState, UpgradeCollection,
+    UpgradeEntry, UpgradeEntryIdentityState, generate_boss_reward_option, generated_upgrade,
     generated_upgrade_raw, upgrade_rarity, upgrade_rarity_raw,
 };
 #[allow(deprecated)]
