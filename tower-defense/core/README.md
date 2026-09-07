@@ -2,7 +2,7 @@
 
 Namui-independent authoritative simulation contracts for tower-defense.
 
-This crate intentionally contains no rendering, sound, particle, UI, or Namui dependencies. The tower-defense adapter currently consumes `CoreEvent`, `CoreEventQueue`, `CoreProgress`, `ReplayCheckpoint`, `EntityIdAllocator`, `SimTick`, `SimTickSpan`, `RngState`, `RouteState`, `MoveOnRouteState`, `PlayerCommand`, `RecordedPlayerCommand`, `DecisionPoint`, `AgentAction`, `ActionKind`, `Observation`, `StageModifiersObservation`, `CardObservation`, `DeckObservation`, `TowerTemplateObservation`, `HandItemObservation`, `HandObservation`, `CardServiceObservation`, `RewardConfig`, `RewardComponents`, `StepReason`, `StepInfo`, `StepOutcome`, and `CommandOutput` from this crate while `CoreState` remains in the host crate until its remaining Namui serialization boundaries are replaced with explicit adapter conversions. Scalar `shield` storage remains a headed raw-value adapter because the core contract currently exposes it through observation raw fields.
+Both the tower-defense app adapter and simulator consume `CoreState` and its command/event contracts from this crate. Namui-specific rendering, sound, UI, and persistence adapters remain in the app crate.
 
 The extraction order is:
 
