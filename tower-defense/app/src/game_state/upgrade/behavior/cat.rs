@@ -1,0 +1,63 @@
+use super::*;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct CatUpgrade {
+    pub add: usize,
+}
+
+impl UpgradePresentation for CatUpgrade {
+    fn key(&self) -> &'static str {
+        "cat"
+    }
+
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::CAT)
+    }
+
+    fn thumbnail_overlays(
+        &self,
+        _game_state: &GameState,
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("{}", self.add),
+            crate::theme::palette::YELLOW,
+        )]
+    }
+
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Cat",
+            crate::l10n::locale::Language::Korean => "고양이",
+        });
+    }
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        match locale.language {
+            crate::l10n::locale::Language::English => builder
+                .static_text("Gain ")
+                .l10n(Word::Gold.name(), locale)
+                .with_bold(format!(" +{}", self.add))
+                .static_text(" on monster kills"),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("적 처치 시 ")
+                .l10n(Word::Gold.name(), locale)
+                .with_bold(format!(" +{}", self.add)),
+        };
+    }
+}
+
+impl CatUpgrade {
+    #[cfg(any(test, feature = "debug-tools"))]
+    pub fn into_upgrade(add: usize) -> Upgrade {
+        Upgrade::Cat(CatUpgrade { add })
+    }
+}

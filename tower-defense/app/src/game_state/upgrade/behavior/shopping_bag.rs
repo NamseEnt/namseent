@@ -1,0 +1,107 @@
+use super::*;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct ShoppingBagUpgrade;
+
+impl UpgradePresentation for ShoppingBagUpgrade {
+    fn key(&self) -> &'static str {
+        "shopping_bag"
+    }
+
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::SHOPPING_BAG)
+    }
+
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Shopping Bag",
+            crate::l10n::locale::Language::Korean => "쇼핑백",
+        });
+    }
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .l10n(Word::Dice.name(), locale)
+                    .with_bold(" +1")
+                    .static_text(" for each purchased ")
+                    .l10n(Word::Item.name(), locale);
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .l10n(Word::Item.name(), locale)
+                    .static_text(" 구매 시 ")
+                    .l10n(Word::Dice.name(), locale)
+                    .with_bold(" +1");
+            }
+        }
+    }
+}
+
+impl ShoppingBagUpgrade {
+    #[cfg(any(test, feature = "debug-tools"))]
+    pub fn into_upgrade() -> Upgrade {
+        Upgrade::ShoppingBag(ShoppingBagUpgrade)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::game_state::upgrade::*;
+
+    #[test]
+    fn shopping_bag_grants_one_reroll_when_an_item_is_purchased() {
+        use crate::game_state::GameFlow;
+        use crate::game_state::item::LumpSugarItem;
+        use crate::game_state::upgrade::tests::support;
+        use crate::shop::ShopSlot;
+
+        let mut game_state = support::create_mock_game_state();
+        game_state.apply_compatibility_action(crate::game_state::CompatibilityAction::Upgrade(
+            crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(),
+            None,
+        ));
+        game_state.left_dice = 0;
+
+        let slot_id = if let GameFlow::Shopping(flow) = &mut game_state.flow {
+            flow.shop.push(ShopSlot::Item {
+                item: LumpSugarItem::standard().into_item(),
+                cost: 0,
+            });
+            flow.shop.slots.last().unwrap().id
+        } else {
+            panic!("expected shopping flow");
+        };
+
+        game_state.apply_compatibility_action(
+            crate::game_state::CompatibilityAction::PurchaseShopItem(slot_id),
+        );
+
+        assert_eq!(game_state.left_dice, 1);
+    }
+
+    #[test]
+    fn shopping_bag_does_not_increase_tower_damage() {
+        let state = UpgradeState::with_upgrades(vec![
+            crate::game_state::upgrade::ShoppingBagUpgrade::into_upgrade(),
+        ]);
+
+        assert_eq!(
+            state.to_core_state().tower_damage_bonus_raw_for_template(
+                &crate::game_state::tower::TowerTemplate::rubber_cone().to_core_state()
+            ),
+            0
+        );
+    }
+}

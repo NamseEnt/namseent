@@ -1,0 +1,369 @@
+mod animation;
+mod camera_controller;
+pub mod combat_number;
+pub mod config;
+mod flow_ui;
+pub mod game_state;
+mod headed_game;
+mod image_filter_utils; // now private; selective re-exports below
+pub use game_state::monster::MonsterKind;
+pub use game_state::{
+    AttackId, CommandError, EntityId, MonsterId, PlayerCommand, RecordedPlayerCommand, TowerId,
+};
+pub use td_core::{CommandOutput, CoreEvent};
+pub mod card;
+mod hand;
+mod hand_panel;
+mod icon;
+mod inventory;
+pub mod l10n;
+mod rarity; // private; re-export Rarity only
+mod route;
+mod settings;
+pub mod shop;
+mod shop_panel;
+pub mod sound;
+pub mod theme;
+mod thumbnail;
+pub mod time;
+mod tooltip;
+mod top_bar;
+mod upgrades;
+pub mod world;
+
+pub use combat_number::{
+    ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct, Shield,
+};
+pub use time::{
+    InterpolationAlpha, PresentationDelta, PresentationInstant, SimRenderTime, SimTick, SimTickSpan,
+};
+pub use world::{
+    WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, segment_hits_point,
+};
+
+#[cfg(test)]
+extern crate namui_kv_store_memory;
+
+#[cfg(test)]
+mod kv_store_memory_provider_link {
+    pub fn link() {
+        let get = namui_kv_store_memory::_kv_store_get as extern "C" fn(u32, *const u8, u32);
+        let put = namui_kv_store_memory::_kv_store_put
+            as extern "C" fn(u32, *const u8, u32, *const u8, u32);
+        std::hint::black_box((get, put));
+    }
+
+    #[cfg(test)]
+    #[test]
+    fn links_provider_symbols() {
+        link();
+    }
+}
+
+use crate::camera_controller::CameraController;
+use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
+use card::*;
+use game_state::TILE_PX_SIZE;
+use inventory::Inventory;
+use namui::*;
+use namui_prebuilt::{simple_rect, table};
+use theme::{fab::FabLayout, palette};
+use top_bar::TopBar;
+use upgrades::Upgrades;
+
+const TOP_BAR_HEIGHT: Px = px(48.);
+
+register_assets!();
+
+type BlockUnit = usize;
+type BlockUnitF32 = f32;
+type MapCoord = Xy<BlockUnit>;
+type MapCoordF32 = Xy<BlockUnitF32>;
+
+pub fn format_compact_number(value: f32) -> String {
+    if value >= 1_000_000_000.0 {
+        format!("{:.1}b", value / 1_000_000_000.0)
+    } else if value >= 1_000_000.0 {
+        format!("{:.1}m", value / 1_000_000.0)
+    } else if value >= 1_000.0 {
+        format!("{:.1}k", value / 1_000.0)
+    } else {
+        format!("{:.1}", value)
+    }
+}
+
+pub fn main() {
+    namui::start(|ctx: &RenderCtx| {
+        ctx.add(Game {});
+    });
+}
+
+struct Game {}
+impl Component for Game {
+    fn render(self, ctx: &RenderCtx) {
+        let screen_wh = screen::size().into_type::<Px>();
+        let presentation_instant = PresentationInstant::capture();
+        let _settings = crate::settings::Settings::init(ctx);
+        let game_state = game_state::init_game_state(ctx);
+        let _sound_state = sound::init_sound_state(ctx);
+        let (settings_loaded, set_settings_loaded) = ctx.state(|| false);
+        let (settings_load_started, set_settings_load_started) = ctx.state(|| false);
+        let (encyclopedia_loaded, set_encyclopedia_loaded) = ctx.state(|| false);
+        let (encyclopedia_load_started, set_encyclopedia_load_started) = ctx.state(|| false);
+        let (game_state_loaded, set_game_state_loaded) = ctx.state(|| false);
+        let (game_state_load_started, set_game_state_load_started) = ctx.state(|| false);
+        let (bgm_started, set_bgm_started) = ctx.state(|| false);
+        let (middle_mouse_button_dragging, set_middle_mouse_button_dragging) =
+            ctx.state::<Option<MiddleMouseButtonDragging>>(|| None);
+
+        ctx.effect("load settings", || {
+            if *settings_load_started {
+                return;
+            }
+
+            set_settings_load_started.set(true);
+            spawn(async move {
+                let loaded = crate::settings::Settings::load_async().await;
+                let volume = loaded.audio.volume.clone();
+                loaded.set_settings();
+                crate::sound::set_volume_settings(volume);
+                set_settings_loaded.set(true);
+            });
+        });
+
+        ctx.effect("load encyclopedia", || {
+            if *encyclopedia_load_started {
+                return;
+            }
+
+            set_encyclopedia_load_started.set(true);
+            spawn(async move {
+                let loaded = game_state::discovery::load_async().await;
+                game_state::mutate_headed_game(move |game_state| {
+                    game_state.merge_loaded_discoveries(loaded);
+                    set_encyclopedia_loaded.set(true);
+                });
+            });
+        });
+
+        ctx.effect("load game state", || {
+            if *game_state_load_started {
+                return;
+            }
+
+            set_game_state_load_started.set(true);
+            spawn(async move {
+                let loaded = crate::game_state::persistence::load_async().await;
+                game_state::mutate_headed_game(move |headed_game| {
+                    if let Ok(Some(loaded)) = loaded {
+                        let _ = headed_game.restore_loaded_state(loaded);
+                    }
+                    set_game_state_loaded.set(true);
+                });
+            });
+        });
+
+        if !*settings_loaded || !*encyclopedia_loaded || !*game_state_loaded {
+            return;
+        }
+
+        if !*bgm_started {
+            sound::emit_sound(EmitSoundParams::looping(
+                crate::asset::sound::BGM,
+                SoundGroup::Music,
+                VolumePreset::Medium,
+                SpatialMode::NonSpatial,
+            ));
+            set_bgm_started.set(true);
+        }
+
+        ctx.add(
+            game_state::card_notification::CardServiceNotificationLayer {
+                presentation_instant,
+            },
+        );
+
+        ctx.add(tooltip::TooltipLayer);
+
+        ctx.add(
+            simple_rect(screen_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT).attach_event(
+                |event| match event {
+                    Event::MouseMove { event } => {
+                        if event.pressing_buttons.contains(&MouseButton::Left)
+                            | event.pressing_buttons.contains(&MouseButton::Middle)
+                            | event.pressing_buttons.contains(&MouseButton::Right)
+                            && let Some(middle_mouse_button_dragging) =
+                                middle_mouse_button_dragging.as_ref()
+                        {
+                            let global_xy = event.global_xy;
+                            let delta = global_xy - middle_mouse_button_dragging.last_global_xy;
+                            game_state::mutate_headed_game(move |game_state| {
+                                game_state.camera_mut().move_by(delta * -1.0);
+                            });
+                            set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                                last_global_xy: global_xy,
+                            }));
+                        }
+                        if game_state.cursor_preview().should_update_position()
+                            || matches!(
+                                game_state.state().raw_core_state().flow(),
+                                td_core::GameFlowState::PlacingTower
+                            )
+                        {
+                            let local_xy_tile = (event.global_xy / game_state.camera().zoom_level)
+                                / TILE_PX_SIZE.to_xy();
+                            let map_coord = game_state.camera().visual_left_top() + local_xy_tile;
+                            game_state::mutate_headed_game(move |game_state| {
+                                game_state.cursor_preview_mut().update_position(map_coord);
+                            });
+                        }
+                    }
+                    Event::MouseUp { event } => {
+                        let Some(button) = event.button else {
+                            return;
+                        };
+
+                        if (button == MouseButton::Left)
+                            | (button == MouseButton::Middle)
+                            | (button == MouseButton::Right)
+                        {
+                            set_middle_mouse_button_dragging.set(None);
+                        }
+                    }
+                    _ => {}
+                },
+            ),
+        );
+
+        ctx.compose(|ctx| {
+            if let Some(overlay) = game_state.opened_modals().system.as_ref() {
+                ctx.add(overlay);
+            }
+            if let Some(modal) = game_state.opened_modals().user.as_ref() {
+                ctx.add(modal);
+            }
+        });
+
+        ctx.add(flow_ui::FlowUi);
+
+        ctx.compose(|ctx| {
+            table::vertical([
+                table::fixed_no_clip(TOP_BAR_HEIGHT, |wh, ctx| {
+                    ctx.add(TopBar { wh });
+                }),
+                table::ratio_no_clip(
+                    1,
+                    table::padding_no_clip(
+                        8.px(),
+                        table::horizontal([
+                            table::fixed_no_clip(px(112.), |wh, ctx| {
+                                ctx.add(Upgrades { wh });
+                            }),
+                            table::ratio_no_clip(1, |_, _| {}),
+                            table::fixed_no_clip(px(92.), |wh, ctx| {
+                                ctx.add(Inventory { wh });
+                            }),
+                        ]),
+                    ),
+                ),
+                table::fixed_no_clip(FabLayout::bottom_reserved_height(), |_, _| {}),
+            ])(screen_wh, ctx);
+        });
+
+        ctx.add(shop_panel::ShopPanel);
+        ctx.add(hand_panel::HandPanel);
+
+        ctx.add(sound::SoundRenderer);
+
+        ctx.add(game_state::RenderGameState {
+            game_state: game_state.as_ref(),
+            presentation_instant,
+        });
+
+        ctx.add(CameraController);
+
+        ctx.add(simple_rect(
+            screen_wh,
+            Color::TRANSPARENT,
+            0.px(),
+            palette::SURFACE_CONTAINER_LOWEST,
+        ));
+
+        ctx.attach_event(move |event| {
+            match event {
+                Event::KeyDown { event } => match event.code {
+                    Code::KeyQ => {
+                        game_state::mutate_headed_game(|game_state| {
+                            game_state.fast_forward_multiplier =
+                                game_state.fast_forward_multiplier.prev();
+                        });
+                    }
+                    Code::KeyE => {
+                        game_state::mutate_headed_game(|game_state| {
+                            game_state.fast_forward_multiplier =
+                                game_state.fast_forward_multiplier.next();
+                        });
+                    }
+                    #[cfg(feature = "debug-tools")]
+                    Code::F8 => {
+                        game_state::mutate_headed_game(|game_state| {
+                            use crate::game_state::modal::SystemModal;
+
+                            if matches!(
+                                game_state.opened_modals().system,
+                                Some(SystemModal::DebugTools)
+                            ) {
+                                game_state.opened_modals_mut().system = None;
+                            } else {
+                                game_state.opened_modals_mut().system =
+                                    Some(SystemModal::DebugTools);
+                            }
+                        });
+                    }
+                    _ => {}
+                },
+                Event::Wheel { event } => {
+                    let delta = -event.delta_xy.y / 2048.0;
+                    let origin = event.local_xy();
+                    game_state::mutate_headed_game(move |game_state| {
+                        game_state.camera_mut().zoom(delta, origin);
+                    });
+                }
+
+                Event::MouseDown { event } => {
+                    let Some(button) = event.button else {
+                        return;
+                    };
+                    if (button == MouseButton::Left)
+                        | (button == MouseButton::Middle)
+                        | (button == MouseButton::Right)
+                    {
+                        set_middle_mouse_button_dragging.set(Some(MiddleMouseButtonDragging {
+                            last_global_xy: event.global_xy,
+                        }));
+                    };
+                }
+
+                Event::VisibilityChange if middle_mouse_button_dragging.is_some() => {
+                    set_middle_mouse_button_dragging.set(None);
+                }
+                Event::ScreenResize { .. } => {
+                    game_state::mutate_headed_game(|game_state| {
+                        game_state.camera_mut().on_screen_resize();
+                    });
+                }
+                _ => {}
+            };
+        });
+    }
+}
+
+#[derive(State)]
+struct MiddleMouseButtonDragging {
+    last_global_xy: Xy<Px>,
+}
+// --- Public API Surface (narrow) -------------------------------------------------
+// Re-export only the symbols required by integration tests / external consumers.
+pub use game_state::tower::TowerKind;
+pub use game_state::upgrade::UpgradeState;
+pub use rarity::Rarity;

@@ -70,7 +70,8 @@ Before committing UI changes that use `ctx.add`, verify:
 
 - Keep gameplay-owned data in `GameState` when its lifetime and mutation authority follow the game session.
 - Avoid mirroring the same data in another `Atom` and synchronizing it through pending batches or per-frame snapshots.
-- Trigger sparse gameplay events such as discoveries at authoritative `GameStateAction` or mutation points instead of observing the whole `GameState`, which changes every tick.
+- Trigger sparse gameplay events such as discoveries at authoritative mutation
+  points instead of observing the whole `GameState`, which changes every tick.
 - Use a separate `Atom` only for state with genuinely independent ownership or lifetime, not solely to notify another copy of gameplay state.
 
 ## Persistent State and Headless Rule

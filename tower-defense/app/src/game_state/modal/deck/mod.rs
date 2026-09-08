@@ -1,0 +1,422 @@
+use crate::card::{Card, CardId, Rank};
+use crate::game_state::{UserModal, mutate_headed_game, set_modal, use_game_state};
+use crate::icon::IconKind;
+use crate::{
+    game_state::modal::card_grid::Cards,
+    theme::{
+        fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton},
+        typography::{FontSize, memoized_text},
+    },
+    thumbnail::{ThumbnailRenderOptions, render_thumbnail},
+    tooltip::{TooltipContent, TooltipPlacement, WithHoverArea},
+};
+use namui::*;
+use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect};
+use std::sync::Arc;
+
+type ActionButtonCtx = Option<(IconKind, bool, Arc<dyn Fn() + Send + Sync>)>;
+
+const PADDING: Px = px(36.0);
+const SCROLL_BAR_WIDTH: Px = px(8.0);
+const CARD_VIEW_WIDTH: Px = px(540.0);
+const VERTICAL_MARGIN: Px = px(128.0);
+const TITLE_HEIGHT: Px = px(32.0);
+const CARD_SERVICE_THUMBNAIL_GAP: Px = px(8.0);
+const CARD_SERVICE_THUMBNAIL_SIZE: Px = px(72.0);
+
+#[derive(Debug, Clone, State)]
+pub enum DeckKind {
+    Deck,
+    Draw,
+    Discard,
+}
+
+#[derive(Debug, Clone, State, PartialEq)]
+pub enum CardSelectionFilter {
+    Any,
+    Face,
+    Number,
+    Rank(Rank),
+    Engraved,
+    NotEngraved,
+    And(Vec<CardSelectionFilter>),
+    Or(Vec<CardSelectionFilter>),
+}
+
+impl CardSelectionFilter {
+    pub fn matches(&self, card: &Card) -> bool {
+        match self {
+            CardSelectionFilter::Any => true,
+            CardSelectionFilter::Face => card.rank.is_face(),
+            CardSelectionFilter::Number => card.rank.is_number_card(),
+            CardSelectionFilter::Rank(rank) => card.rank == *rank,
+            CardSelectionFilter::Engraved => card.engraving().is_some(),
+            CardSelectionFilter::NotEngraved => card.engraving().is_none(),
+            CardSelectionFilter::And(filters) => filters.iter().all(|filter| filter.matches(card)),
+            CardSelectionFilter::Or(filters) => filters.iter().any(|filter| filter.matches(card)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, State)]
+pub struct CardSelectionStep {
+    pub title: String,
+    pub count: usize,
+    pub filter: CardSelectionFilter,
+}
+
+#[derive(Debug, Clone, State)]
+pub struct CardSelectionState {
+    pub steps: Vec<CardSelectionStep>,
+    pub current_step: usize,
+    pub selected_card_ids: Vec<Vec<CardId>>,
+    pub card_service: crate::game_state::card_service::CardService,
+}
+
+impl CardSelectionState {
+    pub fn new(
+        steps: Vec<CardSelectionStep>,
+        card_service: crate::game_state::card_service::CardService,
+    ) -> Self {
+        let selected_card_ids = steps.iter().map(|_| Vec::new()).collect();
+        Self {
+            steps,
+            current_step: 0,
+            selected_card_ids,
+            card_service,
+        }
+    }
+
+    pub fn current_step(&self) -> &CardSelectionStep {
+        &self.steps[self.current_step]
+    }
+
+    pub fn current_selected_count(&self) -> usize {
+        self.selected_card_ids[self.current_step].len()
+    }
+
+    pub fn required_count(&self) -> usize {
+        self.current_step().count
+    }
+
+    pub fn is_card_selected(&self, card_id: CardId) -> bool {
+        self.selected_card_ids[self.current_step].contains(&card_id)
+    }
+
+    pub fn toggle_card(&mut self, card_id: CardId) {
+        let current_step = self.current_step;
+        let required_count = self.steps[current_step].count;
+        let selected = &mut self.selected_card_ids[current_step];
+        if let Some(pos) = selected.iter().position(|&i| i == card_id) {
+            selected.remove(pos);
+        } else {
+            if selected.len() >= required_count {
+                selected.remove(0);
+            }
+            selected.push(card_id);
+        }
+    }
+
+    pub fn is_step_complete(&self) -> bool {
+        self.current_selected_count() == self.required_count()
+    }
+
+    pub fn selected_card_ids_by_step(&self) -> Vec<Vec<CardId>> {
+        self.selected_card_ids.clone()
+    }
+}
+
+#[derive(Debug, Clone, State)]
+pub struct DeckModal {
+    pub deck_kind: DeckKind,
+    pub selection: Option<CardSelectionState>,
+}
+
+struct CardServiceThumbnail<'a> {
+    card_service: &'a crate::game_state::card_service::CardService,
+}
+
+impl Component for CardServiceThumbnail<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let Self { card_service } = self;
+        let thumbnail_wh = Wh::single(CARD_SERVICE_THUMBNAIL_SIZE);
+
+        ctx.add(render_thumbnail(
+            card_service.thumbnail_source(),
+            thumbnail_wh,
+            ThumbnailRenderOptions::sticker(crate::thumbnail::STICKER_THUMBNAIL_STROKE, true, 1.0),
+        ));
+        ctx.add(WithHoverArea {
+            component_key: "card service tooltip",
+            component: simple_rect(thumbnail_wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+            placement: TooltipPlacement::Above,
+            on_enter: move || Some(TooltipContent::CardService((*card_service).clone())),
+            on_exit: || {},
+        });
+    }
+}
+
+impl Component for DeckModal {
+    fn render(self, ctx: &RenderCtx) {
+        let Self {
+            deck_kind,
+            selection,
+        } = self;
+
+        let game_state = use_game_state(ctx);
+        let screen_wh = screen::size().into_type::<Px>();
+
+        let deck = ctx.track_eq(&game_state.state().presentation_deck_snapshot());
+        let selected_indices = if let Some(selection) = &selection {
+            selection.selected_card_ids[selection.current_step].clone()
+        } else {
+            Vec::new()
+        };
+
+        deck.record_as_used();
+        let zone = match deck_kind {
+            DeckKind::Deck => 0,
+            DeckKind::Draw => 1,
+            DeckKind::Discard => 2,
+        };
+        let mut cards = game_state.state().presentation_deck_zone_snapshot(zone);
+        if matches!(deck_kind, DeckKind::Draw) {
+            cards.sort_by_key(|left| left.card);
+        }
+        if let Some(selection) = &selection {
+            let filter = &selection.current_step().filter;
+            if *filter != CardSelectionFilter::Any {
+                cards.retain(|entry| filter.matches(&entry.card));
+            }
+        }
+
+        let on_card_click = if selection.is_some() {
+            Some(Arc::new(move |card_id: CardId| {
+                mutate_headed_game(move |gs| {
+                    if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
+                        && let Some(selection) = &mut deck_modal.selection
+                    {
+                        selection.toggle_card(card_id);
+                    }
+                });
+            }) as Arc<dyn Fn(CardId) + Send + Sync>)
+        } else {
+            None
+        };
+
+        let mut action_button: ActionButtonCtx = None;
+        if let Some(selection) = &selection {
+            let step = selection.current_step();
+
+            ctx.translate((PADDING, PADDING)).add(memoized_text(
+                (
+                    &step.title,
+                    &selection.current_selected_count(),
+                    &step.count,
+                ),
+                |mut builder| {
+                    let progress_text = format!(
+                        "{} ({}/{})",
+                        step.title,
+                        selection.current_selected_count(),
+                        step.count
+                    );
+                    builder
+                        .headline()
+                        .bold()
+                        .color(Color::WHITE)
+                        .stroke(2.px(), Color::BLACK)
+                        .size(FontSize::Large)
+                        .text(progress_text)
+                        .render_left_top()
+                },
+            ));
+
+            ctx.translate((PADDING, PADDING + TITLE_HEIGHT + CARD_SERVICE_THUMBNAIL_GAP))
+                .add(CardServiceThumbnail {
+                    card_service: &selection.card_service,
+                });
+
+            let icon = if selection.current_step + 1 >= selection.steps.len() {
+                IconKind::Accept
+            } else {
+                IconKind::Play
+            };
+            action_button = Some((
+                icon,
+                !selection.is_step_complete(),
+                Arc::new(move || {
+                    mutate_headed_game(move |gs| {
+                        let command = match &gs.opened_modals.user {
+                            Some(UserModal::Deck(deck_modal)) => {
+                                let Some(selection) = &deck_modal.selection else {
+                                    return;
+                                };
+                                if !selection.is_step_complete() {
+                                    return;
+                                }
+                                if selection.current_step + 1 >= selection.steps.len() {
+                                    Some(crate::game_state::HeadedPlayerCommand::ConfirmCardServiceSelection {
+                                        selected_card_ids: selection
+                                            .selected_card_ids_by_step()
+                                            .into_iter()
+                                            .map(|card_ids| {
+                                                card_ids
+                                                    .into_iter()
+                                                    .map(|card_id| card_id.raw() as u64)
+                                                    .collect()
+                                            })
+                                            .collect(),
+                                    })
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => return,
+                        };
+                        if let Some(command) = command {
+                            if gs.apply_player_command(command).is_ok() {
+                                gs.opened_modals.user = None;
+                                gs.consume_core_events(crate::PresentationInstant::capture());
+                            }
+                        } else if let Some(UserModal::Deck(deck_modal)) = &mut gs.opened_modals.user
+                            && let Some(selection) = &mut deck_modal.selection
+                        {
+                            selection.current_step += 1;
+                        }
+                    });
+                }) as Arc<dyn Fn() + Send + Sync>,
+            ));
+        }
+
+        let close = || set_modal(None);
+        ctx.compose(|ctx| {
+            if selection.is_none() {
+                ctx.add(FloatingActionButton {
+                    screen_wh,
+                    position: FabPosition::new(FabSide::Right, FabVerticalPosition::Top),
+                    visible: true,
+                    icon: IconKind::Reject,
+                    disabled: false,
+                    long_press_time: None,
+                    on_click: &close,
+                    tooltip_content: None,
+                });
+            }
+        });
+
+        ctx.compose(|ctx| {
+            if let Some((icon, disable, action)) = action_button {
+                ctx.add(FloatingActionButton {
+                    screen_wh,
+                    position: FabPosition::new(FabSide::Right, FabVerticalPosition::Center),
+                    visible: true,
+                    icon,
+                    disabled: disable,
+                    long_press_time: None,
+                    on_click: &move || action(),
+                    tooltip_content: None,
+                });
+            }
+        });
+
+        ctx.add(AutoScrollViewWithCtx {
+            wh: screen_wh,
+            scroll_bar_width: SCROLL_BAR_WIDTH,
+            content: move |ctx| {
+                let card_view_x = (screen_wh.width - CARD_VIEW_WIDTH) * 0.5;
+                let card_view = ctx.translate((card_view_x, VERTICAL_MARGIN)).ghost_add(
+                    "cards".to_string(),
+                    Cards {
+                        width: CARD_VIEW_WIDTH,
+                        cards: &cards,
+                        selected_card_ids: &selected_indices,
+                        on_card_click: on_card_click.clone(),
+                    },
+                );
+                let bounding_box = card_view.bounding_box().unwrap_or(Rect::Xywh {
+                    x: 0.px(),
+                    y: 0.px(),
+                    width: CARD_VIEW_WIDTH,
+                    height: 0.px(),
+                });
+
+                ctx.translate((card_view_x, VERTICAL_MARGIN)).add(card_view);
+                ctx.add(simple_rect(
+                    Wh::new(
+                        screen_wh.width,
+                        bounding_box.height() + VERTICAL_MARGIN * 2.0,
+                    ),
+                    Color::TRANSPARENT,
+                    0.px(),
+                    Color::TRANSPARENT,
+                ));
+            },
+        })
+        .attach_event(|event| match event {
+            Event::MouseDown { event } | Event::MouseMove { event } | Event::MouseUp { event }
+                if event.is_local_xy_in() =>
+            {
+                event.stop_propagation();
+            }
+            Event::Wheel { event } if event.is_local_xy_in() => {
+                event.stop_propagation();
+            }
+            _ => {}
+        });
+
+        ctx.mouse_cursor(MouseCursor::Standard(StandardCursor::Default))
+            .add(
+                simple_rect(
+                    screen_wh,
+                    Color::TRANSPARENT,
+                    0.px(),
+                    Color::BLACK.with_alpha(180),
+                )
+                .attach_event(|event| match event {
+                    Event::MouseDown { event }
+                    | Event::MouseMove { event }
+                    | Event::MouseUp { event } => {
+                        event.stop_propagation();
+                    }
+                    _ => {}
+                }),
+            );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::card::{Engraving, Suit};
+
+    #[test]
+    fn engraved_filters_split_the_deck_by_engraving() {
+        let blank = Card::new(Rank::Ace, Suit::Spades);
+        let mut engraved = Card::new(Rank::Ace, Suit::Hearts);
+        engraved.effects.engraving = Some(Engraving::Magnet);
+
+        assert!(CardSelectionFilter::NotEngraved.matches(&blank));
+        assert!(!CardSelectionFilter::NotEngraved.matches(&engraved));
+
+        assert!(!CardSelectionFilter::Engraved.matches(&blank));
+        assert!(CardSelectionFilter::Engraved.matches(&engraved));
+    }
+
+    #[test]
+    fn not_engraved_composes_with_other_filters() {
+        let mut engraved_face = Card::new(Rank::King, Suit::Spades);
+        engraved_face.effects.engraving = Some(Engraving::Magnet);
+        let blank_face = Card::new(Rank::King, Suit::Hearts);
+        let blank_number = Card::new(Rank::Two, Suit::Hearts);
+
+        let filter = CardSelectionFilter::And(vec![
+            CardSelectionFilter::Face,
+            CardSelectionFilter::NotEngraved,
+        ]);
+
+        assert!(filter.matches(&blank_face));
+        assert!(!filter.matches(&engraved_face));
+        assert!(!filter.matches(&blank_number));
+    }
+}

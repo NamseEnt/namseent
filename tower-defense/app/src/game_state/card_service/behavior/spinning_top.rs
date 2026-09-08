@@ -1,0 +1,165 @@
+use super::*;
+use crate::card::Engraving;
+#[cfg(test)]
+use crate::game_state::GameState;
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct SpinningTopCardService;
+
+impl SpinningTopCardService {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn into_card_service(self) -> CardService {
+        CardService::SpinningTop(self)
+    }
+}
+
+impl CardServiceBehavior for SpinningTopCardService {
+    fn key(&self) -> &'static str {
+        "spinning_top"
+    }
+
+    fn acquire_selection_steps(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::game_state::modal::deck::CardSelectionStep> {
+        let title = match locale.language {
+            crate::l10n::locale::Language::English => "Select a card to engrave",
+            crate::l10n::locale::Language::Korean => "각인할 카드를 선택하세요",
+        }
+        .to_string();
+
+        vec![crate::game_state::modal::deck::CardSelectionStep {
+            title,
+            count: 1,
+            filter: crate::game_state::modal::deck::CardSelectionFilter::NotEngraved,
+        }]
+    }
+
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::SPINNING_TOP)
+    }
+
+    fn l10n_name<'a>(&self, builder: &mut TypographyBuilder<'a>, locale: &crate::l10n::Locale) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Spinning Top",
+            crate::l10n::locale::Language::Korean => "팽이",
+        });
+    }
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder.static_text("Select 1 card and engrave spinning top on it.")
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder.static_text("카드 1장에 팽이를 각인합니다.")
+            }
+        };
+    }
+
+    fn tooltip_sections(
+        &self,
+        locale: crate::l10n::Locale,
+    ) -> Vec<crate::tooltip::TooltipSection<'_>> {
+        vec![
+            self.tooltip_section(locale),
+            crate::l10n::word::Word::Engraving(Some(Engraving::SpinningTop))
+                .tooltip_section(locale),
+        ]
+    }
+
+    #[cfg(test)]
+    fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
+        let cards = headed_cards_from_raw_core(game_state.raw_core_state());
+        let card_id = cards
+            .iter()
+            .filter(|card| card.engraving().is_none())
+            .max_by(|a, b| {
+                a.polish_pct()
+                    .cmp(&b.polish_pct())
+                    .then_with(|| a.rank.ordinal().cmp(&b.rank.ordinal()))
+            })
+            .map(|card| card.id)
+            .into_iter()
+            .collect();
+        vec![card_id]
+    }
+}
+
+pub(super) const DEFINITION: crate::game_state::card_service::definition::CardServiceDefinition =
+    crate::game_state::card_service::definition::CardServiceDefinition::new(
+        generate_spinning_top_card_service,
+        || crate::Rarity::Epic,
+    );
+
+fn generate_spinning_top_card_service() -> CardService {
+    SpinningTopCardService::new().into_card_service()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game_state::card_service::CardServiceBehavior;
+
+    #[test]
+    fn spinning_top_heuristic_selects_one_unengraved_card() {
+        let game_state = crate::game_state::create_initial_game_state();
+
+        let selected = SpinningTopCardService.heuristic_best_selection(&game_state);
+
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].len(), 1);
+        assert!(
+            game_state
+                .deck
+                .get_card(selected[0][0])
+                .unwrap()
+                .engraving()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn spinning_top_heuristic_handles_a_fully_engraved_deck() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        for card in game_state.deck.all_cards().to_vec() {
+            game_state.deck.modify_card(card.id, |card| {
+                card.effects.engraving = Some(Engraving::Magnet);
+            });
+        }
+        game_state.sync_raw_core_from_projection();
+
+        assert_eq!(
+            SpinningTopCardService.heuristic_best_selection(&game_state),
+            vec![vec![]]
+        );
+    }
+
+    #[cfg(test)]
+    #[test]
+    fn spinning_top_headless_use_card_service_engraves_the_selected_card() {
+        let mut game_state = crate::game_state::create_initial_game_state();
+        let service = SpinningTopCardService;
+        let selected = service.heuristic_best_selection(&game_state)[0][0];
+        game_state.headless = true;
+
+        game_state.apply_compatibility_action(
+            crate::game_state::CompatibilityAction::UseCardService {
+                card_service: service.into_card_service(),
+                locale: crate::l10n::Locale::KOREAN,
+            },
+        );
+
+        assert_eq!(
+            game_state.deck.get_card(selected).unwrap().engraving(),
+            Some(Engraving::SpinningTop)
+        );
+    }
+}

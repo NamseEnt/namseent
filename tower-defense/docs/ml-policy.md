@@ -30,7 +30,7 @@ rollout collector.
 Build or run the new CLI with the `simulator` feature:
 
 ```text
-cargo run --features simulator --bin td-simulator -- ml train \
+cargo run --features simulator -- ml train \
   --checkpoint ml_policy_checkpoint.json \
   --train-start 0 --train-end 999 \
   --validation-start 18446744073709550616 \
@@ -42,7 +42,7 @@ Rollouts run on the CPU with Rayon. `--threads 0` uses Rayon defaults; pass a
 positive `--threads` value to select the worker count explicitly:
 
 ```text
-cargo run --features simulator --bin td-simulator -- ml train \
+cargo run --features simulator -- ml train \
   --iterations 10 --threads 16
 ```
 
@@ -51,7 +51,7 @@ validation-rollout times. Use release builds for throughput measurements;
 debug builds substantially distort environment and tensor overhead:
 
 ```text
-cargo run --release --features simulator --bin td-simulator -- ml train \
+cargo run --release --features simulator -- ml train \
   --train-start 0 --train-end 255 \
   --validation-start 18446744073709551360 \
   --validation-end 18446744073709551615 \
@@ -69,7 +69,7 @@ optimization and must preserve legal-action probabilities.
 For large seed sets, use `--rollout-chunk-size` to bound peak rollout memory:
 
 ```text
-cargo run --release --features simulator --bin td-simulator -- ml train \
+cargo run --release --features simulator -- ml train \
   --train-size 512 --validation-size 256 \
   --rollout-chunk-size 32 --minibatch-size 32
 ```
@@ -93,7 +93,7 @@ To save and resume the full trainer state, use `--run-dir` with
 `--resume-auto`:
 
 ```text
-cargo run --release --features simulator --bin td-simulator -- ml train \
+cargo run --release --features simulator -- ml train \
   --run-dir artifacts/ml/overnight \
   --resume-auto \
   --train-size 512 --validation-size 256 \
@@ -111,7 +111,7 @@ next iteration from `latest.json`. Stop it with `Ctrl+C` after the current
 iteration reaches its checkpoint boundary:
 
 ```text
-cargo run --release --features simulator --bin td-simulator -- ml train \
+cargo run --release --features simulator -- ml train \
   --run-dir artifacts/ml/overnight \
   --train-size 512 --validation-size 256 \
   --rollout-chunk-size 16 --threads 8
@@ -173,7 +173,7 @@ is strictly greater than the previous best.
 Validation reloads both files and can persist a provenance report:
 
 ```text
-cargo run --features simulator --bin td-simulator -- ml validate \
+cargo run --features simulator -- ml validate \
   --checkpoint ml_policy_checkpoint.json \
   --run-id run-1 --output artifacts/ml/run-1-validation.json
 ```
@@ -297,7 +297,7 @@ slots.
 To evaluate a checkpoint across explicit simulation seeds, use:
 
 ```text
-cargo run --features simulator --bin td-simulator -- simulate \
+cargo run --features simulator -- simulate \
   --checkpoint ml_policy_checkpoint.json \
   --samples 1000 \
   --db sim_results.db

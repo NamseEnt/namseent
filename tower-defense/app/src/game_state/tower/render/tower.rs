@@ -1,0 +1,107 @@
+use crate::game_state::TILE_PX_SIZE;
+use namui::*;
+
+use super::{TowerImage, TowerSpriteWithOverlay};
+use crate::SimRenderTime;
+use crate::card::render::polish_halo_config;
+use crate::game_state::tower::Tower;
+use crate::game_state::tower::{AnimationKind, RoyalStraightFlushVisual};
+use crate::theme::card_halo_fx::CardHaloFx;
+
+pub struct RenderTower<'a> {
+    pub tower: &'a Tower,
+    pub sim_render_time: SimRenderTime,
+    pub animation_kind: AnimationKind,
+    pub royal_straight_flush_visual: Option<&'a RoyalStraightFlushVisual>,
+    pub y_ratio_offset: f32,
+}
+
+impl Component for RenderTower<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let RenderTower {
+            tower,
+            sim_render_time,
+            animation_kind,
+            royal_straight_flush_visual,
+            y_ratio_offset,
+        } = self;
+
+        if let Some(visual) = royal_straight_flush_visual {
+            render_tower_sprite(
+                ctx,
+                tower,
+                animation_kind,
+                (0.0, 0.0),
+                visual.original_alpha_at(sim_render_time),
+                y_ratio_offset,
+            );
+
+            let clone_alpha = visual.clone_alpha_at(sim_render_time);
+            let tower_left_top = tower.left_top.map(|t| t as f32);
+            for clone_center_xy in visual.clone_positions_at(sim_render_time) {
+                let clone_left_top = Xy::new(clone_center_xy.0 - 1.0, clone_center_xy.1 - 1.0);
+                let local_offset = (
+                    clone_left_top.x - tower_left_top.x,
+                    clone_left_top.y - tower_left_top.y,
+                );
+                render_tower_sprite(
+                    ctx,
+                    tower,
+                    animation_kind,
+                    local_offset,
+                    clone_alpha,
+                    y_ratio_offset,
+                );
+            }
+            return;
+        }
+
+        render_tower_sprite(ctx, tower, animation_kind, (0.0, 0.0), 1.0, y_ratio_offset);
+    }
+}
+
+fn render_tower_sprite(
+    ctx: &RenderCtx,
+    tower: &Tower,
+    animation_kind: AnimationKind,
+    local_left_top_xy: (f32, f32),
+    alpha: f32,
+    y_ratio_offset: f32,
+) {
+    if alpha <= 0.01 {
+        return;
+    }
+
+    let image = (tower.kind, animation_kind).image();
+    let image_wh = image.info().wh();
+    let scale = Xy::new(1.0 + y_ratio_offset * -0.5, 1.0 + y_ratio_offset);
+
+    let tile_xy = TILE_PX_SIZE.to_xy() * Xy::new(local_left_top_xy.0, local_left_top_xy.1);
+    let center = (image_wh.width * 0.5, image_wh.height);
+
+    ctx.translate(tile_xy)
+        .translate(center)
+        .scale(scale)
+        .translate(Xy::new(-image_wh.width * 0.5, -image_wh.height))
+        .add(TowerSpriteWithOverlay {
+            image,
+            wh: image_wh,
+            suit: tower.suit,
+            rank: tower.rank,
+            alpha,
+        });
+
+    let bonus_pct = tower.template.card_polish_pct();
+    if let Some((color, strength)) = polish_halo_config(bonus_pct.as_f32()) {
+        ctx.translate(tile_xy)
+            .translate(center)
+            .translate(Xy::new(-image_wh.width * 0.375, -image_wh.height * 0.875))
+            .add(CardHaloFx {
+                wh: image_wh * 0.75,
+                radius: image_wh.width * 0.5,
+                color,
+                strength: strength * alpha,
+                seed: (tower.id().raw() as f32 * 0.618034).fract(),
+            });
+    }
+}

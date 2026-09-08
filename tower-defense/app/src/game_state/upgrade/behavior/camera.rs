@@ -1,0 +1,135 @@
+use super::*;
+use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
+
+#[derive(Debug, Clone, Copy, State, PartialEq)]
+pub struct CameraUpgrade;
+
+const CAMERA_GOLD_REWARD: usize = 50;
+
+impl UpgradePresentation for CameraUpgrade {
+    fn key(&self) -> &'static str {
+        "camera"
+    }
+
+    fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
+        crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::CAMERA)
+    }
+
+    fn thumbnail_overlays(
+        &self,
+        _game_state: &GameState,
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_bottom(
+            format!("{}", CAMERA_GOLD_REWARD),
+            crate::theme::palette::YELLOW,
+        )]
+    }
+
+    fn l10n_name<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        builder.static_text(match locale.language {
+            crate::l10n::locale::Language::English => "Camera",
+            crate::l10n::locale::Language::Korean => "카메라",
+        });
+    }
+
+    fn l10n_description<'a>(
+        &self,
+        builder: &mut crate::theme::typography::TypographyBuilder<'a>,
+        locale: &crate::l10n::Locale,
+    ) {
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .static_text("Gain ")
+                    .l10n(Word::Gold.name(), locale)
+                    .with_bold(format!(" +{}", CAMERA_GOLD_REWARD))
+                    .static_text(" when placing a face tower");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .static_text("그림 카드 타워를 배치 시 ")
+                    .l10n(Word::Gold.name(), locale)
+                    .with_bold(format!(" +{}", CAMERA_GOLD_REWARD));
+            }
+        }
+    }
+}
+
+impl CameraUpgrade {
+    #[cfg(any(test, feature = "debug-tools"))]
+    pub fn into_upgrade() -> Upgrade {
+        Upgrade::Camera(CameraUpgrade)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::game_state::{
+        card::{Rank, Suit},
+        upgrade::behavior::camera::CAMERA_GOLD_REWARD,
+    };
+
+    #[test]
+    fn camera_grants_gold_when_face_tower_is_placed() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let initial_gold = game_state.gold;
+
+        game_state.apply_compatibility_action(crate::game_state::CompatibilityAction::Upgrade(
+            crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
+            None,
+        ));
+
+        let face_tower_template = crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            Suit::Spades,
+            Rank::King,
+        );
+        let face_tower = crate::game_state::tower::Tower::new(
+            &face_tower_template,
+            crate::MapCoord::new(0, 0),
+            game_state.sim_tick(),
+        );
+        game_state.apply_compatibility_action(crate::game_state::CompatibilityAction::PlaceTower(
+            Box::new(face_tower),
+            None,
+        ));
+
+        assert_eq!(game_state.gold, initial_gold + CAMERA_GOLD_REWARD);
+    }
+
+    #[test]
+    fn camera_does_not_grant_gold_for_number_tower() {
+        use crate::game_state::upgrade::tests::support;
+
+        let mut game_state = support::create_mock_game_state();
+        let initial_gold = game_state.gold;
+
+        game_state.apply_compatibility_action(crate::game_state::CompatibilityAction::Upgrade(
+            crate::game_state::upgrade::CameraUpgrade::into_upgrade(),
+            None,
+        ));
+
+        let number_tower_template = crate::game_state::tower::TowerTemplate::new(
+            crate::game_state::tower::TowerKind::High,
+            Suit::Spades,
+            Rank::Ten,
+        );
+        let number_tower = crate::game_state::tower::Tower::new(
+            &number_tower_template,
+            crate::MapCoord::new(2, 0),
+            game_state.sim_tick(),
+        );
+        game_state.apply_compatibility_action(crate::game_state::CompatibilityAction::PlaceTower(
+            Box::new(number_tower),
+            None,
+        ));
+
+        assert_eq!(game_state.gold, initial_gold);
+    }
+}

@@ -1,0 +1,516 @@
+//! Stage-wide transient & persistent modifiers extracted from former contract::mod.rs
+//!
+//! Responsibility:
+//! - Aggregate per-stage combat/economy multipliers
+//! - Track additive adjustments (bonus/penalty pairs) with net delta helpers
+//! - Maintain reroll health costs
+//! - Maintain temporary restrictions (disabled ranks/suits, purchase/use flags)
+//! - Keep certain grants (rubber cone cards) persistent across stage resets
+//!
+//! Lifecycle:
+//! - Call `reset_stage_state` at stage start; this resets transient categories but leaves `StageGrants` intact
+//! - Call `clear_stage_grants` only when you intentionally want to drop persistent grants
+//!
+//! Design Notes:
+//! - Internally grouped into small structs for clarity & future serialization friendliness
+//! - Net delta helpers return signed difference (bonus - penalty) for quick UI display / logic
+//! - All multipliers are multiplicative stacks (default 1.0)
+//!
+//! Future Ideas:
+//! - Consider serde derives if saving mid-run is needed
+//! - Add incremental (additive) shield / rubber cone accumulation helpers
+//! - Introduce a generic stacking abstraction if new modifier categories grow
+
+use crate::card::{Rank, Suit};
+use crate::game_state::tower::TowerKind;
+use crate::*;
+
+#[derive(Clone, Debug, Default, State)]
+pub struct Multipliers {
+    pub damage: RatioProduct,
+    pub damage_reduction: RatioProduct,
+    pub incoming_damage: RatioProduct,
+    pub gold_gain: RatioProduct,
+    pub enemy_health: RatioProduct,
+    pub enemy_speed: RatioProduct,
+}
+
+#[derive(Clone, Debug, Default, State)]
+pub struct Adjustments {
+    pub card_selection_hand_max_slots_bonus: usize,
+    pub card_selection_hand_max_slots_penalty: usize,
+    pub max_dice_rerolls_bonus: usize,
+    pub max_dice_rerolls_penalty: usize,
+}
+
+#[derive(Clone, Debug, Default, State)]
+pub struct RerollCosts {
+    pub reroll_health_cost: usize,
+}
+
+#[derive(Clone, Debug, Default, State)]
+pub struct Restrictions {
+    pub disable_item_and_upgrade_purchases: bool,
+    pub disable_item_use: bool,
+    pub free_shop_this_stage: bool,
+    pub disabled_ranks: Vec<Rank>,
+    pub disabled_suits: Vec<Suit>,
+}
+
+#[derive(Clone, Debug, Default, State)]
+pub struct StageGrants {
+    pub extra_tower_cards: Vec<(TowerKind, Option<Suit>, Option<Rank>)>,
+    pub free_card_services: usize,
+}
+
+#[derive(Clone, Debug, State)]
+pub struct StageModifiers {
+    multipliers: Multipliers,
+    adjustments: Adjustments,
+    reroll_costs: RerollCosts,
+    restrictions: Restrictions,
+    stage_grants: StageGrants,
+}
+
+impl Default for StageModifiers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StageModifiers {
+    pub fn new() -> Self {
+        Self {
+            multipliers: Multipliers {
+                damage: RatioProduct::one(),
+                damage_reduction: RatioProduct::one(),
+                incoming_damage: RatioProduct::one(),
+                gold_gain: RatioProduct::one(),
+                enemy_health: RatioProduct::one(),
+                enemy_speed: RatioProduct::one(),
+            },
+            adjustments: Adjustments::default(),
+            reroll_costs: RerollCosts::default(),
+            restrictions: Restrictions::default(),
+            stage_grants: StageGrants::default(),
+        }
+    }
+
+    pub fn to_core_state(&self) -> td_core::StageModifiersState {
+        td_core::StageModifiersState {
+            damage_multipliers_raw: self
+                .multipliers
+                .damage
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            damage_reduction_multipliers_raw: self
+                .multipliers
+                .damage_reduction
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            incoming_damage_multipliers_raw: self
+                .multipliers
+                .incoming_damage
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            gold_gain_multipliers_raw: self
+                .multipliers
+                .gold_gain
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            enemy_health_multipliers_raw: self
+                .multipliers
+                .enemy_health
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            enemy_speed_multipliers_raw: self
+                .multipliers
+                .enemy_speed
+                .factors()
+                .iter()
+                .map(|factor| factor.raw())
+                .collect(),
+            card_selection_hand_max_slots_bonus: self
+                .adjustments
+                .card_selection_hand_max_slots_bonus,
+            card_selection_hand_max_slots_penalty: self
+                .adjustments
+                .card_selection_hand_max_slots_penalty,
+            max_dice_rerolls_bonus: self.adjustments.max_dice_rerolls_bonus,
+            max_dice_rerolls_penalty: self.adjustments.max_dice_rerolls_penalty,
+            reroll_health_cost: self.reroll_costs.reroll_health_cost,
+            disable_item_and_upgrade_purchases: self
+                .restrictions
+                .disable_item_and_upgrade_purchases,
+            disable_item_use: self.restrictions.disable_item_use,
+            free_shop_this_stage: self.restrictions.free_shop_this_stage,
+            disabled_ranks: self
+                .restrictions
+                .disabled_ranks
+                .iter()
+                .map(|rank| rank.ordinal() as u8)
+                .collect(),
+            disabled_suits: self
+                .restrictions
+                .disabled_suits
+                .iter()
+                .map(|suit| match suit {
+                    Suit::Spades => 0,
+                    Suit::Hearts => 1,
+                    Suit::Diamonds => 2,
+                    Suit::Clubs => 3,
+                })
+                .collect(),
+            extra_tower_cards: self
+                .stage_grants
+                .extra_tower_cards
+                .iter()
+                .map(|(kind, suit, rank)| td_core::StageModifierTowerCardState {
+                    kind: kind.to_core_raw(),
+                    suit: suit.map(|suit| match suit {
+                        Suit::Spades => 0,
+                        Suit::Hearts => 1,
+                        Suit::Diamonds => 2,
+                        Suit::Clubs => 3,
+                    }),
+                    rank: rank.map(|rank| rank.ordinal() as u8),
+                })
+                .collect(),
+            free_card_services: self.stage_grants.free_card_services,
+        }
+    }
+
+    pub fn from_core_state(state: td_core::StageModifiersState) -> Option<Self> {
+        fn rank_from_raw(value: u8) -> Option<Rank> {
+            Some(match value {
+                0 => Rank::Two,
+                1 => Rank::Three,
+                2 => Rank::Four,
+                3 => Rank::Five,
+                4 => Rank::Six,
+                5 => Rank::Seven,
+                6 => Rank::Eight,
+                7 => Rank::Nine,
+                8 => Rank::Ten,
+                9 => Rank::Jack,
+                10 => Rank::Queen,
+                11 => Rank::King,
+                12 => Rank::Ace,
+                _ => return None,
+            })
+        }
+        fn suit_from_raw(value: u8) -> Option<Suit> {
+            Some(match value {
+                0 => Suit::Spades,
+                1 => Suit::Hearts,
+                2 => Suit::Diamonds,
+                3 => Suit::Clubs,
+                _ => return None,
+            })
+        }
+        let factors = |values: Vec<i64>| {
+            values
+                .into_iter()
+                .map(FixedRatio::from_raw)
+                .collect::<Vec<_>>()
+        };
+        let disabled_ranks = state
+            .disabled_ranks
+            .into_iter()
+            .map(rank_from_raw)
+            .collect::<Option<Vec<_>>>()?;
+        let disabled_suits = state
+            .disabled_suits
+            .into_iter()
+            .map(suit_from_raw)
+            .collect::<Option<Vec<_>>>()?;
+        let extra_tower_cards = state
+            .extra_tower_cards
+            .into_iter()
+            .map(|card| {
+                Some((
+                    TowerKind::from_core_raw(card.kind)?,
+                    match card.suit {
+                        Some(suit) => Some(suit_from_raw(suit)?),
+                        None => None,
+                    },
+                    match card.rank {
+                        Some(rank) => Some(rank_from_raw(rank)?),
+                        None => None,
+                    },
+                ))
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(Self {
+            multipliers: Multipliers {
+                damage: RatioProduct::one().with_all(factors(state.damage_multipliers_raw)),
+                damage_reduction: RatioProduct::one()
+                    .with_all(factors(state.damage_reduction_multipliers_raw)),
+                incoming_damage: RatioProduct::one()
+                    .with_all(factors(state.incoming_damage_multipliers_raw)),
+                gold_gain: RatioProduct::one().with_all(factors(state.gold_gain_multipliers_raw)),
+                enemy_health: RatioProduct::one()
+                    .with_all(factors(state.enemy_health_multipliers_raw)),
+                enemy_speed: RatioProduct::one()
+                    .with_all(factors(state.enemy_speed_multipliers_raw)),
+            },
+            adjustments: Adjustments {
+                card_selection_hand_max_slots_bonus: state.card_selection_hand_max_slots_bonus,
+                card_selection_hand_max_slots_penalty: state.card_selection_hand_max_slots_penalty,
+                max_dice_rerolls_bonus: state.max_dice_rerolls_bonus,
+                max_dice_rerolls_penalty: state.max_dice_rerolls_penalty,
+            },
+            reroll_costs: RerollCosts {
+                reroll_health_cost: state.reroll_health_cost,
+            },
+            restrictions: Restrictions {
+                disable_item_and_upgrade_purchases: state.disable_item_and_upgrade_purchases,
+                disable_item_use: state.disable_item_use,
+                free_shop_this_stage: state.free_shop_this_stage,
+                disabled_ranks,
+                disabled_suits,
+            },
+            stage_grants: StageGrants {
+                extra_tower_cards,
+                free_card_services: state.free_card_services,
+            },
+        })
+    }
+
+    pub fn reset_stage_state(&mut self) {
+        self.multipliers = Multipliers {
+            damage: RatioProduct::one(),
+            damage_reduction: RatioProduct::one(),
+            incoming_damage: RatioProduct::one(),
+            gold_gain: RatioProduct::one(),
+            enemy_health: RatioProduct::one(),
+            enemy_speed: RatioProduct::one(),
+        };
+        self.adjustments = Adjustments::default();
+        self.reroll_costs = RerollCosts::default();
+        self.restrictions = Restrictions::default();
+    }
+
+    // ----- Getters -----
+    pub fn get_damage_multiplier(&self) -> FixedRatio {
+        self.multipliers.damage.combined_ratio()
+    }
+    pub fn get_damage_reduction_multiplier(&self) -> FixedRatio {
+        self.multipliers.damage_reduction.combined_ratio()
+    }
+    pub fn get_incoming_damage_multiplier(&self) -> FixedRatio {
+        self.multipliers.incoming_damage.combined_ratio()
+    }
+    pub fn get_gold_gain_multiplier(&self) -> FixedRatio {
+        self.multipliers.gold_gain.combined_ratio()
+    }
+    pub fn get_enemy_health_multiplier(&self) -> FixedRatio {
+        self.multipliers.enemy_health.combined_ratio()
+    }
+    pub fn get_enemy_speed_multiplier(&self) -> FixedRatio {
+        self.multipliers.enemy_speed.combined_ratio()
+    }
+    pub(crate) fn enemy_health_multipliers(&self) -> &RatioProduct {
+        &self.multipliers.enemy_health
+    }
+    pub fn get_max_hand_slots_bonus(&self) -> usize {
+        self.adjustments.card_selection_hand_max_slots_bonus
+    }
+    pub fn get_max_hand_slots_penalty(&self) -> usize {
+        self.adjustments.card_selection_hand_max_slots_penalty
+    }
+    pub fn get_max_hand_slots_delta(&self) -> isize {
+        self.adjustments.card_selection_hand_max_slots_bonus as isize
+            - self.adjustments.card_selection_hand_max_slots_penalty as isize
+    }
+
+    pub fn get_max_rerolls_bonus(&self) -> usize {
+        self.adjustments.max_dice_rerolls_bonus
+    }
+    pub fn get_max_rerolls_penalty(&self) -> usize {
+        self.adjustments.max_dice_rerolls_penalty
+    }
+    pub fn get_max_rerolls_delta(&self) -> isize {
+        self.adjustments.max_dice_rerolls_bonus as isize
+            - self.adjustments.max_dice_rerolls_penalty as isize
+    }
+    pub fn is_item_and_upgrade_purchases_disabled(&self) -> bool {
+        self.restrictions.disable_item_and_upgrade_purchases
+    }
+    pub fn is_item_use_disabled(&self) -> bool {
+        self.restrictions.disable_item_use
+    }
+    pub fn is_free_shop_this_stage(&self) -> bool {
+        self.restrictions.free_shop_this_stage
+    }
+    pub fn get_reroll_health_cost(&self) -> usize {
+        self.reroll_costs.reroll_health_cost
+    }
+    pub fn get_disabled_ranks(&self) -> &Vec<Rank> {
+        &self.restrictions.disabled_ranks
+    }
+    pub fn get_disabled_suits(&self) -> &Vec<Suit> {
+        &self.restrictions.disabled_suits
+    }
+    pub fn drain_extra_tower_cards(&mut self) -> Vec<(TowerKind, Option<Suit>, Option<Rank>)> {
+        std::mem::take(&mut self.stage_grants.extra_tower_cards)
+    }
+
+    pub fn drain_free_card_services(&mut self) -> usize {
+        std::mem::take(&mut self.stage_grants.free_card_services)
+    }
+
+    // Net deltas (for testing)
+    #[cfg(test)]
+    pub fn get_card_selection_hand_max_slots_delta(&self) -> isize {
+        self.adjustments.card_selection_hand_max_slots_bonus as isize
+            - self.adjustments.card_selection_hand_max_slots_penalty as isize
+    }
+
+    #[cfg(test)]
+    pub fn clear_stage_grants(&mut self) {
+        self.stage_grants = StageGrants::default();
+    }
+
+    // ----- Mutators -----
+    pub fn apply_damage_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.damage.push(m);
+    }
+    pub fn apply_damage_reduction_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.damage_reduction.push(m);
+    }
+    pub fn apply_incoming_damage_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.incoming_damage.push(m);
+    }
+    pub fn apply_gold_gain_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.gold_gain.push(m);
+    }
+    pub fn apply_enemy_health_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.enemy_health.push(m);
+    }
+
+    pub fn apply_enemy_speed_multiplier(&mut self, m: FixedRatio) {
+        self.multipliers.enemy_speed.push(m);
+    }
+
+    pub fn apply_max_hand_slots_bonus(&mut self, v: usize) {
+        self.adjustments.card_selection_hand_max_slots_bonus += v;
+    }
+    pub fn apply_max_hand_slots_penalty(&mut self, v: usize) {
+        self.adjustments.card_selection_hand_max_slots_penalty += v;
+    }
+    pub fn apply_max_rerolls_bonus(&mut self, v: usize) {
+        self.adjustments.max_dice_rerolls_bonus += v;
+    }
+    pub fn apply_max_rerolls_penalty(&mut self, v: usize) {
+        self.adjustments.max_dice_rerolls_penalty += v;
+    }
+
+    pub fn disable_item_and_upgrade_purchases(&mut self) {
+        self.restrictions.disable_item_and_upgrade_purchases = true;
+    }
+    pub fn disable_item_use(&mut self) {
+        self.restrictions.disable_item_use = true;
+    }
+    pub fn set_free_shop_this_stage(&mut self, enabled: bool) {
+        self.restrictions.free_shop_this_stage = enabled;
+    }
+    pub fn apply_reroll_health_cost(&mut self, v: usize) {
+        self.reroll_costs.reroll_health_cost += v;
+    }
+
+    pub fn disable_rank(&mut self, rank: Rank) {
+        if !self.restrictions.disabled_ranks.contains(&rank) {
+            self.restrictions.disabled_ranks.push(rank);
+        }
+    }
+    pub fn disable_suit(&mut self, suit: Suit) {
+        if !self.restrictions.disabled_suits.contains(&suit) {
+            self.restrictions.disabled_suits.push(suit);
+        }
+    }
+
+    pub fn enqueue_extra_tower_card(
+        &mut self,
+        kind: TowerKind,
+        suit: Option<Suit>,
+        rank: Option<Rank>,
+    ) {
+        self.stage_grants.extra_tower_cards.push((kind, suit, rank));
+    }
+
+    pub fn enqueue_free_card_service(&mut self) {
+        self.stage_grants.free_card_services += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multiplier_stacks_are_order_independent_and_round_only_when_applied() {
+        let factors = [
+            FixedRatio::from_raw(500_001),
+            FixedRatio::from_raw(500_001),
+            FixedRatio::from_raw(771_635),
+        ];
+        let mut first = StageModifiers::new();
+        let mut second = StageModifiers::new();
+        for factor in factors {
+            first.apply_enemy_health_multiplier(factor);
+        }
+        for factor in factors.into_iter().rev() {
+            second.apply_enemy_health_multiplier(factor);
+        }
+
+        assert_eq!(
+            first.get_enemy_health_multiplier(),
+            second.get_enemy_health_multiplier()
+        );
+        assert_eq!(first.get_enemy_health_multiplier().raw(), 192_910);
+
+        let base = Health::from_raw(1_086);
+        let first_scaled = base.scaled_by_product(first.enemy_health_multipliers());
+        let second_scaled = base.scaled_by_product(second.enemy_health_multipliers());
+        assert_eq!(first_scaled, second_scaled);
+        assert_eq!(first_scaled.raw(), 209);
+    }
+
+    #[test]
+    fn raw_state_round_trip_preserves_authoritative_payload() {
+        let mut modifiers = StageModifiers::new();
+        modifiers.apply_damage_multiplier(FixedRatio::from_raw(750_000));
+        modifiers.apply_max_hand_slots_bonus(2);
+        modifiers.disable_rank(Rank::Ace);
+        modifiers.disable_suit(Suit::Clubs);
+        modifiers.enqueue_extra_tower_card(TowerKind::StraightFlush, Some(Suit::Hearts), None);
+        modifiers.enqueue_free_card_service();
+
+        let raw = modifiers.to_core_state();
+        let mut restored = StageModifiers::from_core_state(raw.clone()).expect("valid raw state");
+
+        assert_eq!(restored.to_core_state(), raw);
+        assert_eq!(restored.get_damage_multiplier().raw(), 750_000);
+        assert_eq!(restored.get_max_hand_slots_bonus(), 2);
+        assert_eq!(restored.drain_free_card_services(), 1);
+    }
+
+    #[test]
+    fn raw_state_rejects_invalid_enum_values() {
+        let mut raw = StageModifiers::new().to_core_state();
+        raw.disabled_ranks.push(13);
+
+        assert!(StageModifiers::from_core_state(raw).is_none());
+    }
+}
