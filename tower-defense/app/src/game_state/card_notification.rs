@@ -10,7 +10,6 @@ use namui::*;
 
 const CARD_WIDTH: Px = px(120.0);
 const CARD_HEIGHT: Px = px(162.0);
-const TOTAL_DURATION_SECS: f32 = 3.0;
 const CARD_LIFETIME_SECS: f32 = 2.0;
 const STAGGER_WINDOW_SECS: f32 = 1.0;
 const EXIT_SCREEN_FACTOR: f32 = 0.65;
@@ -18,7 +17,7 @@ const ENHANCED_FADE_IN_START: f32 = 0.3;
 const ENHANCED_FADE_OUT_END: f32 = 0.6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
-enum CardServiceNotificationEntry {
+pub(crate) enum CardServiceNotificationEntry {
     Added { card: Card },
     Removed { card: Card },
     Enhanced { from: Card, to: Card },
@@ -26,7 +25,7 @@ enum CardServiceNotificationEntry {
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct CardServiceNotification {
-    entries: Vec<CardServiceNotificationEntry>,
+    pub(crate) entries: Vec<CardServiceNotificationEntry>,
 }
 impl CardServiceNotification {
     pub fn new() -> Self {
@@ -58,13 +57,57 @@ impl Default for CardServiceNotification {
     }
 }
 
-type CardServiceNotificationPlaybackEntryId = usize;
+pub(crate) fn from_deck_diff(
+    before: &td_core::DeckState,
+    after: &td_core::DeckState,
+) -> Result<Option<CardServiceNotification>, crate::game_state::CommandError> {
+    let mut notification = CardServiceNotification::new();
+
+    for before_card in &before.all_cards {
+        let Some(after_card) = after
+            .all_cards
+            .iter()
+            .find(|card| card.id == before_card.id)
+        else {
+            notification.removed(
+                Card::from_core_state(before_card.clone())
+                    .ok_or(crate::game_state::CommandError::Rejected)?,
+            );
+            continue;
+        };
+        if before_card != after_card {
+            notification.enhanced(
+                Card::from_core_state(before_card.clone())
+                    .ok_or(crate::game_state::CommandError::Rejected)?,
+                Card::from_core_state(after_card.clone())
+                    .ok_or(crate::game_state::CommandError::Rejected)?,
+            );
+        }
+    }
+
+    for after_card in &after.all_cards {
+        if before.all_cards.iter().all(|card| card.id != after_card.id) {
+            notification.added(
+                Card::from_core_state(after_card.clone())
+                    .ok_or(crate::game_state::CommandError::Rejected)?,
+            );
+        }
+    }
+
+    if notification.entries.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(notification))
+    }
+}
+
+pub(crate) type CardServiceNotificationPlaybackEntryId = usize;
 
 #[derive(Debug, Clone, PartialEq, State)]
-struct CardServiceNotificationPlaybackEntry {
-    id: CardServiceNotificationPlaybackEntryId,
-    notification_entry: CardServiceNotificationEntry,
-    position_offset: Xy<f32>,
+pub(crate) struct CardServiceNotificationPlaybackEntry {
+    pub(crate) id: CardServiceNotificationPlaybackEntryId,
+    pub(crate) notification_entry: CardServiceNotificationEntry,
+    pub(crate) position_offset: Xy<f32>,
 }
 impl CardServiceNotificationPlaybackEntry {
     fn new(notification_entry: CardServiceNotificationEntry, index: usize, total: usize) -> Self {
@@ -97,46 +140,26 @@ impl CardServiceNotificationPlaybackEntry {
 
 #[derive(Debug, Clone, PartialEq, State)]
 pub struct CardServiceNotificationPlayback {
-    entries: Vec<CardServiceNotificationPlaybackEntry>,
+    pub(crate) entries: Vec<CardServiceNotificationPlaybackEntry>,
     pub(crate) start_time: PresentationInstant,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, State)]
-pub struct CardServiceNotificationState {
-    pub current: Option<CardServiceNotificationPlayback>,
-    pub queue: Vec<CardServiceNotification>,
-}
-
-impl CardServiceNotificationState {
-    pub fn advance(&mut self, presentation_instant: PresentationInstant) {
-        match self.current.as_ref() {
-            Some(current)
-                if presentation_instant
-                    .delta_since(current.start_time)
-                    .as_secs_f32()
-                    < TOTAL_DURATION_SECS =>
-            {
-                return;
-            }
-            _ => {}
-        }
-
-        if let Some(notification) = self.queue.first().cloned() {
-            self.queue.remove(0);
-            let total = notification.entries.len();
-            self.current = Some(CardServiceNotificationPlayback {
-                entries: notification
-                    .entries
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, entry)| {
-                        CardServiceNotificationPlaybackEntry::new(entry, index, total)
-                    })
-                    .collect(),
-                start_time: presentation_instant,
-            });
-        } else {
-            self.current = None;
+impl CardServiceNotificationPlayback {
+    pub(crate) fn from_notification(
+        notification: CardServiceNotification,
+        presentation_instant: PresentationInstant,
+    ) -> Self {
+        let total = notification.entries.len();
+        Self {
+            entries: notification
+                .entries
+                .into_iter()
+                .enumerate()
+                .map(|(index, entry)| {
+                    CardServiceNotificationPlaybackEntry::new(entry, index, total)
+                })
+                .collect(),
+            start_time: presentation_instant,
         }
     }
 }
@@ -148,23 +171,38 @@ pub struct CardServiceNotificationLayer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::card::{Rank, Suit};
 
     #[test]
-    fn playback_starts_at_the_presentation_frame_for_any_simulation_speed() {
+    fn playback_starts_at_the_directors_presentation_frame() {
         let frame = PresentationInstant::from_namui(Instant::new(Duration::from_secs(10)));
-        let later = PresentationInstant::from_namui(Instant::new(Duration::from_secs(11)));
+        let playback = CardServiceNotificationPlayback::from_notification(
+            CardServiceNotification::new(),
+            frame,
+        );
+        assert_eq!(playback.start_time, frame);
+    }
 
-        for _simulated_ticks in [60_u64, 480_u64] {
-            let mut state = CardServiceNotificationState::default();
-            state.queue.push(CardServiceNotification::new());
-            state.advance(frame);
+    #[test]
+    fn card_service_deck_diff_creates_a_visible_enhancement_entry() {
+        let card = crate::card::Card::new(Rank::Ace, Suit::Spades);
+        let before = td_core::DeckState {
+            revision: 0,
+            next_card_id: 1,
+            all_cards: vec![card.to_core_state()],
+            draw_pile: Vec::new(),
+            discard_pile: Vec::new(),
+        };
+        let mut after = before.clone();
+        after.all_cards[0].polish_pct_raw = 1_000_000;
 
-            let playback = state.current.as_ref().expect("playback should start");
-            assert_eq!(playback.start_time, frame);
-
-            state.advance(later);
-            assert!(state.current.is_some());
-        }
+        let notification = from_deck_diff(&before, &after).expect("deck diff should decode cards");
+        let notification = notification.expect("enhancement should create notification");
+        assert_eq!(notification.entries.len(), 1);
+        assert!(matches!(
+            notification.entries[0],
+            CardServiceNotificationEntry::Enhanced { .. }
+        ));
     }
 }
 
@@ -174,26 +212,7 @@ impl Component for CardServiceNotificationLayer {
         let presentation_instant = self.presentation_instant;
         let screen_wh = screen::size().map(IntPx::into_px);
 
-        let should_advance = match game_state.card_service_notifications.current.as_ref() {
-            Some(current) => {
-                presentation_instant
-                    .delta_since(current.start_time)
-                    .as_secs_f32()
-                    >= TOTAL_DURATION_SECS
-            }
-            None => !game_state.card_service_notifications.queue.is_empty(),
-        };
-        if should_advance {
-            ctx.effect("advance card service notifications", || {
-                crate::game_state::mutate_headed_game(move |game_state| {
-                    game_state
-                        .card_service_notifications
-                        .advance(presentation_instant);
-                });
-            });
-        }
-
-        let Some(playback) = game_state.card_service_notifications.current.as_ref() else {
+        let Some(playback) = game_state.presentation_director.active_card_notification() else {
             return;
         };
 

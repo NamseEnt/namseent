@@ -21,11 +21,13 @@ pub mod monster;
 pub(crate) mod monster_spawn;
 mod placed_towers;
 pub(crate) mod presentation_deck;
+pub(crate) mod presentation_director;
 pub(crate) mod presentation_effect;
 pub mod presentation_event;
 pub(crate) mod presentation_inventory;
 pub(crate) mod presentation_metadata;
 pub(crate) mod presentation_reconciler;
+pub(crate) mod presentation_sequence;
 pub(crate) mod presentation_transition;
 pub(crate) mod presentation_upgrade;
 pub(crate) use compatibility_action::CompatibilityAction;
@@ -3059,6 +3061,7 @@ pub fn restart_game() {
     mutate_headed_game(|headed_game| {
         let previous_discoveries = headed_game.discovery.clone();
         headed_game.state = create_initial_game_state();
+        headed_game.presentation_director.clear();
         headed_game.play_history = crate::game_state::play_history::PlayHistory::new();
         headed_game
             .state
