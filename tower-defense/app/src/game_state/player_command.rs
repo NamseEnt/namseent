@@ -161,6 +161,11 @@ impl GameState {
         } else {
             None
         };
+        let before_card_service_deck = matches!(
+            &command,
+            HeadedPlayerCommand::ConfirmCardServiceSelection { .. }
+        )
+        .then(|| before.deck().clone());
 
         let receipt = self.raw_core.apply(player_command)?;
         let after = self.raw_core.state().clone();
@@ -222,6 +227,15 @@ impl GameState {
             }
             HeadedPlayerCommand::ConfirmCardServiceSelection { .. } => {
                 self.set_user_modal(None);
+                if let Some(before_deck) = before_card_service_deck
+                    && let Some(notification) =
+                        crate::game_state::card_notification::from_deck_diff(
+                            &before_deck,
+                            after.deck(),
+                        )?
+                {
+                    self.pending_card_service_notifications.push(notification);
+                }
             }
             HeadedPlayerCommand::StartSelectingTower
             | HeadedPlayerCommand::SelectTower { .. }

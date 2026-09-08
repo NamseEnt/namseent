@@ -8,10 +8,10 @@ pub(crate) struct HeadedGame {
     pub(crate) locale: crate::l10n::Locale,
     pub(crate) play_history: crate::game_state::play_history::PlayHistory,
     pub(crate) discovery: crate::game_state::discovery::DiscoveryState,
-    pub(crate) card_service_notifications:
-        crate::game_state::card_notification::CardServiceNotificationState,
     pub(crate) opened_modals: crate::game_state::modal::OpenedModals,
     pub(crate) presentation_events: crate::game_state::PresentationEventQueue,
+    pub(crate) presentation_director:
+        crate::game_state::presentation_director::PresentationDirector,
     pub(crate) base_animation_state: crate::game_state::BaseAnimationState,
     pub(crate) black_smoke_sources:
         Vec<crate::game_state::field_particle::emitter::BlackSmokeSource>,
@@ -124,9 +124,9 @@ impl HeadedGame {
             state,
             play_history,
             discovery: Default::default(),
-            card_service_notifications: Default::default(),
             opened_modals: Default::default(),
             presentation_events,
+            presentation_director: Default::default(),
             base_animation_state: crate::game_state::BaseAnimationState::new(crate::SimTick::ZERO),
             black_smoke_sources: Default::default(),
             status_effect_particle_generator: crate::game_state::StatusEffectParticleGenerator::new(
@@ -152,9 +152,12 @@ impl HeadedGame {
     pub(crate) fn flush_pending_action_effects(&mut self) {
         let effects = self.state.take_pending_action_effects();
         self.play_history.events.extend(effects.history_events);
-        self.card_service_notifications
-            .queue
-            .extend(effects.card_service_notifications);
+        if !self.state.headless {
+            for notification in effects.card_service_notifications {
+                self.presentation_director
+                    .enqueue_card_notification(notification, self.state.sim_tick());
+            }
+        }
         self.presentation_events
             .events
             .extend(effects.presentation_events.events);
@@ -170,12 +173,44 @@ impl HeadedGame {
         if self.state.headless {
             crate::game_state::core_event_bridge::consume_headless(events);
         } else {
-            crate::game_state::core_event_bridge::consume_headed(
+            let defense_intros = crate::game_state::core_event_bridge::consume_headed(
                 &mut self.state,
                 events,
                 presentation_instant,
             );
+            for (event_index, stage) in defense_intros {
+                let selection = crate::game_state::presentation_sequence::strongest_enemy_for_stage(
+                    self.state.raw_core_state().config(),
+                    stage,
+                );
+                if selection.used_fallback {
+                    eprintln!(
+                        "defense intro fallback: no valid wave entry for authoritative stage {stage}"
+                    );
+                }
+                self.presentation_director.enqueue_defense_intro(
+                    crate::game_state::presentation_director::PresentationId::for_core_event(
+                        self.state.sim_tick(),
+                        event_index,
+                    ),
+                    stage,
+                    selection.monster_kind,
+                    presentation_instant,
+                    self.state.sim_tick(),
+                );
+            }
         }
+    }
+
+    pub(crate) fn advance_presentation(
+        &mut self,
+        presentation_instant: crate::PresentationInstant,
+    ) {
+        self.presentation_director.advance(presentation_instant);
+    }
+
+    pub(crate) fn presentation_is_blocking(&self) -> bool {
+        self.presentation_director.is_blocking()
     }
 }
 
@@ -209,6 +244,7 @@ impl HeadedGame {
                 )?;
             }
         }
+        self.presentation_director.clear();
         self.locale = self.state.locale();
 
         let raw_snapshot = self.state.raw_render_snapshot();

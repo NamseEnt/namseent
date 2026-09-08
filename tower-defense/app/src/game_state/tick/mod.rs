@@ -18,20 +18,43 @@ impl Component for Ticker {
         let presentation_instant = self.presentation_instant;
         ctx.interval("game state tick", TICK_MAX_DURATION, |real_dt| {
             crate::game_state::mutate_headed_game(move |game_state| {
+                game_state.advance_presentation(presentation_instant);
                 if !game_state.sim_scheduler.has_render_snapshot() {
                     let snapshot = game_state.capture_render_snapshot();
                     game_state.sim_scheduler.rebase_render_snapshot(snapshot);
                 }
                 let presentation_delta = PresentationDelta::from_namui(real_dt);
                 let fast_forward_multiplier = game_state.fast_forward_multiplier;
-                let report = game_state
-                    .sim_scheduler
-                    .advance_frame(presentation_delta, fast_forward_multiplier);
+                let mut report = if presentation_gate_is_active(
+                    game_state.headless,
+                    game_state.presentation_is_blocking(),
+                ) {
+                    game_state
+                        .sim_scheduler
+                        .discard_blocked_frame(presentation_delta, fast_forward_multiplier)
+                } else {
+                    game_state
+                        .sim_scheduler
+                        .advance_frame(presentation_delta, fast_forward_multiplier)
+                };
                 game_state.sim_scheduler_report = report;
-                for _ in 0..report.executed_ticks {
+                let scheduled_ticks = report.executed_ticks;
+                let mut executed_ticks = 0;
+                for _ in 0..scheduled_ticks {
+                    if presentation_gate_is_active(
+                        game_state.headless,
+                        game_state.presentation_is_blocking(),
+                    ) {
+                        report = game_state
+                            .sim_scheduler
+                            .discard_scheduled_ticks(scheduled_ticks - executed_ticks);
+                        break;
+                    }
                     advance_simulation_tick_at(game_state, presentation_instant);
                     game_state.consume_core_events(presentation_instant);
                     game_state.apply_presentation_triggers(presentation_instant);
+                    game_state.flush_pending_action_effects();
+                    executed_ticks += 1;
                     let sim_tick = game_state.sim_tick();
                     game_state.update_base_animations(sim_tick);
                     tick_world_visuals(game_state, sim_tick, presentation_instant);
@@ -45,6 +68,10 @@ impl Component for Ticker {
                         game_state.clear_presentation_events();
                     }
                 }
+                if executed_ticks != scheduled_ticks {
+                    report.executed_ticks = executed_ticks;
+                    game_state.sim_scheduler_report = report;
+                }
                 if !game_state.headless {
                     update_presentation_frame(game_state, presentation_instant, presentation_delta);
                 }
@@ -52,6 +79,10 @@ impl Component for Ticker {
         });
         game_state.record_as_used();
     }
+}
+
+fn presentation_gate_is_active(headless: bool, presentation_is_blocking: bool) -> bool {
+    !headless && presentation_is_blocking
 }
 
 pub(crate) fn advance_simulation_tick(game_state: &mut GameState) {
@@ -432,5 +463,12 @@ mod tests {
         assert_eq!(x1.sim_tick(), SimTick::from_ticks(120));
         assert_eq!(x8.sim_tick(), SimTick::from_ticks(120));
         assert_eq!(authoritative_hash(&x1), authoritative_hash(&x8));
+    }
+
+    #[test]
+    fn headless_mode_bypasses_the_presentation_gate() {
+        assert!(!presentation_gate_is_active(true, true));
+        assert!(presentation_gate_is_active(false, true));
+        assert!(!presentation_gate_is_active(false, false));
     }
 }

@@ -40,20 +40,7 @@ impl FixedTickScheduler {
         multiplier: FastForwardMultiplier,
     ) -> ScheduleReport {
         self.revision = self.revision.wrapping_add(1);
-        let scaled_units = (real_dt.as_nanos() as u128)
-            .saturating_mul(multiplier.time_scale().get() as u128)
-            .saturating_mul(SIM_TICKS_PER_SECOND)
-            .min(u64::MAX as u128) as u64;
-        self.accumulator_units = self.accumulator_units.saturating_add(scaled_units);
-
-        let max_backlog_units = MAX_BACKLOG_TICKS.saturating_mul(NANOS_PER_SECOND as u64);
-        let mut discarded_units = 0;
-        if self.accumulator_units > max_backlog_units {
-            discarded_units = self.accumulator_units - max_backlog_units;
-            self.accumulator_units = max_backlog_units;
-            self.discarded_units = self.discarded_units.saturating_add(discarded_units);
-        }
-
+        let discarded_units = self.accumulate_frame_units(real_dt, multiplier);
         let available_steps = self.accumulator_units / NANOS_PER_SECOND as u64;
         let executed_ticks = available_steps.min(MAX_STEPS_PER_FRAME as u64) as u32;
         self.accumulator_units -= executed_ticks as u64 * NANOS_PER_SECOND as u64;
@@ -66,6 +53,49 @@ impl FixedTickScheduler {
         }
     }
 
+    pub(crate) fn discard_blocked_frame(
+        &mut self,
+        real_dt: PresentationDelta,
+        multiplier: FastForwardMultiplier,
+    ) -> ScheduleReport {
+        self.revision = self.revision.wrapping_add(1);
+        let incoming_units = self.scaled_units(real_dt, multiplier);
+        let discarded_units = self.accumulator_units.saturating_add(incoming_units);
+        self.accumulator_units = 0;
+        self.discarded_units = self.discarded_units.saturating_add(discarded_units);
+        ScheduleReport {
+            executed_ticks: 0,
+            backlog_ticks: 0,
+            fractional_units: 0,
+            discarded_units,
+        }
+    }
+
+    fn accumulate_frame_units(
+        &mut self,
+        real_dt: PresentationDelta,
+        multiplier: FastForwardMultiplier,
+    ) -> u64 {
+        let scaled_units = self.scaled_units(real_dt, multiplier);
+        self.accumulator_units = self.accumulator_units.saturating_add(scaled_units);
+
+        let max_backlog_units = MAX_BACKLOG_TICKS.saturating_mul(NANOS_PER_SECOND as u64);
+        let mut discarded_units = 0;
+        if self.accumulator_units > max_backlog_units {
+            discarded_units = self.accumulator_units - max_backlog_units;
+            self.accumulator_units = max_backlog_units;
+            self.discarded_units = self.discarded_units.saturating_add(discarded_units);
+        }
+        discarded_units
+    }
+
+    fn scaled_units(&self, real_dt: PresentationDelta, multiplier: FastForwardMultiplier) -> u64 {
+        (real_dt.as_nanos() as u128)
+            .saturating_mul(multiplier.time_scale().get() as u128)
+            .saturating_mul(SIM_TICKS_PER_SECOND)
+            .min(u64::MAX as u128) as u64
+    }
+
     pub(crate) fn rebase_render_snapshot(&mut self, snapshot: WorldRenderSnapshot) {
         self.render_history.rebase(snapshot);
         self.revision = self.revision.wrapping_add(1);
@@ -74,6 +104,21 @@ impl FixedTickScheduler {
     pub(crate) fn commit_render_snapshot(&mut self, snapshot: WorldRenderSnapshot) {
         self.render_history.commit(snapshot);
         self.revision = self.revision.wrapping_add(1);
+    }
+
+    pub(crate) fn discard_scheduled_ticks(&mut self, ticks: u32) -> ScheduleReport {
+        self.revision = self.revision.wrapping_add(1);
+        let discarded_units = self
+            .accumulator_units
+            .saturating_add(u64::from(ticks).saturating_mul(NANOS_PER_SECOND as u64));
+        self.accumulator_units = 0;
+        self.discarded_units = self.discarded_units.saturating_add(discarded_units);
+        ScheduleReport {
+            executed_ticks: 0,
+            backlog_ticks: 0,
+            fractional_units: 0,
+            discarded_units,
+        }
     }
 
     pub(crate) fn has_render_snapshot(&self) -> bool {
@@ -213,6 +258,42 @@ mod tests {
         );
         assert!(report.discarded_units > 0);
         assert_eq!(scheduler.discarded_units(), report.discarded_units);
+    }
+
+    #[test]
+    fn blocked_frames_discard_elapsed_time_without_executing_ticks() {
+        let mut scheduler = FixedTickScheduler::default();
+        let blocked = scheduler.discard_blocked_frame(
+            PresentationDelta::from_nanos(1_000_000_000),
+            FastForwardMultiplier::X1,
+        );
+        assert_eq!(blocked.executed_ticks, 0);
+        assert_eq!(blocked.backlog_ticks, 0);
+
+        let resumed = scheduler.advance_frame(PresentationDelta::ZERO, FastForwardMultiplier::X1);
+        assert_eq!(resumed.executed_ticks, 0);
+        assert_eq!(resumed.backlog_ticks, 0);
+    }
+
+    #[test]
+    fn blocked_scheduled_ticks_are_discarded_instead_of_replayed() {
+        let mut scheduler = FixedTickScheduler::default();
+        let report = scheduler.advance_frame(
+            PresentationDelta::from_nanos(100_000_000),
+            FastForwardMultiplier::X1,
+        );
+        assert_eq!(report.executed_ticks, 6);
+
+        let discarded = scheduler.discard_scheduled_ticks(4);
+        assert_eq!(discarded.executed_ticks, 0);
+        assert_eq!(discarded.backlog_ticks, 0);
+        assert!(discarded.discarded_units > 0);
+        assert_eq!(
+            scheduler
+                .advance_frame(PresentationDelta::ZERO, FastForwardMultiplier::X1)
+                .executed_ticks,
+            0
+        );
     }
 
     #[test]

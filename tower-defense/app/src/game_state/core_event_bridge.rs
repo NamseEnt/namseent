@@ -6,8 +6,9 @@ pub(crate) fn consume_headed(
     game_state: &mut GameState,
     events: impl IntoIterator<Item = td_core::CoreEvent>,
     presentation_instant: crate::PresentationInstant,
-) {
-    for event in events {
+) -> Vec<(usize, usize)> {
+    let mut defense_intros = Vec::new();
+    for (event_index, event) in events.into_iter().enumerate() {
         match event {
             td_core::CoreEvent::CardServiceSelectionRequested {
                 service_kind,
@@ -241,7 +242,8 @@ pub(crate) fn consume_headed(
                     ),
                 );
             }
-            td_core::CoreEvent::DefenseStarted { .. } => {
+            td_core::CoreEvent::DefenseStarted { stage } => {
+                defense_intros.push((event_index, stage));
                 game_state.push_presentation_event(
                     crate::game_state::PresentationEvent::PlaySoundCue {
                         cue: crate::game_state::SoundCue::StartDefenseFanfare,
@@ -264,6 +266,7 @@ pub(crate) fn consume_headed(
             }
         }
     }
+    defense_intros
 }
 
 fn projectile_spawn_presentation_event(

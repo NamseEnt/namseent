@@ -1,4 +1,4 @@
-mod animation;
+pub(crate) mod animation;
 mod camera_controller;
 pub mod combat_number;
 pub mod config;
@@ -176,6 +176,12 @@ impl Component for Game {
             ));
             set_bgm_started.set(true);
         }
+
+        ctx.add(
+            game_state::presentation_sequence::PresentationSequenceLayer {
+                presentation_instant,
+            },
+        );
 
         ctx.add(
             game_state::card_notification::CardServiceNotificationLayer {
