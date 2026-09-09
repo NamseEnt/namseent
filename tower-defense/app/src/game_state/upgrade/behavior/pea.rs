@@ -78,10 +78,7 @@ mod tests {
         );
         assert_eq!(
             game_state.max_hp(),
-            game_state
-                .config
-                .player
-                .max_hp
+            crate::Health::from_raw(game_state.config.player.max_hp_raw)
                 .saturating_add_delta(crate::HealthDelta::from_integer(3))
         );
         assert_eq!(game_state.hp, game_state.max_hp());

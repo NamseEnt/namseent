@@ -106,7 +106,11 @@ fn heal_and_shield_and_earngold_via_run_effect() {
             amount: crate::Health::from_integer(20),
         },
     );
-    assert_eq!(gs.hp, gs.config.player.max_hp, "체력은 최대치로 제한됨");
+    assert_eq!(
+        gs.hp.raw(),
+        gs.config.player.max_hp_raw,
+        "체력은 최대치로 제한됨"
+    );
 
     let mut gs = make_test_state();
     run_effect(

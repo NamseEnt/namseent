@@ -17,7 +17,7 @@ pub struct CoreReplay {
     pub rng_algorithm_version: u32,
     #[serde(default)]
     pub event_digest_version: u32,
-    pub config: crate::GameConfigState,
+    pub config: crate::GameConfig,
     pub config_digest: String,
     pub seed: u64,
     pub commands: Vec<crate::RecordedPlayerCommand>,
@@ -306,7 +306,7 @@ pub enum CoreReplayError {
     },
 }
 
-fn config_digest(config: &crate::GameConfigState) -> String {
+fn config_digest(config: &crate::GameConfig) -> String {
     let bytes = serde_json::to_vec(config).expect("core config serialization must succeed");
     let digest = sha2::Sha256::digest(bytes);
     digest.iter().map(|byte| format!("{byte:02x}")).collect()

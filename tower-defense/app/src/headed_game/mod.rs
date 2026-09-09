@@ -237,12 +237,6 @@ impl HeadedGame {
             crate::game_state::persistence::LoadedGameState::Current(persisted) => {
                 crate::game_state::persistence::restore(&mut self.state, *persisted)?;
             }
-            crate::game_state::persistence::LoadedGameState::LegacyCoreSnapshot(snapshot) => {
-                crate::game_state::persistence::LegacyGameStateMigration::load_core_into(
-                    &mut self.state,
-                    *snapshot,
-                )?;
-            }
         }
         self.presentation_director.clear();
         self.locale = self.state.locale();

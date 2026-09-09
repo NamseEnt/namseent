@@ -9,7 +9,7 @@ use crate::{
     game_state::{monster::render::MonsterAnimation, projectile::ProjectileTargetIndicator},
     route::MoveOnRoute,
 };
-#[cfg(any(test, feature = "debug-tools"))]
+#[cfg(test)]
 use crate::{SimTick, route::Route};
 pub use monster_kind::MonsterKind;
 pub use monster_template::MonsterTemplate;
@@ -17,7 +17,7 @@ use namui::*;
 pub(crate) use render::RenderMonsterPose;
 pub use render::{monster_animation_tick, monster_wh};
 pub use skill::{MonsterSkill, MonsterSkillTemplate, MonsterStatusEffect, MonsterStatusEffectKind};
-#[cfg(any(test, feature = "debug-tools"))]
+#[cfg(test)]
 use std::sync::Arc;
 
 const MONSTER_HP_BAR_HEIGHT: Px = px(4.);
@@ -47,7 +47,7 @@ pub(crate) struct MonsterPresentationState {
 }
 
 impl Monster {
-    #[cfg(any(test, feature = "debug-tools"))]
+    #[cfg(test)]
     pub(crate) fn new_with_id(
         template: &MonsterTemplate,
         route: Arc<Route>,

@@ -1860,7 +1860,7 @@ fn run_with_threads<T: Send>(
 
 fn load_config(path: Option<PathBuf>) -> Result<GameConfig> {
     match path {
-        Some(path) => GameConfig::from_toml(&path)
+        Some(path) => crate::config::load_jsonc(&path)
             .with_context(|| format!("failed to load config {}", path.display())),
         None => Ok(GameConfig::default_config()),
     }

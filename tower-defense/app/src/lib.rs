@@ -1,3 +1,4 @@
+mod act_progress;
 pub(crate) mod animation;
 mod camera_controller;
 pub mod combat_number;
@@ -62,6 +63,7 @@ mod kv_store_memory_provider_link {
 
 use crate::camera_controller::CameraController;
 use crate::sound::{EmitSoundParams, SoundGroup, SpatialMode, VolumePreset};
+use act_progress::ActProgressStrip;
 use card::*;
 use game_state::TILE_PX_SIZE;
 use inventory::Inventory;
@@ -256,6 +258,8 @@ impl Component for Game {
             table::vertical([
                 table::fixed_no_clip(TOP_BAR_HEIGHT, |wh, ctx| {
                     ctx.add(TopBar { wh });
+                    ctx.translate((0.px(), TOP_BAR_HEIGHT))
+                        .add(ActProgressStrip { wh });
                 }),
                 table::ratio_no_clip(
                     1,

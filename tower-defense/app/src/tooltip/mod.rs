@@ -45,6 +45,13 @@ pub enum TooltipPlacement {
     Below,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub enum StageIndicatorKind {
+    Treasure,
+    Combat,
+    StrongEnemy,
+}
+
 #[derive(Debug, Clone, PartialEq, State)]
 pub enum TooltipContent {
     Item(Item),
@@ -64,6 +71,7 @@ pub enum TooltipContent {
         text: FabTooltipText,
         health_cost: Option<usize>,
     },
+    Stage(StageIndicatorKind),
     Undiscovered,
 }
 
@@ -206,6 +214,36 @@ impl TooltipContent {
                     });
                 }
                 sections
+            }
+            TooltipContent::Stage(kind) => {
+                let (title, body) = match kind {
+                    StageIndicatorKind::Treasure => (
+                        l10n::ui::StageIndicatorText::TreasureTitle,
+                        l10n::ui::StageIndicatorText::TreasureDescription,
+                    ),
+                    StageIndicatorKind::Combat => (
+                        l10n::ui::StageIndicatorText::CombatTitle,
+                        l10n::ui::StageIndicatorText::CombatDescription,
+                    ),
+                    StageIndicatorKind::StrongEnemy => (
+                        l10n::ui::StageIndicatorText::StrongEnemyTitle,
+                        l10n::ui::StageIndicatorText::StrongEnemyDescription,
+                    ),
+                };
+                vec![TooltipSection {
+                    title: Some(SectionText {
+                        key: format!("stage_indicator:{kind:?}:title"),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(title, &locale);
+                        }),
+                    }),
+                    body: SectionText {
+                        key: format!("stage_indicator:{kind:?}:description"),
+                        apply: Box::new(move |builder| {
+                            builder.l10n(body, &locale);
+                        }),
+                    },
+                }]
             }
             TooltipContent::Undiscovered => vec![TooltipSection {
                 title: None,

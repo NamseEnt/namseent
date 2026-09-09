@@ -43,7 +43,8 @@ pub(crate) fn intro_horizontal_progress(progress: f32) -> f32 {
 
 fn intro_info_text_offset(progress: f32, screen_width: Px) -> Px {
     let eased_progress = INTRO_BEZIER.sample(progress);
-    (screen_width * 0.5) - INTRO_INFO_MARGIN - screen_width * eased_progress
+    (screen_width + INTRO_INFO_MARGIN)
+        - (screen_width * 2.0 + INTRO_INFO_MARGIN * 2.0) * eased_progress
 }
 
 fn letterbox_presence(progress: f32) -> f32 {

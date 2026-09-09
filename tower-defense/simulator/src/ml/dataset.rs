@@ -666,7 +666,7 @@ mod tests {
 
         assert_eq!(dataset.metadata.dataset_role, DatasetRole::BehaviorSmoke);
         assert_eq!(dataset.metadata.episode_count, 1);
-        assert_eq!(dataset.metadata.step_count, 82);
+        assert_eq!(dataset.metadata.step_count, 102);
         let outcome = dataset.episodes[0]
             .outcome
             .as_ref()
@@ -674,7 +674,7 @@ mod tests {
         assert!(!outcome.victory);
         assert!(outcome.terminated);
         assert!(!outcome.truncated);
-        assert_eq!(outcome.final_stage, 7);
+        assert_eq!(outcome.final_stage, 9);
         assert_eq!(
             outcome.termination_reason,
             crate::environment::StepReason::Terminal

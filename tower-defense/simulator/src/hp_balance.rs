@@ -99,12 +99,12 @@ pub struct BalanceOptions {
     #[arg(short, long, default_value_t = 0)]
     threads: usize,
 
-    /// Input simulation config TOML file
+    /// Input simulation config JSONC file
     #[arg(long)]
     config: Option<PathBuf>,
 
-    /// Output tuned game config TOML file
-    #[arg(long, default_value = "gameconfig.toml")]
+    /// Output tuned game config JSONC file
+    #[arg(long, default_value = "gameconfig.jsonc")]
     output: PathBuf,
 
     /// Stop after this many tuning iterations
@@ -208,9 +208,9 @@ struct DistributionControl {
 
 pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
     let mut base_config = if let Some(path) = &cli.config {
-        GameConfig::from_toml(path)?
+        GameConfig::from_jsonc(path).map_err(anyhow::Error::msg)?
     } else {
-        GameConfig::from_toml("gameconfig.toml")?
+        GameConfig::default_config()
     };
     if let Some(initial_base_hp) = cli.initial_base_hp {
         normalize_normal_monster_hp(&mut base_config, initial_base_hp.max(1.0));
@@ -247,7 +247,9 @@ pub fn run(cli: BalanceOptions) -> anyhow::Result<()> {
 
     let tuned_config = tune_hp_balance(&pool, base_config, &cli, recorder, stop_requested)?;
 
-    tuned_config.write_toml(&cli.output)?;
+    tuned_config
+        .write_jsonc(&cli.output)
+        .map_err(anyhow::Error::msg)?;
     println!("Saved tuned config to {}", cli.output.display());
 
     Ok(())

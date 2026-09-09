@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod attack;
 pub mod background;
 mod base;
@@ -1441,7 +1443,10 @@ impl namui::bincode::Encode for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().encode(encoder)?;
         encode_rng_state(&self.rng, encoder)?;
         encode_route(&self.route, encoder)?;
-        self.config_for_legacy_serialization().encode(encoder)?;
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
+            .encode(encoder)?;
         encode_stage_modifiers(&self.stage_modifiers, encoder)?;
         encode_upgrade_state(&self.upgrade_state, encoder)?;
         encode_hand(&self.hand, encoder)?;
@@ -1482,11 +1487,10 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
         let sim_tick = SimTick::from_ticks(u64::decode(decoder)?);
         let rng = decode_rng_state(decoder)?;
         let route = decode_route(decoder)?;
+        let config_json = String::decode(decoder)?;
         let config = Arc::new(
-            GameConfig::from_core_state(Arc::<GameConfig>::decode(decoder)?.to_core_state())
-                .ok_or(namui::bincode::error::DecodeError::OtherString(
-                    "invalid game config state".to_string(),
-                ))?,
+            GameConfig::from_jsonc_str(&config_json)
+                .map_err(namui::bincode::error::DecodeError::OtherString)?,
         );
         let stage_modifiers = decode_stage_modifiers(decoder)?;
         let upgrade_state = decode_upgrade_state(decoder)?;
@@ -1564,7 +1568,10 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().serialize(buf);
         serialize_rng_state(&self.rng, buf);
         serialize_route(&self.route, buf);
-        self.config_for_legacy_serialization().serialize(buf);
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
+            .serialize(buf);
         serialize_stage_modifiers(&self.stage_modifiers, buf);
         serialize_upgrade_state(&self.upgrade_state, buf);
         serialize_hand(&self.hand, buf);
@@ -1596,7 +1603,9 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().serialize_without_name(buf);
         serialize_rng_state_without_name(&self.rng, buf);
         serialize_route_without_name(&self.route, buf);
-        self.config_for_legacy_serialization()
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
             .serialize_without_name(buf);
         serialize_stage_modifiers_without_name(&self.stage_modifiers, buf);
         serialize_upgrade_state_without_name(&self.upgrade_state, buf);
@@ -1643,10 +1652,11 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             deserialize_rng_state(buf)?,
             deserialize_route(buf)?,
             Arc::new(
-                GameConfig::from_core_state(Arc::<GameConfig>::deserialize(buf)?.to_core_state())
-                    .ok_or(namui::DeserializeError::InvalidEnumVariant {
-                    expected: "valid game config state".to_string(),
-                    actual: "invalid game config state".to_string(),
+                GameConfig::from_jsonc_str(&String::deserialize(buf)?).map_err(|_| {
+                    namui::DeserializeError::InvalidEnumVariant {
+                        expected: "valid game config state".to_string(),
+                        actual: "invalid game config state".to_string(),
+                    }
                 })?,
             ),
             deserialize_stage_modifiers(buf)?,
@@ -1698,13 +1708,12 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             deserialize_rng_state_without_name(buf)?,
             deserialize_route_without_name(buf)?,
             Arc::new(
-                GameConfig::from_core_state(
-                    Arc::<GameConfig>::deserialize_without_name(buf)?.to_core_state(),
-                )
-                .ok_or(namui::DeserializeError::InvalidEnumVariant {
-                    expected: "valid game config state".to_string(),
-                    actual: "invalid game config state".to_string(),
-                })?,
+                GameConfig::from_jsonc_str(&String::deserialize_without_name(buf)?).map_err(
+                    |_| namui::DeserializeError::InvalidEnumVariant {
+                        expected: "valid game config state".to_string(),
+                        actual: "invalid game config state".to_string(),
+                    },
+                )?,
             ),
             deserialize_stage_modifiers_without_name(buf)?,
             deserialize_upgrade_state_without_name(buf)?,
@@ -2886,16 +2895,40 @@ impl Component for &FloorTile {
 
 static GAME_STATE_ATOM: Atom<crate::headed_game::HeadedGame> = Atom::uninitialized();
 
+fn create_game_state_with_seed_raw(seed: u64) -> GameState {
+    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+}
+
+#[cfg(not(test))]
+fn create_initial_game_state() -> GameState {
+    create_game_state_with_seed_raw(rand::thread_rng().r#gen())
+}
+
+#[cfg(test)]
 fn create_initial_game_state() -> GameState {
     create_game_state_with_seed(rand::thread_rng().r#gen())
 }
 
+#[cfg(not(test))]
 pub fn create_game_state_with_seed(seed: u64) -> GameState {
-    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+    create_game_state_with_seed_raw(seed)
+}
+
+#[cfg(test)]
+pub fn create_game_state_with_seed(seed: u64) -> GameState {
+    let mut game_state = create_game_state_with_seed_raw(seed);
+    let mut raw = game_state.raw_core.state().clone();
+    raw.start_stage(1);
+    game_state
+        .restore_raw_core_projection(raw)
+        .expect("selected initial raw core must be restorable");
+    game_state.consume_core_events_now();
+    game_state.reseed_presentation_collections();
+    game_state
 }
 
 pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) -> GameState {
-    let raw_core = td_core::CoreState::new_initial(config.to_core_state(), seed);
+    let raw_core = td_core::CoreState::new_initial((*config).clone(), seed);
     let mut game_state = GameState {
         raw_core: raw_core::HeadedRawCoreState::new(raw_core.clone()),
         #[cfg(any(test, feature = "debug-tools"))]
@@ -3139,7 +3172,7 @@ impl std::ops::DerefMut for GameState {
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {
-    stage.is_multiple_of(5) || (46..=49).contains(&stage)
+    td_core::is_boss_stage(stage)
 }
 
 #[cfg(test)]
@@ -3153,9 +3186,25 @@ mod tests {
     }
 
     #[test]
-    fn boss_stage_logic_is_every_fifth_stage_with_final_45_to_50() {
-        for stage in [5, 10, 15, 20, 25, 30, 35, 40, 45, 46, 47, 48, 49, 50] {
+    fn configured_initial_state_starts_at_treasure_selection() {
+        let game_state = create_game_state_with_config(Arc::new(GameConfig::default_config()), 7);
+        assert!(matches!(
+            game_state.raw_core.flow(),
+            td_core::GameFlowState::TreasureSelection { .. }
+        ));
+    }
+
+    #[test]
+    fn boss_stage_logic_is_every_tenth_stage() {
+        for stage in [10, 20, 30, 40, 50] {
             assert!(is_boss_stage(stage), "expected stage {} to be boss", stage);
+        }
+        for stage in [5, 15, 25, 35, 45, 46, 47, 48, 49] {
+            assert!(
+                !is_boss_stage(stage),
+                "expected stage {} to be normal",
+                stage
+            );
         }
         assert!(!is_boss_stage(51));
     }
@@ -3617,7 +3666,7 @@ mod tests {
     fn representative_stage_hp_matches_integer_migration_baseline() {
         let config = GameConfig::default_config();
         let modifiers = StageModifiers::new();
-        for (stage, expected_raw) in [(1, 338_285), (25, 60_058_670), (50, 179_198_724_000)] {
+        for (stage, expected_raw) in [(1, 338_285), (25, 52_224_930), (50, 161_864_745_740)] {
             assert_eq!(
                 GameState::calculate_stage_total_hp(stage, &config, &modifiers).raw(),
                 expected_raw,

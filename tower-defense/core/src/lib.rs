@@ -29,7 +29,7 @@ pub use game_state::command::{
     CommandReceipt, DecisionPoint, PlayerCommand, RecordedPlayerCommand,
 };
 pub use game_state::config::{
-    GameConfigState, MonsterConfigEntryState, MonsterConfigState, PlayerConfigState,
+    GameConfig, GameConfigState, MonsterConfigEntryState, MonsterConfigState, PlayerConfigState,
     StageWaveEntryState, StageWaveState, TowerConfigEntryState, TowerConfigState,
 };
 pub use game_state::effect::{
@@ -86,6 +86,10 @@ pub use game_state::session::{
     CoreSession, CoreSnapshot, CoreSnapshotParts, SnapshotValidationError,
 };
 pub use game_state::shop::max_shop_slot_count;
+pub use game_state::stage::{
+    MAX_STAGE_COUNT, STAGES_PER_ACT, StageKind, act_for_stage, boss_stage_for_act, is_boss_stage,
+    is_normal_stage, is_treasure_stage, stage_in_act, stage_kind, treasure_stage_for_act,
+};
 pub use game_state::tick::{
     AreaDamageEvent, AttackSourceState, DamageHit, DamageHitResult, DamageSplash,
     InFlightAttackKindState, InFlightAttackState, LaserAttackState, ResolvedAttack,

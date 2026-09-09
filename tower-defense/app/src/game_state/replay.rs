@@ -134,6 +134,7 @@ pub(crate) fn run_replay(
             .cloned()
             .expect("accepted player command must create a replay checkpoint");
         actual_checkpoints.push(checkpoint);
+        game_state.drain_core_events();
     }
 
     if !replay.checkpoints.is_empty()
@@ -154,7 +155,7 @@ fn legacy_config_digest(config: &GameConfig) -> String {
     sha256_hex(&bytes)
 }
 
-fn core_config_digest(config: &td_core::GameConfigState) -> String {
+fn core_config_digest(config: &td_core::GameConfig) -> String {
     let bytes = serde_json::to_vec(config).expect("core config serialization must succeed");
     sha256_hex(&bytes)
 }
@@ -192,6 +193,26 @@ fn sha256_hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn new_replay_state(seed: u64) -> crate::game_state::GameState {
+        crate::game_state::create_game_state_with_config(
+            std::sync::Arc::new(GameConfig::default_config()),
+            seed,
+        )
+    }
+
+    fn replay_state_with_tower_selection(seed: u64) -> crate::game_state::GameState {
+        let mut state = new_replay_state(seed);
+        state.headless = true;
+        state
+            .apply_player_command(PlayerCommand::SelectTreasure { option_index: 0 }.into())
+            .expect("initial treasure should be selectable");
+        state.consume_core_events_now();
+        state
+            .apply_player_command(PlayerCommand::StartSelectingTower.into())
+            .expect("tower selection should start");
+        state
+    }
     use crate::game_state::PlayerCommand;
 
     #[test]
@@ -214,10 +235,7 @@ mod tests {
     #[test]
     fn legacy_replay_json_migrates_to_core_replay() {
         let config = GameConfig::default_config();
-        let mut source = crate::game_state::create_game_state_with_seed(42);
-        source
-            .apply_player_command(PlayerCommand::StartSelectingTower.into())
-            .unwrap();
+        let source = replay_state_with_tower_selection(42);
         let core_replay = source.export_core_replay();
         let legacy = LegacyReplay {
             schema_version: REPLAY_SCHEMA_VERSION,
@@ -315,11 +333,7 @@ mod tests {
 
     #[test]
     fn replay_runner_reproduces_checkpoints_and_reports_mutated_checkpoint() {
-        let mut source = crate::game_state::create_game_state_with_seed(42);
-        source.headless = true;
-        source
-            .apply_player_command(PlayerCommand::StartSelectingTower.into())
-            .unwrap();
+        let source = replay_state_with_tower_selection(42);
         let config = GameConfig::default_config();
         let replay_json = serde_json::to_string_pretty(&source.export_core_replay()).unwrap();
         let replay = decode_replay_json(&replay_json, &config).unwrap();
@@ -346,11 +360,7 @@ mod tests {
 
     #[test]
     fn replay_runner_reports_mutated_event_checkpoint() {
-        let mut source = crate::game_state::create_game_state_with_seed(42);
-        source.headless = true;
-        source
-            .apply_player_command(PlayerCommand::StartSelectingTower.into())
-            .unwrap();
+        let source = replay_state_with_tower_selection(42);
         let config = GameConfig::default_config();
         let replay_json = serde_json::to_string(&source.export_core_replay()).unwrap();
         let mut replay = decode_replay_json(&replay_json, &config).unwrap();
@@ -378,22 +388,22 @@ mod tests {
     #[test]
     fn command_only_replay_runs_without_checkpoint_divergence() {
         let config = GameConfig::default_config();
-        let mut source = crate::game_state::create_game_state_with_seed(42);
-        source
-            .apply_player_command(PlayerCommand::StartSelectingTower.into())
-            .unwrap();
+        let source = replay_state_with_tower_selection(42);
         let mut replay = source.export_core_replay();
         replay.checkpoints.clear();
 
         let run = run_replay(&replay, std::sync::Arc::new(config)).unwrap();
 
-        assert_eq!(run.checkpoints.len(), 1);
+        assert_eq!(run.checkpoints.len(), 2);
     }
 
     #[test]
     fn headed_commands_match_public_core_session_checkpoints() {
-        let mut source = crate::game_state::create_game_state_with_seed(0xC0DE);
-        source.headless = true;
+        let mut source = new_replay_state(0xC0DE);
+        source
+            .apply_player_command(PlayerCommand::SelectTreasure { option_index: 0 }.into())
+            .expect("initial treasure should be selectable");
+        source.consume_core_events_now();
         for command in [
             PlayerCommand::StartSelectingTower,
             PlayerCommand::Reroll {
@@ -416,7 +426,7 @@ mod tests {
                 .expect("core command should be accepted");
             assert_eq!(
                 receipt.state_hash,
-                replay.checkpoints[recorded.sequence as usize].state_hash
+                replay.checkpoints[recorded.sequence as usize].state_hash,
             );
             assert_eq!(
                 receipt.event_digest,

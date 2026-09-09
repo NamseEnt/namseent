@@ -515,6 +515,7 @@ mod tests {
 
         for kind in 0..ITEM_KIND_COUNT as u8 {
             let mut state = crate::CoreState::new_initial(config.clone(), 7);
+            state.start_stage(1);
             state.hp_raw = 50_000;
             let item = generated_item(crate::ItemKind::from_raw(kind).expect("catalog item"))
                 .expect("catalog item");

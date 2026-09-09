@@ -166,10 +166,22 @@ impl GameCore {
     }
 
     pub fn new(config: GameConfig, seed: u64) -> Self {
-        Self::from_core_config(config.to_core_state(), seed).expect("GameCore config must be valid")
+        let game_core =
+            Self::from_core_config(config, seed).expect("GameCore config must be valid");
+        #[cfg(test)]
+        let game_core = {
+            let mut game_core = game_core;
+            let mut state = game_core.session.into_state();
+            state.start_stage(1);
+            state.drain_events().for_each(|_| {});
+            game_core.session =
+                td_core::CoreSession::from_state(state).expect("test stage setup must be valid");
+            game_core
+        };
+        game_core
     }
 
-    pub fn from_core_config(config: td_core::GameConfigState, seed: u64) -> Result<Self, String> {
+    pub fn from_core_config(config: td_core::GameConfig, seed: u64) -> Result<Self, String> {
         if GameConfig::from_core_state(config.clone()).is_none() {
             return Err("invalid core game config".to_string());
         }
@@ -471,6 +483,13 @@ mod tests {
         result
     }
 
+    fn shopping_session(config: td_core::GameConfig, seed: u64) -> td_core::CoreSession {
+        let mut state = td_core::CoreState::new_initial(config, seed);
+        state.start_stage(1);
+        state.drain_events().for_each(|_| {});
+        td_core::CoreSession::from_state(state).expect("test stage setup must be valid")
+    }
+
     fn inspect_raw_state<R>(core: &GameCore, inspect: impl FnOnce(&td_core::CoreState) -> R) -> R {
         inspect(core.session.raw_state())
     }
@@ -499,7 +518,7 @@ mod tests {
     #[test]
     fn core_session_snapshot_round_trips_authoritative_state() {
         let config = GameConfig::default_config();
-        let mut session = td_core::CoreSession::new(config.to_core_state(), 7);
+        let mut session = shopping_session(config.to_core_state(), 7);
         let before_hash = session.authoritative_hash();
         session.advance_tick();
         let snapshot = session
@@ -525,7 +544,7 @@ mod tests {
     #[test]
     fn core_receipt_records_sequence_tick_hash_and_command_events_atomically() {
         let config = GameConfig::default_config();
-        let mut session = td_core::CoreSession::new(config.to_core_state(), 7);
+        let mut session = shopping_session(config.to_core_state(), 7);
         assert!(mutate_session(&mut session, |state| state.start_selecting_tower()));
 
         let receipt = session.record_compatibility_command(PlayerCommand::StartSelectingTower);
@@ -544,7 +563,7 @@ mod tests {
     #[test]
     fn core_tick_output_contains_sim_tick_events_and_post_tick_hash() {
         let config = GameConfig::default_config();
-        let mut session = td_core::CoreSession::new(config.to_core_state(), 7);
+        let mut session = shopping_session(config.to_core_state(), 7);
 
         let output = session.advance_tick();
 
@@ -570,6 +589,17 @@ mod tests {
     }
 
     #[test]
+    fn from_core_config_starts_at_treasure_selection() {
+        let core = GameCore::from_core_config(GameConfig::default_config().to_core_state(), 7)
+            .expect("default config should be valid");
+
+        assert!(matches!(
+            core.session.flow(),
+            td_core::GameFlowState::TreasureSelection { .. }
+        ));
+    }
+
+    #[test]
     fn apply_returns_an_accepted_output_for_a_valid_command() {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
 
@@ -583,7 +613,7 @@ mod tests {
     fn apply_with_receipt_matches_direct_core_session_metadata() {
         let config = GameConfig::default_config();
         let mut game_core = GameCore::new(config.clone(), 0x51E5510);
-        let mut session = td_core::CoreSession::new(config.to_core_state(), 0x51E5510);
+        let mut session = shopping_session(config.to_core_state(), 0x51E5510);
 
         for (expected_sequence, command) in [
             (0, PlayerCommand::StartSelectingTower),
@@ -711,7 +741,7 @@ mod tests {
     fn game_core_delegates_commands_and_ticks_to_core_session() {
         let config = GameConfig::default_config();
         let mut adapter = GameCore::new(config.clone(), 0x51E5510);
-        let mut session = td_core::CoreSession::new(config.to_core_state(), 0x51E5510);
+        let mut session = shopping_session(config.to_core_state(), 0x51E5510);
 
         for command in [
             PlayerCommand::StartSelectingTower,

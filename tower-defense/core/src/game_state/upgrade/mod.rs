@@ -1076,7 +1076,9 @@ mod tests {
                 }],
             },
         };
-        crate::CoreState::new_initial(config, 7)
+        let mut state = crate::CoreState::new_initial(config, 7);
+        state.start_stage(1);
+        state
     }
 
     fn with_upgrades(core: &mut crate::CoreState, upgrades: Vec<UpgradeWireEntry>) {

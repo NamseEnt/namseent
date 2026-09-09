@@ -46,9 +46,10 @@ pub fn derive_seed(master_seed: u64, domain: u64, coordinates: &[u64]) -> [u8; 3
     }
 
     let mut seed = [0; 32];
-    for (index, chunk) in seed.chunks_exact_mut(8).enumerate() {
+    let chunks = seed.as_chunks_mut::<8>().0;
+    for (index, chunk) in chunks.iter_mut().enumerate() {
         state = split_mix(state ^ (index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
-        chunk.copy_from_slice(&state.to_le_bytes());
+        *chunk = state.to_le_bytes();
     }
     seed
 }

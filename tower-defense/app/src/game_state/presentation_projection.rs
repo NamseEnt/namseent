@@ -427,11 +427,6 @@ impl LegacyProjectionCodec {
         attacks
     }
 
-    pub(crate) fn config_for_legacy_serialization(&self) -> crate::config::GameConfig {
-        crate::config::GameConfig::from_core_state(self.config.to_core_state())
-            .expect("valid game config state")
-    }
-
     fn refresh_tower_upgrade_damage_cache(&mut self) {
         let upgrade_revision = self.upgrade_state.revision;
         let raw_upgrades = self.upgrade_state.to_core_state();
