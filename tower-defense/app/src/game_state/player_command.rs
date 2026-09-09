@@ -13,6 +13,9 @@ pub enum HeadedPlayerCommand {
     UseInventoryItem {
         item_index: usize,
     },
+    DiscardTreasure {
+        upgrade_id: u64,
+    },
     StartSelectingTower,
     SelectTower {
         selected_slot_indices: Vec<usize>,
@@ -49,6 +52,9 @@ impl From<&HeadedPlayerCommand> for PlayerCommand {
             },
             HeadedPlayerCommand::UseInventoryItem { item_index } => Self::UseInventoryItem {
                 item_index: *item_index,
+            },
+            HeadedPlayerCommand::DiscardTreasure { upgrade_id } => Self::DiscardTreasure {
+                upgrade_id: *upgrade_id,
             },
             HeadedPlayerCommand::StartSelectingTower => Self::StartSelectingTower,
             HeadedPlayerCommand::SelectTower {
@@ -91,6 +97,7 @@ impl From<PlayerCommand> for HeadedPlayerCommand {
             },
             PlayerCommand::PurchaseShopItem { slot_index } => Self::PurchaseShopItem { slot_index },
             PlayerCommand::UseInventoryItem { item_index } => Self::UseInventoryItem { item_index },
+            PlayerCommand::DiscardTreasure { upgrade_id } => Self::DiscardTreasure { upgrade_id },
             PlayerCommand::StartSelectingTower => Self::StartSelectingTower,
             PlayerCommand::SelectTower {
                 selected_slot_indices,
@@ -212,6 +219,7 @@ impl GameState {
                 let item = inventory_item.expect("inventory presentation context must exist");
                 crate::game_state::presentation_effect::apply_inventory_item(self, &item);
             }
+            HeadedPlayerCommand::DiscardTreasure { .. } => {}
             HeadedPlayerCommand::PlaceTower { .. } => {
                 let tower_id = placed_tower_id.ok_or(CommandError::Rejected)?;
                 let tower = self
@@ -322,6 +330,11 @@ impl GameState {
                 raw.use_inventory_item(*item_index)?;
                 self.restore_raw_core_projection(raw)?;
                 crate::game_state::presentation_effect::apply_inventory_item(self, &item);
+            }
+            HeadedPlayerCommand::DiscardTreasure { upgrade_id } => {
+                let mut raw = self.raw_core.state().clone();
+                raw.discard_treasure(*upgrade_id)?;
+                self.restore_raw_core_projection(raw)?;
             }
             HeadedPlayerCommand::StartSelectingTower => {
                 if !matches!(self.raw_core.flow(), td_core::GameFlowState::Shopping(_)) {

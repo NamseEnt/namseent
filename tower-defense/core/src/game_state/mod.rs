@@ -871,11 +871,60 @@ impl CoreState {
         &mut self,
         item: impl crate::game_state::item::ItemGrantInput,
     ) -> Result<(), crate::CommandError> {
+        if self.items.len() >= self.item_capacity() {
+            return Err(crate::CommandError::ItemCapacityReached);
+        }
         let next_id = self.items.next_id();
         let mut item = item.into_runtime()?;
         item.id = next_id;
         self.items.items.push(item);
         Ok(())
+    }
+
+    pub fn item_capacity(&self) -> usize {
+        crate::game_state::item::BASE_ITEM_CAPACITY
+            .saturating_add(self.upgrades.cache_state().item_capacity_bonus)
+    }
+
+    pub fn treasure_capacity(&self) -> usize {
+        crate::game_state::upgrade::BASE_TREASURE_CAPACITY
+            .saturating_add(self.upgrades.cache_state().treasure_capacity_bonus)
+    }
+
+    pub fn discard_treasure(
+        &mut self,
+        upgrade_id: u64,
+    ) -> Result<crate::UpgradeEntry, crate::CommandError> {
+        if matches!(
+            self.flow,
+            crate::GameFlowState::Initializing | crate::GameFlowState::Result { .. }
+        ) {
+            return Err(crate::CommandError::InvalidFlow);
+        }
+
+        let mut next = self.clone();
+        let removed = next
+            .upgrades
+            .remove_by_id(upgrade_id)
+            .ok_or(crate::CommandError::InvalidIndex)?;
+        if next.items.len() > next.item_capacity() {
+            return Err(crate::CommandError::TreasureDiscardWouldOverflowInventory);
+        }
+        if next.upgrades.len() > next.treasure_capacity() {
+            return Err(crate::CommandError::TreasureCapacityReached);
+        }
+        next.refresh_upgrade_damage_multipliers();
+        next.hp_raw = next.hp_raw.min(next.max_hp_raw());
+        next.push_event(crate::CoreEvent::TreasureDiscarded {
+            upgrade: removed.clone(),
+        });
+        *self = next;
+        Ok(removed)
+    }
+
+    pub fn can_discard_treasure(&self, upgrade_id: u64) -> bool {
+        let mut next = self.clone();
+        next.discard_treasure(upgrade_id).is_ok()
     }
 
     pub fn earn_gold(&mut self, amount: usize) {

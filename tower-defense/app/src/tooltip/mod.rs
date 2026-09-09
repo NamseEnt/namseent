@@ -277,6 +277,12 @@ fn shop_purchase_unavailable_sections(
             ShopPurchaseBlockReason::PurchasesDisabled => {
                 l10n::ui::ShopPurchaseBlockReasonText::PurchasesDisabled
             }
+            ShopPurchaseBlockReason::ItemCapacityReached => {
+                l10n::ui::ShopPurchaseBlockReasonText::ItemCapacityReached
+            }
+            ShopPurchaseBlockReason::TreasureCapacityReached => {
+                l10n::ui::ShopPurchaseBlockReasonText::TreasureCapacityReached
+            }
             ShopPurchaseBlockReason::CardService(reason) => match reason {
                 td_core::CardServicePurchaseBlockReason::NoEngravedCard => {
                     l10n::ui::ShopPurchaseBlockReasonText::NoEngravedCard

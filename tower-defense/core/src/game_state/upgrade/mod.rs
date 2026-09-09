@@ -13,6 +13,8 @@ pub use codec_impl::UpgradeCodecError;
 pub(crate) use codec_impl::UpgradeWireEntry as TestUpgradeWireEntry;
 use codec_impl::UpgradeWireEntry;
 
+pub const BASE_TREASURE_CAPACITY: usize = 5;
+
 pub(crate) struct UpgradeTriggerContext<'a> {
     pub(crate) progress: &'a mut crate::CoreProgress,
     pub(crate) stage_modifiers: &'a mut crate::StageModifiersState,
@@ -22,6 +24,8 @@ pub(crate) struct UpgradeTriggerContext<'a> {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct UpgradeCacheState {
     pub max_hp_plus_raw: i64,
+    pub item_capacity_bonus: usize,
+    pub treasure_capacity_bonus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
     pub shop_item_price_minus: usize,
@@ -437,12 +441,30 @@ impl UpgradeCollection {
         &self.upgrades
     }
 
+    pub fn len(&self) -> usize {
+        self.upgrades.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.upgrades.is_empty()
+    }
+
     pub fn entries_mut(&mut self) -> &mut Vec<UpgradeEntry> {
         &mut self.upgrades
     }
 
     pub fn revision(&self) -> usize {
         self.revision
+    }
+
+    pub fn remove_by_id(&mut self, upgrade_id: u64) -> Option<UpgradeEntry> {
+        let index = self
+            .upgrades
+            .iter()
+            .position(|upgrade| upgrade.id == upgrade_id)?;
+        let removed = self.upgrades.remove(index);
+        self.revision = self.revision.wrapping_add(1);
+        Some(removed)
     }
 
     pub(crate) fn shorten_straight_flush_to_4_cards(&self) -> bool {
@@ -479,6 +501,12 @@ impl UpgradeCollection {
                 |mut total, value| {
                     total.max_hp_plus_raw =
                         total.max_hp_plus_raw.saturating_add(value.max_hp_plus_raw);
+                    total.item_capacity_bonus = total
+                        .item_capacity_bonus
+                        .saturating_add(value.item_capacity_bonus);
+                    total.treasure_capacity_bonus = total
+                        .treasure_capacity_bonus
+                        .saturating_add(value.treasure_capacity_bonus);
                     total.shop_slot_expand = total
                         .shop_slot_expand
                         .saturating_add(value.shop_slot_expand);
@@ -498,6 +526,8 @@ impl UpgradeCollection {
             );
         UpgradeCacheState {
             max_hp_plus_raw: contributions.max_hp_plus_raw,
+            item_capacity_bonus: contributions.item_capacity_bonus,
+            treasure_capacity_bonus: contributions.treasure_capacity_bonus,
             shop_slot_expand: contributions.shop_slot_expand,
             dice_chance_plus: contributions.dice_chance_plus,
             shop_item_price_minus: contributions.shop_item_price_minus,
@@ -577,6 +607,8 @@ impl<'de> Deserialize<'de> for UpgradeCollection {
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct UpgradeCacheContribution {
     pub(crate) max_hp_plus_raw: i64,
+    pub(crate) item_capacity_bonus: usize,
+    pub(crate) treasure_capacity_bonus: usize,
     pub(crate) shop_slot_expand: usize,
     pub(crate) dice_chance_plus: usize,
     pub(crate) shop_item_price_minus: usize,
@@ -673,6 +705,9 @@ impl crate::CoreState {
         &mut self,
         upgrade: impl UpgradeAcquireInput,
     ) -> Result<UpgradeAcquireOutput, crate::CommandError> {
+        if self.upgrades.len() >= self.treasure_capacity() {
+            return Err(crate::CommandError::TreasureCapacityReached);
+        }
         let upgrade = upgrade.into_runtime()?;
         let kind = upgrade.kind();
         let recovery = upgrade_acquire_recovery(kind);
@@ -875,7 +910,7 @@ impl crate::CoreState {
         self.upgrades.revision = self.upgrades.revision.wrapping_add(1);
     }
 
-    fn refresh_upgrade_damage_multipliers(&mut self) {
+    pub(crate) fn refresh_upgrade_damage_multipliers(&mut self) {
         for tower in &mut self.towers {
             let bonus_raw = self.upgrades.tower_damage_bonus_raw(tower);
             tower.damage_multiplier_raw = crate::RATIO_SCALE.saturating_add(bonus_raw).max(0);
@@ -1093,6 +1128,63 @@ mod tests {
             )
         })
         .expect("test upgrade state must be valid");
+    }
+
+    #[test]
+    fn item_and_treasure_grants_respect_the_default_capacity() {
+        let mut core = test_core();
+        core.drain_events().for_each(|_| {});
+
+        for _ in 0..2 {
+            core.grant_inventory_item(
+                crate::generated_item(crate::ItemKind::Bread).expect("bread"),
+            )
+            .expect("two additional items fit");
+        }
+        assert_eq!(core.item_capacity(), 5);
+        assert_eq!(
+            core.grant_inventory_item(
+                crate::generated_item(crate::ItemKind::Bread).expect("bread")
+            ),
+            Err(crate::CommandError::ItemCapacityReached)
+        );
+
+        for _ in 0..5 {
+            core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::Apple))
+                .expect("five treasures fit");
+        }
+        assert_eq!(core.treasure_capacity(), 5);
+        assert_eq!(
+            core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::Apple)),
+            Err(crate::CommandError::TreasureCapacityReached)
+        );
+    }
+
+    #[test]
+    fn discarding_treasure_rebuilds_ownership_effects_without_reversing_recovery() {
+        let mut core = test_core();
+        core.drain_events().for_each(|_| {});
+        core.edit_snapshot(|parts| parts.hp_raw = 60_000)
+            .expect("test HP edit must preserve a valid snapshot");
+
+        let recovery = core
+            .acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::Pea))
+            .expect("pea acquisition")
+            .recovery;
+        core.apply_upgrade_recovery(recovery);
+        let upgrade_id = core.upgrades().entries()[0].id();
+        assert!(core.max_hp_raw() > 60_000);
+        assert_eq!(core.hp_raw(), core.max_hp_raw());
+
+        core.discard_treasure(upgrade_id)
+            .expect("pea should be discardable");
+
+        assert_eq!(core.max_hp_raw(), 60_000);
+        assert_eq!(core.hp_raw(), 60_000);
+        assert!(
+            core.drain_events()
+                .any(|event| { matches!(event, crate::CoreEvent::TreasureDiscarded { .. }) })
+        );
     }
 
     #[test]

@@ -138,7 +138,10 @@ pub struct Observation {
     pub deck: DeckObservation,
     pub shop: Vec<ShopSlotObservation>,
     pub inventory: Vec<InventoryObservation>,
+    pub item_capacity: usize,
     pub owned_upgrades: Vec<OwnedUpgradeObservation>,
+    pub treasure_capacity: usize,
+    pub discardable_treasure_ids: Vec<u64>,
     pub towers: Vec<TowerObservation>,
     pub tower_grid: Vec<Option<u64>>,
     pub map_width: usize,
@@ -296,6 +299,7 @@ impl crate::CoreState {
                     }
                 })
                 .collect(),
+            item_capacity: self.item_capacity(),
             owned_upgrades: self
                 .upgrades
                 .upgrades
@@ -308,6 +312,14 @@ impl crate::CoreState {
                         key_id,
                     }
                 })
+                .collect(),
+            treasure_capacity: self.treasure_capacity(),
+            discardable_treasure_ids: self
+                .upgrades
+                .upgrades
+                .iter()
+                .filter(|upgrade| self.can_discard_treasure(upgrade.id))
+                .map(|upgrade| upgrade.id)
                 .collect(),
             towers,
             tower_grid,

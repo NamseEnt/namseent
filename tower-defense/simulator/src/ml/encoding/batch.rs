@@ -165,6 +165,9 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
         | AgentAction::SelectTreasure {
             option_index: slot_index,
         } => (*slot_index as u32 + 1, 0, 0),
+        AgentAction::DiscardTreasure { upgrade_id } => {
+            (*upgrade_id as u32, (*upgrade_id >> 32) as u32, 0)
+        }
         AgentAction::PlaceTower {
             hand_slot_index,
             left,
@@ -471,6 +474,6 @@ mod tests {
         let last = candidate_entity_rows(&observation, &AgentAction::Continue);
 
         assert_eq!(first[0].numeric[0], 2.0 / ActionKind::COUNT as f32);
-        assert_eq!(last[0].numeric[0], 18.0 / ActionKind::COUNT as f32);
+        assert_eq!(last[0].numeric[0], 19.0 / ActionKind::COUNT as f32);
     }
 }

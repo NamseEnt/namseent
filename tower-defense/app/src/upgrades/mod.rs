@@ -10,6 +10,9 @@ use crate::{
         use_game_state,
     },
     hand::{Hand, HandItem, HandSlotId},
+    icon::{Icon, IconKind, IconSize},
+    palette,
+    theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
     tooltip::WithHoverArea,
 };
 use namui::*;
@@ -42,6 +45,7 @@ impl Component for Upgrades {
         ));
 
         let upgrades = game_state.state().presentation_upgrade_entries_snapshot();
+        let capacity = game_state.raw_core_state().treasure_capacity();
         let mut active_upgrades = upgrades
             .iter()
             .filter(|entry| !entry.is_exiting())
@@ -87,7 +91,7 @@ impl Component for Upgrades {
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
             let item_offset = ITEM_SIZE + ITEM_GAP;
-            let total_height = item_offset * upgrade_infos.len() as f32;
+            let total_height = item_offset * capacity.max(upgrade_infos.len()) as f32;
 
             ctx.add(AutoScrollViewWithCtx {
                 wh,
@@ -102,10 +106,20 @@ impl Component for Upgrades {
                             upgrade_id,
                             UpgradeThumbnailItem {
                                 wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
+                                upgrade_id: upgrade_id as u64,
                                 upgrade_kind,
                                 is_applicable,
                                 exiting,
                                 target_xy,
+                            },
+                        );
+                    }
+                    for slot in active_upgrades.len()..capacity {
+                        ctx.add_with_key(
+                            (1_u128 << 127) + slot as u128,
+                            UpgradeEmptySlot {
+                                wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
+                                target_xy: Xy::new(0.px(), item_offset * slot as f32),
                             },
                         );
                     }
@@ -126,6 +140,28 @@ impl Component for Upgrades {
                 table::padding_no_clip(PADDING, scroll_view),
             )])(wh, ctx);
         });
+    }
+}
+
+struct UpgradeEmptySlot {
+    wh: Wh<Px>,
+    target_xy: Xy<Px>,
+}
+
+impl Component for UpgradeEmptySlot {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.translate(self.target_xy)
+            .translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN))
+            .add(PaperContainerBackground {
+                width: self.wh.width,
+                height: self.wh.height,
+                texture: PaperTexture::Rough,
+                variant: PaperVariant::PaperSingleLayer,
+                color: palette::SURFACE_CONTAINER_LOW,
+                outline_color: Some(palette::OUTLINE),
+                shadow: true,
+                arrow: None,
+            });
     }
 }
 
@@ -200,6 +236,7 @@ fn is_upgrade_applicable(
 
 struct UpgradeThumbnailItem {
     wh: Wh<Px>,
+    upgrade_id: u64,
     upgrade_kind: crate::game_state::upgrade::Upgrade,
     is_applicable: bool,
     exiting: bool,
@@ -210,6 +247,7 @@ impl Component for UpgradeThumbnailItem {
     fn render(self, ctx: &RenderCtx) {
         let Self {
             wh,
+            upgrade_id,
             upgrade_kind,
             is_applicable,
             exiting,
@@ -239,6 +277,15 @@ impl Component for UpgradeThumbnailItem {
             },
             Xy::single(0.0),
         );
+        let discard_button_scale = xy_with_spring(
+            ctx,
+            if *hovering {
+                Xy::single(1.0)
+            } else {
+                Xy::single(0.0)
+            },
+            Xy::single(0.0),
+        );
         let half_item = wh.to_xy() * 0.5;
         let ctx = ctx
             .translate(animated_xy)
@@ -261,6 +308,11 @@ impl Component for UpgradeThumbnailItem {
         };
 
         let ctx = ctx.translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN));
+        let ctx = ctx.mouse_cursor(MouseCursor::Standard(if exiting {
+            StandardCursor::Default
+        } else {
+            StandardCursor::Pointer
+        }));
         let thumbnail_wh = Wh::new(ITEM_SIZE - PADDING * 2.0, ITEM_SIZE - PADDING * 2.0);
 
         ctx.translate(Xy::single(PADDING)).compose(|ctx| {
@@ -269,6 +321,22 @@ impl Component for UpgradeThumbnailItem {
                 .translate(pivot)
                 .rotate(hover_rotation.deg())
                 .translate(Xy::new(-pivot.x, -pivot.y));
+
+            if !exiting {
+                let half_thumbnail = thumbnail_wh.to_xy() * 0.5;
+                ctx.compose(|ctx| {
+                    ctx.translate(half_thumbnail)
+                        .scale(discard_button_scale)
+                        .translate(-half_thumbnail)
+                        .add(
+                            Icon::new(IconKind::Reject)
+                                .size(IconSize::Custom {
+                                    size: thumbnail_wh.width,
+                                })
+                                .wh(thumbnail_wh),
+                        );
+                });
+            }
 
             let overlays = upgrade_kind.thumbnail_overlays(&game_state);
             if !overlays.is_empty() {
@@ -286,18 +354,30 @@ impl Component for UpgradeThumbnailItem {
         });
 
         if !exiting {
-            ctx.add(WithHoverArea {
-                component_key: "upgrade tooltip",
-                component: simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
-                placement: crate::tooltip::TooltipPlacement::RightOf,
-                on_enter: || {
-                    set_hovering.set(true);
-                    Some(crate::tooltip::TooltipContent::Upgrade(upgrade_kind))
-                },
-                on_exit: || {
-                    set_hovering.set(false);
-                },
-            });
+            ctx.add(
+                WithHoverArea {
+                    component_key: format!("upgrade tooltip {upgrade_id}"),
+                    component: simple_rect(wh, Color::TRANSPARENT, 0.px(), Color::TRANSPARENT),
+                    placement: crate::tooltip::TooltipPlacement::RightOf,
+                    on_enter: || {
+                        set_hovering.set(true);
+                        Some(crate::tooltip::TooltipContent::Upgrade(upgrade_kind))
+                    },
+                    on_exit: || {
+                        set_hovering.set(false);
+                    },
+                }
+                .attach_event(move |event| {
+                    if let Event::MouseDown { event } = event
+                        && event.is_local_xy_in()
+                    {
+                        crate::game_state::dispatch_player_command(
+                            crate::game_state::PlayerCommand::DiscardTreasure { upgrade_id },
+                        );
+                        event.stop_propagation();
+                    }
+                }),
+            );
         }
     }
 }

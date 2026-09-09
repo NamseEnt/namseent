@@ -2,7 +2,8 @@ use crate::{
     PresentationInstant,
     game_state::use_game_state,
     hand::xy_with_spring,
-    sound,
+    palette, sound,
+    theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
     thumbnail::{ThumbnailRenderOptions, render_thumbnail},
     tooltip::WithHoverArea,
 };
@@ -25,6 +26,8 @@ impl Component for Inventory {
         let wh = self.wh;
         let game_state = use_game_state(render_ctx);
         let entries = game_state.state().presentation_inventory_snapshot();
+        let capacity = game_state.raw_core_state().item_capacity();
+        let active_count = entries.iter().filter(|entry| !entry.is_exiting()).count();
 
         let scroll_view = |wh: Wh<Px>, ctx: ComposeCtx| {
             ctx.add(AutoScrollViewWithCtx {
@@ -45,12 +48,17 @@ impl Component for Inventory {
                             },
                         );
                     }
-                    let content_height = (ITEM_SIZE + ITEM_GAP)
-                        * entries
-                            .iter()
-                            .map(|entry| entry.order + 1)
-                            .max()
-                            .unwrap_or(0) as f32;
+                    for slot in active_count..capacity {
+                        ctx.add_with_key(
+                            (1_u128 << 127) + slot as u128,
+                            InventoryEmptySlot {
+                                wh: Wh::new(ITEM_SIZE, ITEM_SIZE),
+                                target_xy: Xy::new(0.px(), (ITEM_SIZE + ITEM_GAP) * slot as f32),
+                            },
+                        );
+                    }
+                    let content_height =
+                        (ITEM_SIZE + ITEM_GAP) * capacity.max(entries.len()) as f32;
                     ctx.add(simple_rect(
                         Wh::new(wh.width, content_height),
                         Color::TRANSPARENT,
@@ -67,6 +75,28 @@ impl Component for Inventory {
                 table::fixed_no_clip(wh.width, table::padding_no_clip(PADDING, scroll_view)),
             ])(wh, ctx);
         });
+    }
+}
+
+struct InventoryEmptySlot {
+    wh: Wh<Px>,
+    target_xy: Xy<Px>,
+}
+
+impl Component for InventoryEmptySlot {
+    fn render(self, ctx: &RenderCtx) {
+        ctx.translate(self.target_xy)
+            .translate(Xy::new(ITEM_MARGIN, ITEM_MARGIN))
+            .add(PaperContainerBackground {
+                width: self.wh.width,
+                height: self.wh.height,
+                texture: PaperTexture::Rough,
+                variant: PaperVariant::PaperSingleLayer,
+                color: palette::SURFACE_CONTAINER_LOW,
+                outline_color: Some(palette::OUTLINE),
+                shadow: true,
+                arrow: None,
+            });
     }
 }
 
