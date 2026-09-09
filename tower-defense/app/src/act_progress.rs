@@ -2,7 +2,7 @@ use crate::game_state::use_game_state;
 use crate::icon::{Icon, IconKind, IconSize};
 use crate::palette;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
-use crate::theme::typography::{memoized_text, FontSize};
+use crate::theme::typography::{FontSize, memoized_text};
 use crate::tooltip::{TooltipContent, TooltipPlacement, WithHoverArea};
 use namui::*;
 use namui_prebuilt::table;
