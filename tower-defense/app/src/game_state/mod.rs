@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod attack;
 pub mod background;
 mod base;
@@ -61,7 +63,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::card::{Deck, Rank, Suit};
-use crate::config::{GameConfig, LegacyGameConfig};
+use crate::config::GameConfig;
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
@@ -1441,7 +1443,10 @@ impl namui::bincode::Encode for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().encode(encoder)?;
         encode_rng_state(&self.rng, encoder)?;
         encode_route(&self.route, encoder)?;
-        self.config_for_legacy_serialization().encode(encoder)?;
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
+            .encode(encoder)?;
         encode_stage_modifiers(&self.stage_modifiers, encoder)?;
         encode_upgrade_state(&self.upgrade_state, encoder)?;
         encode_hand(&self.hand, encoder)?;
@@ -1482,7 +1487,11 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
         let sim_tick = SimTick::from_ticks(u64::decode(decoder)?);
         let rng = decode_rng_state(decoder)?;
         let route = decode_route(decoder)?;
-        let config = Arc::new(Arc::<LegacyGameConfig>::decode(decoder)?.to_core_state());
+        let config_json = String::decode(decoder)?;
+        let config = Arc::new(
+            GameConfig::from_jsonc_str(&config_json)
+                .map_err(namui::bincode::error::DecodeError::OtherString)?,
+        );
         let stage_modifiers = decode_stage_modifiers(decoder)?;
         let upgrade_state = decode_upgrade_state(decoder)?;
         let hand = decode_hand(decoder)?;
@@ -1559,7 +1568,10 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().serialize(buf);
         serialize_rng_state(&self.rng, buf);
         serialize_route(&self.route, buf);
-        self.config_for_legacy_serialization().serialize(buf);
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
+            .serialize(buf);
         serialize_stage_modifiers(&self.stage_modifiers, buf);
         serialize_upgrade_state(&self.upgrade_state, buf);
         serialize_hand(&self.hand, buf);
@@ -1591,7 +1603,9 @@ impl namui::Serialize for presentation_projection::LegacyProjectionCodec {
         self.sim_tick.ticks().serialize_without_name(buf);
         serialize_rng_state_without_name(&self.rng, buf);
         serialize_route_without_name(&self.route, buf);
-        self.config_for_legacy_serialization()
+        self.config
+            .to_jsonc_string()
+            .expect("valid game config must serialize")
             .serialize_without_name(buf);
         serialize_stage_modifiers_without_name(&self.stage_modifiers, buf);
         serialize_upgrade_state_without_name(&self.upgrade_state, buf);
@@ -1637,7 +1651,14 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             SimTick::from_ticks(u64::deserialize(buf)?),
             deserialize_rng_state(buf)?,
             deserialize_route(buf)?,
-            Arc::new(Arc::<LegacyGameConfig>::deserialize(buf)?.to_core_state()),
+            Arc::new(
+                GameConfig::from_jsonc_str(&String::deserialize(buf)?).map_err(|_| {
+                    namui::DeserializeError::InvalidEnumVariant {
+                        expected: "valid game config state".to_string(),
+                        actual: "invalid game config state".to_string(),
+                    }
+                })?,
+            ),
             deserialize_stage_modifiers(buf)?,
             deserialize_upgrade_state(buf)?,
             deserialize_hand(buf)?,
@@ -1686,7 +1707,14 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             SimTick::from_ticks(u64::deserialize_without_name(buf)?),
             deserialize_rng_state_without_name(buf)?,
             deserialize_route_without_name(buf)?,
-            Arc::new(Arc::<LegacyGameConfig>::deserialize_without_name(buf)?.to_core_state()),
+            Arc::new(
+                GameConfig::from_jsonc_str(&String::deserialize_without_name(buf)?).map_err(
+                    |_| namui::DeserializeError::InvalidEnumVariant {
+                        expected: "valid game config state".to_string(),
+                        actual: "invalid game config state".to_string(),
+                    },
+                )?,
+            ),
             deserialize_stage_modifiers_without_name(buf)?,
             deserialize_upgrade_state_without_name(buf)?,
             deserialize_hand_without_name(buf)?,

@@ -9,10 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 
-pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 4;
-const LEGACY_PERSISTED_SCHEMA_VERSION: u16 = 1;
-const PREVIOUS_PERSISTED_SCHEMA_VERSION: u16 = 2;
-const PRIOR_PERSISTED_SCHEMA_VERSION: u16 = 3;
+pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 5;
 const STORAGE_KEY: &str = "tower-defense-game-state";
 const STORAGE_MAGIC: &[u8; 4] = b"TDGS";
 
@@ -26,24 +23,8 @@ pub(crate) struct PersistedGameState {
     pub(crate) locale: crate::l10n::Locale,
 }
 
-#[derive(Clone, State)]
-struct PersistedGameStateV1 {
-    schema_version: u16,
-    raw_core: HeadedRawCoreState,
-    presentation_metadata: PresentationMetadataStore,
-}
-
-#[derive(Clone, State)]
-struct PersistedGameStateV2 {
-    schema_version: u16,
-    raw_core: HeadedRawCoreState,
-    presentation_metadata: PresentationMetadataStore,
-    locale: crate::l10n::Locale,
-}
-
 pub(crate) enum LoadedGameState {
     Current(Box<PersistedGameState>),
-    LegacyCoreSnapshot(Box<td_core::CoreSnapshot>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -85,62 +66,6 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<PersistedGameState, PersistenceErro
         namui::bincode::decode_from_slice::<u16, _>(payload, namui::bincode::config::standard())
             .map_err(|_| PersistenceError::InvalidEncoding)?;
     match schema_version {
-        LEGACY_PERSISTED_SCHEMA_VERSION => {
-            let (persisted, consumed) =
-                namui::bincode::decode_from_slice::<PersistedGameStateV1, _>(
-                    payload,
-                    namui::bincode::config::standard(),
-                )
-                .map_err(|_| PersistenceError::InvalidEncoding)?;
-            if consumed != payload.len() {
-                return Err(PersistenceError::TrailingBytes);
-            }
-            let (presentation_hand, presentation_flow) =
-                presentation_caches_from_raw(persisted.raw_core.state())?;
-            checked_persisted_state(PersistedGameState {
-                schema_version: CURRENT_SCHEMA_VERSION,
-                raw_core: persisted.raw_core,
-                presentation_metadata: persisted.presentation_metadata,
-                presentation_hand,
-                presentation_flow,
-                locale: crate::l10n::Locale::KOREAN,
-            })
-        }
-        PREVIOUS_PERSISTED_SCHEMA_VERSION => {
-            let (persisted, consumed) =
-                namui::bincode::decode_from_slice::<PersistedGameStateV2, _>(
-                    payload,
-                    namui::bincode::config::standard(),
-                )
-                .map_err(|_| PersistenceError::InvalidEncoding)?;
-            if consumed != payload.len() {
-                return Err(PersistenceError::TrailingBytes);
-            }
-            let (presentation_hand, presentation_flow) =
-                presentation_caches_from_raw(persisted.raw_core.state())?;
-            checked_persisted_state(PersistedGameState {
-                schema_version: CURRENT_SCHEMA_VERSION,
-                raw_core: persisted.raw_core,
-                presentation_metadata: persisted.presentation_metadata,
-                presentation_hand,
-                presentation_flow,
-                locale: persisted.locale,
-            })
-        }
-        PRIOR_PERSISTED_SCHEMA_VERSION => {
-            let (persisted, consumed) = namui::bincode::decode_from_slice::<PersistedGameState, _>(
-                payload,
-                namui::bincode::config::standard(),
-            )
-            .map_err(|_| PersistenceError::InvalidEncoding)?;
-            if consumed != payload.len() {
-                return Err(PersistenceError::TrailingBytes);
-            }
-            checked_persisted_state(PersistedGameState {
-                schema_version: CURRENT_SCHEMA_VERSION,
-                ..persisted
-            })
-        }
         CURRENT_SCHEMA_VERSION => {
             let (persisted, consumed) = namui::bincode::decode_from_slice::<PersistedGameState, _>(
                 payload,
@@ -224,8 +149,7 @@ fn decode_loaded_bytes(bytes: &[u8]) -> Result<LoadedGameState, PersistenceError
     if bytes.starts_with(STORAGE_MAGIC) {
         return decode(bytes).map(|persisted| LoadedGameState::Current(Box::new(persisted)));
     }
-    LegacyGameStateMigration::decode_core(bytes)
-        .map(|snapshot| LoadedGameState::LegacyCoreSnapshot(Box::new(snapshot)))
+    Err(PersistenceError::InvalidEncoding)
 }
 
 #[derive(Default)]
@@ -282,61 +206,6 @@ pub(crate) fn load_into(game_state: &mut GameState, bytes: &[u8]) -> Result<(), 
     restore(game_state, decode(bytes)?)
 }
 
-pub(crate) struct LegacyGameStateMigration;
-
-impl LegacyGameStateMigration {
-    /// Decode the headerless Namui projection format used by schema 0/legacy
-    /// saves. The current `TDGS` envelope is rejected here; exact byte
-    /// consumption and `CoreSnapshot` validation are the format gate.
-    pub(crate) fn decode_core(bytes: &[u8]) -> Result<td_core::CoreSnapshot, PersistenceError> {
-        if bytes.starts_with(STORAGE_MAGIC) {
-            return Err(PersistenceError::InvalidEncoding);
-        }
-        let (presentation_projection, consumed): (
-            crate::game_state::presentation_projection::LegacyProjectionCodec,
-            usize,
-        ) = namui::bincode::decode_from_slice(bytes, namui::bincode::config::standard())
-            .map_err(|_| PersistenceError::InvalidEncoding)?;
-        if consumed != bytes.len() {
-            return Err(PersistenceError::TrailingBytes);
-        }
-        let raw = presentation_projection.to_td_core_state();
-        td_core::CoreSnapshot::from_state(&raw).map_err(|_| PersistenceError::InvalidRawCore)
-    }
-
-    pub(crate) fn load_core_into(
-        game_state: &mut GameState,
-        snapshot: td_core::CoreSnapshot,
-    ) -> Result<(), PersistenceError> {
-        let raw = snapshot.into_state();
-        if !validate_entity_snapshots(&raw) {
-            return Err(PersistenceError::InvalidEntitySnapshots);
-        }
-        game_state
-            .restore_raw_core_projection_at(raw, crate::PresentationInstant::zero(), true)
-            .map_err(|_| PersistenceError::InvalidRawCore)?;
-        game_state.presentation_hand =
-            crate::hand::Hand::from_core_state(game_state.raw_core.hand().clone(), None)
-                .ok_or(PersistenceError::InvalidRawCore)?;
-        game_state.presentation_flow = crate::game_state::flow::GameFlow::from_core_state(
-            game_state.raw_core.flow().clone(),
-            None,
-        )
-        .ok_or(PersistenceError::InvalidRawCore)?;
-        let mut presentation_metadata = std::mem::take(&mut game_state.presentation_metadata);
-        presentation_metadata.refresh_from_core(game_state.raw_core.state());
-        game_state.presentation_metadata = presentation_metadata;
-        Ok(())
-    }
-
-    pub(crate) fn load_core_bytes_into(
-        game_state: &mut GameState,
-        bytes: &[u8],
-    ) -> Result<(), PersistenceError> {
-        Self::load_core_into(game_state, Self::decode_core(bytes)?)
-    }
-}
-
 pub(crate) fn restore(
     game_state: &mut GameState,
     persisted: PersistedGameState,
@@ -370,22 +239,6 @@ pub(crate) fn restore(
     Ok(())
 }
 
-fn presentation_caches_from_raw(
-    raw: &td_core::CoreState,
-) -> Result<
-    (
-        crate::hand::Hand<crate::hand::HandItem>,
-        crate::game_state::flow::GameFlow,
-    ),
-    PersistenceError,
-> {
-    let hand = crate::hand::Hand::from_core_state(raw.hand().clone(), None)
-        .ok_or(PersistenceError::InvalidRawCore)?;
-    let flow = crate::game_state::flow::GameFlow::from_core_state(raw.flow().clone(), None)
-        .ok_or(PersistenceError::InvalidRawCore)?;
-    Ok((hand, flow))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -411,7 +264,7 @@ mod tests {
             .collect::<String>();
         assert_eq!(
             fixture_digest,
-            "7c32e32d7d9187b09f60c3fa0f87b6452590275d8651763cbb170aed15390016"
+            "e90d85915d9a9d37f9315668be09cd0f4cc25210a8235c26677364a7a7c9a88f"
         );
         let decoded = decode(&bytes).expect("persisted game state decoding");
         let mut restored_game_state = crate::game_state::create_game_state_with_seed(0xA11CE);
@@ -483,79 +336,6 @@ mod tests {
             decode(&bytes),
             Err(PersistenceError::TrailingBytes)
         ));
-    }
-
-    #[test]
-    fn storage_loader_distinguishes_current_and_legacy_payloads() {
-        let current = crate::game_state::create_game_state_with_seed(0xC0FFEE);
-        let current_bytes = encode(&current);
-        assert!(matches!(
-            decode_loaded_bytes(&current_bytes),
-            Ok(LoadedGameState::Current(_))
-        ));
-
-        let legacy_bytes = namui::bincode::encode_to_vec(
-            current.presentation_projection().clone(),
-            namui::bincode::config::standard(),
-        )
-        .expect("legacy core encoding");
-        assert!(matches!(
-            decode_loaded_bytes(&legacy_bytes),
-            Ok(LoadedGameState::LegacyCoreSnapshot(_))
-        ));
-    }
-
-    #[test]
-    fn schema_v1_payload_upgrades_with_default_locale() {
-        let original = crate::game_state::create_game_state_with_seed(0x51A);
-        let legacy = PersistedGameStateV1 {
-            schema_version: LEGACY_PERSISTED_SCHEMA_VERSION,
-            raw_core: original.raw_core.clone(),
-            presentation_metadata: original.presentation_metadata.clone(),
-        };
-        let payload = namui::bincode::encode_to_vec(legacy, namui::bincode::config::standard())
-            .expect("schema v1 persisted state encoding");
-        let mut bytes = STORAGE_MAGIC.to_vec();
-        bytes.extend_from_slice(&payload);
-
-        let upgraded = decode(&bytes).expect("schema v1 persisted state upgrade");
-        let mut restored = crate::game_state::create_game_state_with_seed(0x51B);
-        restore(&mut restored, upgraded).expect("schema v1 persisted state restore");
-        let resaved = decode(&encode(&restored)).expect("schema v2 persisted state resave");
-
-        assert_eq!(resaved.schema_version, CURRENT_SCHEMA_VERSION);
-        assert_eq!(resaved.locale, crate::l10n::Locale::KOREAN);
-        assert_eq!(
-            td_core::authoritative_hash(resaved.raw_core.state()),
-            original.authoritative_hash()
-        );
-    }
-
-    #[test]
-    fn schema_v2_payload_upgrades_with_core_derived_ui_caches() {
-        let original = crate::game_state::create_game_state_with_seed(0x52A);
-        let legacy = PersistedGameStateV2 {
-            schema_version: PREVIOUS_PERSISTED_SCHEMA_VERSION,
-            raw_core: original.raw_core.clone(),
-            presentation_metadata: original.presentation_metadata.clone(),
-            locale: crate::l10n::Locale::ENGLISH,
-        };
-        let payload = namui::bincode::encode_to_vec(legacy, namui::bincode::config::standard())
-            .expect("schema v2 persisted state encoding");
-        let mut bytes = STORAGE_MAGIC.to_vec();
-        bytes.extend_from_slice(&payload);
-
-        let upgraded = decode(&bytes).expect("schema v2 persisted state upgrade");
-        assert_eq!(upgraded.schema_version, CURRENT_SCHEMA_VERSION);
-        assert_eq!(upgraded.locale, crate::l10n::Locale::ENGLISH);
-        assert_eq!(
-            upgraded.presentation_hand.to_core_state(),
-            original.presentation_hand.to_core_state()
-        );
-        assert_eq!(
-            upgraded.presentation_flow.to_core_state(),
-            original.presentation_flow.to_core_state()
-        );
     }
 
     #[test]
@@ -650,51 +430,5 @@ mod tests {
             .push("transient-test-discovery".to_string());
 
         assert_eq!(encode(&game_state), baseline);
-    }
-
-    #[test]
-    fn presentation_projection_bytes_migrate_to_raw_state_and_preserve_hash() {
-        let original = crate::game_state::create_game_state_with_seed(0x1E6A);
-        let presentation_projection = original.presentation_projection().clone();
-        let bytes = namui::bincode::encode_to_vec(
-            presentation_projection.clone(),
-            namui::bincode::config::standard(),
-        )
-        .expect("legacy core encoding");
-        let mut restored = crate::game_state::create_game_state_with_seed(0x1E6B);
-
-        LegacyGameStateMigration::load_core_bytes_into(&mut restored, &bytes)
-            .expect("legacy core migration");
-
-        assert_eq!(restored.authoritative_hash(), original.authoritative_hash());
-        assert_eq!(
-            restored.presentation_projection().to_td_core_state(),
-            presentation_projection.to_td_core_state()
-        );
-    }
-
-    #[test]
-    fn presentation_projection_decode_rejects_invalid_and_trailing_bytes() {
-        assert!(matches!(
-            LegacyGameStateMigration::decode_core(&[]),
-            Err(PersistenceError::InvalidEncoding)
-        ));
-
-        let original = crate::game_state::create_game_state_with_seed(0x1E6C);
-        assert!(matches!(
-            LegacyGameStateMigration::decode_core(&encode(&original)),
-            Err(PersistenceError::InvalidEncoding)
-        ));
-        let mut bytes = namui::bincode::encode_to_vec(
-            original.presentation_projection().clone(),
-            namui::bincode::config::standard(),
-        )
-        .expect("legacy core encoding");
-        bytes.push(0);
-
-        assert!(matches!(
-            LegacyGameStateMigration::decode_core(&bytes),
-            Err(PersistenceError::TrailingBytes)
-        ));
     }
 }

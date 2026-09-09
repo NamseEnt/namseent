@@ -5,7 +5,7 @@
 
 use crate::SimTick;
 use crate::card::Deck;
-use crate::config::{GameConfig, LegacyGameConfig};
+use crate::config::GameConfig;
 use crate::game_state::GameRngState;
 use crate::game_state::flow::GameFlow;
 use crate::game_state::monster_spawn::MonsterSpawnState;
@@ -425,11 +425,6 @@ impl LegacyProjectionCodec {
                 .expect("valid in-flight attack state");
         }
         attacks
-    }
-
-    pub(crate) fn config_for_legacy_serialization(&self) -> LegacyGameConfig {
-        LegacyGameConfig::from_core_state(self.config.to_core_state())
-            .expect("valid game config state")
     }
 
     fn refresh_tower_upgrade_damage_cache(&mut self) {

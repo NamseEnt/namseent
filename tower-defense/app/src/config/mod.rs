@@ -1,6 +1,3 @@
-mod legacy;
-pub(crate) use legacy::LegacyGameConfig;
-
 pub use td_core::GameConfig;
 
 pub const DEFAULT_BASE_DICE_CHANCE: usize = 3;
