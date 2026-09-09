@@ -1,7 +1,7 @@
 use crate::CoreEvent;
 
 /// Version of the stable action kind wire names used by policy datasets.
-pub const ACTION_WIRE_SCHEMA_VERSION: u32 = 1;
+pub const ACTION_WIRE_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DecisionPoint {
@@ -57,6 +57,9 @@ pub enum AgentAction {
     UseInventoryItem {
         item_index: usize,
     },
+    DiscardTreasure {
+        upgrade_id: u64,
+    },
     Continue,
 }
 
@@ -79,6 +82,7 @@ pub enum ActionKind {
     SelectCardServiceCard,
     ConfirmCardServiceSelection,
     UseInventoryItem,
+    DiscardTreasure,
     Continue,
 }
 
@@ -98,6 +102,9 @@ pub enum PlayerCommand {
     },
     UseInventoryItem {
         item_index: usize,
+    },
+    DiscardTreasure {
+        upgrade_id: u64,
     },
     StartSelectingTower,
     SelectTower {
@@ -151,4 +158,7 @@ pub enum CommandError {
     Rejected,
     InvalidCardServiceKind { raw: u8 },
     InvalidUpgradeKind { raw: u8 },
+    ItemCapacityReached,
+    TreasureCapacityReached,
+    TreasureDiscardWouldOverflowInventory,
 }

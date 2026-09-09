@@ -264,6 +264,7 @@ pub(crate) fn consume_headed(
                     );
                 }
             }
+            td_core::CoreEvent::TreasureDiscarded { .. } => {}
         }
     }
     defense_intros

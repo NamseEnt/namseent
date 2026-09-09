@@ -271,6 +271,7 @@ use behaviors::{ItemBehavior, ItemBehaviorImpl};
 use codec::ItemWireEntry;
 
 pub const ITEM_KIND_COUNT: usize = crate::ItemKind::COUNT;
+pub const BASE_ITEM_CAPACITY: usize = 5;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ItemUseEffect {

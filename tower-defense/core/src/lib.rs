@@ -134,7 +134,7 @@ pub use time::{RATIO_SCALE, RatioRaw, SIM_TICKS_PER_SECOND, SimTick, SimTickSpan
 pub use rarity::Rarity;
 pub use world::{WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, integer_sqrt};
 
-pub const OBSERVATION_SCHEMA_VERSION: u32 = 1;
+pub const OBSERVATION_SCHEMA_VERSION: u32 = 2;
 
 pub const WORLD_UNITS_PER_TILE: i64 = world::WORLD_UNITS_PER_TILE;
 
@@ -388,7 +388,7 @@ pub fn expand_area_damage_events(
 }
 
 impl ActionKind {
-    pub const COUNT: usize = 18;
+    pub const COUNT: usize = 19;
 
     pub const fn index(self) -> usize {
         match self {
@@ -409,7 +409,8 @@ impl ActionKind {
             Self::SelectCardServiceCard => 14,
             Self::ConfirmCardServiceSelection => 15,
             Self::UseInventoryItem => 16,
-            Self::Continue => 17,
+            Self::DiscardTreasure => 17,
+            Self::Continue => 18,
         }
     }
 
@@ -432,6 +433,7 @@ impl ActionKind {
             Self::SelectCardServiceCard => "select_card_service_card",
             Self::ConfirmCardServiceSelection => "confirm_card_service_selection",
             Self::UseInventoryItem => "use_inventory_item",
+            Self::DiscardTreasure => "discard_treasure",
             Self::Continue => "continue",
         }
     }
@@ -457,6 +459,7 @@ impl AgentAction {
             Self::SelectCardServiceCard { .. } => ActionKind::SelectCardServiceCard,
             Self::ConfirmCardServiceSelection => ActionKind::ConfirmCardServiceSelection,
             Self::UseInventoryItem { .. } => ActionKind::UseInventoryItem,
+            Self::DiscardTreasure { .. } => ActionKind::DiscardTreasure,
             Self::Continue => ActionKind::Continue,
         }
     }
@@ -494,6 +497,7 @@ impl AgentAction {
             }
             Self::ConfirmCardServiceSelection => "confirm_card_service_selection".to_string(),
             Self::UseInventoryItem { item_index } => format!("use_inventory_item:{item_index}"),
+            Self::DiscardTreasure { upgrade_id } => format!("discard_treasure:{upgrade_id}"),
             Self::Continue => "continue".to_string(),
         }
     }
@@ -541,6 +545,9 @@ impl AgentAction {
             | Self::Continue => None,
             Self::UseInventoryItem { item_index } => Some(PlayerCommand::UseInventoryItem {
                 item_index: *item_index,
+            }),
+            Self::DiscardTreasure { upgrade_id } => Some(PlayerCommand::DiscardTreasure {
+                upgrade_id: *upgrade_id,
             }),
         }
     }
@@ -1236,6 +1243,7 @@ mod tests {
             AgentAction::SelectCardServiceCard { card_index: 2 },
             AgentAction::ConfirmCardServiceSelection,
             AgentAction::UseInventoryItem { item_index: 0 },
+            AgentAction::DiscardTreasure { upgrade_id: 11 },
             AgentAction::Continue,
         ];
 

@@ -46,6 +46,9 @@ pub enum CoreEvent {
     TreasureSelected {
         upgrade: crate::UpgradeEntry,
     },
+    TreasureDiscarded {
+        upgrade: crate::UpgradeEntry,
+    },
     DefenseEnded {
         stage: usize,
         perfect_clear: bool,

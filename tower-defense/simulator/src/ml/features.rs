@@ -1,7 +1,7 @@
 use super::vocabulary::{engraving_key_id, rank_id, shop_kind_id, suit_id, upgrade_key_id};
 use crate::environment::{ActionKind, AgentAction, DecisionPoint, Observation};
 
-pub const GLOBAL_FEATURE_COUNT: usize = 91;
+pub const GLOBAL_FEATURE_COUNT: usize = 93;
 pub const ACTION_FEATURE_COUNT: usize = ActionKind::COUNT + 11;
 
 fn bounded_count(count: usize, scale: f32) -> f32 {
@@ -160,6 +160,10 @@ pub fn observation_features(observation: &Observation) -> Vec<f32> {
 
     let tower_count = observation.towers.len().max(1) as f32;
     features.push(observation.inventory.len() as f32 / 20.0);
+    features.extend([
+        observation.inventory.len() as f32 / observation.item_capacity.max(1) as f32,
+        observation.owned_upgrades.len() as f32 / observation.treasure_capacity.max(1) as f32,
+    ]);
     features.extend([
         observation.towers.len() as f32 / 50.0,
         observation
@@ -350,6 +354,10 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
             if let Some(item) = observation.inventory.get(*item_index) {
                 params[1] = item.key_id as f32 / 32.0;
             }
+        }
+        AgentAction::DiscardTreasure { upgrade_id } => {
+            params[0] = *upgrade_id as f32 / 1_000.0;
+            params[1] = (*upgrade_id >> 32) as f32 / 1_000.0;
         }
         AgentAction::Reroll {
             selected_slot_indices,
@@ -554,7 +562,10 @@ pub fn action_features(action: &AgentAction) -> Vec<f32> {
             },
             shop: vec![],
             inventory: vec![],
+            item_capacity: 5,
             owned_upgrades: vec![],
+            treasure_capacity: 5,
+            discardable_treasure_ids: vec![],
             towers: vec![],
             tower_grid: vec![],
             map_width: 1,

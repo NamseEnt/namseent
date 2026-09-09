@@ -271,7 +271,8 @@ fn collect_behavior_dataset_with_runner(
             14 => ActionKind::SelectCardServiceCard,
             15 => ActionKind::ConfirmCardServiceSelection,
             16 => ActionKind::UseInventoryItem,
-            17 => ActionKind::Continue,
+            17 => ActionKind::DiscardTreasure,
+            18 => ActionKind::Continue,
             _ => unreachable!(),
         };
         action_kind_counts
@@ -540,6 +541,7 @@ fn action_kind_name(index: usize) -> String {
         "select_card_service_card",
         "confirm_card_service_selection",
         "use_inventory_item",
+        "discard_treasure",
         "continue",
     ];
     NAMES[index].to_string()

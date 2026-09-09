@@ -327,6 +327,11 @@ impl CoreSession {
             return Ok(state.record_accepted_command(command));
         }
 
+        if let PlayerCommand::DiscardTreasure { upgrade_id } = &command {
+            state.discard_treasure(*upgrade_id)?;
+            return Ok(state.record_accepted_command(command));
+        }
+
         if let PlayerCommand::PurchaseShopItem { slot_index } = &command {
             let mut next = state.clone();
             let purchase = next.purchase_shop_item(*slot_index)?;
@@ -396,6 +401,7 @@ impl CoreSession {
             }
             PlayerCommand::ConfirmCardServiceSelection { .. }
             | PlayerCommand::UseInventoryItem { .. }
+            | PlayerCommand::DiscardTreasure { .. }
             | PlayerCommand::PurchaseShopItem { .. } => unreachable!(),
         }
         Ok(state.record_accepted_command(command))

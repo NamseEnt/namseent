@@ -389,6 +389,8 @@ pub enum ShopPurchaseBlockReasonText {
     AlreadyPurchased,
     NotEnoughGold,
     PurchasesDisabled,
+    ItemCapacityReached,
+    TreasureCapacityReached,
     NoEngravedCard,
     NotEnoughUnengravedCards { required: usize, available: usize },
 }
@@ -403,6 +405,8 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
                 Self::PurchasesDisabled => {
                     builder.static_text("현재 상점 구매가 비활성화되어 있습니다")
                 }
+                Self::ItemCapacityReached => builder.static_text("인벤토리가 가득 찼습니다"),
+                Self::TreasureCapacityReached => builder.static_text("보물 슬롯이 가득 찼습니다"),
                 Self::NoEngravedCard => builder.static_text("각인된 카드가 없습니다"),
                 Self::NotEnoughUnengravedCards {
                     required,
@@ -420,6 +424,8 @@ impl LocalizedText for ShopPurchaseBlockReasonText {
                 Self::PurchasesDisabled => {
                     builder.static_text("Shop purchases are currently disabled")
                 }
+                Self::ItemCapacityReached => builder.static_text("Inventory is full"),
+                Self::TreasureCapacityReached => builder.static_text("Treasure slot is full"),
                 Self::NoEngravedCard => builder.static_text("There are no engraved cards"),
                 Self::NotEnoughUnengravedCards {
                     required,

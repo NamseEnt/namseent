@@ -9,8 +9,8 @@ use td_core::CommandError;
 #[cfg(test)]
 use td_core::PlayerCommand;
 
-pub const ENVIRONMENT_VERSION: u32 = 5;
-pub const ACTION_SCHEMA_VERSION: u32 = 4;
+pub const ENVIRONMENT_VERSION: u32 = 6;
+pub const ACTION_SCHEMA_VERSION: u32 = 5;
 pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 6;
 pub const DEFAULT_MAX_ADVANCE_TICKS: u64 = 60 * 60 * 5;
 
@@ -344,6 +344,11 @@ impl GameEnvironment {
                     item_index: *item_index,
                 }
             }
+            td_core::PlayerCommand::DiscardTreasure { upgrade_id } => {
+                AgentAction::DiscardTreasure {
+                    upgrade_id: *upgrade_id,
+                }
+            }
             td_core::PlayerCommand::StartSelectingTower => AgentAction::StartSelectingTower,
             td_core::PlayerCommand::SelectTower {
                 selected_slot_indices,
@@ -621,6 +626,7 @@ impl GameEnvironment {
                 | DecisionPoint::CardServiceSelection
         ) {
             actions.extend(self.inventory_actions());
+            actions.extend(self.treasure_discard_actions());
         }
 
         actions.sort_by_key(AgentAction::action_id);
@@ -1084,6 +1090,18 @@ impl GameEnvironment {
                 .collect(),
             _ => Vec::new(),
         }
+    }
+
+    fn treasure_discard_actions(&self) -> Vec<AgentAction> {
+        self.game_state
+            .raw_state()
+            .upgrades()
+            .entries()
+            .iter()
+            .map(|upgrade| AgentAction::DiscardTreasure {
+                upgrade_id: upgrade.id(),
+            })
+            .collect()
     }
 
     fn card_service_actions(&self) -> Vec<AgentAction> {
@@ -1935,6 +1953,7 @@ mod tests {
             AgentAction::SelectCardServiceCard { card_index: 0 },
             AgentAction::ConfirmCardServiceSelection,
             AgentAction::UseInventoryItem { item_index: 0 },
+            AgentAction::DiscardTreasure { upgrade_id: 0 },
             AgentAction::Continue,
         ];
         let kinds = actions.iter().map(AgentAction::kind).collect::<Vec<_>>();

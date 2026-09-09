@@ -16,6 +16,8 @@ pub struct UpgradeState {
 #[derive(Debug, Clone, State)]
 pub struct UpgradeCache {
     pub max_hp_plus: HealthDelta,
+    pub item_capacity_bonus: usize,
+    pub treasure_capacity_bonus: usize,
     pub shop_slot_expand: usize,
     pub dice_chance_plus: usize,
     pub shop_item_price_minus: usize,
@@ -30,6 +32,8 @@ impl Default for UpgradeCache {
     fn default() -> Self {
         UpgradeCache {
             max_hp_plus: HealthDelta::ZERO,
+            item_capacity_bonus: 0,
+            treasure_capacity_bonus: 0,
             shop_slot_expand: 0,
             dice_chance_plus: 0,
             shop_item_price_minus: 0,
@@ -46,6 +50,8 @@ impl UpgradeCache {
     pub(crate) fn to_core_state(&self) -> td_core::UpgradeCacheState {
         td_core::UpgradeCacheState {
             max_hp_plus_raw: self.max_hp_plus.raw(),
+            item_capacity_bonus: self.item_capacity_bonus,
+            treasure_capacity_bonus: self.treasure_capacity_bonus,
             shop_slot_expand: self.shop_slot_expand,
             dice_chance_plus: self.dice_chance_plus,
             shop_item_price_minus: self.shop_item_price_minus,
@@ -60,6 +66,8 @@ impl UpgradeCache {
     pub(crate) fn from_core_state(state: td_core::UpgradeCacheState) -> Self {
         Self {
             max_hp_plus: HealthDelta::from_raw(state.max_hp_plus_raw),
+            item_capacity_bonus: state.item_capacity_bonus,
+            treasure_capacity_bonus: state.treasure_capacity_bonus,
             shop_slot_expand: state.shop_slot_expand,
             dice_chance_plus: state.dice_chance_plus,
             shop_item_price_minus: state.shop_item_price_minus,
@@ -176,6 +184,8 @@ mod tests {
     fn cache_raw_state_round_trip_preserves_derived_state() {
         let cache = UpgradeCache {
             max_hp_plus: HealthDelta::from_raw(1_250),
+            item_capacity_bonus: 0,
+            treasure_capacity_bonus: 0,
             shop_slot_expand: 2,
             dice_chance_plus: 3,
             shop_item_price_minus: 4,
