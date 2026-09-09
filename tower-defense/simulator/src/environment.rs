@@ -1677,8 +1677,7 @@ mod tests {
 
     #[test]
     fn curriculum_stage_limit_preserves_authoritative_hash_before_target_stage() {
-        let mut base_config = GameConfig::default_config();
-        base_config.player.max_stages = 2;
+        let base_config = GameConfig::default_config();
         let config = Arc::new(base_config);
         let runner_config = crate::policy_runner::PolicyRunnerConfig {
             max_decisions_per_episode: 32,

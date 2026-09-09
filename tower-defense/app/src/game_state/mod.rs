@@ -61,7 +61,7 @@ pub mod upgrade;
 mod user_status_effect;
 
 use crate::card::{Deck, Rank, Suit};
-use crate::config::GameConfig;
+use crate::config::{GameConfig, LegacyGameConfig};
 use crate::game_state::stage_modifiers::StageModifiers;
 use crate::hand::{Hand, HandItem};
 use crate::route::*;
@@ -1482,12 +1482,7 @@ impl namui::bincode::Decode<()> for presentation_projection::LegacyProjectionCod
         let sim_tick = SimTick::from_ticks(u64::decode(decoder)?);
         let rng = decode_rng_state(decoder)?;
         let route = decode_route(decoder)?;
-        let config = Arc::new(
-            GameConfig::from_core_state(Arc::<GameConfig>::decode(decoder)?.to_core_state())
-                .ok_or(namui::bincode::error::DecodeError::OtherString(
-                    "invalid game config state".to_string(),
-                ))?,
-        );
+        let config = Arc::new(Arc::<LegacyGameConfig>::decode(decoder)?.to_core_state());
         let stage_modifiers = decode_stage_modifiers(decoder)?;
         let upgrade_state = decode_upgrade_state(decoder)?;
         let hand = decode_hand(decoder)?;
@@ -1642,13 +1637,7 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             SimTick::from_ticks(u64::deserialize(buf)?),
             deserialize_rng_state(buf)?,
             deserialize_route(buf)?,
-            Arc::new(
-                GameConfig::from_core_state(Arc::<GameConfig>::deserialize(buf)?.to_core_state())
-                    .ok_or(namui::DeserializeError::InvalidEnumVariant {
-                    expected: "valid game config state".to_string(),
-                    actual: "invalid game config state".to_string(),
-                })?,
-            ),
+            Arc::new(Arc::<LegacyGameConfig>::deserialize(buf)?.to_core_state()),
             deserialize_stage_modifiers(buf)?,
             deserialize_upgrade_state(buf)?,
             deserialize_hand(buf)?,
@@ -1697,15 +1686,7 @@ impl namui::Deserialize for presentation_projection::LegacyProjectionCodec {
             SimTick::from_ticks(u64::deserialize_without_name(buf)?),
             deserialize_rng_state_without_name(buf)?,
             deserialize_route_without_name(buf)?,
-            Arc::new(
-                GameConfig::from_core_state(
-                    Arc::<GameConfig>::deserialize_without_name(buf)?.to_core_state(),
-                )
-                .ok_or(namui::DeserializeError::InvalidEnumVariant {
-                    expected: "valid game config state".to_string(),
-                    actual: "invalid game config state".to_string(),
-                })?,
-            ),
+            Arc::new(Arc::<LegacyGameConfig>::deserialize_without_name(buf)?.to_core_state()),
             deserialize_stage_modifiers_without_name(buf)?,
             deserialize_upgrade_state_without_name(buf)?,
             deserialize_hand_without_name(buf)?,
@@ -2886,16 +2867,40 @@ impl Component for &FloorTile {
 
 static GAME_STATE_ATOM: Atom<crate::headed_game::HeadedGame> = Atom::uninitialized();
 
+fn create_game_state_with_seed_raw(seed: u64) -> GameState {
+    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+}
+
+#[cfg(not(test))]
+fn create_initial_game_state() -> GameState {
+    create_game_state_with_seed_raw(rand::thread_rng().r#gen())
+}
+
+#[cfg(test)]
 fn create_initial_game_state() -> GameState {
     create_game_state_with_seed(rand::thread_rng().r#gen())
 }
 
+#[cfg(not(test))]
 pub fn create_game_state_with_seed(seed: u64) -> GameState {
-    create_game_state_with_config(Arc::new(GameConfig::default_config()), seed)
+    create_game_state_with_seed_raw(seed)
+}
+
+#[cfg(test)]
+pub fn create_game_state_with_seed(seed: u64) -> GameState {
+    let mut game_state = create_game_state_with_seed_raw(seed);
+    let mut raw = game_state.raw_core.state().clone();
+    raw.start_stage(1);
+    game_state
+        .restore_raw_core_projection(raw)
+        .expect("selected initial raw core must be restorable");
+    game_state.consume_core_events_now();
+    game_state.reseed_presentation_collections();
+    game_state
 }
 
 pub(crate) fn create_game_state_with_config(config: Arc<GameConfig>, seed: u64) -> GameState {
-    let raw_core = td_core::CoreState::new_initial(config.to_core_state(), seed);
+    let raw_core = td_core::CoreState::new_initial((*config).clone(), seed);
     let mut game_state = GameState {
         raw_core: raw_core::HeadedRawCoreState::new(raw_core.clone()),
         #[cfg(any(test, feature = "debug-tools"))]
@@ -3139,7 +3144,7 @@ impl std::ops::DerefMut for GameState {
 }
 
 pub fn is_boss_stage(stage: usize) -> bool {
-    stage.is_multiple_of(5) || (46..=49).contains(&stage)
+    td_core::is_boss_stage(stage)
 }
 
 #[cfg(test)]
@@ -3153,9 +3158,25 @@ mod tests {
     }
 
     #[test]
-    fn boss_stage_logic_is_every_fifth_stage_with_final_45_to_50() {
-        for stage in [5, 10, 15, 20, 25, 30, 35, 40, 45, 46, 47, 48, 49, 50] {
+    fn configured_initial_state_starts_at_treasure_selection() {
+        let game_state = create_game_state_with_config(Arc::new(GameConfig::default_config()), 7);
+        assert!(matches!(
+            game_state.raw_core.flow(),
+            td_core::GameFlowState::TreasureSelection { .. }
+        ));
+    }
+
+    #[test]
+    fn boss_stage_logic_is_every_tenth_stage() {
+        for stage in [10, 20, 30, 40, 50] {
             assert!(is_boss_stage(stage), "expected stage {} to be boss", stage);
+        }
+        for stage in [5, 15, 25, 35, 45, 46, 47, 48, 49] {
+            assert!(
+                !is_boss_stage(stage),
+                "expected stage {} to be normal",
+                stage
+            );
         }
         assert!(!is_boss_stage(51));
     }
@@ -3617,7 +3638,7 @@ mod tests {
     fn representative_stage_hp_matches_integer_migration_baseline() {
         let config = GameConfig::default_config();
         let modifiers = StageModifiers::new();
-        for (stage, expected_raw) in [(1, 338_285), (25, 60_058_670), (50, 179_198_724_000)] {
+        for (stage, expected_raw) in [(1, 338_285), (25, 52_224_930), (50, 161_864_745_740)] {
             assert_eq!(
                 GameState::calculate_stage_total_hp(stage, &config, &modifiers).raw(),
                 expected_raw,

@@ -17,6 +17,16 @@ pub enum TopBarText {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
+pub enum StageIndicatorText {
+    TreasureTitle,
+    TreasureDescription,
+    CombatTitle,
+    CombatDescription,
+    StrongEnemyTitle,
+    StrongEnemyDescription,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, State)]
 pub enum FabTooltipText {
     CreateTower,
     RerollHand,
@@ -156,6 +166,29 @@ impl LocalizedText for TopBarText {
                 builder.static_text(self.to_english());
             }
         }
+    }
+}
+
+impl LocalizedText for StageIndicatorText {
+    fn apply_to_builder<'a>(self, builder: &mut TypographyBuilder<'a>, locale: &Locale) {
+        builder.static_text(match (locale.language, self) {
+            (Language::Korean, Self::TreasureTitle) => "보물 ",
+            (Language::Korean, Self::TreasureDescription) => {
+                "시작 시 3개의 보물 중 하나를 선택해 획득할 수 있습니다"
+            }
+            (Language::Korean, Self::CombatTitle) => "전투 ",
+            (Language::Korean, Self::CombatDescription) => "적이 등장합니다",
+            (Language::Korean, Self::StrongEnemyTitle) => "강한 적",
+            (Language::Korean, Self::StrongEnemyDescription) => "강한 적이 등장합니다",
+            (Language::English, Self::TreasureTitle) => "Treasure",
+            (Language::English, Self::TreasureDescription) => {
+                "Choose and acquire one of three treasures at the start of the stage"
+            }
+            (Language::English, Self::CombatTitle) => "Combat",
+            (Language::English, Self::CombatDescription) => "Enemies appear",
+            (Language::English, Self::StrongEnemyTitle) => "Strong Enemy",
+            (Language::English, Self::StrongEnemyDescription) => "A strong enemy appears",
+        });
     }
 }
 

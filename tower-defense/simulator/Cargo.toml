@@ -14,7 +14,6 @@ clap = { version = "4", features = ["derive"] }
 crossterm = "0.28"
 ctrlc = "3"
 indicatif = "0.17"
-indexmap = { version = "2", features = ["serde"] }
 libc = "0.2"
 ratatui = "0.29"
 rayon = "1.10"
@@ -22,7 +21,6 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-toml = { version = "0.7", features = ["preserve_order"] }
 rand = { version = "0.8.5", features = ["alloc"] }
 rand_chacha = "=0.3.1"
 burn = { version = "0.21.0", default-features = false, features = ["std"] }

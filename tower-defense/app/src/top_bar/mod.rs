@@ -1,7 +1,6 @@
 mod game_speed_indicator;
 
 use crate::game_state::{UserModal, set_modal, set_overlay_modal, use_game_state};
-use crate::l10n::Locale;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
 use crate::tooltip::TooltipContent::Word;
 use crate::tooltip::WithHoverArea;
@@ -33,9 +32,7 @@ impl Component for TopBar {
         let game_state = use_game_state(ctx);
 
         ctx.compose(|ctx| {
-            let locale = game_state.locale();
             let raw = game_state.raw_core_state();
-            let stage = raw.progress().stage;
             let max_hp = crate::Health::from_raw(raw.max_hp_raw());
             let current_hp =
                 crate::Health::from_raw(raw.hp_raw()).clamp(crate::Health::ZERO, max_hp);
@@ -49,14 +46,6 @@ impl Component for TopBar {
                     1,
                     table::horizontal([
                         table::fixed_no_clip(PADDING, |_, _| {}),
-                        table::fit(table::FitAlign::LeftTop, |ctx| {
-                            ctx.add(StageText {
-                                stage,
-                                height: wh.height,
-                                locale: &locale,
-                            });
-                        }),
-                        table::fixed_no_clip(PADDING * 4, |_, _| {}),
                         table::fit(table::FitAlign::LeftTop, |ctx| {
                             ctx.add(HealthText {
                                 current_hp: current_hp.as_f32(),
@@ -202,30 +191,6 @@ impl Component for TopBar {
                 }
                 _ => {}
             });
-    }
-}
-
-struct StageText<'a> {
-    stage: usize,
-    height: Px,
-    locale: &'a Locale,
-}
-impl<'a> Component for StageText<'a> {
-    fn render(self, ctx: &RenderCtx) {
-        let Self {
-            stage,
-            height,
-            locale,
-        } = self;
-
-        ctx.add(memoized_text(&stage, |mut builder| {
-            builder
-                .headline()
-                .size(FontSize::Medium)
-                .l10n(crate::l10n::ui::TopBarText::Stage, locale)
-                .text(format!(" {stage}"))
-                .render_left_center(height)
-        }));
     }
 }
 

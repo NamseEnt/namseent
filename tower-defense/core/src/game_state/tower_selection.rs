@@ -1,4 +1,4 @@
-use crate::{CardState, CoreState, GameConfigState, HandItemState, TowerTemplateState};
+use crate::{CardState, CoreState, HandItemState, TowerTemplateState};
 
 const CARD_COUNT: usize = 5;
 
@@ -25,7 +25,7 @@ impl UpgradeSelectionSource for crate::UpgradeCollection {
 pub(crate) fn select_tower_build_template<U: UpgradeSelectionSource>(
     cards: &[CardState],
     upgrades: &U,
-    config: &GameConfigState,
+    config: &crate::GameConfig,
     rerolled_count: usize,
 ) -> Option<TowerTemplateState> {
     if cards.is_empty() {
@@ -257,7 +257,7 @@ fn build_template(
     rank: Option<u8>,
     used_cards: Vec<CardState>,
     rerolled_count: usize,
-    config: &GameConfigState,
+    config: &crate::GameConfig,
 ) -> TowerTemplateState {
     let stats = config
         .towers
@@ -383,6 +383,7 @@ fn best_straight_for_cards(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GameConfigState;
 
     fn config() -> GameConfigState {
         GameConfigState {

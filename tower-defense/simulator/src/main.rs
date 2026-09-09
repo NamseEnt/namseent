@@ -5,7 +5,7 @@ use rayon::ThreadPoolBuilder;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use td_simulator::config::GameConfig;
+use td_simulator::config::{self, GameConfig};
 use td_simulator::environment::{AgentAction, LegalAction, Observation};
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
@@ -115,7 +115,7 @@ fn main() -> Result<()> {
 
 fn run_baseline(options: BaselineOptions) -> Result<()> {
     let config = Arc::new(match options.config {
-        Some(ref path) => GameConfig::from_toml(path)
+        Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
         None => GameConfig::default_config(),
     });
@@ -174,7 +174,7 @@ fn run_baseline(options: BaselineOptions) -> Result<()> {
 
 fn run_simulate(options: SimulateOptions) -> Result<()> {
     let config = Arc::new(match options.config {
-        Some(ref path) => GameConfig::from_toml(path)
+        Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
         None => GameConfig::default_config(),
     });

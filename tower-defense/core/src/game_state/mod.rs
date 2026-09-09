@@ -14,6 +14,7 @@ pub mod reward;
 pub mod rng;
 pub mod session;
 pub mod shop;
+pub mod stage;
 pub mod tick;
 pub mod tower;
 pub mod tower_selection;
@@ -58,7 +59,7 @@ pub struct CoreState {
     sim_tick: crate::SimTick,
     rng: crate::RngState,
     route: crate::RouteState,
-    config: crate::GameConfigState,
+    config: crate::GameConfig,
     stage_modifiers: crate::StageModifiersState,
     upgrades: crate::game_state::upgrade::UpgradeCollection,
     hand: crate::HandState,
@@ -217,7 +218,7 @@ impl CoreState {
         &self.route
     }
 
-    pub fn config(&self) -> &crate::GameConfigState {
+    pub fn config(&self) -> &crate::GameConfig {
         &self.config
     }
 
@@ -303,7 +304,7 @@ impl CoreState {
     }
 
     /// Creates the deterministic initial state for a game session.
-    pub fn new_initial(config: crate::GameConfigState, seed: u64) -> Self {
+    pub fn new_initial(config: crate::GameConfig, seed: u64) -> Self {
         let route = crate::calculate_routes(&[], &crate::TRAVEL_POINTS, crate::MAP_SIZE)
             .expect("initial route must be valid");
         let deck = crate::DeckState {
@@ -407,7 +408,7 @@ impl CoreState {
             card_service_selection: None,
             events: crate::CoreEventQueue::default(),
         };
-        state.start_stage(1);
+        state.start_treasure_selection();
         state.events.events.clear();
         state
     }
@@ -1188,9 +1189,10 @@ impl CoreState {
         };
         let gold = self.progress.gold;
         let item_count = self.items.len();
+        let completed_stage = self.progress.stage;
         let transition = if self.advance_stage_after_defense() {
             crate::DefenseEndTransitionState::GameOver
-        } else if Self::is_boss_stage(self.progress.stage) {
+        } else if crate::is_boss_stage(completed_stage) {
             crate::DefenseEndTransitionState::TreasureSelection
         } else {
             crate::DefenseEndTransitionState::StartStage {
@@ -1311,10 +1313,6 @@ impl CoreState {
     fn clear_active_entities(&mut self) {
         self.monsters.clear();
         self.in_flight_attacks.clear();
-    }
-
-    fn is_boss_stage(stage: usize) -> bool {
-        stage.is_multiple_of(5) || (46..=49).contains(&stage)
     }
 
     fn record_accepted_player_command_with_event_metadata(

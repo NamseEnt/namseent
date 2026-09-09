@@ -35,14 +35,15 @@ impl MonsterTemplate {
         let stats = config
             .monsters
             .stats
-            .get(&kind)
+            .iter()
+            .find(|stats| stats.kind == kind.to_core_raw())
             .expect("missing monster stats for kind");
         Self {
             kind,
-            max_hp: stats.base_hp,
+            max_hp: Health::from_raw(stats.base_hp_raw),
             skills: vec![],
-            velocity: Self::velocity(stats.velocity_mul),
-            damage: Self::damage(stats.damage),
+            velocity: Self::velocity(crate::FixedRatio::from_raw(stats.velocity_mul_raw)),
+            damage: Self::damage(Damage::from_raw(stats.damage_raw)),
             reward: Self::reward(stats.reward),
         }
     }

@@ -1,0 +1,930 @@
+{
+  // Canonical gameplay configuration. Keys use the stable catalog names.
+  "player": {
+    "max_hp": 60.0,
+    "starting_gold": 100,
+    "starting_hp": 60.0,
+    "base_dice_chance": 3,
+    "max_stages": 50,
+    "base_hand_slots": 5,
+  },
+  "monsters": {
+    "stats": {
+      "Mob01": {
+        "base_hp": 67.657,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob02": {
+        "base_hp": 80.455,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob03": {
+        "base_hp": 99.076,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob04": {
+        "base_hp": 122.855,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob05": {
+        "base_hp": 102.983,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob06": {
+        "base_hp": 149.234,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob07": {
+        "base_hp": 67.436,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob08": {
+        "base_hp": 95.645,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob09": {
+        "base_hp": 144.778,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob10": {
+        "base_hp": 99.042,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob11": {
+        "base_hp": 469.046,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob12": {
+        "base_hp": 256.085,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob13": {
+        "base_hp": 670.501,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob14": {
+        "base_hp": 621.191,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob15": {
+        "base_hp": 708.905,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob16": {
+        "base_hp": 1379.203,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob17": {
+        "base_hp": 1129.679,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob18": {
+        "base_hp": 1900.702,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob19": {
+        "base_hp": 2836.025,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob20": {
+        "base_hp": 2127.116,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob21": {
+        "base_hp": 12908.085,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob22": {
+        "base_hp": 4764.391,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob23": {
+        "base_hp": 22701.809,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob24": {
+        "base_hp": 18348.473,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob25": {
+        "base_hp": 5222.493,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob26": {
+        "base_hp": 86653.617,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob27": {
+        "base_hp": 22511.947,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob28": {
+        "base_hp": 110594.383,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob29": {
+        "base_hp": 133263.109,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob30": {
+        "base_hp": 37800.352,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob31": {
+        "base_hp": 309085.094,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob32": {
+        "base_hp": 112529.867,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob33": {
+        "base_hp": 428018.281,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob34": {
+        "base_hp": 501495.375,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob35": {
+        "base_hp": 179908.016,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob36": {
+        "base_hp": 2310131.75,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob37": {
+        "base_hp": 578899.625,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob38": {
+        "base_hp": 3118856.75,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob39": {
+        "base_hp": 3838416.25,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob40": {
+        "base_hp": 804806.5,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob41": {
+        "base_hp": 13496747.0,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob42": {
+        "base_hp": 2710226.0,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob43": {
+        "base_hp": 24543882.0,
+        "velocity_mul": 0.75,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob44": {
+        "base_hp": 30274130.0,
+        "velocity_mul": 1.25,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob45": {
+        "base_hp": 4426441.5,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob46": {
+        "base_hp": 9086778.0,
+        "velocity_mul": 1.0,
+        "damage": 1.0,
+        "reward": 3,
+      },
+      "Mob47": {
+        "base_hp": 8584616.0,
+        "velocity_mul": 1.0,
+        "damage": 4.0,
+        "reward": 3,
+      },
+      "Mob48": {
+        "base_hp": 25220472.0,
+        "velocity_mul": 0.75,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob49": {
+        "base_hp": 31976610.0,
+        "velocity_mul": 1.25,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Mob50": {
+        "base_hp": 11561208.0,
+        "velocity_mul": 1.0,
+        "damage": 2.0,
+        "reward": 3,
+      },
+      "Boss01": {
+        "base_hp": 154.474,
+        "velocity_mul": 1.0,
+        "damage": 5.0,
+        "reward": 25,
+      },
+      "Boss02": {
+        "base_hp": 148.563,
+        "velocity_mul": 1.0,
+        "damage": 5.0,
+        "reward": 50,
+      },
+      "Boss03": {
+        "base_hp": 1063.358,
+        "velocity_mul": 1.0,
+        "damage": 5.0,
+        "reward": 50,
+      },
+      "Boss04": {
+        "base_hp": 3190.674,
+        "velocity_mul": 1.0,
+        "damage": 7.0,
+        "reward": 50,
+      },
+      "Boss05": {
+        "base_hp": 7833.74,
+        "velocity_mul": 1.0,
+        "damage": 7.0,
+        "reward": 50,
+      },
+      "Boss06": {
+        "base_hp": 56700.527,
+        "velocity_mul": 1.0,
+        "damage": 7.0,
+        "reward": 50,
+      },
+      "Boss07": {
+        "base_hp": 269862.031,
+        "velocity_mul": 1.0,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss08": {
+        "base_hp": 1207209.75,
+        "velocity_mul": 1.0,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss09": {
+        "base_hp": 6639662.0,
+        "velocity_mul": 1.0,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss10": {
+        "base_hp": 13630167.0,
+        "velocity_mul": 1.0,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss11": {
+        "base_hp": 12876924.0,
+        "velocity_mul": 1.0,
+        "damage": 15.0,
+        "reward": 50,
+      },
+      "Boss12": {
+        "base_hp": 37830708.0,
+        "velocity_mul": 0.75,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss13": {
+        "base_hp": 47964916.0,
+        "velocity_mul": 1.25,
+        "damage": 10.0,
+        "reward": 50,
+      },
+      "Boss14": {
+        "base_hp": 17341812.0,
+        "velocity_mul": 1.0,
+        "damage": 10.0,
+        "reward": 50,
+      },
+    },
+    "stage_waves": [
+      {
+        "stage": 1,
+        "entries": [
+          {
+            "kind": "Mob01",
+            "count": 5,
+          },
+        ],
+      },
+      {
+        "stage": 2,
+        "entries": [
+          {
+            "kind": "Mob02",
+            "count": 5,
+          },
+        ],
+      },
+      {
+        "stage": 3,
+        "entries": [
+          {
+            "kind": "Mob03",
+            "count": 5,
+          },
+        ],
+      },
+      {
+        "stage": 4,
+        "entries": [
+          {
+            "kind": "Mob04",
+            "count": 5,
+          },
+        ],
+      },
+      {
+        "stage": 5,
+        "entries": [
+          {
+            "kind": "Mob05",
+            "count": 5,
+          },
+        ],
+      },
+      {
+        "stage": 6,
+        "entries": [
+          {
+            "kind": "Mob06",
+            "count": 7,
+          },
+        ],
+      },
+      {
+        "stage": 7,
+        "entries": [
+          {
+            "kind": "Mob07",
+            "count": 7,
+          },
+        ],
+      },
+      {
+        "stage": 8,
+        "entries": [
+          {
+            "kind": "Mob08",
+            "count": 7,
+          },
+        ],
+      },
+      {
+        "stage": 9,
+        "entries": [
+          {
+            "kind": "Mob09",
+            "count": 7,
+          },
+        ],
+      },
+      {
+        "stage": 10,
+        "entries": [
+          {
+            "kind": "Mob10",
+            "count": 7,
+          },
+          {
+            "kind": "Boss01",
+            "count": 1,
+          },
+        ],
+      },
+      {
+        "stage": 11,
+        "entries": [
+          {
+            "kind": "Mob11",
+            "count": 9,
+          },
+        ],
+      },
+      {
+        "stage": 12,
+        "entries": [
+          {
+            "kind": "Mob12",
+            "count": 9,
+          },
+        ],
+      },
+      {
+        "stage": 13,
+        "entries": [
+          {
+            "kind": "Mob13",
+            "count": 9,
+          },
+        ],
+      },
+      {
+        "stage": 14,
+        "entries": [
+          {
+            "kind": "Mob14",
+            "count": 9,
+          },
+        ],
+      },
+      {
+        "stage": 15,
+        "entries": [
+          {
+            "kind": "Mob15",
+            "count": 8,
+          },
+        ],
+      },
+      {
+        "stage": 16,
+        "entries": [
+          {
+            "kind": "Mob16",
+            "count": 10,
+          },
+        ],
+      },
+      {
+        "stage": 17,
+        "entries": [
+          {
+            "kind": "Mob17",
+            "count": 10,
+          },
+        ],
+      },
+      {
+        "stage": 18,
+        "entries": [
+          {
+            "kind": "Mob18",
+            "count": 10,
+          },
+        ],
+      },
+      {
+        "stage": 19,
+        "entries": [
+          {
+            "kind": "Mob19",
+            "count": 10,
+          },
+        ],
+      },
+      {
+        "stage": 20,
+        "entries": [
+          {
+            "kind": "Mob20",
+            "count": 10,
+          },
+          {
+            "kind": "Boss02",
+            "count": 1,
+          },
+        ],
+      },
+      {
+        "stage": 21,
+        "entries": [
+          {
+            "kind": "Mob21",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 22,
+        "entries": [
+          {
+            "kind": "Mob22",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 23,
+        "entries": [
+          {
+            "kind": "Mob23",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 24,
+        "entries": [
+          {
+            "kind": "Mob24",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 25,
+        "entries": [
+          {
+            "kind": "Mob25",
+            "count": 10,
+          },
+        ],
+      },
+      {
+        "stage": 26,
+        "entries": [
+          {
+            "kind": "Mob26",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 27,
+        "entries": [
+          {
+            "kind": "Mob27",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 28,
+        "entries": [
+          {
+            "kind": "Mob28",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 29,
+        "entries": [
+          {
+            "kind": "Mob29",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 30,
+        "entries": [
+          {
+            "kind": "Mob30",
+            "count": 10,
+          },
+          {
+            "kind": "Boss03",
+            "count": 1,
+          },
+        ],
+      },
+      {
+        "stage": 31,
+        "entries": [
+          {
+            "kind": "Mob31",
+            "count": 12,
+          },
+        ],
+      },
+      {
+        "stage": 32,
+        "entries": [
+          {
+            "kind": "Mob32",
+            "count": 12,
+          },
+        ],
+      },
+      {
+        "stage": 33,
+        "entries": [
+          {
+            "kind": "Mob33",
+            "count": 12,
+          },
+        ],
+      },
+      {
+        "stage": 34,
+        "entries": [
+          {
+            "kind": "Mob34",
+            "count": 12,
+          },
+        ],
+      },
+      {
+        "stage": 35,
+        "entries": [
+          {
+            "kind": "Mob35",
+            "count": 11,
+          },
+        ],
+      },
+      {
+        "stage": 36,
+        "entries": [
+          {
+            "kind": "Mob36",
+            "count": 13,
+          },
+        ],
+      },
+      {
+        "stage": 37,
+        "entries": [
+          {
+            "kind": "Mob37",
+            "count": 13,
+          },
+        ],
+      },
+      {
+        "stage": 38,
+        "entries": [
+          {
+            "kind": "Mob38",
+            "count": 13,
+          },
+        ],
+      },
+      {
+        "stage": 39,
+        "entries": [
+          {
+            "kind": "Mob39",
+            "count": 13,
+          },
+        ],
+      },
+      {
+        "stage": 40,
+        "entries": [
+          {
+            "kind": "Mob40",
+            "count": 12,
+          },
+          {
+            "kind": "Boss04",
+            "count": 1,
+          },
+        ],
+      },
+      {
+        "stage": 41,
+        "entries": [
+          {
+            "kind": "Mob41",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 42,
+        "entries": [
+          {
+            "kind": "Mob42",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 43,
+        "entries": [
+          {
+            "kind": "Mob43",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 44,
+        "entries": [
+          {
+            "kind": "Mob44",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 45,
+        "entries": [
+          {
+            "kind": "Mob45",
+            "count": 13,
+          },
+        ],
+      },
+      {
+        "stage": 46,
+        "entries": [
+          {
+            "kind": "Mob46",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 47,
+        "entries": [
+          {
+            "kind": "Mob47",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 48,
+        "entries": [
+          {
+            "kind": "Mob48",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 49,
+        "entries": [
+          {
+            "kind": "Mob49",
+            "count": 14,
+          },
+        ],
+      },
+      {
+        "stage": 50,
+        "entries": [
+          {
+            "kind": "Mob50",
+            "count": 14,
+          },
+          {
+            "kind": "Boss05",
+            "count": 1,
+          },
+        ],
+      },
+    ],
+  },
+  "towers": {
+    "stats": {
+      "RubberCone": {
+        "damage": 0.0,
+        "range": 4.0,
+        "cooldown_ms": 1000,
+      },
+      "High": {
+        "damage": 5.0,
+        "range": 4.0,
+        "cooldown_ms": 1000,
+      },
+      "OnePair": {
+        "damage": 6.0,
+        "range": 5.0,
+        "cooldown_ms": 1000,
+      },
+      "TwoPair": {
+        "damage": 10.0,
+        "range": 6.0,
+        "cooldown_ms": 1000,
+      },
+      "ThreeOfAKind": {
+        "damage": 12.0,
+        "range": 7.0,
+        "cooldown_ms": 1000,
+      },
+      "Straight": {
+        "damage": 14.0,
+        "range": 9.0,
+        "cooldown_ms": 500,
+      },
+      "Flush": {
+        "damage": 32.0,
+        "range": 9.0,
+        "cooldown_ms": 1000,
+      },
+      "FullHouse": {
+        "damage": 50.0,
+        "range": 11.0,
+        "cooldown_ms": 1000,
+      },
+      "FourOfAKind": {
+        "damage": 100.0,
+        "range": 11.0,
+        "cooldown_ms": 1000,
+      },
+      "StraightFlush": {
+        "damage": 250.0,
+        "range": 14.0,
+        "cooldown_ms": 500,
+      },
+      "RoyalFlush": {
+        "damage": 1200.0,
+        "range": 15.0,
+        "cooldown_ms": 1000,
+      },
+    },
+  },
+}

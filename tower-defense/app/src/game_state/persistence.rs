@@ -411,7 +411,7 @@ mod tests {
             .collect::<String>();
         assert_eq!(
             fixture_digest,
-            "b95bc29b485cb960790d9f85d0f11eb3ff0349122f09e5252edb67add1ddb0a5"
+            "7c32e32d7d9187b09f60c3fa0f87b6452590275d8651763cbb170aed15390016"
         );
         let decoded = decode(&bytes).expect("persisted game state decoding");
         let mut restored_game_state = crate::game_state::create_game_state_with_seed(0xA11CE);

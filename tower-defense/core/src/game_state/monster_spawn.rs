@@ -9,7 +9,7 @@ pub struct MonsterSpawnState {
 
 pub fn calculate_stage_total_hp_raw(
     stage: usize,
-    config: &crate::GameConfigState,
+    config: &crate::GameConfig,
     enemy_health_multipliers_raw: &[i64],
 ) -> i64 {
     let wave = config

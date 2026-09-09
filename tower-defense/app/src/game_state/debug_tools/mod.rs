@@ -1,7 +1,6 @@
 mod add_tower_card;
 mod add_upgrade;
 mod auto_setup;
-pub mod monster_hp_balance;
 mod route_length_info;
 pub mod state_snapshot;
 
@@ -19,7 +18,6 @@ use route_length_info::RouteLengthInfoTool;
 use state_snapshot_tool::StateSnapshotTool;
 mod spiral_place;
 mod state_snapshot_tool;
-use monster_hp_balance::MonsterHpBalanceButton;
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect, table};
 use spiral_place::PlaceSelectedTowerInSpiralButton;
@@ -82,12 +80,6 @@ impl Component for DebugToolsModal {
                                 content: |scroll_ctx| {
                                     scroll_ctx.compose(|ctx| {
                                         table::vertical([
-                                            table::fit(table::FitAlign::LeftTop, |ctx| {
-                                                ctx.add(MonsterHpBalanceButton {
-                                                    width: _wh.width - PADDING * 2.0,
-                                                });
-                                            }),
-                                            table::fixed(GAP, |_, _| {}),
                                             table::fit(table::FitAlign::LeftTop, |ctx| {
                                                 ctx.add(AutoSetupButton {
                                                     width: _wh.width - PADDING * 2.0,

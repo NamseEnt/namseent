@@ -1,7 +1,5 @@
 use super::{CoreState, RecordedTickOutput};
-use crate::{
-    CommandReceipt, GameConfigState, Observation, PlayerCommand, ReplayCheckpoint, SimTick,
-};
+use crate::{CommandReceipt, Observation, PlayerCommand, ReplayCheckpoint, SimTick};
 use std::ops::Deref;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -18,7 +16,7 @@ pub struct CoreSnapshotParts {
     pub sim_tick: crate::SimTick,
     pub rng: crate::RngState,
     pub route: crate::RouteState,
-    pub config: crate::GameConfigState,
+    pub config: crate::GameConfig,
     pub stage_modifiers: crate::StageModifiersState,
     pub upgrades: crate::UpgradeCollection,
     pub hand: crate::HandState,
@@ -190,7 +188,7 @@ impl Deref for CoreSession {
 }
 
 impl CoreSession {
-    pub fn new(config: GameConfigState, seed: u64) -> Self {
+    pub fn new(config: crate::GameConfig, seed: u64) -> Self {
         Self {
             state: CoreState::new_initial(config, seed),
         }
@@ -527,7 +525,8 @@ mod tests {
 
     #[test]
     fn legacy_snapshot_without_hand_allocator_gets_a_migration_default() {
-        let state = CoreState::new_initial(test_config(), 7);
+        let mut state = CoreState::new_initial(test_config(), 7);
+        state.start_stage(1);
         let mut value = serde_json::to_value(&state).expect("state serialization");
         value
             .get_mut("hand")
@@ -569,7 +568,10 @@ mod tests {
 
     #[test]
     fn accepted_command_receipt_and_snapshot_preserve_session_boundary() {
-        let mut session = CoreSession::new(test_config(), 7);
+        let mut state = CoreState::new_initial(test_config(), 7);
+        state.start_stage(1);
+        let mut session =
+            CoreSession::from_state(state).expect("selected initial state should be valid");
         let receipt = session
             .apply(crate::PlayerCommand::StartSelectingTower)
             .expect("initial tower selection command should be accepted");
@@ -602,8 +604,14 @@ mod tests {
     #[test]
     fn fast_ticks_preserve_authoritative_state_without_tick_metadata() {
         let config = test_config();
-        let mut full = CoreSession::new(config.clone(), 7);
-        let mut fast = CoreSession::new(config, 7);
+        let mut full_state = CoreState::new_initial(config.clone(), 7);
+        let mut fast_state = CoreState::new_initial(config, 7);
+        full_state.start_stage(1);
+        fast_state.start_stage(1);
+        let mut full =
+            CoreSession::from_state(full_state).expect("selected initial state should be valid");
+        let mut fast =
+            CoreSession::from_state(fast_state).expect("selected initial state should be valid");
 
         let command = crate::PlayerCommand::StartSelectingTower;
         let full_receipt = full
@@ -642,8 +650,14 @@ mod tests {
     #[test]
     fn presentation_ticks_preserve_events_without_replay_metadata() {
         let config = test_config();
-        let mut full = CoreSession::new(config.clone(), 7);
-        let mut presentation = CoreSession::new(config, 7);
+        let mut full_state = CoreState::new_initial(config.clone(), 7);
+        let mut presentation_state = CoreState::new_initial(config, 7);
+        full_state.start_stage(1);
+        presentation_state.start_stage(1);
+        let mut full =
+            CoreSession::from_state(full_state).expect("selected initial state should be valid");
+        let mut presentation = CoreSession::from_state(presentation_state)
+            .expect("selected initial state should be valid");
 
         let command = crate::PlayerCommand::StartSelectingTower;
         full.apply(command.clone())
