@@ -188,6 +188,9 @@ impl HeadedGame {
                         "defense intro fallback: no valid wave entry for authoritative stage {stage}"
                     );
                 }
+                if selection.monster_kind.is_normal_monster() {
+                    continue;
+                }
                 self.presentation_director.enqueue_defense_intro(
                     crate::game_state::presentation_director::PresentationId::for_core_event(
                         self.state.sim_tick(),
