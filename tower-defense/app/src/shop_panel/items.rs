@@ -35,7 +35,13 @@ impl Component for ShopItem<'_> {
                 ctx.compose(|ctx| {
                     render_thumbnail(wh, ctx, slot_data, &purchase_status);
                 });
-                render_price(wh, ctx, slot_data, available);
+                render_price(
+                    wh,
+                    ctx,
+                    slot_data,
+                    purchase_status.effective_cost(),
+                    available,
+                );
             })(wh, ctx);
         });
     }
@@ -96,12 +102,13 @@ fn rarity_halo_config(rarity: crate::Rarity) -> Option<(Color, f32)> {
     }
 }
 
-fn render_price(wh: Wh<Px>, ctx: ComposeCtx, slot_data: &ShopSlotData, available: bool) {
-    let cost = match &slot_data.slot {
-        ShopSlot::Item { cost, .. }
-        | ShopSlot::Upgrade { cost, .. }
-        | ShopSlot::CardService { cost, .. } => *cost,
-    };
+fn render_price(
+    wh: Wh<Px>,
+    ctx: ComposeCtx,
+    slot_data: &ShopSlotData,
+    cost: usize,
+    available: bool,
+) {
     let cost_color = if available {
         palette::YELLOW
     } else {

@@ -91,6 +91,7 @@ mod tests {
             panic!("expected shopping flow");
         };
 
+        assert_eq!(game_state.shop_purchase_status(slot_id).effective_cost(), 0);
         game_state.apply_compatibility_action(
             crate::game_state::CompatibilityAction::PurchaseShopItem(slot_id),
         );
