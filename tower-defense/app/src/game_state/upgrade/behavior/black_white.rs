@@ -28,16 +28,32 @@ impl UpgradePresentation for BlackWhiteUpgrade {
     fn l10n_description<'a>(
         &self,
         builder: &mut crate::theme::typography::TypographyBuilder<'a>,
-        _locale: &crate::l10n::Locale,
+        locale: &crate::l10n::Locale,
     ) {
-        builder
-            .card_suit(Suit::Spades)
-            .static_text("=")
-            .card_suit(Suit::Clubs)
-            .static_text(", ")
-            .card_suit(Suit::Hearts)
-            .static_text("=")
-            .card_suit(Suit::Diamonds);
+        match locale.language {
+            crate::l10n::locale::Language::English => {
+                builder
+                    .card_suit(Suit::Hearts)
+                    .static_text(" and ")
+                    .card_suit(Suit::Diamonds)
+                    .static_text(", and ")
+                    .card_suit(Suit::Spades)
+                    .static_text(" and ")
+                    .card_suit(Suit::Clubs)
+                    .static_text(" are each treated as the same suit.");
+            }
+            crate::l10n::locale::Language::Korean => {
+                builder
+                    .card_suit(Suit::Hearts)
+                    .static_text("와 ")
+                    .card_suit(Suit::Diamonds)
+                    .static_text(", ")
+                    .card_suit(Suit::Spades)
+                    .static_text("와 ")
+                    .card_suit(Suit::Clubs)
+                    .static_text("을 각각 같은 문양으로 취급합니다.");
+            }
+        }
     }
 }
 
