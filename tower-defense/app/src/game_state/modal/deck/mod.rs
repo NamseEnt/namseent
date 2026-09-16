@@ -12,6 +12,7 @@ use crate::{
 };
 use namui::*;
 use namui_prebuilt::{scroll_view::AutoScrollViewWithCtx, simple_rect};
+use std::cmp::Reverse;
 use std::sync::Arc;
 
 type ActionButtonCtx = Option<(IconKind, bool, Arc<dyn Fn() + Send + Sync>)>;
@@ -180,8 +181,8 @@ impl Component for DeckModal {
             DeckKind::Discard => 2,
         };
         let mut cards = game_state.state().presentation_deck_zone_snapshot(zone);
-        if matches!(deck_kind, DeckKind::Draw) {
-            cards.sort_by_key(|left| left.card);
+        if matches!(deck_kind, DeckKind::Deck | DeckKind::Draw) {
+            cards.sort_by_key(|entry| Reverse(entry.card.rank.ace_high_value()));
         }
         if let Some(selection) = &selection {
             let filter = &selection.current_step().filter;
