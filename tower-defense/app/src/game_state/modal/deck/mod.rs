@@ -3,6 +3,7 @@ use crate::game_state::{UserModal, mutate_headed_game, set_modal, use_game_state
 use crate::icon::IconKind;
 use crate::{
     game_state::modal::card_grid::Cards,
+    game_state::presentation_deck::PresentationDeckCard,
     theme::{
         fab::{FabPosition, FabSide, FabVerticalPosition, FloatingActionButton},
         typography::{FontSize, memoized_text},
@@ -24,6 +25,16 @@ const VERTICAL_MARGIN: Px = px(128.0);
 const TITLE_HEIGHT: Px = px(32.0);
 const CARD_SERVICE_THUMBNAIL_GAP: Px = px(8.0);
 const CARD_SERVICE_THUMBNAIL_SIZE: Px = px(72.0);
+
+fn sort_cards_for_display(cards: &mut [PresentationDeckCard]) {
+    cards.sort_by_key(|entry| {
+        (
+            Reverse(entry.card.rank.ace_high_value()),
+            entry.card.suit,
+            entry.card.id.raw(),
+        )
+    });
+}
 
 #[derive(Debug, Clone, State)]
 pub enum DeckKind {
@@ -182,7 +193,7 @@ impl Component for DeckModal {
         };
         let mut cards = game_state.state().presentation_deck_zone_snapshot(zone);
         if matches!(deck_kind, DeckKind::Deck | DeckKind::Draw) {
-            cards.sort_by_key(|entry| Reverse(entry.card.rank.ace_high_value()));
+            sort_cards_for_display(&mut cards);
         }
         if let Some(selection) = &selection {
             let filter = &selection.current_step().filter;
@@ -389,7 +400,43 @@ impl Component for DeckModal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::card::{Engraving, Suit};
+    use crate::card::{CardId, Engraving, Suit};
+
+    #[test]
+    fn deck_cards_are_sorted_by_rank_suit_and_id() {
+        let mut cards = vec![
+            PresentationDeckCard {
+                card: Card::with_id(CardId::from_raw(9), Rank::Ace, Suit::Clubs),
+                order: 0,
+                exit_started_at: None,
+            },
+            PresentationDeckCard {
+                card: Card::with_id(CardId::from_raw(3), Rank::King, Suit::Spades),
+                order: 1,
+                exit_started_at: None,
+            },
+            PresentationDeckCard {
+                card: Card::with_id(CardId::from_raw(4), Rank::Ace, Suit::Spades),
+                order: 2,
+                exit_started_at: None,
+            },
+            PresentationDeckCard {
+                card: Card::with_id(CardId::from_raw(2), Rank::Ace, Suit::Spades),
+                order: 3,
+                exit_started_at: None,
+            },
+        ];
+
+        sort_cards_for_display(&mut cards);
+
+        assert_eq!(
+            cards
+                .iter()
+                .map(|entry| entry.card.id.raw())
+                .collect::<Vec<_>>(),
+            vec![2, 4, 9, 3]
+        );
+    }
 
     #[test]
     fn engraved_filters_split_the_deck_by_engraving() {
