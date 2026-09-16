@@ -49,7 +49,7 @@ impl Component for HandPanel {
                 .filter_map(|slot_id| active_slot_ids.iter().position(|id| id == slot_id))
                 .collect::<Vec<_>>()
         });
-        let using_cards = ctx.memo(|| {
+        let using_cards = {
             let slot_ids = if !selected_slot_ids.is_empty() {
                 selected_slot_ids.clone_inner()
             } else {
@@ -59,32 +59,28 @@ impl Component for HandPanel {
             hand.get_items(&slot_ids)
                 .filter_map(|item| item.as_card().copied())
                 .collect::<Vec<Card>>()
-        });
-        let tower_template = ctx.memo({
+        };
+        let tower_template = {
             let rerolled_count = raw_core.progress().rerolled_count;
             let config = crate::config::GameConfig::from_core_state(raw_core.config().clone())
                 .expect("raw game config must be restorable for hand presentation");
-            move || {
-                let selected_slot_ids = selected_slot_ids.clone_inner();
-                if let Some(tower_template) = hand
-                    .get_items(&selected_slot_ids)
-                    .find_map(|item| item.as_tower().cloned())
-                {
-                    return Some(tower_template);
-                }
-
-                if using_cards.is_empty() {
-                    None
-                } else {
-                    Some(get_highest_tower_template(
-                        &using_cards,
-                        &upgrade_state,
-                        rerolled_count,
-                        &config,
-                    ))
-                }
+            let selected_slot_ids = selected_slot_ids.clone_inner();
+            if let Some(tower_template) = hand
+                .get_items(&selected_slot_ids)
+                .find_map(|item| item.as_tower().cloned())
+            {
+                Some(tower_template)
+            } else if using_cards.is_empty() {
+                None
+            } else {
+                Some(get_highest_tower_template(
+                    &using_cards,
+                    &upgrade_state,
+                    rerolled_count,
+                    &config,
+                ))
             }
-        });
+        };
 
         let panel_wh = Wh::new(panel_width(), PAPER_HEIGHT + BOTTOM_OUTSIDE_HEIGHT);
         let panel_x = (screen_wh.width - panel_wh.width) / 2.0;
@@ -169,7 +165,7 @@ impl Component for HandPanel {
                 crate::hand_panel::tower_preview::HandTowerPreview {
                     wh: Wh::new(PREVIEW_WIDTH, PREVIEW_HEIGHT),
                     visible_wh: Wh::new(PREVIEW_WIDTH, preview_height),
-                    tower_template: tower_template.clone_inner(),
+                    tower_template: tower_template.clone(),
                 },
             );
         });
