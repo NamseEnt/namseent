@@ -28,9 +28,9 @@ pub(super) fn selection_low_ranks() -> Vec<CardServiceSelectionStepState> {
     vec![CardServiceSelectionStepState {
         count: 1,
         filter: CardSelectionFilterState::Or(vec![
+            CardSelectionFilterState::Rank(12),
             CardSelectionFilterState::Rank(0),
             CardSelectionFilterState::Rank(1),
-            CardSelectionFilterState::Rank(2),
         ]),
     }]
 }

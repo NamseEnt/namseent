@@ -401,6 +401,30 @@ mod purchase_tests {
     }
 
     #[test]
+    fn tricycle_selection_accepts_ace_two_and_three() {
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("Tricycle selection must be registered");
+        let filter = &selection.steps[0].filter;
+
+        for rank in [12, 0, 1] {
+            assert!(filter.matches(&CardState {
+                id: 0,
+                suit: 0,
+                rank,
+                polish_pct_raw: 0,
+                engraving: None,
+            }));
+        }
+        assert!(!filter.matches(&CardState {
+            id: 0,
+            suit: 0,
+            rank: 2,
+            polish_pct_raw: 0,
+            engraving: None,
+        }));
+    }
+
+    #[test]
     fn every_valid_kind_has_one_registry_definition() {
         for kind in crate::CardServiceKind::ALL {
             let behavior = card_service_behavior(*kind).expect("valid kind is registered");
