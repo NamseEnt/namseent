@@ -65,6 +65,14 @@ impl Component for HandPanel {
             let config = crate::config::GameConfig::from_core_state(raw_core.config().clone())
                 .expect("raw game config must be restorable for hand presentation");
             move || {
+                let selected_slot_ids = selected_slot_ids.clone_inner();
+                if let Some(tower_template) = hand
+                    .get_items(&selected_slot_ids)
+                    .find_map(|item| item.as_tower().cloned())
+                {
+                    return Some(tower_template);
+                }
+
                 if using_cards.is_empty() {
                     None
                 } else {

@@ -181,7 +181,7 @@ impl Component for HandTowerPreview {
 
         let active_id = if matches!(
             game_state.raw_core_state().flow(),
-            td_core::GameFlowState::SelectingTower
+            td_core::GameFlowState::SelectingTower | td_core::GameFlowState::PlacingTower
         ) {
             entries
                 .iter()
