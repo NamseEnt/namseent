@@ -1275,16 +1275,15 @@ mod tests {
         state.shop.category_bag.entries = vec![2, 1, 0];
         state.shop.category_bag.cursor = 2;
         state.shop.content_bags[0].entries = vec!["alpha".to_string()];
+        state.reward_upgrade_bag.entries = vec![4, 2, 1];
+        state.reward_upgrade_bag.cursor = 2;
+        state.reward_upgrade_bag.cycle = 3;
 
         let encoded = serde_json::to_string(&state).unwrap();
-        assert_eq!(serde_json::from_str::<RngState>(&encoded).unwrap().seed, 42);
-        assert_eq!(
-            serde_json::from_str::<RngState>(&encoded)
-                .unwrap()
-                .domain_sequences
-                .get(&7),
-            Some(&3)
-        );
+        let decoded = serde_json::from_str::<RngState>(&encoded).unwrap();
+        assert_eq!(decoded.seed, 42);
+        assert_eq!(decoded.reward_upgrade_bag, state.reward_upgrade_bag);
+        assert_eq!(decoded.domain_sequences.get(&7), Some(&3));
     }
 
     #[test]

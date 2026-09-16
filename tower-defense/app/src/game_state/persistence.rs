@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 
-pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 5;
+pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 6;
 const STORAGE_KEY: &str = "tower-defense-game-state";
 const STORAGE_MAGIC: &[u8; 4] = b"TDGS";
 
@@ -268,7 +268,7 @@ mod tests {
             .collect::<String>();
         assert_eq!(
             fixture_digest,
-            "72dba31fd0d97a987bb4b6c8d619f394374c50fbae9db81cc4446f86483a2acc"
+            "00c0e5e11845f2615133ed8928de9dfbff135639fd959314eec9b932e0b69a88"
         );
         let decoded = decode(&bytes).expect("persisted game state decoding");
         let mut restored_game_state = crate::game_state::create_game_state_with_seed(0xA11CE);
