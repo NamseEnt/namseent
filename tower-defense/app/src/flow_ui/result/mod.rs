@@ -205,6 +205,7 @@ impl Component for ResultModal {
             0.px(),
             Color::BLACK.with_alpha(225),
         ))
+        .mouse_cursor(MouseCursor::Standard(StandardCursor::Default))
         .attach_event(|event| {
             match event {
                 Event::MouseDown { event }
