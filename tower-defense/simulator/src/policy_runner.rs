@@ -736,7 +736,7 @@ fn rank_value(rank: &str) -> usize {
     }
 }
 
-fn scripted_expert_action(
+pub fn scripted_expert_action(
     observation: &Observation,
     legal_actions: &[LegalAction],
 ) -> Result<AgentAction> {
@@ -1028,6 +1028,8 @@ fn scripted_oracle_action(
 pub struct EpisodeResult {
     pub seed: u64,
     pub decision_count: usize,
+    pub ticks_advanced: u64,
+    pub candidate_evaluations: usize,
     pub forced_actions: ForcedActionStats,
     pub terminated: bool,
     pub truncated: bool,
@@ -1113,6 +1115,8 @@ where
     let mut terminated = false;
     let mut truncated = false;
     let mut decision_count = 0;
+    let mut ticks_advanced = 0;
+    let mut candidate_evaluations = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1138,6 +1142,7 @@ where
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
+        candidate_evaluations += legal_actions.len();
         let action = policy.choose_action(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint.clone(), action.clone());
         let mut outcome = environment
@@ -1168,6 +1173,7 @@ where
             outcome.state_hash = forced_outcome.state_hash;
         }
         let post_progress_fingerprint = environment.progress_fingerprint();
+        ticks_advanced += outcome.info.ticks_advanced;
         let is_cycle =
             !outcome.terminated && progress_tracker.observe(environment.progress_fingerprint());
         finish_cycle_outcome(&mut outcome, is_cycle, &runner_config.reward_config);
@@ -1209,6 +1215,8 @@ where
     Ok(EpisodeResult {
         seed,
         decision_count,
+        ticks_advanced,
+        candidate_evaluations,
         forced_actions,
         terminated,
         truncated,
@@ -1262,6 +1270,8 @@ where
     let mut terminated = false;
     let mut truncated = false;
     let mut decision_count = 0;
+    let mut ticks_advanced = 0;
+    let mut candidate_evaluations = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1282,6 +1292,7 @@ where
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
+        candidate_evaluations += legal_actions.len();
         let action = policy(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint, action.clone());
         let mut outcome = environment
@@ -1313,6 +1324,7 @@ where
         }
         let is_cycle =
             !outcome.terminated && progress_tracker.observe(environment.progress_fingerprint());
+        ticks_advanced += outcome.info.ticks_advanced;
         finish_cycle_outcome(&mut outcome, is_cycle, &runner_config.reward_config);
         if is_cycle {
             progress_tracker = ProgressTracker::default();
@@ -1342,6 +1354,8 @@ where
     Ok(EpisodeResult {
         seed,
         decision_count,
+        ticks_advanced,
+        candidate_evaluations,
         forced_actions,
         terminated,
         truncated,

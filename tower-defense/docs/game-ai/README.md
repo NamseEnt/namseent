@@ -59,6 +59,19 @@
 
 완료 조건은 재현 가능한 baseline report가 생성되는 것이다.
 
+기준선 report는 다음 CLI로 생성한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
+  --policy random-legal \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 512 \
+  --threads 8 \
+  --output artifacts/benchmarks/phase0-random-0-3.json
+```
+
+같은 seed와 제한으로 `scripted`와 `checkpoint`를 각각 실행한다. checkpoint가 현재 contract와 호환되지 않으면 실패를 숨기지 않고 baseline 상태에 기록한다.
+
 ### Phase 1: 행동 계약과 시뮬레이터 처리량
 
 1. UI micro-action을 simulator-local semantic action으로 교체한다.

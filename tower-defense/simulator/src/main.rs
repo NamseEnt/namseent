@@ -5,6 +5,7 @@ use rayon::ThreadPoolBuilder;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
 use td_simulator::environment::{AgentAction, LegalAction, Observation};
 use td_simulator::hp_balance::{self, BalanceOptions};
@@ -38,6 +39,7 @@ struct Cli {
 enum Command {
     Simulate(SimulateOptions),
     Baseline(BaselineOptions),
+    Benchmark(BenchmarkOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -71,6 +73,33 @@ struct BaselineOptions {
     output: Option<PathBuf>,
     #[arg(long)]
     pair_with: Option<BaselinePolicyArg>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum BenchmarkPolicyArg {
+    RandomLegal,
+    Scripted,
+    Checkpoint,
+}
+
+#[derive(Args)]
+struct BenchmarkOptions {
+    #[arg(long, value_enum, default_value_t = BenchmarkPolicyArg::RandomLegal)]
+    policy: BenchmarkPolicyArg,
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
+    #[arg(long, default_value_t = 3)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 10_000)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 0)]
+    threads: usize,
+    #[arg(long, default_value = "ml_policy_checkpoint.json")]
+    checkpoint: PathBuf,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
 }
 
 #[derive(Args)]
@@ -107,10 +136,97 @@ fn main() -> Result<()> {
     match Cli::parse().command {
         Command::Simulate(options) => run_simulate(options),
         Command::Baseline(options) => run_baseline(options),
+        Command::Benchmark(options) => run_benchmark(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
     }
+}
+
+fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
+    let pool = {
+        let builder = ThreadPoolBuilder::new().thread_name(|index| format!("benchmark-{index}"));
+        let builder = if options.threads == 0 {
+            builder
+        } else {
+            builder.num_threads(options.threads)
+        };
+        builder.build()?
+    };
+    let threads = pool.install(|| rayon::current_num_threads());
+    let report = match options.policy {
+        BenchmarkPolicyArg::RandomLegal => pool.install(|| {
+            benchmark::run_policy(
+                config,
+                &seeds,
+                "random_legal",
+                options.max_decisions,
+                threads,
+                benchmark::random_legal_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Scripted => pool.install(|| {
+            benchmark::run_policy(
+                config,
+                &seeds,
+                "scripted_expert",
+                options.max_decisions,
+                threads,
+                |_| benchmark::scripted_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Checkpoint => {
+            let contract = MlContract::from_config(config.as_ref());
+            let (_checkpoint, model) =
+                NeuralCheckpoint::load_with_inference_model_with_config_change(
+                    &options.checkpoint,
+                    &contract,
+                    false,
+                )?;
+            let model = Arc::new(model);
+            let device = Arc::new(default_policy_device());
+            pool.install(|| {
+                benchmark::run_policy(
+                    config,
+                    &seeds,
+                    format!("checkpoint:{}", options.checkpoint.display()),
+                    options.max_decisions,
+                    threads,
+                    move |_| {
+                        let model = Arc::clone(&model);
+                        let device = Arc::clone(&device);
+                        move |observation: &Observation, legal_actions: &[LegalAction]| {
+                            choose_model_action(
+                                model.as_ref(),
+                                device.as_ref(),
+                                observation,
+                                legal_actions,
+                            )
+                        }
+                    },
+                )
+            })?
+        }
+    };
+    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Benchmark report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
 }
 
 fn run_baseline(options: BaselineOptions) -> Result<()> {

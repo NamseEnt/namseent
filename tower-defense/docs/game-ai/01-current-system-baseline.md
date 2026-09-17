@@ -87,6 +87,19 @@ scripted/heuristic expert
 
 이 수치는 재현 가능한 benchmark harness가 생기기 전의 임시 기준이다. Phase 0에서 정확한 명령, build profile, tick 수, path query 수와 함께 다시 측정한다.
 
+Phase 0부터 다음 명령으로 machine-readable report를 생성한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
+  --policy random-legal \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 512 \
+  --threads 8 \
+  --output artifacts/benchmarks/phase0-random-0-3.json
+```
+
+report에는 configuration digest, environment/action schema, seed digest, full-clear rate, decision/tick/candidate 처리량과 종료 사유가 포함된다. step trajectory는 저장하지 않고 집계값만 수집한다.
+
 ## 체크포인트 상태
 
 관찰 시점의 체크인 checkpoint는 현재 코드 계약과 호환되지 않았다.

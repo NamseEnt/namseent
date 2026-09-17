@@ -2,6 +2,7 @@
 
 pub mod config;
 pub use config::GameConfig;
+pub mod benchmark;
 pub mod core;
 #[allow(deprecated)]
 pub use core::{
