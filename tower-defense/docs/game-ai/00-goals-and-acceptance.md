@@ -56,6 +56,10 @@ P(full clear | fixed balance configuration, held-out seed distribution)
 - 학습과 시뮬레이션은 Apple M1 16GB에서 실행 가능해야 한다.
 - 원격 머신에서도 같은 dataset, checkpoint, seed 계약으로 실행할 수 있어야 한다.
 - 원격 머신의 실제 사양은 연결 가능한 시점에 별도로 측정하며 문서에 추측으로 기록하지 않는다.
+- M1에서는 WGPU의 Metal backend를 GPU 학습과 batch inference 후보로 사용한다.
+- 원격 머신은 실제 GPU 종류를 확인한 뒤 지원되는 CUDA 또는 WGPU backend를 선택한다.
+- branch가 많은 게임 simulation, legal action, pathfinding은 CPU 최적화를 기본으로 한다.
+- 작은 단건 inference를 무조건 GPU로 보내지 않고 CPU와 batched GPU의 end-to-end 처리량을 비교한다.
 - 대량 밸런스 통계는 search 없이 빠른 distilled policy로 실행하는 것을 기본으로 한다.
 - 실행에 필요한 인증 정보는 설정 파일, dataset, checkpoint, 문서에 저장하지 않는다.
 
@@ -73,6 +77,8 @@ P(full clear | fixed balance configuration, held-out seed distribution)
 8. distilled policy가 search 없이 정해진 inference latency 예산을 만족한다.
 9. 최종 정책이 사전에 고정한 held-out seed에서 기존 정책보다 높은 full-clear 승률을 보인다.
 10. 결과가 서로 다른 최소 3회 학습 run에서도 재현되는지 보고한다.
+11. M1 16GB에서 CPU simulator와 GPU learner가 memory limit 안에서 장시간 실행된다.
+12. 기존 AI는 새 경로의 승인 완료 후에만 제거된다.
 
 승률 차이가 표본 오차 범위에 있을 경우 개선으로 승인하지 않는다. 정확한 seed 수와 통계 검정은 [`08-evaluation.md`](08-evaluation.md)에서 관리한다.
 

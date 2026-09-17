@@ -6,6 +6,8 @@
 
 macro-action 변경과 성능 최적화는 함께 진행한다. UI micro-action 제거 자체가 observation 생성, legal action 생성, inference 횟수를 줄이므로 기존 action contract에서만 측정한 최적화 결과는 최종 처리량을 대표하지 않는다.
 
+GPU는 simulation 자체를 대체하지 않는다. pathfinding, legal action 생성, mutable state transition처럼 분기와 작은 메모리 접근이 많은 작업은 CPU에서 최적화한다. GPU는 큰 tensor batch를 처리하는 학습과 batch inference에 집중한다.
+
 ## 기준 지표
 
 판당 시간만 사용하지 않는다. 강한 정책은 더 오래 생존하므로 episode/sec가 오히려 감소할 수 있다.
@@ -86,11 +88,37 @@ cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache 
 - shared immutable configuration 사용
 - memory pressure와 scheduling overhead를 thread 수별로 측정
 
-### P5: teacher batch evaluation
+### P5: CPU-GPU pipeline
+
+- 여러 CPU worker가 observation과 legal candidate를 생성
+- inference 요청을 크기 또는 짧은 latency window로 batching
+- GPU가 batched policy/value inference 수행
+- 결과를 원래 environment와 decision sequence에 정확히 반환
+- CPU simulation과 GPU inference를 겹쳐 실행
+- queue 대기 시간, batch 크기, GPU utilization, end-to-end decisions/sec 측정
+
+단건 GPU dispatch는 작은 모델에서 CPU보다 느릴 수 있다. GPU 경로의 채택 기준은 kernel 시간만이 아니라 queue와 tensor transfer를 포함한 전체 처리량이다. M1의 unified memory도 논리적 tensor 변환과 dispatch 비용을 제거하지는 않는다.
+
+### P6: teacher batch evaluation
 
 - candidate별 continuation을 독립 environment 전체 clone으로 시작하지 않도록 snapshot 비용 측정
 - copy-on-write, compact snapshot, state delta 중 가장 단순하고 빠른 방식을 benchmark로 선택
 - 같은 scenario seed를 candidate batch에 효율적으로 배포
+
+## 장치별 책임
+
+| 작업 | 기본 장치 | 이유 |
+| --- | --- | --- |
+| Game state transition | CPU | 분기와 mutable state가 많음 |
+| Legal action 생성 | CPU | authoritative rule과 작은 불규칙 작업 |
+| Pathfinding과 placement validation | CPU | graph 탐색과 cache 중심 |
+| Episode 병렬 실행 | CPU | environment 간 독립성이 높음 |
+| BC/distillation 학습 | GPU | 큰 tensor batch 연산 |
+| PPO 또는 후속 RL update | GPU | forward/backward batch 연산 |
+| 단일 environment inference | CPU baseline | GPU dispatch 비용과 비교 필요 |
+| 다수 environment/candidate inference | Batched GPU 후보 | batch가 충분할 때 높은 처리량 가능 |
+
+Apple M1에서는 WGPU Metal backend를 사용 후보로 둔다. 원격 머신은 GPU vendor, driver, memory를 확인하기 전까지 backend를 확정하지 않는다.
 
 ## 초기 성능 목표
 
@@ -118,3 +146,6 @@ cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache 
 - 새 macro-action 기준 normalized throughput이 baseline보다 개선된다.
 - 목표 시간 또는 그에 준하는 병목 제거 근거가 있다.
 - deterministic replay와 legal-set equivalence test가 통과한다.
+- CPU-only와 CPU-GPU pipeline을 같은 workload로 비교한다.
+- GPU 경로는 end-to-end decisions/sec 또는 training wall time을 실제로 개선할 때만 기본값으로 채택한다.
+- M1 16GB에서 queue, rollout state, tensor와 optimizer를 포함한 peak memory가 한도를 넘지 않는다.

@@ -17,6 +17,9 @@
 - 첫 teacher는 fixed-horizon, common-random-seed rollout으로 작게 시작한다.
 - 동일한 teacher dataset으로 표현 구조를 비교하며, 모델 구조를 먼저 확정하지 않는다.
 - PPO는 첫 RL baseline이지만 최종 알고리즘으로 고정하지 않는다.
+- 기존 AI의 학습·정책 계층은 새 계약으로 다시 작성하되 authoritative core와 검증 기반은 재사용한다.
+- 기존 AI는 새 구현이 승인 기준을 통과할 때까지 동결된 baseline으로 유지한 뒤 제거한다.
+- simulation과 legal action 생성은 CPU에 두고, 학습과 충분히 큰 batch inference는 GPU를 사용한다.
 - 고정 밸런스 AI를 먼저 검증한 뒤 balance-conditioned policy와 인간형 실수 모델로 확장한다.
 
 ## 문서 지도
@@ -52,6 +55,7 @@
 1. 현재 Git revision, 설정 digest, seed 집합을 기록한다.
 2. 현재 random, scripted expert, 기존 BC/PPO가 실행 가능한 범위를 측정한다.
 3. 환경 실행 시간과 path validation 비용을 분리해 측정한다.
+4. 기존 AI 경로를 기능 추가 없이 동결하고 제거 대상과 재사용 대상을 확정한다.
 
 완료 조건은 재현 가능한 baseline report가 생성되는 것이다.
 
@@ -87,12 +91,18 @@
 1. teacher의 후보별 평가와 불확실성을 저장한다.
 2. 빠른 candidate scorer를 distillation/BC로 학습한다.
 3. 같은 dataset과 계산 예산으로 Deep Sets와 작은 attention 구조를 비교한다.
+4. CPU inference와 batched GPU inference의 end-to-end 처리량을 비교한다.
 
 ### Phase 5: RL fine-tuning
 
 1. distillation checkpoint에서 PPO baseline을 학습한다.
 2. PPO가 실제로 개선되는지 같은 평가 계약으로 확인한다.
 3. 환경 샘플 비용이 여전히 지배적일 때만 적합한 discrete replay/off-policy 방식을 비교한다.
+4. CPU rollout worker와 GPU learner를 겹쳐 실행하는 pipeline의 utilization과 memory를 측정한다.
+
+### Phase 5 종료: Legacy AI 제거
+
+새 production policy가 simulator, teacher, distillation, RL 평가 gate를 통과하면 기존 AI 전용 micro-action adapter, heuristic dataset 경로, 기존 모델과 학습 코드를 제거한다. 그 전에는 legacy 경로를 새 기능 개발 없이 baseline과 회귀 비교 용도로만 유지한다.
 
 ### Phase 6: 밸런스 실험
 

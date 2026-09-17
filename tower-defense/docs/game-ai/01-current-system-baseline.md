@@ -100,8 +100,8 @@ scripted/heuristic expert
 
 - authoritative core command와 legality
 - deterministic seed와 replay 검증
-- variable-cardinality legal candidate scoring
-- typed entity observation의 기본 개념
+- variable-cardinality legal candidate scoring이라는 문제 구조
+- typed entity observation이라는 기본 개념
 - held-out seed validation
 - checkpoint provenance와 configuration digest
 - headless와 rendered game의 동일한 simulation-step 규칙
@@ -115,3 +115,23 @@ scripted/heuristic expert
 - heuristic expert label 품질
 - Deep Sets가 관계 표현에 충분하다는 가정
 - PPO가 최종 학습 방식이라는 가정
+
+## 교체 전략
+
+기존 AI 학습·정책 코드는 새 계약에 맞춰 점진적으로 고치는 대상이 아니라 별도 경로에서 다시 작성하는 대상이다. 기존 checkpoint와 dataset도 새 schema로 마이그레이션하지 않는다.
+
+다만 기존 구현을 먼저 삭제하지는 않는다. 다음 용도로 읽기 전용에 가깝게 동결한다.
+
+- random/scripted/기존 policy 기준선 실행
+- 동일 seed의 회귀 비교
+- 새 simulator transition의 결과 검증
+- 새 teacher와 heuristic의 regret 비교
+
+새 구현이 평가 gate를 통과하면 다음 legacy 요소를 제거한다.
+
+- policy에 노출되는 카드 선택 micro-action FSM
+- 기존 heuristic expert와 그 전용 dataset 생성 경로
+- 기존 action/feature schema에 묶인 Deep Sets model과 checkpoint loader
+- 기존 schema에 묶인 BC/PPO training path
+
+authoritative core, deterministic replay, configuration digest, 통계 및 검증 기반은 제거하지 않는다. legacy와 new 경로가 core 규칙을 복제해 서로 다른 게임을 실행하게 만들지 않는다.
