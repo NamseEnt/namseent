@@ -7,13 +7,16 @@ use rand::Rng;
 const PARTICLE_LIFETIME_MS: i64 = 800;
 
 // Movement parameters
-const INITIAL_VELOCITY: f32 = 8.0; // tile units per second
+const INITIAL_VELOCITY: f32 = 12.0; // tile units per second
 const DIRECTION_SPREAD: f32 = 45.0; // degrees left/right from top
 const GRAVITY: f32 = 8.0; // tile units per second squared
 const AIR_RESISTANCE: f32 = 0.0005; // velocity multiplier per second (0.8 = 20% loss per second)
 const POSITION_RANDOMIZATION: f32 = 0.125; // ±tiles from center
 
 // Scale parameters
+const DAMAGE_REFERENCE_VALUE: f32 = 1_000.0;
+const DAMAGE_SCALE_AT_REFERENCE: f32 = 2.0;
+const DAMAGE_DURATION_AT_REFERENCE: f32 = 1.5;
 const SCALE_ACCELERATION_PHASE_PROGRESS: f32 = 0.3;
 const SCALE_ACCELERATION_POWER: i32 = 4;
 const SCALE_DECELERATION_POWER: i32 = 1;
@@ -73,6 +76,7 @@ pub struct DamageTextParticle {
     pub opacity: u8,
     pub rotation: Angle,
     pub rotation_speed: f32,
+    scale_multiplier: f32,
     pub scale: f32,
 }
 
@@ -104,10 +108,11 @@ impl DamageTextParticle {
             display_color,
             display_value,
             created_at: now,
-            duration: Duration::from_millis(PARTICLE_LIFETIME_MS),
+            duration: Duration::from_millis(Self::duration_ms(damage_value)),
             opacity: 255,
             rotation: 0.0.deg(),
             rotation_speed,
+            scale_multiplier: Self::scale_multiplier(damage_value),
             scale: 0.0,
         }
     }
@@ -129,8 +134,20 @@ impl DamageTextParticle {
         self.rotation = (self.rotation_speed * elapsed_secs).deg();
 
         // Scale: ease-in and ease-out
-        self.scale = self.calculate_scale(progress);
+        self.scale = self.calculate_scale(progress) * self.scale_multiplier;
     }
+
+    fn scale_multiplier(damage_value: f32) -> f32 {
+        1.0 + (damage_value.max(0.0) / DAMAGE_REFERENCE_VALUE) * (DAMAGE_SCALE_AT_REFERENCE - 1.0)
+    }
+
+    fn duration_ms(damage_value: f32) -> i64 {
+        let multiplier = 1.0
+            + (damage_value.max(0.0) / DAMAGE_REFERENCE_VALUE)
+                * (DAMAGE_DURATION_AT_REFERENCE - 1.0);
+        (PARTICLE_LIFETIME_MS as f32 * multiplier).round() as i64
+    }
+
     fn calculate_position(&self, elapsed_secs: f32) -> MapCoordF32 {
         let resistance_factor = AIR_RESISTANCE.powf(elapsed_secs);
         let resistance_ln = AIR_RESISTANCE.ln();
@@ -247,5 +264,18 @@ impl namui::particle::Particle for DamageTextParticle {
     }
     fn is_done(&self, now: Instant) -> bool {
         DamageTextParticle::is_done(self, now)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn damage_controls_scale_and_duration() {
+        assert_eq!(DamageTextParticle::scale_multiplier(0.0), 1.0);
+        assert_eq!(DamageTextParticle::scale_multiplier(1_000.0), 2.0);
+        assert_eq!(DamageTextParticle::duration_ms(0.0), PARTICLE_LIFETIME_MS);
+        assert_eq!(DamageTextParticle::duration_ms(1_000.0), 1_200);
     }
 }

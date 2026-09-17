@@ -39,7 +39,7 @@ mod tests {
                 .find(|entry| entry.kind == 0)
                 .expect("Mob01 config")
                 .base_hp_raw,
-            67_657
+            35_520
         );
         assert_eq!(
             config
@@ -49,7 +49,7 @@ mod tests {
                 .find(|entry| entry.kind == 1)
                 .expect("Mob02 config")
                 .base_hp_raw,
-            80_455
+            44_250
         );
         assert_eq!(
             config

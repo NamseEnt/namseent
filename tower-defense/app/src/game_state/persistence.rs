@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 
-pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 5;
+pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 6;
 const STORAGE_KEY: &str = "tower-defense-game-state";
 const STORAGE_MAGIC: &[u8; 4] = b"TDGS";
 
@@ -30,6 +30,7 @@ pub(crate) enum LoadedGameState {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum PersistenceError {
     UnsupportedSchemaVersion { expected: u16, actual: u16 },
+    ConfigMismatch,
     InvalidEncoding,
     TrailingBytes,
     InvalidRawCore,
@@ -219,6 +220,9 @@ pub(crate) fn restore(
     if !validate_entity_snapshots(persisted.raw_core.state()) {
         return Err(PersistenceError::InvalidEntitySnapshots);
     }
+    if persisted.raw_core.state().config() != game_state.raw_core_state().config() {
+        return Err(PersistenceError::ConfigMismatch);
+    }
 
     game_state
         .restore_raw_core_projection_at(
@@ -264,7 +268,7 @@ mod tests {
             .collect::<String>();
         assert_eq!(
             fixture_digest,
-            "e90d85915d9a9d37f9315668be09cd0f4cc25210a8235c26677364a7a7c9a88f"
+            "00c0e5e11845f2615133ed8928de9dfbff135639fd959314eec9b932e0b69a88"
         );
         let decoded = decode(&bytes).expect("persisted game state decoding");
         let mut restored_game_state = crate::game_state::create_game_state_with_seed(0xA11CE);
@@ -318,6 +322,21 @@ mod tests {
                 actual: CURRENT_SCHEMA_VERSION + 1,
             })
         );
+        assert_eq!(target.authoritative_hash(), expected_hash);
+    }
+
+    #[test]
+    fn restore_rejects_persisted_state_with_different_config() {
+        let original = crate::game_state::create_game_state_with_seed(0x5EED);
+        let mut config = crate::config::GameConfig::default_config();
+        config.player.max_hp_raw += 1;
+        let mut target =
+            crate::game_state::create_game_state_with_config(std::sync::Arc::new(config), 0xA11CE);
+        let expected_hash = target.authoritative_hash();
+
+        let result = restore(&mut target, capture(&original));
+
+        assert_eq!(result, Err(PersistenceError::ConfigMismatch));
         assert_eq!(target.authoritative_hash(), expected_hash);
     }
 

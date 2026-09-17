@@ -60,6 +60,8 @@ impl Default for ShopBagState {
 pub struct RngState {
     pub seed: u64,
     pub shop: ShopBagState,
+    #[serde(default)]
+    pub reward_upgrade_bag: BagState,
     pub domain_sequences: std::collections::BTreeMap<u64, u64>,
 }
 
@@ -68,6 +70,7 @@ impl RngState {
         Self {
             seed,
             shop: ShopBagState::default(),
+            reward_upgrade_bag: BagState::default(),
             domain_sequences: std::collections::BTreeMap::new(),
         }
     }

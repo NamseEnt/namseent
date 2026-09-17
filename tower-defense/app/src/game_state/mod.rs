@@ -1143,6 +1143,7 @@ fn encode_rng_state<__E: namui::bincode::enc::Encoder>(
     encode_rng_bag(&rng.shop.category_bag, encoder)?;
     encode_rng_bags(&rng.shop.rarity_bags, encoder)?;
     encode_rng_content_bags(&rng.shop.content_bags, encoder)?;
+    encode_rng_bag(&rng.reward_upgrade_bag, encoder)?;
     rng.domain_sequences.encode(encoder)
 }
 
@@ -1174,6 +1175,7 @@ fn decode_rng_state<__D: namui::bincode::de::Decoder<Context = ()>>(
             rarity_bags: decode_rng_bags(decoder)?,
             content_bags: decode_rng_content_bags(decoder)?,
         },
+        reward_upgrade_bag: decode_rng_bag(decoder)?,
         domain_sequences: std::collections::BTreeMap::<u64, u64>::decode(decoder)?,
     })
 }
@@ -1295,6 +1297,7 @@ fn serialize_rng_state_without_name(rng: &GameRngState, buf: &mut Vec<u8>) {
     serialize_rng_bag_without_name(&rng.shop.category_bag, buf);
     serialize_rng_bags_without_name(&rng.shop.rarity_bags, buf);
     serialize_rng_content_bags_without_name(&rng.shop.content_bags, buf);
+    serialize_rng_bag_without_name(&rng.reward_upgrade_bag, buf);
     rng.domain_sequences.serialize_without_name(buf);
 }
 
@@ -1337,6 +1340,7 @@ fn deserialize_rng_state(buf: &mut &[u8]) -> Result<GameRngState, namui::Deseria
             rarity_bags: deserialize_rng_bags(buf)?,
             content_bags: deserialize_rng_content_bags(buf)?,
         },
+        reward_upgrade_bag: deserialize_rng_bag(buf)?,
         domain_sequences: std::collections::BTreeMap::<u64, u64>::deserialize(buf)?,
     })
 }
@@ -1390,6 +1394,7 @@ fn deserialize_rng_state_without_name(
             rarity_bags: deserialize_rng_bags_without_name(buf)?,
             content_bags: deserialize_rng_content_bags_without_name(buf)?,
         },
+        reward_upgrade_bag: deserialize_rng_bag_without_name(buf)?,
         domain_sequences: std::collections::BTreeMap::<u64, u64>::deserialize_without_name(buf)?,
     })
 }

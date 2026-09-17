@@ -3,7 +3,6 @@ pub mod codec;
 mod codec_impl;
 pub(crate) mod payload;
 
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub(crate) use behaviors::UpgradeRuntimeState;
@@ -649,32 +648,89 @@ fn current_and_max(core: &crate::CoreState, kind: crate::UpgradeKind) -> Option<
     UpgradeBehaviorImpl::for_kind(kind).current_and_max(core)
 }
 
-pub fn generate_boss_reward_option(core: &mut crate::CoreState) -> crate::UpgradeEntry {
-    let mut rng = core.rng.next_rng(
+fn boss_reward_weight(kind: crate::UpgradeKind) -> usize {
+    match upgrade_rarity(kind) {
+        crate::Rarity::Common => 5,
+        crate::Rarity::Rare => 10,
+        crate::Rarity::Epic => 25,
+        crate::Rarity::Legendary => 50,
+    }
+}
+
+fn eligible_boss_reward_kinds(core: &crate::CoreState) -> Vec<crate::UpgradeKind> {
+    crate::UpgradeKind::ALL
+        .iter()
+        .copied()
+        .filter(|kind| !current_and_max(core, *kind).is_some_and(|(current, max)| current >= max))
+        .collect()
+}
+
+fn refill_boss_reward_bag(core: &mut crate::CoreState, eligible_kinds: &[crate::UpgradeKind]) {
+    let cycle = core.rng.reward_upgrade_bag.cycle;
+    let mut rng = core.rng.rng_for(
         crate::deterministic_rng::domain::REWARD_UPGRADE,
-        &[core.progress.stage as u64],
+        &[core.progress.stage as u64, cycle],
     );
-    let kinds = crate::UpgradeKind::ALL.to_vec();
-    let kind = kinds
-        .choose_weighted(&mut rng, |kind| {
-            if current_and_max(core, *kind).is_some_and(|(current, max)| current >= max) {
-                return 0.0_f32;
-            }
-            match upgrade_rarity(*kind) {
-                crate::Rarity::Common => 5.0_f32,
-                crate::Rarity::Rare => 10.0_f32,
-                crate::Rarity::Epic => 25.0_f32,
-                crate::Rarity::Legendary => 50.0_f32,
-            }
-        })
-        .expect("at least one upgrade reward must be eligible");
-    generated_upgrade(*kind)
+    let mut remaining = eligible_kinds.to_vec();
+    let mut entries = Vec::with_capacity(remaining.len());
+    while !remaining.is_empty() {
+        let total_weight = remaining.iter().map(|kind| boss_reward_weight(*kind)).sum();
+        let mut offset = crate::deterministic_rng::uniform_index(&mut rng, total_weight);
+        let selected_index = remaining
+            .iter()
+            .position(|kind| {
+                let weight = boss_reward_weight(*kind);
+                if offset < weight {
+                    true
+                } else {
+                    offset -= weight;
+                    false
+                }
+            })
+            .expect("reward bag must contain a weighted candidate");
+        entries.push(remaining.swap_remove(selected_index).raw());
+    }
+
+    let bag = &mut core.rng.reward_upgrade_bag;
+    bag.entries = entries;
+    bag.cursor = 0;
+    bag.cycle = cycle.wrapping_add(1);
+}
+
+fn draw_boss_reward_kind(core: &mut crate::CoreState, seen: &[u8]) -> crate::UpgradeKind {
+    let eligible_kinds = eligible_boss_reward_kinds(core);
+    let allow_duplicate = eligible_kinds.len() <= seen.len();
+    loop {
+        if core.rng.reward_upgrade_bag.cursor >= core.rng.reward_upgrade_bag.entries.len() {
+            refill_boss_reward_bag(core, &eligible_kinds);
+        }
+        let bag = &mut core.rng.reward_upgrade_bag;
+        let raw = bag.entries[bag.cursor];
+        bag.cursor += 1;
+        if let Some(kind) = crate::UpgradeKind::from_raw(raw)
+            && eligible_kinds.contains(&kind)
+            && (allow_duplicate || !seen.contains(&raw))
+        {
+            return kind;
+        }
+    }
+}
+
+pub fn generate_boss_reward_option(core: &mut crate::CoreState) -> crate::UpgradeEntry {
+    generated_upgrade(draw_boss_reward_kind(core, &[]))
 }
 
 pub(crate) fn generate_boss_reward_options(
     core: &mut crate::CoreState,
 ) -> Vec<crate::UpgradeEntry> {
-    (0..3).map(|_| generate_boss_reward_option(core)).collect()
+    let mut seen = Vec::with_capacity(3);
+    (0..3)
+        .map(|_| {
+            let kind = draw_boss_reward_kind(core, &seen);
+            seen.push(kind.raw());
+            generated_upgrade(kind)
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1476,6 +1532,35 @@ mod tests {
             seen_rarities[upgrade_rarity(kind).index()] = true;
         }
         assert_eq!(seen_rarities, [true, true, true, true]);
+    }
+
+    #[test]
+    fn boss_reward_options_are_unique_and_seed_deterministic() {
+        for seed in 0..64 {
+            let mut first = test_core();
+            let mut second = test_core();
+            first
+                .edit_snapshot(|parts| parts.rng.seed = seed)
+                .expect("first reward fixture");
+            second
+                .edit_snapshot(|parts| parts.rng.seed = seed)
+                .expect("second reward fixture");
+
+            let first_options = generate_boss_reward_options(&mut first);
+            let second_options = generate_boss_reward_options(&mut second);
+            let first_kinds = first_options
+                .iter()
+                .map(|upgrade| upgrade.kind().raw())
+                .collect::<std::collections::BTreeSet<_>>();
+            let second_kinds = second_options
+                .iter()
+                .map(|upgrade| upgrade.kind().raw())
+                .collect::<std::collections::BTreeSet<_>>();
+
+            assert_eq!(first_options, second_options, "seed {seed}");
+            assert_eq!(first_kinds.len(), first_options.len(), "seed {seed}");
+            assert_eq!(second_kinds, first_kinds, "seed {seed}");
+        }
     }
 
     #[test]

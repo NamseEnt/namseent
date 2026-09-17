@@ -16,12 +16,14 @@ pub(crate) enum ShopPurchaseBlockReason {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ShopPurchaseStatus {
     reasons: Vec<ShopPurchaseBlockReason>,
+    effective_cost: usize,
 }
 
 impl ShopPurchaseStatus {
     pub(crate) fn blocked(reason: ShopPurchaseBlockReason) -> Self {
         Self {
             reasons: vec![reason],
+            effective_cost: 0,
         }
     }
 
@@ -31,6 +33,10 @@ impl ShopPurchaseStatus {
 
     pub(crate) fn reasons(&self) -> &[ShopPurchaseBlockReason] {
         &self.reasons
+    }
+
+    pub(crate) fn effective_cost(&self) -> usize {
+        self.effective_cost
     }
 }
 
@@ -90,7 +96,10 @@ impl GameState {
         }
         reasons.extend(card_service_reasons);
 
-        ShopPurchaseStatus { reasons }
+        ShopPurchaseStatus {
+            reasons,
+            effective_cost,
+        }
     }
 }
 

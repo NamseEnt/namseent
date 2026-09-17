@@ -136,7 +136,23 @@ impl GameState {
         command: HeadedPlayerCommand,
         presentation_instant: crate::PresentationInstant,
     ) -> Result<(), CommandError> {
-        let player_command = PlayerCommand::from(&command);
+        let player_command = match &command {
+            HeadedPlayerCommand::PurchaseShopItem { slot_index } => {
+                let slot_id = self.shop_slot_id(*slot_index)?;
+                let raw_slot_index = match self.raw_core.flow() {
+                    td_core::GameFlowState::Shopping(flow) => flow
+                        .slots
+                        .iter()
+                        .position(|slot| slot.id == slot_id.raw())
+                        .ok_or(CommandError::InvalidIndex)?,
+                    _ => return Err(CommandError::InvalidFlow),
+                };
+                PlayerCommand::PurchaseShopItem {
+                    slot_index: raw_slot_index,
+                }
+            }
+            _ => PlayerCommand::from(&command),
+        };
         let before = self.raw_core.state().clone();
         let before_hp = before.hp_raw();
         let reroll_health_cost = before.stage_modifiers().reroll_health_cost;
@@ -523,6 +539,38 @@ mod tests {
             game_state.authoritative_hash()
         );
         assert_eq!(game_state.items.len(), initial_item_count);
+    }
+
+    #[test]
+    fn can_purchase_right_shop_item_after_purchasing_left_shop_item() {
+        let mut game_state = test_state();
+
+        if let GameFlow::Shopping(flow) = &mut game_state.flow {
+            flow.shop.slots.clear();
+            flow.shop.push(ShopSlot::Item {
+                item: RubberConeItem::standard().into_item(),
+                cost: 0,
+            });
+            flow.shop.push(ShopSlot::Item {
+                item: RubberConeItem::standard().into_item(),
+                cost: 0,
+            });
+        } else {
+            panic!("expected shopping flow");
+        }
+        game_state.sync_raw_core_from_projection();
+
+        game_state
+            .apply_player_command(HeadedPlayerCommand::PurchaseShopItem { slot_index: 0 })
+            .expect("left shop item should be purchased");
+        game_state
+            .apply_player_command(HeadedPlayerCommand::PurchaseShopItem { slot_index: 0 })
+            .expect("right shop item should be purchased");
+
+        let td_core::GameFlowState::Shopping(flow) = game_state.raw_core.flow() else {
+            panic!("expected shopping flow");
+        };
+        assert!(flow.slots.iter().all(|slot| slot.purchased));
     }
 
     #[test]

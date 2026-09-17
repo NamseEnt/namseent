@@ -152,25 +152,32 @@ impl Component for HandTowerPreview {
         let mut entries = entries_sig.clone_inner();
         let mut next_id = next_id_sig.clone_inner();
 
-        if let Some(template) = self.tower_template.clone()
-            && entries
+        if let Some(template) = self.tower_template.clone() {
+            if entries
                 .last()
                 .is_none_or(|entry| entry.template != template)
-        {
-            if let Some(previous_entry) = entries.last_mut()
-                && previous_entry.exit_animation.is_none()
             {
-                previous_entry.exit_animation = Some(ExitAnimation::new(presentation_instant));
-            }
+                if let Some(previous_entry) = entries.last_mut()
+                    && previous_entry.exit_animation.is_none()
+                {
+                    previous_entry.exit_animation = Some(ExitAnimation::new(presentation_instant));
+                }
 
-            entries.push(PreviewEntry {
-                id: next_id,
-                template: template.clone(),
-                exit_animation: None,
-                rotation_deg: rand::thread_rng()
-                    .gen_range(-CARD_MAX_ROTATION_DEG..=CARD_MAX_ROTATION_DEG),
-            });
-            next_id += 1;
+                entries.push(PreviewEntry {
+                    id: next_id,
+                    template,
+                    exit_animation: None,
+                    rotation_deg: rand::thread_rng()
+                        .gen_range(-CARD_MAX_ROTATION_DEG..=CARD_MAX_ROTATION_DEG),
+                });
+                next_id += 1;
+            }
+        } else {
+            for entry in &mut entries {
+                if entry.exit_animation.is_none() {
+                    entry.exit_animation = Some(ExitAnimation::new(presentation_instant));
+                }
+            }
         }
 
         entries.retain(|entry| {
@@ -181,7 +188,7 @@ impl Component for HandTowerPreview {
 
         let active_id = if matches!(
             game_state.raw_core_state().flow(),
-            td_core::GameFlowState::SelectingTower
+            td_core::GameFlowState::SelectingTower | td_core::GameFlowState::PlacingTower
         ) {
             entries
                 .iter()
