@@ -720,6 +720,18 @@ impl GameEnvironment {
                 left,
                 top,
             } => {
+                let trace_start = self.policy_trace.steps.len();
+                let trace_pre_observation = self.snapshot();
+                let trace_pre_state_hash = self.state_hash();
+                let trace_selected_slot_indices = selected_slot_indices.clone();
+                let trace_legal_actions = self
+                    .semantic_legal_actions_with_position_limit(Some(
+                        DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                    ))
+                    .into_iter()
+                    .map(|legal| legal.action)
+                    .collect::<Vec<_>>();
+                let trace_action_mask = vec![true; trace_legal_actions.len()];
                 let first = self.step_unchecked(AgentAction::SelectTower {
                     selected_slot_indices,
                 })?;
@@ -736,6 +748,29 @@ impl GameEnvironment {
                     .info
                     .ticks_advanced
                     .saturating_add(first.info.ticks_advanced);
+                second.info.no_progress_cycle |= first.info.no_progress_cycle;
+                self.policy_trace.steps.truncate(trace_start);
+                self.policy_trace.steps.push(td_core::PolicyTraceStep {
+                    index: self.policy_trace.steps.len() as u64,
+                    decision_point: trace_pre_observation.decision_point.clone(),
+                    agent_action: AgentAction::BuildTower {
+                        selected_slot_indices: trace_selected_slot_indices,
+                        hand_slot_index,
+                        left,
+                        top,
+                    },
+                    legal_actions: trace_legal_actions,
+                    action_mask: trace_action_mask,
+                    player_command: None,
+                    pre_observation: trace_pre_observation,
+                    post_observation: second.observation.clone(),
+                    reward: second.reward.clone(),
+                    terminated: second.terminated,
+                    truncated: second.truncated,
+                    info: second.info.clone(),
+                    pre_state_hash: trace_pre_state_hash,
+                    post_state_hash: second.state_hash.clone(),
+                });
                 Ok(second)
             }
             action => self.step(action),
@@ -1875,7 +1910,19 @@ mod tests {
             DecisionPoint::TowerPlacement
         );
         assert_eq!(environment.game_state.raw_state().towers().len(), 1);
-        assert_eq!(environment.policy_trace().steps.len(), 3);
+        assert_eq!(environment.policy_trace().steps.len(), 2);
+        assert!(matches!(
+            environment
+                .policy_trace()
+                .steps
+                .last()
+                .map(|step| &step.agent_action),
+            Some(AgentAction::BuildTower { .. })
+        ));
+        environment
+            .core_replay()
+            .validate()
+            .expect("semantic replay should remain valid");
     }
 
     #[test]

@@ -89,7 +89,7 @@ proposal head의 점수는 후보 축소에 사용할 수 있지만 최종 가�
 
 정책은 build-placement를 한 번 결정하고 환경은 추가 policy inference 없이 authoritative transition을 완료한다. core 내부에서 tower 생성과 placement가 두 command로 남더라도 외부 policy horizon에는 한 decision으로 기록한다.
 
-현재 semantic 실행은 이 macro action을 내부의 `SelectTower`와 `PlaceTower` command로 확장해 최종 상태를 만든다. policy trace와 replay에서 macro identity를 독립적으로 보존하는 작업은 후속 단계다.
+현재 semantic 실행은 이 macro action을 내부의 `SelectTower`와 `PlaceTower` command로 확장해 최종 상태를 만든다. policy trace에는 외부 macro identity를 한 단계로 기록하고, authoritative replay에는 내부 command sequence를 보존한다.
 
 macro transition은 부분 적용 상태를 남겨서는 안 된다. placement legality가 바뀌거나 command가 실패하면 카드만 소비된 상태가 남지 않아야 한다. 구현 전에 다음 중 비용과 core ownership에 맞는 방식을 선택한다.
 
