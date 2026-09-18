@@ -789,8 +789,8 @@ impl GameEnvironment {
                 let trace_action = AgentAction::Reroll {
                     card_ids: card_ids.clone(),
                 };
-                let first = self.step_unchecked(AgentAction::StartSelectingTower)?;
-                let mut second = self.step_unchecked(AgentAction::Reroll { card_ids })?;
+                let first = self.step_unchecked_untraced(AgentAction::StartSelectingTower)?;
+                let mut second = self.step_unchecked_untraced(AgentAction::Reroll { card_ids })?;
                 merge_step_outcome(&mut second, &first);
                 self.replace_policy_trace_with_macro(
                     trace_start,
@@ -820,10 +820,10 @@ impl GameEnvironment {
                     .map(|legal| legal.action)
                     .collect::<Vec<_>>();
                 let start_outcome = starts_from_shop
-                    .then(|| self.step_unchecked(AgentAction::StartSelectingTower))
+                    .then(|| self.step_unchecked_untraced(AgentAction::StartSelectingTower))
                     .transpose()?;
-                let first = self.step_unchecked(AgentAction::SelectTower { card_ids })?;
-                let mut second = self.step_unchecked(AgentAction::PlaceTower {
+                let first = self.step_unchecked_untraced(AgentAction::SelectTower { card_ids })?;
+                let mut second = self.step_unchecked_untraced(AgentAction::PlaceTower {
                     hand_slot_index,
                     left,
                     top,
@@ -906,7 +906,34 @@ impl GameEnvironment {
     }
 
     fn step_unchecked(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
-        let legal_actions_before = self.legal_actions();
+        self.step_unchecked_traced(action, true)
+    }
+
+    /// Like [`Self::step_unchecked`], but skips recording a policy trace
+    /// step. Used for the internal `StartSelectingTower`/`SelectTower`/
+    /// `PlaceTower`/`Reroll` sub-steps of a semantic macro action, whose
+    /// trace entries `replace_policy_trace_with_macro` immediately discards
+    /// anyway; the legal action list built for that entry is a full
+    /// `TowerPlacement` scan (every map cell's placement legality), so
+    /// computing it just to throw it away was the dominant cost of every
+    /// semantic `BuildTower`/`Reroll` step.
+    fn step_unchecked_untraced(
+        &mut self,
+        action: AgentAction,
+    ) -> Result<StepOutcome, EnvironmentError> {
+        self.step_unchecked_traced(action, false)
+    }
+
+    fn step_unchecked_traced(
+        &mut self,
+        action: AgentAction,
+        record_trace: bool,
+    ) -> Result<StepOutcome, EnvironmentError> {
+        let legal_actions_before = if record_trace {
+            self.legal_actions()
+        } else {
+            Vec::new()
+        };
 
         let reward_metrics_before = self.game_state.reward_metrics();
         let escaped_hp_before = reward_metrics_before.total_escaped_hp;
@@ -1047,31 +1074,33 @@ impl GameEnvironment {
             state_hash: self.state_hash(),
         };
 
-        let player_command = self
-            .game_state
-            .replay()
-            .commands
-            .get(command_count_before)
-            .map(|recorded| recorded.command.clone());
-        self.policy_trace.steps.push(td_core::PolicyTraceStep {
-            index: self.policy_trace.steps.len() as u64,
-            decision_point: pre_decision_point,
-            agent_action: action,
-            legal_actions: legal_actions_before
-                .iter()
-                .map(|legal_action| legal_action.action.clone())
-                .collect(),
-            action_mask: vec![true; legal_actions_before.len()],
-            player_command,
-            pre_observation: observation_before,
-            post_observation: outcome.observation.clone(),
-            reward: outcome.reward.clone(),
-            terminated: outcome.terminated,
-            truncated: outcome.truncated,
-            info: outcome.info.clone(),
-            pre_state_hash,
-            post_state_hash: outcome.state_hash.clone(),
-        });
+        if record_trace {
+            let player_command = self
+                .game_state
+                .replay()
+                .commands
+                .get(command_count_before)
+                .map(|recorded| recorded.command.clone());
+            self.policy_trace.steps.push(td_core::PolicyTraceStep {
+                index: self.policy_trace.steps.len() as u64,
+                decision_point: pre_decision_point,
+                agent_action: action,
+                legal_actions: legal_actions_before
+                    .iter()
+                    .map(|legal_action| legal_action.action.clone())
+                    .collect(),
+                action_mask: vec![true; legal_actions_before.len()],
+                player_command,
+                pre_observation: observation_before,
+                post_observation: outcome.observation.clone(),
+                reward: outcome.reward.clone(),
+                terminated: outcome.terminated,
+                truncated: outcome.truncated,
+                info: outcome.info.clone(),
+                pre_state_hash,
+                post_state_hash: outcome.state_hash.clone(),
+            });
+        }
 
         Ok(outcome)
     }
