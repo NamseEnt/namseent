@@ -77,7 +77,7 @@ impl PaddedEntityBatch {
             .map(EntitySet::numeric_width)
             .max()
             .unwrap_or(0)
-            .max(5);
+            .max(super::entity::ENTITY_NUMERIC_WIDTH);
         let mut categorical = vec![0; batch_size * max_entities * CATEGORICAL_FIELDS];
         let mut numeric = vec![0.0; batch_size * max_entities * numeric_width];
         let mut mask = vec![0.0; batch_size * max_entities];
@@ -335,7 +335,10 @@ mod tests {
     fn empty_set_has_masked_padding() {
         let batch = PaddedEntityBatch::from_sets(&[EntitySet::default()]);
         assert_eq!(batch.max_entities, 1);
-        assert_eq!(batch.numeric_width, 5);
+        assert_eq!(
+            batch.numeric_width,
+            crate::ml::encoding::ENTITY_NUMERIC_WIDTH
+        );
         assert_eq!(batch.mask, vec![0.0]);
     }
 

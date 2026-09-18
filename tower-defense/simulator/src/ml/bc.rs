@@ -193,6 +193,7 @@ pub fn evaluate_bc(
         ActionKind::CancelCardSelection,
         ActionKind::Reroll,
         ActionKind::SelectTower,
+        ActionKind::BuildTower,
         ActionKind::PlaceTower,
         ActionKind::RemoveTower,
         ActionKind::StartDefense,
