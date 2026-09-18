@@ -441,10 +441,12 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         };
         let cards = source_slots
             .iter()
-            .filter_map(|(slot_index, _)| match &state.hand.slots[*slot_index].item {
-                crate::HandItemState::Card(card) => Some(card.clone()),
-                crate::HandItemState::Tower(_) => None,
-            })
+            .filter_map(
+                |(slot_index, _)| match &state.hand.slots[*slot_index].item {
+                    crate::HandItemState::Card(card) => Some(card.clone()),
+                    crate::HandItemState::Tower(_) => None,
+                },
+            )
             .collect::<Vec<_>>();
         let Some(template) = crate::game_state::tower_selection::select_tower_build_template(
             &cards,

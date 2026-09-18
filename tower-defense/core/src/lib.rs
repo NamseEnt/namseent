@@ -567,7 +567,10 @@ fn resolve_card_ids_to_slot_indices(
     hand_card_ids: &[(usize, usize)],
 ) -> Result<Vec<usize>, CommandError> {
     if card_ids.is_empty() {
-        return Ok(hand_card_ids.iter().map(|(slot_index, _)| *slot_index).collect());
+        return Ok(hand_card_ids
+            .iter()
+            .map(|(slot_index, _)| *slot_index)
+            .collect());
     }
     card_ids
         .iter()
@@ -679,8 +682,8 @@ mod tests {
         ActionKind, AgentAction, AreaDamageEvent, AttackSourceState, CardState, CommandError,
         CoreEvent, CoreEventQueue, DamageHit, DamageSplash, EntitySnapshots, GameConfigState,
         GameMetrics, HandItemState, HandSlotState, HandState, HomingProjectileParams,
-        InFlightAttackKindState, InFlightAttackState, LaserAttackState, hand_card_id_slots,
-        MonsterSkill, MonsterSkillKind, MonsterSkillTarget, MonsterSkillTemplate, MonsterState,
+        InFlightAttackKindState, InFlightAttackState, LaserAttackState, MonsterSkill,
+        MonsterSkillKind, MonsterSkillTarget, MonsterSkillTemplate, MonsterState,
         MonsterStatusEffect, MonsterStatusEffectKind, MoveOnRouteState, PlayerCommand, RngState,
         RouteState, SimTick, SimTickSpan, SpatialAttackBehaviorState, SpatialAttackState,
         TimedAttackState, TowerSkill, TowerSkillKind, TowerSkillTemplate, TowerState,
@@ -690,7 +693,7 @@ mod tests {
         advance_homing_projectile, advance_monster_states, advance_move_on_route,
         advance_tower_cooldowns, apply_monster_damage, apply_monster_skill_activations,
         apply_ratio_product_raw, apply_tower_skill_activations, damage_hit_sort_key,
-        expand_area_damage_events, expand_on_hit_splashes, remove_dead_monster,
+        expand_area_damage_events, expand_on_hit_splashes, hand_card_id_slots, remove_dead_monster,
         remove_expired_monster_statuses, remove_expired_tower_statuses,
         remove_expired_user_status_effects, resolve_monster_escapes, segment_hits_point,
     };
@@ -1345,10 +1348,7 @@ mod tests {
         let hand_card_ids = hand_card_id_slots(&hand);
 
         assert_eq!(
-            AgentAction::Reroll {
-                card_ids: vec![41]
-            }
-            .to_player_command(&hand_card_ids),
+            AgentAction::Reroll { card_ids: vec![41] }.to_player_command(&hand_card_ids),
             Ok(Some(PlayerCommand::Reroll {
                 selected_slot_indices: vec![1]
             }))
