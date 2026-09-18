@@ -253,30 +253,8 @@ fn collect_behavior_dataset_with_runner(
         }
     }
     for kind in 0..ActionKind::COUNT {
-        let name = match kind {
-            0 => ActionKind::PurchaseShopItem,
-            1 => ActionKind::StartSelectingTower,
-            2 => ActionKind::BeginRerollSelection,
-            3 => ActionKind::BeginTowerSelection,
-            4 => ActionKind::SelectHandCard,
-            5 => ActionKind::DeselectHandCard,
-            6 => ActionKind::ConfirmCardSelection,
-            7 => ActionKind::CancelCardSelection,
-            8 => ActionKind::Reroll,
-            9 => ActionKind::SelectTower,
-            10 => ActionKind::PlaceTower,
-            11 => ActionKind::RemoveTower,
-            12 => ActionKind::StartDefense,
-            13 => ActionKind::SelectTreasure,
-            14 => ActionKind::SelectCardServiceCard,
-            15 => ActionKind::ConfirmCardServiceSelection,
-            16 => ActionKind::UseInventoryItem,
-            17 => ActionKind::DiscardTreasure,
-            18 => ActionKind::Continue,
-            _ => unreachable!(),
-        };
         action_kind_counts
-            .entry(name.wire_name().to_string())
+            .entry(action_kind_name(kind))
             .or_insert(0);
     }
     let metadata = ExpertDatasetMetadata {
