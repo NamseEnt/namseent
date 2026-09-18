@@ -94,7 +94,15 @@ pub struct TowerPlacementContext {
 
 impl TowerPlacementContext {
     pub fn can_place_at(&self, left: usize, top: usize) -> bool {
-        self.placement_route(left, top).is_ok()
+        let Ok(new_coords) = self.placement_coords(left, top) else {
+            return false;
+        };
+        crate::route::routes_exist_with_extra_blockers(
+            &self.occupied,
+            &new_coords,
+            &crate::TRAVEL_POINTS,
+            crate::MAP_SIZE,
+        )
     }
 
     pub fn can_place_tower(
@@ -121,6 +129,18 @@ impl TowerPlacementContext {
         left: usize,
         top: usize,
     ) -> Result<crate::RouteState, crate::CommandError> {
+        let new_coords = self.placement_coords(left, top)?;
+        let mut blockers = self.occupied.clone();
+        blockers.extend(new_coords);
+        crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+            .ok_or(crate::CommandError::InvalidPlacement)
+    }
+
+    fn placement_coords(
+        &self,
+        left: usize,
+        top: usize,
+    ) -> Result<[[usize; 2]; 4], crate::CommandError> {
         let right = left
             .checked_add(1)
             .ok_or(crate::CommandError::InvalidPlacement)?;
@@ -136,10 +156,7 @@ impl TowerPlacementContext {
         }) {
             return Err(crate::CommandError::InvalidPlacement);
         }
-        let mut blockers = self.occupied.clone();
-        blockers.extend(new_coords);
-        crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
-            .ok_or(crate::CommandError::InvalidPlacement)
+        Ok(new_coords)
     }
 }
 

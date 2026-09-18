@@ -244,6 +244,17 @@ pub fn calculate_routes(
     })
 }
 
+pub(crate) fn routes_exist_with_extra_blockers(
+    blockers: &[[usize; 2]],
+    extra_blockers: &[[usize; 2]],
+    travel_points: &[[usize; 2]],
+    map_wh: [usize; 2],
+) -> bool {
+    travel_points.windows(2).all(|points| {
+        path_exists_with_extra_blockers(map_wh, points[0], points[1], blockers, extra_blockers)
+    })
+}
+
 fn neighbor_route(last_xy: [usize; 2]) -> impl Iterator<Item = [usize; 2]> {
     const DX_DY: [(isize, isize); 8] = [
         (0, -1),
@@ -264,6 +275,51 @@ fn neighbor_route(last_xy: [usize; 2]) -> impl Iterator<Item = [usize; 2]> {
             None
         }
     })
+}
+
+fn path_exists_with_extra_blockers(
+    wh: [usize; 2],
+    start_xy: [usize; 2],
+    end_xy: [usize; 2],
+    blockers: &[[usize; 2]],
+    extra_blockers: &[[usize; 2]],
+) -> bool {
+    if end_xy == start_xy {
+        return true;
+    }
+    if blockers.contains(&start_xy)
+        || blockers.contains(&end_xy)
+        || extra_blockers.contains(&start_xy)
+        || extra_blockers.contains(&end_xy)
+    {
+        return false;
+    }
+
+    let mut map = RouteMap::new(wh, blockers);
+    for &blocker in extra_blockers {
+        if !map.is_outside(blocker) {
+            *map.block_mut(blocker) = RouteBlock::Blocker;
+        }
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(start_xy);
+    map.set_visit(start_xy, start_xy);
+
+    while let Some(from_xy) = queue.pop_front() {
+        for xy in neighbor_route(from_xy) {
+            if map.cannot_visit(xy, from_xy) {
+                continue;
+            }
+            if xy == end_xy {
+                return true;
+            }
+            queue.push_back(xy);
+            map.set_visit(xy, from_xy);
+        }
+    }
+
+    false
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -372,6 +428,26 @@ mod tests {
         assert_eq!(
             routes.cumulative_lengths,
             vec![0, crate::WORLD_UNITS_PER_TILE]
+        );
+    }
+
+    #[test]
+    fn route_existence_with_extra_blockers_matches_route_calculation() {
+        let travel_points = [[0, 0], [4, 4]];
+        let blockers = [[3, 3]];
+        let extra_blockers = [[1, 1], [1, 2], [2, 1]];
+        let mut combined = blockers.to_vec();
+        combined.extend(extra_blockers);
+
+        assert_eq!(
+            routes_exist_with_extra_blockers(&blockers, &extra_blockers, &travel_points, [5, 5]),
+            calculate_routes(&combined, &travel_points, [5, 5]).is_some()
+        );
+
+        let sealed_blockers = [[1, 0], [0, 1]];
+        assert_eq!(
+            routes_exist_with_extra_blockers(&sealed_blockers, &[], &[[0, 0], [4, 4]], [5, 5]),
+            calculate_routes(&sealed_blockers, &[[0, 0], [4, 4]], [5, 5]).is_some()
         );
     }
 }

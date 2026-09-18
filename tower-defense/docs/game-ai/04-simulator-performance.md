@@ -40,13 +40,13 @@ GPU는 simulation 자체를 대체하지 않는다. pathfinding, legal action �
 
 ## 확인된 초기 병목
 
-현재 placement legal action 생성은 coordinate discovery와 tower별 action 생성에서 `can_place_tower`를 반복 호출한다. `can_place_tower`는 전체 state를 clone하고 실제 placement 및 route recalculation을 실행한다.
+초기 placement legal action 생성은 coordinate discovery와 tower별 action 생성에서 `can_place_tower`를 반복 호출했다. 현재 구현은 공통 `TowerPlacementContext`를 만들고 coordinate당 topology 검사를 한 번만 수행한다. `can_place_tower`의 전체 state clone도 제거했으며, 후보 적법성에서는 경로 벡터를 만들지 않고 연결 가능성만 확인한다. 실제 설치 command는 여전히 완전한 route를 계산해 authoritative 결과를 만든다.
 
 우선순위는 다음과 같다.
 
-1. 같은 `(tower, coordinate, state revision)` validation 중복 제거
-2. coordinate-level topology legality와 tower-specific legality 분리
-3. 전체 state clone 없이 placement delta 검증
+1. 같은 `(tower, coordinate, state revision)` validation 중복 제거 — 반영
+2. coordinate-level topology legality와 tower-specific legality 분리 — 반영
+3. 전체 state clone 없이 placement delta 검증 — 반영
 4. blocker 변화가 없는 후보 사이의 route 결과 재사용
 5. board revision 기반 cache invalidation
 6. 필요할 경우 incremental path update 또는 더 적합한 path algorithm 검토
@@ -74,12 +74,16 @@ cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache 
 - 같은 후보에 대한 중복 `can_place_tower` 호출 제거
 - tower 특성이 topology legality에 영향을 주지 않는 부분을 공유
 
+현재 브랜치에서 coordinate-level route existence 결과를 tower hand 전체가 공유하도록 구현했다.
+
 ### P3: clone과 path recalculation 축소
 
 - placement가 변경하는 blocker delta만 계산
 - path query input을 compact representation으로 분리
 - 동일 blocker set 결과를 state revision 범위에서 재사용
 - 실제 commit과 dry-run validation 결과가 동일한지 property test
+
+현재 브랜치에서 state clone 제거와 existence-only path query를 구현했다. blocker-set cache와 board revision invalidation은 아직 남아 있다.
 
 ### P4: 병렬 rollout
 

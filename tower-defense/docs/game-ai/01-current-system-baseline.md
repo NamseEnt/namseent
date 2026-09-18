@@ -76,12 +76,14 @@ scripted/heuristic expert
 
 ## 확인된 성능 병목
 
-현재 tower placement 후보 생성은 다음 비용을 반복한다.
+초기 구현에서는 tower placement 후보 생성이 같은 coordinate를 tower별로 다시 검사하고, `can_place_tower`가 전체 game state를 clone한 뒤 실제 placement와 route recalculation을 수행했다. 현재 브랜치에서는 다음까지 반영되었다.
 
-1. `placement_coordinates`가 각 tile과 hand tower에 `can_place_tower`를 호출한다.
-2. `tower_placement_actions`가 같은 coordinate를 tower별로 다시 `can_place_tower`로 검사한다.
-3. `can_place_tower`는 전체 game state를 clone한 뒤 실제 placement를 시도한다.
-4. placement 시도는 route를 다시 계산한다.
+- coordinate별 공통 `TowerPlacementContext`를 한 번 만들고 tower hand 전체가 공유한다.
+- `can_place_tower`에서 전체 `CoreState` clone을 제거했다.
+- 후보 적법성은 경로 벡터를 만들지 않는 연결 가능성 검사로 수행한다.
+- 실제 tower 설치 시에는 기존과 같은 완전한 route를 계산한다.
+
+따라서 남은 주요 비용은 coordinate별 topology 검사 자체와 실제 설치 후 route 갱신이다.
 
 2026-09-17의 임시 release 측정에서는 random-legal seed 0, 최대 512 decision 실행이 stage 10, 372 decision에서 약 59.82초가 걸렸다. 8초 sampling profile에서는 상위 stack sample의 약 76.8%가 `find_shortest_route` 경로에 있었다.
 
