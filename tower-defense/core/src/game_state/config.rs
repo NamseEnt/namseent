@@ -526,4 +526,17 @@ mod tests {
 
         assert_eq!(decoded, config);
     }
+
+    #[test]
+    fn initial_hp_is_capped_by_max_hp() {
+        let mut config = GameConfig::default_config();
+        config.player.max_hp_raw = 3_000;
+        config.player.starting_hp_raw = 60_000;
+
+        let mut state = crate::CoreState::new_initial(config, 7);
+
+        assert_eq!(state.hp_raw(), 3_000);
+        assert_eq!(state.apply_player_damage_raw(1_000), 1_000);
+        assert_eq!(state.hp_raw(), 2_000);
+    }
 }

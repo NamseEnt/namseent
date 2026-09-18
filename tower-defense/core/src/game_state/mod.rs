@@ -398,7 +398,7 @@ impl CoreState {
                 stage_damage: Vec::new(),
             },
             flow: crate::GameFlowState::Initializing,
-            hp_raw: config.player.starting_hp_raw,
+            hp_raw: config.player.starting_hp_raw.min(config.player.max_hp_raw),
             shield_raw: 0,
             monsters: Vec::new(),
             towers: Vec::new(),
