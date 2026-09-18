@@ -17,6 +17,8 @@ pub struct RolloutTeacherConfig {
     pub scenario_seeds: Vec<u64>,
     pub horizon_decisions: usize,
     pub position_candidate_limit: Option<usize>,
+    #[serde(default)]
+    pub candidate_limit: Option<usize>,
 }
 
 impl Default for RolloutTeacherConfig {
@@ -25,6 +27,7 @@ impl Default for RolloutTeacherConfig {
             scenario_seeds: (0..DEFAULT_TEACHER_SCENARIO_COUNT as u64).collect(),
             horizon_decisions: DEFAULT_TEACHER_HORIZON_DECISIONS,
             position_candidate_limit: Some(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT),
+            candidate_limit: None,
         }
     }
 }
@@ -119,8 +122,11 @@ pub fn evaluate_semantic_candidates(
     environment: &GameEnvironment,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutTeacherDecision> {
-    let candidates =
+    let mut candidates =
         environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
+    if let Some(candidate_limit) = config.candidate_limit {
+        candidates.truncate(candidate_limit.max(1));
+    }
     evaluate_semantic_candidate_set(environment, &candidates, config)
 }
 
@@ -358,6 +364,7 @@ mod tests {
             scenario_seeds: vec![11, 13],
             horizon_decisions: 1,
             position_candidate_limit: Some(2),
+            candidate_limit: None,
         };
         let first = evaluate_semantic_candidate_set(&environment, &candidates, &config)
             .expect("teacher should evaluate candidates");

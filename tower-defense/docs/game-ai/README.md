@@ -124,6 +124,18 @@ cargo run --release --manifest-path simulator/Cargo.toml -- teacher \
 
 이 명령은 semantic candidate를 동일 scenario seed로 평가하고, 결과의 평균 score, variance, standard error, 승리 수와 선택 action을 JSON으로 저장한다. 현재는 scripted continuation과 고정 decision horizon만 제공하며, teacher가 기존 heuristic보다 강한지 확인하기 전까지 learned value나 반복 policy improvement는 추가하지 않는다.
 
+teacher-selected macro-action을 distillation dataset으로 저장하려면 다음 경로를 사용한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml collect-teacher \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 64 --scenario-count 16 --horizon-decisions 8 \
+  --position-candidate-limit 32 --candidate-limit 64 \
+  --output artifacts/datasets/semantic-teacher.jsonl
+```
+
+이 dataset은 semantic macro-action trajectory만 포함하며, teacher rollout의 future sample은 관측에 저장하지 않는다.
+
 성공하기 전에는 tree search, learned value bootstrap, 반복 policy improvement를 추가하지 않는다.
 
 ### Phase 4: dataset과 빠른 정책

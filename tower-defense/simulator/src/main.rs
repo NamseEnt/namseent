@@ -127,6 +127,8 @@ struct TeacherOptions {
     #[arg(long, default_value_t = 32)]
     position_candidate_limit: usize,
     #[arg(long)]
+    candidate_limit: Option<usize>,
+    #[arg(long)]
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
@@ -178,6 +180,9 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
     if options.scenario_count == 0 {
         anyhow::bail!("--scenario-count must be positive");
     }
+    if options.candidate_limit == Some(0) {
+        anyhow::bail!("--candidate-limit must be positive when provided");
+    }
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
             .with_context(|| format!("failed to load config {}", path.display()))?,
@@ -193,6 +198,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
             .collect(),
         horizon_decisions: options.horizon_decisions,
         position_candidate_limit: Some(options.position_candidate_limit),
+        candidate_limit: options.candidate_limit,
     };
     let report =
         run_semantic_teacher_episode(&mut environment, &teacher_config, options.max_decisions)?;
@@ -206,6 +212,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
         "scenario_count": options.scenario_count,
         "horizon_decisions": options.horizon_decisions,
         "position_candidate_limit": options.position_candidate_limit,
+        "candidate_limit": options.candidate_limit,
         "episode": report,
     }))?;
     if let Some(path) = options.output {

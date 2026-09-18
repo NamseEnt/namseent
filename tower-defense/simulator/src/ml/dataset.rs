@@ -1,13 +1,14 @@
 use super::contract::{DATASET_SCHEMA_VERSION, MlContract};
 use super::seed::SeedRange;
 use crate::config::GameConfig;
-use crate::environment::ActionKind;
+use crate::environment::{ActionKind, GameEnvironment};
 use crate::policy_runner::{
     run_item_expert_trajectory, run_monte_carlo_expert_trajectory, run_scripted_expert_trajectory,
     run_scripted_oracle_trajectory, run_semantic_scripted_expert_trajectory,
     run_spiral_expert_trajectory,
 };
-use crate::trajectory::Trajectory;
+use crate::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
+use crate::trajectory::{Trajectory, TrajectoryMetadata, TrajectoryStep};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -98,6 +99,104 @@ pub fn collect_semantic_scripted_expert_behavior_dataset(
         run_semantic_scripted_expert_trajectory,
         "semantic_scripted_expert_behavior",
     )
+}
+
+pub fn collect_semantic_rollout_teacher_behavior_dataset(
+    config: Arc<GameConfig>,
+    seed_range: SeedRange,
+    max_decisions_per_episode: usize,
+    teacher_config: RolloutTeacherConfig,
+) -> Result<ExpertDataset> {
+    collect_behavior_dataset_with_runner(
+        config,
+        seed_range,
+        max_decisions_per_episode,
+        true,
+        move |config, seed, max_decisions| {
+            collect_semantic_rollout_teacher_trajectory(
+                config,
+                seed,
+                max_decisions,
+                &teacher_config,
+            )
+        },
+        "semantic_rollout_teacher_behavior",
+    )
+}
+
+fn collect_semantic_rollout_teacher_trajectory(
+    config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions: usize,
+    teacher_config: &RolloutTeacherConfig,
+) -> Result<Trajectory> {
+    let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+    let teacher_episode =
+        run_semantic_teacher_episode(&mut environment, teacher_config, max_decisions)?;
+    let full_trace = environment.policy_trace().clone();
+    let mut selected_trace = full_trace.clone();
+    let mut decision_index = 0;
+    selected_trace.steps = full_trace
+        .steps
+        .into_iter()
+        .filter_map(|step| {
+            let decision = teacher_episode.decisions.get(decision_index)?;
+            if step.pre_state_hash == decision.state_hash
+                && step.agent_action.action_id() == decision.selected_action_id
+            {
+                decision_index += 1;
+                Some(step)
+            } else {
+                None
+            }
+        })
+        .collect();
+    if decision_index != teacher_episode.decisions.len() {
+        bail!("teacher policy trace did not contain all selected decisions for seed {seed}");
+    }
+    let mut trajectory = Trajectory::new(TrajectoryMetadata::new(config.as_ref(), seed));
+    for step in &selected_trace.steps {
+        trajectory.push(TrajectoryStep {
+            pre_observation: step.pre_observation.clone(),
+            legal_actions: step
+                .legal_actions
+                .iter()
+                .cloned()
+                .map(|action| crate::environment::LegalAction {
+                    id: action.action_id(),
+                    action,
+                })
+                .collect(),
+            action_mask: step.action_mask.clone(),
+            action: step.agent_action.clone(),
+            player_command: step.player_command.clone(),
+            post_observation: step.post_observation.clone(),
+            reward: step.reward.clone(),
+            terminated: step.terminated,
+            truncated: step.truncated,
+            info: step.info.clone(),
+            pre_state_hash: step.pre_state_hash.clone(),
+            state_hash: step.post_state_hash.clone(),
+        });
+    }
+    trajectory.set_outcome(crate::trajectory::TrajectoryOutcome {
+        victory: teacher_episode.victory,
+        clear_rate: environment.clear_rate(),
+        terminated: teacher_episode.terminated,
+        truncated: teacher_episode.truncated,
+        termination_reason: if teacher_episode.terminated {
+            crate::environment::StepReason::Terminal
+        } else {
+            crate::environment::StepReason::MaxDecisions
+        },
+        final_stage: environment.snapshot().stage,
+        episode_return: trajectory
+            .steps
+            .iter()
+            .map(|step| step.reward.total())
+            .sum(),
+    });
+    Ok(trajectory)
 }
 
 pub fn collect_spiral_expert_behavior_dataset(

@@ -24,7 +24,7 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 이 값은 확정된 기본값이 아니다. simulator 처리량 측정과 label 안정성 실험으로 정한다.
 
-현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `candidate_limit`을 지정하면 deterministic semantic proposal의 앞부분만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
 
 현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
 
@@ -89,6 +89,20 @@ regret(state)
 ```
 
 action type별 regret, 큰 regret state의 비율, catastrophic choice 예시를 기록한다. 기존 heuristic이 자주 틀리는 decision point부터 teacher dataset을 집중 생성할 수 있다.
+
+## Teacher behavior dataset
+
+teacher가 선택한 macro-action을 기존 UI micro-action trajectory와 섞지 않도록 별도 수집 명령을 사용한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml collect-teacher \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 64 --scenario-count 16 --horizon-decisions 8 \
+  --position-candidate-limit 32 --candidate-limit 64 \
+  --output artifacts/datasets/semantic-teacher.jsonl
+```
+
+dataset observation에는 현재 state와 legal macro candidates만 저장한다. candidate rollout의 future result는 label 생성에만 사용하고 observation feature로 저장하지 않는다. `candidate-limit`은 teacher strength를 제한하므로 production dataset에서는 recall과 held-out full-clear 승률을 함께 검증한다.
 
 ## 확장 조건
 

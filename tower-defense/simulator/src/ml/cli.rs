@@ -16,6 +16,7 @@ use super::bc::{BcConfig, evaluate_bc, train_bc, train_bc_from_jsonl, train_bc_f
 use super::dataset::{
     collect_behavior_dataset, collect_item_expert_behavior_dataset,
     collect_monte_carlo_expert_behavior_dataset, collect_scripted_expert_behavior_dataset,
+    collect_semantic_rollout_teacher_behavior_dataset,
     collect_semantic_scripted_expert_behavior_dataset, collect_spiral_expert_behavior_dataset,
     collect_strict_expert_dataset, write_jsonl,
 };
@@ -45,6 +46,7 @@ use super::validation::{EvaluationProvenance, sha256_hex};
 use crate::config::GameConfig;
 use crate::events::SimEvent;
 use crate::policy_runner::{ScriptedOracleTrace, run_scripted_oracle_with_stage_limit};
+use crate::teacher::RolloutTeacherConfig;
 
 pub fn parse_no_progress_cycle_penalty(value: &str) -> Result<f32, String> {
     let value = value
@@ -137,6 +139,28 @@ pub struct Cli {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
 pub enum Command {
+    CollectTeacher {
+        #[arg(long, default_value = "teacher_dataset.jsonl")]
+        output: PathBuf,
+        #[arg(long, default_value_t = 0)]
+        seed_start: u64,
+        #[arg(long, default_value_t = 3)]
+        seed_end: u64,
+        #[arg(long, default_value_t = 64)]
+        max_decisions: usize,
+        #[arg(long, default_value_t = 16)]
+        scenario_count: usize,
+        #[arg(long, default_value_t = 8)]
+        horizon_decisions: usize,
+        #[arg(long, default_value_t = 32)]
+        position_candidate_limit: usize,
+        #[arg(long)]
+        candidate_limit: Option<usize>,
+        #[arg(long, default_value_t = 0)]
+        threads: usize,
+        #[arg(long)]
+        config: Option<PathBuf>,
+    },
     CollectExpert {
         #[arg(long, default_value = "expert_dataset.jsonl")]
         output: PathBuf,
@@ -384,6 +408,29 @@ pub fn run() -> Result<()> {
 pub fn run_command(command: Command) -> Result<()> {
     println!("ML inference backend: {}", policy_backend_description());
     match command {
+        Command::CollectTeacher {
+            output,
+            seed_start,
+            seed_end,
+            max_decisions,
+            scenario_count,
+            horizon_decisions,
+            position_candidate_limit,
+            candidate_limit,
+            threads,
+            config,
+        } => collect_teacher_command(
+            output,
+            seed_start,
+            seed_end,
+            max_decisions,
+            scenario_count,
+            horizon_decisions,
+            position_candidate_limit,
+            candidate_limit,
+            threads,
+            config,
+        ),
         Command::CollectExpert {
             output,
             seed_start,
@@ -666,6 +713,56 @@ fn pretrain_command(
         );
         Ok(())
     })
+}
+
+fn collect_teacher_command(
+    output: PathBuf,
+    seed_start: u64,
+    seed_end: u64,
+    max_decisions: usize,
+    scenario_count: usize,
+    horizon_decisions: usize,
+    position_candidate_limit: usize,
+    candidate_limit: Option<usize>,
+    threads: usize,
+    config_path: Option<PathBuf>,
+) -> Result<()> {
+    if scenario_count == 0 {
+        bail!("teacher scenario count must be positive");
+    }
+    if horizon_decisions == 0 {
+        bail!("teacher horizon must be positive");
+    }
+    if position_candidate_limit == 0 {
+        bail!("teacher position candidate limit must be positive");
+    }
+    if candidate_limit == Some(0) {
+        bail!("teacher candidate limit must be positive when provided");
+    }
+    let config = Arc::new(load_config(config_path)?);
+    let seed_range = SeedRange::try_new(seed_start, seed_end)?;
+    let teacher_config = RolloutTeacherConfig {
+        scenario_seeds: (0..scenario_count as u64).collect(),
+        horizon_decisions,
+        position_candidate_limit: Some(position_candidate_limit),
+        candidate_limit,
+    };
+    let dataset = run_with_threads(threads, || {
+        collect_semantic_rollout_teacher_behavior_dataset(
+            Arc::clone(&config),
+            seed_range,
+            max_decisions,
+            teacher_config,
+        )
+    })?;
+    write_jsonl(&dataset, &output)?;
+    println!(
+        "Teacher dataset saved: {} episodes, {} steps, {}",
+        dataset.metadata.episode_count,
+        dataset.metadata.step_count,
+        output.display()
+    );
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
