@@ -314,8 +314,8 @@ impl CoreState {
                 .flat_map(|rank| {
                     (0..4).map(move |suit| CardState {
                         id: rank * 4 + suit,
-                        suit: suit as u8,
-                        rank: rank as u8,
+                        suit: crate::Suit::ALL[suit],
+                        rank: crate::Rank::ALL[rank],
                         polish_pct_raw: 0,
                         engraving: None,
                     })

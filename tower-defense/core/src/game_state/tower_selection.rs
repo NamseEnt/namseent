@@ -36,7 +36,7 @@ pub fn get_highest_tower_template(
             Some(if straight_result.royal {
                 12
             } else {
-                straight_result.top.rank
+                straight_result.top.rank.raw()
             }),
             straight_result.cards,
             rerolled_count,
@@ -60,8 +60,8 @@ pub fn get_highest_tower_template(
                 .unwrap();
             return Some(build_template(
                 8,
-                Some(top_card.suit),
-                Some(top_card.rank),
+                Some(top_card.suit.raw()),
+                Some(top_card.rank.raw()),
                 cards_of_rank.clone(),
                 rerolled_count,
                 config,
@@ -92,8 +92,8 @@ pub fn get_highest_tower_template(
         let top_card = combined_cards.last().unwrap();
         return Some(build_template(
             7,
-            Some(top_card.suit),
-            Some(top_card.rank),
+            Some(top_card.suit.raw()),
+            Some(top_card.rank.raw()),
             combined_cards,
             rerolled_count,
             config,
@@ -113,7 +113,7 @@ pub fn get_highest_tower_template(
         return Some(build_template(
             6,
             Some(flush_result.suit),
-            Some(top_card.rank),
+            Some(top_card.rank.raw()),
             flush_cards,
             rerolled_count,
             config,
@@ -123,8 +123,8 @@ pub fn get_highest_tower_template(
     if let Some(straight_result) = straight_result {
         return Some(build_template(
             5,
-            Some(straight_result.top.suit),
-            Some(straight_result.top.rank),
+            Some(straight_result.top.suit.raw()),
+            Some(straight_result.top.rank.raw()),
             straight_result.cards,
             rerolled_count,
             config,
@@ -136,8 +136,8 @@ pub fn get_highest_tower_template(
         let top_card = triple_cards_vec.last().unwrap();
         return Some(build_template(
             4,
-            Some(top_card.suit),
-            Some(top_card.rank),
+            Some(top_card.suit.raw()),
+            Some(top_card.rank.raw()),
             triple_cards_vec,
             rerolled_count,
             config,
@@ -156,8 +156,8 @@ pub fn get_highest_tower_template(
         let top_card = combined_cards.last().unwrap();
         return Some(build_template(
             3,
-            Some(top_card.suit),
-            Some(top_card.rank),
+            Some(top_card.suit.raw()),
+            Some(top_card.rank.raw()),
             combined_cards,
             rerolled_count,
             config,
@@ -169,8 +169,8 @@ pub fn get_highest_tower_template(
         let top_card = pair_high_cards_vec.last().unwrap();
         return Some(build_template(
             2,
-            Some(top_card.suit),
-            Some(top_card.rank),
+            Some(top_card.suit.raw()),
+            Some(top_card.rank.raw()),
             pair_high_cards_vec,
             rerolled_count,
             config,
@@ -180,8 +180,8 @@ pub fn get_highest_tower_template(
     let top_card = cards.iter().max_by_key(|card| card_order_key(card))?;
     Some(build_template(
         1,
-        Some(top_card.suit),
-        Some(top_card.rank),
+        Some(top_card.suit.raw()),
+        Some(top_card.rank.raw()),
         vec![top_card.clone()],
         rerolled_count,
         config,
@@ -302,7 +302,7 @@ fn flush_groups(cards: &[CardState], upgrades: &UpgradeCollection) -> Vec<(u8, V
 
     let mut suit_map = BTreeMap::<u8, Vec<CardState>>::new();
     for card in cards {
-        let suit = normalized_suit(card.suit, treat_suits_as_same);
+        let suit = normalized_suit(card.suit.raw(), treat_suits_as_same);
         suit_map.entry(suit).or_default().push(card.clone());
     }
 
@@ -329,15 +329,15 @@ fn check_straight(cards: &[CardState], upgrades: &UpgradeCollection) -> Option<S
         let mut cards_by_value = BTreeMap::<usize, Vec<CardState>>::new();
         for card in cards {
             let value = if ace_high {
-                if card.rank == 12 {
+                if card.rank == crate::Rank::Ace {
                     13
                 } else {
-                    card.rank as usize + 1
+                    card.rank.ordinal() + 1
                 }
-            } else if card.rank == 12 {
+            } else if card.rank == crate::Rank::Ace {
                 0
             } else {
-                card.rank as usize + 1
+                card.rank.ordinal() + 1
             };
             cards_by_value.entry(value).or_default().push(card.clone());
         }
@@ -393,14 +393,14 @@ fn is_royal(ranks: &[usize], straight_card_count: usize) -> bool {
 fn check_flush(cards: &[CardState], upgrades: &UpgradeCollection) -> Option<FlushResult> {
     flush_groups(cards, upgrades)
         .into_iter()
-        .max_by_key(|(_, cards)| cards.iter().map(|card| card.rank).max())
+        .max_by_key(|(_, cards)| cards.iter().map(|card| card.rank.ordinal()).max())
         .map(|(suit, _)| FlushResult { suit })
 }
 
 fn count_rank(cards: &[CardState]) -> BTreeMap<u8, Vec<CardState>> {
     let mut map = BTreeMap::new();
     for card in cards {
-        map.entry(card.rank)
+        map.entry(card.rank.raw())
             .or_insert_with(Vec::new)
             .push(card.clone());
     }
@@ -418,7 +418,7 @@ fn normalized_suit(suit: u8, same: bool) -> u8 {
 }
 
 fn card_order_key(card: &CardState) -> (u8, u8, usize) {
-    (card.rank, card.suit, card.id)
+    (card.rank.raw(), card.suit.raw(), card.id)
 }
 
 #[cfg(test)]

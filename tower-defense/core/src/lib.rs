@@ -1,3 +1,4 @@
+pub mod card;
 pub mod catalog;
 pub mod combat_number;
 pub mod deterministic_rng;
@@ -9,6 +10,7 @@ mod route;
 pub mod time;
 pub mod world;
 
+pub use card::{Rank, Suit};
 pub use combat_number::{
     AMOUNT_SCALE, ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct,
     Shield,

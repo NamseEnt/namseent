@@ -12,7 +12,7 @@ pub enum CardSelectionFilterState {
     Any,
     Face,
     Number,
-    Rank(u8),
+    Rank(crate::Rank),
     Engraved,
     NotEngraved,
     And(Vec<CardSelectionFilterState>),
@@ -23,8 +23,8 @@ impl CardSelectionFilterState {
     pub fn matches(&self, card: &CardState) -> bool {
         match self {
             Self::Any => true,
-            Self::Face => (9..=11).contains(&card.rank),
-            Self::Number => card.rank <= 8,
+            Self::Face => card.rank.is_face(),
+            Self::Number => card.rank.is_number_card(),
             Self::Rank(rank) => card.rank == *rank,
             Self::Engraved => card.engraving.is_some(),
             Self::NotEngraved => card.engraving.is_none(),
@@ -128,8 +128,8 @@ impl crate::CoreState {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardState {
     pub id: usize,
-    pub suit: u8,
-    pub rank: u8,
+    pub suit: crate::Suit,
+    pub rank: crate::Rank,
     pub polish_pct_raw: i64,
     pub engraving: Option<u8>,
 }
@@ -299,8 +299,8 @@ mod purchase_tests {
         let all_cards = (0..engraved_card_count)
             .map(|id| CardState {
                 id,
-                suit: 0,
-                rank: 0,
+                suit: crate::Suit::Spades,
+                rank: crate::Rank::Two,
                 polish_pct_raw: 0,
                 engraving: Some(0),
             })
@@ -308,8 +308,8 @@ mod purchase_tests {
                 (engraved_card_count..engraved_card_count + unengraved_card_count).map(|id| {
                     CardState {
                         id,
-                        suit: 0,
-                        rank: 0,
+                        suit: crate::Suit::Spades,
+                        rank: crate::Rank::Two,
                         polish_pct_raw: 0,
                         engraving: None,
                     }
@@ -409,16 +409,16 @@ mod purchase_tests {
         for rank in [12, 0, 1] {
             assert!(filter.matches(&CardState {
                 id: 0,
-                suit: 0,
-                rank,
+                suit: crate::Suit::Spades,
+                rank: crate::Rank::from_raw(rank).unwrap(),
                 polish_pct_raw: 0,
                 engraving: None,
             }));
         }
         assert!(!filter.matches(&CardState {
             id: 0,
-            suit: 0,
-            rank: 2,
+            suit: crate::Suit::Spades,
+            rank: crate::Rank::Four,
             polish_pct_raw: 0,
             engraving: None,
         }));
@@ -530,11 +530,11 @@ mod purchase_tests {
                         .expect("selected card");
                     if kind == crate::CardServiceKind::LongSword {
                         assert_eq!(card.id, 0);
-                        assert_eq!(card.suit, 0);
+                        assert_eq!(card.suit, crate::Suit::Spades);
                         assert_eq!(card.polish_pct_raw, 2_000_000);
                     } else {
                         assert_eq!(card.id, 36);
-                        assert_eq!(card.suit, 1);
+                        assert_eq!(card.suit, crate::Suit::Hearts);
                         assert_eq!(card.polish_pct_raw, 3_000_000);
                     }
                 }
@@ -544,7 +544,7 @@ mod purchase_tests {
                     assert_eq!(state.deck().get_card(1).unwrap().engraving, Some(1));
                 }
                 crate::CardServiceKind::Screwdriver => {
-                    assert_eq!(state.deck().get_card(0).unwrap().rank, 1)
+                    assert_eq!(state.deck().get_card(0).unwrap().rank, crate::Rank::Three)
                 }
                 crate::CardServiceKind::Magnet => {
                     assert_eq!(state.deck().get_card(0).unwrap().engraving, Some(0));

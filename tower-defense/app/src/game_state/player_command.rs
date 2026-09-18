@@ -736,8 +736,8 @@ mod tests {
                     id: 1,
                     item: td_core::HandItemState::Card(td_core::CardState {
                         id: 1,
-                        suit: 0,
-                        rank: 11,
+                        suit: td_core::Suit::Spades,
+                        rank: td_core::Rank::King,
                         polish_pct_raw: 0,
                         engraving: None,
                     }),

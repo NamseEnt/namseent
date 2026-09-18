@@ -1,8 +1,17 @@
-use super::{TWO_PAIR, evaluate};
+use super::*;
 
 #[test]
 fn test_two_pair() {
-    let template = evaluate(&[(0, 12), (1, 12), (3, 8), (2, 8), (0, 5)], &[]);
+    let template = evaluate(
+        &[
+            (SPADES, ACE),
+            (HEARTS, ACE),
+            (CLUBS, TEN),
+            (DIAMONDS, TEN),
+            (SPADES, SEVEN),
+        ],
+        &[],
+    );
     assert_eq!(template.kind, TWO_PAIR);
     assert_eq!(template.rank, Some(12));
 }

@@ -1015,8 +1015,8 @@ mod tests {
                 default_status_effects: Vec::new(),
                 used_cards: vec![crate::CardState {
                     id: 1,
-                    suit: 0,
-                    rank: 11,
+                    suit: crate::Suit::Spades,
+                    rank: crate::Rank::King,
                     polish_pct_raw,
                     engraving: None,
                 }],

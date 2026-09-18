@@ -11,7 +11,9 @@ mod three_of_a_kind;
 mod two_pair;
 
 use super::get_highest_tower_template;
-use crate::{CardState, GameConfigState, TowerTemplateState, UpgradeCollection, UpgradeKind};
+use crate::{
+    CardState, GameConfigState, Rank, Suit, TowerTemplateState, UpgradeCollection, UpgradeKind,
+};
 
 const HIGH: u8 = 1;
 const ONE_PAIR: u8 = 2;
@@ -23,6 +25,23 @@ const FULL_HOUSE: u8 = 7;
 const FOUR_OF_A_KIND: u8 = 8;
 const STRAIGHT_FLUSH: u8 = 9;
 const ROYAL_FLUSH: u8 = 10;
+
+const SPADES: Suit = Suit::Spades;
+const HEARTS: Suit = Suit::Hearts;
+const DIAMONDS: Suit = Suit::Diamonds;
+const CLUBS: Suit = Suit::Clubs;
+const TWO: Rank = Rank::Two;
+const THREE: Rank = Rank::Three;
+const FOUR: Rank = Rank::Four;
+const FIVE: Rank = Rank::Five;
+const SEVEN: Rank = Rank::Seven;
+const EIGHT: Rank = Rank::Eight;
+const NINE: Rank = Rank::Nine;
+const TEN: Rank = Rank::Ten;
+const JACK: Rank = Rank::Jack;
+const QUEEN: Rank = Rank::Queen;
+const KING: Rank = Rank::King;
+const ACE: Rank = Rank::Ace;
 
 fn config() -> GameConfigState {
     GameConfigState {
@@ -51,7 +70,7 @@ fn config() -> GameConfigState {
     }
 }
 
-fn cards(values: &[(u8, u8)]) -> Vec<CardState> {
+fn cards(values: &[(Suit, Rank)]) -> Vec<CardState> {
     values
         .iter()
         .enumerate()
@@ -76,7 +95,7 @@ fn upgrades(kinds: &[UpgradeKind]) -> UpgradeCollection {
     )
 }
 
-fn evaluate(values: &[(u8, u8)], upgrade_kinds: &[UpgradeKind]) -> TowerTemplateState {
+fn evaluate(values: &[(Suit, Rank)], upgrade_kinds: &[UpgradeKind]) -> TowerTemplateState {
     get_highest_tower_template(&cards(values), &upgrades(upgrade_kinds), &config(), 0)
         .expect("template should be generated")
 }
