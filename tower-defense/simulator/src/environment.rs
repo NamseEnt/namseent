@@ -1042,10 +1042,11 @@ impl GameEnvironment {
         let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
         let mut actions = Vec::with_capacity(hand_slot_indices.len() * map_width * map_height);
         let state = self.game_state.raw_state();
+        let placement_context = state.tower_placement_context();
         for top in 0..map_height {
             for left in 0..map_width {
                 for &hand_slot_index in &hand_slot_indices {
-                    if state.can_place_tower(hand_slot_index, left, top) {
+                    if placement_context.can_place_tower(state, hand_slot_index, left, top) {
                         actions.push(AgentAction::PlaceTower {
                             hand_slot_index,
                             left,

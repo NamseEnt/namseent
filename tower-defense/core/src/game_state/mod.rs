@@ -88,6 +88,58 @@ pub struct CoreState {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TowerPlacementContext {
+    occupied: Vec<[usize; 2]>,
+}
+
+impl TowerPlacementContext {
+    pub fn can_place_tower(
+        &self,
+        state: &CoreState,
+        hand_slot_index: usize,
+        left: usize,
+        top: usize,
+    ) -> bool {
+        if !matches!(state.flow, crate::GameFlowState::PlacingTower) {
+            return false;
+        }
+        let Some(slot) = state.hand.slots.get(hand_slot_index) else {
+            return false;
+        };
+        if !matches!(slot.item, crate::HandItemState::Tower(_)) {
+            return false;
+        }
+        self.placement_route(left, top).is_ok()
+    }
+
+    fn placement_route(
+        &self,
+        left: usize,
+        top: usize,
+    ) -> Result<crate::RouteState, crate::CommandError> {
+        let right = left
+            .checked_add(1)
+            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let bottom = top
+            .checked_add(1)
+            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let new_coords = [[left, top], [right, top], [left, bottom], [right, bottom]];
+        if new_coords.iter().any(|coord| {
+            coord[0] >= crate::MAP_SIZE[0]
+                || coord[1] >= crate::MAP_SIZE[1]
+                || crate::TRAVEL_POINTS.contains(coord)
+                || self.occupied.contains(coord)
+        }) {
+            return Err(crate::CommandError::InvalidPlacement);
+        }
+        let mut blockers = self.occupied.clone();
+        blockers.extend(new_coords);
+        crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+            .ok_or(crate::CommandError::InvalidPlacement)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PreCombatOutput {
     pub monster_spawned: bool,
     pub damage_refresh_tower_ids: Vec<u64>,
@@ -637,26 +689,7 @@ impl CoreState {
                 return Err(crate::CommandError::InvalidSelection);
             }
         }
-        let right = left
-            .checked_add(1)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
-        let bottom = top
-            .checked_add(1)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
-        let occupied = crate::game_state::tower::tower_blockers(&self.towers);
-        let new_coords = [[left, top], [right, top], [left, bottom], [right, bottom]];
-        if new_coords.iter().any(|coord| {
-            coord[0] >= crate::MAP_SIZE[0]
-                || coord[1] >= crate::MAP_SIZE[1]
-                || crate::TRAVEL_POINTS.contains(coord)
-                || occupied.contains(coord)
-        }) {
-            return Err(crate::CommandError::InvalidPlacement);
-        }
-        let mut blockers = occupied;
-        blockers.extend(new_coords);
-        let route = crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let route = self.tower_placement_context().placement_route(left, top)?;
         let tower_id = self.next_entity_id.allocate_raw();
         let tower = crate::TowerState {
             id: Some(tower_id),
@@ -703,8 +736,14 @@ impl CoreState {
     }
 
     pub fn can_place_tower(&self, hand_slot_index: usize, left: usize, top: usize) -> bool {
-        let mut candidate = self.clone();
-        candidate.place_tower(hand_slot_index, left, top).is_ok()
+        self.tower_placement_context()
+            .can_place_tower(self, hand_slot_index, left, top)
+    }
+
+    pub fn tower_placement_context(&self) -> TowerPlacementContext {
+        TowerPlacementContext {
+            occupied: crate::game_state::tower::tower_blockers(&self.towers),
+        }
     }
 
     pub fn refresh_tower_damage_multipliers(&mut self) {

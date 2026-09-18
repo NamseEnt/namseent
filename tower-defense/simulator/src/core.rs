@@ -2086,6 +2086,39 @@ mod tests {
     }
 
     #[test]
+    fn can_place_tower_matches_mutating_placement_validation() {
+        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        core.apply(PlayerCommand::StartSelectingTower)
+            .expect("tower selection should start");
+        core.apply(PlayerCommand::SelectTower {
+            selected_slot_indices: vec![],
+        })
+        .expect("tower selection should succeed");
+        let comparisons = inspect_raw_state(&core, |state| {
+            let hand_slot_count = state.hand().slots.len();
+            (0..hand_slot_count)
+                .flat_map(|hand_slot_index| {
+                    (0..td_core::MAP_SIZE[1]).flat_map(move |top| {
+                        (0..td_core::MAP_SIZE[0]).map(move |left| {
+                            let predicted = state.can_place_tower(hand_slot_index, left, top);
+                            let mut candidate = state.clone();
+                            let actual = candidate.place_tower(hand_slot_index, left, top).is_ok();
+                            (predicted, actual)
+                        })
+                    })
+                })
+                .collect::<Vec<_>>()
+        });
+
+        assert!(!comparisons.is_empty());
+        assert!(
+            comparisons
+                .iter()
+                .all(|(predicted, actual)| predicted == actual)
+        );
+    }
+
+    #[test]
     fn raw_select_tower_consumes_extra_tower_cards_into_placement_hand() {
         let mut core = GameCore::new(GameConfig::default_config(), 7);
         mutate_raw_state(&mut core, |state| {

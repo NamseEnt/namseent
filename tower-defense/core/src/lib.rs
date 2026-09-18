@@ -17,7 +17,6 @@ pub use deterministic_rng::{
     RNG_ALGORITHM_VERSION, derive_seed, domain, rng_for, shuffle, stable_key_hash, uniform_index,
 };
 pub use events::{CoreEvent, CoreEventQueue};
-pub use game_state::CoreState;
 pub use game_state::EntitySnapshots;
 pub use game_state::card_service::{
     CardSelectionFilterState, CardServicePurchaseBlockReason, CardServiceSelectionState,
@@ -122,6 +121,7 @@ pub use game_state::{
     RecordedTickOutput, RenderMonsterSnapshot, RenderSnapshot, RenderSpatialAttackSnapshot,
     RenderTowerSnapshot, TickEventsOutput, TickOutput, TickTransition, TowerDamageStats,
 };
+pub use game_state::{CoreState, TowerPlacementContext};
 use route::multiply_ratio_raw;
 pub use route::{
     MoveOnRouteState, RouteState, advance_move_on_route, apply_ratio_product_raw, calculate_routes,
