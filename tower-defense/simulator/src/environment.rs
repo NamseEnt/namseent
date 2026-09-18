@@ -1882,8 +1882,21 @@ mod tests {
         environment
             .step(AgentAction::StartSelectingTower)
             .expect("start selecting tower should be legal");
-        let build_action = environment
-            .semantic_legal_actions()
+        let oracle_actions = environment.semantic_legal_actions();
+        let proposal_actions = environment.semantic_legal_actions_with_position_limit(Some(
+            DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+        ));
+        let oracle_ids = oracle_actions
+            .iter()
+            .map(|legal| legal.id.clone())
+            .collect::<HashSet<_>>();
+        assert!(proposal_actions.len() < oracle_actions.len());
+        assert!(
+            proposal_actions
+                .iter()
+                .all(|legal| oracle_ids.contains(&legal.id))
+        );
+        let build_action = proposal_actions
             .into_iter()
             .find_map(|legal| match legal.action {
                 AgentAction::BuildTower {
