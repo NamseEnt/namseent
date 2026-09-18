@@ -816,10 +816,34 @@ fn train_combined_expert_bootstrap(
     max_decisions: usize,
     model_config: ModelConfig,
     bc_config: &BcConfig,
+    semantic_actions: bool,
 ) -> Result<(
     super::model::DeepSetsActorCritic<super::model::TrainBackend>,
     super::bc::BcReport,
 )> {
+    if semantic_actions {
+        let collect_started = Instant::now();
+        let dataset = collect_semantic_scripted_expert_behavior_dataset(
+            Arc::clone(&config),
+            seed_range,
+            max_decisions,
+        )?;
+        eprintln!(
+            "expert.bootstrap expert=semantic_scripted phase=collect seconds={:.3} episodes={} steps={}",
+            collect_started.elapsed().as_secs_f64(),
+            dataset.metadata.episode_count,
+            dataset.metadata.step_count,
+        );
+        let bc_started = Instant::now();
+        let (model, report) = train_bc(&dataset, config.as_ref(), model_config, bc_config)?;
+        eprintln!(
+            "expert.bootstrap expert=semantic_scripted phase=bc seconds={:.3} samples={} updates={}",
+            bc_started.elapsed().as_secs_f64(),
+            report.sample_count,
+            report.updates,
+        );
+        return Ok((model, report));
+    }
     type Collector = fn(Arc<GameConfig>, SeedRange, usize) -> Result<super::dataset::ExpertDataset>;
     let collectors: [(&str, Collector); 4] = [
         ("scripted", collect_scripted_expert_behavior_dataset),
@@ -1100,6 +1124,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
                     if checkpoint.seed_schedule == schedule
                         && checkpoint.reward_config == ppo_config.reward_config
                         && checkpoint.model_config.hidden_size == hidden_size
+                        && ensure_checkpoint_action_mode(&checkpoint, semantic_actions).is_ok()
                         && checkpoint.best_validation_clear_rate
                             >= MINIMUM_WGPU_VALIDATION_CLEAR_RATE =>
                 {
@@ -1131,6 +1156,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
             starting_iteration,
         ) = if let Some(path) = &ppo_config.init_checkpoint {
             let (checkpoint, model) = NeuralCheckpoint::load_with_inference_model(path, &contract)?;
+            ensure_checkpoint_action_mode(&checkpoint, semantic_actions)?;
             (
                 Some(model.clone()),
                 Some(model),
@@ -1173,6 +1199,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
                     batch_size: 64,
                     priority_action_kinds: true,
                 },
+                semantic_actions,
             )?;
             eprintln!(
                 "combined expert bootstrap complete: samples={} initial_nll={:.6} final_nll={:.6} top1={:.3}",
@@ -1253,7 +1280,8 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
         match NeuralCheckpoint::load_metadata(&checkpoint_path, &contract, &schedule) {
             Ok(metadata)
                 if metadata.reward_config == ppo_config.reward_config
-                    && metadata.model_config.hidden_size == hidden_size =>
+                    && metadata.model_config.hidden_size == hidden_size
+                    && ensure_checkpoint_action_mode(&metadata, semantic_actions).is_ok() =>
             {
                 resume_path = Some(checkpoint_path.clone());
             }
@@ -1293,6 +1321,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
     let training = run_with_threads(threads, || {
         if let Some(resume_path) = resume_path {
             let metadata = NeuralCheckpoint::load_metadata(&resume_path, &contract, &schedule)?;
+            ensure_checkpoint_action_mode(&metadata, semantic_actions)?;
             if metadata.reward_config != ppo_config.reward_config {
                 bail!("resume reward configuration does not match requested configuration");
             }
@@ -1340,6 +1369,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
                     batch_size: 64,
                     priority_action_kinds: true,
                 },
+                semantic_actions,
             )?;
             eprintln!(
                 "combined expert bootstrap complete: samples={} initial_nll={:.6} final_nll={:.6} top1={:.3}",
@@ -1449,6 +1479,24 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
     Ok(())
 }
 
+fn ensure_checkpoint_action_mode(
+    checkpoint: &NeuralCheckpoint,
+    semantic_actions: bool,
+) -> Result<()> {
+    let Some(value) = checkpoint.hyperparameters.get("semantic_actions") else {
+        return Ok(());
+    };
+    let checkpoint_semantic_actions = value
+        .parse::<bool>()
+        .with_context(|| format!("invalid checkpoint semantic_actions value {value:?}"))?;
+    if checkpoint_semantic_actions != semantic_actions {
+        bail!(
+            "checkpoint semantic action mode ({checkpoint_semantic_actions}) does not match requested mode ({semantic_actions}); pass the matching --semantic-actions setting"
+        );
+    }
+    Ok(())
+}
+
 fn promote_canonical_best(
     run: &super::ppo::PpoTrainingRun,
     checkpoint: &NeuralCheckpoint,
@@ -1498,6 +1546,7 @@ fn validate_command(
     let contract = MlContract::from_config(game_config.as_ref());
     let (checkpoint, model) =
         NeuralCheckpoint::load_with_model(&checkpoint_path, &contract, &checkpoint.seed_schedule)?;
+    ensure_checkpoint_action_mode(&checkpoint, semantic_actions)?;
     let device = default_policy_device();
     let progress = PpoProgress::new(1);
     progress.begin_iteration(0, 1);
@@ -1565,6 +1614,7 @@ fn diagnostic_trace_command(
     let contract = MlContract::from_config(game_config.as_ref());
     let (checkpoint, model) =
         NeuralCheckpoint::load_with_inference_model(&checkpoint_path, &contract)?;
+    ensure_checkpoint_action_mode(&checkpoint, semantic_actions)?;
     let scripted_trace =
         run_scripted_oracle_with_stage_limit(Arc::clone(&game_config), seed, None)?;
     let trace = collect_diagnostic_trace(
@@ -1849,6 +1899,7 @@ fn overfit_gate_command(
     let contract = MlContract::from_config(game_config.as_ref());
     let (checkpoint, model) =
         NeuralCheckpoint::load_with_model(&checkpoint_path, &contract, &checkpoint.seed_schedule)?;
+    ensure_checkpoint_action_mode(&checkpoint, semantic_actions)?;
     let device = default_policy_device();
     let seeds = (0..seed_count).collect::<Vec<_>>();
     let initial_model = super::model::DeepSetsActorCritic::<super::model::InferenceBackend>::new(
