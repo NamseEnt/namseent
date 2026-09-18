@@ -400,7 +400,10 @@ fn card_observation(card: &crate::CardState) -> CardObservation {
 }
 
 fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateObservation> {
-    if !matches!(state.flow(), crate::GameFlowState::SelectingTower) {
+    if !matches!(
+        state.flow(),
+        crate::GameFlowState::Shopping(_) | crate::GameFlowState::SelectingTower
+    ) {
         return Vec::new();
     }
     let card_indices = state

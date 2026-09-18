@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 pub const DATASET_SCHEMA_VERSION: u32 = 5;
-pub const FEATURE_SCHEMA_VERSION: u32 = 7;
+pub const FEATURE_SCHEMA_VERSION: u32 = 8;
 pub const ML_CONTRACT_SCHEMA_VERSION: u32 = 1;
 pub use crate::config::CONFIG_DIGEST_VERSION;
 pub const OBSERVATION_SCHEMA_VERSION: u32 = td_core::OBSERVATION_SCHEMA_VERSION;

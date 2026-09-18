@@ -721,10 +721,18 @@ impl GameEnvironment {
         &self,
         position_limit: Option<usize>,
     ) -> Vec<LegalAction> {
-        if matches!(self.decision_point(), DecisionPoint::CardSelection)
-            && matches!(self.decision_context, DecisionContext::None)
-        {
-            self.semantic_card_actions(position_limit)
+        if self.semantic_card_decision_available() {
+            let mut actions = self.semantic_card_actions(position_limit);
+            if matches!(self.decision_point(), DecisionPoint::Shop) {
+                actions.extend(
+                    self.shop_actions()
+                        .into_iter()
+                        .filter(|action| matches!(action, AgentAction::PurchaseShopItem { .. })),
+                );
+            }
+            actions.extend(self.inventory_actions());
+            actions.extend(self.treasure_discard_actions());
+            actions
                 .into_iter()
                 .map(|action| LegalAction {
                     id: action.action_id(),
@@ -744,12 +752,45 @@ impl GameEnvironment {
                 state_hash: self.state_hash(),
             });
         }
+        let starts_from_shop = matches!(self.decision_point(), DecisionPoint::Shop)
+            && matches!(self.decision_context, DecisionContext::None);
         match action {
             AgentAction::Reroll {
                 selected_slot_indices,
-            } => self.step_unchecked(AgentAction::Reroll {
-                selected_slot_indices,
-            }),
+            } => {
+                if !starts_from_shop {
+                    return self.step_unchecked(AgentAction::Reroll {
+                        selected_slot_indices,
+                    });
+                }
+                let trace_start = self.policy_trace.steps.len();
+                let trace_pre_observation = self.snapshot();
+                let trace_pre_state_hash = self.state_hash();
+                let trace_legal_actions = self
+                    .semantic_legal_actions_with_position_limit(Some(
+                        DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                    ))
+                    .into_iter()
+                    .map(|legal| legal.action)
+                    .collect::<Vec<_>>();
+                let trace_action = AgentAction::Reroll {
+                    selected_slot_indices: selected_slot_indices.clone(),
+                };
+                let first = self.step_unchecked(AgentAction::StartSelectingTower)?;
+                let mut second = self.step_unchecked(AgentAction::Reroll {
+                    selected_slot_indices,
+                })?;
+                merge_step_outcome(&mut second, &first);
+                self.replace_policy_trace_with_macro(
+                    trace_start,
+                    trace_pre_observation,
+                    trace_pre_state_hash,
+                    trace_legal_actions,
+                    trace_action,
+                    &second,
+                );
+                Ok(second)
+            }
             AgentAction::BuildTower {
                 selected_slot_indices,
                 hand_slot_index,
@@ -767,7 +808,9 @@ impl GameEnvironment {
                     .into_iter()
                     .map(|legal| legal.action)
                     .collect::<Vec<_>>();
-                let trace_action_mask = vec![true; trace_legal_actions.len()];
+                let start_outcome = starts_from_shop
+                    .then(|| self.step_unchecked(AgentAction::StartSelectingTower))
+                    .transpose()?;
                 let first = self.step_unchecked(AgentAction::SelectTower {
                     selected_slot_indices,
                 })?;
@@ -776,41 +819,63 @@ impl GameEnvironment {
                     left,
                     top,
                 })?;
-                second.reward.terminal += first.reward.terminal;
-                for (key, value) in first.reward.shaping {
-                    *second.reward.shaping.entry(key).or_insert(0.0) += value;
+                if let Some(start_outcome) = start_outcome {
+                    merge_step_outcome(&mut second, &start_outcome);
                 }
-                second.info.ticks_advanced = second
-                    .info
-                    .ticks_advanced
-                    .saturating_add(first.info.ticks_advanced);
-                second.info.no_progress_cycle |= first.info.no_progress_cycle;
-                self.policy_trace.steps.truncate(trace_start);
-                self.policy_trace.steps.push(td_core::PolicyTraceStep {
-                    index: self.policy_trace.steps.len() as u64,
-                    decision_point: trace_pre_observation.decision_point.clone(),
-                    agent_action: AgentAction::BuildTower {
+                merge_step_outcome(&mut second, &first);
+                self.replace_policy_trace_with_macro(
+                    trace_start,
+                    trace_pre_observation,
+                    trace_pre_state_hash,
+                    trace_legal_actions,
+                    AgentAction::BuildTower {
                         selected_slot_indices: trace_selected_slot_indices,
                         hand_slot_index,
                         left,
                         top,
                     },
-                    legal_actions: trace_legal_actions,
-                    action_mask: trace_action_mask,
-                    player_command: None,
-                    pre_observation: trace_pre_observation,
-                    post_observation: second.observation.clone(),
-                    reward: second.reward.clone(),
-                    terminated: second.terminated,
-                    truncated: second.truncated,
-                    info: second.info.clone(),
-                    pre_state_hash: trace_pre_state_hash,
-                    post_state_hash: second.state_hash.clone(),
-                });
+                    &second,
+                );
                 Ok(second)
             }
             action => self.step(action),
         }
+    }
+
+    fn semantic_card_decision_available(&self) -> bool {
+        matches!(
+            self.decision_point(),
+            DecisionPoint::Shop | DecisionPoint::CardSelection
+        ) && matches!(self.decision_context, DecisionContext::None)
+    }
+
+    fn replace_policy_trace_with_macro(
+        &mut self,
+        trace_start: usize,
+        pre_observation: Observation,
+        pre_state_hash: String,
+        legal_actions: Vec<AgentAction>,
+        action: AgentAction,
+        outcome: &StepOutcome,
+    ) {
+        self.policy_trace.steps.truncate(trace_start);
+        let action_mask = vec![true; legal_actions.len()];
+        self.policy_trace.steps.push(td_core::PolicyTraceStep {
+            index: self.policy_trace.steps.len() as u64,
+            decision_point: pre_observation.decision_point.clone(),
+            agent_action: action,
+            legal_actions,
+            action_mask,
+            player_command: None,
+            pre_observation,
+            post_observation: outcome.observation.clone(),
+            reward: outcome.reward.clone(),
+            terminated: outcome.terminated,
+            truncated: outcome.truncated,
+            info: outcome.info.clone(),
+            pre_state_hash,
+            post_state_hash: outcome.state_hash.clone(),
+        });
     }
 
     /// Applies one AI decision and advances to the next decision point or
@@ -1103,9 +1168,7 @@ impl GameEnvironment {
     }
 
     fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
-        if !matches!(self.decision_context, DecisionContext::None)
-            || !matches!(self.decision_point(), DecisionPoint::CardSelection)
-        {
+        if !self.semantic_card_decision_available() {
             return self
                 .legal_actions()
                 .iter()
@@ -1150,7 +1213,10 @@ impl GameEnvironment {
                         .tower_placement_context()
                         .can_place_at(*left, *top)
             }
-            _ => false,
+            _ => self
+                .legal_actions()
+                .iter()
+                .any(|legal_action| legal_action.action == *action),
         }
     }
 
@@ -1571,6 +1637,18 @@ impl GameEnvironment {
             })
             .collect()
     }
+}
+
+fn merge_step_outcome(target: &mut StepOutcome, prefix: &StepOutcome) {
+    target.reward.terminal += prefix.reward.terminal;
+    for (key, value) in &prefix.reward.shaping {
+        *target.reward.shaping.entry(key.clone()).or_insert(0.0) += value;
+    }
+    target.info.ticks_advanced = target
+        .info
+        .ticks_advanced
+        .saturating_add(prefix.info.ticks_advanced);
+    target.info.no_progress_cycle |= prefix.info.no_progress_cycle;
 }
 
 #[cfg(test)]
@@ -1996,6 +2074,41 @@ mod tests {
             .core_replay()
             .validate()
             .expect("semantic replay should remain valid");
+    }
+
+    #[test]
+    fn semantic_build_action_can_start_from_shop() {
+        let mut environment = environment();
+        assert!(!environment.snapshot().build_tower_candidates.is_empty());
+        let build_action = environment
+            .semantic_legal_actions_with_position_limit(Some(1))
+            .into_iter()
+            .find_map(|legal| {
+                matches!(legal.action, AgentAction::BuildTower { .. }).then_some(legal.action)
+            })
+            .expect("shop should expose a semantic build action");
+        environment
+            .semantic_step(build_action)
+            .expect("shop semantic build action should be accepted");
+        assert!(matches!(
+            environment
+                .policy_trace()
+                .steps
+                .last()
+                .map(|step| &step.agent_action),
+            Some(AgentAction::BuildTower { .. })
+        ));
+        assert!(
+            environment
+                .policy_trace()
+                .steps
+                .iter()
+                .all(|step| !matches!(step.agent_action, AgentAction::StartSelectingTower))
+        );
+        environment
+            .core_replay()
+            .validate()
+            .expect("shop semantic replay should remain valid");
     }
 
     #[test]

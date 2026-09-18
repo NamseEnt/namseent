@@ -72,6 +72,16 @@ GPU batch를 기다리는 queue latency 때문에 wall-clock episode 시간이 �
 
 distillation checkpoint에서 PPO fine-tuning을 수행한다. 새 macro-action과 observation contract만 바꾸어도 기존보다 credit assignment가 쉬워질 수 있으므로 PPO를 먼저 공정하게 재평가한다.
 
+실제 학습 실행에서도 `--semantic-actions`를 사용해 UI selection sequence가 아닌 semantic candidate를 rollout에 공급한다. 이 플래그를 끄면 레거시 micro-action rollout이므로 semantic behavior dataset과 같은 checkpoint를 그대로 비교하지 않는다. semantic rollout은 shop에서 tower selection 진입까지 내부적으로 처리하고, reroll 또는 build-placement pair를 하나의 policy decision과 trace step으로 기록한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml train \
+  --semantic-actions \
+  --iterations 1 --train-size 4 --validation-size 2 \
+  --max-decisions 64 \
+  --checkpoint artifacts/ml/semantic-ppo.json
+```
+
 확인할 항목은 다음과 같다.
 
 - held-out full-clear 승률

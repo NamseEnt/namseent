@@ -231,6 +231,8 @@ pub enum Command {
         damage_progress_weight: f32,
         #[arg(long, default_value_t = false)]
         adaptive_exploration: bool,
+        #[arg(long, default_value_t = false)]
+        semantic_actions: bool,
         #[arg(long, default_value_t = 64)]
         hidden_size: usize,
         #[arg(long, default_value_t = 8192)]
@@ -267,6 +269,8 @@ pub enum Command {
         checkpoint: PathBuf,
         #[arg(long, default_value_t = 10_000)]
         max_decisions: usize,
+        #[arg(long, default_value_t = false)]
+        semantic_actions: bool,
         #[arg(long, default_value_t = 0)]
         threads: usize,
         #[arg(long)]
@@ -283,6 +287,8 @@ pub enum Command {
         seed: u64,
         #[arg(long, default_value_t = 10_000)]
         max_decisions: usize,
+        #[arg(long, default_value_t = false)]
+        semantic_actions: bool,
         #[arg(long)]
         config: Option<PathBuf>,
         #[arg(long)]
@@ -301,6 +307,8 @@ pub enum Command {
         maximum_supervised_nll: f32,
         #[arg(long, default_value_t = 1.0)]
         maximum_value_loss: f32,
+        #[arg(long, default_value_t = false)]
+        semantic_actions: bool,
         #[arg(long)]
         config: Option<PathBuf>,
     },
@@ -351,6 +359,7 @@ struct TrainCommandOptions {
     no_progress_cycle_penalty: f32,
     damage_progress_weight: f32,
     adaptive_exploration: bool,
+    semantic_actions: bool,
     hidden_size: usize,
     minibatch_size: usize,
     rollout_step_budget: usize,
@@ -447,6 +456,7 @@ pub fn run_command(command: Command) -> Result<()> {
             no_progress_cycle_penalty,
             damage_progress_weight,
             adaptive_exploration,
+            semantic_actions,
             hidden_size,
             minibatch_size,
             rollout_step_budget,
@@ -481,6 +491,7 @@ pub fn run_command(command: Command) -> Result<()> {
             no_progress_cycle_penalty,
             damage_progress_weight,
             adaptive_exploration,
+            semantic_actions,
             hidden_size,
             threads,
             minibatch_size,
@@ -500,18 +511,35 @@ pub fn run_command(command: Command) -> Result<()> {
         Command::Validate {
             checkpoint,
             max_decisions,
+            semantic_actions,
             threads,
             config,
             output,
             run_id,
-        } => validate_command(checkpoint, max_decisions, threads, config, output, run_id),
+        } => validate_command(
+            checkpoint,
+            max_decisions,
+            semantic_actions,
+            threads,
+            config,
+            output,
+            run_id,
+        ),
         Command::DiagnosticTrace {
             checkpoint,
             seed,
             max_decisions,
+            semantic_actions,
             config,
             output,
-        } => diagnostic_trace_command(checkpoint, seed, max_decisions, config, output),
+        } => diagnostic_trace_command(
+            checkpoint,
+            seed,
+            max_decisions,
+            semantic_actions,
+            config,
+            output,
+        ),
         Command::OverfitGate {
             checkpoint,
             seed_count,
@@ -519,6 +547,7 @@ pub fn run_command(command: Command) -> Result<()> {
             minimum_return_improvement,
             maximum_supervised_nll,
             maximum_value_loss,
+            semantic_actions,
             config,
         } => overfit_gate_command(
             checkpoint,
@@ -529,6 +558,7 @@ pub fn run_command(command: Command) -> Result<()> {
                 maximum_supervised_nll,
                 maximum_value_loss,
             },
+            semantic_actions,
             config,
         ),
         Command::PairedBaseline {
@@ -954,6 +984,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
         no_progress_cycle_penalty,
         damage_progress_weight,
         adaptive_exploration,
+        semantic_actions,
         hidden_size,
         minibatch_size,
         rollout_step_budget,
@@ -1022,6 +1053,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
         rollout: RolloutConfig {
             max_decisions_per_episode: max_decisions,
             adaptive_exploration,
+            semantic_actions,
             ..RolloutConfig::default()
         },
         model: ModelConfig { hidden_size },
@@ -1361,6 +1393,7 @@ fn train_command_once(options: TrainCommandOptions) -> Result<()> {
     hyperparameters.insert("max_decisions".to_string(), max_decisions.to_string());
     hyperparameters.insert("learning_rate".to_string(), learning_rate.to_string());
     hyperparameters.insert("hidden_size".to_string(), hidden_size.to_string());
+    hyperparameters.insert("semantic_actions".to_string(), semantic_actions.to_string());
     hyperparameters.insert(
         "no_progress_cycle_penalty".to_string(),
         no_progress_cycle_penalty.to_string(),
@@ -1452,6 +1485,7 @@ fn should_promote_canonical_best(
 fn validate_command(
     checkpoint_path: PathBuf,
     max_decisions: usize,
+    semantic_actions: bool,
     threads: usize,
     config_path: Option<PathBuf>,
     output_path: Option<PathBuf>,
@@ -1480,6 +1514,7 @@ fn validate_command(
             &RolloutConfig {
                 max_decisions_per_episode: max_decisions,
                 greedy: true,
+                semantic_actions,
                 reward_config: checkpoint.reward_config.clone(),
                 ..RolloutConfig::default()
             },
@@ -1503,7 +1538,11 @@ fn validate_command(
         max_decisions,
         reward_config: checkpoint.reward_config.clone(),
     };
-    let payload = serde_json::json!({ "provenance": provenance, "report": report });
+    let payload = serde_json::json!({
+        "provenance": provenance,
+        "semantic_actions": semantic_actions,
+        "report": report
+    });
     let json = serde_json::to_string_pretty(&payload)?;
     if let Some(output_path) = output_path {
         std::fs::write(&output_path, format!("{json}\n"))?;
@@ -1516,6 +1555,7 @@ fn diagnostic_trace_command(
     checkpoint_path: PathBuf,
     seed: u64,
     max_decisions: usize,
+    semantic_actions: bool,
     config_path: Option<PathBuf>,
     output_path: Option<PathBuf>,
 ) -> Result<()> {
@@ -1535,6 +1575,7 @@ fn diagnostic_trace_command(
         &RolloutConfig {
             max_decisions_per_episode: max_decisions,
             greedy: true,
+            semantic_actions,
             reward_config: checkpoint.reward_config.clone(),
             ..RolloutConfig::default()
         },
@@ -1796,6 +1837,7 @@ fn overfit_gate_command(
     seed_count: u64,
     max_decisions: usize,
     threshold: OverfitGateThreshold,
+    semantic_actions: bool,
     config_path: Option<PathBuf>,
 ) -> Result<()> {
     if seed_count != 1 && seed_count != 4 {
@@ -1816,6 +1858,7 @@ fn overfit_gate_command(
     let rollout_config = RolloutConfig {
         max_decisions_per_episode: max_decisions,
         greedy: true,
+        semantic_actions,
         reward_config: checkpoint.reward_config.clone(),
         ..RolloutConfig::default()
     };
@@ -1835,8 +1878,15 @@ fn overfit_gate_command(
         &rollout_config,
         None,
     )?;
-    let scripted_trajectory =
-        crate::policy_runner::run_scripted_oracle_trajectory(Arc::clone(&game_config), 0)?;
+    let scripted_trajectory = if semantic_actions {
+        crate::policy_runner::run_semantic_scripted_expert_trajectory(
+            Arc::clone(&game_config),
+            0,
+            max_decisions,
+        )?
+    } else {
+        crate::policy_runner::run_scripted_oracle_trajectory(Arc::clone(&game_config), 0)?
+    };
     let initial_supervised =
         super::rollout::evaluate_supervised_nll(&initial_model, &device, &scripted_trajectory)?;
     let final_supervised =
@@ -2076,6 +2126,7 @@ mod run_manifest_tests {
             no_progress_cycle_penalty: -0.25,
             damage_progress_weight: 0.0,
             adaptive_exploration: false,
+            semantic_actions: false,
             hidden_size: 8,
             minibatch_size: 1,
             rollout_step_budget: 0,
@@ -2145,6 +2196,7 @@ mod run_manifest_tests {
             no_progress_cycle_penalty: 0.25,
             damage_progress_weight: 0.0,
             adaptive_exploration: false,
+            semantic_actions: false,
             hidden_size: 8,
             minibatch_size: 1,
             rollout_step_budget: 0,

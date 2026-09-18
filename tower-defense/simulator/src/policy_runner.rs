@@ -1367,12 +1367,43 @@ where
     })
 }
 
+#[allow(dead_code)]
 pub(crate) fn run_episode_with_step_callback<P, F>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+    on_step: F,
+) -> Result<EpisodeResult>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
+    F: FnMut(&Observation, &[LegalAction], &AgentAction, &StepOutcome),
+{
+    run_episode_with_step_callback_mode(game_config, seed, runner_config, policy, on_step, false)
+}
+
+#[allow(dead_code)]
+pub(crate) fn run_semantic_episode_with_step_callback<P, F>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+    on_step: F,
+) -> Result<EpisodeResult>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
+    F: FnMut(&Observation, &[LegalAction], &AgentAction, &StepOutcome),
+{
+    run_episode_with_step_callback_mode(game_config, seed, runner_config, policy, on_step, true)
+}
+
+pub(crate) fn run_episode_with_step_callback_mode<P, F>(
     game_config: Arc<GameConfig>,
     seed: u64,
     runner_config: &PolicyRunnerConfig,
     mut policy: P,
     mut on_step: F,
+    semantic_actions: bool,
 ) -> Result<EpisodeResult>
 where
     P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
@@ -1423,20 +1454,32 @@ where
         }
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let (canonical_legal_actions, legal_action_metrics) =
-            environment.legal_actions_with_metrics();
+        let (canonical_legal_actions, placement_checks) = if semantic_actions {
+            (
+                environment.semantic_legal_actions_with_position_limit(Some(
+                    super::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                )),
+                0,
+            )
+        } else {
+            let (actions, metrics) = environment.legal_actions_with_metrics();
+            (actions, metrics.placement_position_checks)
+        };
         if canonical_legal_actions.is_empty() {
             bail!("environment reached a non-terminal state without legal actions at seed {seed}");
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
         candidate_evaluations += legal_actions.len();
-        placement_position_checks += legal_action_metrics.placement_position_checks;
+        placement_position_checks += placement_checks;
         let action = policy(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint, action.clone());
-        let mut outcome = environment
-            .step(action.clone())
-            .map_err(|error| runner_environment_error(seed, error))?;
+        let mut outcome = if semantic_actions {
+            environment.semantic_step(action.clone())
+        } else {
+            environment.step(action.clone())
+        }
+        .map_err(|error| runner_environment_error(seed, error))?;
         while !outcome.terminated && !outcome.truncated {
             let Some(forced_action) = environment.forced_action() else {
                 break;
@@ -1761,6 +1804,40 @@ mod tests {
             callback_rewards.borrow().iter().sum::<f32>(),
             callback.episode_return
         );
+    }
+
+    #[test]
+    fn semantic_callback_exposes_macro_actions() {
+        let config = Arc::new(GameConfig::default_config());
+        let observed_actions = std::cell::RefCell::new(Vec::new());
+        let runner_config = PolicyRunnerConfig {
+            max_decisions_per_episode: 2,
+            record_steps: false,
+            ..PolicyRunnerConfig::default()
+        };
+        run_semantic_episode_with_step_callback(
+            config,
+            17,
+            &runner_config,
+            first_legal_action,
+            |_, legal_actions, action, _| {
+                assert!(legal_actions.iter().any(|legal| legal.action == *action));
+                observed_actions.borrow_mut().push(action.clone());
+            },
+        )
+        .expect("semantic callback episode should run");
+        assert!(observed_actions.borrow().iter().all(|action| {
+            !matches!(
+                action,
+                AgentAction::StartSelectingTower
+                    | AgentAction::BeginRerollSelection
+                    | AgentAction::BeginTowerSelection
+                    | AgentAction::SelectHandCard { .. }
+                    | AgentAction::DeselectHandCard { .. }
+                    | AgentAction::ConfirmCardSelection
+                    | AgentAction::CancelCardSelection
+            )
+        }));
     }
 
     #[test]
