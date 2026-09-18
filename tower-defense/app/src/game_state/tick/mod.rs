@@ -25,10 +25,11 @@ impl Component for Ticker {
                 }
                 let presentation_delta = PresentationDelta::from_namui(real_dt);
                 let fast_forward_multiplier = game_state.fast_forward_multiplier;
-                let mut report = if presentation_gate_is_active(
+                let presentation_blocking = presentation_gate_is_active(
                     game_state.headless,
                     game_state.presentation_is_blocking(),
-                ) {
+                );
+                let mut report = if presentation_blocking {
                     game_state
                         .sim_scheduler
                         .discard_blocked_frame(presentation_delta, fast_forward_multiplier)
@@ -67,6 +68,11 @@ impl Component for Ticker {
                     } else {
                         game_state.clear_presentation_events();
                     }
+                }
+                if presentation_blocking && scheduled_ticks == 0 {
+                    let sim_tick = game_state.sim_tick();
+                    game_state.update_base_animations(sim_tick);
+                    tower::tower_animation_tick(&mut game_state.state, sim_tick);
                 }
                 if executed_ticks != scheduled_ticks {
                     report.executed_ticks = executed_ticks;

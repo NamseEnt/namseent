@@ -50,22 +50,23 @@ impl Animation {
         const IDLE_TRANSIT_FORCE: f32 = -100.0;
         const ATTACK_TRANSIT_FORCE: f32 = -500.0;
         const FORCE_DURATION: SimTickSpan = SimTickSpan::from_millis_ceil(33);
+        let animation_tick = self.tick_at.max(sim_tick);
 
         if let AnimationKind::Attack = kind {
             self.transit_force = Some(TransitForce {
                 force: ATTACK_TRANSIT_FORCE,
-                end_at: sim_tick + FORCE_DURATION,
+                end_at: animation_tick + FORCE_DURATION,
             });
         } else if let AnimationKind::Attack = self.kind {
         } else {
             self.transit_force = Some(TransitForce {
                 force: IDLE_TRANSIT_FORCE,
-                end_at: sim_tick + FORCE_DURATION,
+                end_at: animation_tick + FORCE_DURATION,
             });
         }
 
         self.kind = kind;
-        self.transited_at = sim_tick;
+        self.transited_at = animation_tick;
     }
 
     fn duration(&self) -> SimTickSpan {
@@ -77,21 +78,22 @@ impl Animation {
         const DAMPING: f32 = -10.0;
         const DELTA_TIME_SECONDS: f32 = 1.0 / 60.0;
 
-        self.tick_at = sim_tick;
-        if sim_tick - self.transited_at > self.duration() {
+        let animation_tick = sim_tick.max(self.tick_at + SimTickSpan::ONE);
+        self.tick_at = animation_tick;
+        if animation_tick - self.transited_at > self.duration() {
             self.transition(
                 match self.kind {
                     AnimationKind::Idle1 => AnimationKind::Idle2,
                     AnimationKind::Idle2 => AnimationKind::Idle1,
                     AnimationKind::Attack => AnimationKind::Idle1,
                 },
-                sim_tick,
+                animation_tick,
             );
         }
 
         let transit_force_expired = self
             .transit_force
-            .is_some_and(|transit_force| transit_force.end_at < sim_tick);
+            .is_some_and(|transit_force| transit_force.end_at < animation_tick);
         let transit_force = self
             .transit_force
             .map(|transit_force| transit_force.force)

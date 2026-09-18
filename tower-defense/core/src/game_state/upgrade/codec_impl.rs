@@ -142,7 +142,6 @@ empty_codec!(AppleUpgradeState, Apple);
 empty_codec!(BananaUpgradeState, Banana);
 empty_codec!(CarrotUpgradeState, Carrot);
 empty_codec!(BlackWhiteUpgradeState, BlackWhite);
-empty_codec!(BrokenPotteryUpgradeState, BrokenPottery);
 empty_codec!(CameraUpgradeState, Camera);
 empty_codec!(CupNoodlesUpgradeState, CupNoodles);
 empty_codec!(DemolitionHammerUpgradeState, DemolitionHammer);
@@ -157,6 +156,64 @@ empty_codec!(SpannerUpgradeState, Spanner);
 empty_codec!(StrawberryUpgradeState, Strawberry);
 empty_codec!(TrophyUpgradeState, Trophy);
 empty_codec!(WatermelonUpgradeState, Watermelon);
+
+impl BrokenPotteryUpgradeState {
+    pub(crate) fn decode<T: UpgradeCodecSource>(entry: &T) -> Result<Self, UpgradeCodecError> {
+        let entry = entry.to_codec();
+        check_kind(&entry, crate::UpgradeKind::BrokenPottery)?;
+        if entry.scalar_values.len() > 1 {
+            return Err(UpgradeCodecError::InvalidShape {
+                kind: crate::UpgradeKind::BrokenPottery,
+                field: "scalar_values",
+                expected: 1,
+                actual: entry.scalar_values.len(),
+            });
+        }
+        check_len(
+            &entry,
+            crate::UpgradeKind::BrokenPottery,
+            "ratio_values_raw",
+            entry.ratio_values_raw.len(),
+            0,
+        )?;
+        check_len(
+            &entry,
+            crate::UpgradeKind::BrokenPottery,
+            "bool_values",
+            entry.bool_values.len(),
+            0,
+        )?;
+        check_len(
+            &entry,
+            crate::UpgradeKind::BrokenPottery,
+            "optional_ids",
+            entry.optional_ids.len(),
+            0,
+        )?;
+        Ok(Self {
+            rerolled_count: entry
+                .scalar_values
+                .first()
+                .copied()
+                .map(|value| {
+                    usize_value(crate::UpgradeKind::BrokenPottery, "rerolled_count", value)
+                })
+                .transpose()?
+                .unwrap_or(0),
+        })
+    }
+
+    pub(crate) fn encode(self, id: u64) -> UpgradeWireEntry {
+        UpgradeWireEntry {
+            id,
+            kind: crate::UpgradeKind::BrokenPottery.raw(),
+            scalar_values: vec![self.rerolled_count as u64],
+            ratio_values_raw: Vec::new(),
+            bool_values: Vec::new(),
+            optional_ids: Vec::new(),
+        }
+    }
+}
 
 fn check_kind(
     entry: &UpgradeWireEntry,

@@ -191,11 +191,6 @@ impl RenderFrame<'_> {
         self.history
             .sample_tower_at(id, self.time.alpha.as_f32(), interpolate)
     }
-
-    pub(crate) fn base_scales(&self, interpolate: bool) -> Option<(Xy<f32>, Xy<f32>)> {
-        self.history
-            .base_scales_at(self.time.alpha.as_f32(), interpolate)
-    }
 }
 
 #[cfg(test)]

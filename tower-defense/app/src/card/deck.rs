@@ -338,9 +338,9 @@ mod tests {
 
     #[test]
     fn raw_state_rejects_invalid_card_values() {
-        let mut raw = Deck::new().to_core_state();
-        raw.all_cards[0].suit = 4;
+        let mut raw = serde_json::to_value(Deck::new().to_core_state()).expect("deck serializes");
+        raw["all_cards"][0]["suit"] = serde_json::json!(4);
 
-        assert!(Deck::from_core_state(raw).is_none());
+        assert!(serde_json::from_value::<td_core::DeckState>(raw).is_err());
     }
 }

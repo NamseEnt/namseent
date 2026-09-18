@@ -1301,8 +1301,8 @@ fn raw_card_matches_filter(
 ) -> bool {
     match filter {
         td_core::CardSelectionFilterState::Any => true,
-        td_core::CardSelectionFilterState::Face => (9..=11).contains(&card.rank),
-        td_core::CardSelectionFilterState::Number => card.rank <= 8,
+        td_core::CardSelectionFilterState::Face => card.rank.is_face(),
+        td_core::CardSelectionFilterState::Number => card.rank.is_number_card(),
         td_core::CardSelectionFilterState::Rank(rank) => card.rank == *rank,
         td_core::CardSelectionFilterState::Engraved => card.engraving.is_some(),
         td_core::CardSelectionFilterState::NotEngraved => card.engraving.is_none(),
@@ -1319,11 +1319,11 @@ fn raw_card_matches_filter(
 fn card_observation(card: &td_core::CardState) -> CardObservation {
     CardObservation {
         id: card.id,
-        suit: ["spades", "hearts", "diamonds", "clubs"][card.suit as usize].to_string(),
+        suit: ["spades", "hearts", "diamonds", "clubs"][card.suit.raw() as usize].to_string(),
         rank: [
             "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "jack",
             "queen", "king", "ace",
-        ][card.rank as usize]
+        ][card.rank.raw() as usize]
             .to_string(),
         polish_pct_raw: card.polish_pct_raw,
         engraving: card.engraving.map(|kind| {

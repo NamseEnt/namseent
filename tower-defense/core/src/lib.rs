@@ -1,3 +1,4 @@
+pub mod card;
 pub mod catalog;
 pub mod combat_number;
 pub mod deterministic_rng;
@@ -9,6 +10,7 @@ mod route;
 pub mod time;
 pub mod world;
 
+pub use card::{Rank, Suit};
 pub use combat_number::{
     AMOUNT_SCALE, ClearRate, Damage, DamageDelta, FixedRatio, Health, HealthDelta, RatioProduct,
     Shield,
@@ -105,6 +107,7 @@ pub(crate) use game_state::tower::{
     activate_tower_skills, advance_tower_cooldowns, apply_tower_skill_activations,
     generate_tower_attacks,
 };
+pub use game_state::tower_selection::get_highest_tower_template;
 #[cfg(test)]
 pub(crate) use game_state::upgrade::TestUpgradeWireEntry as UpgradeWireEntry;
 pub use game_state::upgrade::codec::{

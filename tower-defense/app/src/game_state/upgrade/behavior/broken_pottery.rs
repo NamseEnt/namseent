@@ -1,8 +1,12 @@
 use super::*;
 use crate::l10n::{rich_text_helpers::RichTextHelpers, word::Word};
 
+const BROKEN_POTTERY_REROLL_INTERVAL: usize = 4;
+
 #[derive(Debug, Clone, Copy, State, PartialEq)]
-pub struct BrokenPotteryUpgrade;
+pub struct BrokenPotteryUpgrade {
+    pub(crate) rerolled_count: usize,
+}
 
 impl UpgradePresentation for BrokenPotteryUpgrade {
     fn key(&self) -> &'static str {
@@ -11,6 +15,16 @@ impl UpgradePresentation for BrokenPotteryUpgrade {
 
     fn thumbnail_source(&self) -> crate::thumbnail::ThumbnailSource<'_> {
         crate::thumbnail::ThumbnailSource::Image(crate::asset::image::thumbnail::BROKEN_POTTERY)
+    }
+
+    fn thumbnail_overlays(
+        &self,
+        _game_state: &GameState,
+    ) -> Vec<crate::thumbnail::ThumbnailOverlay> {
+        vec![crate::thumbnail::ThumbnailOverlay::right_top(
+            format!("{}/{}", self.rerolled_count, BROKEN_POTTERY_REROLL_INTERVAL),
+            crate::theme::palette::WHITE,
+        )]
     }
 
     fn l10n_name<'a>(
@@ -45,7 +59,7 @@ impl UpgradePresentation for BrokenPotteryUpgrade {
 impl BrokenPotteryUpgrade {
     #[cfg(any(test, feature = "debug-tools"))]
     pub fn into_upgrade() -> Upgrade {
-        Upgrade::BrokenPottery(BrokenPotteryUpgrade)
+        Upgrade::BrokenPottery(BrokenPotteryUpgrade { rerolled_count: 0 })
     }
 }
 
@@ -69,43 +83,36 @@ mod tests {
             .restore_raw_core_projection(raw)
             .expect("valid broken pottery projection");
 
-        for rerolled_count in 0..4 {
-            let mut raw = game_state.raw_core_state().clone();
-            raw.edit_snapshot(|parts| parts.progress.rerolled_count = rerolled_count)
-                .expect("valid reroll count");
+        let mut raw = game_state.raw_core_state().clone();
+        for _ in 0..3 {
             raw.trigger_card_reroll_upgrades();
-            game_state
-                .restore_raw_core_projection(raw)
-                .expect("valid broken pottery projection");
         }
-        assert_eq!(game_state.raw_core_state().progress().left_dice, 0);
+        assert_eq!(raw.upgrades().entries()[0].scalar_value(0), Some(3));
+        assert_eq!(raw.progress().left_dice, 0);
+        game_state
+            .restore_raw_core_projection(raw.clone())
+            .expect("valid broken pottery projection");
+        assert_eq!(
+            game_state.presentation_upgrade_state_snapshot().upgrades[0]
+                .upgrade
+                .thumbnail_overlays(&game_state),
+            vec![crate::thumbnail::ThumbnailOverlay::right_top(
+                "3/4",
+                crate::theme::palette::WHITE,
+            )]
+        );
 
-        let mut raw = game_state.raw_core_state().clone();
-        raw.edit_snapshot(|parts| parts.progress.rerolled_count = 4)
-            .expect("valid reroll count");
         raw.trigger_card_reroll_upgrades();
+        assert_eq!(raw.upgrades().entries()[0].scalar_value(0), Some(0));
+        assert_eq!(raw.progress().left_dice, 1);
+
         game_state
             .restore_raw_core_projection(raw)
             .expect("valid broken pottery projection");
-        assert_eq!(game_state.raw_core_state().progress().left_dice, 1);
-
-        let mut raw = game_state.raw_core_state().clone();
-        raw.edit_snapshot(|parts| parts.progress.rerolled_count = 5)
-            .expect("valid reroll count");
-        raw.trigger_card_reroll_upgrades();
-        game_state
-            .restore_raw_core_projection(raw)
-            .expect("valid broken pottery projection");
-        assert_eq!(game_state.raw_core_state().progress().left_dice, 1);
-
-        let mut raw = game_state.raw_core_state().clone();
-        raw.edit_snapshot(|parts| parts.progress.rerolled_count = 8)
-            .expect("valid reroll count");
-        raw.trigger_card_reroll_upgrades();
-        game_state
-            .restore_raw_core_projection(raw)
-            .expect("valid broken pottery projection");
-        assert_eq!(game_state.raw_core_state().progress().left_dice, 2);
+        assert_eq!(
+            game_state.presentation_upgrade_state_snapshot().upgrades[0].upgrade,
+            Upgrade::BrokenPottery(BrokenPotteryUpgrade { rerolled_count: 0 })
+        );
     }
 
     #[test]

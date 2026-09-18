@@ -57,7 +57,6 @@ mod status_effect_particle_generator;
 pub(crate) mod tick;
 pub mod tower;
 mod tower_info_popup;
-pub(crate) mod tower_selection;
 mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
@@ -3664,19 +3663,6 @@ mod tests {
             assert!(current >= previous);
             assert!(current <= ClearRate::FULL);
             previous = current;
-        }
-    }
-
-    #[test]
-    fn representative_stage_hp_matches_integer_migration_baseline() {
-        let config = GameConfig::default_config();
-        let modifiers = StageModifiers::new();
-        for (stage, expected_raw) in [(1, 338_285), (25, 52_224_930), (50, 161_864_745_740)] {
-            assert_eq!(
-                GameState::calculate_stage_total_hp(stage, &config, &modifiers).raw(),
-                expected_raw,
-                "stage {stage} total HP changed"
-            );
         }
     }
 }

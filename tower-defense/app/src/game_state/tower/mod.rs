@@ -558,6 +558,26 @@ impl TowerTemplate {
         }
     }
 
+    pub(crate) fn from_cards(
+        cards: &[crate::card::Card],
+        upgrade_state: &crate::game_state::upgrade::UpgradeState,
+        rerolled_count: usize,
+        config: &crate::config::GameConfig,
+    ) -> Option<Self> {
+        let cards = cards
+            .iter()
+            .copied()
+            .map(|card| card.to_core_state())
+            .collect::<Vec<_>>();
+        let template = td_core::get_highest_tower_template(
+            &cards,
+            &upgrade_state.to_core_state(),
+            config,
+            rerolled_count,
+        )?;
+        Self::from_core_state(template)
+    }
+
     pub(crate) fn from_core_state(state: td_core::TowerTemplateState) -> Option<Self> {
         let kind = TowerKind::from_core_raw(state.kind)?;
         let suit = match state.suit {

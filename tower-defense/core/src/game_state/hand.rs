@@ -92,12 +92,12 @@ fn compare_items(left: &HandItemState, right: &HandItemState) -> Ordering {
 mod tests {
     use super::*;
 
-    fn card(id: usize, rank: u8) -> HandSlotState {
+    fn card(id: usize, rank: crate::Rank) -> HandSlotState {
         HandSlotState {
             id,
             item: HandItemState::Card(CardState {
                 id,
-                suit: 0,
+                suit: crate::Suit::Spades,
                 rank,
                 polish_pct_raw: 0,
                 engraving: None,
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn sorting_preserves_slot_identity_and_allocator() {
         let mut hand = HandState {
-            slots: vec![card(9, 1), card(4, 12)],
+            slots: vec![card(9, crate::Rank::Three), card(4, crate::Rank::Ace)],
             next_hand_slot_id: 10,
         };
 
@@ -126,7 +126,11 @@ mod tests {
     #[test]
     fn migration_repairs_missing_and_duplicate_ids_without_reusing_valid_ids() {
         let mut hand = HandState {
-            slots: vec![card(3, 1), card(3, 2), card(0, 3)],
+            slots: vec![
+                card(3, crate::Rank::Three),
+                card(3, crate::Rank::Four),
+                card(0, crate::Rank::Five),
+            ],
             next_hand_slot_id: 0,
         };
 

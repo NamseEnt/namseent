@@ -256,11 +256,7 @@ fn render_backgrounds(ctx: &RenderCtx, game_state: &HeadedGame) {
 }
 
 fn render_projectiles(ctx: &RenderCtx, game_state: &GameState, camera: &crate::game_state::Camera) {
-    let snapshot =
-        crate::game_state::render_snapshot::WorldRenderSnapshot::capture_with_base_scales(
-            game_state,
-            (Xy::single(1.0), Xy::single(1.0)),
-        );
+    let snapshot = crate::game_state::render_snapshot::WorldRenderSnapshot::capture(game_state);
     render_stuffs(
         camera,
         ctx,
@@ -300,11 +296,24 @@ fn render_towers(ctx: &RenderCtx, game_state: &HeadedGame) {
         crate::SimRenderTime::new(game_state.sim_tick(), crate::InterpolationAlpha::ZERO)
     });
 
-    let tower_snapshots = render_frame
+    let live_snapshot = crate::game_state::render_snapshot::WorldRenderSnapshot::capture(state);
+    let current_snapshot = render_frame
         .as_ref()
-        .and_then(|frame| frame.current_snapshot())
-        .map(crate::game_state::render_snapshot::WorldRenderSnapshot::towers)
-        .unwrap_or(&[]);
+        .and_then(|frame| frame.current_snapshot());
+    let tower_snapshots = if current_snapshot.is_some_and(|snapshot| {
+        snapshot.towers().len() == live_snapshot.towers().len()
+            && snapshot
+                .towers()
+                .iter()
+                .zip(live_snapshot.towers())
+                .all(|(current, live)| current.id == live.id && current.left_top == live.left_top)
+    }) {
+        current_snapshot
+            .expect("current snapshot was checked above")
+            .towers()
+    } else {
+        live_snapshot.towers()
+    };
 
     for snapshot in tower_snapshots {
         let tower_id = snapshot.id;
@@ -414,11 +423,7 @@ fn render_tower_info_popup(ctx: &RenderCtx, game_state: &HeadedGame) {
 }
 
 fn render_monsters(ctx: &RenderCtx, game_state: &GameState, camera: &crate::game_state::Camera) {
-    let snapshot =
-        crate::game_state::render_snapshot::WorldRenderSnapshot::capture_with_base_scales(
-            game_state,
-            (Xy::single(1.0), Xy::single(1.0)),
-        );
+    let snapshot = crate::game_state::render_snapshot::WorldRenderSnapshot::capture(game_state);
     render_stuffs(
         camera,
         ctx,

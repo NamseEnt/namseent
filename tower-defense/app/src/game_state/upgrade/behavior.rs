@@ -316,6 +316,9 @@ impl UpgradeWithId {
                 state.set_ratio_value(0, upgrade.damage_bonus_pct_per_reroll.raw());
                 state.set_scalar_value(0, upgrade.stored_rerolls);
             }
+            Upgrade::BrokenPottery(upgrade) => {
+                state.set_scalar_value(0, upgrade.rerolled_count);
+            }
             Upgrade::SlotMachine(upgrade) => {
                 state.set_scalar_value(0, upgrade.next_round_dice);
             }
@@ -326,7 +329,6 @@ impl UpgradeWithId {
             Upgrade::Apple(_)
             | Upgrade::Banana(_)
             | Upgrade::BlackWhite(_)
-            | Upgrade::BrokenPottery(_)
             | Upgrade::Camera(_)
             | Upgrade::Carrot(_)
             | Upgrade::CupNoodles(_)
@@ -434,7 +436,9 @@ impl UpgradeWithId {
                     pending_free_shop: boolean(0)?,
                 })
             }
-            UpgradeDiscriminants::BrokenPottery => Upgrade::BrokenPottery(BrokenPotteryUpgrade),
+            UpgradeDiscriminants::BrokenPottery => Upgrade::BrokenPottery(BrokenPotteryUpgrade {
+                rerolled_count: scalar(0)?,
+            }),
             UpgradeDiscriminants::Strawberry => Upgrade::Strawberry(StrawberryUpgrade),
             UpgradeDiscriminants::Watermelon => Upgrade::Watermelon(WatermelonUpgrade),
         };
