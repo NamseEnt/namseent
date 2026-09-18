@@ -345,10 +345,12 @@ impl GameEnvironment {
         let slot_indices_to_card_ids = |indices: &[usize]| -> Vec<usize> {
             indices
                 .iter()
-                .filter_map(|index| match hand.slots.get(*index).map(|slot| &slot.item) {
-                    Some(td_core::HandItemState::Card(card)) => Some(card.id),
-                    _ => None,
-                })
+                .filter_map(
+                    |index| match hand.slots.get(*index).map(|slot| &slot.item) {
+                        Some(td_core::HandItemState::Card(card)) => Some(card.id),
+                        _ => None,
+                    },
+                )
                 .collect()
         };
         match command {
@@ -1419,9 +1421,11 @@ impl GameEnvironment {
                 let hand = self.game_state.raw_state().hand();
                 let card_ids = selected_slot_indices
                     .iter()
-                    .filter_map(|slot_index| match hand.slots.get(*slot_index).map(|slot| &slot.item) {
-                        Some(td_core::HandItemState::Card(card)) => Some(card.id),
-                        _ => None,
+                    .filter_map(|slot_index| {
+                        match hand.slots.get(*slot_index).map(|slot| &slot.item) {
+                            Some(td_core::HandItemState::Card(card)) => Some(card.id),
+                            _ => None,
+                        }
                     })
                     .collect::<Vec<_>>();
                 let hand_card_ids = td_core::hand_card_id_slots(hand);
@@ -2063,7 +2067,10 @@ mod tests {
             .expect("semantic build action should be available");
         let (card_ids, left, top) = match &build_action {
             AgentAction::BuildTower {
-                card_ids, left, top, ..
+                card_ids,
+                left,
+                top,
+                ..
             } => (card_ids.clone(), *left, *top),
             _ => unreachable!("the selected semantic action should build a tower"),
         };
@@ -2215,7 +2222,12 @@ mod tests {
         const SAMPLE_SIZE: usize = 8;
         let sample = |cells: &[(usize, usize)]| -> Vec<(usize, usize)> {
             let stride = (cells.len() / SAMPLE_SIZE).max(1);
-            cells.iter().copied().step_by(stride).take(SAMPLE_SIZE).collect()
+            cells
+                .iter()
+                .copied()
+                .step_by(stride)
+                .take(SAMPLE_SIZE)
+                .collect()
         };
         let sampled_cells = sample(&free_cells)
             .into_iter()
@@ -2235,15 +2247,14 @@ mod tests {
             })
             .expect("tower selection should resolve to a template");
 
+        // Probe placement via CoreState::place_tower directly instead of
+        // GameEnvironment::step, which recomputes the full O(map) legal
+        // action list (including a can_place_at scan of every cell) on
+        // every call; that made this loop O(sample_count * map_size).
+        let base_state = prepared.game_state.raw_state().clone();
         for ((left, top), predicted) in sampled_cells {
-            let mut probe = prepared
-                .fork_for_rollout_seed(11)
-                .expect("fork should succeed");
-            let outcome = probe.step_unchecked(AgentAction::PlaceTower {
-                hand_slot_index: 0,
-                left,
-                top,
-            });
+            let mut probe = base_state.clone();
+            let outcome = probe.place_tower(0, left, top);
             assert_eq!(
                 outcome.is_ok(),
                 predicted,
