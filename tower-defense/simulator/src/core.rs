@@ -249,9 +249,21 @@ impl GameCore {
         self.session.authoritative_hash()
     }
 
-    #[cfg(test)]
     pub(crate) fn core_state_snapshot(&self) -> td_core::CoreState {
         self.session.raw_state().clone_without_events()
+    }
+
+    pub(crate) fn from_core_state_snapshot(snapshot: td_core::CoreState) -> Result<Self, String> {
+        let session = td_core::CoreSession::from_state(snapshot)
+            .map_err(|_| "invalid core state snapshot".to_string())?;
+        let deferred_card_service_selection = session
+            .raw_state()
+            .pending_card_service_kind_typed()
+            .and_then(Self::build_deferred_card_service_selection);
+        Ok(Self {
+            session,
+            deferred_card_service_selection,
+        })
     }
 
     pub(crate) fn raw_state(&self) -> &td_core::CoreState {

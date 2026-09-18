@@ -111,6 +111,8 @@ cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache 
 - copy-on-write, compact snapshot, state delta 중 가장 단순하고 빠른 방식을 benchmark로 선택
 - 같은 scenario seed를 candidate batch에 효율적으로 배포
 
+현재 구현은 `GameEnvironment::fork_for_rollout_seed`로 authoritative core snapshot을 복제하고, 현재 관찰값과 합법 행동을 유지한 채 teacher 전용 RNG domain seed만 교체한다. 이 fork는 먼저 correctness 기준으로 사용하며, candidate batch에서의 snapshot 비용은 별도 benchmark로 측정한다.
+
 ## 장치별 책임
 
 | 작업 | 기본 장치 | 이유 |

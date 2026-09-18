@@ -229,6 +229,7 @@ pub enum EnvironmentError {
 
 pub struct GameEnvironment {
     game_state: GameCore,
+    config: Arc<GameConfig>,
     seed: u64,
     max_advance_ticks: u64,
     card_service_selection: Option<td_core::CardServiceSelectionState>,
@@ -424,6 +425,7 @@ impl GameEnvironment {
         );
         Self {
             game_state,
+            config,
             seed,
             max_advance_ticks: DEFAULT_MAX_ADVANCE_TICKS,
             card_service_selection: None,
@@ -445,6 +447,7 @@ impl GameEnvironment {
             config
         };
         self.game_state = GameCore::new((*config).clone(), seed);
+        self.config = config;
         self.seed = seed;
         self.card_service_selection = None;
         self.decision_context = DecisionContext::None;
@@ -460,6 +463,38 @@ impl GameEnvironment {
 
     pub fn seed(&self) -> u64 {
         self.seed
+    }
+
+    pub fn fork_for_rollout_seed(&self, scenario_seed: u64) -> Result<Self, String> {
+        let mut snapshot = self.game_state.core_state_snapshot();
+        let sim_tick = snapshot.sim_tick().ticks();
+        let derived_seed = td_core::derive_seed(
+            self.seed,
+            td_core::domain::ML_TOWER_TEACHER_SCENARIO,
+            &[scenario_seed, sim_tick],
+        );
+        let scenario_master_seed = u64::from_le_bytes(
+            derived_seed[..8]
+                .try_into()
+                .expect("derived seed must contain eight bytes"),
+        );
+        snapshot
+            .edit_snapshot(|parts| parts.rng.seed = scenario_master_seed)
+            .map_err(|_| "rollout scenario seed produced an invalid snapshot".to_string())?;
+        let game_state = GameCore::from_core_state_snapshot(snapshot)?;
+        Ok(Self {
+            game_state,
+            config: Arc::clone(&self.config),
+            seed: self.seed,
+            max_advance_ticks: self.max_advance_ticks,
+            card_service_selection: self.card_service_selection.clone(),
+            decision_context: self.decision_context.clone(),
+            environment_actions: self.environment_actions.clone(),
+            policy_trace: self.policy_trace.clone(),
+            metrics: self.metrics.clone(),
+            reward_config: self.reward_config.clone(),
+            max_stage: self.max_stage,
+        })
     }
 
     pub fn set_max_advance_ticks(&mut self, max_advance_ticks: u64) {
@@ -1961,6 +1996,23 @@ mod tests {
             .core_replay()
             .validate()
             .expect("semantic replay should remain valid");
+    }
+
+    #[test]
+    fn rollout_seed_fork_preserves_visible_state_and_legal_actions() {
+        let mut environment = environment();
+        environment
+            .step(AgentAction::StartSelectingTower)
+            .expect("start selecting tower should be legal");
+        let before = environment.snapshot();
+        let before_actions = environment.semantic_legal_actions();
+        let fork = environment
+            .fork_for_rollout_seed(19)
+            .expect("rollout fork should restore the core snapshot");
+
+        assert_eq!(fork.snapshot(), before);
+        assert_eq!(fork.semantic_legal_actions(), before_actions);
+        assert_ne!(fork.state_hash(), environment.state_hash());
     }
 
     #[test]

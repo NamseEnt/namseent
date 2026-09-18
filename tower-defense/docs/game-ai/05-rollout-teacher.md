@@ -37,6 +37,8 @@ B: scenario seeds 1, 2, 3, ... N
 
 가능한 경우 RNG domain을 카드 draw, wave spawn, shop, treasure 등으로 분리하고 scenario seed에서 domain별 stream을 파생한다. domain separation이 구현되기 전에는 action-dependent RNG divergence를 teacher report에 제한 사항으로 기록한다.
 
+현재 simulator는 `GameEnvironment::fork_for_rollout_seed`를 통해 현재 authoritative snapshot을 복제하고 `ML_TOWER_TEACHER_SCENARIO` domain에서 scenario seed를 파생한다. 따라서 후보 평가 시작 시점의 공개 observation과 legal action은 유지하면서 미래 RNG stream만 분리할 수 있다. domain별 RNG 소비가 후보 행동에 따라 달라지는 한계는 여전히 report에 남긴다.
+
 ## Non-cheating 규칙
 
 - 실제 다음 카드나 미래 treasure 결과를 보고 후보를 선택하지 않는다.
