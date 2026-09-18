@@ -15,6 +15,8 @@ pub mod events;
 pub mod hp_balance;
 #[cfg(feature = "simulator")]
 pub mod joint_action;
+#[cfg(feature = "simulator")]
+pub mod legality;
 pub mod ml;
 #[cfg(feature = "simulator")]
 pub mod policy_runner;

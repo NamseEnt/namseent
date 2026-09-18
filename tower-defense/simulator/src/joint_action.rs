@@ -46,6 +46,21 @@ pub fn position_xy(position_index: usize) -> Option<(usize, usize)> {
     }
 }
 
+/// The four map cells a tower's 2x2 footprint occupies when its top-left
+/// corner is at `(left, top)`. Matches
+/// `td_core::TowerPlacementContext`'s internal `placement_coords` cell
+/// order and values exactly. Callers are expected to only pass `left, top`
+/// from a valid `position_index` (see [`position_xy`]), which keeps every
+/// returned cell within `MAP_SIZE` without an explicit bounds check here.
+pub fn footprint_cells(left: usize, top: usize) -> [[usize; 2]; 4] {
+    [
+        [left, top],
+        [left + 1, top],
+        [left, top + 1],
+        [left + 1, top + 1],
+    ]
+}
+
 /// A stable, hand-slot-independent enumeration of a hand's non-empty card
 /// subsets.
 ///
@@ -288,6 +303,7 @@ impl JointBuildTowerScore {
 pub struct DenseBuildTowerScoreTable {
     pub subsets: CardSubsetTable,
     pub position_count: usize,
+    pub legality_stats: crate::legality::LegalityMaskStats,
     scores: Vec<Option<JointBuildTowerScore>>,
 }
 
@@ -297,12 +313,8 @@ impl DenseBuildTowerScoreTable {
         let subset_count = subsets.subset_count();
         let templates = subset_templates(&subsets, observation);
 
-        let legal = (0..MAP_POSITION_COUNT)
-            .map(|index| {
-                let (left, top) = position_xy(index).expect("index is in 0..MAP_POSITION_COUNT");
-                environment.can_place_at(left, top)
-            })
-            .collect::<Vec<_>>();
+        let (legal, legality_stats) =
+            crate::legality::full_map_legality_mask(environment, observation);
 
         let mut coverage_by_range: HashMap<i64, Vec<usize>> = HashMap::new();
         let nearest_route = nearest_route_grid(&observation.route_coords);
@@ -332,6 +344,7 @@ impl DenseBuildTowerScoreTable {
         Self {
             subsets,
             position_count: MAP_POSITION_COUNT,
+            legality_stats,
             scores,
         }
     }
@@ -628,7 +641,9 @@ mod tests {
         seed: u64,
         decision_index: usize,
         oracle_candidate_count: usize,
-        legality_scan_seconds: f64,
+        old_legality_scan_seconds: f64,
+        new_legality_mask_seconds: f64,
+        legality_stats: crate::legality::LegalityMaskStats,
         exhaustive_heuristic_scoring_seconds: f64,
         dense_table_total_seconds: f64,
     }
@@ -637,23 +652,37 @@ mod tests {
     struct ScoringBenchmarkReport {
         methodology: String,
         sample_points: Vec<ScoringBenchmarkSamplePoint>,
-        mean_legality_scan_seconds: f64,
+        mean_old_legality_scan_seconds: f64,
+        mean_new_legality_mask_seconds: f64,
+        legality_speedup: f64,
         mean_exhaustive_heuristic_scoring_seconds: f64,
         mean_dense_table_total_seconds: f64,
-        mean_old_total_seconds: f64,
+        mean_old_total_pipeline_seconds: f64,
+        mean_new_total_pipeline_seconds: f64,
+        pipeline_speedup: f64,
     }
 
-    /// Compares wall-clock cost, on the same decision states, between:
-    /// - the existing per-candidate heuristic scoring
-    ///   (`rank_build_tower_actions_by_heuristic`, given an already-generated
-    ///   oracle candidate list - the per-candidate route scan this module
-    ///   replaces), plus a standalone legality scan measured the same way
-    ///   `DenseBuildTowerScoreTable::compute` performs its own, to
-    ///   approximate the legality cost the old pipeline also pays inside
-    ///   `semantic_legal_actions`.
-    /// - `DenseBuildTowerScoreTable::compute`'s total cost (legality scan +
-    ///   map-level grids + fill), which is the new pipeline's full cost for
+    /// Compares wall-clock cost, on the same decision states, between the
+    /// pre-existing per-position/per-candidate approach and the new
+    /// dense/vectorized one:
+    /// - `old_legality_scan_seconds`: `GameEnvironment::can_place_at` called
+    ///   once per map position (what `environment::semantic_legal_positions`
+    ///   and `environment::tower_placement_actions` still do).
+    /// - `new_legality_mask_seconds`: `legality::full_map_legality_mask`,
+    ///   the fast-path-first replacement.
+    /// - `exhaustive_heuristic_scoring_seconds`: the existing per-candidate
+    ///   heuristic scoring (`rank_build_tower_actions_by_heuristic`, given
+    ///   an already-generated oracle candidate list) - the per-candidate
+    ///   route scan `joint_action`'s dense grids replace.
+    /// - `dense_table_total_seconds`: `DenseBuildTowerScoreTable::compute`'s
+    ///   total cost end to end (now using the new legality mask internally,
+    ///   plus map-level grids and fill) - the new pipeline's full cost for
     ///   the same decision.
+    ///
+    /// `old_total_pipeline_seconds = old_legality_scan_seconds +
+    /// exhaustive_heuristic_scoring_seconds` is the fair "old approach,
+    /// same shape as the new one" comparison point for
+    /// `dense_table_total_seconds` (`new_total_pipeline_seconds`).
     ///
     /// Run with: cargo test --release -- --ignored dense_scorer_vs_exhaustive_heuristic_benchmark --nocapture
     #[test]
@@ -685,7 +714,8 @@ mod tests {
                         .into_iter()
                         .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
                         .collect::<Vec<_>>();
-                    let legality_start = Instant::now();
+
+                    let old_legality_start = Instant::now();
                     let _legal = (0..MAP_POSITION_COUNT)
                         .map(|index| {
                             let (left, top) =
@@ -693,7 +723,12 @@ mod tests {
                             environment.can_place_at(left, top)
                         })
                         .collect::<Vec<_>>();
-                    let legality_scan_seconds = legality_start.elapsed().as_secs_f64();
+                    let old_legality_scan_seconds = old_legality_start.elapsed().as_secs_f64();
+
+                    let new_legality_start = Instant::now();
+                    let (_new_mask, legality_stats) =
+                        crate::legality::full_map_legality_mask(&environment, &observation);
+                    let new_legality_mask_seconds = new_legality_start.elapsed().as_secs_f64();
 
                     let heuristic_start = Instant::now();
                     let _ranking =
@@ -709,7 +744,9 @@ mod tests {
                         seed,
                         decision_index,
                         oracle_candidate_count: oracle_build_actions.len(),
-                        legality_scan_seconds,
+                        old_legality_scan_seconds,
+                        new_legality_mask_seconds,
+                        legality_stats,
                         exhaustive_heuristic_scoring_seconds,
                         dense_table_total_seconds,
                     });
@@ -730,9 +767,14 @@ mod tests {
         }
 
         let count = sample_points.len().max(1) as f64;
-        let mean_legality_scan_seconds = sample_points
+        let mean_old_legality_scan_seconds = sample_points
             .iter()
-            .map(|s| s.legality_scan_seconds)
+            .map(|s| s.old_legality_scan_seconds)
+            .sum::<f64>()
+            / count;
+        let mean_new_legality_mask_seconds = sample_points
+            .iter()
+            .map(|s| s.new_legality_mask_seconds)
             .sum::<f64>()
             / count;
         let mean_exhaustive_heuristic_scoring_seconds = sample_points
@@ -745,38 +787,51 @@ mod tests {
             .map(|s| s.dense_table_total_seconds)
             .sum::<f64>()
             / count;
-        let mean_old_total_seconds =
-            mean_legality_scan_seconds + mean_exhaustive_heuristic_scoring_seconds;
+        let mean_old_total_pipeline_seconds =
+            mean_old_legality_scan_seconds + mean_exhaustive_heuristic_scoring_seconds;
+        let mean_new_total_pipeline_seconds = mean_dense_table_total_seconds;
+        let legality_speedup =
+            mean_old_legality_scan_seconds / mean_new_legality_mask_seconds.max(f64::EPSILON);
+        let pipeline_speedup =
+            mean_old_total_pipeline_seconds / mean_new_total_pipeline_seconds.max(f64::EPSILON);
 
         println!(
-            "sample_count={} mean_legality_scan_seconds={:.6} mean_exhaustive_heuristic_scoring_seconds={:.6} \
-            mean_dense_table_total_seconds={:.6} mean_old_total_seconds={:.6}",
+            "sample_count={} mean_old_legality_scan_seconds={:.6} mean_new_legality_mask_seconds={:.6} \
+            legality_speedup={:.2}x mean_exhaustive_heuristic_scoring_seconds={:.6} \
+            mean_dense_table_total_seconds={:.6} mean_old_total_pipeline_seconds={:.6} \
+            mean_new_total_pipeline_seconds={:.6} pipeline_speedup={:.2}x",
             sample_points.len(),
-            mean_legality_scan_seconds,
+            mean_old_legality_scan_seconds,
+            mean_new_legality_mask_seconds,
+            legality_speedup,
             mean_exhaustive_heuristic_scoring_seconds,
             mean_dense_table_total_seconds,
-            mean_old_total_seconds
+            mean_old_total_pipeline_seconds,
+            mean_new_total_pipeline_seconds,
+            pipeline_speedup
         );
 
         let report = ScoringBenchmarkReport {
-            methodology: "legality_scan_seconds times a standalone position_legality scan over \
-                every map cell (the same one DenseBuildTowerScoreTable::compute performs \
-                internally), approximating the cost the old pipeline also pays inside \
-                semantic_legal_actions to produce the oracle candidate list in the first place. \
+            methodology: "old_legality_scan_seconds times can_place_at called once per map \
+                position (what semantic_legal_positions/tower_placement_actions still do). \
+                new_legality_mask_seconds times legality::full_map_legality_mask, the fast-path- \
+                first replacement wired into DenseBuildTowerScoreTable::compute. \
                 exhaustive_heuristic_scoring_seconds times rank_build_tower_actions_by_heuristic \
-                given that already-generated oracle candidate list - the per-candidate route scan \
-                this module replaces. dense_table_total_seconds times \
-                DenseBuildTowerScoreTable::compute end to end (its own legality scan + map-level \
-                grids + fill), the new pipeline's total cost for the same decision. \
-                mean_old_total_seconds = mean_legality_scan_seconds + \
-                mean_exhaustive_heuristic_scoring_seconds is the fair total-pipeline comparison \
-                point for mean_dense_table_total_seconds."
+                given an already-generated oracle candidate list - the per-candidate route scan \
+                joint_action's dense grids replace. dense_table_total_seconds times \
+                DenseBuildTowerScoreTable::compute end to end (now using the new legality mask \
+                internally, plus map-level grids and fill). old/new_total_pipeline_seconds are \
+                the fair same-shape comparison points."
                 .to_string(),
             sample_points,
-            mean_legality_scan_seconds,
+            mean_old_legality_scan_seconds,
+            mean_new_legality_mask_seconds,
+            legality_speedup,
             mean_exhaustive_heuristic_scoring_seconds,
             mean_dense_table_total_seconds,
-            mean_old_total_seconds,
+            mean_old_total_pipeline_seconds,
+            mean_new_total_pipeline_seconds,
+            pipeline_speedup,
         };
 
         let json = serde_json::to_string_pretty(&report).expect("report should serialize");

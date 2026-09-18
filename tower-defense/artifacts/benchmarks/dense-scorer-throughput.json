@@ -1,585 +1,1021 @@
 {
-  "methodology": "legality_scan_seconds times a standalone position_legality scan over every map cell (the same one DenseBuildTowerScoreTable::compute performs internally), approximating the cost the old pipeline also pays inside semantic_legal_actions to produce the oracle candidate list in the first place. exhaustive_heuristic_scoring_seconds times rank_build_tower_actions_by_heuristic given that already-generated oracle candidate list - the per-candidate route scan this module replaces. dense_table_total_seconds times DenseBuildTowerScoreTable::compute end to end (its own legality scan + map-level grids + fill), the new pipeline's total cost for the same decision. mean_old_total_seconds = mean_legality_scan_seconds + mean_exhaustive_heuristic_scoring_seconds is the fair total-pipeline comparison point for mean_dense_table_total_seconds.",
+  "methodology": "old_legality_scan_seconds times can_place_at called once per map position (what semantic_legal_positions/tower_placement_actions still do). new_legality_mask_seconds times legality::full_map_legality_mask, the fast-path- first replacement wired into DenseBuildTowerScoreTable::compute. exhaustive_heuristic_scoring_seconds times rank_build_tower_actions_by_heuristic given an already-generated oracle candidate list - the per-candidate route scan joint_action's dense grids replace. dense_table_total_seconds times DenseBuildTowerScoreTable::compute end to end (now using the new legality mask internally, plus map-level grids and fill). old/new_total_pipeline_seconds are the fair same-shape comparison points.",
   "sample_points": [
     {
       "seed": 0,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060026673,
-      "exhaustive_heuristic_scoring_seconds": 0.023787633,
-      "dense_table_total_seconds": 0.060624536
+      "old_legality_scan_seconds": 0.059368035,
+      "new_legality_mask_seconds": 0.009628716,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.023773836,
+      "dense_table_total_seconds": 0.010180332
     },
     {
       "seed": 0,
       "decision_index": 4,
       "oracle_candidate_count": 36952,
-      "legality_scan_seconds": 0.060471278,
-      "exhaustive_heuristic_scoring_seconds": 0.024014548,
-      "dense_table_total_seconds": 0.061126439
+      "old_legality_scan_seconds": 0.059968203,
+      "new_legality_mask_seconds": 0.009532666,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.023228933,
+      "dense_table_total_seconds": 0.010084413
     },
     {
       "seed": 0,
       "decision_index": 5,
       "oracle_candidate_count": 36952,
-      "legality_scan_seconds": 0.060561788,
-      "exhaustive_heuristic_scoring_seconds": 0.021685533,
-      "dense_table_total_seconds": 0.061165091
+      "old_legality_scan_seconds": 0.060047051,
+      "new_legality_mask_seconds": 0.009542636,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.022797902,
+      "dense_table_total_seconds": 0.010125509
     },
     {
       "seed": 0,
       "decision_index": 8,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060564804,
-      "exhaustive_heuristic_scoring_seconds": 0.021835044,
-      "dense_table_total_seconds": 0.06123315
+      "old_legality_scan_seconds": 0.060146467,
+      "new_legality_mask_seconds": 0.009668381,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.023057881,
+      "dense_table_total_seconds": 0.010243231
     },
     {
       "seed": 0,
       "decision_index": 9,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060527243,
-      "exhaustive_heuristic_scoring_seconds": 0.021745988,
-      "dense_table_total_seconds": 0.061473371
+      "old_legality_scan_seconds": 0.060112364,
+      "new_legality_mask_seconds": 0.009674834,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021241699,
+      "dense_table_total_seconds": 0.010065877
     },
     {
       "seed": 0,
       "decision_index": 10,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060681313,
-      "exhaustive_heuristic_scoring_seconds": 0.021486821,
-      "dense_table_total_seconds": 0.061171664
+      "old_legality_scan_seconds": 0.060119266,
+      "new_legality_mask_seconds": 0.009676637,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021706012,
+      "dense_table_total_seconds": 0.010026534
     },
     {
       "seed": 1,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.06016331,
-      "exhaustive_heuristic_scoring_seconds": 0.021486099,
-      "dense_table_total_seconds": 0.060576777
+      "old_legality_scan_seconds": 0.059240305,
+      "new_legality_mask_seconds": 0.009734015,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021704449,
+      "dense_table_total_seconds": 0.010251656
     },
     {
       "seed": 1,
       "decision_index": 4,
       "oracle_candidate_count": 36952,
-      "legality_scan_seconds": 0.060329272,
-      "exhaustive_heuristic_scoring_seconds": 0.021372275,
-      "dense_table_total_seconds": 0.061526681
+      "old_legality_scan_seconds": 0.060311317,
+      "new_legality_mask_seconds": 0.009522707,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021325297,
+      "dense_table_total_seconds": 0.010123587
     },
     {
       "seed": 1,
       "decision_index": 5,
       "oracle_candidate_count": 36952,
-      "legality_scan_seconds": 0.060329873,
-      "exhaustive_heuristic_scoring_seconds": 0.021351036,
-      "dense_table_total_seconds": 0.061608755
+      "old_legality_scan_seconds": 0.060120288,
+      "new_legality_mask_seconds": 0.009561862,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021325617,
+      "dense_table_total_seconds": 0.010115981
     },
     {
       "seed": 1,
       "decision_index": 8,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060474675,
-      "exhaustive_heuristic_scoring_seconds": 0.021428472,
-      "dense_table_total_seconds": 0.060980093
+      "old_legality_scan_seconds": 0.060606622,
+      "new_legality_mask_seconds": 0.009691554,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021316891,
+      "dense_table_total_seconds": 0.010201082
     },
     {
       "seed": 1,
       "decision_index": 11,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060641559,
-      "exhaustive_heuristic_scoring_seconds": 0.02144402,
-      "dense_table_total_seconds": 0.060352466
+      "old_legality_scan_seconds": 0.059642712,
+      "new_legality_mask_seconds": 0.0096361,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021205252,
+      "dense_table_total_seconds": 0.010177497
     },
     {
       "seed": 1,
       "decision_index": 12,
       "oracle_candidate_count": 36735,
-      "legality_scan_seconds": 0.060466649,
-      "exhaustive_heuristic_scoring_seconds": 0.02131097,
-      "dense_table_total_seconds": 0.061194688
+      "old_legality_scan_seconds": 0.05969001,
+      "new_legality_mask_seconds": 0.009659013,
+      "legality_stats": {
+        "locally_blocked": 40,
+        "fast_path_legal": 994,
+        "connectivity_checked": 191
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021248092,
+      "dense_table_total_seconds": 0.010215999
     },
     {
       "seed": 2,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.059991266,
-      "exhaustive_heuristic_scoring_seconds": 0.021768059,
-      "dense_table_total_seconds": 0.06064775
+      "old_legality_scan_seconds": 0.059417638,
+      "new_legality_mask_seconds": 0.009837728,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021526415,
+      "dense_table_total_seconds": 0.010293426
     },
     {
       "seed": 2,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060272665,
-      "exhaustive_heuristic_scoring_seconds": 0.11929366,
-      "dense_table_total_seconds": 0.060751034
+      "old_legality_scan_seconds": 0.060051158,
+      "new_legality_mask_seconds": 0.009533016,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.11538689,
+      "dense_table_total_seconds": 0.009924391
     },
     {
       "seed": 2,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060980605,
-      "exhaustive_heuristic_scoring_seconds": 0.120280944,
-      "dense_table_total_seconds": 0.060878093
+      "old_legality_scan_seconds": 0.060273927,
+      "new_legality_mask_seconds": 0.009506196,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.118364423,
+      "dense_table_total_seconds": 0.010134898
     },
     {
       "seed": 2,
       "decision_index": 20,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059095645,
-      "exhaustive_heuristic_scoring_seconds": 0.020851798,
-      "dense_table_total_seconds": 0.060072239
+      "old_legality_scan_seconds": 0.058863136,
+      "new_legality_mask_seconds": 0.010166537,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.020612809,
+      "dense_table_total_seconds": 0.010500042
     },
     {
       "seed": 2,
       "decision_index": 23,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.05918887,
-      "exhaustive_heuristic_scoring_seconds": 0.020633016,
-      "dense_table_total_seconds": 0.059933207
+      "old_legality_scan_seconds": 0.058934762,
+      "new_legality_mask_seconds": 0.009947585,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.02190668,
+      "dense_table_total_seconds": 0.010597886
     },
     {
       "seed": 2,
       "decision_index": 24,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059045641,
-      "exhaustive_heuristic_scoring_seconds": 0.020959651,
-      "dense_table_total_seconds": 0.060637921
+      "old_legality_scan_seconds": 0.058819766,
+      "new_legality_mask_seconds": 0.009985336,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021788197,
+      "dense_table_total_seconds": 0.010576276
     },
     {
       "seed": 3,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.059827068,
-      "exhaustive_heuristic_scoring_seconds": 0.021593922,
-      "dense_table_total_seconds": 0.060493921
+      "old_legality_scan_seconds": 0.059433849,
+      "new_legality_mask_seconds": 0.009597017,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021828903,
+      "dense_table_total_seconds": 0.010193167
     },
     {
       "seed": 3,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060150355,
-      "exhaustive_heuristic_scoring_seconds": 0.117322506,
-      "dense_table_total_seconds": 0.061115729
+      "old_legality_scan_seconds": 0.06016901,
+      "new_legality_mask_seconds": 0.009534248,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.115588979,
+      "dense_table_total_seconds": 0.010072661
     },
     {
       "seed": 3,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060378845,
-      "exhaustive_heuristic_scoring_seconds": 0.115229845,
-      "dense_table_total_seconds": 0.061460958
+      "old_legality_scan_seconds": 0.059590754,
+      "new_legality_mask_seconds": 0.009434713,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.114140408,
+      "dense_table_total_seconds": 0.010036162
     },
     {
       "seed": 3,
       "decision_index": 11,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060889815,
-      "exhaustive_heuristic_scoring_seconds": 0.114758591,
-      "dense_table_total_seconds": 0.061054053
+      "old_legality_scan_seconds": 0.06020066,
+      "new_legality_mask_seconds": 0.009505725,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.113893926,
+      "dense_table_total_seconds": 0.010115481
     },
     {
       "seed": 3,
       "decision_index": 12,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060870579,
-      "exhaustive_heuristic_scoring_seconds": 0.114196735,
-      "dense_table_total_seconds": 0.06072218
+      "old_legality_scan_seconds": 0.060016984,
+      "new_legality_mask_seconds": 0.009624789,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.11142085,
+      "dense_table_total_seconds": 0.009997258
     },
     {
       "seed": 3,
       "decision_index": 19,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.058901981,
-      "exhaustive_heuristic_scoring_seconds": 0.020984437,
-      "dense_table_total_seconds": 0.060373185
+      "old_legality_scan_seconds": 0.058762248,
+      "new_legality_mask_seconds": 0.009959357,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021116335,
+      "dense_table_total_seconds": 0.010523407
     },
     {
       "seed": 4,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060134646,
-      "exhaustive_heuristic_scoring_seconds": 0.021496469,
-      "dense_table_total_seconds": 0.060715136
+      "old_legality_scan_seconds": 0.059270903,
+      "new_legality_mask_seconds": 0.009615812,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021588762,
+      "dense_table_total_seconds": 0.010210499
     },
     {
       "seed": 4,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060492739,
-      "exhaustive_heuristic_scoring_seconds": 0.11194184,
-      "dense_table_total_seconds": 0.060929229
+      "old_legality_scan_seconds": 0.059762486,
+      "new_legality_mask_seconds": 0.009503191,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.115195881,
+      "dense_table_total_seconds": 0.010092328
     },
     {
       "seed": 4,
       "decision_index": 12,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060441833,
-      "exhaustive_heuristic_scoring_seconds": 0.111410392,
-      "dense_table_total_seconds": 0.061518876
+      "old_legality_scan_seconds": 0.060033015,
+      "new_legality_mask_seconds": 0.009516135,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.115814784,
+      "dense_table_total_seconds": 0.010053064
     },
     {
       "seed": 4,
       "decision_index": 13,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060342607,
-      "exhaustive_heuristic_scoring_seconds": 0.116338428,
-      "dense_table_total_seconds": 0.061383091
+      "old_legality_scan_seconds": 0.060319883,
+      "new_legality_mask_seconds": 0.009498803,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.114808433,
+      "dense_table_total_seconds": 0.010137853
     },
     {
       "seed": 4,
       "decision_index": 20,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059665845,
-      "exhaustive_heuristic_scoring_seconds": 0.02115102,
-      "dense_table_total_seconds": 0.059908983
+      "old_legality_scan_seconds": 0.059477832,
+      "new_legality_mask_seconds": 0.010010935,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021081078,
+      "dense_table_total_seconds": 0.010542824
     },
     {
       "seed": 4,
       "decision_index": 21,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059265494,
-      "exhaustive_heuristic_scoring_seconds": 0.020968527,
-      "dense_table_total_seconds": 0.059737921
+      "old_legality_scan_seconds": 0.058975198,
+      "new_legality_mask_seconds": 0.009978353,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.020764634,
+      "dense_table_total_seconds": 0.010421776
     },
     {
       "seed": 5,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.059890056,
-      "exhaustive_heuristic_scoring_seconds": 0.021604592,
-      "dense_table_total_seconds": 0.060720627
+      "old_legality_scan_seconds": 0.059838539,
+      "new_legality_mask_seconds": 0.00969933,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021762728,
+      "dense_table_total_seconds": 0.01022704
     },
     {
       "seed": 5,
       "decision_index": 2,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060188287,
-      "exhaustive_heuristic_scoring_seconds": 0.021788667,
-      "dense_table_total_seconds": 0.060959205
+      "old_legality_scan_seconds": 0.059284028,
+      "new_legality_mask_seconds": 0.009647241,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021840505,
+      "dense_table_total_seconds": 0.010579852
     },
     {
       "seed": 5,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060588318,
-      "exhaustive_heuristic_scoring_seconds": 0.111102894,
-      "dense_table_total_seconds": 0.061081165
+      "old_legality_scan_seconds": 0.059871241,
+      "new_legality_mask_seconds": 0.009552814,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.111489188,
+      "dense_table_total_seconds": 0.010127313
     },
     {
       "seed": 5,
       "decision_index": 11,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.062159841,
-      "exhaustive_heuristic_scoring_seconds": 0.114780773,
-      "dense_table_total_seconds": 0.061021903
+      "old_legality_scan_seconds": 0.0601048,
+      "new_legality_mask_seconds": 0.009543406,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112346389,
+      "dense_table_total_seconds": 0.010086026
     },
     {
       "seed": 5,
       "decision_index": 12,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060886768,
-      "exhaustive_heuristic_scoring_seconds": 0.114159907,
-      "dense_table_total_seconds": 0.060465257
+      "old_legality_scan_seconds": 0.059920163,
+      "new_legality_mask_seconds": 0.009523489,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112230582,
+      "dense_table_total_seconds": 0.010141529
     },
     {
       "seed": 5,
       "decision_index": 19,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.0595243,
-      "exhaustive_heuristic_scoring_seconds": 0.020786705,
-      "dense_table_total_seconds": 0.060093008
+      "old_legality_scan_seconds": 0.058821128,
+      "new_legality_mask_seconds": 0.009970178,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021079275,
+      "dense_table_total_seconds": 0.010490655
     },
     {
       "seed": 6,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060745043,
-      "exhaustive_heuristic_scoring_seconds": 0.021241801,
-      "dense_table_total_seconds": 0.060399193
+      "old_legality_scan_seconds": 0.059438238,
+      "new_legality_mask_seconds": 0.009638995,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021607156,
+      "dense_table_total_seconds": 0.010277776
     },
     {
       "seed": 6,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060555227,
-      "exhaustive_heuristic_scoring_seconds": 0.115094963,
-      "dense_table_total_seconds": 0.060899733
+      "old_legality_scan_seconds": 0.059921465,
+      "new_legality_mask_seconds": 0.009511917,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.111978037,
+      "dense_table_total_seconds": 0.010106514
     },
     {
       "seed": 6,
       "decision_index": 12,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060644875,
-      "exhaustive_heuristic_scoring_seconds": 0.113029113,
-      "dense_table_total_seconds": 0.060787804
+      "old_legality_scan_seconds": 0.060020041,
+      "new_legality_mask_seconds": 0.009508229,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.111716827,
+      "dense_table_total_seconds": 0.010096756
     },
     {
       "seed": 6,
       "decision_index": 19,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059265304,
-      "exhaustive_heuristic_scoring_seconds": 0.021036534,
-      "dense_table_total_seconds": 0.060809143
+      "old_legality_scan_seconds": 0.058771385,
+      "new_legality_mask_seconds": 0.01039747,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021203288,
+      "dense_table_total_seconds": 0.010517566
     },
     {
       "seed": 6,
       "decision_index": 20,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059585925,
-      "exhaustive_heuristic_scoring_seconds": 0.02097004,
-      "dense_table_total_seconds": 0.060908159
+      "old_legality_scan_seconds": 0.059115622,
+      "new_legality_mask_seconds": 0.009966621,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.02094365,
+      "dense_table_total_seconds": 0.01067965
     },
     {
       "seed": 6,
       "decision_index": 23,
       "oracle_candidate_count": 35712,
-      "legality_scan_seconds": 0.059465329,
-      "exhaustive_heuristic_scoring_seconds": 0.020728547,
-      "dense_table_total_seconds": 0.061064082
+      "old_legality_scan_seconds": 0.058263751,
+      "new_legality_mask_seconds": 0.010673949,
+      "legality_stats": {
+        "locally_blocked": 73,
+        "fast_path_legal": 950,
+        "connectivity_checked": 202
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021196906,
+      "dense_table_total_seconds": 0.010776122
     },
     {
       "seed": 7,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.059853578,
-      "exhaustive_heuristic_scoring_seconds": 0.021469228,
-      "dense_table_total_seconds": 0.060634986
+      "old_legality_scan_seconds": 0.059071578,
+      "new_legality_mask_seconds": 0.009589443,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021734496,
+      "dense_table_total_seconds": 0.010165344
     },
     {
       "seed": 7,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060594059,
-      "exhaustive_heuristic_scoring_seconds": 0.114611064,
-      "dense_table_total_seconds": 0.060868244
+      "old_legality_scan_seconds": 0.059941052,
+      "new_legality_mask_seconds": 0.009544228,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112069448,
+      "dense_table_total_seconds": 0.010070005
     },
     {
       "seed": 7,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060588108,
-      "exhaustive_heuristic_scoring_seconds": 0.114535783,
-      "dense_table_total_seconds": 0.06089232
+      "old_legality_scan_seconds": 0.059655455,
+      "new_legality_mask_seconds": 0.009523609,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.11234675,
+      "dense_table_total_seconds": 0.010092648
     },
     {
       "seed": 7,
       "decision_index": 17,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059666627,
-      "exhaustive_heuristic_scoring_seconds": 0.020983897,
-      "dense_table_total_seconds": 0.060597906
+      "old_legality_scan_seconds": 0.058754493,
+      "new_legality_mask_seconds": 0.009976249,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021466042,
+      "dense_table_total_seconds": 0.010475938
     },
     {
       "seed": 7,
       "decision_index": 18,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059821087,
-      "exhaustive_heuristic_scoring_seconds": 0.020861727,
-      "dense_table_total_seconds": 0.060357805
+      "old_legality_scan_seconds": 0.058735488,
+      "new_legality_mask_seconds": 0.009982541,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021293236,
+      "dense_table_total_seconds": 0.010560456
     },
     {
       "seed": 7,
       "decision_index": 21,
       "oracle_candidate_count": 35712,
-      "legality_scan_seconds": 0.058905227,
-      "exhaustive_heuristic_scoring_seconds": 0.020700304,
-      "dense_table_total_seconds": 0.059847878
+      "old_legality_scan_seconds": 0.058451995,
+      "new_legality_mask_seconds": 0.010307782,
+      "legality_stats": {
+        "locally_blocked": 73,
+        "fast_path_legal": 950,
+        "connectivity_checked": 202
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021021337,
+      "dense_table_total_seconds": 0.010906916
     },
     {
       "seed": 8,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060570074,
-      "exhaustive_heuristic_scoring_seconds": 0.021466182,
-      "dense_table_total_seconds": 0.060558242
+      "old_legality_scan_seconds": 0.059326608,
+      "new_legality_mask_seconds": 0.009642974,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021675254,
+      "dense_table_total_seconds": 0.010268177
     },
     {
       "seed": 8,
       "decision_index": 2,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060073492,
-      "exhaustive_heuristic_scoring_seconds": 0.021648183,
-      "dense_table_total_seconds": 0.060668509
+      "old_legality_scan_seconds": 0.05947165,
+      "new_legality_mask_seconds": 0.009631432,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.022441964,
+      "dense_table_total_seconds": 0.01016806
     },
     {
       "seed": 8,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060367493,
-      "exhaustive_heuristic_scoring_seconds": 0.112815952,
-      "dense_table_total_seconds": 0.061266012
+      "old_legality_scan_seconds": 0.059888534,
+      "new_legality_mask_seconds": 0.009611924,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112099015,
+      "dense_table_total_seconds": 0.010173821
     },
     {
       "seed": 8,
       "decision_index": 13,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060217312,
-      "exhaustive_heuristic_scoring_seconds": 0.112016161,
-      "dense_table_total_seconds": 0.061169931
+      "old_legality_scan_seconds": 0.059850481,
+      "new_legality_mask_seconds": 0.009604671,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.114696784,
+      "dense_table_total_seconds": 0.010542352
     },
     {
       "seed": 8,
       "decision_index": 20,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059584603,
-      "exhaustive_heuristic_scoring_seconds": 0.020957026,
-      "dense_table_total_seconds": 0.059834372
+      "old_legality_scan_seconds": 0.05938091,
+      "new_legality_mask_seconds": 0.010022386,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.022003281,
+      "dense_table_total_seconds": 0.010575885
     },
     {
       "seed": 8,
       "decision_index": 23,
       "oracle_candidate_count": 35712,
-      "legality_scan_seconds": 0.058925746,
-      "exhaustive_heuristic_scoring_seconds": 0.020757,
-      "dense_table_total_seconds": 0.060319644
+      "old_legality_scan_seconds": 0.058474177,
+      "new_legality_mask_seconds": 0.010387302,
+      "legality_stats": {
+        "locally_blocked": 73,
+        "fast_path_legal": 950,
+        "connectivity_checked": 202
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021463196,
+      "dense_table_total_seconds": 0.010866782
     },
     {
       "seed": 9,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060156928,
-      "exhaustive_heuristic_scoring_seconds": 0.021466974,
-      "dense_table_total_seconds": 0.060725056
+      "old_legality_scan_seconds": 0.05925359,
+      "new_legality_mask_seconds": 0.009596677,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021519892,
+      "dense_table_total_seconds": 0.01024281
     },
     {
       "seed": 9,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060546289,
-      "exhaustive_heuristic_scoring_seconds": 0.110900114,
-      "dense_table_total_seconds": 0.06097208
+      "old_legality_scan_seconds": 0.059544197,
+      "new_legality_mask_seconds": 0.009500336,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112250548,
+      "dense_table_total_seconds": 0.010070707
     },
     {
       "seed": 9,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060750874,
-      "exhaustive_heuristic_scoring_seconds": 0.110635878,
-      "dense_table_total_seconds": 0.061234583
+      "old_legality_scan_seconds": 0.059807792,
+      "new_legality_mask_seconds": 0.00954036,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.116954435,
+      "dense_table_total_seconds": 0.010111824
     },
     {
       "seed": 9,
       "decision_index": 17,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.05963617,
-      "exhaustive_heuristic_scoring_seconds": 0.020776957,
-      "dense_table_total_seconds": 0.060835844
+      "old_legality_scan_seconds": 0.058918071,
+      "new_legality_mask_seconds": 0.009964998,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021110254,
+      "dense_table_total_seconds": 0.010623575
     },
     {
       "seed": 9,
       "decision_index": 20,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059444069,
-      "exhaustive_heuristic_scoring_seconds": 0.020610264,
-      "dense_table_total_seconds": 0.060289537
+      "old_legality_scan_seconds": 0.058777436,
+      "new_legality_mask_seconds": 0.009990807,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.020924434,
+      "dense_table_total_seconds": 0.010549936
     },
     {
       "seed": 9,
       "decision_index": 23,
       "oracle_candidate_count": 35712,
-      "legality_scan_seconds": 0.059269602,
-      "exhaustive_heuristic_scoring_seconds": 0.020630422,
-      "dense_table_total_seconds": 0.059720079
+      "old_legality_scan_seconds": 0.058609862,
+      "new_legality_mask_seconds": 0.010263869,
+      "legality_stats": {
+        "locally_blocked": 73,
+        "fast_path_legal": 950,
+        "connectivity_checked": 202
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.020896382,
+      "dense_table_total_seconds": 0.010749251
     },
     {
       "seed": 10,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.060474786,
-      "exhaustive_heuristic_scoring_seconds": 0.021337821,
-      "dense_table_total_seconds": 0.060733241
+      "old_legality_scan_seconds": 0.059200041,
+      "new_legality_mask_seconds": 0.009633555,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021833531,
+      "dense_table_total_seconds": 0.010156037
     },
     {
       "seed": 10,
       "decision_index": 2,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.06033864,
-      "exhaustive_heuristic_scoring_seconds": 0.021526565,
-      "dense_table_total_seconds": 0.061083069
+      "old_legality_scan_seconds": 0.05915239,
+      "new_legality_mask_seconds": 0.009612837,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.022133946,
+      "dense_table_total_seconds": 0.010130169
     },
     {
       "seed": 10,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060319022,
-      "exhaustive_heuristic_scoring_seconds": 0.116486147,
-      "dense_table_total_seconds": 0.06150489
+      "old_legality_scan_seconds": 0.059707283,
+      "new_legality_mask_seconds": 0.009487261,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.111622369,
+      "dense_table_total_seconds": 0.010096154
     },
     {
       "seed": 10,
       "decision_index": 11,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060723883,
-      "exhaustive_heuristic_scoring_seconds": 0.116174151,
-      "dense_table_total_seconds": 0.061734682
+      "old_legality_scan_seconds": 0.059839962,
+      "new_legality_mask_seconds": 0.009528749,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.112568386,
+      "dense_table_total_seconds": 0.010105552
     },
     {
       "seed": 10,
       "decision_index": 12,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060481848,
-      "exhaustive_heuristic_scoring_seconds": 0.117747356,
-      "dense_table_total_seconds": 0.061799845
+      "old_legality_scan_seconds": 0.05988648,
+      "new_legality_mask_seconds": 0.009506377,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.111395373,
+      "dense_table_total_seconds": 0.010059334
     },
     {
       "seed": 10,
       "decision_index": 19,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059609971,
-      "exhaustive_heuristic_scoring_seconds": 0.021056703,
-      "dense_table_total_seconds": 0.060894795
+      "old_legality_scan_seconds": 0.058928129,
+      "new_legality_mask_seconds": 0.009960089,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.02173651,
+      "dense_table_total_seconds": 0.010470558
     },
     {
       "seed": 11,
       "decision_index": 1,
       "oracle_candidate_count": 37231,
-      "legality_scan_seconds": 0.059777666,
-      "exhaustive_heuristic_scoring_seconds": 0.021689291,
-      "dense_table_total_seconds": 0.060916375
+      "old_legality_scan_seconds": 0.059531002,
+      "new_legality_mask_seconds": 0.009598019,
+      "legality_stats": {
+        "locally_blocked": 24,
+        "fast_path_legal": 1007,
+        "connectivity_checked": 194
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021547093,
+      "dense_table_total_seconds": 0.010202745
     },
     {
       "seed": 11,
       "decision_index": 9,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060674882,
-      "exhaustive_heuristic_scoring_seconds": 0.11248967,
-      "dense_table_total_seconds": 0.061278376
+      "old_legality_scan_seconds": 0.059852305,
+      "new_legality_mask_seconds": 0.00953465,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.115643101,
+      "dense_table_total_seconds": 0.01008315
     },
     {
       "seed": 11,
       "decision_index": 10,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.060798624,
-      "exhaustive_heuristic_scoring_seconds": 0.111331465,
-      "dense_table_total_seconds": 0.060723292
+      "old_legality_scan_seconds": 0.059929511,
+      "new_legality_mask_seconds": 0.009496107,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.114103941,
+      "dense_table_total_seconds": 0.010097908
     },
     {
       "seed": 11,
       "decision_index": 11,
       "oracle_candidate_count": 184760,
-      "legality_scan_seconds": 0.06076956,
-      "exhaustive_heuristic_scoring_seconds": 0.112016671,
-      "dense_table_total_seconds": 0.061641256
+      "old_legality_scan_seconds": 0.059920654,
+      "new_legality_mask_seconds": 0.009638565,
+      "legality_stats": {
+        "locally_blocked": 33,
+        "fast_path_legal": 1003,
+        "connectivity_checked": 189
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.115907357,
+      "dense_table_total_seconds": 0.010087117
     },
     {
       "seed": 11,
       "decision_index": 18,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.060090824,
-      "exhaustive_heuristic_scoring_seconds": 0.021087441,
-      "dense_table_total_seconds": 0.061439288
+      "old_legality_scan_seconds": 0.059053756,
+      "new_legality_mask_seconds": 0.010044958,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.021025553,
+      "dense_table_total_seconds": 0.010537333
     },
     {
       "seed": 11,
       "decision_index": 19,
       "oracle_candidate_count": 35898,
-      "legality_scan_seconds": 0.059586728,
-      "exhaustive_heuristic_scoring_seconds": 0.020771036,
-      "dense_table_total_seconds": 0.06279282
+      "old_legality_scan_seconds": 0.058950371,
+      "new_legality_mask_seconds": 0.009981961,
+      "legality_stats": {
+        "locally_blocked": 67,
+        "fast_path_legal": 962,
+        "connectivity_checked": 196
+      },
+      "exhaustive_heuristic_scoring_seconds": 0.020936436,
+      "dense_table_total_seconds": 0.010514601
     }
   ],
-  "mean_legality_scan_seconds": 0.06015683306944443,
-  "mean_exhaustive_heuristic_scoring_seconds": 0.05488903122222224,
-  "mean_dense_table_total_seconds": 0.06085988129166664,
-  "mean_old_total_seconds": 0.11504586429166666
+  "mean_old_legality_scan_seconds": 0.0595136319861111,
+  "mean_new_legality_mask_seconds": 0.009730874333333335,
+  "legality_speedup": 6.115959362690131,
+  "mean_exhaustive_heuristic_scoring_seconds": 0.05484132115277778,
+  "mean_dense_table_total_seconds": 0.010279125569444443,
+  "mean_old_total_pipeline_seconds": 0.11435495313888888,
+  "mean_new_total_pipeline_seconds": 0.010279125569444443,
+  "pipeline_speedup": 11.12496898362819
 }
