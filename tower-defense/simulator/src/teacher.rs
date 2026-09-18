@@ -118,6 +118,80 @@ impl EstimateAccumulator {
     }
 }
 
+/// Groups `Reroll`/`BuildTower` candidates by their (sorted) card subset;
+/// every other action kind gets its own singleton group. Used to select a
+/// candidate_limit-sized subset without favoring whichever subset happens
+/// to be generated first (see `select_candidates_fairly`).
+fn candidate_group_key(action: &AgentAction) -> Option<Vec<usize>> {
+    match action {
+        AgentAction::BuildTower { card_ids, .. } | AgentAction::Reroll { card_ids } => {
+            let mut ids = card_ids.clone();
+            ids.sort_unstable();
+            Some(ids)
+        }
+        _ => None,
+    }
+}
+
+/// Selects up to `limit` candidates from `candidates` by reordering whole
+/// groups (one group per card subset, plus one singleton group per other
+/// action) instead of truncating the flattened, generation-ordered list.
+///
+/// A plain prefix truncate systematically favors whichever card subset or
+/// action kind happens to be generated first: measured via
+/// `phase2_candidate_limit_bias_report`, a limit of 64 fully excluded 97% of
+/// card subsets and every `PurchaseShopItem`/`UseInventoryItem` candidate
+/// (they are generated after all card actions), even though the position
+/// proposal itself (`position_candidate_limit`) was already unbiased.
+fn select_candidates_fairly(candidates: Vec<LegalAction>, limit: usize) -> Vec<LegalAction> {
+    if candidates.len() <= limit {
+        return candidates;
+    }
+    let mut groups: Vec<(Option<Vec<usize>>, Vec<LegalAction>)> = Vec::new();
+    let mut group_index_by_key: std::collections::HashMap<Vec<usize>, usize> =
+        std::collections::HashMap::new();
+    for legal in candidates {
+        match candidate_group_key(&legal.action) {
+            Some(key) => {
+                let group_index = *group_index_by_key.entry(key.clone()).or_insert_with(|| {
+                    groups.push((Some(key), Vec::new()));
+                    groups.len() - 1
+                });
+                groups[group_index].1.push(legal);
+            }
+            None => groups.push((None, vec![legal])),
+        }
+    }
+
+    // Interleaving individual candidates round-robin (an earlier version of
+    // this function) spreads the budget so thin across every group that no
+    // card subset gets enough position depth to reach a good coverage
+    // position - phase2_candidate_limit_bias_report showed it trading the
+    // exclusion bias for materially worse coverage regret at low limits.
+    // Instead, keep each subset's full candidate block intact (preserving
+    // the position depth Phase 1 validated) and only reorder which whole
+    // blocks come first, using the sum of a subset's card ids as the sort
+    // key. That key has no relationship to a card's current hand-slot
+    // index, which is what the original subset-mask generation order
+    // encoded and what caused the bias, but non-card actions (typically a
+    // handful of shop/inventory/treasure candidates) always sort first so
+    // they are never crowded out.
+    groups.sort_by_key(|(key, _)| match key {
+        None => (0, 0, Vec::new()),
+        Some(ids) => (1, ids.iter().sum::<usize>(), ids.clone()),
+    });
+
+    let mut selected = Vec::with_capacity(limit);
+    for (_, group) in groups {
+        if selected.len() >= limit {
+            break;
+        }
+        let remaining = limit - selected.len();
+        selected.extend(group.into_iter().take(remaining));
+    }
+    selected
+}
+
 pub fn evaluate_semantic_candidates(
     environment: &GameEnvironment,
     config: &RolloutTeacherConfig,
@@ -125,7 +199,7 @@ pub fn evaluate_semantic_candidates(
     let mut candidates =
         environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
     if let Some(candidate_limit) = config.candidate_limit {
-        candidates.truncate(candidate_limit.max(1));
+        candidates = select_candidates_fairly(candidates, candidate_limit.max(1));
     }
     evaluate_semantic_candidate_set(environment, &candidates, config)
 }
@@ -680,6 +754,448 @@ mod tests {
             .expect("benchmark artifact directory should be creatable");
         std::fs::write(
             "../artifacts/benchmarks/phase1-candidate-recall.json",
+            &json,
+        )
+        .expect("benchmark report should be written");
+    }
+
+    fn action_kind_key(action: &AgentAction) -> &'static str {
+        match action {
+            AgentAction::BuildTower { .. } => "build_tower",
+            AgentAction::Reroll { .. } => "reroll",
+            AgentAction::PurchaseShopItem { .. } => "purchase_shop_item",
+            AgentAction::UseInventoryItem { .. } => "use_inventory_item",
+            AgentAction::DiscardTreasure { .. } => "discard_treasure",
+            _ => "other",
+        }
+    }
+
+    use super::candidate_group_key as action_subset_key;
+
+    #[derive(serde::Serialize)]
+    struct ActionKindSurvival {
+        kind: String,
+        pre_truncation_count: usize,
+        survived_count: usize,
+    }
+
+    #[derive(serde::Serialize)]
+    struct CandidateLimitSamplePointLimit {
+        strategy: &'static str,
+        candidate_limit: usize,
+        survived_total: usize,
+        exact_best_retained: bool,
+        top5_retained_count: usize,
+        top10_retained_count: usize,
+        coverage_regret: usize,
+        /// Survival rate of card-subset candidates by generation-order
+        /// quartile (quartile 0 = earliest subsets in the flattened list,
+        /// quartile 3 = latest). A steep drop from quartile 0 to 3 shows
+        /// truncation systematically favors early subsets.
+        subset_quartile_survival_rate: [f64; 4],
+        fully_excluded_subset_count: usize,
+        action_kind_survival: Vec<ActionKindSurvival>,
+    }
+
+    #[derive(serde::Serialize)]
+    struct CandidateLimitSamplePoint {
+        seed: u64,
+        decision_index: usize,
+        total_pre_truncation_candidates: usize,
+        total_subset_count: usize,
+        per_limit: Vec<CandidateLimitSamplePointLimit>,
+    }
+
+    #[derive(serde::Serialize)]
+    struct CandidateLimitAggregate {
+        strategy: &'static str,
+        candidate_limit: usize,
+        sample_count: usize,
+        mean_survived_fraction: f64,
+        exact_best_retention_rate: f64,
+        top5_retention_rate: f64,
+        top10_retention_rate: f64,
+        mean_coverage_regret: f64,
+        max_coverage_regret: usize,
+        mean_subset_quartile_survival_rate: [f64; 4],
+        mean_fully_excluded_subset_fraction: f64,
+    }
+
+    #[derive(serde::Serialize)]
+    struct CandidateLimitReport {
+        methodology: String,
+        position_candidate_limit: usize,
+        seeds: Vec<u64>,
+        candidate_limits: Vec<usize>,
+        sample_points: Vec<CandidateLimitSamplePoint>,
+        aggregated: Vec<CandidateLimitAggregate>,
+    }
+
+    /// Phase 2 candidate-limit pruning-bias report (see docs/game-ai/02-action-contract.md).
+    ///
+    /// Compares two selection strategies applied to the same flattened
+    /// candidate list (`semantic_legal_actions_with_position_limit`'s
+    /// output: card subsets in ascending subset-mask order, each
+    /// contributing one Reroll plus up to `position_candidate_limit`
+    /// BuildTower actions, followed by shop/inventory/treasure actions):
+    ///
+    /// - `prefix_truncate`: the original `Vec::truncate` behavior.
+    /// - `fair_block_reorder`: `select_candidates_fairly`, which keeps each
+    ///   card subset's full candidate block intact but reorders which
+    ///   blocks come first by a key unrelated to hand-slot generation
+    ///   order, instead of taking a prefix.
+    ///
+    /// Measures whether prefix truncation systematically drops later card
+    /// subsets, action kinds, or high-quality candidates (by the same
+    /// rollout-free coverage/route-distance/damage heuristic ranking as
+    /// Phase 1), and whether round-robin selection fixes it.
+    ///
+    /// Run with: cargo test --release -- --ignored phase2_candidate_limit_bias_report --nocapture
+    #[test]
+    #[ignore = "manual release benchmark; writes artifacts/benchmarks/phase2-candidate-limit-bias.json"]
+    fn phase2_candidate_limit_bias_report() {
+        use crate::policy_runner::rank_build_tower_actions_by_heuristic;
+        use std::collections::HashMap;
+
+        const SEEDS: std::ops::Range<u64> = 0..24;
+        const SAMPLES_PER_SEED: usize = 6;
+        const MAX_DECISIONS_PER_SEED: usize = 96;
+        const CANDIDATE_LIMITS: [usize; 6] = [64, 128, 256, 512, 1024, 2048];
+        const STRATEGIES: [&str; 2] = ["prefix_truncate", "fair_block_reorder"];
+
+        let mut sample_points = Vec::new();
+
+        for seed in SEEDS {
+            let mut environment =
+                GameEnvironment::new(std::sync::Arc::new(GameConfig::default_config()), seed);
+            environment
+                .step(AgentAction::StartSelectingTower)
+                .expect("start selecting tower should be legal");
+
+            let mut samples_collected = 0usize;
+            let mut decision_index = 0usize;
+            while samples_collected < SAMPLES_PER_SEED && decision_index < MAX_DECISIONS_PER_SEED {
+                decision_index += 1;
+                let observation = environment.snapshot();
+                let full_candidates = environment.semantic_legal_actions_with_position_limit(Some(
+                    DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                ));
+                let has_build = full_candidates
+                    .iter()
+                    .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }));
+
+                if has_build {
+                    // Generation-order rank of each distinct card subset,
+                    // taken from its first appearance in the untruncated,
+                    // already-generation-ordered candidate list.
+                    let mut subset_first_rank: HashMap<Vec<usize>, usize> = HashMap::new();
+                    let mut subset_order = Vec::new();
+                    let mut subset_pre_counts: HashMap<Vec<usize>, usize> = HashMap::new();
+                    for legal in &full_candidates {
+                        if let Some(key) = action_subset_key(&legal.action) {
+                            *subset_pre_counts.entry(key.clone()).or_insert(0) += 1;
+                            subset_first_rank.entry(key.clone()).or_insert_with(|| {
+                                let rank = subset_order.len();
+                                subset_order.push(key);
+                                rank
+                            });
+                        }
+                    }
+                    let total_subset_count = subset_order.len();
+
+                    let full_build_actions = full_candidates
+                        .iter()
+                        .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let reference_ranking =
+                        rank_build_tower_actions_by_heuristic(&observation, &full_build_actions);
+                    let reference_best = reference_ranking.first();
+                    let reference_best_id = reference_best.map(|score| score.action.action_id());
+                    let reference_best_covered_route =
+                        reference_best.map(|score| score.covered_route).unwrap_or(0);
+                    let reference_top5 = reference_ranking
+                        .iter()
+                        .take(5)
+                        .map(|score| score.action.action_id())
+                        .collect::<std::collections::HashSet<_>>();
+                    let reference_top10 = reference_ranking
+                        .iter()
+                        .take(10)
+                        .map(|score| score.action.action_id())
+                        .collect::<std::collections::HashSet<_>>();
+
+                    let mut action_kind_pre_counts: HashMap<&'static str, usize> = HashMap::new();
+                    for legal in &full_candidates {
+                        *action_kind_pre_counts
+                            .entry(action_kind_key(&legal.action))
+                            .or_insert(0) += 1;
+                    }
+
+                    let per_limit = STRATEGIES
+                        .iter()
+                        .flat_map(|&strategy| {
+                            CANDIDATE_LIMITS.iter().map(move |&limit| (strategy, limit))
+                        })
+                        .map(|(strategy, limit)| {
+                            let truncated = if strategy == "fair_block_reorder" {
+                                super::select_candidates_fairly(
+                                    full_candidates.clone(),
+                                    limit.max(1),
+                                )
+                            } else {
+                                let mut truncated = full_candidates.clone();
+                                truncated.truncate(limit.max(1));
+                                truncated
+                            };
+
+                            let mut subset_survived: HashMap<Vec<usize>, usize> = HashMap::new();
+                            let mut action_kind_survived: HashMap<&'static str, usize> =
+                                HashMap::new();
+                            for legal in &truncated {
+                                if let Some(key) = action_subset_key(&legal.action) {
+                                    *subset_survived.entry(key).or_insert(0) += 1;
+                                }
+                                *action_kind_survived
+                                    .entry(action_kind_key(&legal.action))
+                                    .or_insert(0) += 1;
+                            }
+
+                            let mut quartile_survived = [0usize; 4];
+                            let mut quartile_total = [0usize; 4];
+                            let mut fully_excluded_subset_count = 0usize;
+                            for (key, &rank) in &subset_first_rank {
+                                let quartile = if total_subset_count <= 1 {
+                                    0
+                                } else {
+                                    (rank * 4 / total_subset_count).min(3)
+                                };
+                                let pre = *subset_pre_counts.get(key).unwrap_or(&0);
+                                let survived = *subset_survived.get(key).unwrap_or(&0);
+                                quartile_total[quartile] += pre;
+                                quartile_survived[quartile] += survived;
+                                if pre > 0 && survived == 0 {
+                                    fully_excluded_subset_count += 1;
+                                }
+                            }
+                            let subset_quartile_survival_rate = std::array::from_fn(|index| {
+                                if quartile_total[index] == 0 {
+                                    0.0
+                                } else {
+                                    quartile_survived[index] as f64 / quartile_total[index] as f64
+                                }
+                            });
+
+                            let truncated_build_actions = truncated
+                                .iter()
+                                .filter(|legal| {
+                                    matches!(legal.action, AgentAction::BuildTower { .. })
+                                })
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            let truncated_ranking = rank_build_tower_actions_by_heuristic(
+                                &observation,
+                                &truncated_build_actions,
+                            );
+                            let truncated_best_covered_route = truncated_ranking
+                                .first()
+                                .map(|score| score.covered_route)
+                                .unwrap_or(0);
+                            let truncated_ids = truncated_build_actions
+                                .iter()
+                                .map(|legal| legal.id.clone())
+                                .collect::<std::collections::HashSet<_>>();
+                            let exact_best_retained = reference_best_id
+                                .as_ref()
+                                .is_some_and(|id| truncated_ids.contains(id));
+                            let top5_retained_count = reference_top5
+                                .iter()
+                                .filter(|id| truncated_ids.contains(*id))
+                                .count();
+                            let top10_retained_count = reference_top10
+                                .iter()
+                                .filter(|id| truncated_ids.contains(*id))
+                                .count();
+                            let coverage_regret = reference_best_covered_route
+                                .saturating_sub(truncated_best_covered_route);
+
+                            let action_kind_survival = action_kind_pre_counts
+                                .keys()
+                                .map(|&kind| ActionKindSurvival {
+                                    kind: kind.to_string(),
+                                    pre_truncation_count: action_kind_pre_counts[kind],
+                                    survived_count: *action_kind_survived.get(kind).unwrap_or(&0),
+                                })
+                                .collect();
+
+                            CandidateLimitSamplePointLimit {
+                                strategy,
+                                candidate_limit: limit,
+                                survived_total: truncated.len(),
+                                exact_best_retained,
+                                top5_retained_count,
+                                top10_retained_count,
+                                coverage_regret,
+                                subset_quartile_survival_rate,
+                                fully_excluded_subset_count,
+                                action_kind_survival,
+                            }
+                        })
+                        .collect();
+
+                    sample_points.push(CandidateLimitSamplePoint {
+                        seed,
+                        decision_index,
+                        total_pre_truncation_candidates: full_candidates.len(),
+                        total_subset_count,
+                        per_limit,
+                    });
+                    samples_collected += 1;
+                }
+
+                let action = scripted_expert_action(&observation, &full_candidates)
+                    .expect("scripted expert should find an action");
+                let outcome = environment
+                    .semantic_step(action)
+                    .expect("scripted step should be accepted");
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+
+        let aggregated = STRATEGIES
+            .iter()
+            .flat_map(|&strategy| CANDIDATE_LIMITS.iter().map(move |&limit| (strategy, limit)))
+            .map(|(strategy, limit)| {
+                let entries = sample_points
+                    .iter()
+                    .flat_map(|point| {
+                        point
+                            .per_limit
+                            .iter()
+                            .filter(|l| l.strategy == strategy && l.candidate_limit == limit)
+                    })
+                    .collect::<Vec<_>>();
+                let count = entries.len().max(1);
+                let mean = |values: Vec<f64>| values.iter().sum::<f64>() / count as f64;
+                let mean_survived_fraction = sample_points
+                    .iter()
+                    .flat_map(|point| {
+                        point
+                            .per_limit
+                            .iter()
+                            .filter(|l| l.strategy == strategy && l.candidate_limit == limit)
+                            .map(|l| {
+                                l.survived_total as f64
+                                    / point.total_pre_truncation_candidates as f64
+                            })
+                    })
+                    .sum::<f64>()
+                    / count as f64;
+                let mut quartile_sum = [0.0; 4];
+                for entry in &entries {
+                    for index in 0..4 {
+                        quartile_sum[index] += entry.subset_quartile_survival_rate[index];
+                    }
+                }
+                let mean_subset_quartile_survival_rate =
+                    std::array::from_fn(|index| quartile_sum[index] / count as f64);
+                CandidateLimitAggregate {
+                    strategy,
+                    candidate_limit: limit,
+                    sample_count: entries.len(),
+                    mean_survived_fraction,
+                    exact_best_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.exact_best_retained as u8 as f64)
+                            .collect(),
+                    ),
+                    top5_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.top5_retained_count as f64 / 5.0)
+                            .collect(),
+                    ),
+                    top10_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.top10_retained_count as f64 / 10.0)
+                            .collect(),
+                    ),
+                    mean_coverage_regret: mean(
+                        entries.iter().map(|l| l.coverage_regret as f64).collect(),
+                    ),
+                    max_coverage_regret: entries
+                        .iter()
+                        .map(|l| l.coverage_regret)
+                        .max()
+                        .unwrap_or(0),
+                    mean_subset_quartile_survival_rate,
+                    mean_fully_excluded_subset_fraction: mean(
+                        sample_points
+                            .iter()
+                            .flat_map(|point| {
+                                point
+                                    .per_limit
+                                    .iter()
+                                    .filter(|l| {
+                                        l.strategy == strategy && l.candidate_limit == limit
+                                    })
+                                    .map(|l| {
+                                        l.fully_excluded_subset_count as f64
+                                            / point.total_subset_count.max(1) as f64
+                                    })
+                            })
+                            .collect(),
+                    ),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        for stat in &aggregated {
+            println!(
+                "strategy={} candidate_limit={} sample_count={} mean_survived_fraction={:.4} \
+                exact_best_retention={:.4} top5_retention={:.4} top10_retention={:.4} \
+                mean_coverage_regret={:.4} max_coverage_regret={} \
+                quartile_survival(early->late)={:?} mean_fully_excluded_subset_fraction={:.4}",
+                stat.strategy,
+                stat.candidate_limit,
+                stat.sample_count,
+                stat.mean_survived_fraction,
+                stat.exact_best_retention_rate,
+                stat.top5_retention_rate,
+                stat.top10_retention_rate,
+                stat.mean_coverage_regret,
+                stat.max_coverage_regret,
+                stat.mean_subset_quartile_survival_rate,
+                stat.mean_fully_excluded_subset_fraction
+            );
+        }
+
+        let report = CandidateLimitReport {
+            methodology: "reference ranking is rank_build_tower_actions_by_heuristic over the \
+                full (position-limited, candidate-limit-unlimited) BuildTower candidate set; \
+                coverage_regret and top-k retention are measured the same way as Phase 1's \
+                recall report, but against this candidate_limit truncation instead of the \
+                position_candidate_limit. subset_quartile_survival_rate buckets card subsets by \
+                their first-appearance rank in the flattened, generation-ordered candidate list \
+                (quartile 0 = earliest subsets, quartile 3 = latest) and reports mean candidate \
+                survival rate per quartile after truncation."
+                .to_string(),
+            position_candidate_limit: DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+            seeds: SEEDS.collect(),
+            candidate_limits: CANDIDATE_LIMITS.to_vec(),
+            sample_points,
+            aggregated,
+        };
+
+        let json = serde_json::to_string_pretty(&report).expect("report should serialize");
+        std::fs::create_dir_all("../artifacts/benchmarks")
+            .expect("benchmark artifact directory should be creatable");
+        std::fs::write(
+            "../artifacts/benchmarks/phase2-candidate-limit-bias.json",
             &json,
         )
         .expect("benchmark report should be written");
