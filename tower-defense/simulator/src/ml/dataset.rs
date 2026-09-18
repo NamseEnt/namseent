@@ -8,7 +8,7 @@ use crate::policy_runner::{
     run_spiral_expert_trajectory,
 };
 use crate::teacher::{
-    TEACHER_SCORE_SCHEMA_VERSION, RolloutTeacherConfig, run_semantic_teacher_episode,
+    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION, run_semantic_teacher_episode,
     scenario_seed_digest,
 };
 use crate::trajectory::{Trajectory, TrajectoryMetadata, TrajectoryStep};

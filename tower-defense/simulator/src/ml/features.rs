@@ -371,7 +371,11 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
             });
             params[1] = mean(cards.clone().map(|card| suit_id(&card.suit) as f32 / 4.0));
             params[2] = mean(cards.clone().map(|card| rank_id(&card.rank) as f32 / 13.0));
-            params[3] = mean(cards.clone().map(|card| card.polish_pct_raw as f32 / 1_000.0));
+            params[3] = mean(
+                cards
+                    .clone()
+                    .map(|card| card.polish_pct_raw as f32 / 1_000.0),
+            );
             params[4] = mean(cards.map(|card| card.engraving.is_some() as u8 as f32));
         }
         AgentAction::BuildTower {

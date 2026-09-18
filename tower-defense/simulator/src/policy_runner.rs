@@ -850,7 +850,10 @@ pub fn scripted_expert_action(
                     .iter()
                     .filter_map(|legal| {
                         let AgentAction::BuildTower {
-                            card_ids, left, top, ..
+                            card_ids,
+                            left,
+                            top,
+                            ..
                         } = &legal.action
                         else {
                             return None;
