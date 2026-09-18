@@ -7,7 +7,7 @@ use sha2::Digest;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-pub const BENCHMARK_SCHEMA_VERSION: u32 = 1;
+pub const BENCHMARK_SCHEMA_VERSION: u32 = 2;
 pub const BENCHMARK_SEED_SCHEDULE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,12 +34,14 @@ pub struct BenchmarkReport {
     pub decisions: usize,
     pub ticks_advanced: u64,
     pub candidate_evaluations: usize,
+    pub placement_position_checks: usize,
     pub mean_final_stage: f64,
     pub elapsed_seconds: f64,
     pub episodes_per_second: f64,
     pub decisions_per_second: f64,
     pub ticks_per_second: f64,
     pub candidate_evaluations_per_second: f64,
+    pub placement_position_checks_per_second: f64,
     pub mean_candidates_per_decision: f64,
     pub termination_reasons: BTreeMap<String, usize>,
 }
@@ -95,6 +97,11 @@ where
         .iter()
         .map(|episode| episode.candidate_evaluations)
         .sum::<usize>();
+    let placement_position_checks = batch
+        .episodes
+        .iter()
+        .map(|episode| episode.placement_position_checks)
+        .sum::<usize>();
     let mean_final_stage = batch
         .episodes
         .iter()
@@ -131,12 +138,14 @@ where
         decisions,
         ticks_advanced,
         candidate_evaluations,
+        placement_position_checks,
         mean_final_stage,
         elapsed_seconds,
         episodes_per_second: episodes as f64 / elapsed_for_rate,
         decisions_per_second: decisions as f64 / elapsed_for_rate,
         ticks_per_second: ticks_advanced as f64 / elapsed_for_rate,
         candidate_evaluations_per_second: candidate_evaluations as f64 / elapsed_for_rate,
+        placement_position_checks_per_second: placement_position_checks as f64 / elapsed_for_rate,
         mean_candidates_per_decision: candidate_evaluations as f64 / decisions.max(1) as f64,
         termination_reasons,
     })

@@ -27,6 +27,8 @@ GPU는 simulation 자체를 대체하지 않는다. pathfinding, legal action �
 - state clone 횟수와 clone bytes 추정치
 - peak resident memory
 
+현재 benchmark report에는 `placement_position_checks`와 초당 값이 포함되어 coordinate별 topology 검사량을 별도로 비교할 수 있다. 실제 low-level path query latency와 clone byte 계측은 별도 계측 단계로 남겨 둔다.
+
 모든 report에는 다음 metadata를 포함한다.
 
 - Git revision

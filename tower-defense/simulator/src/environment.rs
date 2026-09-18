@@ -100,6 +100,11 @@ pub struct LegalAction {
     pub action: AgentAction,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LegalActionGenerationMetrics {
+    pub placement_position_checks: usize,
+}
+
 pub use td_core::CardObservation;
 pub use td_core::ShopSlotObservation;
 
@@ -603,11 +608,26 @@ impl GameEnvironment {
     }
 
     pub fn legal_actions(&self) -> Vec<LegalAction> {
+        self.legal_actions_internal(None)
+    }
+
+    pub fn legal_actions_with_metrics(&self) -> (Vec<LegalAction>, LegalActionGenerationMetrics) {
+        let mut metrics = LegalActionGenerationMetrics::default();
+        let actions = self.legal_actions_internal(Some(&mut metrics));
+        (actions, metrics)
+    }
+
+    fn legal_actions_internal(
+        &self,
+        mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
+    ) -> Vec<LegalAction> {
         let mut actions = match self.decision_point() {
             DecisionPoint::Shop => self.shop_actions(),
             DecisionPoint::CardSelection => self.card_selection_actions(),
             DecisionPoint::CardServiceSelection => self.card_service_actions(),
-            DecisionPoint::TowerPlacement => self.tower_placement_actions(),
+            DecisionPoint::TowerPlacement => {
+                self.tower_placement_actions(generation_metrics.as_deref_mut())
+            }
             DecisionPoint::PreDefenseItem | DecisionPoint::DamageResponseItem => {
                 let mut actions = self.inventory_actions();
                 actions.push(AgentAction::Continue);
@@ -1036,7 +1056,10 @@ impl GameEnvironment {
         Ok(())
     }
 
-    fn tower_placement_actions(&self) -> Vec<AgentAction> {
+    fn tower_placement_actions(
+        &self,
+        mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
+    ) -> Vec<AgentAction> {
         let hand_slot_indices = self.tower_hand_indices();
         let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
         let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
@@ -1045,6 +1068,9 @@ impl GameEnvironment {
         let placement_context = state.tower_placement_context();
         for top in 0..map_height {
             for left in 0..map_width {
+                if let Some(metrics) = generation_metrics.as_deref_mut() {
+                    metrics.placement_position_checks += 1;
+                }
                 if placement_context.can_place_at(left, top) {
                     for &hand_slot_index in &hand_slot_indices {
                         actions.push(AgentAction::PlaceTower {

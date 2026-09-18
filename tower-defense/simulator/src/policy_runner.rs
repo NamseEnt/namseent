@@ -1030,6 +1030,7 @@ pub struct EpisodeResult {
     pub decision_count: usize,
     pub ticks_advanced: u64,
     pub candidate_evaluations: usize,
+    pub placement_position_checks: usize,
     pub forced_actions: ForcedActionStats,
     pub terminated: bool,
     pub truncated: bool,
@@ -1117,6 +1118,7 @@ where
     let mut decision_count = 0;
     let mut ticks_advanced = 0;
     let mut candidate_evaluations = 0;
+    let mut placement_position_checks = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1132,7 +1134,8 @@ where
 
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let canonical_legal_actions = environment.legal_actions();
+        let (canonical_legal_actions, legal_action_metrics) =
+            environment.legal_actions_with_metrics();
         if canonical_legal_actions.is_empty() {
             bail!(
                 "environment reached a non-terminal state without legal actions at seed {} (state {})",
@@ -1143,6 +1146,7 @@ where
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
         candidate_evaluations += legal_actions.len();
+        placement_position_checks += legal_action_metrics.placement_position_checks;
         let action = policy.choose_action(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint.clone(), action.clone());
         let mut outcome = environment
@@ -1217,6 +1221,7 @@ where
         decision_count,
         ticks_advanced,
         candidate_evaluations,
+        placement_position_checks,
         forced_actions,
         terminated,
         truncated,
@@ -1272,6 +1277,7 @@ where
     let mut decision_count = 0;
     let mut ticks_advanced = 0;
     let mut candidate_evaluations = 0;
+    let mut placement_position_checks = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1286,13 +1292,15 @@ where
         }
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let canonical_legal_actions = environment.legal_actions();
+        let (canonical_legal_actions, legal_action_metrics) =
+            environment.legal_actions_with_metrics();
         if canonical_legal_actions.is_empty() {
             bail!("environment reached a non-terminal state without legal actions at seed {seed}");
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
         candidate_evaluations += legal_actions.len();
+        placement_position_checks += legal_action_metrics.placement_position_checks;
         let action = policy(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint, action.clone());
         let mut outcome = environment
@@ -1356,6 +1364,7 @@ where
         decision_count,
         ticks_advanced,
         candidate_evaluations,
+        placement_position_checks,
         forced_actions,
         terminated,
         truncated,

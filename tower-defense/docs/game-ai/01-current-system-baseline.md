@@ -100,7 +100,7 @@ cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
   --output artifacts/benchmarks/phase0-random-0-3.json
 ```
 
-report에는 configuration digest, environment/action schema, seed digest, full-clear rate, decision/tick/candidate 처리량과 종료 사유가 포함된다. step trajectory는 저장하지 않고 집계값만 수집한다.
+report에는 configuration digest, environment/action schema, seed digest, full-clear rate, decision/tick/candidate 처리량, placement position 검사량과 종료 사유가 포함된다. step trajectory는 저장하지 않고 집계값만 수집한다.
 
 ## 체크포인트 상태
 
