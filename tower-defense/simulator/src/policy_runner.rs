@@ -811,18 +811,39 @@ fn semantic_card_decision_action(
     best_build_tower_action_by_heuristic(observation, legal_actions)
 }
 
-/// Ranks `BuildTower` candidates by route coverage, then closeness to the
-/// route, then damage, and returns the best one. This is the same
-/// deterministic, rollout-free scoring the scripted expert uses to build a
-/// tower; it is also used as a cheap oracle-quality proxy when measuring
-/// candidate-proposal recall, since it is fast enough to run over every
-/// legal candidate (unlike a real rollout evaluation).
-pub(crate) fn best_build_tower_action_by_heuristic(
+/// One `BuildTower` candidate's deterministic, rollout-free quality score:
+/// route coverage (primary), then closeness to the route, then damage.
+#[derive(Clone, Debug)]
+pub(crate) struct BuildTowerHeuristicScore {
+    pub action: AgentAction,
+    pub covered_route: usize,
+    pub nearest_route: usize,
+    pub damage_raw: i64,
+}
+
+impl BuildTowerHeuristicScore {
+    fn sort_key(&self) -> (usize, std::cmp::Reverse<usize>, i64, String) {
+        (
+            self.covered_route,
+            std::cmp::Reverse(self.nearest_route),
+            self.damage_raw,
+            self.action.action_id(),
+        )
+    }
+}
+
+/// Scores and ranks every `BuildTower` candidate in `legal_actions` by
+/// [`BuildTowerHeuristicScore`], best first. This is the same deterministic
+/// scoring the scripted expert uses to build a tower; it is also used as a
+/// cheap oracle-quality proxy when measuring candidate-proposal recall,
+/// since it is fast enough to run over every legal candidate (unlike a real
+/// rollout evaluation).
+pub(crate) fn rank_build_tower_actions_by_heuristic(
     observation: &Observation,
     legal_actions: &[LegalAction],
-) -> Option<AgentAction> {
+) -> Vec<BuildTowerHeuristicScore> {
     let route = &observation.route_coords;
-    legal_actions
+    let mut scores = legal_actions
         .iter()
         .filter_map(|legal| {
             let AgentAction::BuildTower {
@@ -858,22 +879,28 @@ pub(crate) fn best_build_tower_action_by_heuristic(
                 .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
                 .min()
                 .unwrap_or(usize::MAX);
-            Some((
+            Some(BuildTowerHeuristicScore {
+                action: legal.action.clone(),
                 covered_route,
                 nearest_route,
-                template.damage_raw,
-                legal.action.clone(),
-            ))
+                damage_raw: template.damage_raw,
+            })
         })
-        .max_by_key(|(covered_route, nearest_route, damage, action)| {
-            (
-                *covered_route,
-                std::cmp::Reverse(*nearest_route),
-                *damage,
-                action.action_id(),
-            )
-        })
-        .map(|(_, _, _, action)| action)
+        .collect::<Vec<_>>();
+    scores.sort_by_cached_key(|score| std::cmp::Reverse(score.sort_key()));
+    scores
+}
+
+/// Returns the single best `BuildTower` candidate by
+/// [`rank_build_tower_actions_by_heuristic`], if any.
+pub(crate) fn best_build_tower_action_by_heuristic(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Option<AgentAction> {
+    rank_build_tower_actions_by_heuristic(observation, legal_actions)
+        .into_iter()
+        .next()
+        .map(|score| score.action)
 }
 
 pub fn scripted_expert_action(
