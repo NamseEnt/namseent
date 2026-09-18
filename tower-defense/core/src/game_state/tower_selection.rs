@@ -1,187 +1,185 @@
-use crate::{CardState, CoreState, HandItemState, TowerTemplateState};
+use crate::{CardState, CoreState, HandItemState, TowerTemplateState, UpgradeCollection};
+use std::collections::BTreeMap;
 
 const CARD_COUNT: usize = 5;
 
-pub(crate) trait UpgradeSelectionSource {
-    fn shorten_straight_flush_to_4_cards(&self) -> bool;
-    fn treat_suits_as_same(&self) -> bool;
-    fn skip_rank_for_straight(&self) -> bool;
+struct StraightResult {
+    royal: bool,
+    top: CardState,
+    cards: Vec<CardState>,
 }
 
-impl UpgradeSelectionSource for crate::UpgradeCollection {
-    fn shorten_straight_flush_to_4_cards(&self) -> bool {
-        self.shorten_straight_flush_to_4_cards()
-    }
-
-    fn treat_suits_as_same(&self) -> bool {
-        self.treat_suits_as_same()
-    }
-
-    fn skip_rank_for_straight(&self) -> bool {
-        self.skip_rank_for_straight()
-    }
+struct FlushResult {
+    suit: u8,
 }
 
-pub(crate) fn select_tower_build_template<U: UpgradeSelectionSource>(
+pub fn get_highest_tower_template(
     cards: &[CardState],
-    upgrades: &U,
+    upgrades: &UpgradeCollection,
     config: &crate::GameConfig,
     rerolled_count: usize,
 ) -> Option<TowerTemplateState> {
-    if cards.is_empty() {
-        return None;
-    }
-    let straight_count = if upgrades.shorten_straight_flush_to_4_cards() {
-        4
-    } else {
-        CARD_COUNT
-    };
-    let treat_suits_as_same = upgrades.treat_suits_as_same();
-    let skip_rank_for_straight = upgrades.skip_rank_for_straight();
-    let mut best_straight: Option<(u8, bool, Option<u8>, Vec<CardState>)> = None;
-    for suit in distinct_suits(cards, treat_suits_as_same) {
-        let suited: Vec<CardState> = cards
-            .iter()
-            .filter(|card| normalized_suit(card.suit, treat_suits_as_same) == suit)
-            .cloned()
-            .collect();
-        if suited.len() < straight_count {
-            continue;
-        }
-        if let Some((top, royal, selected)) =
-            best_straight_for_cards(&suited, straight_count, skip_rank_for_straight)
-            && best_straight
-                .as_ref()
-                .is_none_or(|(best_top, _, _, _)| top > *best_top)
-        {
-            best_straight = Some((top, royal, Some(suit), selected));
-        }
-    }
-    if let Some((top, royal, suit, used_cards)) = best_straight {
+    let straight_result = check_straight(cards, upgrades);
+    let flush_result = check_flush(cards, upgrades);
+
+    let straight_flush_result = flush_groups(cards, upgrades)
+        .into_iter()
+        .filter_map(|(suit, flush_cards)| {
+            check_straight(&flush_cards, upgrades).map(|straight| (suit, straight))
+        })
+        .max_by_key(|(_, straight)| straight.top.rank);
+
+    if let Some((suit, straight_result)) = straight_flush_result {
         return Some(build_template(
-            if royal { 10 } else { 9 },
-            suit,
-            Some(top),
-            used_cards,
+            if straight_result.royal { 10 } else { 9 },
+            Some(suit),
+            Some(if straight_result.royal {
+                12
+            } else {
+                straight_result.top.rank
+            }),
+            straight_result.cards,
             rerolled_count,
             config,
         ));
     }
 
-    let by_rank = (0..13)
-        .map(|rank| {
-            cards
+    let rank_map = count_rank(cards);
+    let mut triple_cards = None;
+    let mut pair_high_cards = None;
+    let mut pair_low_cards = None;
+
+    for rank in (0..13).rev() {
+        let Some(cards_of_rank) = rank_map.get(&rank) else {
+            continue;
+        };
+        if cards_of_rank.len() >= 4 {
+            let top_card = cards_of_rank
                 .iter()
-                .filter(|card| card.rank == rank)
-                .cloned()
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
-    let four = (0..13).rev().find(|rank| by_rank[*rank].len() >= 4);
-    if let Some(rank) = four {
-        return Some(build_template(
-            8,
-            Some(by_rank[rank][0].suit),
-            Some(rank as u8),
-            by_rank[rank].clone(),
-            rerolled_count,
-            config,
-        ));
+                .max_by_key(|card| card_order_key(card))
+                .unwrap();
+            return Some(build_template(
+                8,
+                Some(top_card.suit),
+                Some(top_card.rank),
+                cards_of_rank.clone(),
+                rerolled_count,
+                config,
+            ));
+        }
+
+        if cards_of_rank.len() == 3 && triple_cards.is_none() {
+            triple_cards = Some(cards_of_rank.clone());
+        } else if cards_of_rank.len() == 2 {
+            if pair_high_cards.is_none() {
+                pair_high_cards = Some(cards_of_rank.clone());
+            } else if pair_low_cards.is_none() {
+                pair_low_cards = Some(cards_of_rank.clone());
+            }
+        }
     }
-    let triple = (0..13).rev().find(|rank| by_rank[*rank].len() >= 3);
-    let pairs: Vec<usize> = (0..13)
-        .rev()
-        .filter(|rank| by_rank[*rank].len() >= 2)
-        .collect();
-    if let Some(triple_rank) = triple
-        && let Some(pair) = pairs.iter().copied().find(|rank| *rank != triple_rank)
-    {
-        let mut used = by_rank[triple_rank].clone();
-        used.extend(by_rank[pair].clone());
-        return Some(build_template(
-            7,
-            used[0].suit.into(),
-            Some(triple_rank as u8),
-            used,
-            rerolled_count,
-            config,
-        ));
-    }
-    if let Some(suit) = distinct_suits(cards, treat_suits_as_same)
-        .into_iter()
-        .find(|suit| {
-            cards
-                .iter()
-                .filter(|card| normalized_suit(card.suit, treat_suits_as_same) == *suit)
-                .count()
-                >= straight_count
-        })
-    {
-        let used = cards
+
+    if let (Some(triple_cards_vec), Some(pair_high_cards_vec)) = (&triple_cards, &pair_high_cards) {
+        let mut combined_cards = triple_cards_vec
             .iter()
-            .filter(|card| normalized_suit(card.suit, treat_suits_as_same) == suit)
+            .chain(pair_high_cards_vec)
             .cloned()
             .collect::<Vec<_>>();
-        let top = used.iter().map(|card| card.rank).max().unwrap_or(0);
+        combined_cards.sort_by_key(card_order_key);
+        let top_card = combined_cards.last().unwrap();
+        return Some(build_template(
+            7,
+            Some(top_card.suit),
+            Some(top_card.rank),
+            combined_cards,
+            rerolled_count,
+            config,
+        ));
+    }
+
+    if let Some(flush_result) = flush_result {
+        let flush_cards = flush_groups(cards, upgrades)
+            .into_iter()
+            .find(|(suit, _)| *suit == flush_result.suit)
+            .map(|(_, cards)| cards)
+            .unwrap_or_default();
+        let top_card = flush_cards
+            .iter()
+            .max_by_key(|card| card_order_key(card))
+            .unwrap();
         return Some(build_template(
             6,
-            Some(suit),
-            Some(top),
-            used,
+            Some(flush_result.suit),
+            Some(top_card.rank),
+            flush_cards,
             rerolled_count,
             config,
         ));
     }
-    if let Some((top, _, used)) =
-        best_straight_for_cards(cards, straight_count, skip_rank_for_straight)
-    {
+
+    if let Some(straight_result) = straight_result {
         return Some(build_template(
             5,
-            None,
-            Some(top),
-            used,
+            Some(straight_result.top.suit),
+            Some(straight_result.top.rank),
+            straight_result.cards,
             rerolled_count,
             config,
         ));
     }
-    if let Some(triple) = triple {
+
+    if let Some(mut triple_cards_vec) = triple_cards {
+        triple_cards_vec.sort_by_key(card_order_key);
+        let top_card = triple_cards_vec.last().unwrap();
         return Some(build_template(
             4,
-            Some(by_rank[triple][0].suit),
-            Some(triple as u8),
-            by_rank[triple].clone(),
+            Some(top_card.suit),
+            Some(top_card.rank),
+            triple_cards_vec,
             rerolled_count,
             config,
         ));
     }
-    if pairs.len() >= 2 {
-        let mut used = by_rank[pairs[0]].clone();
-        used.extend(by_rank[pairs[1]].clone());
+
+    if let (Some(pair_high_cards_vec), Some(pair_low_cards_vec)) =
+        (&pair_high_cards, &pair_low_cards)
+    {
+        let mut combined_cards = pair_high_cards_vec
+            .iter()
+            .chain(pair_low_cards_vec)
+            .cloned()
+            .collect::<Vec<_>>();
+        combined_cards.sort_by_key(card_order_key);
+        let top_card = combined_cards.last().unwrap();
         return Some(build_template(
             3,
-            Some(used[0].suit),
-            Some(pairs[0] as u8),
-            used,
+            Some(top_card.suit),
+            Some(top_card.rank),
+            combined_cards,
             rerolled_count,
             config,
         ));
     }
-    if let Some(pair) = pairs.first().copied() {
+
+    if let Some(mut pair_high_cards_vec) = pair_high_cards {
+        pair_high_cards_vec.sort_by_key(card_order_key);
+        let top_card = pair_high_cards_vec.last().unwrap();
         return Some(build_template(
             2,
-            Some(by_rank[pair][0].suit),
-            Some(pair as u8),
-            by_rank[pair].clone(),
+            Some(top_card.suit),
+            Some(top_card.rank),
+            pair_high_cards_vec,
             rerolled_count,
             config,
         ));
     }
-    let card = cards.iter().max_by_key(|card| card.rank)?;
+
+    let top_card = cards.iter().max_by_key(|card| card_order_key(card))?;
     Some(build_template(
         1,
-        Some(card.suit),
-        Some(card.rank),
-        vec![card.clone()],
+        Some(top_card.suit),
+        Some(top_card.rank),
+        vec![top_card.clone()],
         rerolled_count,
         config,
     ))
@@ -211,10 +209,9 @@ pub(crate) fn select_tower_from_core(
         };
         cards.push(card.clone());
     }
-    let upgrades = state.upgrades();
-    let selected_template = select_tower_build_template(
+    let selected_template = get_highest_tower_template(
         &cards,
-        upgrades,
+        state.upgrades(),
         &state.config,
         state.progress.rerolled_count,
     )
@@ -288,6 +285,125 @@ fn build_template(
     }
 }
 
+fn flush_groups(cards: &[CardState], upgrades: &UpgradeCollection) -> Vec<(u8, Vec<CardState>)> {
+    let flush_card_count = if upgrades.shorten_straight_flush_to_4_cards() {
+        4
+    } else {
+        CARD_COUNT
+    };
+    let treat_suits_as_same = upgrades.treat_suits_as_same();
+
+    if cards.len() < flush_card_count {
+        return Vec::new();
+    }
+
+    let mut suit_map = BTreeMap::<u8, Vec<CardState>>::new();
+    for card in cards {
+        let suit = normalized_suit(card.suit, treat_suits_as_same);
+        suit_map.entry(suit).or_default().push(card.clone());
+    }
+
+    suit_map
+        .into_iter()
+        .filter(|(_, cards)| cards.len() >= flush_card_count)
+        .collect()
+}
+
+fn check_straight(cards: &[CardState], upgrades: &UpgradeCollection) -> Option<StraightResult> {
+    let straight_card_count = if upgrades.shorten_straight_flush_to_4_cards() {
+        4
+    } else {
+        CARD_COUNT
+    };
+    let skip_rank_for_straight = upgrades.skip_rank_for_straight();
+
+    if cards.len() < straight_card_count {
+        return None;
+    }
+
+    let mut best = None;
+    for ace_high in [false, true] {
+        let mut cards_by_value = BTreeMap::<usize, Vec<CardState>>::new();
+        for card in cards {
+            let value = if ace_high {
+                if card.rank == 12 {
+                    13
+                } else {
+                    card.rank as usize + 1
+                }
+            } else if card.rank == 12 {
+                0
+            } else {
+                card.rank as usize + 1
+            };
+            cards_by_value.entry(value).or_default().push(card.clone());
+        }
+
+        let values = cards_by_value.keys().copied().collect::<Vec<_>>();
+        for window in values.windows(straight_card_count) {
+            let missing_count = window
+                .last()
+                .unwrap()
+                .saturating_sub(*window.first().unwrap())
+                .saturating_sub(straight_card_count - 1);
+            if missing_count > usize::from(skip_rank_for_straight) {
+                continue;
+            }
+
+            let selected_cards = window
+                .iter()
+                .map(|value| {
+                    cards_by_value
+                        .get(value)
+                        .unwrap()
+                        .iter()
+                        .max_by_key(|card| card_order_key(card))
+                        .unwrap()
+                        .clone()
+                })
+                .collect::<Vec<_>>();
+            let candidate = StraightResult {
+                royal: is_royal(window, straight_card_count),
+                top: selected_cards.last().unwrap().clone(),
+                cards: selected_cards,
+            };
+            if best
+                .as_ref()
+                .is_none_or(|(_, best_value)| *best_value < *window.last().unwrap())
+            {
+                best = Some((candidate, *window.last().unwrap()));
+            }
+        }
+    }
+
+    best.map(|(result, _)| result)
+}
+
+fn is_royal(ranks: &[usize], straight_card_count: usize) -> bool {
+    let royal_ranks = [9, 10, 11, 12, 13];
+    if straight_card_count == 5 {
+        return ranks.iter().all(|rank| royal_ranks.contains(rank));
+    }
+    straight_card_count == 4 && ranks.iter().all(|rank| royal_ranks.contains(rank))
+}
+
+fn check_flush(cards: &[CardState], upgrades: &UpgradeCollection) -> Option<FlushResult> {
+    flush_groups(cards, upgrades)
+        .into_iter()
+        .max_by_key(|(_, cards)| cards.iter().map(|card| card.rank).max())
+        .map(|(suit, _)| FlushResult { suit })
+}
+
+fn count_rank(cards: &[CardState]) -> BTreeMap<u8, Vec<CardState>> {
+    let mut map = BTreeMap::new();
+    for card in cards {
+        map.entry(card.rank)
+            .or_insert_with(Vec::new)
+            .push(card.clone());
+    }
+    map
+}
+
 fn normalized_suit(suit: u8, same: bool) -> u8 {
     if !same {
         suit
@@ -298,202 +414,9 @@ fn normalized_suit(suit: u8, same: bool) -> u8 {
     }
 }
 
-fn distinct_suits(cards: &[CardState], same: bool) -> Vec<u8> {
-    let mut suits = Vec::new();
-    for card in cards {
-        let suit = normalized_suit(card.suit, same);
-        if !suits.contains(&suit) {
-            suits.push(suit);
-        }
-    }
-    suits
-}
-
-fn best_straight_for_cards(
-    cards: &[CardState],
-    count: usize,
-    skip: bool,
-) -> Option<(u8, bool, Vec<CardState>)> {
-    let mut best = None;
-    for ace_high in [false, true] {
-        let mut values = cards
-            .iter()
-            .map(|card| {
-                if card.rank == 12 {
-                    if ace_high { 13 } else { 0 }
-                } else {
-                    card.rank + 1
-                }
-            })
-            .collect::<Vec<_>>();
-        values.sort_unstable();
-        values.dedup();
-        for window in values.windows(count) {
-            let start = *window.first()?;
-            let end = *window.last()?;
-            let missing = (end as usize)
-                .saturating_sub(start as usize)
-                .saturating_add(1)
-                .saturating_sub(window.len());
-            if missing > usize::from(skip) {
-                continue;
-            }
-            let mut used = Vec::new();
-            for value in window {
-                if let Some(card) = cards
-                    .iter()
-                    .filter(|card| {
-                        let card_value = if card.rank == 12 {
-                            if ace_high { 13 } else { 0 }
-                        } else {
-                            card.rank + 1
-                        };
-                        card_value == *value
-                    })
-                    .max_by_key(|card| (card.polish_pct_raw, card.id))
-                {
-                    used.push(card.clone());
-                }
-            }
-            if used.len() + missing != count {
-                continue;
-            }
-            let top_rank = used
-                .iter()
-                .max_by_key(|card| {
-                    if card.rank == 12 && !ace_high {
-                        0
-                    } else {
-                        card.rank + 1
-                    }
-                })?
-                .rank;
-            let royal = ace_high && start == 10 && end == 13;
-            if best
-                .as_ref()
-                .is_none_or(|(top, _, _): &(u8, bool, Vec<CardState>)| top_rank > *top)
-            {
-                best = Some((top_rank, royal, used));
-            }
-        }
-    }
-    best
+fn card_order_key(card: &CardState) -> (u8, u8, usize) {
+    (card.rank, card.suit, card.id)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::GameConfigState;
-
-    fn config() -> GameConfigState {
-        GameConfigState {
-            player: crate::PlayerConfigState {
-                max_hp_raw: 60_000,
-                starting_gold: 100,
-                starting_hp_raw: 60_000,
-                base_dice_chance: 3,
-                max_stages: 30,
-                base_hand_slots: 5,
-            },
-            towers: crate::TowerConfigState {
-                entries: (0..11)
-                    .map(|kind| crate::TowerConfigEntryState {
-                        kind,
-                        damage_raw: i64::from(kind),
-                        range_raw: i64::from(kind),
-                        cooldown_ms: 1_000,
-                    })
-                    .collect(),
-            },
-            monsters: crate::MonsterConfigState {
-                stats: Vec::new(),
-                stage_waves: Vec::new(),
-            },
-        }
-    }
-
-    fn card(id: usize, suit: u8, rank: u8) -> CardState {
-        CardState {
-            id,
-            suit,
-            rank,
-            polish_pct_raw: 0,
-            engraving: None,
-        }
-    }
-
-    #[test]
-    fn raw_selection_matches_basic_poker_tower_kinds() {
-        let upgrades = crate::UpgradeCollection::default();
-        let cards = vec![
-            card(1, 0, 12),
-            card(2, 1, 12),
-            card(3, 2, 5),
-            card(4, 3, 7),
-            card(5, 0, 6),
-        ];
-        let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
-            .expect("template should be generated");
-        assert_eq!(template.kind, 2);
-        assert_eq!(template.rank, Some(12));
-    }
-
-    #[test]
-    fn raw_selection_supports_four_card_straight_and_royal_flush_upgrades() {
-        let upgrades = crate::UpgradeCollection::from_entries(
-            vec![crate::generated_upgrade(crate::UpgradeKind::FourLeafClover).with_id(1)],
-            0,
-        );
-        let cards = vec![
-            card(1, 1, 9),
-            card(2, 1, 10),
-            card(3, 1, 11),
-            card(4, 1, 12),
-        ];
-        let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
-            .expect("template should be generated");
-        assert_eq!(template.kind, 10);
-        assert_eq!(template.rank, Some(12));
-    }
-
-    #[test]
-    fn raw_selection_matches_root_skip_rank_selection_semantics() {
-        let upgrades = crate::UpgradeCollection::from_entries(
-            vec![crate::generated_upgrade(crate::UpgradeKind::Rabbit).with_id(1)],
-            0,
-        );
-        let cards = vec![card(1, 0, 5), card(2, 1, 6), card(3, 2, 7), card(4, 3, 9)];
-        let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
-            .expect("template should be generated");
-        assert_eq!(template.kind, 1);
-        assert_eq!(template.rank, Some(9));
-    }
-
-    #[test]
-    fn raw_selection_supports_ace_low_straight() {
-        let upgrades = crate::UpgradeCollection::default();
-        let cards = vec![
-            card(1, 0, 12),
-            card(2, 1, 0),
-            card(3, 2, 1),
-            card(4, 3, 2),
-            card(5, 0, 3),
-        ];
-        let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
-            .expect("template should be generated");
-        assert_eq!(template.kind, 5);
-        assert_eq!(template.rank, Some(3));
-    }
-
-    #[test]
-    fn raw_template_derives_overcharge_interval_and_preserves_card_payload() {
-        let upgrades = crate::UpgradeCollection::default();
-        let mut overcharge = card(1, 0, 12);
-        overcharge.engraving = Some(1);
-        let cards = vec![overcharge];
-        let template = select_tower_build_template(&cards, &upgrades, &config(), 0)
-            .expect("template should be generated");
-        assert_eq!(template.shoot_interval, 41);
-        assert_eq!(template.used_cards[0].engraving, Some(1));
-    }
-}
+mod tests;

@@ -3,8 +3,6 @@ use crate::{
     PresentationInstant,
     animation::xy_with_spring,
     card::Card,
-    config::GameConfig,
-    game_state::tower_selection::get_highest_tower_template,
     game_state::{
         upgrade::{SelectedTowerContext, UpgradePresentation},
         use_game_state,
@@ -215,14 +213,14 @@ fn get_active_tower_context(
         return None;
     }
 
+    let template = crate::game_state::tower::TowerTemplate::from_cards(
+        &cards,
+        upgrade_state,
+        game_state.raw_core_state().progress().rerolled_count,
+        game_state.raw_core_state().config(),
+    )?;
     Some(SelectedTowerContext::from_template(
-        &get_highest_tower_template(
-            &cards,
-            upgrade_state,
-            game_state.raw_core_state().progress().rerolled_count,
-            &GameConfig::from_core_state(game_state.raw_core_state().config().clone())
-                .expect("raw game config must be restorable for upgrade presentation"),
-        ),
+        &template,
         Some(game_state.raw_core_state().progress().rerolled_count),
     ))
 }

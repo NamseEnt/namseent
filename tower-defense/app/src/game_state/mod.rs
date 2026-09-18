@@ -57,7 +57,6 @@ mod status_effect_particle_generator;
 pub(crate) mod tick;
 pub mod tower;
 mod tower_info_popup;
-pub(crate) mod tower_selection;
 mod ui_state;
 pub mod upgrade;
 mod user_status_effect;
