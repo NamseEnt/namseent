@@ -9,8 +9,6 @@ pub(crate) struct WorldRenderSnapshot {
     monsters: Vec<MonsterRenderSnapshot>,
     spatial_projectiles: Vec<SpatialProjectileRenderSnapshot>,
     towers: Vec<TowerRenderSnapshot>,
-    enemy_base_scale: Xy<f32>,
-    player_base_scale: Xy<f32>,
 }
 
 #[derive(Clone, State)]
@@ -52,20 +50,10 @@ impl WorldRenderSnapshot {
             monsters: Vec::new(),
             spatial_projectiles: Vec::new(),
             towers: Vec::new(),
-            enemy_base_scale: Xy::new(1.0, 1.0),
-            player_base_scale: Xy::new(1.0, 1.0),
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn capture(game_state: &crate::game_state::GameState) -> Self {
-        Self::capture_with_base_scales(game_state, (Xy::single(1.0), Xy::single(1.0)))
-    }
-
-    pub(crate) fn capture_with_base_scales(
-        game_state: &crate::game_state::GameState,
-        (enemy_base_scale, player_base_scale): (Xy<f32>, Xy<f32>),
-    ) -> Self {
         let mut metadata = game_state.presentation_metadata.clone();
         metadata.refresh_from_core(game_state.raw_core_state());
         let monster_metadata = metadata
@@ -88,7 +76,6 @@ impl WorldRenderSnapshot {
             &monster_metadata,
             &projectile_metadata,
             &tower_metadata,
-            (enemy_base_scale, player_base_scale),
         )
     }
 
@@ -97,7 +84,6 @@ impl WorldRenderSnapshot {
         monster_metadata: &[(MonsterId, Angle, f32)],
         projectile_metadata: &[(AttackId, crate::game_state::projectile::ProjectileKind)],
         tower_metadata: &[(TowerId, crate::game_state::tower::AnimationKind, f32)],
-        (enemy_base_scale, player_base_scale): (Xy<f32>, Xy<f32>),
     ) -> Self {
         let mut monsters = core_snapshot
             .monsters
@@ -178,8 +164,6 @@ impl WorldRenderSnapshot {
             monsters,
             spatial_projectiles,
             towers,
-            enemy_base_scale,
-            player_base_scale,
         }
     }
 
@@ -369,23 +353,6 @@ impl RenderSnapshotHistory {
         };
         Some(y_ratio_offset)
     }
-
-    pub(crate) fn base_scales_at(
-        &self,
-        alpha: f32,
-        interpolate: bool,
-    ) -> Option<(Xy<f32>, Xy<f32>)> {
-        let current = self.current.as_ref()?;
-        let previous = self.previous.as_ref();
-        if !interpolate {
-            return Some((current.enemy_base_scale, current.player_base_scale));
-        }
-        let previous = previous?;
-        Some((
-            lerp_xy(previous.enemy_base_scale, current.enemy_base_scale, alpha),
-            lerp_xy(previous.player_base_scale, current.player_base_scale, alpha),
-        ))
-    }
 }
 
 pub(crate) struct MonsterRenderSample<'a> {
@@ -431,14 +398,6 @@ fn lerp_angle(previous: Angle, current: Angle, alpha: f32) -> Angle {
         delta -= tau;
     }
     (previous.as_radians() + delta * alpha.clamp(0.0, 1.0)).rad()
-}
-
-fn lerp_xy(previous: Xy<f32>, current: Xy<f32>, alpha: f32) -> Xy<f32> {
-    let alpha = alpha.clamp(0.0, 1.0);
-    Xy::new(
-        previous.x + (current.x - previous.x) * alpha,
-        previous.y + (current.y - previous.y) * alpha,
-    )
 }
 
 #[cfg(test)]

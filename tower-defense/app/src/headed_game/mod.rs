@@ -116,7 +116,6 @@ impl HeadedGame {
                 &monster_metadata,
                 &projectile_metadata,
                 &tower_metadata,
-                (Xy::single(1.0), Xy::single(1.0)),
             ),
         );
         Self {
@@ -272,7 +271,6 @@ impl HeadedGame {
                 &monster_metadata,
                 &projectile_metadata,
                 &tower_metadata,
-                self.render_base_scales(),
             ),
         );
         self.base_animation_state =
@@ -357,7 +355,6 @@ impl HeadedGame {
             &monster_metadata,
             &projectile_metadata,
             &tower_metadata,
-            self.render_base_scales(),
         )
     }
 
