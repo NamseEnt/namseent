@@ -1,0 +1,621 @@
+{
+  "methodology": "heuristic_best is the argmax of best_build_tower_action_by_heuristic (coverage, then route distance, then damage) over the full oracle BuildTower candidate set (no position limit); a real rollout evaluation over the full oracle set is computationally intractable (tens of thousands of candidates per decision), so this is a rollout-free oracle-quality proxy, not a ground-truth best action. legal_candidate_recall is |proposed BuildTower candidates| / |oracle BuildTower candidates| at a given position_limit.",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "position_limits": [
+    8,
+    16,
+    32,
+    64
+  ],
+  "sample_points": [
+    {
+      "seed": 0,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "decision_index": 7,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 0,
+      "decision_index": 8,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 1,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 1,
+      "decision_index": 7,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 1,
+      "decision_index": 8,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "decision_index": 9,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "decision_index": 10,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "decision_index": 9,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "decision_index": 10,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "decision_index": 9,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "decision_index": 12,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "decision_index": 1,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "decision_index": 2,
+      "oracle_build_candidate_count": 37231,
+      "heuristic_best_action_id": "build_tower::0:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 248,
+          "legal_candidate_recall": 0.006661115736885929,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 496,
+          "legal_candidate_recall": 0.013322231473771857,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 992,
+          "legal_candidate_recall": 0.026644462947543714,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 1984,
+          "legal_candidate_recall": 0.05328892589508743,
+          "heuristic_best_retained": true
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "decision_index": 10,
+      "oracle_build_candidate_count": 185070,
+      "heuristic_best_action_id": "build_tower::4:19:17",
+      "per_limit": [
+        {
+          "position_limit": 8,
+          "proposed_build_candidate_count": 1240,
+          "legal_candidate_recall": 0.006700167504187605,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 16,
+          "proposed_build_candidate_count": 2480,
+          "legal_candidate_recall": 0.01340033500837521,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 32,
+          "proposed_build_candidate_count": 4960,
+          "legal_candidate_recall": 0.02680067001675042,
+          "heuristic_best_retained": false
+        },
+        {
+          "position_limit": 64,
+          "proposed_build_candidate_count": 9920,
+          "legal_candidate_recall": 0.05360134003350084,
+          "heuristic_best_retained": true
+        }
+      ]
+    }
+  ],
+  "aggregated": [
+    {
+      "position_limit": 8,
+      "sample_count": 18,
+      "mean_legal_candidate_recall": 0.006684980705792506,
+      "heuristic_best_retention_rate": 0.0
+    },
+    {
+      "position_limit": 16,
+      "sample_count": 18,
+      "mean_legal_candidate_recall": 0.013369961411585012,
+      "heuristic_best_retention_rate": 0.0
+    },
+    {
+      "position_limit": 32,
+      "sample_count": 18,
+      "mean_legal_candidate_recall": 0.026739922823170025,
+      "heuristic_best_retention_rate": 0.0
+    },
+    {
+      "position_limit": 64,
+      "sample_count": 18,
+      "mean_legal_candidate_recall": 0.05347984564634005,
+      "heuristic_best_retention_rate": 1.0
+    }
+  ]
+}

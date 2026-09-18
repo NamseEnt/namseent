@@ -401,4 +401,208 @@ mod tests {
         .expect_err("empty scenario schedule should be rejected");
         assert!(error.to_string().contains("scenario seed"));
     }
+
+    #[derive(serde::Serialize)]
+    struct RecallLimitStat {
+        position_limit: usize,
+        sample_count: usize,
+        mean_legal_candidate_recall: f64,
+        heuristic_best_retention_rate: f64,
+    }
+
+    #[derive(serde::Serialize)]
+    struct RecallSamplePointLimit {
+        position_limit: usize,
+        proposed_build_candidate_count: usize,
+        legal_candidate_recall: f64,
+        heuristic_best_retained: bool,
+    }
+
+    #[derive(serde::Serialize)]
+    struct RecallSamplePoint {
+        seed: u64,
+        decision_index: usize,
+        oracle_build_candidate_count: usize,
+        heuristic_best_action_id: Option<String>,
+        per_limit: Vec<RecallSamplePointLimit>,
+    }
+
+    #[derive(serde::Serialize)]
+    struct RecallReport {
+        methodology: String,
+        seeds: Vec<u64>,
+        position_limits: Vec<usize>,
+        sample_points: Vec<RecallSamplePoint>,
+        aggregated: Vec<RecallLimitStat>,
+    }
+
+    /// Phase 1 candidate-proposal recall report (see docs/game-ai/02-action-contract.md).
+    ///
+    /// `heuristic_best` is the argmax of the deterministic scripted-expert
+    /// coverage/route-distance/damage score (`best_build_tower_action_by_heuristic`)
+    /// over the FULL oracle `BuildTower` candidate set (no position limit).
+    /// It is a rollout-free oracle-quality proxy: a real rollout evaluation
+    /// over the full oracle set (tens of thousands of candidates per
+    /// decision) is computationally intractable, so this is not a
+    /// ground-truth "best future outcome" action, only the best action by
+    /// the same heuristic the scripted baseline and continuation policy
+    /// already use.
+    ///
+    /// Run with: cargo test --release -- --ignored phase1_candidate_recall_report --nocapture
+    #[test]
+    #[ignore = "manual release benchmark; writes artifacts/benchmarks/phase1-candidate-recall.json"]
+    fn phase1_candidate_recall_report() {
+        use crate::policy_runner::best_build_tower_action_by_heuristic;
+        use std::collections::HashSet;
+
+        const SEEDS: [u64; 6] = [0, 1, 2, 3, 4, 5];
+        const SAMPLES_PER_SEED: usize = 3;
+        const LIMITS: [usize; 4] = [8, 16, 32, 64];
+        const MAX_DECISIONS_PER_SEED: usize = 40;
+
+        let mut sample_points = Vec::new();
+
+        for &seed in &SEEDS {
+            let mut environment =
+                GameEnvironment::new(std::sync::Arc::new(GameConfig::default_config()), seed);
+            environment
+                .step(AgentAction::StartSelectingTower)
+                .expect("start selecting tower should be legal");
+
+            let mut samples_collected = 0usize;
+            let mut decision_index = 0usize;
+            while samples_collected < SAMPLES_PER_SEED && decision_index < MAX_DECISIONS_PER_SEED {
+                decision_index += 1;
+                let observation = environment.snapshot();
+                let oracle_build_actions = environment
+                    .semantic_legal_actions()
+                    .into_iter()
+                    .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                    .collect::<Vec<_>>();
+
+                if !oracle_build_actions.is_empty() {
+                    let oracle_ids = oracle_build_actions
+                        .iter()
+                        .map(|legal| legal.id.clone())
+                        .collect::<HashSet<_>>();
+                    let heuristic_best_id =
+                        best_build_tower_action_by_heuristic(&observation, &oracle_build_actions)
+                            .map(|action| action.action_id());
+
+                    let per_limit = LIMITS
+                        .iter()
+                        .map(|&limit| {
+                            let proposed = environment
+                                .semantic_legal_actions_with_position_limit(Some(limit))
+                                .into_iter()
+                                .filter(|legal| {
+                                    matches!(legal.action, AgentAction::BuildTower { .. })
+                                })
+                                .collect::<Vec<_>>();
+                            let proposed_ids = proposed
+                                .iter()
+                                .map(|legal| legal.id.clone())
+                                .collect::<HashSet<_>>();
+                            assert!(
+                                proposed_ids.is_subset(&oracle_ids),
+                                "proposed candidates must stay within the oracle set"
+                            );
+                            let recall = proposed.len() as f64 / oracle_build_actions.len() as f64;
+                            let retained = heuristic_best_id
+                                .as_ref()
+                                .is_some_and(|id| proposed_ids.contains(id));
+                            RecallSamplePointLimit {
+                                position_limit: limit,
+                                proposed_build_candidate_count: proposed.len(),
+                                legal_candidate_recall: recall,
+                                heuristic_best_retained: retained,
+                            }
+                        })
+                        .collect();
+
+                    sample_points.push(RecallSamplePoint {
+                        seed,
+                        decision_index,
+                        oracle_build_candidate_count: oracle_build_actions.len(),
+                        heuristic_best_action_id: heuristic_best_id,
+                        per_limit,
+                    });
+                    samples_collected += 1;
+                }
+
+                let legal_actions = environment.semantic_legal_actions_with_position_limit(Some(
+                    DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                ));
+                let action = scripted_expert_action(&observation, &legal_actions)
+                    .expect("scripted expert should find an action");
+                let outcome = environment
+                    .semantic_step(action)
+                    .expect("scripted step should be accepted");
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+
+        let aggregated = LIMITS
+            .iter()
+            .map(|&limit| {
+                let entries = sample_points
+                    .iter()
+                    .flat_map(|point| point.per_limit.iter().filter(|l| l.position_limit == limit))
+                    .collect::<Vec<_>>();
+                let count = entries.len().max(1);
+                let mean_recall = entries
+                    .iter()
+                    .map(|l| l.legal_candidate_recall)
+                    .sum::<f64>()
+                    / count as f64;
+                let retention_rate = entries
+                    .iter()
+                    .map(|l| l.heuristic_best_retained as u8 as f64)
+                    .sum::<f64>()
+                    / count as f64;
+                RecallLimitStat {
+                    position_limit: limit,
+                    sample_count: entries.len(),
+                    mean_legal_candidate_recall: mean_recall,
+                    heuristic_best_retention_rate: retention_rate,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        for stat in &aggregated {
+            println!(
+                "position_limit={} sample_count={} mean_legal_candidate_recall={:.4} heuristic_best_retention_rate={:.4}",
+                stat.position_limit,
+                stat.sample_count,
+                stat.mean_legal_candidate_recall,
+                stat.heuristic_best_retention_rate
+            );
+        }
+
+        let report = RecallReport {
+            methodology: "heuristic_best is the argmax of best_build_tower_action_by_heuristic \
+                (coverage, then route distance, then damage) over the full oracle BuildTower \
+                candidate set (no position limit); a real rollout evaluation over the full oracle \
+                set is computationally intractable (tens of thousands of candidates per decision), \
+                so this is a rollout-free oracle-quality proxy, not a ground-truth best action. \
+                legal_candidate_recall is |proposed BuildTower candidates| / |oracle BuildTower \
+                candidates| at a given position_limit."
+                .to_string(),
+            seeds: SEEDS.to_vec(),
+            position_limits: LIMITS.to_vec(),
+            sample_points,
+            aggregated,
+        };
+
+        let json = serde_json::to_string_pretty(&report).expect("report should serialize");
+        std::fs::create_dir_all("../artifacts/benchmarks")
+            .expect("benchmark artifact directory should be creatable");
+        std::fs::write(
+            "../artifacts/benchmarks/phase1-candidate-recall.json",
+            &json,
+        )
+        .expect("benchmark report should be written");
+    }
 }
