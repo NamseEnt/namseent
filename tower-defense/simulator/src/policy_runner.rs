@@ -808,6 +808,19 @@ fn semantic_card_decision_action(
     {
         return Some(action);
     }
+    best_build_tower_action_by_heuristic(observation, legal_actions)
+}
+
+/// Ranks `BuildTower` candidates by route coverage, then closeness to the
+/// route, then damage, and returns the best one. This is the same
+/// deterministic, rollout-free scoring the scripted expert uses to build a
+/// tower; it is also used as a cheap oracle-quality proxy when measuring
+/// candidate-proposal recall, since it is fast enough to run over every
+/// legal candidate (unlike a real rollout evaluation).
+pub(crate) fn best_build_tower_action_by_heuristic(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Option<AgentAction> {
     let route = &observation.route_coords;
     legal_actions
         .iter()
