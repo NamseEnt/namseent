@@ -414,6 +414,7 @@ mod tests {
                 action_kind_counts: BTreeMap::new(),
                 includes_truncated: false,
                 git_revision: "test-revision".to_string(),
+                teacher: None,
             },
             episodes: Vec::new(),
         };

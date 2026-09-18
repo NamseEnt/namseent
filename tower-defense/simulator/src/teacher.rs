@@ -329,7 +329,7 @@ fn rollout_score(observation: &crate::environment::Observation, victory: bool) -
     observation.stage.saturating_sub(1) as f32 + completion.clamp(0.0, 1.0) + terminal_victory_bonus
 }
 
-fn scenario_seed_digest(seeds: &[u64]) -> String {
+pub fn scenario_seed_digest(seeds: &[u64]) -> String {
     let mut digest = Sha256::new();
     digest.update(b"tower-defense-rollout-teacher-seed-schedule-v1");
     digest.update((seeds.len() as u64).to_be_bytes());

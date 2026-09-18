@@ -7,7 +7,10 @@ use crate::policy_runner::{
     run_scripted_oracle_trajectory, run_semantic_scripted_expert_trajectory,
     run_spiral_expert_trajectory,
 };
-use crate::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
+use crate::teacher::{
+    TEACHER_SCORE_SCHEMA_VERSION, RolloutTeacherConfig, run_semantic_teacher_episode,
+    scenario_seed_digest,
+};
 use crate::trajectory::{Trajectory, TrajectoryMetadata, TrajectoryStep};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
@@ -34,6 +37,18 @@ pub struct ExpertDatasetMetadata {
     pub action_kind_counts: BTreeMap<String, usize>,
     pub includes_truncated: bool,
     pub git_revision: String,
+    #[serde(default)]
+    pub teacher: Option<TeacherDatasetMetadata>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TeacherDatasetMetadata {
+    pub score_schema_version: u32,
+    pub scenario_seed_digest: String,
+    pub scenario_count: usize,
+    pub horizon_decisions: usize,
+    pub position_candidate_limit: Option<usize>,
+    pub candidate_limit: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,7 +122,15 @@ pub fn collect_semantic_rollout_teacher_behavior_dataset(
     max_decisions_per_episode: usize,
     teacher_config: RolloutTeacherConfig,
 ) -> Result<ExpertDataset> {
-    collect_behavior_dataset_with_runner(
+    let teacher_metadata = TeacherDatasetMetadata {
+        score_schema_version: TEACHER_SCORE_SCHEMA_VERSION,
+        scenario_seed_digest: scenario_seed_digest(&teacher_config.scenario_seeds),
+        scenario_count: teacher_config.scenario_seeds.len(),
+        horizon_decisions: teacher_config.horizon_decisions,
+        position_candidate_limit: teacher_config.position_candidate_limit,
+        candidate_limit: teacher_config.candidate_limit,
+    };
+    let mut dataset = collect_behavior_dataset_with_runner(
         config,
         seed_range,
         max_decisions_per_episode,
@@ -121,7 +144,9 @@ pub fn collect_semantic_rollout_teacher_behavior_dataset(
             )
         },
         "semantic_rollout_teacher_behavior",
-    )
+    )?;
+    dataset.metadata.teacher = Some(teacher_metadata);
+    Ok(dataset)
 }
 
 fn collect_semantic_rollout_teacher_trajectory(
@@ -315,6 +340,7 @@ pub fn collect_all_expert_behavior_dataset(
                 .iter()
                 .any(|episode| episode.steps.iter().any(|step| step.truncated)),
             git_revision: super::neural_checkpoint::current_git_revision()?,
+            teacher: None,
         },
         episodes,
     };
@@ -387,6 +413,7 @@ fn collect_behavior_dataset_with_runner(
         action_kind_counts,
         includes_truncated,
         git_revision: super::neural_checkpoint::current_git_revision()?,
+        teacher: None,
     };
     let dataset = ExpertDataset { metadata, episodes };
     validate_dataset(&dataset, &config)?;
@@ -502,6 +529,7 @@ pub fn collect_strict_expert_dataset(
                     .is_some_and(|outcome| outcome.truncated)
             }),
             git_revision: super::neural_checkpoint::current_git_revision()?,
+            teacher: None,
         },
         episodes,
     };
@@ -709,6 +737,7 @@ mod tests {
                     .collect(),
                 includes_truncated: false,
                 git_revision: "test-revision".to_string(),
+                teacher: None,
             },
             episodes: Vec::new(),
         }

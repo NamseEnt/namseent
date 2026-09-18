@@ -140,6 +140,19 @@ fn scripted_reroll_indices(observation: &Observation) -> Vec<usize> {
     }
 }
 
+fn scripted_reroll_card_ids(observation: &Observation) -> Vec<usize> {
+    let slot_indices = scripted_reroll_indices(observation);
+    observation
+        .hand
+        .iter()
+        .filter(|item| slot_indices.contains(&item.index))
+        .filter_map(|item| match &item.item {
+            super::environment::HandItemObservation::Card(card) => Some(card.id),
+            super::environment::HandItemObservation::Tower(_) => None,
+        })
+        .collect()
+}
+
 impl<F> EnvironmentPolicy for F
 where
     F: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
@@ -823,22 +836,65 @@ pub fn scripted_expert_action(
                 if observation.rerolled_count == 0
                     && should_scripted_reroll(observation)
                     && let Some(action) = legal_actions.iter().find_map(|legal| {
-                        let AgentAction::Reroll {
-                            selected_slot_indices,
-                        } = &legal.action
-                        else {
+                        let AgentAction::Reroll { card_ids } = &legal.action else {
                             return None;
                         };
-                        (selected_slot_indices == &scripted_reroll_indices(observation))
+                        (card_ids == &scripted_reroll_card_ids(observation))
                             .then(|| legal.action.clone())
                     })
                 {
                     return Ok(action);
                 }
+                let route = &observation.route_coords;
                 return legal_actions
                     .iter()
-                    .find(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
-                    .map(|legal| legal.action.clone())
+                    .filter_map(|legal| {
+                        let AgentAction::BuildTower {
+                            card_ids, left, top, ..
+                        } = &legal.action
+                        else {
+                            return None;
+                        };
+                        let template = observation
+                            .build_tower_candidates
+                            .iter()
+                            .find(|candidate| &candidate.card_ids == card_ids)
+                            .map(|candidate| &candidate.template)?;
+                        let range_raw = tower_range_raw(&template.kind);
+                        let covered_route = route
+                            .iter()
+                            .filter(|coord| {
+                                let dx = (coord.x as i64 - *left as i64)
+                                    .saturating_mul(1_000_000)
+                                    .saturating_sub(500_000);
+                                let dy = (coord.y as i64 - *top as i64)
+                                    .saturating_mul(1_000_000)
+                                    .saturating_sub(500_000);
+                                dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                                    <= range_raw.saturating_mul(range_raw)
+                            })
+                            .count();
+                        let nearest_route = route
+                            .iter()
+                            .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
+                            .min()
+                            .unwrap_or(usize::MAX);
+                        Some((
+                            covered_route,
+                            nearest_route,
+                            template.damage_raw,
+                            legal.action.clone(),
+                        ))
+                    })
+                    .max_by_key(|(covered_route, nearest_route, damage, action)| {
+                        (
+                            *covered_route,
+                            std::cmp::Reverse(*nearest_route),
+                            *damage,
+                            action.action_id(),
+                        )
+                    })
+                    .map(|(_, _, _, action)| action)
                     .ok_or_else(|| anyhow::anyhow!("scripted expert found no semantic build"));
             }
             if observation.card_selection_purpose.is_none() {

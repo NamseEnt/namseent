@@ -146,6 +146,15 @@ pub fn candidate_rows_for_legal_actions(
         .collect()
 }
 
+fn hand_slot_index_for_card_id(observation: &Observation, card_id: usize) -> Option<usize> {
+    observation.hand.iter().find_map(|item| match &item.item {
+        crate::environment::HandItemObservation::Card(card) if card.id == card_id => {
+            Some(item.index)
+        }
+        _ => None,
+    })
+}
+
 pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) -> Vec<EntityRow> {
     let kind = action.kind().index() as u32 + 1;
     let (first, second, third) = match action {
@@ -177,29 +186,30 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
             *left as u32 + 1,
             *top as u32 + 1,
         ),
-        AgentAction::Reroll {
-            selected_slot_indices,
-        }
-        | AgentAction::SelectTower {
-            selected_slot_indices,
-        } => (
-            selected_slot_indices.len() as u32,
-            selected_slot_indices.iter().copied().sum::<usize>() as u32,
-            selected_slot_indices
+        AgentAction::Reroll { card_ids } | AgentAction::SelectTower { card_ids } => {
+            let slot_indices = card_ids
                 .iter()
-                .copied()
-                .max()
-                .map_or(0, |index| index as u32 + 1),
-        ),
+                .filter_map(|card_id| hand_slot_index_for_card_id(observation, *card_id))
+                .collect::<Vec<_>>();
+            (
+                slot_indices.len() as u32,
+                slot_indices.iter().copied().sum::<usize>() as u32,
+                slot_indices
+                    .iter()
+                    .copied()
+                    .max()
+                    .map_or(0, |index| index as u32 + 1),
+            )
+        }
         AgentAction::BuildTower {
-            selected_slot_indices,
+            card_ids,
             hand_slot_index,
             left,
             top,
         } => (
             *hand_slot_index as u32 + 1,
             *left as u32 + 1,
-            selected_slot_indices.len() as u32 + *top as u32 + 1,
+            card_ids.len() as u32 + *top as u32 + 1,
         ),
         AgentAction::RemoveTower { tower_id } => (*tower_id as u32, (*tower_id >> 32) as u32, 0),
         AgentAction::StartSelectingTower
@@ -238,23 +248,23 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
             }
         }
         AgentAction::BuildTower {
-            selected_slot_indices,
+            card_ids,
             hand_slot_index,
             left,
             top,
         } => {
-            categorical[1] = selected_slot_indices.len() as u32;
+            categorical[1] = card_ids.len() as u32;
             categorical[2] = *left as u32 + 1;
             categorical[3] = *top as u32 + 1;
-            numeric[1] = selected_slot_indices.len() as f32 / 10.0;
-            numeric[2] = selected_slot_indices.iter().sum::<usize>() as f32 / 100.0;
+            numeric[1] = card_ids.len() as f32 / 10.0;
+            numeric[2] = card_ids.len() as f32 / 10.0;
             numeric[3] = *left as f32 / observation.map_width.max(1) as f32;
             numeric[4] = *top as f32 / observation.map_height.max(1) as f32;
             numeric[0] = *hand_slot_index as f32 / 10.0;
             if let Some(candidate) = observation
                 .build_tower_candidates
                 .iter()
-                .find(|candidate| candidate.selected_slot_indices == *selected_slot_indices)
+                .find(|candidate| &candidate.card_ids == card_ids)
             {
                 numeric[1] = candidate.template.kind_id as f32 / 32.0;
                 numeric[2] = candidate.template.damage_raw as f32 / 10_000.0;

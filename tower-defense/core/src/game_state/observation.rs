@@ -42,7 +42,7 @@ pub struct HandObservation {
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BuildTowerCandidateObservation {
-    pub selected_slot_indices: Vec<usize>,
+    pub card_ids: Vec<usize>,
     pub template: TowerTemplateObservation,
 }
 
@@ -406,41 +406,42 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
     ) {
         return Vec::new();
     }
-    let card_indices = state
+    let card_slots = state
         .hand
         .slots
         .iter()
         .enumerate()
-        .filter_map(|(index, slot)| {
-            matches!(slot.item, crate::HandItemState::Card(_)).then_some(index)
+        .filter_map(|(index, slot)| match &slot.item {
+            crate::HandItemState::Card(card) => Some((index, card.id)),
+            crate::HandItemState::Tower(_) => None,
         })
         .collect::<Vec<_>>();
-    if card_indices.is_empty() {
+    if card_slots.is_empty() {
         return Vec::new();
     }
-    let subset_count = 1usize << card_indices.len();
+    let subset_count = 1usize << card_slots.len();
     let mut candidates = Vec::with_capacity(subset_count.saturating_sub(1));
     for subset_mask in 1..subset_count {
-        let selected_slot_indices = card_indices
+        let selected_slots = card_slots
             .iter()
             .enumerate()
-            .filter_map(|(offset, slot_index)| {
-                (subset_mask & (1usize << offset) != 0).then_some(*slot_index)
+            .filter_map(|(offset, (slot_index, card_id))| {
+                (subset_mask & (1usize << offset) != 0).then_some((*slot_index, *card_id))
             })
             .collect::<Vec<_>>();
-        let canonical_selection = if subset_mask + 1 == subset_count {
+        let canonical_card_ids: Vec<usize> = if subset_mask + 1 == subset_count {
             Vec::new()
         } else {
-            selected_slot_indices
+            selected_slots.iter().map(|(_, card_id)| *card_id).collect()
         };
-        let source_indices = if canonical_selection.is_empty() {
-            card_indices.clone()
+        let source_slots = if canonical_card_ids.is_empty() {
+            card_slots.clone()
         } else {
-            canonical_selection.clone()
+            selected_slots.clone()
         };
-        let cards = source_indices
+        let cards = source_slots
             .iter()
-            .filter_map(|index| match &state.hand.slots[*index].item {
+            .filter_map(|(slot_index, _)| match &state.hand.slots[*slot_index].item {
                 crate::HandItemState::Card(card) => Some(card.clone()),
                 crate::HandItemState::Tower(_) => None,
             })
@@ -454,7 +455,7 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
             continue;
         };
         candidates.push(BuildTowerCandidateObservation {
-            selected_slot_indices: canonical_selection,
+            card_ids: canonical_card_ids,
             template: tower_template_observation(&template),
         });
     }

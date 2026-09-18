@@ -9,9 +9,9 @@ use td_core::CommandError;
 #[cfg(test)]
 use td_core::PlayerCommand;
 
-pub const ENVIRONMENT_VERSION: u32 = 6;
-pub const ACTION_SCHEMA_VERSION: u32 = 6;
-pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 6;
+pub const ENVIRONMENT_VERSION: u32 = 7;
+pub const ACTION_SCHEMA_VERSION: u32 = 7;
+pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 7;
 pub const DEFAULT_MAX_ADVANCE_TICKS: u64 = 60 * 60 * 5;
 pub const DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT: usize = 32;
 
@@ -263,7 +263,10 @@ impl GameEnvironment {
             let pre_observation = environment.snapshot();
             let pre_state_hash = environment.state_hash();
             let pre_tick = environment.game_state.sim_tick().ticks();
-            let action = Self::agent_action_for_command(&recorded.command);
+            let action = Self::agent_action_for_command(
+                &recorded.command,
+                environment.game_state.raw_state().hand(),
+            );
             environment
                 .game_state
                 .apply(recorded.command.clone())
@@ -335,12 +338,24 @@ impl GameEnvironment {
         Self::new_with_reward_config(config, seed, RewardConfig::default())
     }
 
-    fn agent_action_for_command(command: &td_core::PlayerCommand) -> AgentAction {
+    fn agent_action_for_command(
+        command: &td_core::PlayerCommand,
+        hand: &td_core::HandState,
+    ) -> AgentAction {
+        let slot_indices_to_card_ids = |indices: &[usize]| -> Vec<usize> {
+            indices
+                .iter()
+                .filter_map(|index| match hand.slots.get(*index).map(|slot| &slot.item) {
+                    Some(td_core::HandItemState::Card(card)) => Some(card.id),
+                    _ => None,
+                })
+                .collect()
+        };
         match command {
             td_core::PlayerCommand::Reroll {
                 selected_slot_indices,
             } => AgentAction::Reroll {
-                selected_slot_indices: selected_slot_indices.clone(),
+                card_ids: slot_indices_to_card_ids(selected_slot_indices),
             },
             td_core::PlayerCommand::PurchaseShopItem { slot_index } => {
                 AgentAction::PurchaseShopItem {
@@ -361,7 +376,7 @@ impl GameEnvironment {
             td_core::PlayerCommand::SelectTower {
                 selected_slot_indices,
             } => AgentAction::SelectTower {
-                selected_slot_indices: selected_slot_indices.clone(),
+                card_ids: slot_indices_to_card_ids(selected_slot_indices),
             },
             td_core::PlayerCommand::PlaceTower {
                 hand_slot_index,
@@ -755,13 +770,9 @@ impl GameEnvironment {
         let starts_from_shop = matches!(self.decision_point(), DecisionPoint::Shop)
             && matches!(self.decision_context, DecisionContext::None);
         match action {
-            AgentAction::Reroll {
-                selected_slot_indices,
-            } => {
+            AgentAction::Reroll { card_ids } => {
                 if !starts_from_shop {
-                    return self.step_unchecked(AgentAction::Reroll {
-                        selected_slot_indices,
-                    });
+                    return self.step_unchecked(AgentAction::Reroll { card_ids });
                 }
                 let trace_start = self.policy_trace.steps.len();
                 let trace_pre_observation = self.snapshot();
@@ -774,12 +785,10 @@ impl GameEnvironment {
                     .map(|legal| legal.action)
                     .collect::<Vec<_>>();
                 let trace_action = AgentAction::Reroll {
-                    selected_slot_indices: selected_slot_indices.clone(),
+                    card_ids: card_ids.clone(),
                 };
                 let first = self.step_unchecked(AgentAction::StartSelectingTower)?;
-                let mut second = self.step_unchecked(AgentAction::Reroll {
-                    selected_slot_indices,
-                })?;
+                let mut second = self.step_unchecked(AgentAction::Reroll { card_ids })?;
                 merge_step_outcome(&mut second, &first);
                 self.replace_policy_trace_with_macro(
                     trace_start,
@@ -792,7 +801,7 @@ impl GameEnvironment {
                 Ok(second)
             }
             AgentAction::BuildTower {
-                selected_slot_indices,
+                card_ids,
                 hand_slot_index,
                 left,
                 top,
@@ -800,7 +809,7 @@ impl GameEnvironment {
                 let trace_start = self.policy_trace.steps.len();
                 let trace_pre_observation = self.snapshot();
                 let trace_pre_state_hash = self.state_hash();
-                let trace_selected_slot_indices = selected_slot_indices.clone();
+                let trace_card_ids = card_ids.clone();
                 let trace_legal_actions = self
                     .semantic_legal_actions_with_position_limit(Some(
                         DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
@@ -811,9 +820,7 @@ impl GameEnvironment {
                 let start_outcome = starts_from_shop
                     .then(|| self.step_unchecked(AgentAction::StartSelectingTower))
                     .transpose()?;
-                let first = self.step_unchecked(AgentAction::SelectTower {
-                    selected_slot_indices,
-                })?;
+                let first = self.step_unchecked(AgentAction::SelectTower { card_ids })?;
                 let mut second = self.step_unchecked(AgentAction::PlaceTower {
                     hand_slot_index,
                     left,
@@ -829,7 +836,7 @@ impl GameEnvironment {
                     trace_pre_state_hash,
                     trace_legal_actions,
                     AgentAction::BuildTower {
-                        selected_slot_indices: trace_selected_slot_indices,
+                        card_ids: trace_card_ids,
                         hand_slot_index,
                         left,
                         top,
@@ -909,16 +916,21 @@ impl GameEnvironment {
         let command_count_before = self.game_state.replay().commands.len();
 
         let deferred_card_service = self.card_service_kind_for_action(&action);
-        let action_result = if let Some(command) = action.to_player_command() {
-            self.game_state
+        let hand_card_ids = td_core::hand_card_id_slots(self.game_state.raw_state().hand());
+        let action_result = match action.to_player_command(&hand_card_ids) {
+            Ok(Some(command)) => self
+                .game_state
                 .apply(command)
                 .map_err(|error| EnvironmentError::CommandRejected {
                     action_id: action.action_id(),
                     error,
                 })
-                .map(|_| ())
-        } else {
-            self.apply_environment_action(&action)
+                .map(|_| ()),
+            Ok(None) => self.apply_environment_action(&action),
+            Err(error) => Err(EnvironmentError::CommandRejected {
+                action_id: action.action_id(),
+                error,
+            }),
         };
         action_result?;
         self.apply_card_selection_action(&action)?;
@@ -1174,31 +1186,29 @@ impl GameEnvironment {
                 .iter()
                 .any(|legal_action| legal_action.action == *action);
         }
-        let card_indices = self.card_hand_indices();
-        let selected_indices_are_cards = |selected_slot_indices: &[usize]| {
-            let mut sorted = selected_slot_indices.to_vec();
+        let hand_card_ids = td_core::hand_card_id_slots(self.game_state.raw_state().hand());
+        let card_ids_are_selectable = |card_ids: &[usize]| {
+            let mut sorted = card_ids.to_vec();
             sorted.sort_unstable();
             sorted.dedup();
-            sorted.len() == selected_slot_indices.len()
-                && selected_slot_indices
+            sorted.len() == card_ids.len()
+                && card_ids
                     .iter()
-                    .all(|slot_index| card_indices.contains(slot_index))
+                    .all(|card_id| hand_card_ids.iter().any(|(_, id)| id == card_id))
         };
         match action {
-            AgentAction::Reroll {
-                selected_slot_indices,
-            } => {
-                !selected_slot_indices.is_empty()
-                    && selected_indices_are_cards(selected_slot_indices)
+            AgentAction::Reroll { card_ids } => {
+                !card_ids.is_empty()
+                    && card_ids_are_selectable(card_ids)
                     && self.can_afford_reroll()
             }
             AgentAction::BuildTower {
-                selected_slot_indices,
+                card_ids,
                 hand_slot_index,
                 left,
                 top,
             } => {
-                selected_indices_are_cards(selected_slot_indices)
+                card_ids_are_selectable(card_ids)
                     && *hand_slot_index
                         < self
                             .game_state
@@ -1236,6 +1246,16 @@ impl GameEnvironment {
             return Vec::new();
         }
         let state = self.game_state.raw_state();
+        let hand = state.hand();
+        let card_ids_by_offset = card_indices
+            .iter()
+            .map(|slot_index| match &hand.slots[*slot_index].item {
+                td_core::HandItemState::Card(card) => card.id,
+                td_core::HandItemState::Tower(_) => {
+                    unreachable!("card_hand_indices only returns card slots")
+                }
+            })
+            .collect::<Vec<_>>();
         let reroll_health_cost = state
             .stage_modifiers()
             .reroll_health_cost
@@ -1247,24 +1267,24 @@ impl GameEnvironment {
         let mut actions = Vec::new();
         let subset_count = 1usize << card_indices.len();
         for subset_mask in 1..subset_count {
-            let selected_slot_indices = card_indices
+            let selected_card_ids = card_ids_by_offset
                 .iter()
                 .enumerate()
-                .filter_map(|(offset, slot_index)| {
-                    (subset_mask & (1usize << offset) != 0).then_some(*slot_index)
+                .filter_map(|(offset, card_id)| {
+                    (subset_mask & (1usize << offset) != 0).then_some(*card_id)
                 })
                 .collect::<Vec<_>>();
             if can_afford_reroll {
                 actions.push(AgentAction::Reroll {
-                    selected_slot_indices: selected_slot_indices.clone(),
+                    card_ids: selected_card_ids.clone(),
                 });
             }
-            let canonical_selection = if subset_mask + 1 == subset_count {
+            let canonical_card_ids = if subset_mask + 1 == subset_count {
                 Vec::new()
             } else {
-                selected_slot_indices
+                selected_card_ids
             };
-            actions.extend(self.semantic_build_actions(canonical_selection, &legal_positions));
+            actions.extend(self.semantic_build_actions(canonical_card_ids, &legal_positions));
         }
         actions
     }
@@ -1303,7 +1323,7 @@ impl GameEnvironment {
 
     fn semantic_build_actions(
         &self,
-        selected_slot_indices: Vec<usize>,
+        card_ids: Vec<usize>,
         legal_positions: &[[usize; 2]],
     ) -> Vec<AgentAction> {
         let tower_count = self
@@ -1317,7 +1337,7 @@ impl GameEnvironment {
         for hand_slot_index in 0..tower_count {
             for [left, top] in legal_positions {
                 actions.push(AgentAction::BuildTower {
-                    selected_slot_indices: selected_slot_indices.clone(),
+                    card_ids: card_ids.clone(),
                     hand_slot_index,
                     left: *left,
                     top: *top,
@@ -1396,18 +1416,24 @@ impl GameEnvironment {
                         state_hash: self.state_hash(),
                     });
                 };
+                let hand = self.game_state.raw_state().hand();
+                let card_ids = selected_slot_indices
+                    .iter()
+                    .filter_map(|slot_index| match hand.slots.get(*slot_index).map(|slot| &slot.item) {
+                        Some(td_core::HandItemState::Card(card)) => Some(card.id),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+                let hand_card_ids = td_core::hand_card_id_slots(hand);
                 let committed = match purpose {
-                    CardSelectionPurpose::Reroll => AgentAction::Reroll {
-                        selected_slot_indices,
-                    },
-                    CardSelectionPurpose::BuildTower => AgentAction::SelectTower {
-                        selected_slot_indices,
-                    },
+                    CardSelectionPurpose::Reroll => AgentAction::Reroll { card_ids },
+                    CardSelectionPurpose::BuildTower => AgentAction::SelectTower { card_ids },
                 };
                 self.game_state
                     .apply(
                         committed
-                            .to_player_command()
+                            .to_player_command(&hand_card_ids)
+                            .expect("card selection resolves to a valid command")
                             .expect("card selection commit command"),
                     )
                     .map_err(|error| EnvironmentError::CommandRejected {
@@ -1895,7 +1921,8 @@ mod tests {
         let mut simulator = GameEnvironment::new(config, 7);
         let action = AgentAction::StartSelectingTower;
         let command = action
-            .to_player_command()
+            .to_player_command(&[])
+            .expect("start selecting tower resolves")
             .expect("start selecting tower must map to a player command");
 
         core.apply(command)
@@ -1956,8 +1983,13 @@ mod tests {
         let mut simulator = GameEnvironment::new(config, 7);
 
         let start = AgentAction::StartSelectingTower;
-        core.apply(start.to_player_command().expect("start command"))
-            .expect("core start command should be accepted");
+        core.apply(
+            start
+                .to_player_command(&[])
+                .expect("start command resolves")
+                .expect("start command"),
+        )
+        .expect("core start command should be accepted");
         simulator
             .step(start)
             .expect("simulator start action should be accepted");
@@ -2016,12 +2048,12 @@ mod tests {
             .into_iter()
             .find_map(|legal| match legal.action {
                 AgentAction::BuildTower {
-                    selected_slot_indices,
+                    card_ids,
                     hand_slot_index,
                     left,
                     top,
                 } => Some(AgentAction::BuildTower {
-                    selected_slot_indices,
+                    card_ids,
                     hand_slot_index,
                     left,
                     top,
@@ -2029,19 +2061,16 @@ mod tests {
                 _ => None,
             })
             .expect("semantic build action should be available");
-        let (selected_slot_indices, left, top) = match &build_action {
+        let (card_ids, left, top) = match &build_action {
             AgentAction::BuildTower {
-                selected_slot_indices,
-                left,
-                top,
-                ..
-            } => (selected_slot_indices.clone(), *left, *top),
+                card_ids, left, top, ..
+            } => (card_ids.clone(), *left, *top),
             _ => unreachable!("the selected semantic action should build a tower"),
         };
         let expected_template = selecting_observation
             .build_tower_candidates
             .iter()
-            .find(|candidate| candidate.selected_slot_indices == selected_slot_indices)
+            .find(|candidate| candidate.card_ids == card_ids)
             .map(|candidate| candidate.template.clone())
             .expect("semantic build action should have an observed resulting tower");
 
@@ -2109,6 +2138,118 @@ mod tests {
             .core_replay()
             .validate()
             .expect("shop semantic replay should remain valid");
+    }
+
+    #[test]
+    fn illegal_semantic_build_action_leaves_no_partial_mutation() {
+        let card_ids = environment()
+            .snapshot()
+            .build_tower_candidates
+            .first()
+            .expect("a build candidate should exist")
+            .card_ids
+            .clone();
+        let illegal_actions = [
+            AgentAction::BuildTower {
+                card_ids: card_ids.clone(),
+                hand_slot_index: 0,
+                left: td_core::MAP_SIZE[0],
+                top: td_core::MAP_SIZE[1],
+            },
+            AgentAction::BuildTower {
+                card_ids: card_ids.clone(),
+                hand_slot_index: 99,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![999_999],
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
+            },
+        ];
+        for illegal_action in illegal_actions {
+            let mut environment = environment();
+            let before_hash = environment.state_hash();
+            let before_observation = environment.snapshot();
+
+            let result = environment.semantic_step(illegal_action.clone());
+
+            assert!(
+                matches!(result, Err(EnvironmentError::IllegalAction { .. })),
+                "expected {illegal_action:?} to be rejected"
+            );
+            assert_eq!(environment.state_hash(), before_hash);
+            assert_eq!(environment.snapshot(), before_observation);
+        }
+    }
+
+    #[test]
+    fn can_place_at_matches_actual_placement_outcome_for_sampled_map_cells() {
+        let environment = environment();
+        let card_ids = environment
+            .snapshot()
+            .build_tower_candidates
+            .first()
+            .expect("a build candidate should exist")
+            .card_ids
+            .clone();
+        let placement_context = environment.game_state.raw_state().tower_placement_context();
+        let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
+        let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
+        let mut free_cells = Vec::new();
+        let mut blocked_cells = Vec::new();
+        for top in 0..map_height {
+            for left in 0..map_width {
+                if placement_context.can_place_at(left, top) {
+                    free_cells.push((left, top));
+                } else {
+                    blocked_cells.push((left, top));
+                }
+            }
+        }
+        assert!(!free_cells.is_empty());
+        assert!(!blocked_cells.is_empty());
+
+        const SAMPLE_SIZE: usize = 8;
+        let sample = |cells: &[(usize, usize)]| -> Vec<(usize, usize)> {
+            let stride = (cells.len() / SAMPLE_SIZE).max(1);
+            cells.iter().copied().step_by(stride).take(SAMPLE_SIZE).collect()
+        };
+        let sampled_cells = sample(&free_cells)
+            .into_iter()
+            .map(|cell| (cell, true))
+            .chain(sample(&blocked_cells).into_iter().map(|cell| (cell, false)))
+            .collect::<Vec<_>>();
+
+        let mut prepared = environment
+            .fork_for_rollout_seed(11)
+            .expect("fork should succeed");
+        prepared
+            .step_unchecked(AgentAction::StartSelectingTower)
+            .expect("tower selection should start");
+        prepared
+            .step_unchecked(AgentAction::SelectTower {
+                card_ids: card_ids.clone(),
+            })
+            .expect("tower selection should resolve to a template");
+
+        for ((left, top), predicted) in sampled_cells {
+            let mut probe = prepared
+                .fork_for_rollout_seed(11)
+                .expect("fork should succeed");
+            let outcome = probe.step_unchecked(AgentAction::PlaceTower {
+                hand_slot_index: 0,
+                left,
+                top,
+            });
+            assert_eq!(
+                outcome.is_ok(),
+                predicted,
+                "can_place_at disagreed with the actual placement outcome at ({left}, {top})"
+            );
+        }
     }
 
     #[test]
@@ -2464,11 +2605,13 @@ mod tests {
             AgentAction::DeselectHandCard { hand_slot_index: 0 },
             AgentAction::ConfirmCardSelection,
             AgentAction::CancelCardSelection,
-            AgentAction::Reroll {
-                selected_slot_indices: vec![],
-            },
-            AgentAction::SelectTower {
-                selected_slot_indices: vec![],
+            AgentAction::Reroll { card_ids: vec![] },
+            AgentAction::SelectTower { card_ids: vec![] },
+            AgentAction::BuildTower {
+                card_ids: vec![],
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
             },
             AgentAction::PlaceTower {
                 hand_slot_index: 0,
