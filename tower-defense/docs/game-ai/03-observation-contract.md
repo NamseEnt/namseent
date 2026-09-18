@@ -114,7 +114,8 @@ configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 �
 - categorical vocabulary는 안정적인 key와 schema version을 사용한다.
 - 누락과 값 0을 같은 표현으로 합치지 않는다.
 - variable-cardinality entity set의 multiplicity를 보존한다.
-- feature를 제거하거나 의미를 변경하면 `FEATURE_SCHEMA_VERSION`을 증가시킨다.
+- typed entity numeric row는 upgrade runtime parameter를 포함할 수 있도록 6폭으로 zero-padding한다. 모델의 entity input도 같은 폭을 사용한다.
+- feature를 제거하거나 의미를 변경하면 `FEATURE_SCHEMA_VERSION`을 증가시킨다. upgrade parameter row 폭 변경으로 현재 feature schema는 7이며 이전 checkpoint와 섞지 않는다.
 
 ## 승인 기준
 

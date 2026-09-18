@@ -282,9 +282,6 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
             )
         })?,
         BenchmarkPolicyArg::Checkpoint => {
-            if semantic_actions {
-                anyhow::bail!("semantic benchmark mode does not support legacy checkpoints")
-            }
             let contract = MlContract::from_config(config.as_ref());
             let (_checkpoint, model) =
                 NeuralCheckpoint::load_with_inference_model_with_config_change(
@@ -294,27 +291,51 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
                 )?;
             let model = Arc::new(model);
             let device = Arc::new(default_policy_device());
-            pool.install(|| {
-                benchmark::run_policy(
-                    config,
-                    &seeds,
-                    format!("checkpoint:{}", options.checkpoint.display()),
-                    options.max_decisions,
-                    threads,
-                    move |_| {
-                        let model = Arc::clone(&model);
-                        let device = Arc::clone(&device);
-                        move |observation: &Observation, legal_actions: &[LegalAction]| {
-                            choose_model_action(
-                                model.as_ref(),
-                                device.as_ref(),
-                                observation,
-                                legal_actions,
-                            )
-                        }
-                    },
-                )
-            })?
+            if semantic_actions {
+                pool.install(|| {
+                    benchmark::run_semantic_policy(
+                        config,
+                        &seeds,
+                        format!("checkpoint:{}", options.checkpoint.display()),
+                        options.max_decisions,
+                        threads,
+                        move |_| {
+                            let model = Arc::clone(&model);
+                            let device = Arc::clone(&device);
+                            move |observation: &Observation, legal_actions: &[LegalAction]| {
+                                choose_model_action(
+                                    model.as_ref(),
+                                    device.as_ref(),
+                                    observation,
+                                    legal_actions,
+                                )
+                            }
+                        },
+                    )
+                })?
+            } else {
+                pool.install(|| {
+                    benchmark::run_policy(
+                        config,
+                        &seeds,
+                        format!("checkpoint:{}", options.checkpoint.display()),
+                        options.max_decisions,
+                        threads,
+                        move |_| {
+                            let model = Arc::clone(&model);
+                            let device = Arc::clone(&device);
+                            move |observation: &Observation, legal_actions: &[LegalAction]| {
+                                choose_model_action(
+                                    model.as_ref(),
+                                    device.as_ref(),
+                                    observation,
+                                    legal_actions,
+                                )
+                            }
+                        },
+                    )
+                })?
+            }
         }
     };
     let json = serde_json::to_string_pretty(&report)?;
