@@ -41,6 +41,12 @@ pub struct HandObservation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct BuildTowerCandidateObservation {
+    pub selected_slot_indices: Vec<usize>,
+    pub template: TowerTemplateObservation,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardServiceObservation {
     pub key: String,
     pub current_step: usize,
@@ -141,6 +147,8 @@ pub struct Observation {
     pub active_monster_count: usize,
     pub queued_monster_count: usize,
     pub hand: Vec<HandObservation>,
+    #[serde(default)]
+    pub build_tower_candidates: Vec<BuildTowerCandidateObservation>,
     pub deck: DeckObservation,
     pub shop: Vec<ShopSlotObservation>,
     pub inventory: Vec<InventoryObservation>,
@@ -204,6 +212,7 @@ impl crate::CoreState {
                 },
             })
             .collect();
+        let build_tower_candidates = build_tower_candidates(self);
 
         let (shop, treasure_options) = match &self.flow {
             crate::GameFlowState::Shopping(flow) => (
@@ -286,6 +295,7 @@ impl crate::CoreState {
             active_monster_count: self.monsters.len(),
             queued_monster_count: self.monster_spawn.monster_queue.len(),
             hand,
+            build_tower_candidates,
             deck: DeckObservation {
                 all_cards: self.deck.all_cards.iter().map(card_observation).collect(),
                 draw_cards: unordered_cards(&self.deck.draw_pile),
@@ -387,6 +397,65 @@ fn card_observation(card: &crate::CardState) -> CardObservation {
         polish_pct_raw: card.polish_pct_raw,
         engraving: card.engraving.map(engraving_key).map(str::to_string),
     }
+}
+
+fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateObservation> {
+    if !matches!(state.flow(), crate::GameFlowState::SelectingTower) {
+        return Vec::new();
+    }
+    let card_indices = state
+        .hand
+        .slots
+        .iter()
+        .enumerate()
+        .filter_map(|(index, slot)| {
+            matches!(slot.item, crate::HandItemState::Card(_)).then_some(index)
+        })
+        .collect::<Vec<_>>();
+    if card_indices.is_empty() {
+        return Vec::new();
+    }
+    let subset_count = 1usize << card_indices.len();
+    let mut candidates = Vec::with_capacity(subset_count.saturating_sub(1));
+    for subset_mask in 1..subset_count {
+        let selected_slot_indices = card_indices
+            .iter()
+            .enumerate()
+            .filter_map(|(offset, slot_index)| {
+                (subset_mask & (1usize << offset) != 0).then_some(*slot_index)
+            })
+            .collect::<Vec<_>>();
+        let canonical_selection = if subset_mask + 1 == subset_count {
+            Vec::new()
+        } else {
+            selected_slot_indices
+        };
+        let source_indices = if canonical_selection.is_empty() {
+            card_indices.clone()
+        } else {
+            canonical_selection.clone()
+        };
+        let cards = source_indices
+            .iter()
+            .filter_map(|index| match &state.hand.slots[*index].item {
+                crate::HandItemState::Card(card) => Some(card.clone()),
+                crate::HandItemState::Tower(_) => None,
+            })
+            .collect::<Vec<_>>();
+        let Some(template) = crate::game_state::tower_selection::select_tower_build_template(
+            &cards,
+            state.upgrades(),
+            state.config(),
+            state.progress.rerolled_count,
+        ) else {
+            continue;
+        };
+        candidates.push(BuildTowerCandidateObservation {
+            selected_slot_indices: canonical_selection,
+            template: tower_template_observation(&template),
+        });
+    }
+    candidates
 }
 
 fn unordered_cards(cards: &[crate::CardState]) -> Vec<CardObservation> {

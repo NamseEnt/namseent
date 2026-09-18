@@ -251,6 +251,21 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
             numeric[3] = *left as f32 / observation.map_width.max(1) as f32;
             numeric[4] = *top as f32 / observation.map_height.max(1) as f32;
             numeric[0] = *hand_slot_index as f32 / 10.0;
+            if let Some(candidate) = observation
+                .build_tower_candidates
+                .iter()
+                .find(|candidate| candidate.selected_slot_indices == *selected_slot_indices)
+            {
+                numeric[1] = candidate.template.kind_id as f32 / 32.0;
+                numeric[2] = candidate.template.damage_raw as f32 / 10_000.0;
+                numeric[3] = candidate.template.used_cards.len() as f32 / 5.0;
+                numeric[4] = crate::ml::features::placement_coverage(
+                    observation,
+                    *left,
+                    *top,
+                    &candidate.template.kind,
+                );
+            }
         }
         AgentAction::SelectHandCard { hand_slot_index }
         | AgentAction::DeselectHandCard { hand_slot_index } => {
@@ -499,6 +514,6 @@ mod tests {
         let last = candidate_entity_rows(&observation, &AgentAction::Continue);
 
         assert_eq!(first[0].numeric[0], 2.0 / ActionKind::COUNT as f32);
-        assert_eq!(last[0].numeric[0], 19.0 / ActionKind::COUNT as f32);
+        assert_eq!(last[0].numeric[0], 20.0 / ActionKind::COUNT as f32);
     }
 }

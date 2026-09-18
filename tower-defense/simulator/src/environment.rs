@@ -111,6 +111,7 @@ pub use td_core::ShopSlotObservation;
 
 pub use td_core::{HandItemObservation, TowerTemplateObservation};
 
+pub use td_core::BuildTowerCandidateObservation;
 pub use td_core::HandObservation;
 
 pub use td_core::TowerObservation;
@@ -1882,6 +1883,8 @@ mod tests {
         environment
             .step(AgentAction::StartSelectingTower)
             .expect("start selecting tower should be legal");
+        let selecting_observation = environment.snapshot();
+        assert!(!selecting_observation.build_tower_candidates.is_empty());
         let oracle_actions = environment.semantic_legal_actions();
         let proposal_actions = environment.semantic_legal_actions_with_position_limit(Some(
             DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
@@ -1913,6 +1916,21 @@ mod tests {
                 _ => None,
             })
             .expect("semantic build action should be available");
+        let (selected_slot_indices, left, top) = match &build_action {
+            AgentAction::BuildTower {
+                selected_slot_indices,
+                left,
+                top,
+                ..
+            } => (selected_slot_indices.clone(), *left, *top),
+            _ => unreachable!("the selected semantic action should build a tower"),
+        };
+        let expected_template = selecting_observation
+            .build_tower_candidates
+            .iter()
+            .find(|candidate| candidate.selected_slot_indices == selected_slot_indices)
+            .map(|candidate| candidate.template.clone())
+            .expect("semantic build action should have an observed resulting tower");
 
         let outcome = environment
             .semantic_step(build_action)
@@ -1923,6 +1941,13 @@ mod tests {
             DecisionPoint::TowerPlacement
         );
         assert_eq!(environment.game_state.raw_state().towers().len(), 1);
+        let placed_observation = environment.snapshot();
+        let placed_tower = placed_observation
+            .towers
+            .iter()
+            .find(|tower| tower.left == left && tower.top == top)
+            .expect("semantic build action should place the selected tower");
+        assert_eq!(placed_tower.template, expected_template);
         assert_eq!(environment.policy_trace().steps.len(), 2);
         assert!(matches!(
             environment

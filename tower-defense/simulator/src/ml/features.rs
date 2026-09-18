@@ -391,19 +391,18 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
             params[2] = selected_slot_indices.iter().sum::<usize>() as f32 / 100.0;
             params[3] = *left as f32 / observation.map_width.max(1) as f32;
             params[4] = *top as f32 / observation.map_height.max(1) as f32;
-            let cards = selected_slot_indices.iter().filter_map(|index| {
-                observation
-                    .hand
-                    .get(*index)
-                    .and_then(|item| match &item.item {
-                        crate::environment::HandItemObservation::Card(card) => Some(card),
-                        _ => None,
-                    })
-            });
-            params[5] = mean(cards.map(|card| card.polish_pct_raw as f32 / 1_000.0));
-            params[6] = route_distance(observation, *left, *top) as f32 / 50.0;
-            params[7] = nearby_tower_occupancy(observation, *left, *top);
-            params[8] = route_progress_at(observation, *left, *top);
+            if let Some(candidate) = observation
+                .build_tower_candidates
+                .iter()
+                .find(|candidate| candidate.selected_slot_indices == *selected_slot_indices)
+            {
+                params[5] = candidate.template.kind_id as f32 / 32.0;
+                params[6] = candidate.template.damage_raw as f32 / 10_000.0;
+                params[7] = candidate.template.used_cards.len() as f32 / 5.0;
+                params[10] = placement_coverage(observation, *left, *top, &candidate.template.kind);
+            }
+            params[8] = route_distance(observation, *left, *top) as f32 / 50.0;
+            params[9] = nearby_tower_occupancy(observation, *left, *top);
         }
         AgentAction::PlaceTower {
             hand_slot_index,
@@ -580,6 +579,7 @@ pub fn action_features(action: &AgentAction) -> Vec<f32> {
             active_monster_count: 0,
             queued_monster_count: 0,
             hand: vec![],
+            build_tower_candidates: vec![],
             deck: crate::environment::DeckObservation {
                 all_cards: vec![],
                 draw_cards: vec![],

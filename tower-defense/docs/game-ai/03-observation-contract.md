@@ -52,6 +52,10 @@ AI가 현재 상태에서 합법적으로 알 수 있는 전략 정보를 명시
 
 이 값은 policy가 독자적으로 포커 규칙을 추측해서 만들지 않는다. authoritative rule이 candidate context를 계산한다.
 
+현재 구현에서는 `Observation.build_tower_candidates`가 이 context를 제공한다. 각 항목은 canonical card slot subset과 authoritative tower template을 함께 가진다. 전체 hand을 사용하는 subset은 빈 slot 목록으로 표현하며, 관측은 `SelectingTower` 상태에서만 생성된다. 따라서 `BuildTower` candidate encoder는 card subset을 다시 계산하지 않고 해당 resulting tower를 직접 참조한다.
+
+이 목록은 placement 결과를 미리 실행한 값이 아니다. 위치별 route, occupancy, coverage feature는 candidate template과 별도로 현재 map에서 계산한다. 미래 RNG나 search 전용 값도 포함하지 않는다.
+
 ## 유물과 upgrade
 
 단순 `relic_id`만 제공하지 않는다. 현재 observation은 upgrade key와 key ID에 더해 실행 중인 수치 상태를 제한된 semantic representation으로 제공한다.

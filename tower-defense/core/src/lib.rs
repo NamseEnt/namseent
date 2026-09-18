@@ -66,9 +66,10 @@ pub(crate) use game_state::monster::{
 };
 pub use game_state::monster_spawn::MonsterSpawnState;
 pub use game_state::observation::{
-    CardObservation, CardServiceObservation, DeckObservation, HandItemObservation, HandObservation,
-    InventoryObservation, MonsterObservation, Observation, OwnedUpgradeObservation,
-    RouteCoordObservation, ShopSlotObservation, TowerObservation, TowerTemplateObservation,
+    BuildTowerCandidateObservation, CardObservation, CardServiceObservation, DeckObservation,
+    HandItemObservation, HandObservation, InventoryObservation, MonsterObservation, Observation,
+    OwnedUpgradeObservation, RouteCoordObservation, ShopSlotObservation, TowerObservation,
+    TowerTemplateObservation,
 };
 pub use game_state::replay::{
     AUTHORITATIVE_HASH_VERSION, CORE_CONFIG_DIGEST_VERSION, CORE_CONFIG_SCHEMA_VERSION,
