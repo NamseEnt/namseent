@@ -93,6 +93,10 @@ pub struct TowerPlacementContext {
 }
 
 impl TowerPlacementContext {
+    pub fn can_place_at(&self, left: usize, top: usize) -> bool {
+        self.placement_route(left, top).is_ok()
+    }
+
     pub fn can_place_tower(
         &self,
         state: &CoreState,
@@ -109,7 +113,7 @@ impl TowerPlacementContext {
         if !matches!(slot.item, crate::HandItemState::Tower(_)) {
             return false;
         }
-        self.placement_route(left, top).is_ok()
+        self.can_place_at(left, top)
     }
 
     fn placement_route(
