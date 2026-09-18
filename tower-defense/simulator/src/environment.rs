@@ -13,7 +13,15 @@ pub const ENVIRONMENT_VERSION: u32 = 7;
 pub const ACTION_SCHEMA_VERSION: u32 = 7;
 pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 7;
 pub const DEFAULT_MAX_ADVANCE_TICKS: u64 = 60 * 60 * 5;
-pub const DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT: usize = 32;
+/// Provisional: measured via `teacher::tests::phase1_candidate_recall_report`
+/// (see docs/game-ai/02-action-contract.md). At 32, the oracle-best
+/// `BuildTower` candidate by `rank_build_tower_actions_by_heuristic` was
+/// excluded from every sampled decision (144 samples, 24 seeds); at 64,
+/// coverage regret was 0 in all samples. Not yet the final design: the
+/// underlying route-distance position ordering conflates "closest to the
+/// route" with "best route coverage", which this limit increase works
+/// around rather than fixes.
+pub const DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT: usize = 64;
 
 pub use td_core::RewardConfig;
 

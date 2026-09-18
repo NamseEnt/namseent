@@ -152,7 +152,7 @@ pub enum Command {
         scenario_count: usize,
         #[arg(long, default_value_t = 8)]
         horizon_decisions: usize,
-        #[arg(long, default_value_t = 32)]
+        #[arg(long, default_value_t = crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT)]
         position_candidate_limit: usize,
         #[arg(long)]
         candidate_limit: Option<usize>,

@@ -71,9 +71,21 @@ best_position = argmax P(position | state, best_cards)
 
 기본 hand가 5장인 구간에서는 card subset을 우선 전수 평가한다. pruning은 실제 후보 수와 처리량 측정으로 필요성이 확인된 뒤 도입한다.
 
-현재 simulator에는 `AgentAction::BuildTower`와 semantic 실행 경로가 추가되었다. authoritative oracle은 legal position 전체와 card subset 전체의 pair를 생성한다. 실제 정책 benchmark는 route 근접도 deterministic proposal을 사용해 position을 최대 32개로 제한하며, 이 제한은 후보 recall을 별도로 검증해야 하는 provisional 단계다.
+현재 simulator에는 `AgentAction::BuildTower`와 semantic 실행 경로가 추가되었다. authoritative oracle은 legal position 전체와 card subset 전체의 pair를 생성한다. 실제 정책 benchmark는 route 근접도 deterministic proposal을 사용해 position을 최대 `DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT`(현재 64)개로 제한하며, 이 제한은 후보 recall을 별도로 검증해야 하는 provisional 단계다.
 
-`cargo test --release -- --ignored phase1_candidate_recall_report`(`simulator/src/teacher.rs`)로 측정한 결과, position_limit 8/16/32에서는 rollout-free heuristic-best `BuildTower` 후보(coverage/route-distance/damage 기준)가 proposal에 **한 번도 포함되지 않았고**(retention 0%), limit 64에서만 포함되었다(retention 100%, 6 seed × 3 decision point = 18 sample). 원인은 route-distance 기준 position 정렬이 "route에 가장 가까운 칸"과 "route를 가장 많이 커버하는 칸"을 동일시하지 않기 때문으로 보인다(coverage가 좋은 위치가 순위 32위 밖으로 밀림). 즉 현재 기본값 32는 안전하지 않다는 것이 측정으로 확인되었다. 결과는 `artifacts/benchmarks/phase1-candidate-recall.json`에 저장했다. position 정렬 기준을 바꾸는 것은 모든 card subset이 하나의 공유 순서를 재사용하는 현재 구조의 성능 트레이드오프와 얽혀 있어 별도 결정이 필요하다.
+`cargo test --release -- --ignored phase1_candidate_recall_report`(`simulator/src/teacher.rs`)로 24 seed × 6 decision point = 144 sample을 측정했다. rollout이 37,000~185,000개에 달하는 전체 oracle `BuildTower` 후보에 대해 불가능하므로, `rank_build_tower_actions_by_heuristic`(coverage, route distance, damage 순)의 rollout-free ranking을 oracle proxy로 사용했다.
+
+| position_limit | mean legal recall | exact-best retention | top-5 retention | top-10 retention | mean coverage regret | max coverage regret |
+| --- | --- | --- | --- | --- | --- | --- |
+| 8 | 0.68% | 0% | 0% | 0% | 7.14 | 8 |
+| 16 | 1.35% | 0% | 0% | 0% | 6.73 | 7 |
+| 32 (이전 기본값) | 2.71% | 0% | 0% | 0% | 6.73 | 7 |
+| 48 | 4.06% | 0% | 25.8% | 12.9% | 2.13 | 6 |
+| 64 (현재 기본값) | 5.41% | 100% | 80% | 80% | **0.00** | **0** |
+
+`mean legal recall`(전체 legal action 대비 proposal 크기)은 핵심 지표가 아니다 — 목적은 legal action을 많이 보존하는 게 아니라 좋은 행동을 잃지 않는 것이다. 32 이하에서는 144 sample 전부(share_with_nonzero_regret=100%)에서 coverage regret이 발생했고, 64에서는 144 sample 전부 regret이 0이었다. release benchmark로 측정한 처리량 영향은 잡음 범위 내(동일 seed 2회 실행 기준 decisions/sec 9.19 vs 9.51, candidate_evaluations는 1.7배 증가했지만 벽시계 시간은 거의 동일)로, position 후보 생성 자체가 decision당 지배적 비용이 아님을 시사한다.
+
+따라서 `DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT`을 64로 올렸다. 이것을 최종 설계로 확정하지는 않는다: 원인은 route-distance 기준 position 정렬이 "route에 가장 가까운 칸"과 "route를 가장 많이 커버하는 칸"을 동일시하지 않는 것으로 보이며(48에서도 35.4%는 regret 0이지만 64.6%는 여전히 손실), 이는 모든 card subset이 하나의 공유 순서를 재사용하는 현재 구조와 얽힌 설계 문제다. 64에서 regret이 0으로 확인되었으므로 지금 이 순서 자체를 재설계하지는 않지만, 추후 근거가 쌓이면 route-distance / coverage / tower-range별 순위의 top-K union 같은 저비용 hybrid 방식을 검토한다. 결과는 `artifacts/benchmarks/phase1-candidate-recall.json`에 저장했다.
 
 ### 최종 pair 점수
 

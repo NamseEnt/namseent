@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
-use td_simulator::environment::{AgentAction, LegalAction, Observation};
+use td_simulator::environment::{
+    AgentAction, DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT, LegalAction, Observation,
+};
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
 use td_simulator::ml::cli::{self, Command as MlCommand};
@@ -124,7 +126,7 @@ struct TeacherOptions {
     scenario_seed_start: u64,
     #[arg(long, default_value_t = 4)]
     horizon_decisions: usize,
-    #[arg(long, default_value_t = 32)]
+    #[arg(long, default_value_t = DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT)]
     position_candidate_limit: usize,
     #[arg(long)]
     candidate_limit: Option<usize>,
