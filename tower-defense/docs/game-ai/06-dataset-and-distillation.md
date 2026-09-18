@@ -24,6 +24,8 @@
 
 build-placement는 카드 label과 위치 label을 따로만 저장하지 않는다. 최종 pair identity와 joint teacher value를 보존한다.
 
+현재 최소 teacher report는 각 decision에 observation, 후보별 통계, teacher 선택 action과 value, scripted baseline action과 value, `expert_regret`을 함께 저장한다. 이 JSON은 아직 train/validation dataset loader가 아니며, 다음 단계에서 seed split과 schema validation을 추가해야 한다.
+
 ## Split 규칙
 
 decision row를 무작위로 나누지 않는다. 같은 episode에서 나온 인접 state가 train과 validation에 동시에 들어가면 누수가 발생한다.

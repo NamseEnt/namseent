@@ -46,10 +46,15 @@ pub struct RolloutCandidateEstimate {
 pub struct RolloutTeacherDecision {
     pub score_schema_version: u32,
     pub state_hash: String,
+    pub observation: crate::environment::Observation,
     pub scenario_seed_digest: String,
     pub horizon_decisions: usize,
     pub candidate_count: usize,
     pub selected_action_id: String,
+    pub selected_mean_score: f32,
+    pub baseline_action_id: Option<String>,
+    pub baseline_mean_score: Option<f32>,
+    pub expert_regret: Option<f32>,
     pub candidates: Vec<RolloutCandidateEstimate>,
 }
 
@@ -142,6 +147,8 @@ pub fn evaluate_semantic_candidate_set(
     }) {
         bail!("rollout teacher candidate is not legal in the source environment");
     }
+    let observation = environment.snapshot();
+    let baseline_action = scripted_expert_action(&observation, &legal_actions)?;
 
     let mut estimates = Vec::with_capacity(candidates.len());
     for candidate in candidates {
@@ -168,13 +175,28 @@ pub fn evaluate_semantic_candidate_set(
         .expect("teacher estimates are non-empty")
         .action_id
         .clone();
+    let selected_mean_score = estimates
+        .iter()
+        .find(|candidate| candidate.action_id == selected_action_id)
+        .expect("selected teacher action must have an estimate")
+        .mean_score;
+    let baseline_action_id = baseline_action.action_id();
+    let baseline_mean_score = estimates
+        .iter()
+        .find(|candidate| candidate.action_id == baseline_action_id)
+        .map(|candidate| candidate.mean_score);
     Ok(RolloutTeacherDecision {
         score_schema_version: TEACHER_SCORE_SCHEMA_VERSION,
         state_hash: environment.state_hash(),
+        observation,
         scenario_seed_digest: scenario_seed_digest(&config.scenario_seeds),
         horizon_decisions: config.horizon_decisions,
         candidate_count: estimates.len(),
         selected_action_id,
+        selected_mean_score,
+        baseline_action_id: baseline_mean_score.map(|_| baseline_action_id),
+        baseline_mean_score,
+        expert_regret: baseline_mean_score.map(|score| selected_mean_score - score),
         candidates: estimates,
     })
 }
