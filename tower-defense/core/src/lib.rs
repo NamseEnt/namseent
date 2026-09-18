@@ -134,7 +134,7 @@ pub use time::{RATIO_SCALE, RatioRaw, SIM_TICKS_PER_SECOND, SimTick, SimTickSpan
 pub use rarity::Rarity;
 pub use world::{WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, integer_sqrt};
 
-pub const OBSERVATION_SCHEMA_VERSION: u32 = 2;
+pub const OBSERVATION_SCHEMA_VERSION: u32 = 3;
 
 pub const WORLD_UNITS_PER_TILE: i64 = world::WORLD_UNITS_PER_TILE;
 

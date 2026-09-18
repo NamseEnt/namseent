@@ -54,7 +54,7 @@ AI가 현재 상태에서 합법적으로 알 수 있는 전략 정보를 명시
 
 ## 유물과 upgrade
 
-단순 `relic_id`만 제공하지 않는다. 조정 가능한 효과에는 다음 형태의 제한된 semantic representation을 사용한다.
+단순 `relic_id`만 제공하지 않는다. 현재 observation은 upgrade key와 key ID에 더해 실행 중인 수치 상태를 제한된 semantic representation으로 제공한다.
 
 ```text
 behavior_id
@@ -62,6 +62,8 @@ relevant_tags
 numeric_parameters
 stack_count
 ```
+
+구체적으로 `OwnedUpgradeObservation`은 `scalar_values`, `ratio_values`, `bool_values`를 제공한다. encoder는 이를 고정 폭 numeric row로 정규화한다. 이 값들은 게임 실행 semantics 전체를 복제하지 않고 현재 판단에 필요한 upgrade runtime parameter만 노출한다.
 
 예를 들어 특정 suit damage bonus라면 behavior, suit tag, multiplier가 구분되어야 한다. 복잡하고 고유한 유물은 behavior ID와 정책 판단에 필요한 핵심 파라미터만 제공할 수 있다.
 

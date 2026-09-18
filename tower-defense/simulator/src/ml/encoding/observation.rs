@@ -170,10 +170,18 @@ impl TypedObservation {
                 .owned_upgrades
                 .iter()
                 .map(|upgrade| {
-                    EntityRow::new(
-                        [upgrade.key_id as u32, 0, 0, 0],
-                        vec![upgrade.id as f32 / 1_000_000.0],
-                    )
+                    let mut numeric = vec![0.0; 6];
+                    numeric[0] = upgrade.id as f32 / 1_000_000.0;
+                    for (index, value) in upgrade.scalar_values.iter().take(2).enumerate() {
+                        numeric[1 + index] = *value as f32 / 1_000.0;
+                    }
+                    for (index, value) in upgrade.ratio_values.iter().take(2).enumerate() {
+                        numeric[3 + index] = *value as f32 / 1_000_000.0;
+                    }
+                    if let Some(value) = upgrade.bool_values.first() {
+                        numeric[5] = *value as u8 as f32;
+                    }
+                    EntityRow::new([upgrade.key_id as u32, 0, 0, 0], numeric)
                 })
                 .collect(),
         );

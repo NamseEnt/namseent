@@ -80,6 +80,12 @@ pub struct OwnedUpgradeObservation {
     pub id: u64,
     pub key: String,
     pub key_id: u16,
+    #[serde(default)]
+    pub scalar_values: Vec<usize>,
+    #[serde(default)]
+    pub ratio_values: Vec<i64>,
+    #[serde(default)]
+    pub bool_values: Vec<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -310,6 +316,15 @@ impl crate::CoreState {
                         id: upgrade.id,
                         key: key.to_string(),
                         key_id,
+                        scalar_values: (0..4)
+                            .filter_map(|index| upgrade.scalar_value(index))
+                            .collect(),
+                        ratio_values: (0..4)
+                            .filter_map(|index| upgrade.ratio_value(index))
+                            .collect(),
+                        bool_values: (0..4)
+                            .filter_map(|index| upgrade.bool_value(index))
+                            .collect(),
                     }
                 })
                 .collect(),
@@ -637,4 +652,22 @@ fn card_service_key(value: u8) -> (&'static str, u16) {
         _ => value as u16 + 1,
     };
     (name, id)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn owned_upgrade_observation_exposes_runtime_parameters() {
+        let mut upgrade = crate::generated_upgrade(crate::UpgradeKind::Backpack);
+        assert!(upgrade.set_scalar_value(0, 3));
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 7);
+        state
+            .acquire_upgrade(upgrade)
+            .expect("upgrade should be acquired");
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(observation.owned_upgrades.len(), 1);
+        assert_eq!(observation.owned_upgrades[0].scalar_values, vec![3]);
+        assert!(observation.owned_upgrades[0].ratio_values.is_empty());
+    }
 }
