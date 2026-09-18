@@ -26,6 +26,18 @@ build-placement는 카드 label과 위치 label을 따로만 저장하지 않는
 
 현재 최소 teacher report는 각 decision에 observation, 후보별 통계, teacher 선택 action과 value, scripted baseline action과 value, `expert_regret`을 함께 저장한다. 이 JSON은 아직 train/validation dataset loader가 아니며, 다음 단계에서 seed split과 schema validation을 추가해야 한다.
 
+semantic macro-action 기반 behavior dataset은 다음처럼 별도로 생성할 수 있다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- ml collect-expert \
+  --semantic-scripted-expert-behavior \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 512 \
+  --output artifacts/datasets/semantic-scripted.jsonl
+```
+
+이 경로는 기존 UI micro-action dataset과 섞지 않으며, `BuildTower` pair action과 semantic legal candidate 목록을 그대로 trajectory에 저장한다.
+
 ## Split 규칙
 
 decision row를 무작위로 나누지 않는다. 같은 episode에서 나온 인접 state가 train과 validation에 동시에 들어가면 누수가 발생한다.

@@ -16,7 +16,8 @@ use super::bc::{BcConfig, evaluate_bc, train_bc, train_bc_from_jsonl, train_bc_f
 use super::dataset::{
     collect_behavior_dataset, collect_item_expert_behavior_dataset,
     collect_monte_carlo_expert_behavior_dataset, collect_scripted_expert_behavior_dataset,
-    collect_spiral_expert_behavior_dataset, collect_strict_expert_dataset, write_jsonl,
+    collect_semantic_scripted_expert_behavior_dataset, collect_spiral_expert_behavior_dataset,
+    collect_strict_expert_dataset, write_jsonl,
 };
 #[cfg(feature = "simulator-wgpu")]
 use super::model::gpu_policy_backend_description;
@@ -155,6 +156,8 @@ pub enum Command {
         strict: bool,
         #[arg(long)]
         scripted_expert_behavior: bool,
+        #[arg(long)]
+        semantic_scripted_expert_behavior: bool,
         #[arg(long)]
         spiral_expert: bool,
         #[arg(long)]
@@ -382,6 +385,7 @@ pub fn run_command(command: Command) -> Result<()> {
             config,
             strict,
             scripted_expert_behavior,
+            semantic_scripted_expert_behavior,
             spiral_expert,
             monte_carlo_expert,
             item_expert,
@@ -396,6 +400,7 @@ pub fn run_command(command: Command) -> Result<()> {
             config,
             strict,
             scripted_expert_behavior,
+            semantic_scripted_expert_behavior,
             spiral_expert,
             monte_carlo_expert,
             item_expert,
@@ -644,6 +649,7 @@ fn collect_expert_command(
     config_path: Option<PathBuf>,
     strict: bool,
     scripted_expert_behavior: bool,
+    semantic_scripted_expert_behavior: bool,
     spiral_expert: bool,
     monte_carlo_expert: bool,
     item_expert: bool,
@@ -652,6 +658,7 @@ fn collect_expert_command(
     if all_experts
         && (strict
             || scripted_expert_behavior
+            || semantic_scripted_expert_behavior
             || spiral_expert
             || monte_carlo_expert
             || item_expert)
@@ -660,6 +667,7 @@ fn collect_expert_command(
     }
     if [
         scripted_expert_behavior,
+        semantic_scripted_expert_behavior,
         spiral_expert,
         monte_carlo_expert,
         item_expert,
@@ -742,6 +750,12 @@ fn collect_expert_command(
             collect_strict_expert_dataset(Arc::clone(&config), seed_range, max_decisions)
         } else if scripted_expert_behavior {
             collect_scripted_expert_behavior_dataset(Arc::clone(&config), seed_range, max_decisions)
+        } else if semantic_scripted_expert_behavior {
+            collect_semantic_scripted_expert_behavior_dataset(
+                Arc::clone(&config),
+                seed_range,
+                max_decisions,
+            )
         } else if spiral_expert {
             collect_spiral_expert_behavior_dataset(Arc::clone(&config), seed_range, max_decisions)
         } else if monte_carlo_expert {

@@ -320,6 +320,20 @@ pub fn run_scripted_expert_trajectory(
     )
 }
 
+pub fn run_semantic_scripted_expert_trajectory(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions_per_episode: usize,
+) -> Result<crate::trajectory::Trajectory> {
+    run_expert_trajectory_with_mode(
+        game_config,
+        seed,
+        max_decisions_per_episode,
+        scripted_expert_action,
+        true,
+    )
+}
+
 fn run_expert_trajectory<P>(
     game_config: Arc<GameConfig>,
     seed: u64,
@@ -329,17 +343,44 @@ fn run_expert_trajectory<P>(
 where
     P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
 {
-    let episode = run_episode(
-        Arc::clone(&game_config),
-        seed,
-        &PolicyRunnerConfig {
-            max_decisions_per_episode,
-            record_steps: true,
-            max_stage: None,
-            reward_config: RewardConfig::default(),
-        },
-        policy,
-    )?;
+    run_expert_trajectory_with_mode(game_config, seed, max_decisions_per_episode, policy, false)
+}
+
+fn run_expert_trajectory_with_mode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions_per_episode: usize,
+    policy: P,
+    semantic_actions: bool,
+) -> Result<crate::trajectory::Trajectory>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
+{
+    let episode = if semantic_actions {
+        run_semantic_episode(
+            Arc::clone(&game_config),
+            seed,
+            &PolicyRunnerConfig {
+                max_decisions_per_episode,
+                record_steps: true,
+                max_stage: None,
+                reward_config: RewardConfig::default(),
+            },
+            policy,
+        )?
+    } else {
+        run_episode(
+            Arc::clone(&game_config),
+            seed,
+            &PolicyRunnerConfig {
+                max_decisions_per_episode,
+                record_steps: true,
+                max_stage: None,
+                reward_config: RewardConfig::default(),
+            },
+            policy,
+        )?
+    };
     let steps = episode
         .steps
         .as_ref()

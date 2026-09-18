@@ -4,7 +4,8 @@ use crate::config::GameConfig;
 use crate::environment::ActionKind;
 use crate::policy_runner::{
     run_item_expert_trajectory, run_monte_carlo_expert_trajectory, run_scripted_expert_trajectory,
-    run_scripted_oracle_trajectory, run_spiral_expert_trajectory,
+    run_scripted_oracle_trajectory, run_semantic_scripted_expert_trajectory,
+    run_spiral_expert_trajectory,
 };
 use crate::trajectory::Trajectory;
 use anyhow::{Context, Result, bail};
@@ -81,6 +82,21 @@ pub fn collect_scripted_expert_behavior_dataset(
         true,
         run_scripted_expert_trajectory,
         "scripted_expert_behavior",
+    )
+}
+
+pub fn collect_semantic_scripted_expert_behavior_dataset(
+    config: Arc<GameConfig>,
+    seed_range: SeedRange,
+    max_decisions_per_episode: usize,
+) -> Result<ExpertDataset> {
+    collect_behavior_dataset_with_runner(
+        config,
+        seed_range,
+        max_decisions_per_episode,
+        true,
+        run_semantic_scripted_expert_trajectory,
+        "semantic_scripted_expert_behavior",
     )
 }
 
