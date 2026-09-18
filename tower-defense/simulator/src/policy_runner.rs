@@ -790,6 +790,79 @@ fn rank_value(rank: &str) -> usize {
     }
 }
 
+/// Picks a reroll or the best semantic `BuildTower` candidate, preferring
+/// reroll on the first look at a poor hand. Returns `None` when
+/// `legal_actions` contains neither, e.g. under the legacy micro-action set.
+fn semantic_card_decision_action(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Option<AgentAction> {
+    if observation.rerolled_count == 0
+        && should_scripted_reroll(observation)
+        && let Some(action) = legal_actions.iter().find_map(|legal| {
+            let AgentAction::Reroll { card_ids } = &legal.action else {
+                return None;
+            };
+            (card_ids == &scripted_reroll_card_ids(observation)).then(|| legal.action.clone())
+        })
+    {
+        return Some(action);
+    }
+    let route = &observation.route_coords;
+    legal_actions
+        .iter()
+        .filter_map(|legal| {
+            let AgentAction::BuildTower {
+                card_ids,
+                left,
+                top,
+                ..
+            } = &legal.action
+            else {
+                return None;
+            };
+            let template = observation
+                .build_tower_candidates
+                .iter()
+                .find(|candidate| &candidate.card_ids == card_ids)
+                .map(|candidate| &candidate.template)?;
+            let range_raw = tower_range_raw(&template.kind);
+            let covered_route = route
+                .iter()
+                .filter(|coord| {
+                    let dx = (coord.x as i64 - *left as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    let dy = (coord.y as i64 - *top as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                        <= range_raw.saturating_mul(range_raw)
+                })
+                .count();
+            let nearest_route = route
+                .iter()
+                .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
+                .min()
+                .unwrap_or(usize::MAX);
+            Some((
+                covered_route,
+                nearest_route,
+                template.damage_raw,
+                legal.action.clone(),
+            ))
+        })
+        .max_by_key(|(covered_route, nearest_route, damage, action)| {
+            (
+                *covered_route,
+                std::cmp::Reverse(*nearest_route),
+                *damage,
+                action.action_id(),
+            )
+        })
+        .map(|(_, _, _, action)| action)
+}
+
 pub fn scripted_expert_action(
     observation: &Observation,
     legal_actions: &[LegalAction],
@@ -821,6 +894,7 @@ pub fn scripted_expert_action(
             })
             .min_by_key(|(priority, cost, action)| (*priority, *cost, action.action_id()))
             .map(|(_, _, action)| action)
+            .or_else(|| semantic_card_decision_action(observation, legal_actions))
             .or_else(|| {
                 legal_actions
                     .iter()
@@ -833,71 +907,7 @@ pub fn scripted_expert_action(
                 .iter()
                 .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
             {
-                if observation.rerolled_count == 0
-                    && should_scripted_reroll(observation)
-                    && let Some(action) = legal_actions.iter().find_map(|legal| {
-                        let AgentAction::Reroll { card_ids } = &legal.action else {
-                            return None;
-                        };
-                        (card_ids == &scripted_reroll_card_ids(observation))
-                            .then(|| legal.action.clone())
-                    })
-                {
-                    return Ok(action);
-                }
-                let route = &observation.route_coords;
-                return legal_actions
-                    .iter()
-                    .filter_map(|legal| {
-                        let AgentAction::BuildTower {
-                            card_ids,
-                            left,
-                            top,
-                            ..
-                        } = &legal.action
-                        else {
-                            return None;
-                        };
-                        let template = observation
-                            .build_tower_candidates
-                            .iter()
-                            .find(|candidate| &candidate.card_ids == card_ids)
-                            .map(|candidate| &candidate.template)?;
-                        let range_raw = tower_range_raw(&template.kind);
-                        let covered_route = route
-                            .iter()
-                            .filter(|coord| {
-                                let dx = (coord.x as i64 - *left as i64)
-                                    .saturating_mul(1_000_000)
-                                    .saturating_sub(500_000);
-                                let dy = (coord.y as i64 - *top as i64)
-                                    .saturating_mul(1_000_000)
-                                    .saturating_sub(500_000);
-                                dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
-                                    <= range_raw.saturating_mul(range_raw)
-                            })
-                            .count();
-                        let nearest_route = route
-                            .iter()
-                            .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
-                            .min()
-                            .unwrap_or(usize::MAX);
-                        Some((
-                            covered_route,
-                            nearest_route,
-                            template.damage_raw,
-                            legal.action.clone(),
-                        ))
-                    })
-                    .max_by_key(|(covered_route, nearest_route, damage, action)| {
-                        (
-                            *covered_route,
-                            std::cmp::Reverse(*nearest_route),
-                            *damage,
-                            action.action_id(),
-                        )
-                    })
-                    .map(|(_, _, _, action)| action)
+                return semantic_card_decision_action(observation, legal_actions)
                     .ok_or_else(|| anyhow::anyhow!("scripted expert found no semantic build"));
             }
             if observation.card_selection_purpose.is_none() {
