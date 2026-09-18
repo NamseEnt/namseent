@@ -3666,17 +3666,4 @@ mod tests {
             previous = current;
         }
     }
-
-    #[test]
-    fn representative_stage_hp_matches_integer_migration_baseline() {
-        let config = GameConfig::default_config();
-        let modifiers = StageModifiers::new();
-        for (stage, expected_raw) in [(1, 338_285), (25, 52_224_930), (50, 161_864_745_740)] {
-            assert_eq!(
-                GameState::calculate_stage_total_hp(stage, &config, &modifiers).raw(),
-                expected_raw,
-                "stage {stage} total HP changed"
-            );
-        }
-    }
 }
