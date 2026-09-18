@@ -191,6 +191,16 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
                 .max()
                 .map_or(0, |index| index as u32 + 1),
         ),
+        AgentAction::BuildTower {
+            selected_slot_indices,
+            hand_slot_index,
+            left,
+            top,
+        } => (
+            *hand_slot_index as u32 + 1,
+            *left as u32 + 1,
+            selected_slot_indices.len() as u32 + *top as u32 + 1,
+        ),
         AgentAction::RemoveTower { tower_id } => (*tower_id as u32, (*tower_id >> 32) as u32, 0),
         AgentAction::StartSelectingTower
         | AgentAction::BeginRerollSelection
@@ -226,6 +236,21 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
                 numeric[4] =
                     crate::ml::features::placement_coverage(observation, *left, *top, &tower.kind);
             }
+        }
+        AgentAction::BuildTower {
+            selected_slot_indices,
+            hand_slot_index,
+            left,
+            top,
+        } => {
+            categorical[1] = selected_slot_indices.len() as u32;
+            categorical[2] = *left as u32 + 1;
+            categorical[3] = *top as u32 + 1;
+            numeric[1] = selected_slot_indices.len() as f32 / 10.0;
+            numeric[2] = selected_slot_indices.iter().sum::<usize>() as f32 / 100.0;
+            numeric[3] = *left as f32 / observation.map_width.max(1) as f32;
+            numeric[4] = *top as f32 / observation.map_height.max(1) as f32;
+            numeric[0] = *hand_slot_index as f32 / 10.0;
         }
         AgentAction::SelectHandCard { hand_slot_index }
         | AgentAction::DeselectHandCard { hand_slot_index } => {

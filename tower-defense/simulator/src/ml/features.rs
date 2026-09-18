@@ -380,6 +380,31 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
             params[3] = mean(cards.map(|card| card.polish_pct_raw as f32 / 1_000.0));
             params[4] = selected_slot_indices.iter().sum::<usize>() as f32 / 100.0;
         }
+        AgentAction::BuildTower {
+            selected_slot_indices,
+            hand_slot_index,
+            left,
+            top,
+        } => {
+            params[0] = *hand_slot_index as f32 / 10.0;
+            params[1] = selected_slot_indices.len() as f32 / 10.0;
+            params[2] = selected_slot_indices.iter().sum::<usize>() as f32 / 100.0;
+            params[3] = *left as f32 / observation.map_width.max(1) as f32;
+            params[4] = *top as f32 / observation.map_height.max(1) as f32;
+            let cards = selected_slot_indices.iter().filter_map(|index| {
+                observation
+                    .hand
+                    .get(*index)
+                    .and_then(|item| match &item.item {
+                        crate::environment::HandItemObservation::Card(card) => Some(card),
+                        _ => None,
+                    })
+            });
+            params[5] = mean(cards.map(|card| card.polish_pct_raw as f32 / 1_000.0));
+            params[6] = route_distance(observation, *left, *top) as f32 / 50.0;
+            params[7] = nearby_tower_occupancy(observation, *left, *top);
+            params[8] = route_progress_at(observation, *left, *top);
+        }
         AgentAction::PlaceTower {
             hand_slot_index,
             left,

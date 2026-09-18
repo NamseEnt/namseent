@@ -71,6 +71,8 @@ best_position = argmax P(position | state, best_cards)
 
 기본 hand가 5장인 구간에서는 card subset을 우선 전수 평가한다. pruning은 실제 후보 수와 처리량 측정으로 필요성이 확인된 뒤 도입한다.
 
+현재 simulator에는 `AgentAction::BuildTower`와 semantic 실행 경로가 추가되었다. authoritative oracle은 legal position 전체와 card subset 전체의 pair를 생성한다. 실제 정책 benchmark는 route 근접도 deterministic proposal을 사용해 position을 최대 32개로 제한하며, 이 제한은 후보 recall을 별도로 검증해야 하는 provisional 단계다.
+
 ### 최종 pair 점수
 
 서로 다른 의미의 값을 임의로 곱하지 않는다. 예를 들어 `P(cards)`와 별도 heuristic coverage score를 곱해 joint value라고 부르지 않는다.
@@ -86,6 +88,8 @@ proposal head의 점수는 후보 축소에 사용할 수 있지만 최종 가�
 ## 환경 전이
 
 정책은 build-placement를 한 번 결정하고 환경은 추가 policy inference 없이 authoritative transition을 완료한다. core 내부에서 tower 생성과 placement가 두 command로 남더라도 외부 policy horizon에는 한 decision으로 기록한다.
+
+현재 semantic 실행은 이 macro action을 내부의 `SelectTower`와 `PlaceTower` command로 확장해 최종 상태를 만든다. policy trace와 replay에서 macro identity를 독립적으로 보존하는 작업은 후속 단계다.
 
 macro transition은 부분 적용 상태를 남겨서는 안 된다. placement legality가 바뀌거나 command가 실패하면 카드만 소비된 상태가 남지 않아야 한다. 구현 전에 다음 중 비용과 core ownership에 맞는 방식을 선택한다.
 

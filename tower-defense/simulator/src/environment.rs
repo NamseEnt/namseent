@@ -10,9 +10,10 @@ use td_core::CommandError;
 use td_core::PlayerCommand;
 
 pub const ENVIRONMENT_VERSION: u32 = 6;
-pub const ACTION_SCHEMA_VERSION: u32 = 5;
+pub const ACTION_SCHEMA_VERSION: u32 = 6;
 pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 6;
 pub const DEFAULT_MAX_ADVANCE_TICKS: u64 = 60 * 60 * 5;
+pub const DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT: usize = 32;
 
 pub use td_core::RewardConfig;
 
@@ -676,6 +677,71 @@ impl GameEnvironment {
         }
     }
 
+    pub fn semantic_legal_actions(&self) -> Vec<LegalAction> {
+        self.semantic_legal_actions_with_position_limit(None)
+    }
+
+    pub fn semantic_legal_actions_with_position_limit(
+        &self,
+        position_limit: Option<usize>,
+    ) -> Vec<LegalAction> {
+        if matches!(self.decision_point(), DecisionPoint::CardSelection)
+            && matches!(self.decision_context, DecisionContext::None)
+        {
+            self.semantic_card_actions(position_limit)
+                .into_iter()
+                .map(|action| LegalAction {
+                    id: action.action_id(),
+                    action,
+                })
+                .collect()
+        } else {
+            self.legal_actions()
+        }
+    }
+
+    pub fn semantic_step(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
+        if !self.semantic_action_is_legal(&action) {
+            return Err(EnvironmentError::IllegalAction {
+                decision_point: self.decision_point(),
+                action_id: action.action_id(),
+                state_hash: self.state_hash(),
+            });
+        }
+        match action {
+            AgentAction::Reroll {
+                selected_slot_indices,
+            } => self.step_unchecked(AgentAction::Reroll {
+                selected_slot_indices,
+            }),
+            AgentAction::BuildTower {
+                selected_slot_indices,
+                hand_slot_index,
+                left,
+                top,
+            } => {
+                let first = self.step_unchecked(AgentAction::SelectTower {
+                    selected_slot_indices,
+                })?;
+                let mut second = self.step_unchecked(AgentAction::PlaceTower {
+                    hand_slot_index,
+                    left,
+                    top,
+                })?;
+                second.reward.terminal += first.reward.terminal;
+                for (key, value) in first.reward.shaping {
+                    *second.reward.shaping.entry(key).or_insert(0.0) += value;
+                }
+                second.info.ticks_advanced = second
+                    .info
+                    .ticks_advanced
+                    .saturating_add(first.info.ticks_advanced);
+                Ok(second)
+            }
+            action => self.step(action),
+        }
+    }
+
     /// Applies one AI decision and advances to the next decision point or
     /// terminal state; this may execute multiple fixed simulation ticks.
     pub fn step(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
@@ -691,6 +757,11 @@ impl GameEnvironment {
                 state_hash: self.state_hash(),
             });
         }
+        self.step_unchecked(action)
+    }
+
+    fn step_unchecked(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
+        let legal_actions_before = self.legal_actions();
 
         let reward_metrics_before = self.game_state.reward_metrics();
         let escaped_hp_before = reward_metrics_before.total_escaped_hp;
@@ -956,6 +1027,165 @@ impl GameEnvironment {
                 actions.push(AgentAction::BeginRerollSelection);
             }
             actions.push(AgentAction::BeginTowerSelection);
+        }
+        actions
+    }
+
+    fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
+        if !matches!(self.decision_context, DecisionContext::None)
+            || !matches!(self.decision_point(), DecisionPoint::CardSelection)
+        {
+            return self
+                .legal_actions()
+                .iter()
+                .any(|legal_action| legal_action.action == *action);
+        }
+        let card_indices = self.card_hand_indices();
+        let selected_indices_are_cards = |selected_slot_indices: &[usize]| {
+            let mut sorted = selected_slot_indices.to_vec();
+            sorted.sort_unstable();
+            sorted.dedup();
+            sorted.len() == selected_slot_indices.len()
+                && selected_slot_indices
+                    .iter()
+                    .all(|slot_index| card_indices.contains(slot_index))
+        };
+        match action {
+            AgentAction::Reroll {
+                selected_slot_indices,
+            } => {
+                !selected_slot_indices.is_empty()
+                    && selected_indices_are_cards(selected_slot_indices)
+                    && self.can_afford_reroll()
+            }
+            AgentAction::BuildTower {
+                selected_slot_indices,
+                hand_slot_index,
+                left,
+                top,
+            } => {
+                selected_indices_are_cards(selected_slot_indices)
+                    && *hand_slot_index
+                        < self
+                            .game_state
+                            .raw_state()
+                            .stage_modifiers()
+                            .extra_tower_cards
+                            .len()
+                            + 1
+                    && self
+                        .game_state
+                        .raw_state()
+                        .tower_placement_context()
+                        .can_place_at(*left, *top)
+            }
+            _ => false,
+        }
+    }
+
+    fn can_afford_reroll(&self) -> bool {
+        let state = self.game_state.raw_state();
+        let reroll_health_cost = state
+            .stage_modifiers()
+            .reroll_health_cost
+            .saturating_mul(1_000) as i64;
+        state.progress().left_dice > 0
+            || (reroll_health_cost > 0 && state.hp_raw().saturating_sub(reroll_health_cost) > 1_000)
+    }
+
+    fn semantic_card_actions(&self, position_limit: Option<usize>) -> Vec<AgentAction> {
+        let card_indices = self.card_hand_indices();
+        if card_indices.is_empty() {
+            return Vec::new();
+        }
+        let state = self.game_state.raw_state();
+        let reroll_health_cost = state
+            .stage_modifiers()
+            .reroll_health_cost
+            .saturating_mul(1_000) as i64;
+        let can_afford_reroll = state.progress().left_dice > 0
+            || (reroll_health_cost > 0
+                && state.hp_raw().saturating_sub(reroll_health_cost) > 1_000);
+        let legal_positions = self.semantic_legal_positions(position_limit);
+        let mut actions = Vec::new();
+        let subset_count = 1usize << card_indices.len();
+        for subset_mask in 1..subset_count {
+            let selected_slot_indices = card_indices
+                .iter()
+                .enumerate()
+                .filter_map(|(offset, slot_index)| {
+                    (subset_mask & (1usize << offset) != 0).then_some(*slot_index)
+                })
+                .collect::<Vec<_>>();
+            if can_afford_reroll {
+                actions.push(AgentAction::Reroll {
+                    selected_slot_indices: selected_slot_indices.clone(),
+                });
+            }
+            let canonical_selection = if subset_mask + 1 == subset_count {
+                Vec::new()
+            } else {
+                selected_slot_indices
+            };
+            actions.extend(self.semantic_build_actions(canonical_selection, &legal_positions));
+        }
+        actions
+    }
+
+    fn semantic_legal_positions(&self, position_limit: Option<usize>) -> Vec<[usize; 2]> {
+        let state = self.game_state.raw_state();
+        let placement_context = state.tower_placement_context();
+        let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
+        let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
+        let mut positions = Vec::new();
+        for top in 0..map_height {
+            for left in 0..map_width {
+                if placement_context.can_place_at(left, top) {
+                    positions.push([left, top]);
+                }
+            }
+        }
+        let observation = self.snapshot();
+        positions.sort_by_key(|[left, top]| {
+            (
+                observation
+                    .route_coords
+                    .iter()
+                    .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
+                    .min()
+                    .unwrap_or(usize::MAX),
+                *top,
+                *left,
+            )
+        });
+        if let Some(position_limit) = position_limit {
+            positions.truncate(position_limit);
+        }
+        positions
+    }
+
+    fn semantic_build_actions(
+        &self,
+        selected_slot_indices: Vec<usize>,
+        legal_positions: &[[usize; 2]],
+    ) -> Vec<AgentAction> {
+        let tower_count = self
+            .game_state
+            .raw_state()
+            .stage_modifiers()
+            .extra_tower_cards
+            .len()
+            + 1;
+        let mut actions = Vec::with_capacity(tower_count * legal_positions.len());
+        for hand_slot_index in 0..tower_count {
+            for [left, top] in legal_positions {
+                actions.push(AgentAction::BuildTower {
+                    selected_slot_indices: selected_slot_indices.clone(),
+                    hand_slot_index,
+                    left: *left,
+                    top: *top,
+                });
+            }
         }
         actions
     }
@@ -1609,6 +1839,43 @@ mod tests {
 
         assert_eq!(core.sim_tick(), simulator.game_state.sim_tick());
         assert_eq!(core.authoritative_hash(), simulator.state_hash());
+    }
+
+    #[test]
+    fn semantic_build_action_commits_selection_and_placement_as_one_step() {
+        let mut environment = environment();
+        environment
+            .step(AgentAction::StartSelectingTower)
+            .expect("start selecting tower should be legal");
+        let build_action = environment
+            .semantic_legal_actions()
+            .into_iter()
+            .find_map(|legal| match legal.action {
+                AgentAction::BuildTower {
+                    selected_slot_indices,
+                    hand_slot_index,
+                    left,
+                    top,
+                } => Some(AgentAction::BuildTower {
+                    selected_slot_indices,
+                    hand_slot_index,
+                    left,
+                    top,
+                }),
+                _ => None,
+            })
+            .expect("semantic build action should be available");
+
+        let outcome = environment
+            .semantic_step(build_action)
+            .expect("semantic build action should be accepted");
+
+        assert_eq!(
+            outcome.observation.decision_point,
+            DecisionPoint::TowerPlacement
+        );
+        assert_eq!(environment.game_state.raw_state().towers().len(), 1);
+        assert_eq!(environment.policy_trace().steps.len(), 3);
     }
 
     #[test]

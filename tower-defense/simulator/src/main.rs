@@ -82,10 +82,18 @@ enum BenchmarkPolicyArg {
     Checkpoint,
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum BenchmarkActionModeArg {
+    Legacy,
+    Semantic,
+}
+
 #[derive(Args)]
 struct BenchmarkOptions {
     #[arg(long, value_enum, default_value_t = BenchmarkPolicyArg::RandomLegal)]
     policy: BenchmarkPolicyArg,
+    #[arg(long, value_enum, default_value_t = BenchmarkActionModeArg::Legacy)]
+    action_mode: BenchmarkActionModeArg,
     #[arg(long, default_value_t = 0)]
     seed_start: u64,
     #[arg(long, default_value_t = 3)]
@@ -160,7 +168,18 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
         builder.build()?
     };
     let threads = pool.install(|| rayon::current_num_threads());
+    let semantic_actions = matches!(options.action_mode, BenchmarkActionModeArg::Semantic);
     let report = match options.policy {
+        BenchmarkPolicyArg::RandomLegal if semantic_actions => pool.install(|| {
+            benchmark::run_semantic_policy(
+                config,
+                &seeds,
+                "random_legal",
+                options.max_decisions,
+                threads,
+                benchmark::random_legal_policy,
+            )
+        })?,
         BenchmarkPolicyArg::RandomLegal => pool.install(|| {
             benchmark::run_policy(
                 config,
@@ -169,6 +188,16 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
                 options.max_decisions,
                 threads,
                 benchmark::random_legal_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Scripted if semantic_actions => pool.install(|| {
+            benchmark::run_semantic_policy(
+                config,
+                &seeds,
+                "scripted_expert",
+                options.max_decisions,
+                threads,
+                |_| benchmark::scripted_policy,
             )
         })?,
         BenchmarkPolicyArg::Scripted => pool.install(|| {
@@ -182,6 +211,9 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
             )
         })?,
         BenchmarkPolicyArg::Checkpoint => {
+            if semantic_actions {
+                anyhow::bail!("semantic benchmark mode does not support legacy checkpoints")
+            }
             let contract = MlContract::from_config(config.as_ref());
             let (_checkpoint, model) =
                 NeuralCheckpoint::load_with_inference_model_with_config_change(

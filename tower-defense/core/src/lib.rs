@@ -388,7 +388,7 @@ pub fn expand_area_damage_events(
 }
 
 impl ActionKind {
-    pub const COUNT: usize = 19;
+    pub const COUNT: usize = 20;
 
     pub const fn index(self) -> usize {
         match self {
@@ -402,15 +402,16 @@ impl ActionKind {
             Self::CancelCardSelection => 7,
             Self::Reroll => 8,
             Self::SelectTower => 9,
-            Self::PlaceTower => 10,
-            Self::RemoveTower => 11,
-            Self::StartDefense => 12,
-            Self::SelectTreasure => 13,
-            Self::SelectCardServiceCard => 14,
-            Self::ConfirmCardServiceSelection => 15,
-            Self::UseInventoryItem => 16,
-            Self::DiscardTreasure => 17,
-            Self::Continue => 18,
+            Self::BuildTower => 10,
+            Self::PlaceTower => 11,
+            Self::RemoveTower => 12,
+            Self::StartDefense => 13,
+            Self::SelectTreasure => 14,
+            Self::SelectCardServiceCard => 15,
+            Self::ConfirmCardServiceSelection => 16,
+            Self::UseInventoryItem => 17,
+            Self::DiscardTreasure => 18,
+            Self::Continue => 19,
         }
     }
 
@@ -426,6 +427,7 @@ impl ActionKind {
             Self::CancelCardSelection => "cancel_card_selection",
             Self::Reroll => "reroll",
             Self::SelectTower => "select_tower",
+            Self::BuildTower => "build_tower",
             Self::PlaceTower => "place_tower",
             Self::RemoveTower => "remove_tower",
             Self::StartDefense => "start_defense",
@@ -452,6 +454,7 @@ impl AgentAction {
             Self::CancelCardSelection => ActionKind::CancelCardSelection,
             Self::Reroll { .. } => ActionKind::Reroll,
             Self::SelectTower { .. } => ActionKind::SelectTower,
+            Self::BuildTower { .. } => ActionKind::BuildTower,
             Self::PlaceTower { .. } => ActionKind::PlaceTower,
             Self::RemoveTower { .. } => ActionKind::RemoveTower,
             Self::StartDefense => ActionKind::StartDefense,
@@ -484,6 +487,15 @@ impl AgentAction {
             Self::SelectTower {
                 selected_slot_indices,
             } => format!("select_tower:{}", indices_key(selected_slot_indices)),
+            Self::BuildTower {
+                selected_slot_indices,
+                hand_slot_index,
+                left,
+                top,
+            } => format!(
+                "build_tower:{}:{hand_slot_index}:{left}:{top}",
+                indices_key(selected_slot_indices),
+            ),
             Self::PlaceTower {
                 hand_slot_index,
                 left,
@@ -524,6 +536,7 @@ impl AgentAction {
             } => Some(PlayerCommand::SelectTower {
                 selected_slot_indices: selected_slot_indices.clone(),
             }),
+            Self::BuildTower { .. } => None,
             Self::PlaceTower {
                 hand_slot_index,
                 left,
@@ -1232,6 +1245,12 @@ mod tests {
             AgentAction::SelectTower {
                 selected_slot_indices: vec![1],
             },
+            AgentAction::BuildTower {
+                selected_slot_indices: vec![1],
+                hand_slot_index: 0,
+                left: 3,
+                top: 4,
+            },
             AgentAction::PlaceTower {
                 hand_slot_index: 0,
                 left: 3,
@@ -1258,13 +1277,14 @@ mod tests {
         assert_eq!(actions[0].action_id(), "purchase_shop_item:2");
         assert_eq!(actions[8].action_id(), "reroll:0,2");
         assert_eq!(
-            actions[10].to_player_command(),
+            actions[11].to_player_command(),
             Some(PlayerCommand::PlaceTower {
                 hand_slot_index: 0,
                 left: 3,
                 top: 4,
             })
         );
+        assert_eq!(actions[10].action_id(), "build_tower:1:0:3:4");
         assert_eq!(actions[2].to_player_command(), None);
     }
 

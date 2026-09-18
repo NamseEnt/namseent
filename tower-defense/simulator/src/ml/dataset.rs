@@ -534,6 +534,7 @@ fn action_kind_name(index: usize) -> String {
         "cancel_card_selection",
         "reroll",
         "select_tower",
+        "build_tower",
         "place_tower",
         "remove_tower",
         "start_defense",

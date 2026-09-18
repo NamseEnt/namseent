@@ -1,19 +1,20 @@
 use crate::config::{self, GameConfig};
 use crate::environment::{AgentAction, LegalAction, Observation, RewardConfig};
-use crate::policy_runner::{EnvironmentPolicy, PolicyRunnerConfig, run_batch};
+use crate::policy_runner::{EnvironmentPolicy, PolicyRunnerConfig, run_batch, run_semantic_batch};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-pub const BENCHMARK_SCHEMA_VERSION: u32 = 2;
+pub const BENCHMARK_SCHEMA_VERSION: u32 = 3;
 pub const BENCHMARK_SEED_SCHEDULE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BenchmarkProvenance {
     pub benchmark_schema_version: u32,
     pub policy: String,
+    pub action_mode: String,
     pub config_digest: String,
     pub environment_version: u32,
     pub action_schema_version: u32,
@@ -58,6 +59,53 @@ where
     P: EnvironmentPolicy,
     F: Fn(u64) -> P + Sync,
 {
+    run_policy_with_mode(
+        config,
+        seeds,
+        policy_name,
+        max_decisions,
+        threads,
+        policy_factory,
+        false,
+    )
+}
+
+pub fn run_semantic_policy<P, F>(
+    config: Arc<GameConfig>,
+    seeds: &[u64],
+    policy_name: impl Into<String>,
+    max_decisions: usize,
+    threads: usize,
+    policy_factory: F,
+) -> Result<BenchmarkReport>
+where
+    P: EnvironmentPolicy,
+    F: Fn(u64) -> P + Sync,
+{
+    run_policy_with_mode(
+        config,
+        seeds,
+        policy_name,
+        max_decisions,
+        threads,
+        policy_factory,
+        true,
+    )
+}
+
+fn run_policy_with_mode<P, F>(
+    config: Arc<GameConfig>,
+    seeds: &[u64],
+    policy_name: impl Into<String>,
+    max_decisions: usize,
+    threads: usize,
+    policy_factory: F,
+    semantic_actions: bool,
+) -> Result<BenchmarkReport>
+where
+    P: EnvironmentPolicy,
+    F: Fn(u64) -> P + Sync,
+{
     if seeds.is_empty() {
         anyhow::bail!("benchmark requires at least one seed");
     }
@@ -74,7 +122,11 @@ where
         reward_config: RewardConfig::default(),
     };
     let started = std::time::Instant::now();
-    let batch = run_batch(Arc::clone(&config), seeds, &runner_config, policy_factory)?;
+    let batch = if semantic_actions {
+        run_semantic_batch(Arc::clone(&config), seeds, &runner_config, policy_factory)?
+    } else {
+        run_batch(Arc::clone(&config), seeds, &runner_config, policy_factory)?
+    };
     let elapsed_seconds = started.elapsed().as_secs_f64();
     let episodes = batch.episodes.len();
     let victories = batch
@@ -120,6 +172,11 @@ where
     let provenance = BenchmarkProvenance {
         benchmark_schema_version: BENCHMARK_SCHEMA_VERSION,
         policy: policy_name.into(),
+        action_mode: if semantic_actions {
+            "semantic".to_string()
+        } else {
+            "legacy".to_string()
+        },
         config_digest: config::config_digest(config.as_ref()),
         environment_version: crate::environment::ENVIRONMENT_VERSION,
         action_schema_version: crate::environment::ACTION_SCHEMA_VERSION,
@@ -220,5 +277,21 @@ mod tests {
         .expect_err("unsorted seeds should be rejected");
 
         assert!(error.to_string().contains("strictly increasing"));
+    }
+
+    #[test]
+    fn semantic_report_records_action_mode() {
+        let report = run_semantic_policy(
+            Arc::new(GameConfig::default_config()),
+            &[0],
+            "scripted_expert",
+            8,
+            1,
+            |_| scripted_policy,
+        )
+        .expect("semantic benchmark should run");
+
+        assert_eq!(report.provenance.action_mode, "semantic");
+        assert!(report.candidate_evaluations > 0);
     }
 }

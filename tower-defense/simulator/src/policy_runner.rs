@@ -775,6 +775,31 @@ pub fn scripted_expert_action(
             })
             .ok_or_else(|| anyhow::anyhow!("scripted expert found no shop action")),
         DecisionPoint::CardSelection => {
+            if legal_actions
+                .iter()
+                .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+            {
+                if observation.rerolled_count == 0
+                    && should_scripted_reroll(observation)
+                    && let Some(action) = legal_actions.iter().find_map(|legal| {
+                        let AgentAction::Reroll {
+                            selected_slot_indices,
+                        } = &legal.action
+                        else {
+                            return None;
+                        };
+                        (selected_slot_indices == &scripted_reroll_indices(observation))
+                            .then(|| legal.action.clone())
+                    })
+                {
+                    return Ok(action);
+                }
+                return legal_actions
+                    .iter()
+                    .find(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                    .map(|legal| legal.action.clone())
+                    .ok_or_else(|| anyhow::anyhow!("scripted expert found no semantic build"));
+            }
             if observation.card_selection_purpose.is_none() {
                 if observation.rerolled_count == 0
                     && should_scripted_reroll(observation)
@@ -1078,11 +1103,64 @@ where
     })
 }
 
+pub fn run_semantic_batch<P, F>(
+    game_config: Arc<GameConfig>,
+    seeds: &[u64],
+    runner_config: &PolicyRunnerConfig,
+    policy_factory: F,
+) -> Result<BatchResult>
+where
+    P: EnvironmentPolicy,
+    F: Fn(u64) -> P + Sync,
+{
+    let mut episodes = seeds
+        .par_iter()
+        .map(|&seed| {
+            run_semantic_episode(
+                Arc::clone(&game_config),
+                seed,
+                runner_config,
+                policy_factory(seed),
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    episodes.sort_by_key(|episode| episode.seed);
+    Ok(BatchResult {
+        seeds: seeds.to_vec(),
+        episodes,
+    })
+}
+
 pub fn run_episode<P>(
     game_config: Arc<GameConfig>,
     seed: u64,
     runner_config: &PolicyRunnerConfig,
+    policy: P,
+) -> Result<EpisodeResult>
+where
+    P: EnvironmentPolicy,
+{
+    run_episode_with_mode(game_config, seed, runner_config, policy, false)
+}
+
+pub fn run_semantic_episode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+) -> Result<EpisodeResult>
+where
+    P: EnvironmentPolicy,
+{
+    run_episode_with_mode(game_config, seed, runner_config, policy, true)
+}
+
+fn run_episode_with_mode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
     mut policy: P,
+    semantic_actions: bool,
 ) -> Result<EpisodeResult>
 where
     P: EnvironmentPolicy,
@@ -1134,8 +1212,17 @@ where
 
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let (canonical_legal_actions, legal_action_metrics) =
-            environment.legal_actions_with_metrics();
+        let (canonical_legal_actions, placement_checks) = if semantic_actions {
+            (
+                environment.semantic_legal_actions_with_position_limit(Some(
+                    super::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                )),
+                0,
+            )
+        } else {
+            let (actions, metrics) = environment.legal_actions_with_metrics();
+            (actions, metrics.placement_position_checks)
+        };
         if canonical_legal_actions.is_empty() {
             bail!(
                 "environment reached a non-terminal state without legal actions at seed {} (state {})",
@@ -1146,12 +1233,15 @@ where
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
         candidate_evaluations += legal_actions.len();
-        placement_position_checks += legal_action_metrics.placement_position_checks;
+        placement_position_checks += placement_checks;
         let action = policy.choose_action(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint.clone(), action.clone());
-        let mut outcome = environment
-            .step(action.clone())
-            .map_err(|error| runner_environment_error(seed, error))?;
+        let mut outcome = if semantic_actions {
+            environment.semantic_step(action.clone())
+        } else {
+            environment.step(action.clone())
+        }
+        .map_err(|error| runner_environment_error(seed, error))?;
         while !outcome.terminated && !outcome.truncated {
             let Some(forced_action) = environment.forced_action() else {
                 break;

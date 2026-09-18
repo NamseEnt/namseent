@@ -72,12 +72,25 @@ cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
 
 같은 seed와 제한으로 `scripted`와 `checkpoint`를 각각 실행한다. checkpoint가 현재 contract와 호환되지 않으면 실패를 숨기지 않고 baseline 상태에 기록한다.
 
+semantic action oracle과 proposal 경로는 다음처럼 별도로 측정한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
+  --action-mode semantic \
+  --policy scripted \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 512 \
+  --threads 8 \
+  --output artifacts/benchmarks/phase1-semantic-scripted-0-3.json
+```
+
 ### Phase 1: 행동 계약과 시뮬레이터 처리량
 
 1. UI micro-action을 simulator-local semantic action으로 교체한다.
 2. build와 placement를 factorized joint decision으로 생성하고 평가한다.
-3. 행동당 반복 observation, legal action 생성, 상태 복제, 중복 경로 계산을 제거한다.
-4. authoritative core 규칙과 deterministic replay를 유지한다.
+3. 전체 pair oracle과 deterministic proposal의 candidate recall을 비교한다.
+4. 행동당 반복 observation, legal action 생성, 상태 복제, 중복 경로 계산을 제거한다.
+5. authoritative core 규칙과 deterministic replay를 유지한다.
 
 행동 계약 변경과 성능 최적화는 따로 배포하지 않는다. 새 계약 기준으로 다시 프로파일링해야 하기 때문이다.
 
