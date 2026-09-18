@@ -24,6 +24,10 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 이 값은 확정된 기본값이 아니다. simulator 처리량 측정과 label 안정성 실험으로 정한다.
 
+현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+
+현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
+
 ## Common random numbers
 
 후보 A와 B는 가능한 한 같은 외생 random scenario를 경험해야 한다.

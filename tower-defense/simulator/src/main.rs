@@ -24,6 +24,7 @@ use td_simulator::ml::validation::{
 use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig, run_batch};
 use td_simulator::recording::{SimRecorder, SimulationProvenance};
 use td_simulator::stats::Database;
+use td_simulator::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
 
 mod stats_cli;
 
@@ -40,6 +41,7 @@ enum Command {
     Simulate(SimulateOptions),
     Baseline(BaselineOptions),
     Benchmark(BenchmarkOptions),
+    Teacher(TeacherOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -111,6 +113,26 @@ struct BenchmarkOptions {
 }
 
 #[derive(Args)]
+struct TeacherOptions {
+    #[arg(long, default_value_t = 0)]
+    seed: u64,
+    #[arg(long, default_value_t = 8)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 4)]
+    scenario_count: usize,
+    #[arg(long, default_value_t = 0)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value_t = 4)]
+    horizon_decisions: usize,
+    #[arg(long, default_value_t = 32)]
+    position_candidate_limit: usize,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
+}
+
+#[derive(Args)]
 struct SimulateOptions {
     #[arg(short, long, default_value_t = 1000)]
     samples: usize,
@@ -145,10 +167,59 @@ fn main() -> Result<()> {
         Command::Simulate(options) => run_simulate(options),
         Command::Baseline(options) => run_baseline(options),
         Command::Benchmark(options) => run_benchmark(options),
+        Command::Teacher(options) => run_teacher(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
     }
+}
+
+fn run_teacher(options: TeacherOptions) -> Result<()> {
+    if options.scenario_count == 0 {
+        anyhow::bail!("--scenario-count must be positive");
+    }
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let mut environment =
+        td_simulator::environment::GameEnvironment::new(Arc::clone(&config), options.seed);
+    let teacher_config = RolloutTeacherConfig {
+        scenario_seeds: (options.scenario_seed_start
+            ..options
+                .scenario_seed_start
+                .saturating_add(options.scenario_count as u64))
+            .collect(),
+        horizon_decisions: options.horizon_decisions,
+        position_candidate_limit: Some(options.position_candidate_limit),
+    };
+    let report =
+        run_semantic_teacher_episode(&mut environment, &teacher_config, options.max_decisions)?;
+    let json = serde_json::to_string_pretty(&serde_json::json!({
+        "teacher_schema_version": 1,
+        "config_digest": config::config_digest(config.as_ref()),
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "scenario_seed_start": options.scenario_seed_start,
+        "scenario_count": options.scenario_count,
+        "horizon_decisions": options.horizon_decisions,
+        "position_candidate_limit": options.position_candidate_limit,
+        "episode": report,
+    }))?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Teacher report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
 }
 
 fn run_benchmark(options: BenchmarkOptions) -> Result<()> {

@@ -31,7 +31,7 @@
 | [`02-action-contract.md`](02-action-contract.md) | semantic action과 joint build-placement 계약 | Accepted design |
 | [`03-observation-contract.md`](03-observation-contract.md) | 정책과 teacher가 사용하는 상태 정보 | Proposed |
 | [`04-simulator-performance.md`](04-simulator-performance.md) | 시뮬레이터 프로파일링과 최적화 계획 | Accepted plan |
-| [`05-rollout-teacher.md`](05-rollout-teacher.md) | non-cheating rollout teacher | Accepted plan |
+| [`05-rollout-teacher.md`](05-rollout-teacher.md) | non-cheating rollout teacher | Implemented (minimum) |
 | [`06-dataset-and-distillation.md`](06-dataset-and-distillation.md) | teacher dataset과 빠른 정책 압축 | Proposed |
 | [`07-policy-and-rl.md`](07-policy-and-rl.md) | 표현 구조와 RL fine-tuning | Proposed |
 | [`08-evaluation.md`](08-evaluation.md) | 모델 비교와 최종 평가 | Accepted design |
@@ -109,6 +109,20 @@ cargo run --release --manifest-path simulator/Cargo.toml -- benchmark \
 2. 제한된 horizon을 실제 simulator로 실행한다.
 3. 현재 heuristic의 선택과 대안들의 추정 가치를 비교한다.
 4. held-out full-game 평가에서 기존 heuristic보다 강한지 검증한다.
+
+현재 최소 구현은 다음 명령으로 한 episode의 decision별 후보 평가 report를 생성한다.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- teacher \
+  --seed 0 \
+  --max-decisions 8 \
+  --scenario-count 4 \
+  --horizon-decisions 4 \
+  --position-candidate-limit 32 \
+  --output artifacts/teacher/seed-0.json
+```
+
+이 명령은 semantic candidate를 동일 scenario seed로 평가하고, 결과의 평균 score, variance, standard error, 승리 수와 선택 action을 JSON으로 저장한다. 현재는 scripted continuation과 고정 decision horizon만 제공하며, teacher가 기존 heuristic보다 강한지 확인하기 전까지 learned value나 반복 policy improvement는 추가하지 않는다.
 
 성공하기 전에는 tree search, learned value bootstrap, 반복 policy improvement를 추가하지 않는다.
 
