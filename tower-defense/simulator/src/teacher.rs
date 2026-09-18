@@ -407,7 +407,12 @@ mod tests {
         position_limit: usize,
         sample_count: usize,
         mean_legal_candidate_recall: f64,
-        heuristic_best_retention_rate: f64,
+        exact_best_retention_rate: f64,
+        top5_retention_rate: f64,
+        top10_retention_rate: f64,
+        mean_coverage_regret: f64,
+        max_coverage_regret: usize,
+        share_with_nonzero_regret: f64,
     }
 
     #[derive(serde::Serialize)]
@@ -415,7 +420,11 @@ mod tests {
         position_limit: usize,
         proposed_build_candidate_count: usize,
         legal_candidate_recall: f64,
-        heuristic_best_retained: bool,
+        exact_best_retained: bool,
+        top5_retained_count: usize,
+        top10_retained_count: usize,
+        best_covered_route_within_limit: usize,
+        coverage_regret: usize,
     }
 
     #[derive(serde::Serialize)]
@@ -423,7 +432,8 @@ mod tests {
         seed: u64,
         decision_index: usize,
         oracle_build_candidate_count: usize,
-        heuristic_best_action_id: Option<String>,
+        oracle_best_action_id: Option<String>,
+        oracle_best_covered_route: usize,
         per_limit: Vec<RecallSamplePointLimit>,
     }
 
@@ -438,31 +448,33 @@ mod tests {
 
     /// Phase 1 candidate-proposal recall report (see docs/game-ai/02-action-contract.md).
     ///
-    /// `heuristic_best` is the argmax of the deterministic scripted-expert
-    /// coverage/route-distance/damage score (`best_build_tower_action_by_heuristic`)
-    /// over the FULL oracle `BuildTower` candidate set (no position limit).
-    /// It is a rollout-free oracle-quality proxy: a real rollout evaluation
-    /// over the full oracle set (tens of thousands of candidates per
-    /// decision) is computationally intractable, so this is not a
-    /// ground-truth "best future outcome" action, only the best action by
-    /// the same heuristic the scripted baseline and continuation policy
-    /// already use.
+    /// The oracle ranking is `rank_build_tower_actions_by_heuristic`
+    /// (coverage, then route distance, then damage) over the FULL oracle
+    /// `BuildTower` candidate set (no position limit). It is a rollout-free
+    /// oracle-quality proxy: a real rollout evaluation over the full oracle
+    /// set is computationally intractable (tens of thousands to hundreds of
+    /// thousands of candidates per decision), so "oracle best" here means
+    /// best by this deterministic heuristic, not a ground-truth best future
+    /// outcome. `coverage_regret` is the oracle-best candidate's route-tile
+    /// coverage count minus the best coverage achievable among the
+    /// position-limited proposal, i.e. how much of the primary ranking
+    /// dimension is lost by truncating, not a rollout value gap.
     ///
     /// Run with: cargo test --release -- --ignored phase1_candidate_recall_report --nocapture
     #[test]
     #[ignore = "manual release benchmark; writes artifacts/benchmarks/phase1-candidate-recall.json"]
     fn phase1_candidate_recall_report() {
-        use crate::policy_runner::best_build_tower_action_by_heuristic;
+        use crate::policy_runner::rank_build_tower_actions_by_heuristic;
         use std::collections::HashSet;
 
-        const SEEDS: [u64; 6] = [0, 1, 2, 3, 4, 5];
-        const SAMPLES_PER_SEED: usize = 3;
-        const LIMITS: [usize; 4] = [8, 16, 32, 64];
-        const MAX_DECISIONS_PER_SEED: usize = 40;
+        const SEEDS: std::ops::Range<u64> = 0..24;
+        const SAMPLES_PER_SEED: usize = 6;
+        const LIMITS: [usize; 5] = [8, 16, 32, 48, 64];
+        const MAX_DECISIONS_PER_SEED: usize = 96;
 
         let mut sample_points = Vec::new();
 
-        for &seed in &SEEDS {
+        for seed in SEEDS {
             let mut environment =
                 GameEnvironment::new(std::sync::Arc::new(GameConfig::default_config()), seed);
             environment
@@ -481,13 +493,26 @@ mod tests {
                     .collect::<Vec<_>>();
 
                 if !oracle_build_actions.is_empty() {
+                    let oracle_ranking =
+                        rank_build_tower_actions_by_heuristic(&observation, &oracle_build_actions);
+                    let oracle_best = oracle_ranking.first();
+                    let oracle_best_id = oracle_best.map(|score| score.action.action_id());
+                    let oracle_best_covered_route =
+                        oracle_best.map(|score| score.covered_route).unwrap_or(0);
+                    let oracle_top5 = oracle_ranking
+                        .iter()
+                        .take(5)
+                        .map(|score| score.action.action_id())
+                        .collect::<HashSet<_>>();
+                    let oracle_top10 = oracle_ranking
+                        .iter()
+                        .take(10)
+                        .map(|score| score.action.action_id())
+                        .collect::<HashSet<_>>();
                     let oracle_ids = oracle_build_actions
                         .iter()
                         .map(|legal| legal.id.clone())
                         .collect::<HashSet<_>>();
-                    let heuristic_best_id =
-                        best_build_tower_action_by_heuristic(&observation, &oracle_build_actions)
-                            .map(|action| action.action_id());
 
                     let per_limit = LIMITS
                         .iter()
@@ -508,14 +533,34 @@ mod tests {
                                 "proposed candidates must stay within the oracle set"
                             );
                             let recall = proposed.len() as f64 / oracle_build_actions.len() as f64;
-                            let retained = heuristic_best_id
+                            let exact_best_retained = oracle_best_id
                                 .as_ref()
                                 .is_some_and(|id| proposed_ids.contains(id));
+                            let top5_retained_count = oracle_top5
+                                .iter()
+                                .filter(|id| proposed_ids.contains(*id))
+                                .count();
+                            let top10_retained_count = oracle_top10
+                                .iter()
+                                .filter(|id| proposed_ids.contains(*id))
+                                .count();
+                            let proposed_ranking =
+                                rank_build_tower_actions_by_heuristic(&observation, &proposed);
+                            let best_covered_route_within_limit = proposed_ranking
+                                .first()
+                                .map(|score| score.covered_route)
+                                .unwrap_or(0);
+                            let coverage_regret = oracle_best_covered_route
+                                .saturating_sub(best_covered_route_within_limit);
                             RecallSamplePointLimit {
                                 position_limit: limit,
                                 proposed_build_candidate_count: proposed.len(),
                                 legal_candidate_recall: recall,
-                                heuristic_best_retained: retained,
+                                exact_best_retained,
+                                top5_retained_count,
+                                top10_retained_count,
+                                best_covered_route_within_limit,
+                                coverage_regret,
                             }
                         })
                         .collect();
@@ -524,7 +569,8 @@ mod tests {
                         seed,
                         decision_index,
                         oracle_build_candidate_count: oracle_build_actions.len(),
-                        heuristic_best_action_id: heuristic_best_id,
+                        oracle_best_action_id: oracle_best_id,
+                        oracle_best_covered_route,
                         per_limit,
                     });
                     samples_collected += 1;
@@ -552,45 +598,78 @@ mod tests {
                     .flat_map(|point| point.per_limit.iter().filter(|l| l.position_limit == limit))
                     .collect::<Vec<_>>();
                 let count = entries.len().max(1);
-                let mean_recall = entries
-                    .iter()
-                    .map(|l| l.legal_candidate_recall)
-                    .sum::<f64>()
-                    / count as f64;
-                let retention_rate = entries
-                    .iter()
-                    .map(|l| l.heuristic_best_retained as u8 as f64)
-                    .sum::<f64>()
-                    / count as f64;
+                let mean = |values: Vec<f64>| values.iter().sum::<f64>() / count as f64;
                 RecallLimitStat {
                     position_limit: limit,
                     sample_count: entries.len(),
-                    mean_legal_candidate_recall: mean_recall,
-                    heuristic_best_retention_rate: retention_rate,
+                    mean_legal_candidate_recall: mean(
+                        entries.iter().map(|l| l.legal_candidate_recall).collect(),
+                    ),
+                    exact_best_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.exact_best_retained as u8 as f64)
+                            .collect(),
+                    ),
+                    top5_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.top5_retained_count as f64 / 5.0)
+                            .collect(),
+                    ),
+                    top10_retention_rate: mean(
+                        entries
+                            .iter()
+                            .map(|l| l.top10_retained_count as f64 / 10.0)
+                            .collect(),
+                    ),
+                    mean_coverage_regret: mean(
+                        entries.iter().map(|l| l.coverage_regret as f64).collect(),
+                    ),
+                    max_coverage_regret: entries
+                        .iter()
+                        .map(|l| l.coverage_regret)
+                        .max()
+                        .unwrap_or(0),
+                    share_with_nonzero_regret: mean(
+                        entries
+                            .iter()
+                            .map(|l| (l.coverage_regret > 0) as u8 as f64)
+                            .collect(),
+                    ),
                 }
             })
             .collect::<Vec<_>>();
 
         for stat in &aggregated {
             println!(
-                "position_limit={} sample_count={} mean_legal_candidate_recall={:.4} heuristic_best_retention_rate={:.4}",
+                "position_limit={} sample_count={} mean_legal_candidate_recall={:.4} \
+                exact_best_retention_rate={:.4} top5_retention_rate={:.4} \
+                top10_retention_rate={:.4} mean_coverage_regret={:.4} \
+                max_coverage_regret={} share_with_nonzero_regret={:.4}",
                 stat.position_limit,
                 stat.sample_count,
                 stat.mean_legal_candidate_recall,
-                stat.heuristic_best_retention_rate
+                stat.exact_best_retention_rate,
+                stat.top5_retention_rate,
+                stat.top10_retention_rate,
+                stat.mean_coverage_regret,
+                stat.max_coverage_regret,
+                stat.share_with_nonzero_regret
             );
         }
 
         let report = RecallReport {
-            methodology: "heuristic_best is the argmax of best_build_tower_action_by_heuristic \
-                (coverage, then route distance, then damage) over the full oracle BuildTower \
-                candidate set (no position limit); a real rollout evaluation over the full oracle \
-                set is computationally intractable (tens of thousands of candidates per decision), \
-                so this is a rollout-free oracle-quality proxy, not a ground-truth best action. \
-                legal_candidate_recall is |proposed BuildTower candidates| / |oracle BuildTower \
-                candidates| at a given position_limit."
+            methodology: "oracle ranking is rank_build_tower_actions_by_heuristic (coverage, then \
+                route distance, then damage) over the full oracle BuildTower candidate set (no \
+                position limit); a real rollout evaluation over the full oracle set is \
+                computationally intractable, so this is a rollout-free oracle-quality proxy, not a \
+                ground-truth best action. legal_candidate_recall is |proposed BuildTower \
+                candidates| / |oracle BuildTower candidates|. coverage_regret is the oracle-best \
+                candidate's route-tile coverage minus the best coverage achievable within the \
+                position-limited proposal at that sample point."
                 .to_string(),
-            seeds: SEEDS.to_vec(),
+            seeds: SEEDS.collect(),
             position_limits: LIMITS.to_vec(),
             sample_points,
             aggregated,
