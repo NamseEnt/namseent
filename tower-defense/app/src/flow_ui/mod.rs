@@ -1,6 +1,5 @@
 mod result;
 pub(crate) mod selecting_tower;
-pub(crate) mod treasure_selection;
 
 use crate::game_state::use_game_state;
 use namui::*;
@@ -19,9 +18,7 @@ impl Component for FlowUi {
             }
             td_core::GameFlowState::PlacingTower => {}
             td_core::GameFlowState::Defense(_) => {}
-            td_core::GameFlowState::TreasureSelection { .. } => {
-                ctx.add(treasure_selection::TreasureSelectionUi);
-            }
+            td_core::GameFlowState::TreasureSelection { .. } => {}
             td_core::GameFlowState::Result { .. } => {
                 ctx.add(result::ResultModal);
             }

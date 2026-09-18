@@ -29,6 +29,7 @@ mod thumbnail;
 pub mod time;
 mod tooltip;
 mod top_bar;
+mod treasure_selection;
 mod upgrades;
 pub mod world;
 
@@ -282,6 +283,7 @@ impl Component for Game {
 
         ctx.add(shop_panel::ShopPanel);
         ctx.add(hand_panel::HandPanel);
+        ctx.add(treasure_selection::TreasureSelectionUi);
 
         ctx.add(sound::SoundRenderer);
 
