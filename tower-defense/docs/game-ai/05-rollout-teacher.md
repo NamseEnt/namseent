@@ -24,7 +24,9 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 이 값은 확정된 기본값이 아니다. simulator 처리량 측정과 label 안정성 실험으로 정한다.
 
-현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `candidate_limit`을 지정하면 deterministic semantic proposal의 앞부분만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `candidate_limit`을 지정하면 semantic proposal 중 `candidate_limit`개만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+
+`candidate_limit`은 단순 앞부분 truncate가 아니라 `select_candidates_fairly`로 선택한다. `phase2_candidate_limit_bias_report`(`simulator/src/teacher.rs`, `cargo test --release -- --ignored phase2_candidate_limit_bias_report`)로 측정한 결과, 단순 truncate는 card subset의 97%(limit 64 기준)를 완전히 배제했고 이 배제가 hand slot index 기반 생성 순서와 체계적으로 상관되어 있었다(뒤쪽 subset은 limit 1024에서도 여전히 대부분 배제). `PurchaseShopItem`/`UseInventoryItem`도 항상 card action 뒤에 생성되어 limit 2048 미만에서는 한 번도 살아남지 못했다. 이 truncate 방식에서 oracle 순위 1위 후보의 exact-best 보존율은 limit 1024까지 0%였다. `select_candidates_fairly`는 각 card subset(및 그 외 action)을 하나의 block으로 유지한 채, block의 순서만 hand slot 생성 순서와 무관한 키(card id 합)로 재배열한다. 같은 벤치마크에서 exact-best 보존율이 limit 128에서 60%, limit 512 이상에서 100%로 개선되었고 coverage regret은 limit 128 이상에서 0으로 측정되었다. 후보 수가 늘어난 만큼 rollout 비용도 대략 선형으로 늘어난다(release 측정: limit 64→256에서 벽시계 시간 약 3.3배).
 
 현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
 
