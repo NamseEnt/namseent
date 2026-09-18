@@ -68,13 +68,16 @@ pub fn get_highest_tower_template(
             ));
         }
 
-        if cards_of_rank.len() == 3 && triple_cards.is_none() {
+        if cards_of_rank.len() >= 3 && triple_cards.is_none() {
             triple_cards = Some(cards_of_rank.clone());
-        } else if cards_of_rank.len() == 2 {
+        } else if cards_of_rank.len() >= 2 {
+            let mut pair_cards = cards_of_rank.clone();
+            pair_cards.sort_by_key(card_order_key);
+            let pair_cards = pair_cards.into_iter().rev().take(2).collect::<Vec<_>>();
             if pair_high_cards.is_none() {
-                pair_high_cards = Some(cards_of_rank.clone());
+                pair_high_cards = Some(pair_cards);
             } else if pair_low_cards.is_none() {
-                pair_low_cards = Some(cards_of_rank.clone());
+                pair_low_cards = Some(pair_cards);
             }
         }
     }
