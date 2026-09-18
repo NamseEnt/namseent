@@ -1037,21 +1037,23 @@ impl GameEnvironment {
     }
 
     fn tower_placement_actions(&self) -> Vec<AgentAction> {
-        let coordinates = self.placement_coordinates();
-        let mut actions = Vec::with_capacity(self.tower_hand_indices().len() * coordinates.len());
+        let hand_slot_indices = self.tower_hand_indices();
+        let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
+        let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
+        let mut actions = Vec::with_capacity(hand_slot_indices.len() * map_width * map_height);
         let state = self.game_state.raw_state();
-        for hand_slot_index in self.tower_hand_indices() {
-            actions.extend(
-                coordinates
-                    .iter()
-                    .cloned()
-                    .filter(|(left, top)| state.can_place_tower(hand_slot_index, *left, *top))
-                    .map(|(left, top)| AgentAction::PlaceTower {
-                        hand_slot_index,
-                        left,
-                        top,
-                    }),
-            );
+        for top in 0..map_height {
+            for left in 0..map_width {
+                for &hand_slot_index in &hand_slot_indices {
+                    if state.can_place_tower(hand_slot_index, left, top) {
+                        actions.push(AgentAction::PlaceTower {
+                            hand_slot_index,
+                            left,
+                            top,
+                        });
+                    }
+                }
+            }
         }
         actions.extend(
             self.game_state
@@ -1063,24 +1065,6 @@ impl GameEnvironment {
         );
         actions.push(AgentAction::StartDefense);
         actions
-    }
-
-    fn placement_coordinates(&self) -> Vec<(usize, usize)> {
-        (0..td_core::MAP_SIZE[1].saturating_sub(1))
-            .flat_map(|top| {
-                (0..td_core::MAP_SIZE[0].saturating_sub(1)).filter_map(move |left| {
-                    self.tower_hand_indices()
-                        .iter()
-                        .copied()
-                        .any(|hand_slot_index| {
-                            self.game_state
-                                .raw_state()
-                                .can_place_tower(hand_slot_index, left, top)
-                        })
-                        .then_some((left, top))
-                })
-            })
-            .collect()
     }
 
     fn treasure_actions(&self) -> Vec<AgentAction> {
