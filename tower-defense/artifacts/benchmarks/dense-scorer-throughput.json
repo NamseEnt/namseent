@@ -1,0 +1,585 @@
+{
+  "methodology": "legality_scan_seconds times a standalone position_legality scan over every map cell (the same one DenseBuildTowerScoreTable::compute performs internally), approximating the cost the old pipeline also pays inside semantic_legal_actions to produce the oracle candidate list in the first place. exhaustive_heuristic_scoring_seconds times rank_build_tower_actions_by_heuristic given that already-generated oracle candidate list - the per-candidate route scan this module replaces. dense_table_total_seconds times DenseBuildTowerScoreTable::compute end to end (its own legality scan + map-level grids + fill), the new pipeline's total cost for the same decision. mean_old_total_seconds = mean_legality_scan_seconds + mean_exhaustive_heuristic_scoring_seconds is the fair total-pipeline comparison point for mean_dense_table_total_seconds.",
+  "sample_points": [
+    {
+      "seed": 0,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060026673,
+      "exhaustive_heuristic_scoring_seconds": 0.023787633,
+      "dense_table_total_seconds": 0.060624536
+    },
+    {
+      "seed": 0,
+      "decision_index": 4,
+      "oracle_candidate_count": 36952,
+      "legality_scan_seconds": 0.060471278,
+      "exhaustive_heuristic_scoring_seconds": 0.024014548,
+      "dense_table_total_seconds": 0.061126439
+    },
+    {
+      "seed": 0,
+      "decision_index": 5,
+      "oracle_candidate_count": 36952,
+      "legality_scan_seconds": 0.060561788,
+      "exhaustive_heuristic_scoring_seconds": 0.021685533,
+      "dense_table_total_seconds": 0.061165091
+    },
+    {
+      "seed": 0,
+      "decision_index": 8,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060564804,
+      "exhaustive_heuristic_scoring_seconds": 0.021835044,
+      "dense_table_total_seconds": 0.06123315
+    },
+    {
+      "seed": 0,
+      "decision_index": 9,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060527243,
+      "exhaustive_heuristic_scoring_seconds": 0.021745988,
+      "dense_table_total_seconds": 0.061473371
+    },
+    {
+      "seed": 0,
+      "decision_index": 10,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060681313,
+      "exhaustive_heuristic_scoring_seconds": 0.021486821,
+      "dense_table_total_seconds": 0.061171664
+    },
+    {
+      "seed": 1,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.06016331,
+      "exhaustive_heuristic_scoring_seconds": 0.021486099,
+      "dense_table_total_seconds": 0.060576777
+    },
+    {
+      "seed": 1,
+      "decision_index": 4,
+      "oracle_candidate_count": 36952,
+      "legality_scan_seconds": 0.060329272,
+      "exhaustive_heuristic_scoring_seconds": 0.021372275,
+      "dense_table_total_seconds": 0.061526681
+    },
+    {
+      "seed": 1,
+      "decision_index": 5,
+      "oracle_candidate_count": 36952,
+      "legality_scan_seconds": 0.060329873,
+      "exhaustive_heuristic_scoring_seconds": 0.021351036,
+      "dense_table_total_seconds": 0.061608755
+    },
+    {
+      "seed": 1,
+      "decision_index": 8,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060474675,
+      "exhaustive_heuristic_scoring_seconds": 0.021428472,
+      "dense_table_total_seconds": 0.060980093
+    },
+    {
+      "seed": 1,
+      "decision_index": 11,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060641559,
+      "exhaustive_heuristic_scoring_seconds": 0.02144402,
+      "dense_table_total_seconds": 0.060352466
+    },
+    {
+      "seed": 1,
+      "decision_index": 12,
+      "oracle_candidate_count": 36735,
+      "legality_scan_seconds": 0.060466649,
+      "exhaustive_heuristic_scoring_seconds": 0.02131097,
+      "dense_table_total_seconds": 0.061194688
+    },
+    {
+      "seed": 2,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.059991266,
+      "exhaustive_heuristic_scoring_seconds": 0.021768059,
+      "dense_table_total_seconds": 0.06064775
+    },
+    {
+      "seed": 2,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060272665,
+      "exhaustive_heuristic_scoring_seconds": 0.11929366,
+      "dense_table_total_seconds": 0.060751034
+    },
+    {
+      "seed": 2,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060980605,
+      "exhaustive_heuristic_scoring_seconds": 0.120280944,
+      "dense_table_total_seconds": 0.060878093
+    },
+    {
+      "seed": 2,
+      "decision_index": 20,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059095645,
+      "exhaustive_heuristic_scoring_seconds": 0.020851798,
+      "dense_table_total_seconds": 0.060072239
+    },
+    {
+      "seed": 2,
+      "decision_index": 23,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.05918887,
+      "exhaustive_heuristic_scoring_seconds": 0.020633016,
+      "dense_table_total_seconds": 0.059933207
+    },
+    {
+      "seed": 2,
+      "decision_index": 24,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059045641,
+      "exhaustive_heuristic_scoring_seconds": 0.020959651,
+      "dense_table_total_seconds": 0.060637921
+    },
+    {
+      "seed": 3,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.059827068,
+      "exhaustive_heuristic_scoring_seconds": 0.021593922,
+      "dense_table_total_seconds": 0.060493921
+    },
+    {
+      "seed": 3,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060150355,
+      "exhaustive_heuristic_scoring_seconds": 0.117322506,
+      "dense_table_total_seconds": 0.061115729
+    },
+    {
+      "seed": 3,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060378845,
+      "exhaustive_heuristic_scoring_seconds": 0.115229845,
+      "dense_table_total_seconds": 0.061460958
+    },
+    {
+      "seed": 3,
+      "decision_index": 11,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060889815,
+      "exhaustive_heuristic_scoring_seconds": 0.114758591,
+      "dense_table_total_seconds": 0.061054053
+    },
+    {
+      "seed": 3,
+      "decision_index": 12,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060870579,
+      "exhaustive_heuristic_scoring_seconds": 0.114196735,
+      "dense_table_total_seconds": 0.06072218
+    },
+    {
+      "seed": 3,
+      "decision_index": 19,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.058901981,
+      "exhaustive_heuristic_scoring_seconds": 0.020984437,
+      "dense_table_total_seconds": 0.060373185
+    },
+    {
+      "seed": 4,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060134646,
+      "exhaustive_heuristic_scoring_seconds": 0.021496469,
+      "dense_table_total_seconds": 0.060715136
+    },
+    {
+      "seed": 4,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060492739,
+      "exhaustive_heuristic_scoring_seconds": 0.11194184,
+      "dense_table_total_seconds": 0.060929229
+    },
+    {
+      "seed": 4,
+      "decision_index": 12,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060441833,
+      "exhaustive_heuristic_scoring_seconds": 0.111410392,
+      "dense_table_total_seconds": 0.061518876
+    },
+    {
+      "seed": 4,
+      "decision_index": 13,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060342607,
+      "exhaustive_heuristic_scoring_seconds": 0.116338428,
+      "dense_table_total_seconds": 0.061383091
+    },
+    {
+      "seed": 4,
+      "decision_index": 20,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059665845,
+      "exhaustive_heuristic_scoring_seconds": 0.02115102,
+      "dense_table_total_seconds": 0.059908983
+    },
+    {
+      "seed": 4,
+      "decision_index": 21,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059265494,
+      "exhaustive_heuristic_scoring_seconds": 0.020968527,
+      "dense_table_total_seconds": 0.059737921
+    },
+    {
+      "seed": 5,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.059890056,
+      "exhaustive_heuristic_scoring_seconds": 0.021604592,
+      "dense_table_total_seconds": 0.060720627
+    },
+    {
+      "seed": 5,
+      "decision_index": 2,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060188287,
+      "exhaustive_heuristic_scoring_seconds": 0.021788667,
+      "dense_table_total_seconds": 0.060959205
+    },
+    {
+      "seed": 5,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060588318,
+      "exhaustive_heuristic_scoring_seconds": 0.111102894,
+      "dense_table_total_seconds": 0.061081165
+    },
+    {
+      "seed": 5,
+      "decision_index": 11,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.062159841,
+      "exhaustive_heuristic_scoring_seconds": 0.114780773,
+      "dense_table_total_seconds": 0.061021903
+    },
+    {
+      "seed": 5,
+      "decision_index": 12,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060886768,
+      "exhaustive_heuristic_scoring_seconds": 0.114159907,
+      "dense_table_total_seconds": 0.060465257
+    },
+    {
+      "seed": 5,
+      "decision_index": 19,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.0595243,
+      "exhaustive_heuristic_scoring_seconds": 0.020786705,
+      "dense_table_total_seconds": 0.060093008
+    },
+    {
+      "seed": 6,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060745043,
+      "exhaustive_heuristic_scoring_seconds": 0.021241801,
+      "dense_table_total_seconds": 0.060399193
+    },
+    {
+      "seed": 6,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060555227,
+      "exhaustive_heuristic_scoring_seconds": 0.115094963,
+      "dense_table_total_seconds": 0.060899733
+    },
+    {
+      "seed": 6,
+      "decision_index": 12,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060644875,
+      "exhaustive_heuristic_scoring_seconds": 0.113029113,
+      "dense_table_total_seconds": 0.060787804
+    },
+    {
+      "seed": 6,
+      "decision_index": 19,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059265304,
+      "exhaustive_heuristic_scoring_seconds": 0.021036534,
+      "dense_table_total_seconds": 0.060809143
+    },
+    {
+      "seed": 6,
+      "decision_index": 20,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059585925,
+      "exhaustive_heuristic_scoring_seconds": 0.02097004,
+      "dense_table_total_seconds": 0.060908159
+    },
+    {
+      "seed": 6,
+      "decision_index": 23,
+      "oracle_candidate_count": 35712,
+      "legality_scan_seconds": 0.059465329,
+      "exhaustive_heuristic_scoring_seconds": 0.020728547,
+      "dense_table_total_seconds": 0.061064082
+    },
+    {
+      "seed": 7,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.059853578,
+      "exhaustive_heuristic_scoring_seconds": 0.021469228,
+      "dense_table_total_seconds": 0.060634986
+    },
+    {
+      "seed": 7,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060594059,
+      "exhaustive_heuristic_scoring_seconds": 0.114611064,
+      "dense_table_total_seconds": 0.060868244
+    },
+    {
+      "seed": 7,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060588108,
+      "exhaustive_heuristic_scoring_seconds": 0.114535783,
+      "dense_table_total_seconds": 0.06089232
+    },
+    {
+      "seed": 7,
+      "decision_index": 17,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059666627,
+      "exhaustive_heuristic_scoring_seconds": 0.020983897,
+      "dense_table_total_seconds": 0.060597906
+    },
+    {
+      "seed": 7,
+      "decision_index": 18,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059821087,
+      "exhaustive_heuristic_scoring_seconds": 0.020861727,
+      "dense_table_total_seconds": 0.060357805
+    },
+    {
+      "seed": 7,
+      "decision_index": 21,
+      "oracle_candidate_count": 35712,
+      "legality_scan_seconds": 0.058905227,
+      "exhaustive_heuristic_scoring_seconds": 0.020700304,
+      "dense_table_total_seconds": 0.059847878
+    },
+    {
+      "seed": 8,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060570074,
+      "exhaustive_heuristic_scoring_seconds": 0.021466182,
+      "dense_table_total_seconds": 0.060558242
+    },
+    {
+      "seed": 8,
+      "decision_index": 2,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060073492,
+      "exhaustive_heuristic_scoring_seconds": 0.021648183,
+      "dense_table_total_seconds": 0.060668509
+    },
+    {
+      "seed": 8,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060367493,
+      "exhaustive_heuristic_scoring_seconds": 0.112815952,
+      "dense_table_total_seconds": 0.061266012
+    },
+    {
+      "seed": 8,
+      "decision_index": 13,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060217312,
+      "exhaustive_heuristic_scoring_seconds": 0.112016161,
+      "dense_table_total_seconds": 0.061169931
+    },
+    {
+      "seed": 8,
+      "decision_index": 20,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059584603,
+      "exhaustive_heuristic_scoring_seconds": 0.020957026,
+      "dense_table_total_seconds": 0.059834372
+    },
+    {
+      "seed": 8,
+      "decision_index": 23,
+      "oracle_candidate_count": 35712,
+      "legality_scan_seconds": 0.058925746,
+      "exhaustive_heuristic_scoring_seconds": 0.020757,
+      "dense_table_total_seconds": 0.060319644
+    },
+    {
+      "seed": 9,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060156928,
+      "exhaustive_heuristic_scoring_seconds": 0.021466974,
+      "dense_table_total_seconds": 0.060725056
+    },
+    {
+      "seed": 9,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060546289,
+      "exhaustive_heuristic_scoring_seconds": 0.110900114,
+      "dense_table_total_seconds": 0.06097208
+    },
+    {
+      "seed": 9,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060750874,
+      "exhaustive_heuristic_scoring_seconds": 0.110635878,
+      "dense_table_total_seconds": 0.061234583
+    },
+    {
+      "seed": 9,
+      "decision_index": 17,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.05963617,
+      "exhaustive_heuristic_scoring_seconds": 0.020776957,
+      "dense_table_total_seconds": 0.060835844
+    },
+    {
+      "seed": 9,
+      "decision_index": 20,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059444069,
+      "exhaustive_heuristic_scoring_seconds": 0.020610264,
+      "dense_table_total_seconds": 0.060289537
+    },
+    {
+      "seed": 9,
+      "decision_index": 23,
+      "oracle_candidate_count": 35712,
+      "legality_scan_seconds": 0.059269602,
+      "exhaustive_heuristic_scoring_seconds": 0.020630422,
+      "dense_table_total_seconds": 0.059720079
+    },
+    {
+      "seed": 10,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.060474786,
+      "exhaustive_heuristic_scoring_seconds": 0.021337821,
+      "dense_table_total_seconds": 0.060733241
+    },
+    {
+      "seed": 10,
+      "decision_index": 2,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.06033864,
+      "exhaustive_heuristic_scoring_seconds": 0.021526565,
+      "dense_table_total_seconds": 0.061083069
+    },
+    {
+      "seed": 10,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060319022,
+      "exhaustive_heuristic_scoring_seconds": 0.116486147,
+      "dense_table_total_seconds": 0.06150489
+    },
+    {
+      "seed": 10,
+      "decision_index": 11,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060723883,
+      "exhaustive_heuristic_scoring_seconds": 0.116174151,
+      "dense_table_total_seconds": 0.061734682
+    },
+    {
+      "seed": 10,
+      "decision_index": 12,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060481848,
+      "exhaustive_heuristic_scoring_seconds": 0.117747356,
+      "dense_table_total_seconds": 0.061799845
+    },
+    {
+      "seed": 10,
+      "decision_index": 19,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059609971,
+      "exhaustive_heuristic_scoring_seconds": 0.021056703,
+      "dense_table_total_seconds": 0.060894795
+    },
+    {
+      "seed": 11,
+      "decision_index": 1,
+      "oracle_candidate_count": 37231,
+      "legality_scan_seconds": 0.059777666,
+      "exhaustive_heuristic_scoring_seconds": 0.021689291,
+      "dense_table_total_seconds": 0.060916375
+    },
+    {
+      "seed": 11,
+      "decision_index": 9,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060674882,
+      "exhaustive_heuristic_scoring_seconds": 0.11248967,
+      "dense_table_total_seconds": 0.061278376
+    },
+    {
+      "seed": 11,
+      "decision_index": 10,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.060798624,
+      "exhaustive_heuristic_scoring_seconds": 0.111331465,
+      "dense_table_total_seconds": 0.060723292
+    },
+    {
+      "seed": 11,
+      "decision_index": 11,
+      "oracle_candidate_count": 184760,
+      "legality_scan_seconds": 0.06076956,
+      "exhaustive_heuristic_scoring_seconds": 0.112016671,
+      "dense_table_total_seconds": 0.061641256
+    },
+    {
+      "seed": 11,
+      "decision_index": 18,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.060090824,
+      "exhaustive_heuristic_scoring_seconds": 0.021087441,
+      "dense_table_total_seconds": 0.061439288
+    },
+    {
+      "seed": 11,
+      "decision_index": 19,
+      "oracle_candidate_count": 35898,
+      "legality_scan_seconds": 0.059586728,
+      "exhaustive_heuristic_scoring_seconds": 0.020771036,
+      "dense_table_total_seconds": 0.06279282
+    }
+  ],
+  "mean_legality_scan_seconds": 0.06015683306944443,
+  "mean_exhaustive_heuristic_scoring_seconds": 0.05488903122222224,
+  "mean_dense_table_total_seconds": 0.06085988129166664,
+  "mean_old_total_seconds": 0.11504586429166666
+}

@@ -1142,7 +1142,7 @@ pub fn scripted_expert_action(
     }
 }
 
-fn tower_range_raw(kind: &str) -> i64 {
+pub(crate) fn tower_range_raw(kind: &str) -> i64 {
     match kind {
         "rubber_cone" | "high" => 4_000_000,
         "one_pair" => 5_000_000,

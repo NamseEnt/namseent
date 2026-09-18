@@ -13,6 +13,8 @@ pub mod environment;
 pub mod events;
 #[cfg(feature = "simulator")]
 pub mod hp_balance;
+#[cfg(feature = "simulator")]
+pub mod joint_action;
 pub mod ml;
 #[cfg(feature = "simulator")]
 pub mod policy_runner;

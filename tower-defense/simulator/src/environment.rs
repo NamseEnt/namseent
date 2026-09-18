@@ -742,6 +742,17 @@ impl GameEnvironment {
         self.semantic_legal_actions_with_position_limit(None)
     }
 
+    /// Whether a tower's 2x2 footprint can be placed with its top-left
+    /// corner at `(left, top)`: in bounds, not already occupied or a travel
+    /// point, and doesn't disconnect the route. Independent of which card
+    /// subset produced the tower (the footprint size never varies).
+    pub(crate) fn can_place_at(&self, left: usize, top: usize) -> bool {
+        self.game_state
+            .raw_state()
+            .tower_placement_context()
+            .can_place_at(left, top)
+    }
+
     pub fn semantic_legal_actions_with_position_limit(
         &self,
         position_limit: Option<usize>,
