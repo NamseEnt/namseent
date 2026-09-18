@@ -37,6 +37,7 @@
 | [`08-evaluation.md`](08-evaluation.md) | 모델 비교와 최종 평가 | Accepted design |
 | [`09-balance-experiments.md`](09-balance-experiments.md) | 밸런스 파라미터 실험 | Deferred |
 | [`10-human-player-models.md`](10-human-player-models.md) | 실제 인간형 실수를 포함한 실력 모델 | Deferred |
+| [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md) | Phase 1/2 결과에 따른 candidate architecture 재검토 | Proposed |
 
 상태의 의미는 다음과 같다.
 

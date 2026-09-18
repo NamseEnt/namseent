@@ -28,6 +28,8 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 `candidate_limit`은 단순 앞부분 truncate가 아니라 `select_candidates_fairly`로 선택한다. `phase2_candidate_limit_bias_report`(`simulator/src/teacher.rs`, `cargo test --release -- --ignored phase2_candidate_limit_bias_report`)로 측정한 결과, 단순 truncate는 card subset의 97%(limit 64 기준)를 완전히 배제했고 이 배제가 hand slot index 기반 생성 순서와 체계적으로 상관되어 있었다(뒤쪽 subset은 limit 1024에서도 여전히 대부분 배제). `PurchaseShopItem`/`UseInventoryItem`도 항상 card action 뒤에 생성되어 limit 2048 미만에서는 한 번도 살아남지 못했다. 이 truncate 방식에서 oracle 순위 1위 후보의 exact-best 보존율은 limit 1024까지 0%였다. `select_candidates_fairly`는 각 card subset(및 그 외 action)을 하나의 block으로 유지한 채, block의 순서만 hand slot 생성 순서와 무관한 키(card id 합)로 재배열한다. 같은 벤치마크에서 exact-best 보존율이 limit 128에서 60%, limit 512 이상에서 100%로 개선되었고 coverage regret은 limit 128 이상에서 0으로 측정되었다. 후보 수가 늘어난 만큼 rollout 비용도 대략 선형으로 늘어난다(release 측정: limit 64→256에서 벽시계 시간 약 3.3배).
 
+`candidate_limit=64`에서도 exact-best 보존율이 34%에 그치고 100%를 얻으려면 ≈512가 필요하다는 점, 그리고 rollout 비용이 후보 수에 선형으로 붙는다는 점은 quality와 throughput이 구조적으로 trade-off 관계에 있음을 보여준다. 이 flattened candidate list 표현 자체를 [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md)에서 재검토했으며, vectorized joint scorer로 교체할 것을 권고했다([`decisions/0008-vectorized-joint-action-scoring.md`](decisions/0008-vectorized-joint-action-scoring.md)). 이 절의 내용은 그 마이그레이션 전까지의 baseline/regression 근거로 유지한다.
+
 현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
 
 ## Common random numbers

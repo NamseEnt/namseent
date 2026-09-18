@@ -87,6 +87,8 @@ best_position = argmax P(position | state, best_cards)
 
 따라서 `DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT`을 64로 올렸다. 이것을 최종 설계로 확정하지는 않는다: 원인은 route-distance 기준 position 정렬이 "route에 가장 가까운 칸"과 "route를 가장 많이 커버하는 칸"을 동일시하지 않는 것으로 보이며(48에서도 35.4%는 regret 0이지만 64.6%는 여전히 손실), 이는 모든 card subset이 하나의 공유 순서를 재사용하는 현재 구조와 얽힌 설계 문제다. 64에서 regret이 0으로 확인되었으므로 지금 이 순서 자체를 재설계하지는 않지만, 추후 근거가 쌓이면 route-distance / coverage / tower-range별 순위의 top-K union 같은 저비용 hybrid 방식을 검토한다. 결과는 `artifacts/benchmarks/phase1-candidate-recall.json`에 저장했다.
 
+Phase 2(`docs/game-ai/05-rollout-teacher.md`, `artifacts/benchmarks/phase2-candidate-limit-bias.json`)에서 `candidate_limit`이 별도로 심각한 truncation bias를 만드는 것을 확인한 뒤, 이 flattened candidate list 표현 자체를 [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md)에서 재검토했다. `position_candidate_limit`/`candidate_limit` 기반 후보 생성은 그 문서가 권고하는 vectorized joint scorer로 교체될 예정이며([`decisions/0008-vectorized-joint-action-scoring.md`](decisions/0008-vectorized-joint-action-scoring.md)), 이 절의 내용은 그 마이그레이션 전까지의 baseline/regression 근거로 유지한다.
+
 ### 최종 pair 점수
 
 서로 다른 의미의 값을 임의로 곱하지 않는다. 예를 들어 `P(cards)`와 별도 heuristic coverage score를 곱해 joint value라고 부르지 않는다.
