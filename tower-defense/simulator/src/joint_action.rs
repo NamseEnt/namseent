@@ -10,7 +10,6 @@ use crate::environment::{
     AgentAction, BuildTowerCandidateObservation, GameEnvironment, HandItemObservation, Observation,
     RouteCoordObservation,
 };
-use crate::policy_runner::tower_range_raw;
 use std::collections::HashMap;
 
 /// Valid top-left corners for a tower's 2x2 footprint: `left, top` each range
@@ -238,7 +237,7 @@ fn subset_templates(
         .map(|subset_index| {
             let card_ids = subsets.card_ids_for_subset(subset_index)?;
             by_card_ids.get(&card_ids).map(|candidate| SubsetTemplate {
-                range_raw: tower_range_raw(&candidate.template.kind),
+                range_raw: candidate.template.range_raw,
                 damage_raw: candidate.template.damage_raw,
             })
         })
@@ -261,7 +260,7 @@ fn extra_slot_templates(observation: &Observation) -> Vec<ExtraSlotTemplate> {
         .extra_tower_card_templates
         .iter()
         .map(|template| ExtraSlotTemplate {
-            range_raw: tower_range_raw(&template.kind),
+            range_raw: template.range_raw,
             damage_raw: template.damage_raw,
         })
         .collect()
@@ -285,7 +284,7 @@ pub fn nearest_route_grid(route_coords: &[RouteCoordObservation]) -> Vec<usize> 
 }
 
 /// Count of route cells within `range_raw` (world-unit radius, matching
-/// `policy_runner::tower_range_raw`'s scale) of every position, for one
+/// the authoritative tower template's scale) of every position, for one
 /// specific range value. There are at most 9 distinct range values (one per
 /// poker-hand tower kind), so calling this once per distinct range and
 /// reusing the result across every subset sharing that range is far cheaper
@@ -553,6 +552,47 @@ mod tests {
             .step(AgentAction::StartSelectingTower)
             .expect("start selecting tower should be legal");
         environment
+    }
+
+    #[test]
+    fn dense_scorer_uses_authoritative_config_range_for_coverage() {
+        fn config_with_range(range_raw: i64) -> GameConfig {
+            let mut config = GameConfig::default_config();
+            for entry in &mut config.towers.entries {
+                entry.range_raw = range_raw;
+            }
+            config
+        }
+        fn ready_environment(range_raw: i64) -> GameEnvironment {
+            let mut environment = GameEnvironment::new(Arc::new(config_with_range(range_raw)), 0);
+            environment
+                .step(AgentAction::StartSelectingTower)
+                .expect("start selecting tower should be legal");
+            environment
+        }
+
+        let small_environment = ready_environment(1);
+        let large_environment = ready_environment(50_000_000);
+        let small_observation = small_environment.snapshot();
+        let large_observation = large_environment.snapshot();
+        let small_table = DenseBuildTowerScoreTable::compute(&small_environment, &small_observation);
+        let large_table = DenseBuildTowerScoreTable::compute(&large_environment, &large_observation);
+
+        let full_hand_subset = CardSubsetTable::from_observation(&small_observation)
+            .subset_index_for_card_ids(&[])
+            .expect("full hand subset should exist");
+        let position_index = 0;
+        let small_score = small_table
+            .score(full_hand_subset, 0, position_index)
+            .expect("small-range candidate should be scored");
+        let large_score = large_table
+            .score(full_hand_subset, 0, position_index)
+            .expect("large-range candidate should be scored");
+        assert_ne!(
+            small_score.covered_route, large_score.covered_route,
+            "changing config range_raw should change coverage computed from the \
+            authoritative template range, not a fixed kind-string lookup"
+        );
     }
 
     #[test]

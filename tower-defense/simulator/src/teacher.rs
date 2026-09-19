@@ -564,7 +564,6 @@ mod tests {
         observation: &crate::environment::Observation,
     ) -> Vec<(usize, usize, usize, crate::joint_action::JointBuildTowerScore)> {
         use crate::joint_action::{CardSubsetTable, MAP_POSITION_COUNT, position_xy};
-        use crate::policy_runner::tower_range_raw;
 
         // Legality never depends on card subset or build slot (fixed 2x2
         // footprint), so it is computed once and reused - same principle
@@ -611,7 +610,7 @@ mod tests {
         let extra_ranges = observation
             .extra_tower_card_templates
             .iter()
-            .map(|template| (tower_range_raw(&template.kind), template.damage_raw))
+            .map(|template| (template.range_raw, template.damage_raw))
             .collect::<Vec<_>>();
 
         let mut ranked = Vec::new();
@@ -630,7 +629,7 @@ mod tests {
                 ids.sort_unstable();
                 (ids == card_ids).then_some(&candidate.template)
             }) {
-                let range_raw = tower_range_raw(&template.kind);
+                let range_raw = template.range_raw;
                 for &position_index in &legal_positions {
                     ranked.push((
                         subset_index,

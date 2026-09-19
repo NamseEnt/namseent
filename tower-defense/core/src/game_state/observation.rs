@@ -24,6 +24,8 @@ pub struct TowerTemplateObservation {
     pub rank: Option<String>,
     pub rerolled_count: usize,
     pub damage_raw: i64,
+    pub range_raw: i64,
+    pub shoot_interval_ticks: u64,
     pub used_cards: Vec<CardObservation>,
 }
 
@@ -524,6 +526,8 @@ fn tower_template_observation(template: &crate::TowerTemplateState) -> TowerTemp
         rank: template.rank.map(rank_key).map(str::to_string),
         rerolled_count: template.rerolled_count,
         damage_raw: template.default_damage_raw,
+        range_raw: template.default_attack_range_radius_raw,
+        shoot_interval_ticks: template.shoot_interval,
         used_cards: template.used_cards.iter().map(card_observation).collect(),
     }
 }
@@ -776,6 +780,145 @@ fn card_service_key(value: u8) -> (&'static str, u16) {
 
 #[cfg(test)]
 mod tests {
+    use super::tower_template_observation;
+
+    fn card(id: usize, suit: u8, rank: u8) -> crate::CardState {
+        crate::CardState {
+            id,
+            suit,
+            rank,
+            polish_pct_raw: 0,
+            engraving: None,
+        }
+    }
+
+    /// A tower config with a distinct, non-collapsing `range_raw`/
+    /// `cooldown_ms` per kind, used to catch the historical bug where
+    /// `TowerTemplateObservation` dropped range/cooldown and downstream
+    /// code re-derived them from a kind-string lookup that defaulted every
+    /// unmatched (PascalCase) kind string to the same `4_000_000` value.
+    fn distinct_tower_config() -> crate::GameConfigState {
+        let mut config = crate::GameConfig::default_config();
+        config.towers.entries = (0u8..=10)
+            .map(|kind| crate::TowerConfigEntryState {
+                kind,
+                damage_raw: 1_000 + i64::from(kind) * 100,
+                range_raw: 1_000_000 + i64::from(kind) * 500_000,
+                cooldown_ms: 500 + u64::from(kind) * 50,
+            })
+            .collect();
+        config
+    }
+
+    /// Representative tower kinds (`tower_kind()`'s numeric ids): High,
+    /// OnePair, TwoPair, ThreeOfAKind, Straight, FullHouse, StraightFlush,
+    /// RoyalFlush.
+    const REPRESENTATIVE_KINDS: [u8; 8] = [1, 2, 3, 4, 5, 7, 9, 10];
+
+    #[test]
+    fn tower_template_observation_exposes_authoritative_range_and_cooldown() {
+        let config = distinct_tower_config();
+        let mut ranges = Vec::new();
+        for kind in REPRESENTATIVE_KINDS {
+            let template = crate::game_state::tower_selection::build_template(
+                kind,
+                None,
+                None,
+                Vec::new(),
+                0,
+                &config,
+            );
+            let observation = tower_template_observation(&template);
+            assert_eq!(
+                observation.range_raw, template.default_attack_range_radius_raw,
+                "kind {kind} range_raw should mirror the authoritative template"
+            );
+            assert_eq!(
+                observation.shoot_interval_ticks, template.shoot_interval,
+                "kind {kind} shoot_interval_ticks should mirror the authoritative template"
+            );
+            ranges.push(observation.range_raw);
+        }
+        assert!(
+            ranges.iter().any(|&range| range != ranges[0]),
+            "distinct tower kinds must not collapse to the same range_raw: {ranges:?}"
+        );
+    }
+
+    #[test]
+    fn tower_template_observation_reflects_custom_config_range_and_cooldown() {
+        let mut config = distinct_tower_config();
+        let kind = 9u8; // StraightFlush
+        let entry = config
+            .towers
+            .entries
+            .iter_mut()
+            .find(|entry| entry.kind == kind)
+            .expect("kind should exist in config");
+        entry.range_raw = 7_777_777;
+        entry.cooldown_ms = 4_321;
+
+        let template =
+            crate::game_state::tower_selection::build_template(kind, None, None, Vec::new(), 0, &config);
+        let observation = tower_template_observation(&template);
+        assert_eq!(observation.range_raw, 7_777_777);
+        assert_eq!(template.shoot_interval, 4_321u64.saturating_mul(60).div_ceil(1000));
+        assert_eq!(observation.shoot_interval_ticks, template.shoot_interval);
+    }
+
+    #[test]
+    fn build_tower_candidate_and_placed_tower_share_authoritative_range_and_cooldown() {
+        let config = distinct_tower_config();
+        let mut state = crate::CoreState::new_initial(config, 11);
+        // Force a straight flush: five same-suit consecutive-rank cards.
+        let cards = vec![
+            card(1, 0, 4),
+            card(2, 0, 5),
+            card(3, 0, 6),
+            card(4, 0, 7),
+            card(5, 0, 8),
+        ];
+        state.hand.slots.clear();
+        for c in cards {
+            let id = state.hand.allocate_slot_id();
+            state.hand.slots.push(crate::HandSlotState {
+                id,
+                item: crate::HandItemState::Card(c),
+                selected: false,
+            });
+        }
+        state.flow = crate::GameFlowState::SelectingTower;
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let full_hand_candidate = observation
+            .build_tower_candidates
+            .iter()
+            .find(|candidate| candidate.card_ids.is_empty())
+            .expect("full-hand candidate should exist");
+        assert_eq!(full_hand_candidate.template.kind, "StraightFlush");
+        let preview_range = full_hand_candidate.template.range_raw;
+        let preview_cooldown = full_hand_candidate.template.shoot_interval_ticks;
+
+        let placed_template = crate::game_state::tower_selection::build_template(
+            9,
+            Some(0),
+            Some(8),
+            Vec::new(),
+            0,
+            state.config(),
+        );
+        state
+            .place_tower_with_template(placed_template, None, 0, 0)
+            .expect("tower should be placeable");
+        let after_placement = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let placed_tower = after_placement
+            .towers
+            .first()
+            .expect("tower should be placed");
+        assert_eq!(placed_tower.range_raw, preview_range);
+        assert_eq!(placed_tower.template.shoot_interval_ticks, preview_cooldown);
+    }
+
     #[test]
     fn owned_upgrade_observation_exposes_runtime_parameters() {
         let mut upgrade = crate::generated_upgrade(crate::UpgradeKind::Backpack);

@@ -1,0 +1,658 @@
+{
+  "methodology": "dense_compute_seconds times DenseBuildFeatureBundle::compute (one call per decision, covering every (subset, hand_slot, position) triple via shared PositionFeatureTable/RangeCoverageTable). legacy_seconds times ml::features::candidate_features called once per legal BuildTower AgentAction from semantic_legal_actions() (each doing its own per-candidate route scan via placement_coverage/route_distance). Same sampled decision states for both (SEEDS x SAMPLES_PER_SEED, scripted-expert trajectory).",
+  "sample_points": [
+    {
+      "seed": 0,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.001234689,
+      "legacy_seconds": 0.013324997
+    },
+    {
+      "seed": 0,
+      "decision_index": 4,
+      "legacy_build_tower_candidate_count": 36952,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000637607,
+      "legacy_seconds": 0.013423393
+    },
+    {
+      "seed": 0,
+      "decision_index": 5,
+      "legacy_build_tower_candidate_count": 36952,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000631826,
+      "legacy_seconds": 0.013267088
+    },
+    {
+      "seed": 0,
+      "decision_index": 8,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000940707,
+      "legacy_seconds": 0.013185645
+    },
+    {
+      "seed": 0,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000936409,
+      "legacy_seconds": 0.013210091
+    },
+    {
+      "seed": 0,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000932381,
+      "legacy_seconds": 0.013174905
+    },
+    {
+      "seed": 1,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.001214611,
+      "legacy_seconds": 0.013362198
+    },
+    {
+      "seed": 1,
+      "decision_index": 4,
+      "legacy_build_tower_candidate_count": 36952,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.00094223,
+      "legacy_seconds": 0.013256088
+    },
+    {
+      "seed": 1,
+      "decision_index": 5,
+      "legacy_build_tower_candidate_count": 36952,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.00094785,
+      "legacy_seconds": 0.013269663
+    },
+    {
+      "seed": 1,
+      "decision_index": 8,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000652014,
+      "legacy_seconds": 0.013211664
+    },
+    {
+      "seed": 1,
+      "decision_index": 11,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000661021,
+      "legacy_seconds": 0.013328985
+    },
+    {
+      "seed": 1,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 36735,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000637467,
+      "legacy_seconds": 0.013194883
+    },
+    {
+      "seed": 2,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000930267,
+      "legacy_seconds": 0.013472384
+    },
+    {
+      "seed": 2,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001927981,
+      "legacy_seconds": 0.06630788
+    },
+    {
+      "seed": 2,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001953549,
+      "legacy_seconds": 0.066164811
+    },
+    {
+      "seed": 2,
+      "decision_index": 21,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000646054,
+      "legacy_seconds": 0.012835899
+    },
+    {
+      "seed": 2,
+      "decision_index": 24,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000646274,
+      "legacy_seconds": 0.012812735
+    },
+    {
+      "seed": 2,
+      "decision_index": 25,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000650442,
+      "legacy_seconds": 0.012853411
+    },
+    {
+      "seed": 3,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000949693,
+      "legacy_seconds": 0.013387314
+    },
+    {
+      "seed": 3,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001902674,
+      "legacy_seconds": 0.067286939
+    },
+    {
+      "seed": 3,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001962466,
+      "legacy_seconds": 0.06723372
+    },
+    {
+      "seed": 3,
+      "decision_index": 11,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001923934,
+      "legacy_seconds": 0.067127601
+    },
+    {
+      "seed": 3,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002204981,
+      "legacy_seconds": 0.067082687
+    },
+    {
+      "seed": 3,
+      "decision_index": 19,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000658567,
+      "legacy_seconds": 0.012880182
+    },
+    {
+      "seed": 4,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000922432,
+      "legacy_seconds": 0.0133961
+    },
+    {
+      "seed": 4,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001970371,
+      "legacy_seconds": 0.066072499
+    },
+    {
+      "seed": 4,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001908645,
+      "legacy_seconds": 0.066060946
+    },
+    {
+      "seed": 4,
+      "decision_index": 13,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.00237981,
+      "legacy_seconds": 0.066490494
+    },
+    {
+      "seed": 4,
+      "decision_index": 20,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000645172,
+      "legacy_seconds": 0.012797076
+    },
+    {
+      "seed": 4,
+      "decision_index": 21,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000913937,
+      "legacy_seconds": 0.012795132
+    },
+    {
+      "seed": 5,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000671071,
+      "legacy_seconds": 0.013336669
+    },
+    {
+      "seed": 5,
+      "decision_index": 2,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000659429,
+      "legacy_seconds": 0.013349093
+    },
+    {
+      "seed": 5,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 4,
+      "dense_compute_seconds": 0.00245966,
+      "legacy_seconds": 0.066297621
+    },
+    {
+      "seed": 5,
+      "decision_index": 11,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 4,
+      "dense_compute_seconds": 0.002486971,
+      "legacy_seconds": 0.066213844
+    },
+    {
+      "seed": 5,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 4,
+      "dense_compute_seconds": 0.002434352,
+      "legacy_seconds": 0.066222922
+    },
+    {
+      "seed": 5,
+      "decision_index": 19,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000921431,
+      "legacy_seconds": 0.012978306
+    },
+    {
+      "seed": 6,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000926701,
+      "legacy_seconds": 0.01342764
+    },
+    {
+      "seed": 6,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002391623,
+      "legacy_seconds": 0.066664802
+    },
+    {
+      "seed": 6,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.00215087,
+      "legacy_seconds": 0.066261364
+    },
+    {
+      "seed": 6,
+      "decision_index": 19,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000654249,
+      "legacy_seconds": 0.012866136
+    },
+    {
+      "seed": 6,
+      "decision_index": 20,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000935577,
+      "legacy_seconds": 0.012850607
+    },
+    {
+      "seed": 6,
+      "decision_index": 23,
+      "legacy_build_tower_candidate_count": 35495,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000657785,
+      "legacy_seconds": 0.01276746
+    },
+    {
+      "seed": 7,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000940867,
+      "legacy_seconds": 0.013363711
+    },
+    {
+      "seed": 7,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002220351,
+      "legacy_seconds": 0.066303623
+    },
+    {
+      "seed": 7,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002208158,
+      "legacy_seconds": 0.066090443
+    },
+    {
+      "seed": 7,
+      "decision_index": 17,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000647025,
+      "legacy_seconds": 0.012876515
+    },
+    {
+      "seed": 7,
+      "decision_index": 18,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000648468,
+      "legacy_seconds": 0.012839996
+    },
+    {
+      "seed": 7,
+      "decision_index": 23,
+      "legacy_build_tower_candidate_count": 35588,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000636766,
+      "legacy_seconds": 0.012774152
+    },
+    {
+      "seed": 8,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000641906,
+      "legacy_seconds": 0.013362488
+    },
+    {
+      "seed": 8,
+      "decision_index": 2,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000656042,
+      "legacy_seconds": 0.013360614
+    },
+    {
+      "seed": 8,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002190013,
+      "legacy_seconds": 0.066459256
+    },
+    {
+      "seed": 8,
+      "decision_index": 13,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002195865,
+      "legacy_seconds": 0.066286431
+    },
+    {
+      "seed": 8,
+      "decision_index": 24,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000920769,
+      "legacy_seconds": 0.012854684
+    },
+    {
+      "seed": 8,
+      "decision_index": 28,
+      "legacy_build_tower_candidate_count": 35495,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.00092689,
+      "legacy_seconds": 0.012734338
+    },
+    {
+      "seed": 9,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000927883,
+      "legacy_seconds": 0.013324847
+    },
+    {
+      "seed": 9,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001857478,
+      "legacy_seconds": 0.066125018
+    },
+    {
+      "seed": 9,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002156611,
+      "legacy_seconds": 0.066218003
+    },
+    {
+      "seed": 9,
+      "decision_index": 17,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000656894,
+      "legacy_seconds": 0.012841139
+    },
+    {
+      "seed": 9,
+      "decision_index": 20,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000630464,
+      "legacy_seconds": 0.012882226
+    },
+    {
+      "seed": 9,
+      "decision_index": 25,
+      "legacy_build_tower_candidate_count": 35588,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000913175,
+      "legacy_seconds": 0.012822454
+    },
+    {
+      "seed": 10,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000663576,
+      "legacy_seconds": 0.01336897
+    },
+    {
+      "seed": 10,
+      "decision_index": 2,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000661001,
+      "legacy_seconds": 0.013344173
+    },
+    {
+      "seed": 10,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.00187961,
+      "legacy_seconds": 0.066461541
+    },
+    {
+      "seed": 10,
+      "decision_index": 11,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.00186324,
+      "legacy_seconds": 0.066222852
+    },
+    {
+      "seed": 10,
+      "decision_index": 12,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 3,
+      "dense_compute_seconds": 0.002215952,
+      "legacy_seconds": 0.066084873
+    },
+    {
+      "seed": 10,
+      "decision_index": 21,
+      "legacy_build_tower_candidate_count": 35774,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000647506,
+      "legacy_seconds": 0.012811953
+    },
+    {
+      "seed": 11,
+      "decision_index": 1,
+      "legacy_build_tower_candidate_count": 37231,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.000951286,
+      "legacy_seconds": 0.013330368
+    },
+    {
+      "seed": 11,
+      "decision_index": 9,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001864812,
+      "legacy_seconds": 0.066115
+    },
+    {
+      "seed": 11,
+      "decision_index": 10,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 2,
+      "dense_compute_seconds": 0.001918483,
+      "legacy_seconds": 0.066389094
+    },
+    {
+      "seed": 11,
+      "decision_index": 11,
+      "legacy_build_tower_candidate_count": 184760,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 4,
+      "dense_compute_seconds": 0.002501188,
+      "legacy_seconds": 0.066225256
+    },
+    {
+      "seed": 11,
+      "decision_index": 18,
+      "legacy_build_tower_candidate_count": 35805,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000657815,
+      "legacy_seconds": 0.012885282
+    },
+    {
+      "seed": 11,
+      "decision_index": 19,
+      "legacy_build_tower_candidate_count": 35805,
+      "position_feature_row_count": 1225,
+      "distinct_coverage_range_count": 1,
+      "dense_compute_seconds": 0.000659429,
+      "legacy_seconds": 0.012873128
+    }
+  ],
+  "mean_dense_compute_seconds": 0.0012677125416666669,
+  "mean_legacy_seconds": 0.032349115305555544,
+  "mean_position_feature_row_count": 1225.0,
+  "mean_distinct_coverage_range_count": 1.9166666666666667,
+  "mean_legacy_build_tower_candidate_count": 90011.51388888889
+}

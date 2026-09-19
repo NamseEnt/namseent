@@ -633,7 +633,8 @@ fn monte_carlo_expert_action(
         else {
             continue;
         };
-        let coverage = crate::ml::features::placement_coverage(observation, left, top, &tower.kind);
+        let coverage =
+            crate::ml::features::placement_coverage(observation, left, top, tower.range_raw);
         let score = coverage * 1_000.0 + tower.damage_raw as f32 / 10_000.0;
         if best
             .as_ref()
@@ -860,7 +861,7 @@ pub(crate) fn rank_build_tower_actions_by_heuristic(
                 .iter()
                 .find(|candidate| &candidate.card_ids == card_ids)
                 .map(|candidate| &candidate.template)?;
-            let range_raw = tower_range_raw(&template.kind);
+            let range_raw = template.range_raw;
             let covered_route = route
                 .iter()
                 .filter(|coord| {
@@ -1018,7 +1019,7 @@ pub fn scripted_expert_action(
                             super::environment::HandItemObservation::Card(_) => return None,
                         })
                     })?;
-                    let range_raw = tower_range_raw(&tower.kind);
+                    let range_raw = tower.range_raw;
                     let covered_route = route
                         .iter()
                         .filter(|coord| {
@@ -1139,20 +1140,6 @@ pub fn scripted_expert_action(
             .ok_or_else(|| anyhow::anyhow!("scripted expert found no pre-defense action")),
         DecisionPoint::Defense => Ok(AgentAction::Continue),
         DecisionPoint::Terminal => first(),
-    }
-}
-
-pub(crate) fn tower_range_raw(kind: &str) -> i64 {
-    match kind {
-        "rubber_cone" | "high" => 4_000_000,
-        "one_pair" => 5_000_000,
-        "two_pair" => 6_000_000,
-        "three_of_a_kind" => 7_000_000,
-        "straight" | "flush" => 9_000_000,
-        "full_house" | "four_of_a_kind" => 11_000_000,
-        "straight_flush" => 14_000_000,
-        "royal_flush" => 15_000_000,
-        _ => 4_000_000,
     }
 }
 

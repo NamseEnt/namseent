@@ -405,7 +405,8 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
                 params[5] = candidate.template.kind_id as f32 / 32.0;
                 params[6] = candidate.template.damage_raw as f32 / 10_000.0;
                 params[7] = candidate.template.used_cards.len() as f32 / 5.0;
-                params[10] = placement_coverage(observation, *left, *top, &candidate.template.kind);
+                params[10] =
+                    placement_coverage(observation, *left, *top, candidate.template.range_raw);
             }
             params[8] = route_distance(observation, *left, *top) as f32 / 50.0;
             params[9] = nearby_tower_occupancy(observation, *left, *top);
@@ -428,7 +429,7 @@ pub fn candidate_features(observation: &Observation, action: &AgentAction) -> Ve
                 params[7] = nearby_tower_occupancy(observation, *left, *top);
                 params[8] = route_progress_at(observation, *left, *top);
                 params[9] = adjacent_tower_count(observation, *left, *top) as f32 / 8.0;
-                params[10] = placement_coverage(observation, *left, *top, &tower.kind);
+                params[10] = placement_coverage(observation, *left, *top, tower.range_raw);
             }
         }
         AgentAction::RemoveTower { tower_id } => {
@@ -490,9 +491,8 @@ pub(crate) fn placement_coverage(
     observation: &Observation,
     left: usize,
     top: usize,
-    tower_kind: &str,
+    range_raw: i64,
 ) -> f32 {
-    let range_raw = tower_range_raw(tower_kind);
     let covered_route = observation
         .route_coords
         .iter()
@@ -510,20 +510,6 @@ pub(crate) fn placement_coverage(
     covered_route as f32 / observation.route_coords.len().max(1) as f32
 }
 
-fn tower_range_raw(kind: &str) -> i64 {
-    match kind {
-        "rubber_cone" | "high" => 4_000_000,
-        "one_pair" => 5_000_000,
-        "two_pair" => 6_000_000,
-        "three_of_a_kind" => 7_000_000,
-        "straight" | "flush" => 9_000_000,
-        "full_house" | "four_of_a_kind" => 11_000_000,
-        "straight_flush" => 14_000_000,
-        "royal_flush" => 15_000_000,
-        _ => 4_000_000,
-    }
-}
-
 fn route_progress_at(observation: &Observation, left: usize, top: usize) -> f32 {
     observation
         .route_coords
@@ -534,7 +520,7 @@ fn route_progress_at(observation: &Observation, left: usize, top: usize) -> f32 
         })
 }
 
-fn adjacent_tower_count(observation: &Observation, left: usize, top: usize) -> usize {
+pub(crate) fn adjacent_tower_count(observation: &Observation, left: usize, top: usize) -> usize {
     let mut count = 0;
     for row in top.saturating_sub(1)..=(top + 2).min(observation.map_height.saturating_sub(1)) {
         for column in
@@ -553,7 +539,7 @@ fn adjacent_tower_count(observation: &Observation, left: usize, top: usize) -> u
     count
 }
 
-fn nearby_tower_occupancy(observation: &Observation, left: usize, top: usize) -> f32 {
+pub(crate) fn nearby_tower_occupancy(observation: &Observation, left: usize, top: usize) -> f32 {
     adjacent_tower_count(observation, left, top) as f32 / 16.0
 }
 

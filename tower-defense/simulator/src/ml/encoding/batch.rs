@@ -243,8 +243,12 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
                 numeric[1] = stats[0];
                 numeric[2] = stats[1];
                 numeric[3] = placement_route_features(observation, *left, *top).0;
-                numeric[4] =
-                    crate::ml::features::placement_coverage(observation, *left, *top, &tower.kind);
+                numeric[4] = crate::ml::features::placement_coverage(
+                    observation,
+                    *left,
+                    *top,
+                    tower.range_raw,
+                );
             }
         }
         AgentAction::BuildTower {
@@ -273,7 +277,7 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
                     observation,
                     *left,
                     *top,
-                    &candidate.template.kind,
+                    candidate.template.range_raw,
                 );
             }
         }
@@ -457,6 +461,8 @@ mod tests {
             rank: None,
             rerolled_count: 0,
             damage_raw: 1_000,
+            range_raw: 3_000_000,
+            shoot_interval_ticks: 30,
             used_cards: Vec::new(),
         };
         observation.hand.push(crate::environment::HandObservation {
@@ -464,16 +470,16 @@ mod tests {
             selected: false,
             item: crate::environment::HandItemObservation::Tower(tower.clone()),
         });
-        let tower_kind = tower.kind.clone();
+        let range_raw = tower.range_raw;
         let (low_position, high_position) = (0..observation.map_height)
             .flat_map(|top| (0..observation.map_width).map(move |left| (left, top)))
             .min_by(|left, right| {
-                crate::ml::features::placement_coverage(&observation, left.0, left.1, &tower_kind)
+                crate::ml::features::placement_coverage(&observation, left.0, left.1, range_raw)
                     .total_cmp(&crate::ml::features::placement_coverage(
                         &observation,
                         right.0,
                         right.1,
-                        &tower_kind,
+                        range_raw,
                     ))
             })
             .zip(
@@ -484,14 +490,14 @@ mod tests {
                             &observation,
                             left.0,
                             left.1,
-                            &tower_kind,
+                            range_raw,
                         )
                         .total_cmp(
                             &crate::ml::features::placement_coverage(
                                 &observation,
                                 right.0,
                                 right.1,
-                                &tower_kind,
+                                range_raw,
                             ),
                         )
                     }),
