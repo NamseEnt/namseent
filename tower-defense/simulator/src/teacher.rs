@@ -904,6 +904,94 @@ mod tests {
         }
     }
 
+    /// `top_k_actions`/`dense_semantic_candidates` must never spend rollout
+    /// budget twice on the same semantic action - each `(subset_index,
+    /// hand_slot_index, position_index)` triple the table scores is
+    /// distinct by construction (see
+    /// `joint_action::tests::no_two_distinct_joint_indices_materialize_the_same_action`),
+    /// so this is really a top-K/materialization wiring check, not a fresh
+    /// proof, but it's the check that would actually catch a regression in
+    /// production's candidate list.
+    #[test]
+    fn dense_top_k_never_duplicates_an_action() {
+        for environment in [
+            card_decision_environment(0),
+            extra_tower_cards_environment(1),
+            extra_tower_cards_environment(2),
+        ] {
+            let observation = environment.snapshot();
+            let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
+            let mut seen = std::collections::HashSet::new();
+            for action in table.top_k_actions(usize::MAX) {
+                assert!(
+                    seen.insert(action.action_id()),
+                    "top_k_actions produced a duplicate action: {action:?}"
+                );
+            }
+        }
+    }
+
+    /// Extra `BuildTower` slots (`hand_slot_index >= 1`) place a tower
+    /// whose stats are subset-independent (a fixed
+    /// `stage_modifiers.extra_tower_cards` template - see
+    /// `extra_slot_templates`), but the *resulting game state* is not:
+    /// `SelectTower` still builds the primary-slot (0) template from the
+    /// chosen subset and leaves it queued in `hand.slots[0]` for a future
+    /// placement, so two `BuildTower` actions that differ only in which
+    /// subset was selected (same `hand_slot_index >= 1`, same position)
+    /// leave a genuinely different follow-up tower option behind. This is
+    /// why the dense representation keeps a full `subset_index` axis for
+    /// every `hand_slot_index`, not just slot `0` - collapsing it would
+    /// conflate two actions with different consequences.
+    #[test]
+    fn extra_slot_actions_differing_only_by_subset_produce_different_states() {
+        let mut environment = card_decision_environment(0);
+        environment
+            .test_only_seed_extra_tower_cards(1)
+            .expect("extra tower card fixture should be a valid snapshot");
+        let observation = environment.snapshot();
+        let subsets = crate::joint_action::CardSubsetTable::from_observation(&observation);
+        assert!(
+            subsets.subset_count() >= 2,
+            "fixture needs at least two card subsets to compare"
+        );
+        let subset_a = subsets.card_ids_for_subset(0).expect("subset 0 exists");
+        let subset_b = subsets.card_ids_for_subset(1).expect("subset 1 exists");
+        assert_ne!(subset_a, subset_b);
+
+        let mut env_a = environment.fork_for_rollout_seed(0).expect("fork should succeed");
+        env_a
+            .semantic_step(AgentAction::BuildTower {
+                card_ids: subset_a,
+                hand_slot_index: 1,
+                left: 0,
+                top: 0,
+            })
+            .expect("placing the extra slot should be legal");
+
+        let mut env_b = environment.fork_for_rollout_seed(0).expect("fork should succeed");
+        env_b
+            .semantic_step(AgentAction::BuildTower {
+                card_ids: subset_b,
+                hand_slot_index: 1,
+                left: 0,
+                top: 0,
+            })
+            .expect("placing the extra slot should be legal");
+
+        // The placed tower itself is identical (same fixed extra-slot
+        // template, same position)...
+        assert_eq!(env_a.snapshot().towers, env_b.snapshot().towers);
+        // ...but the overall resulting state is not: hand.slots[0] (the
+        // still-unplaced primary-subset tower) differs.
+        assert_ne!(
+            env_a.state_hash(),
+            env_b.state_hash(),
+            "different card subsets at the same extra hand_slot_index/position must not collapse \
+            to the same resulting state - the queued primary-slot tower still differs"
+        );
+    }
+
     /// Every legal non-`BuildTower` semantic action must always be present
     /// in `dense_semantic_candidates`' output, regardless of how small the
     /// `BuildTower` search budget is - it must never be dropped just

@@ -600,6 +600,46 @@ mod tests {
         }
     }
 
+    /// No two distinct `(subset_index, hand_slot_index, position_index)`
+    /// triples may materialize the same `AgentAction::BuildTower` - i.e.
+    /// the joint index space represents each semantic action at most once
+    /// (dense PPO logits, when wired up, must never split probability mass
+    /// for one action across multiple indices; teacher top-K must never
+    /// spend rollout budget on the same action twice). Checked at a fixed
+    /// position - collisions across different positions are impossible
+    /// since `left`/`top` differ - across every `(subset_index,
+    /// hand_slot_index)` pair, including seeds with `extra_tower_cards`
+    /// (`hand_slot_index >= 1`, whose fixed template is intentionally the
+    /// same across every subset - see `extra_slot_templates` - but the
+    /// materialized *action* still carries that subset's distinct
+    /// `card_ids`, so it must remain a distinct action).
+    #[test]
+    fn no_two_distinct_joint_indices_materialize_the_same_action() {
+        for seed in 0..3u64 {
+            let environment = environment(seed);
+            let observation = environment.snapshot();
+            let subsets = CardSubsetTable::from_observation(&observation);
+            let build_slot_count = environment.build_tower_slot_count();
+            let position_index = 0;
+            let mut seen = HashMap::new();
+            for subset_index in 0..subsets.subset_count() {
+                for hand_slot_index in 0..build_slot_count {
+                    let action =
+                        build_tower_action(&subsets, subset_index, hand_slot_index, position_index)
+                            .expect("in-range index pair should materialize");
+                    if let Some(previous) = seen.insert(action.action_id(), (subset_index, hand_slot_index))
+                    {
+                        panic!(
+                            "seed {seed}: (subset {subset_index}, hand_slot {hand_slot_index}) and \
+                            (subset {}, hand_slot {}) both materialize {action:?}",
+                            previous.0, previous.1
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn joint_index_for_action_rejects_non_build_tower_and_out_of_hand_actions() {
         let subsets = CardSubsetTable::from_hand_card_ids([1, 2, 3]);
