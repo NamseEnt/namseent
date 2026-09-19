@@ -125,6 +125,26 @@ impl CardSubsetTable {
         )
     }
 
+    /// Like [`Self::card_ids_for_subset`], but never collapses the last
+    /// subset (all cards) to the empty-`Vec` "full hand" sentinel - always
+    /// the literal card id list. `AgentAction::Reroll` (unlike
+    /// `AgentAction::BuildTower`) has no such sentinel convention: its
+    /// `card_ids` is always explicit, even for the full hand (see
+    /// `environment::semantic_card_actions`, which pushes
+    /// `Reroll { card_ids: selected_card_ids.clone() }` unconditionally,
+    /// before the empty-Vec canonicalization that only applies to the
+    /// `BuildTower` action it generates from the same subset).
+    pub fn explicit_card_ids_for_subset(&self, subset_index: usize) -> Option<Vec<usize>> {
+        let mask = subset_index.checked_add(1)?;
+        (mask <= self.subset_count()).then(|| {
+            self.card_ids_sorted
+                .iter()
+                .enumerate()
+                .filter_map(|(bit, &id)| (mask & (1usize << bit) != 0).then_some(id))
+                .collect()
+        })
+    }
+
     /// Inverse of [`Self::card_ids_for_subset`]: the `subset_index` for a
     /// given, order-independent set of card ids. An empty slice is treated
     /// as the canonical "full hand" sentinel, matching

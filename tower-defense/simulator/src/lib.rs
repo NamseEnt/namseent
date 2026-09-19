@@ -19,6 +19,8 @@ pub mod joint_action;
 pub mod legality;
 pub mod ml;
 #[cfg(feature = "simulator")]
+pub mod policy_action;
+#[cfg(feature = "simulator")]
 pub mod policy_runner;
 pub mod recording;
 pub mod stats;
