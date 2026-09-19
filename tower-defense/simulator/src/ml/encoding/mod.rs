@@ -1,6 +1,7 @@
 pub mod batch;
 pub mod dense_build;
 pub mod entity;
+pub mod normalize;
 pub mod observation;
 pub mod spatial;
 pub mod tensor;

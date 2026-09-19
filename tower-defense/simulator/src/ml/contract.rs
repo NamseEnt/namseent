@@ -6,7 +6,10 @@ use std::fmt::{Display, Formatter};
 
 pub const DATASET_SCHEMA_VERSION: u32 = 5;
 pub const FEATURE_SCHEMA_VERSION: u32 = 11;
-pub const ML_CONTRACT_SCHEMA_VERSION: u32 = 1;
+/// Bumped for `MlContract::balance_scope` - see
+/// `docs/game-ai/03-observation-contract.md`'s "Balance configuration"
+/// section.
+pub const ML_CONTRACT_SCHEMA_VERSION: u32 = 2;
 pub use crate::config::CONFIG_DIGEST_VERSION;
 pub const OBSERVATION_SCHEMA_VERSION: u32 = td_core::OBSERVATION_SCHEMA_VERSION;
 pub const CATALOG_SCHEMA_VERSION: u32 = td_core::CATALOG_SCHEMA_VERSION;
@@ -32,6 +35,42 @@ pub struct MlContract {
     pub config_digest_version: u32,
     pub config_digest: String,
     pub rng_algorithm_version: u32,
+    /// Whether this checkpoint/contract's policy is trained/validated
+    /// against a single fixed balance configuration (`config_digest`) or a
+    /// balance-conditioned range. Phase 2 only ever produces `Fixed`; see
+    /// `docs/game-ai/03-observation-contract.md`'s "Balance configuration"
+    /// section.
+    #[serde(default)]
+    pub balance_scope: PolicyBalanceScope,
+}
+
+/// See [`MlContract::balance_scope`].
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PolicyBalanceScope {
+    /// The policy was trained and validated against exactly the balance
+    /// configuration identified by `config_digest`. No balance parameter is
+    /// randomized or exposed to the policy as input. Applying this
+    /// checkpoint to a different configuration is out of its validated
+    /// range - retrain or use a `Conditioned` policy instead.
+    #[default]
+    Fixed,
+    /// Reserved for a future balance-conditioned policy: `parameters` names
+    /// which config parameters the policy was trained over and the raw
+    /// range for each. Not implemented in Phase 2 - nothing in this
+    /// repository constructs this variant with real ranges yet, since doing
+    /// so would assert a training/validation range that doesn't exist.
+    Conditioned {
+        parameters: Vec<ConditionedBalanceParameter>,
+    },
+}
+
+/// A single balance-conditioned policy input parameter and the raw value
+/// range it was trained/validated over. See [`PolicyBalanceScope::Conditioned`].
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ConditionedBalanceParameter {
+    pub name: String,
+    pub min_raw: i64,
+    pub max_raw: i64,
 }
 
 impl MlContract {
@@ -50,6 +89,7 @@ impl MlContract {
             config_digest_version: CONFIG_DIGEST_VERSION,
             config_digest: config_digest(config),
             rng_algorithm_version: td_core::CORE_RNG_ALGORITHM_VERSION,
+            balance_scope: PolicyBalanceScope::Fixed,
         }
     }
 
@@ -472,6 +512,46 @@ mod tests {
             .migrate_legacy_metadata()
             .expect("legacy contract migration");
         assert_eq!(legacy, contract);
+    }
+
+    #[test]
+    fn contract_from_config_is_fixed_balance_scope() {
+        let config = GameConfig::default_config();
+        let contract = MlContract::from_config(&config);
+        assert_eq!(contract.balance_scope, PolicyBalanceScope::Fixed);
+    }
+
+    #[test]
+    fn legacy_contract_without_balance_scope_field_defaults_to_fixed() {
+        let config = GameConfig::default_config();
+        let contract = MlContract::from_config(&config);
+        let mut legacy = serde_json::to_value(&contract).expect("serialize contract");
+        legacy
+            .as_object_mut()
+            .expect("contract object")
+            .remove("balance_scope");
+
+        let decoded: MlContract =
+            serde_json::from_value(legacy).expect("deserialize legacy contract");
+
+        assert_eq!(decoded.balance_scope, PolicyBalanceScope::Fixed);
+        assert_eq!(decoded, contract);
+    }
+
+    #[test]
+    fn conditioned_balance_scope_round_trips_through_json() {
+        let scope = PolicyBalanceScope::Conditioned {
+            parameters: vec![ConditionedBalanceParameter {
+                name: "example_parameter".to_string(),
+                min_raw: 0,
+                max_raw: 1_000,
+            }],
+        };
+        let encoded = serde_json::to_value(&scope).expect("serialize balance scope");
+        let decoded: PolicyBalanceScope =
+            serde_json::from_value(encoded).expect("deserialize balance scope");
+        assert_eq!(decoded, scope);
+        assert_ne!(decoded, PolicyBalanceScope::Fixed);
     }
 
     #[test]

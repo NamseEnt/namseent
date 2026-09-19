@@ -11,6 +11,10 @@
 //! anything itself.
 
 use super::entity::{CATEGORICAL_FIELDS, EntityRow};
+use super::normalize::{
+    normalize_axis_ratio, normalize_damage_raw, normalize_range_raw, normalize_rerolled_count,
+    normalize_ticks,
+};
 use crate::environment::{
     HandItemObservation, Observation, RouteCoordObservation, TowerTemplateObservation,
 };
@@ -42,8 +46,8 @@ impl PositionFeatureTable {
             .map(|position_index| {
                 let (left, top) = position_xy(position_index)
                     .expect("position_index is in 0..MAP_POSITION_COUNT");
-                let x_norm = left as f32 / MAP_POSITION_WIDTH.max(1) as f32;
-                let y_norm = top as f32 / MAP_POSITION_HEIGHT.max(1) as f32;
+                let x_norm = normalize_axis_ratio(left, MAP_POSITION_WIDTH);
+                let y_norm = normalize_axis_ratio(top, MAP_POSITION_HEIGHT);
                 let nearest_route_norm =
                     (nearest_route[position_index] as f32 / route_distance_norm).min(1.0);
                 let occupancy_ratio = nearby_tower_occupancy(observation, left, top);
@@ -137,11 +141,11 @@ fn template_feature_row(template: &TowerTemplateObservation) -> EntityRow {
             template.used_cards.len() as u32,
         ],
         vec![
-            template.rerolled_count as f32 / 20.0,
-            template.damage_raw as f32 / 10_000.0,
-            template.effective_damage_raw as f32 / 10_000.0,
-            template.range_raw as f32 / 100_000.0,
-            template.shoot_interval_ticks as f32 / 600.0,
+            normalize_rerolled_count(template.rerolled_count),
+            normalize_damage_raw(template.damage_raw),
+            normalize_damage_raw(template.effective_damage_raw),
+            normalize_range_raw(template.range_raw),
+            normalize_ticks(template.shoot_interval_ticks),
         ],
     )
 }
@@ -467,7 +471,10 @@ mod tests {
             assert_eq!(row.categorical[0], expected.kind_id as u32);
             assert_eq!(row.numeric[0], expected.rerolled_count as f32 / 20.0);
             assert_eq!(row.numeric[1], expected.damage_raw as f32 / 10_000.0);
-            assert_eq!(row.numeric[2], expected.effective_damage_raw as f32 / 10_000.0);
+            assert_eq!(
+                row.numeric[2],
+                expected.effective_damage_raw as f32 / 10_000.0
+            );
             assert_eq!(row.numeric[3], expected.range_raw as f32 / 100_000.0);
             assert_eq!(row.numeric[4], expected.shoot_interval_ticks as f32 / 600.0);
 
