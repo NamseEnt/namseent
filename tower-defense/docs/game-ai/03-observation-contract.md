@@ -45,16 +45,21 @@ AI가 현재 상태에서 합법적으로 알 수 있는 전략 정보를 명시
 - 사용한 card ID 집합
 - 결과 족보/tower kind
 - suit/rank 관련 속성
-- 실제 damage, range, cooldown
+- base damage(`damage_raw`), range, cooldown
+- card polish와 template에서 확정 가능한 upgrade bonus를 적용한 `effective_damage_raw`
 - engraving에서 파생된 공격 효과
 - 현재 유물이 적용된 뒤 확정할 수 있는 modifier
 - reroll count처럼 tower 결과에 영향을 주는 run state
 
 이 값은 policy가 독자적으로 포커 규칙을 추측해서 만들지 않는다. authoritative rule이 candidate context를 계산한다.
 
+`effective_damage_raw`는 `damage_raw`에 card polish와 `UpgradeCollection::tower_upgrade_bonus_raw_for_template`이 돌려주는, 해당 template만으로 확정 가능한 upgrade bonus를 적용한 값이다. `TowerState::attack_damage_raw`와 같은 authoritative 계산을 공유하며 simulator에서 재구현하지 않는다. 단, `NameTag`처럼 실제 `PlaceTower` 실행 중 배정되는 tower ID에 의존하는 placement-trigger 효과는 template 시점에 알 수 없으므로 포함하지 않는다 - 그런 upgrade가 있으면 `effective_damage_raw`는 실제 배치 이후의 `attack_damage_raw`보다 작을 수 있다. `damage_raw`와 `effective_damage_raw`가 이 두 값을 구분해서 노출하므로, policy는 `owned_upgrades`의 runtime parameter(예: `NameTag`의 미배정 상태)로 그 gap을 추론할 수 있다. placement를 실제 실행해서 얻은 값이 아니다.
+
 현재 구현에서는 `Observation.build_tower_candidates`가 이 context를 제공한다. 각 항목은 canonical card slot subset과 authoritative tower template을 함께 가진다. 전체 hand을 사용하는 subset은 빈 slot 목록으로 표현하며, 관측은 `Shopping`과 `SelectingTower` 상태에서 생성된다. 따라서 `BuildTower` candidate encoder는 card subset을 다시 계산하지 않고 해당 resulting tower를 직접 참조한다.
 
 semantic macro-action이 shop에서 바로 선택될 수 있으므로 정책은 `StartSelectingTower`를 먼저 고른 뒤 resulting tower를 추론할 필요가 없다. 이 변경으로 observation schema는 4, feature schema는 8로 올렸으며 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다.
+
+`TowerTemplateObservation`에 `effective_damage_raw`를 추가하면서(card polish/upgrade damage bonus double-count correctness fix 포함) observation schema는 7, dense feature schema는 11로 올렸다.
 
 이 목록은 placement 결과를 미리 실행한 값이 아니다. 위치별 route, occupancy, coverage feature는 candidate template과 별도로 현재 map에서 계산한다. 미래 RNG나 search 전용 값도 포함하지 않는다.
 

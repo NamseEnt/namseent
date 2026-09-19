@@ -119,8 +119,8 @@ impl RangeCoverageTable {
 /// `ml::encoding::observation::tower_row`.
 pub const BUILD_TEMPLATE_CATEGORICAL_FIELDS: usize = CATEGORICAL_FIELDS;
 /// Numeric field count of a dense template row: `[rerolled_count, damage_raw,
-/// range_raw, shoot_interval_ticks]`.
-pub const BUILD_TEMPLATE_NUMERIC_WIDTH: usize = 4;
+/// effective_damage_raw, range_raw, shoot_interval_ticks]`.
+pub const BUILD_TEMPLATE_NUMERIC_WIDTH: usize = 5;
 
 fn template_feature_row(template: &TowerTemplateObservation) -> EntityRow {
     EntityRow::new(
@@ -139,6 +139,7 @@ fn template_feature_row(template: &TowerTemplateObservation) -> EntityRow {
         vec![
             template.rerolled_count as f32 / 20.0,
             template.damage_raw as f32 / 10_000.0,
+            template.effective_damage_raw as f32 / 10_000.0,
             template.range_raw as f32 / 100_000.0,
             template.shoot_interval_ticks as f32 / 600.0,
         ],
@@ -315,6 +316,31 @@ mod tests {
     }
 
     #[test]
+    fn template_feature_row_maps_damage_and_effective_damage_to_distinct_slots() {
+        let template = TowerTemplateObservation {
+            kind: "high".to_owned(),
+            kind_id: 1,
+            suit: None,
+            rank: None,
+            rerolled_count: 3,
+            damage_raw: 100_000,
+            effective_damage_raw: 120_000,
+            range_raw: 3_000_000,
+            shoot_interval_ticks: 30,
+            used_cards: Vec::new(),
+        };
+
+        let row = template_feature_row(&template);
+
+        assert_eq!(row.numeric[0], 3.0 / 20.0);
+        assert_eq!(row.numeric[1], 100_000.0 / 10_000.0);
+        assert_eq!(row.numeric[2], 120_000.0 / 10_000.0);
+        assert_ne!(row.numeric[1], row.numeric[2]);
+        assert_eq!(row.numeric[3], 3_000_000.0 / 100_000.0);
+        assert_eq!(row.numeric[4], 30.0 / 600.0);
+    }
+
+    #[test]
     fn compute_is_deterministic() {
         let environment = environment(0);
         let observation = environment.snapshot();
@@ -441,8 +467,9 @@ mod tests {
             assert_eq!(row.categorical[0], expected.kind_id as u32);
             assert_eq!(row.numeric[0], expected.rerolled_count as f32 / 20.0);
             assert_eq!(row.numeric[1], expected.damage_raw as f32 / 10_000.0);
-            assert_eq!(row.numeric[2], expected.range_raw as f32 / 100_000.0);
-            assert_eq!(row.numeric[3], expected.shoot_interval_ticks as f32 / 600.0);
+            assert_eq!(row.numeric[2], expected.effective_damage_raw as f32 / 10_000.0);
+            assert_eq!(row.numeric[3], expected.range_raw as f32 / 100_000.0);
+            assert_eq!(row.numeric[4], expected.shoot_interval_ticks as f32 / 600.0);
 
             for (extra_offset, extra) in observation.extra_tower_card_templates.iter().enumerate() {
                 let hand_slot_index = extra_offset + 1;
@@ -450,7 +477,7 @@ mod tests {
                     .template_row(subset_index, hand_slot_index)
                     .expect("extra slot row should exist");
                 assert_eq!(extra_row.categorical[0], extra.kind_id as u32);
-                assert_eq!(extra_row.numeric[2], extra.range_raw as f32 / 100_000.0);
+                assert_eq!(extra_row.numeric[3], extra.range_raw as f32 / 100_000.0);
             }
         }
     }
@@ -527,11 +554,11 @@ mod tests {
             panic!("expected tower hand item");
         };
         assert_eq!(
-            place_bundle.template_row().numeric[2],
+            place_bundle.template_row().numeric[3],
             hand_template.range_raw as f32 / 100_000.0
         );
         assert_eq!(
-            place_bundle.template_row().numeric[3],
+            place_bundle.template_row().numeric[4],
             hand_template.shoot_interval_ticks as f32 / 600.0
         );
 

@@ -24,6 +24,14 @@ pub struct TowerTemplateObservation {
     pub rank: Option<String>,
     pub rerolled_count: usize,
     pub damage_raw: i64,
+    /// Deterministic damage this template would deal with every currently
+    /// known, template-derivable modifier applied (card polish plus
+    /// `UpgradeCollection::tower_upgrade_bonus_raw_for_template`). Excludes
+    /// placement-trigger-only bonuses that only resolve once a tower ID
+    /// exists (e.g. `NameTag`) and runtime-only status effects, neither of
+    /// which exist before `PlaceTower` runs - see
+    /// `docs/game-ai/03-observation-contract.md`.
+    pub effective_damage_raw: i64,
     pub range_raw: i64,
     pub shoot_interval_ticks: u64,
     pub used_cards: Vec<CardObservation>,
@@ -219,7 +227,12 @@ impl crate::CoreState {
                         HandItemObservation::Card(card_observation(card))
                     }
                     crate::HandItemState::Tower(tower) => {
-                        HandItemObservation::Tower(tower_template_observation(tower))
+                        let upgrade_bonus_raw =
+                            self.upgrades.tower_upgrade_bonus_raw_for_template(tower);
+                        HandItemObservation::Tower(tower_template_observation(
+                            tower,
+                            upgrade_bonus_raw,
+                        ))
                     }
                 },
             })
@@ -249,7 +262,7 @@ impl crate::CoreState {
         let towers = self
             .towers
             .iter()
-            .filter_map(tower_observation)
+            .filter_map(|tower| tower_observation(self, tower))
             .collect::<Vec<_>>();
         let mut tower_grid = vec![None; map_width.saturating_mul(map_height)];
         for tower in &towers {
@@ -470,9 +483,10 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         ) else {
             continue;
         };
+        let upgrade_bonus_raw = state.upgrades().tower_upgrade_bonus_raw_for_template(&template);
         candidates.push(BuildTowerCandidateObservation {
             card_ids: canonical_card_ids,
-            template: tower_template_observation(&template),
+            template: tower_template_observation(&template, upgrade_bonus_raw),
         });
     }
     candidates
@@ -506,7 +520,9 @@ fn extra_tower_card_templates(state: &crate::CoreState) -> Vec<TowerTemplateObse
                 state.progress.rerolled_count,
                 state.config(),
             );
-            tower_template_observation(&template)
+            let upgrade_bonus_raw =
+                state.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+            tower_template_observation(&template, upgrade_bonus_raw)
         })
         .collect()
 }
@@ -517,7 +533,10 @@ fn unordered_cards(cards: &[crate::CardState]) -> Vec<CardObservation> {
     observations
 }
 
-fn tower_template_observation(template: &crate::TowerTemplateState) -> TowerTemplateObservation {
+fn tower_template_observation(
+    template: &crate::TowerTemplateState,
+    upgrade_bonus_raw: i64,
+) -> TowerTemplateObservation {
     let (kind, kind_id) = tower_kind(template.kind);
     TowerTemplateObservation {
         kind: kind.to_string(),
@@ -526,19 +545,21 @@ fn tower_template_observation(template: &crate::TowerTemplateState) -> TowerTemp
         rank: template.rank.map(rank_key).map(str::to_string),
         rerolled_count: template.rerolled_count,
         damage_raw: template.default_damage_raw,
+        effective_damage_raw: template.effective_damage_raw(upgrade_bonus_raw),
         range_raw: template.default_attack_range_radius_raw,
         shoot_interval_ticks: template.shoot_interval,
         used_cards: template.used_cards.iter().map(card_observation).collect(),
     }
 }
 
-fn tower_observation(tower: &crate::TowerState) -> Option<TowerObservation> {
+fn tower_observation(state: &crate::CoreState, tower: &crate::TowerState) -> Option<TowerObservation> {
     let id = tower.id?;
+    let upgrade_bonus_raw = state.upgrades().tower_upgrade_bonus_raw(tower);
     TowerObservation {
         id,
         left: tower.left_top[0],
         top: tower.left_top[1],
-        template: tower_template_observation(&tower.template),
+        template: tower_template_observation(&tower.template, upgrade_bonus_raw),
         cooldown_ticks: tower.cooldown,
         range_raw: tower.attack_range_raw(),
     }
@@ -828,7 +849,7 @@ mod tests {
                 0,
                 &config,
             );
-            let observation = tower_template_observation(&template);
+            let observation = tower_template_observation(&template, 0);
             assert_eq!(
                 observation.range_raw, template.default_attack_range_radius_raw,
                 "kind {kind} range_raw should mirror the authoritative template"
@@ -860,7 +881,7 @@ mod tests {
 
         let template =
             crate::game_state::tower_selection::build_template(kind, None, None, Vec::new(), 0, &config);
-        let observation = tower_template_observation(&template);
+        let observation = tower_template_observation(&template, 0);
         assert_eq!(observation.range_raw, 7_777_777);
         assert_eq!(template.shoot_interval, 4_321u64.saturating_mul(60).div_ceil(1000));
         assert_eq!(observation.shoot_interval_ticks, template.shoot_interval);

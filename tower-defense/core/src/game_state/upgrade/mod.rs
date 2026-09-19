@@ -968,7 +968,10 @@ impl crate::CoreState {
 
     pub(crate) fn refresh_upgrade_damage_multipliers(&mut self) {
         for tower in &mut self.towers {
-            let bonus_raw = self.upgrades.tower_damage_bonus_raw(tower);
+            // See `CoreState::refresh_tower_damage_multipliers`: this must
+            // stay upgrade-only, or card polish double-counts through
+            // `attack_damage_raw`.
+            let bonus_raw = self.upgrades.tower_upgrade_bonus_raw(tower);
             tower.damage_multiplier_raw = crate::RATIO_SCALE.saturating_add(bonus_raw).max(0);
         }
     }
@@ -1184,6 +1187,173 @@ mod tests {
             )
         })
         .expect("test upgrade state must be valid");
+    }
+
+    /// +10% flat damage bonus via `PerfectPottery` (raw kind 7): applies
+    /// identically through `tower_bonus`/`tower_bonus_for_template` as long
+    /// as `rerolled_count == 0`, so it's usable for both runtime and
+    /// template-preview comparisons.
+    fn perfect_pottery_10_pct() -> UpgradeWireEntry {
+        UpgradeWireEntry {
+            id: 1,
+            kind: 7,
+            scalar_values: Vec::new(),
+            ratio_values_raw: vec![100_000],
+            bool_values: Vec::new(),
+            optional_ids: Vec::new(),
+        }
+    }
+
+    fn tower_template_with_polish(
+        default_damage_raw: i64,
+        polish_pct_raw: i64,
+    ) -> crate::TowerTemplateState {
+        crate::TowerTemplateState {
+            kind: 1,
+            rerolled_count: 0,
+            shoot_interval: 60,
+            default_attack_range_radius_raw: 1,
+            default_damage_raw,
+            suit: Some(0),
+            rank: Some(11),
+            skill_templates: Vec::new(),
+            default_status_effects: Vec::new(),
+            used_cards: if polish_pct_raw == 0 {
+                Vec::new()
+            } else {
+                vec![crate::CardState {
+                    id: 1,
+                    suit: 0,
+                    rank: 11,
+                    polish_pct_raw,
+                    engraving: None,
+                }]
+            },
+        }
+    }
+
+    fn place_tower_with_polish(
+        core: &mut crate::CoreState,
+        default_damage_raw: i64,
+        polish_pct_raw: i64,
+    ) -> u64 {
+        let template = tower_template_with_polish(default_damage_raw, polish_pct_raw);
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+        tower_id
+    }
+
+    fn placed_tower(core: &crate::CoreState, tower_id: u64) -> &crate::TowerState {
+        core.towers()
+            .iter()
+            .find(|tower| tower.id == Some(tower_id))
+            .expect("placed tower must exist")
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_applies_polish_exactly_once() {
+        let mut core = test_core();
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 110_000);
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_applies_upgrade_bonus_exactly_once() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 0);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 110_000);
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_combines_polish_and_upgrade_bonus_exactly_once() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 120_000);
+    }
+
+    #[test]
+    fn refresh_upgrade_damage_multipliers_matches_refresh_tower_damage_multipliers() {
+        // `UpgradeCollection::refresh_upgrade_damage_multipliers` (used from
+        // shop/reroll/etc triggers) and `CoreState::refresh_tower_damage_multipliers`
+        // (used from `PlaceTower`) must agree exactly, including the
+        // polish/upgrade split - both went through the same historical bug.
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+        let via_place_tower = placed_tower(&core, tower_id).damage_multiplier_raw;
+
+        core.refresh_upgrade_damage_multipliers();
+        let via_upgrade_refresh = placed_tower(&core, tower_id).damage_multiplier_raw;
+
+        assert_eq!(via_place_tower, via_upgrade_refresh);
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 120_000);
+    }
+
+    #[test]
+    fn template_effective_damage_matches_placed_tower_for_previewable_upgrade() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let template = tower_template_with_polish(100_000, 100_000);
+
+        let preview_upgrade_bonus_raw =
+            core.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+        let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
+
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+
+        let actual_damage_raw = placed_tower(&core, tower_id).attack_damage_raw();
+
+        assert_eq!(preview_damage_raw, 120_000);
+        assert_eq!(preview_damage_raw, actual_damage_raw);
+    }
+
+    #[test]
+    fn template_effective_damage_diverges_from_actual_for_name_tag_placement_trigger() {
+        // NameTag only assigns its bonus to a `tower_id` once `tower_placed`
+        // fires during `PlaceTower`, so `tower_bonus_for_template` (used by
+        // the pre-placement preview) always returns 0 for it - unlike
+        // `tower_bonus` on the resulting placed tower. Preview and actual
+        // damage are expected to differ in this specific case.
+        let mut core = test_core();
+        core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::NameTag))
+            .expect("name tag acquisition must succeed");
+        let template = tower_template_with_polish(100_000, 0);
+
+        let preview_upgrade_bonus_raw =
+            core.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+        let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
+        assert_eq!(
+            preview_damage_raw, 100_000,
+            "NameTag must not leak into the template preview"
+        );
+
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+
+        let actual_damage_raw = placed_tower(&core, tower_id).attack_damage_raw();
+        assert_eq!(
+            actual_damage_raw, 300_000,
+            "NameTag's +200% applies once the tower is actually placed"
+        );
+        assert_ne!(preview_damage_raw, actual_damage_raw);
     }
 
     #[test]

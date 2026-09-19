@@ -329,8 +329,11 @@ impl LegacyProjectionCodec {
             .map(|tower| {
                 let mut snapshot = tower.to_core_state();
                 let raw_upgrades = self.upgrade_state.to_core_state();
+                // Upgrade-only bonus: `td_core::TowerState::attack_damage_raw`
+                // separately re-applies card polish, so folding it into
+                // `damage_multiplier_raw` here would double-count it.
                 snapshot.damage_multiplier_raw = td_core::RATIO_SCALE
-                    .saturating_add(raw_upgrades.tower_damage_bonus_raw(&snapshot));
+                    .saturating_add(raw_upgrades.tower_upgrade_bonus_raw(&snapshot));
                 snapshot
             })
             .collect()

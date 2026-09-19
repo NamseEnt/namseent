@@ -461,6 +461,7 @@ mod tests {
             rank: None,
             rerolled_count: 0,
             damage_raw: 1_000,
+            effective_damage_raw: 1_000,
             range_raw: 3_000_000,
             shoot_interval_ticks: 30,
             used_cards: Vec::new(),

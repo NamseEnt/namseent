@@ -770,8 +770,12 @@ impl CoreState {
     pub fn refresh_tower_damage_multipliers(&mut self) {
         let upgrades = self.upgrades.clone();
         for tower in &mut self.towers {
+            // `damage_multiplier_raw` must hold the upgrade-only bonus:
+            // `attack_damage_raw` separately re-applies card polish from
+            // `template.used_cards`, so folding polish in here (as
+            // `tower_damage_bonus_raw` does) would double-count it.
             tower.damage_multiplier_raw = crate::RATIO_SCALE
-                .saturating_add(upgrades.tower_damage_bonus_raw(tower))
+                .saturating_add(upgrades.tower_upgrade_bonus_raw(tower))
                 .max(0);
         }
     }
