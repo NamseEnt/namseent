@@ -586,6 +586,7 @@ pub fn action_features(action: &AgentAction) -> Vec<f32> {
             queued_monster_count: 0,
             hand: vec![],
             build_tower_candidates: vec![],
+            extra_tower_card_templates: vec![],
             deck: crate::environment::DeckObservation {
                 all_cards: vec![],
                 draw_cards: vec![],

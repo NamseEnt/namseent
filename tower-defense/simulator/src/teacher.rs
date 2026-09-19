@@ -532,25 +532,42 @@ mod tests {
         environment
     }
 
-    /// Independent brute-force oracle: every `(subset_index, position_index)`
-    /// pair, scored by the exact same formula
-    /// `DenseBuildTowerScoreTable::compute` uses, but with legality decided
-    /// by `GameEnvironment::can_place_at` directly rather than the fast-path
-    /// mask - deliberately not reusing any of `joint_action`'s internals -
-    /// then sorted with an ordering written separately from
-    /// `DenseBuildTowerScoreTable::top_k_indices`. Used to check that
-    /// method's sort/truncate logic, not to re-prove legality-mask
-    /// correctness (already covered by
+    /// A card-decision state with `extra_count` pending
+    /// `stage_modifiers.extra_tower_cards` - i.e. `build_tower_slot_count()
+    /// == extra_count + 1`, so `BuildTower` has real `hand_slot_index >= 1`
+    /// choices. This state does arise from real play (the Rubber Cone
+    /// item, used outside `PlacingTower`), but not reliably from a handful
+    /// of fixed seeds, so it's seeded directly via the
+    /// `test_only_seed_extra_tower_cards` fixture instead of hoping a
+    /// scripted playthrough draws and uses that item.
+    fn extra_tower_cards_environment(extra_count: usize) -> GameEnvironment {
+        let mut environment = card_decision_environment(0);
+        environment
+            .test_only_seed_extra_tower_cards(extra_count)
+            .expect("extra tower card fixture should be a valid snapshot");
+        assert_eq!(environment.build_tower_slot_count(), extra_count + 1);
+        environment
+    }
+
+    /// Independent brute-force oracle: every `(subset_index,
+    /// hand_slot_index, position_index)` triple, scored by the exact same
+    /// formula `DenseBuildTowerScoreTable::compute` uses, but with
+    /// legality decided by `GameEnvironment::can_place_at` directly rather
+    /// than the fast-path mask - deliberately not reusing any of
+    /// `joint_action`'s internals - then sorted with an ordering written
+    /// separately from `DenseBuildTowerScoreTable::top_k_indices`. Used to
+    /// check that method's sort/truncate logic, not to re-prove
+    /// legality-mask correctness (already covered by
     /// `full_map_legality_mask_matches_can_place_at_for_every_position`).
     fn brute_force_joint_ranking(
         environment: &GameEnvironment,
         observation: &crate::environment::Observation,
-    ) -> Vec<(usize, usize, crate::joint_action::JointBuildTowerScore)> {
+    ) -> Vec<(usize, usize, usize, crate::joint_action::JointBuildTowerScore)> {
         use crate::joint_action::{CardSubsetTable, MAP_POSITION_COUNT, position_xy};
         use crate::policy_runner::tower_range_raw;
 
-        // Legality never depends on card subset (fixed 2x2 footprint), so
-        // it is computed once and reused - same principle
+        // Legality never depends on card subset or build slot (fixed 2x2
+        // footprint), so it is computed once and reused - same principle
         // `DenseBuildTowerScoreTable`/`legality::full_map_legality_mask`
         // use, kept here via the authoritative per-position
         // `can_place_at` instead of the fast-path mask under test.
@@ -560,8 +577,43 @@ mod tests {
                 environment.can_place_at(left, top)
             })
             .collect::<Vec<_>>();
+        let route = &observation.route_coords;
+        let score_at = |range_raw: i64, damage_raw: i64, position_index: usize| {
+            let (left, top) = position_xy(position_index).expect("index in range");
+            let covered_route = route
+                .iter()
+                .filter(|coord| {
+                    let dx = (coord.x as i64 - left as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    let dy = (coord.y as i64 - top as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                        <= range_raw.saturating_mul(range_raw)
+                })
+                .count();
+            let nearest_route = route
+                .iter()
+                .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
+                .min()
+                .unwrap_or(usize::MAX);
+            crate::joint_action::JointBuildTowerScore {
+                covered_route,
+                nearest_route,
+                damage_raw,
+            }
+        };
 
         let subsets = CardSubsetTable::from_observation(observation);
+        // Fixed regardless of card subset - see
+        // `joint_action::extra_slot_templates`.
+        let extra_ranges = observation
+            .extra_tower_card_templates
+            .iter()
+            .map(|template| (tower_range_raw(&template.kind), template.damage_raw))
+            .collect::<Vec<_>>();
+
         let mut ranked = Vec::new();
         for subset_index in 0..subsets.subset_count() {
             let card_ids = subsets
@@ -573,53 +625,42 @@ mod tests {
             // directly - match by sorted-id set here instead (same
             // approach `joint_action::subset_templates` uses) and compute
             // the score formula inline.
-            let Some(template) = observation.build_tower_candidates.iter().find_map(|candidate| {
+            if let Some(template) = observation.build_tower_candidates.iter().find_map(|candidate| {
                 let mut ids = candidate.card_ids.clone();
                 ids.sort_unstable();
                 (ids == card_ids).then_some(&candidate.template)
-            }) else {
-                continue;
-            };
-            let range_raw = tower_range_raw(&template.kind);
-            let damage_raw = template.damage_raw;
-            let route = &observation.route_coords;
-            for &position_index in &legal_positions {
-                let (left, top) = position_xy(position_index).expect("index in range");
-                let covered_route = route
-                    .iter()
-                    .filter(|coord| {
-                        let dx = (coord.x as i64 - left as i64)
-                            .saturating_mul(1_000_000)
-                            .saturating_sub(500_000);
-                        let dy = (coord.y as i64 - top as i64)
-                            .saturating_mul(1_000_000)
-                            .saturating_sub(500_000);
-                        dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
-                            <= range_raw.saturating_mul(range_raw)
-                    })
-                    .count();
-                let nearest_route = route
-                    .iter()
-                    .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
-                    .min()
-                    .unwrap_or(usize::MAX);
-                ranked.push((
-                    subset_index,
-                    position_index,
-                    crate::joint_action::JointBuildTowerScore {
-                        covered_route,
-                        nearest_route,
-                        damage_raw,
-                    },
-                ));
+            }) {
+                let range_raw = tower_range_raw(&template.kind);
+                for &position_index in &legal_positions {
+                    ranked.push((
+                        subset_index,
+                        0usize,
+                        position_index,
+                        score_at(range_raw, template.damage_raw, position_index),
+                    ));
+                }
+            }
+            // Every non-empty subset is a legal SelectTower choice, so
+            // extra_tower_cards slots (fixed template, independent of
+            // subset) are never gated on the subset's own template above.
+            for (extra_offset, &(range_raw, damage_raw)) in extra_ranges.iter().enumerate() {
+                let hand_slot_index = extra_offset + 1;
+                for &position_index in &legal_positions {
+                    ranked.push((
+                        subset_index,
+                        hand_slot_index,
+                        position_index,
+                        score_at(range_raw, damage_raw, position_index),
+                    ));
+                }
             }
         }
         ranked.sort_by(|left, right| {
-            let left_key = (left.2.covered_route, left.2.nearest_route, left.2.damage_raw);
+            let left_key = (left.3.covered_route, left.3.nearest_route, left.3.damage_raw);
             let right_key = (
-                right.2.covered_route,
-                right.2.nearest_route,
-                right.2.damage_raw,
+                right.3.covered_route,
+                right.3.nearest_route,
+                right.3.damage_raw,
             );
             right_key
                 .0
@@ -628,20 +669,28 @@ mod tests {
                 .then_with(|| right_key.2.cmp(&left_key.2))
                 .then_with(|| left.0.cmp(&right.0))
                 .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
         });
         ranked
     }
 
     /// `DenseBuildTowerScoreTable::top_k_indices`' sort/truncate must match
     /// an independently-written brute-force ranking exactly, for several K
-    /// values including the production default (`None`, i.e. "all").
+    /// values including "all". Uses `extra_tower_cards_environment` (seed
+    /// with a forced multi-build-slot state, see below) in addition to
+    /// plain seeds so the `hand_slot_index >= 1` axis is exercised, not
+    /// just the `hand_slot_index == 0` case the pre-migration table
+    /// covered.
     #[test]
     fn dense_top_k_matches_brute_force_ranking() {
-        for seed in 0..4u64 {
-            let environment = card_decision_environment(seed);
+        let environments = (0..4u64)
+            .map(card_decision_environment)
+            .chain(std::iter::once(extra_tower_cards_environment(1)))
+            .collect::<Vec<_>>();
+        for (index, environment) in environments.iter().enumerate() {
             let observation = environment.snapshot();
-            let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
-            let brute_force = brute_force_joint_ranking(&environment, &observation);
+            let table = DenseBuildTowerScoreTable::compute(environment, &observation);
+            let brute_force = brute_force_joint_ranking(environment, &observation);
             if brute_force.is_empty() {
                 continue;
             }
@@ -650,21 +699,174 @@ mod tests {
                 let expected = brute_force
                     .iter()
                     .take(k)
-                    .map(|(subset_index, position_index, _)| (*subset_index, *position_index))
+                    .map(|(subset_index, hand_slot_index, position_index, _)| {
+                        (*subset_index, *hand_slot_index, *position_index)
+                    })
                     .collect::<Vec<_>>();
                 assert_eq!(
                     dense_top_k, expected,
-                    "seed {seed} k={k}: dense top-K must match the brute-force ranking exactly"
+                    "environment {index} k={k}: dense top-K must match the brute-force ranking exactly"
                 );
-                for &(subset_index, position_index) in &dense_top_k {
+                for &(subset_index, hand_slot_index, position_index) in &dense_top_k {
                     assert_eq!(
-                        table.score(subset_index, position_index),
+                        table.score(subset_index, hand_slot_index, position_index),
                         brute_force
                             .iter()
-                            .find(|(s, p, _)| *s == subset_index && *p == position_index)
-                            .map(|(_, _, score)| *score),
-                        "seed {seed} k={k}: scores must agree at ({subset_index}, {position_index})"
+                            .find(|(s, h, p, _)| {
+                                *s == subset_index && *h == hand_slot_index && *p == position_index
+                            })
+                            .map(|(_, _, _, score)| *score),
+                        "environment {index} k={k}: scores must agree at \
+                        ({subset_index}, {hand_slot_index}, {position_index})"
                     );
+                }
+            }
+        }
+    }
+
+    /// Card-id-set identity for a `BuildTower` action, or `None` for any
+    /// other action kind. `action_id()` and `PartialEq` are sensitive to
+    /// `card_ids`' *order*, but a `BuildTower` selecting the same card
+    /// *set* (any order) at the same hand slot and position is the same
+    /// legal action - `card_ids_are_selectable` only checks membership.
+    /// Comparing oracle vs. dense-table actions must use this, not raw
+    /// identity.
+    fn build_tower_identity_key(action: &AgentAction) -> Option<(Vec<usize>, usize, usize, usize)> {
+        let AgentAction::BuildTower {
+            card_ids,
+            hand_slot_index,
+            left,
+            top,
+        } = action
+        else {
+            return None;
+        };
+        let mut sorted_card_ids = card_ids.clone();
+        sorted_card_ids.sort_unstable();
+        Some((sorted_card_ids, *hand_slot_index, *left, *top))
+    }
+
+    /// Exhaustive bidirectional check that the dense `BuildTower` space
+    /// exactly represents the oracle legal `BuildTower` set
+    /// (`GameEnvironment::semantic_legal_actions`, the exhaustive/unpruned
+    /// semantic legal-action generator), including states with
+    /// `extra_tower_cards` (multi build slot). Covers:
+    /// - every oracle-legal `BuildTower` action is scored in the dense
+    ///   table (oracle subset dense);
+    /// - every dense-scored `(subset, hand_slot, position)` materializes an
+    ///   action that is itself oracle-legal (dense subset oracle) - i.e.
+    ///   support is identical, not just overlapping;
+    /// - extra-slot (`hand_slot_index >= 1`) scores are identical across
+    ///   every card subset, since that tower's template never depends on
+    ///   which subset was selected - the concrete form of "slot identity
+    ///   doesn't depend on subset/order" for this axis.
+    ///
+    /// Release-only: the oracle side materializes every `BuildTower`
+    /// action up front (the O(subset x position) allocation the dense path
+    /// exists to avoid), same cost profile as
+    /// `dense_scorer_matches_exhaustive_heuristic_oracle`.
+    #[test]
+    #[ignore = "exhaustive oracle comparison; release-only, same reason as \
+        joint_action::tests::dense_scorer_matches_exhaustive_heuristic_oracle - run with \
+        cargo test --release -- --ignored dense_build_tower_support_matches_oracle_bidirectionally"]
+    fn dense_build_tower_support_matches_oracle_bidirectionally() {
+        use crate::joint_action::{DenseBuildTowerScoreTable, build_tower_action, joint_index_for_action};
+        use std::collections::HashSet;
+
+        let environments = (0..3u64)
+            .map(card_decision_environment)
+            .chain([
+                extra_tower_cards_environment(1),
+                extra_tower_cards_environment(2),
+            ])
+            .collect::<Vec<_>>();
+
+        for (index, environment) in environments.iter().enumerate() {
+            let observation = environment.snapshot();
+            let table = DenseBuildTowerScoreTable::compute(environment, &observation);
+            let oracle_build_actions = environment
+                .semantic_legal_actions()
+                .into_iter()
+                .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                .map(|legal| legal.action)
+                .collect::<Vec<_>>();
+            // `action_id()`/`PartialEq` are card_ids-order-sensitive, but
+            // legality/identity is a card *set* (see
+            // `GameEnvironment::semantic_action_is_legal`'s
+            // `card_ids_are_selectable`, which is membership-only) - the
+            // oracle's generation-order card_ids and the dense table's
+            // id-sorted card_ids (`CardSubsetTable`) can legitimately
+            // differ only in that order. Compare by a card-id-sorted key
+            // instead of raw identity/`action_id()`.
+            let oracle_build_action_ids = oracle_build_actions
+                .iter()
+                .map(build_tower_identity_key)
+                .collect::<HashSet<_>>();
+            assert!(
+                !oracle_build_actions.is_empty(),
+                "environment {index}: fixture should have at least one legal BuildTower action"
+            );
+
+            // oracle -> dense: every oracle-legal action must be scored.
+            for action in &oracle_build_actions {
+                let (subset_index, hand_slot_index, position_index) =
+                    joint_index_for_action(&table.subsets, action).unwrap_or_else(|| {
+                        panic!("environment {index}: oracle action {action:?} should map to a joint index")
+                    });
+                assert!(
+                    table.score(subset_index, hand_slot_index, position_index).is_some(),
+                    "environment {index}: oracle action {action:?} \
+                    (subset={subset_index}, hand_slot={hand_slot_index}, position={position_index}) \
+                    must be scored by the dense table"
+                );
+            }
+
+            // dense -> oracle: every scored triple must materialize an
+            // oracle-legal action, and extra-slot scores must be
+            // subset-independent.
+            let mut extra_slot_scores: std::collections::HashMap<
+                (usize, usize),
+                crate::joint_action::JointBuildTowerScore,
+            > = std::collections::HashMap::new();
+            for subset_index in 0..table.subsets.subset_count() {
+                for hand_slot_index in 0..table.build_slot_count {
+                    for position_index in 0..table.position_count {
+                        let Some(score) = table.score(subset_index, hand_slot_index, position_index)
+                        else {
+                            continue;
+                        };
+                        let action = build_tower_action(
+                            &table.subsets,
+                            subset_index,
+                            hand_slot_index,
+                            position_index,
+                        )
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "environment {index}: scored triple ({subset_index}, \
+                                {hand_slot_index}, {position_index}) should materialize an action"
+                            )
+                        });
+                        assert!(
+                            oracle_build_action_ids.contains(&build_tower_identity_key(&action)),
+                            "environment {index}: dense-scored action {action:?} \
+                            (subset={subset_index}, hand_slot={hand_slot_index}, \
+                            position={position_index}) must be oracle-legal"
+                        );
+                        if hand_slot_index >= 1 {
+                            let key = (hand_slot_index, position_index);
+                            if let Some(&existing) = extra_slot_scores.get(&key) {
+                                assert_eq!(
+                                    existing, score,
+                                    "environment {index}: hand_slot {hand_slot_index} at position \
+                                    {position_index} must score identically regardless of card \
+                                    subset (subset {subset_index} disagreed)"
+                                );
+                            } else {
+                                extra_slot_scores.insert(key, score);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1571,12 +1773,12 @@ mod tests {
         legacy_candidate_generation_seconds: f64,
         legacy_materialized_build_tower_count: usize,
         legacy_candidate_count: usize,
-        legacy_includes_oracle_best: bool,
+        legacy_achieves_oracle_best_score: bool,
         legacy_teacher_decision_seconds: f64,
         dense_candidate_generation_seconds: f64,
         dense_materialized_build_tower_count: usize,
         dense_candidate_count: usize,
-        dense_includes_oracle_best: bool,
+        dense_achieves_oracle_best_score: bool,
         dense_teacher_decision_seconds: f64,
     }
 
@@ -1592,8 +1794,8 @@ mod tests {
         candidate_generation_speedup: f64,
         mean_legacy_materialized_build_tower_count: f64,
         mean_dense_materialized_build_tower_count: f64,
-        legacy_oracle_best_retention_rate: f64,
-        dense_oracle_best_retention_rate: f64,
+        legacy_oracle_best_score_achievement_rate: f64,
+        dense_oracle_best_score_achievement_rate: f64,
         mean_legacy_teacher_decision_seconds: f64,
         mean_dense_teacher_decision_seconds: f64,
         teacher_decision_speedup: f64,
@@ -1614,9 +1816,16 @@ mod tests {
     /// - `dense_materialized_build_tower_count`: `BuildTower` actions
     ///   allocated by `dense_semantic_candidates`, which only ever builds
     ///   its top-K (plus the non-`BuildTower` set).
-    /// - `*_includes_oracle_best`: whether the candidate set contains the
-    ///   oracle-ranked best `BuildTower` action (same heuristic oracle as
-    ///   Phase 1, over the unpruned legal set).
+    /// - `*_achieves_oracle_best_score`: whether the candidate set's own
+    ///   best `BuildTower` action, re-ranked by the same rollout-free
+    ///   heuristic Phase 1 used, *scores* exactly as well as the unpruned
+    ///   oracle's best (NOT a rollout/post-hoc best). Compared by score
+    ///   equality, not action identity - see the report's `methodology`
+    ///   string for why: exact ties at the top heuristic score are common
+    ///   (e.g. a subset and its superset that reduce to the same
+    ///   poker-hand pattern), so a candidate set can legitimately win by
+    ///   holding a *different* member of the same tied score, not the
+    ///   oracle's specific pick.
     /// - `*_teacher_decision_seconds`: `evaluate_semantic_candidate_set`
     ///   end to end (real rollouts, `scenario_count` scenarios x
     ///   `horizon_decisions` per candidate) - `legacy` and `dense` use the
@@ -1660,14 +1869,21 @@ mod tests {
                     .collect::<Vec<_>>();
 
                 if !oracle_build_actions.is_empty() {
-                    let oracle_best = rank_build_tower_actions_by_heuristic(
-                        &observation,
-                        &oracle_build_actions,
-                    )
-                    .first()
-                    .expect("non-empty oracle candidates rank at least one")
-                    .action
-                    .clone();
+                    let oracle_ranking =
+                        rank_build_tower_actions_by_heuristic(&observation, &oracle_build_actions);
+                    let oracle_best = oracle_ranking
+                        .first()
+                        .expect("non-empty oracle candidates rank at least one");
+                    // The oracle score, not a specific action: many actions
+                    // routinely tie for the top heuristic score (a card
+                    // subset and the strict superset that reduces to the
+                    // same poker-hand pattern always tie, for example), so
+                    // "did this candidate set reach the achievable best" is
+                    // the meaningful question, not "does it contain this
+                    // exact one of the tied actions" - see the report's
+                    // methodology string.
+                    let oracle_best_score =
+                        (oracle_best.covered_route, oracle_best.nearest_route, oracle_best.damage_raw);
 
                     let non_build_count = environment.semantic_non_build_actions().len();
                     let dense_build_tower_budget =
@@ -1686,9 +1902,21 @@ mod tests {
                         select_candidates_fairly(legacy_pre_truncation, TARGET_CANDIDATE_COUNT);
                     let legacy_candidate_generation_seconds =
                         legacy_gen_start.elapsed().as_secs_f64();
-                    let legacy_includes_oracle_best = legacy_candidates
+                    let legacy_build_tower_candidates = legacy_candidates
                         .iter()
-                        .any(|candidate| candidate.action == oracle_best);
+                        .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let legacy_achieves_oracle_best_score = !legacy_build_tower_candidates.is_empty()
+                        && rank_build_tower_actions_by_heuristic(
+                            &observation,
+                            &legacy_build_tower_candidates,
+                        )
+                        .first()
+                        .is_some_and(|best| {
+                            (best.covered_route, best.nearest_route, best.damage_raw)
+                                == oracle_best_score
+                        });
 
                     let dense_gen_start = Instant::now();
                     let dense_candidates = dense_semantic_candidates(
@@ -1699,13 +1927,30 @@ mod tests {
                         dense_gen_start.elapsed().as_secs_f64();
                     let dense_materialized_build_tower_count = dense_candidates
                         .iter()
-                        .filter(|candidate| {
-                            matches!(candidate.action, AgentAction::BuildTower { .. })
-                        })
+                        .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
                         .count();
-                    let dense_includes_oracle_best = dense_candidates
-                        .iter()
-                        .any(|candidate| candidate.action == oracle_best);
+                    // Can't reuse rank_build_tower_actions_by_heuristic here
+                    // the way legacy does above: it matches an action's
+                    // card_ids against observation.build_tower_candidates
+                    // by exact (unsorted) Vec equality, but dense
+                    // candidates' card_ids come from CardSubsetTable
+                    // (id-sorted, by design - see joint_action's module
+                    // docs) and would silently fail that lookup whenever
+                    // sorted order differs from build_tower_candidates'
+                    // hand-slot-order entries. Read the score straight from
+                    // the dense table instead, which top_k_indices already
+                    // ranks by the identical formula.
+                    let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
+                    let dense_achieves_oracle_best_score = table
+                        .top_k_indices(dense_build_tower_budget)
+                        .first()
+                        .and_then(|&(subset_index, hand_slot_index, position_index)| {
+                            table.score(subset_index, hand_slot_index, position_index)
+                        })
+                        .is_some_and(|best| {
+                            (best.covered_route, best.nearest_route, best.damage_raw)
+                                == oracle_best_score
+                        });
 
                     let teacher_config = RolloutTeacherConfig {
                         scenario_seeds: scenario_seeds.clone(),
@@ -1739,12 +1984,12 @@ mod tests {
                         legacy_candidate_generation_seconds,
                         legacy_materialized_build_tower_count,
                         legacy_candidate_count: legacy_candidates.len(),
-                        legacy_includes_oracle_best,
+                        legacy_achieves_oracle_best_score,
                         legacy_teacher_decision_seconds,
                         dense_candidate_generation_seconds,
                         dense_materialized_build_tower_count,
                         dense_candidate_count: dense_candidates.len(),
-                        dense_includes_oracle_best,
+                        dense_achieves_oracle_best_score,
                         dense_teacher_decision_seconds,
                     });
                     samples_collected += 1;
@@ -1788,16 +2033,16 @@ mod tests {
                 .map(|s| s.dense_materialized_build_tower_count as f64)
                 .collect(),
         );
-        let legacy_oracle_best_retention_rate = mean(
+        let legacy_oracle_best_score_achievement_rate = mean(
             sample_points
                 .iter()
-                .map(|s| s.legacy_includes_oracle_best as u8 as f64)
+                .map(|s| s.legacy_achieves_oracle_best_score as u8 as f64)
                 .collect(),
         );
-        let dense_oracle_best_retention_rate = mean(
+        let dense_oracle_best_score_achievement_rate = mean(
             sample_points
                 .iter()
-                .map(|s| s.dense_includes_oracle_best as u8 as f64)
+                .map(|s| s.dense_achieves_oracle_best_score as u8 as f64)
                 .collect(),
         );
         let mean_legacy_teacher_decision_seconds = mean(
@@ -1825,7 +2070,7 @@ mod tests {
             mean_dense_candidate_generation_seconds={:.6} candidate_generation_speedup={:.2}x \
             mean_legacy_materialized_build_tower_count={:.1} \
             mean_dense_materialized_build_tower_count={:.1} \
-            legacy_oracle_best_retention_rate={:.4} dense_oracle_best_retention_rate={:.4} \
+            legacy_oracle_best_score_achievement_rate={:.4} dense_oracle_best_score_achievement_rate={:.4} \
             mean_legacy_teacher_decision_seconds={:.6} mean_dense_teacher_decision_seconds={:.6} \
             teacher_decision_speedup={:.2}x legacy_decisions_per_sec={:.2} dense_decisions_per_sec={:.2}",
             sample_points.len(),
@@ -1834,8 +2079,8 @@ mod tests {
             candidate_generation_speedup,
             mean_legacy_materialized_build_tower_count,
             mean_dense_materialized_build_tower_count,
-            legacy_oracle_best_retention_rate,
-            dense_oracle_best_retention_rate,
+            legacy_oracle_best_score_achievement_rate,
+            dense_oracle_best_score_achievement_rate,
             mean_legacy_teacher_decision_seconds,
             mean_dense_teacher_decision_seconds,
             teacher_decision_speedup,
@@ -1847,12 +2092,28 @@ mod tests {
             methodology: "legacy candidates come from \
                 semantic_legal_actions_with_position_limit(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT) \
                 + select_candidates_fairly(TARGET_CANDIDATE_COUNT) (the pre-migration production \
-                path); dense candidates come from dense_semantic_candidates with a BuildTower \
-                budget sized so total candidate count matches TARGET_CANDIDATE_COUNT, keeping \
-                rollout count comparable between the two. oracle_best is the same rollout-free \
-                heuristic oracle Phase 1 used (rank_build_tower_actions_by_heuristic over the full, \
-                unpruned BuildTower set). teacher_decision_seconds times \
-                evaluate_semantic_candidate_set end to end (real rollouts) for each candidate set."
+                path); dense candidates come from dense_semantic_candidates with a BuildTower budget \
+                sized so total candidate count matches TARGET_CANDIDATE_COUNT, keeping rollout count \
+                comparable between the two. oracle_best_score is the rollout-free HEURISTIC oracle's \
+                best score (rank_build_tower_actions_by_heuristic over the full, unpruned BuildTower \
+                set) - not a rollout/post-hoc best. *_achieves_oracle_best_score compares the \
+                candidate set's own best-scoring BuildTower action's SCORE against oracle_best_score, \
+                not action identity: the top heuristic score is routinely a wide tie (a card subset \
+                and any superset that reduces to the same poker-hand pattern always tie, for \
+                instance - one sampled decision had 93 oracle actions tied for the top score), so \
+                requiring the exact same tied action would conflate 'this budget doesn't reach the \
+                achievable best' with 'this budget reached an equally-good but different tied \
+                action', which dense_scorer_matches_exhaustive_heuristic_oracle and \
+                dense_top_k_matches_brute_force_ranking already prove happens constantly by design \
+                (deterministic tie-break on (subset_index, hand_slot_index, position_index), not \
+                action_id()). dense_achieves_oracle_best_score is computed by reading the score \
+                straight from DenseBuildTowerScoreTable (not by re-ranking dense_semantic_candidates' \
+                output through rank_build_tower_actions_by_heuristic, which matches an action's \
+                card_ids against observation.build_tower_candidates by exact unsorted-Vec equality \
+                and would silently drop every dense candidate whose CardSubsetTable-sorted card_ids \
+                don't happen to equal build_tower_candidates' hand-slot-order entries). \
+                teacher_decision_seconds times evaluate_semantic_candidate_set end to end (real \
+                rollouts) for each candidate set."
                 .to_string(),
             target_candidate_count: TARGET_CANDIDATE_COUNT,
             scenario_count: SCENARIO_COUNT,
@@ -1863,8 +2124,8 @@ mod tests {
             candidate_generation_speedup,
             mean_legacy_materialized_build_tower_count,
             mean_dense_materialized_build_tower_count,
-            legacy_oracle_best_retention_rate,
-            dense_oracle_best_retention_rate,
+            legacy_oracle_best_score_achievement_rate,
+            dense_oracle_best_score_achievement_rate,
             mean_legacy_teacher_decision_seconds,
             mean_dense_teacher_decision_seconds,
             teacher_decision_speedup,

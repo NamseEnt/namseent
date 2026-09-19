@@ -153,36 +153,39 @@ impl CardSubsetTable {
     }
 }
 
-/// Resolves a `(subset_index, position_index)` joint index to the semantic
-/// `BuildTower` action it stands for. `hand_slot_index` is fixed at `0`
-/// (the common case; multi-tower-card upgrades that raise
-/// `extra_tower_cards` are out of scope for this dense representation, see
-/// `docs/game-ai/11-candidate-architecture-review.md`).
+/// Resolves a `(subset_index, hand_slot_index, position_index)` joint index
+/// to the semantic `BuildTower` action it stands for. `hand_slot_index`
+/// indexes the tower array `SelectTower` produces
+/// (`tower_selection::start_placing_tower_from_template`): `0` is always
+/// the selected card subset's own template; `1..build_slot_count` is
+/// `stage_modifiers.extra_tower_cards`, one fixed (subset-independent)
+/// template per entry, in that `Vec`'s order.
 pub fn build_tower_action(
     subsets: &CardSubsetTable,
     subset_index: usize,
+    hand_slot_index: usize,
     position_index: usize,
 ) -> Option<AgentAction> {
     let card_ids = subsets.card_ids_for_subset(subset_index)?;
     let (left, top) = position_xy(position_index)?;
     Some(AgentAction::BuildTower {
         card_ids,
-        hand_slot_index: 0,
+        hand_slot_index,
         left,
         top,
     })
 }
 
-/// Inverse of [`build_tower_action`] for `hand_slot_index == 0`. Returns
-/// `None` for any other action shape, or if the action's card ids aren't a
-/// subset this table can represent.
+/// Inverse of [`build_tower_action`]. Returns `None` for any other action
+/// shape, or if the action's card ids aren't a subset this table can
+/// represent.
 pub fn joint_index_for_action(
     subsets: &CardSubsetTable,
     action: &AgentAction,
-) -> Option<(usize, usize)> {
+) -> Option<(usize, usize, usize)> {
     let AgentAction::BuildTower {
         card_ids,
-        hand_slot_index: 0,
+        hand_slot_index,
         left,
         top,
     } = action
@@ -191,7 +194,7 @@ pub fn joint_index_for_action(
     };
     let subset_index = subsets.subset_index_for_card_ids(card_ids)?;
     let position_index = position_index(*left, *top)?;
-    Some((subset_index, position_index))
+    Some((subset_index, *hand_slot_index, position_index))
 }
 
 /// The resulting tower's scoring-relevant properties for one card subset,
@@ -218,6 +221,28 @@ fn subset_templates(
                 range_raw: tower_range_raw(&candidate.template.kind),
                 damage_raw: candidate.template.damage_raw,
             })
+        })
+        .collect()
+}
+
+/// The resulting tower's scoring-relevant properties for one
+/// `stage_modifiers.extra_tower_cards` entry (`hand_slot_index >= 1`).
+/// Unlike [`SubsetTemplate`], this is fixed regardless of which card
+/// subset is selected - `start_placing_tower_from_template` builds these
+/// towers with no `used_cards` - so index `i` (0-based) always means
+/// `hand_slot_index == i + 1` for every `subset_index`.
+struct ExtraSlotTemplate {
+    range_raw: i64,
+    damage_raw: i64,
+}
+
+fn extra_slot_templates(observation: &Observation) -> Vec<ExtraSlotTemplate> {
+    observation
+        .extra_tower_card_templates
+        .iter()
+        .map(|template| ExtraSlotTemplate {
+            range_raw: tower_range_raw(&template.kind),
+            damage_raw: template.damage_raw,
         })
         .collect()
 }
@@ -292,17 +317,22 @@ impl JointBuildTowerScore {
     }
 }
 
-/// Dense `[subset_index][position_index]` score table for `BuildTower`,
-/// stored as one flat, contiguous `Vec` (`subset_index * position_count +
-/// position_index`). `None` entries are candidates with no valid tower
-/// template for that subset, or a position that fails
-/// `GameEnvironment::can_place_at` - the same legality authority
-/// `environment::semantic_legal_positions` already uses, just evaluated over
-/// every position instead of a proposal-limited subset, and only once
-/// (subset-independent) rather than once per subset.
+/// Dense `[subset_index][hand_slot_index][position_index]` score table for
+/// `BuildTower`, stored as one flat, contiguous `Vec` (`(subset_index *
+/// build_slot_count + hand_slot_index) * position_count + position_index`).
+/// `hand_slot_index` ranges over every tower hand slot a `BuildTower`
+/// selection can resolve to (see `GameEnvironment::build_tower_slot_count`):
+/// `0` is the selected subset's own template; `1..build_slot_count` is
+/// `stage_modifiers.extra_tower_cards`, fixed regardless of subset. `None`
+/// entries are a position that fails `GameEnvironment::can_place_at` - the
+/// same legality authority `environment::semantic_legal_positions` already
+/// uses, just evaluated over every position instead of a proposal-limited
+/// subset, and only once (subset- and slot-independent) rather than once
+/// per subset.
 pub struct DenseBuildTowerScoreTable {
     pub subsets: CardSubsetTable,
     pub position_count: usize,
+    pub build_slot_count: usize,
     pub legality_stats: crate::legality::LegalityMaskStats,
     scores: Vec<Option<JointBuildTowerScore>>,
 }
@@ -312,6 +342,8 @@ impl DenseBuildTowerScoreTable {
         let subsets = CardSubsetTable::from_observation(observation);
         let subset_count = subsets.subset_count();
         let templates = subset_templates(&subsets, observation);
+        let extra_templates = extra_slot_templates(observation);
+        let build_slot_count = extra_templates.len() + 1;
 
         let (legal, legality_stats) =
             crate::legality::full_map_legality_mask(environment, observation);
@@ -323,112 +355,156 @@ impl DenseBuildTowerScoreTable {
                 .entry(template.range_raw)
                 .or_insert_with(|| coverage_grid(&observation.route_coords, template.range_raw));
         }
+        for extra in &extra_templates {
+            coverage_by_range
+                .entry(extra.range_raw)
+                .or_insert_with(|| coverage_grid(&observation.route_coords, extra.range_raw));
+        }
 
-        let mut scores = vec![None; subset_count * MAP_POSITION_COUNT];
+        let row_stride = build_slot_count * MAP_POSITION_COUNT;
+        let mut scores = vec![None; subset_count * row_stride];
         for (subset_index, template) in templates.iter().enumerate() {
-            let Some(template) = template else { continue };
-            let coverage = &coverage_by_range[&template.range_raw];
-            for position_index in 0..MAP_POSITION_COUNT {
-                if !legal[position_index] {
-                    continue;
+            let subset_base = subset_index * row_stride;
+            if let Some(template) = template {
+                let coverage = &coverage_by_range[&template.range_raw];
+                for position_index in 0..MAP_POSITION_COUNT {
+                    if !legal[position_index] {
+                        continue;
+                    }
+                    scores[subset_base + position_index] = Some(JointBuildTowerScore {
+                        covered_route: coverage[position_index],
+                        nearest_route: nearest_route[position_index],
+                        damage_raw: template.damage_raw,
+                    });
                 }
-                let row = subset_index * MAP_POSITION_COUNT;
-                scores[row + position_index] = Some(JointBuildTowerScore {
-                    covered_route: coverage[position_index],
-                    nearest_route: nearest_route[position_index],
-                    damage_raw: template.damage_raw,
-                });
+            }
+            // Every non-empty card subset is a legal `SelectTower` choice
+            // (a poker-hand pattern always resolves, worst case to a
+            // high-card template - see `tower_selection::
+            // select_tower_build_template`'s final fallback), so unlike
+            // slot 0 above, extra slots are never gated on this subset
+            // having its own scored template.
+            for (extra_offset, extra) in extra_templates.iter().enumerate() {
+                let hand_slot_index = extra_offset + 1;
+                let coverage = &coverage_by_range[&extra.range_raw];
+                let slot_base = subset_base + hand_slot_index * MAP_POSITION_COUNT;
+                for position_index in 0..MAP_POSITION_COUNT {
+                    if !legal[position_index] {
+                        continue;
+                    }
+                    scores[slot_base + position_index] = Some(JointBuildTowerScore {
+                        covered_route: coverage[position_index],
+                        nearest_route: nearest_route[position_index],
+                        damage_raw: extra.damage_raw,
+                    });
+                }
             }
         }
 
         Self {
             subsets,
             position_count: MAP_POSITION_COUNT,
+            build_slot_count,
             legality_stats,
             scores,
         }
     }
 
+    fn flat_index(&self, subset_index: usize, hand_slot_index: usize, position_index: usize) -> usize {
+        (subset_index * self.build_slot_count + hand_slot_index) * self.position_count
+            + position_index
+    }
+
+    /// Inverse of [`Self::flat_index`].
+    fn joint_index(&self, flat_index: usize) -> (usize, usize, usize) {
+        let per_subset = self.build_slot_count * self.position_count;
+        let subset_index = flat_index / per_subset;
+        let remainder = flat_index % per_subset;
+        (
+            subset_index,
+            remainder / self.position_count,
+            remainder % self.position_count,
+        )
+    }
+
     pub fn score(
         &self,
         subset_index: usize,
+        hand_slot_index: usize,
         position_index: usize,
     ) -> Option<JointBuildTowerScore> {
         self.scores
-            .get(subset_index * self.position_count + position_index)
+            .get(self.flat_index(subset_index, hand_slot_index, position_index))
             .copied()
             .flatten()
     }
 
-    /// The best legal `(subset_index, position_index)` by
+    /// The best legal `(subset_index, hand_slot_index, position_index)` by
     /// [`JointBuildTowerScore::ordering_key`], ties broken by the smallest
-    /// `(subset_index, position_index)`.
-    pub fn best_index(&self) -> Option<(usize, usize)> {
+    /// `(subset_index, hand_slot_index, position_index)`.
+    pub fn best_index(&self) -> Option<(usize, usize, usize)> {
         self.scores
             .iter()
             .enumerate()
             .filter_map(|(flat_index, score)| score.map(|score| (flat_index, score)))
             .max_by_key(|(flat_index, score)| {
-                let subset_index = flat_index / self.position_count;
-                let position_index = flat_index % self.position_count;
+                let (subset_index, hand_slot_index, position_index) = self.joint_index(*flat_index);
                 (
                     score.ordering_key(),
                     std::cmp::Reverse(subset_index),
+                    std::cmp::Reverse(hand_slot_index),
                     std::cmp::Reverse(position_index),
                 )
             })
-            .map(|(flat_index, _)| {
-                (
-                    flat_index / self.position_count,
-                    flat_index % self.position_count,
-                )
-            })
+            .map(|(flat_index, _)| self.joint_index(flat_index))
     }
 
     /// The best legal `BuildTower` action by [`Self::best_index`], or `None`
     /// if no legal candidate exists.
     pub fn best_action(&self) -> Option<AgentAction> {
-        let (subset_index, position_index) = self.best_index()?;
-        build_tower_action(&self.subsets, subset_index, position_index)
+        let (subset_index, hand_slot_index, position_index) = self.best_index()?;
+        build_tower_action(&self.subsets, subset_index, hand_slot_index, position_index)
     }
 
-    /// The `k` best legal `(subset_index, position_index)` pairs, sorted
-    /// descending by [`JointBuildTowerScore::ordering_key`] and, on ties,
-    /// ascending by `(subset_index, position_index)` - the same tie-break
-    /// [`Self::best_index`] uses, so `top_k_indices(1).first()` always
-    /// equals `best_index()`. Deterministic regardless of hand slot order
-    /// or any `AgentAction::action_id()` string: this never materializes an
-    /// action to rank candidates.
-    pub fn top_k_indices(&self, k: usize) -> Vec<(usize, usize)> {
+    /// The `k` best legal `(subset_index, hand_slot_index, position_index)`
+    /// triples, sorted descending by [`JointBuildTowerScore::ordering_key`]
+    /// and, on ties, ascending by `(subset_index, hand_slot_index,
+    /// position_index)` - the same tie-break [`Self::best_index`] uses, so
+    /// `top_k_indices(1).first()` always equals `best_index()`.
+    /// Deterministic regardless of hand slot order or any
+    /// `AgentAction::action_id()` string: this never materializes an action
+    /// to rank candidates.
+    pub fn top_k_indices(&self, k: usize) -> Vec<(usize, usize, usize)> {
         if k == 0 {
             return Vec::new();
         }
-        let mut scored: Vec<(usize, usize, JointBuildTowerScore)> = self
+        let mut scored: Vec<(usize, usize, usize, JointBuildTowerScore)> = self
             .scores
             .iter()
             .enumerate()
             .filter_map(|(flat_index, score)| {
                 score.map(|score| {
-                    (
-                        flat_index / self.position_count,
-                        flat_index % self.position_count,
-                        score,
-                    )
+                    let (subset_index, hand_slot_index, position_index) =
+                        self.joint_index(flat_index);
+                    (subset_index, hand_slot_index, position_index, score)
                 })
             })
             .collect();
         scored.sort_unstable_by(|left, right| {
             right
-                .2
+                .3
                 .ordering_key()
-                .cmp(&left.2.ordering_key())
+                .cmp(&left.3.ordering_key())
                 .then_with(|| left.0.cmp(&right.0))
                 .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
         });
         scored.truncate(k);
         scored
             .into_iter()
-            .map(|(subset_index, position_index, _)| (subset_index, position_index))
+            .map(|(subset_index, hand_slot_index, position_index, _)| {
+                (subset_index, hand_slot_index, position_index)
+            })
             .collect()
     }
 
@@ -436,8 +512,8 @@ impl DenseBuildTowerScoreTable {
     pub fn top_k_actions(&self, k: usize) -> Vec<AgentAction> {
         self.top_k_indices(k)
             .into_iter()
-            .filter_map(|(subset_index, position_index)| {
-                build_tower_action(&self.subsets, subset_index, position_index)
+            .filter_map(|(subset_index, hand_slot_index, position_index)| {
+                build_tower_action(&self.subsets, subset_index, hand_slot_index, position_index)
             })
             .collect()
     }
@@ -506,15 +582,20 @@ mod tests {
         let subsets = CardSubsetTable::from_observation(&observation);
         assert!(subsets.subset_count() > 0);
         let sample_positions = [0, 1, MAP_POSITION_COUNT / 2, MAP_POSITION_COUNT - 1];
+        let sample_hand_slots = [0, 1, 3];
         for subset_index in 0..subsets.subset_count() {
-            for &position_index in &sample_positions {
-                let action = build_tower_action(&subsets, subset_index, position_index)
-                    .expect("action should be materializable for any in-range index pair");
-                assert_eq!(
-                    joint_index_for_action(&subsets, &action),
-                    Some((subset_index, position_index)),
-                    "round trip failed for subset {subset_index} position {position_index}"
-                );
+            for &hand_slot_index in &sample_hand_slots {
+                for &position_index in &sample_positions {
+                    let action =
+                        build_tower_action(&subsets, subset_index, hand_slot_index, position_index)
+                            .expect("action should be materializable for any in-range index pair");
+                    assert_eq!(
+                        joint_index_for_action(&subsets, &action),
+                        Some((subset_index, hand_slot_index, position_index)),
+                        "round trip failed for subset {subset_index} hand_slot {hand_slot_index} \
+                        position {position_index}"
+                    );
+                }
             }
         }
     }
@@ -536,7 +617,8 @@ mod tests {
                     top: 0,
                 },
             ),
-            None
+            None,
+            "card ids not held by this hand are never representable"
         );
         assert_eq!(
             joint_index_for_action(
@@ -548,8 +630,10 @@ mod tests {
                     top: 0,
                 },
             ),
-            None,
-            "hand_slot_index != 0 is out of scope for this dense representation"
+            Some((subsets.subset_index_for_card_ids(&[1]).unwrap(), 1, 0)),
+            "hand_slot_index >= 1 (extra_tower_cards) is representable - the actual legal range is \
+            bounded by DenseBuildTowerScoreTable::build_slot_count / GameEnvironment::build_tower_slot_count, \
+            not by this index/action mapping"
         );
     }
 
@@ -607,11 +691,11 @@ mod tests {
                     );
 
                     let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
-                    let (dense_subset_index, dense_position_index) = table
+                    let (dense_subset_index, dense_hand_slot_index, dense_position_index) = table
                         .best_index()
                         .expect("dense table should also find a legal candidate");
                     let dense_score = table
-                        .score(dense_subset_index, dense_position_index)
+                        .score(dense_subset_index, dense_hand_slot_index, dense_position_index)
                         .expect("best_index should always point at a scored entry");
                     let dense_best_score = (
                         dense_score.covered_route,
@@ -627,10 +711,12 @@ mod tests {
                     let dense_best_action = build_tower_action(
                         &table.subsets,
                         dense_subset_index,
+                        dense_hand_slot_index,
                         dense_position_index,
                     )
                     .expect("dense best index should materialize an action");
                     let AgentAction::BuildTower {
+                        hand_slot_index: dense_hand_slot,
                         left: dense_left,
                         top: dense_top,
                         ..
@@ -643,13 +729,16 @@ mod tests {
                             == dense_best_score
                             && matches!(
                                 &score.action,
-                                AgentAction::BuildTower { left, top, .. }
-                                    if *left == dense_left && *top == dense_top
+                                AgentAction::BuildTower { hand_slot_index, left, top, .. }
+                                    if *hand_slot_index == dense_hand_slot
+                                        && *left == dense_left
+                                        && *top == dense_top
                             )
                     });
                     assert!(
                         matches_an_oracle_tie,
-                        "seed {seed} decision {decision_index}: dense scorer's pick (left={dense_left}, top={dense_top}) \
+                        "seed {seed} decision {decision_index}: dense scorer's pick \
+                        (hand_slot_index={dense_hand_slot}, left={dense_left}, top={dense_top}) \
                         should be one of the oracle's top-scoring candidates"
                     );
 

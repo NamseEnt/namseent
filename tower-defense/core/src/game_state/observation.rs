@@ -149,6 +149,16 @@ pub struct Observation {
     pub hand: Vec<HandObservation>,
     #[serde(default)]
     pub build_tower_candidates: Vec<BuildTowerCandidateObservation>,
+    /// Preview of the tower template each pending `stage_modifiers`
+    /// `extra_tower_cards` entry will resolve to once `BuildTower`
+    /// selects a card subset - these towers don't depend on which cards
+    /// are selected (`start_placing_tower_from_template` builds them with
+    /// no `used_cards`), so this can be computed ahead of that selection.
+    /// Index `i` corresponds to `AgentAction::BuildTower`'s
+    /// `hand_slot_index == i + 1` (`hand_slot_index == 0` is always the
+    /// selected card subset's own template, in `build_tower_candidates`).
+    #[serde(default)]
+    pub extra_tower_card_templates: Vec<TowerTemplateObservation>,
     pub deck: DeckObservation,
     pub shop: Vec<ShopSlotObservation>,
     pub inventory: Vec<InventoryObservation>,
@@ -213,6 +223,7 @@ impl crate::CoreState {
             })
             .collect();
         let build_tower_candidates = build_tower_candidates(self);
+        let extra_tower_card_templates = extra_tower_card_templates(self);
 
         let (shop, treasure_options) = match &self.flow {
             crate::GameFlowState::Shopping(flow) => (
@@ -296,6 +307,7 @@ impl crate::CoreState {
             queued_monster_count: self.monster_spawn.monster_queue.len(),
             hand,
             build_tower_candidates,
+            extra_tower_card_templates,
             deck: DeckObservation {
                 all_cards: self.deck.all_cards.iter().map(card_observation).collect(),
                 draw_cards: unordered_cards(&self.deck.draw_pile),
@@ -462,6 +474,39 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         });
     }
     candidates
+}
+
+/// Preview templates for `stage_modifiers.extra_tower_cards`, matching
+/// exactly how `tower_selection::start_placing_tower_from_template` builds
+/// them (same `build_template` call, no `used_cards`) - so this can be
+/// computed before a card subset is even selected. Gated on the same flow
+/// window `build_tower_candidates` uses: `extra_tower_cards` remains in
+/// `stage_modifiers` (and is meaningful as a preview) only while still
+/// Shopping/SelectingTower; once `BuildTower` runs, it's drained into
+/// `hand.slots` by `start_placing_tower_from_template`.
+fn extra_tower_card_templates(state: &crate::CoreState) -> Vec<TowerTemplateObservation> {
+    if !matches!(
+        state.flow(),
+        crate::GameFlowState::Shopping(_) | crate::GameFlowState::SelectingTower
+    ) {
+        return Vec::new();
+    }
+    state
+        .stage_modifiers()
+        .extra_tower_cards
+        .iter()
+        .map(|extra| {
+            let template = crate::game_state::tower_selection::build_template(
+                extra.kind,
+                extra.suit,
+                extra.rank,
+                Vec::new(),
+                state.progress.rerolled_count,
+                state.config(),
+            );
+            tower_template_observation(&template)
+        })
+        .collect()
 }
 
 fn unordered_cards(cards: &[crate::CardState]) -> Vec<CardObservation> {

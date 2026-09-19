@@ -526,6 +526,31 @@ impl GameEnvironment {
         self.max_advance_ticks = max_advance_ticks;
     }
 
+    /// Test-only fixture: seeds `stage_modifiers.extra_tower_cards` with
+    /// `count` entries shaped exactly like the Rubber Cone item's real
+    /// effect (`kind: 0, suit: None, rank: None` - see
+    /// `td_core::game_state::item::behaviors::rubber_cone`), without
+    /// needing to route an actual item through inventory/shop RNG. Used to
+    /// exercise the multi-build-slot `BuildTower` axis
+    /// (`hand_slot_index >= 1`) deterministically.
+    #[cfg(test)]
+    pub(crate) fn test_only_seed_extra_tower_cards(&mut self, count: usize) -> Result<(), String> {
+        let mut snapshot = self.game_state.core_state_snapshot();
+        snapshot
+            .edit_snapshot(|parts| {
+                parts.stage_modifiers.extra_tower_cards = (0..count)
+                    .map(|_| td_core::StageModifierTowerCardState {
+                        kind: 0,
+                        suit: None,
+                        rank: None,
+                    })
+                    .collect();
+            })
+            .map_err(|error| format!("{error:?}"))?;
+        self.game_state = GameCore::from_core_state_snapshot(snapshot)?;
+        Ok(())
+    }
+
     pub fn reward_config(&self) -> &RewardConfig {
         &self.reward_config
     }
@@ -1259,14 +1284,7 @@ impl GameEnvironment {
                 top,
             } => {
                 card_ids_are_selectable(card_ids)
-                    && *hand_slot_index
-                        < self
-                            .game_state
-                            .raw_state()
-                            .stage_modifiers()
-                            .extra_tower_cards
-                            .len()
-                            + 1
+                    && *hand_slot_index < self.build_tower_slot_count()
                     && self
                         .game_state
                         .raw_state()
@@ -1440,18 +1458,27 @@ impl GameEnvironment {
         positions
     }
 
+    /// Number of tower hand slots a `BuildTower` selection resolves to:
+    /// slot `0` is always the selected card subset's own template; slots
+    /// `1..` are `stage_modifiers.extra_tower_cards`, one fixed
+    /// (subset-independent) template per entry - see
+    /// `tower_selection::start_placing_tower_from_template`, which builds
+    /// `hand.slots` in exactly this order.
+    pub(crate) fn build_tower_slot_count(&self) -> usize {
+        self.game_state
+            .raw_state()
+            .stage_modifiers()
+            .extra_tower_cards
+            .len()
+            + 1
+    }
+
     fn semantic_build_actions(
         &self,
         card_ids: Vec<usize>,
         legal_positions: &[[usize; 2]],
     ) -> Vec<AgentAction> {
-        let tower_count = self
-            .game_state
-            .raw_state()
-            .stage_modifiers()
-            .extra_tower_cards
-            .len()
-            + 1;
+        let tower_count = self.build_tower_slot_count();
         let mut actions = Vec::with_capacity(tower_count * legal_positions.len());
         for hand_slot_index in 0..tower_count {
             for [left, top] in legal_positions {
