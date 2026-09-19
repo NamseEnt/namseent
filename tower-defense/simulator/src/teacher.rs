@@ -650,9 +650,17 @@ mod tests {
                     samples_collected += 1;
                 }
 
-                let legal_actions = environment.semantic_legal_actions_with_position_limit(Some(
-                    DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
-                ));
+                // Trajectory advancement must stay independent of LIMITS: it
+                // picks which 144 states this report measures, and
+                // DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT is one of the
+                // values under evaluation here (LIMITS.max()). Driving the
+                // trajectory off it would make "is this limit enough"
+                // self-referential - the state corpus would already have
+                // been walked by an agent that had that limit's candidates
+                // available. Use the unlimited legal action set instead, so
+                // the same 144 states are sampled regardless of which
+                // position limit LIMITS or the production default use.
+                let legal_actions = environment.semantic_legal_actions();
                 let action = scripted_expert_action(&observation, &legal_actions)
                     .expect("scripted expert should find an action");
                 let outcome = environment
@@ -1019,7 +1027,10 @@ mod tests {
                             let coverage_regret = reference_best_covered_route
                                 .saturating_sub(truncated_best_covered_route);
 
-                            let action_kind_survival = action_kind_pre_counts
+                            // HashMap iteration order is randomized per
+                            // process, so collect then sort by kind for a
+                            // deterministic report across runs.
+                            let mut action_kind_survival: Vec<_> = action_kind_pre_counts
                                 .keys()
                                 .map(|&kind| ActionKindSurvival {
                                     kind: kind.to_string(),
@@ -1027,6 +1038,7 @@ mod tests {
                                     survived_count: *action_kind_survived.get(kind).unwrap_or(&0),
                                 })
                                 .collect();
+                            action_kind_survival.sort_by(|a, b| a.kind.cmp(&b.kind));
 
                             CandidateLimitSamplePointLimit {
                                 strategy,
