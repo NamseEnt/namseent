@@ -1,4 +1,6 @@
-use crate::{DecisionPoint, StageModifiersObservation, TowerStatusEffectEnd, TowerStatusEffectKind};
+use crate::{
+    DecisionPoint, StageModifiersObservation, TowerStatusEffectEnd, TowerStatusEffectKind,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardObservation {
@@ -164,6 +166,41 @@ pub struct TowerObservation {
     pub on_attack_splashes: Vec<DamageSplashObservation>,
 }
 
+/// One run-length-encoded contiguous group of monsters of the same kind and
+/// authoritative spawn stats, in the group's spawn order. See
+/// `docs/game-ai/03-observation-contract.md` - "웨이브와 장기 상태" - for the
+/// distinction between `stage_wave` (the current stage's full configured
+/// composition) and `queued_wave` (actual remaining runtime spawn queue).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct WaveGroupObservation {
+    pub order_index: usize,
+    pub kind: String,
+    pub kind_id: u16,
+    pub count: usize,
+    pub max_hp_raw: i64,
+    pub velocity_raw: i64,
+    pub damage_raw: i64,
+    pub reward: usize,
+}
+
+/// A contiguous run of not-yet-spawned monsters from the actual
+/// `MonsterSpawnState.monster_queue`, in queue order. Deliberately excludes
+/// per-monster entity IDs (see the hidden-information boundary in
+/// `docs/game-ai/03-observation-contract.md`) but preserves exact queue
+/// ordering and composition: two same-kind runs separated by a different
+/// kind are never merged into one group.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct QueuedMonsterGroupObservation {
+    pub order_index: usize,
+    pub kind: String,
+    pub kind_id: u16,
+    pub count: usize,
+    pub max_hp_raw: i64,
+    pub velocity_raw: i64,
+    pub damage_raw: i64,
+    pub reward: usize,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MonsterObservation {
     pub id: u64,
@@ -206,6 +243,29 @@ pub struct Observation {
     pub stage_total_hp_raw: i64,
     pub active_monster_count: usize,
     pub queued_monster_count: usize,
+    /// Current stage's full configured wave composition (`config.monsters.
+    /// stage_waves` entries for `stage`), in config entry order - including
+    /// groups already spawned. Available in every decision point, including
+    /// Shopping/CardSelection/TowerPlacement, since it is deterministic
+    /// public configuration, not hidden RNG. See `queued_wave` for the
+    /// actual remaining runtime spawn queue.
+    #[serde(default)]
+    pub stage_wave: Vec<WaveGroupObservation>,
+    /// Actual remaining runtime spawn queue
+    /// (`MonsterSpawnState.monster_queue`), run-length encoded in exact
+    /// queue order with no monster entity IDs. Empty before defense starts
+    /// or once the queue is exhausted. `queued_monster_count` always equals
+    /// the sum of these groups' `count`.
+    #[serde(default)]
+    pub queued_wave: Vec<QueuedMonsterGroupObservation>,
+    /// Ticks between spawns for the current defense, mirroring
+    /// `MonsterSpawnState.spawn_interval_ticks`.
+    #[serde(default)]
+    pub spawn_interval_ticks: u64,
+    /// Ticks remaining until the next spawn (`next_spawn_tick - sim_tick`),
+    /// or `None` if defense hasn't started or no future spawn is scheduled.
+    #[serde(default)]
+    pub next_spawn_in_ticks: Option<u64>,
     pub hand: Vec<HandObservation>,
     #[serde(default)]
     pub build_tower_candidates: Vec<BuildTowerCandidateObservation>,
@@ -371,6 +431,13 @@ impl crate::CoreState {
             stage_total_hp_raw,
             active_monster_count: self.monsters.len(),
             queued_monster_count: self.monster_spawn.monster_queue.len(),
+            stage_wave: stage_wave_observation(self),
+            queued_wave: queued_wave_observation(self),
+            spawn_interval_ticks: self.monster_spawn.spawn_interval_ticks,
+            next_spawn_in_ticks: self
+                .monster_spawn
+                .next_spawn_tick
+                .map(|next_spawn_tick| next_spawn_tick.saturating_sub(sim_tick)),
             hand,
             build_tower_candidates,
             extra_tower_card_templates,
@@ -534,7 +601,9 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         ) else {
             continue;
         };
-        let upgrade_bonus_raw = state.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+        let upgrade_bonus_raw = state
+            .upgrades()
+            .tower_upgrade_bonus_raw_for_template(&template);
         candidates.push(BuildTowerCandidateObservation {
             card_ids: canonical_card_ids,
             template: tower_template_observation(&template, upgrade_bonus_raw),
@@ -571,11 +640,86 @@ fn extra_tower_card_templates(state: &crate::CoreState) -> Vec<TowerTemplateObse
                 state.progress.rerolled_count,
                 state.config(),
             );
-            let upgrade_bonus_raw =
-                state.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+            let upgrade_bonus_raw = state
+                .upgrades()
+                .tower_upgrade_bonus_raw_for_template(&template);
             tower_template_observation(&template, upgrade_bonus_raw)
         })
         .collect()
+}
+
+/// Current stage's full configured wave composition, preserving
+/// `config.monsters.stage_waves` entry order exactly - see
+/// `docs/game-ai/03-observation-contract.md`. Available regardless of flow
+/// state (Shopping/CardSelection/TowerPlacement/Defense) since this is
+/// deterministic public configuration, not hidden RNG.
+fn stage_wave_observation(state: &crate::CoreState) -> Vec<WaveGroupObservation> {
+    let Some(wave) = state
+        .config
+        .monsters
+        .stage_waves
+        .iter()
+        .find(|wave| wave.stage == state.progress.stage)
+    else {
+        return Vec::new();
+    };
+    wave.entries
+        .iter()
+        .enumerate()
+        .map(|(order_index, entry)| {
+            let profile = crate::game_state::monster_spawn::monster_spawn_profile(
+                entry.kind,
+                &state.config,
+                &state.stage_modifiers,
+            );
+            let (kind, kind_id) = monster_kind(entry.kind);
+            WaveGroupObservation {
+                order_index,
+                kind: kind.to_string(),
+                kind_id,
+                count: entry.count,
+                max_hp_raw: profile.max_hp_raw,
+                velocity_raw: profile.velocity_raw,
+                damage_raw: profile.damage_raw,
+                reward: profile.reward,
+            }
+        })
+        .collect()
+}
+
+/// Actual remaining runtime spawn queue, run-length encoded in exact queue
+/// order. Consecutive queue entries only merge into one group when both the
+/// kind and every authoritative spawn stat match - a same-kind run
+/// interrupted by a different kind (or, in principle, a differently-stated
+/// same-kind monster) never merges with an earlier run. No monster entity
+/// IDs are exposed. See `docs/game-ai/03-observation-contract.md`.
+fn queued_wave_observation(state: &crate::CoreState) -> Vec<QueuedMonsterGroupObservation> {
+    let mut groups: Vec<QueuedMonsterGroupObservation> = Vec::new();
+    for monster in &state.monster_spawn.monster_queue {
+        let (kind, kind_id) = monster_kind(monster.kind);
+        let velocity_raw = monster.move_on_route.velocity_raw;
+        if let Some(last) = groups.last_mut()
+            && last.kind_id == kind_id
+            && last.max_hp_raw == monster.max_hp_raw
+            && last.velocity_raw == velocity_raw
+            && last.damage_raw == monster.damage_raw
+            && last.reward == monster.reward
+        {
+            last.count += 1;
+            continue;
+        }
+        groups.push(QueuedMonsterGroupObservation {
+            order_index: groups.len(),
+            kind: kind.to_string(),
+            kind_id,
+            count: 1,
+            max_hp_raw: monster.max_hp_raw,
+            velocity_raw,
+            damage_raw: monster.damage_raw,
+            reward: monster.reward,
+        });
+    }
+    groups
 }
 
 fn unordered_cards(cards: &[crate::CardState]) -> Vec<CardObservation> {
@@ -919,6 +1063,234 @@ mod tests {
         TowerStatusEffectObservation, TowerStatusEffectObservationKind, tower_template_observation,
     };
 
+    /// A `GameConfig` whose stage-1 wave is order-sensitive: kind A (Mob01,
+    /// `kind = 0`) x3, kind B (Mob02, `kind = 1`) x2, kind A x1 again - two
+    /// non-contiguous same-kind runs. Used by the wave-observation tests
+    /// (Part 9 A/C/F of the observation contract wave-visibility work).
+    fn config_with_order_sensitive_stage_one_wave() -> crate::GameConfigState {
+        let mut config = crate::GameConfig::default_config();
+        config.monsters.stage_waves.retain(|wave| wave.stage != 1);
+        config.monsters.stage_waves.push(crate::StageWaveState {
+            stage: 1,
+            entries: vec![
+                crate::StageWaveEntryState { kind: 0, count: 3 },
+                crate::StageWaveEntryState { kind: 1, count: 2 },
+                crate::StageWaveEntryState { kind: 0, count: 1 },
+            ],
+        });
+        config
+    }
+
+    #[test]
+    fn stage_wave_preserves_order_sensitive_composition_without_kind_aggregation() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let state = crate::CoreState::new_initial(config, 1);
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+
+        assert_eq!(
+            observation.stage_wave.len(),
+            3,
+            "A/B/A must stay 3 groups, not aggregate by kind"
+        );
+        assert_eq!(
+            observation
+                .stage_wave
+                .iter()
+                .map(|group| (group.order_index, group.kind_id, group.count))
+                .collect::<Vec<_>>(),
+            vec![(0, 1, 3), (1, 2, 2), (2, 1, 1)],
+            "kind_id 1 = Mob01 (A), kind_id 2 = Mob02 (B); order must be A x3, B x2, A x1"
+        );
+    }
+
+    #[test]
+    fn stage_wave_is_visible_during_shopping() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::Shopping(crate::ShopState { slots: Vec::new() });
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(observation.decision_point, crate::DecisionPoint::Shop);
+        assert_eq!(observation.stage_wave.len(), 3);
+    }
+
+    #[test]
+    fn stage_wave_stats_match_authoritative_spawn_profile_with_health_modifier() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.stage_modifiers.enemy_health_multipliers_raw = vec![2_000_000];
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        // Stage wave stats (computed by the shared authoritative helper)
+        // must match the stats of the monsters `start_spawn()` actually
+        // queued, group by group.
+        let mut queue_offset = 0usize;
+        for group in &observation.stage_wave {
+            for _ in 0..group.count {
+                let queued = &state.monster_spawn().monster_queue[queue_offset];
+                assert_eq!(queued.max_hp_raw, group.max_hp_raw);
+                assert_eq!(queued.move_on_route.velocity_raw, group.velocity_raw);
+                assert_eq!(queued.damage_raw, group.damage_raw);
+                assert_eq!(queued.reward, group.reward);
+                queue_offset += 1;
+            }
+        }
+        assert_eq!(queue_offset, state.monster_spawn().monster_queue.len());
+    }
+
+    #[test]
+    fn queued_wave_matches_actual_spawn_queue_right_after_defense_starts() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(
+            observation
+                .queued_wave
+                .iter()
+                .map(|group| (group.order_index, group.kind_id, group.count))
+                .collect::<Vec<_>>(),
+            vec![(0, 1, 3), (1, 2, 2), (2, 1, 1)],
+            "queued_wave must not merge the two non-contiguous kind-A runs"
+        );
+        assert_eq!(
+            observation.queued_monster_count,
+            observation
+                .queued_wave
+                .iter()
+                .map(|group| group.count)
+                .sum::<usize>()
+        );
+    }
+
+    #[test]
+    fn queue_progress_decrements_count_and_drops_spawned_monster() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        crate::game_state::monster_spawn::spawn_due(&mut state);
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(observation.active_monster_count, 1);
+        assert_eq!(
+            observation
+                .queued_wave
+                .iter()
+                .map(|group| (group.kind_id, group.count))
+                .collect::<Vec<_>>(),
+            vec![(1, 2), (2, 2), (1, 1)],
+            "one kind-A monster spawned out of the leading A x3 group"
+        );
+        assert_eq!(
+            observation.queued_monster_count,
+            observation
+                .queued_wave
+                .iter()
+                .map(|group| group.count)
+                .sum::<usize>()
+        );
+    }
+
+    #[test]
+    fn spawn_timing_reflects_authoritative_next_spawn_tick_and_decreases() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        // `start_spawn()` schedules the first spawn for the current tick, so
+        // the first spawn is already due; consume it to get a genuinely
+        // future `next_spawn_tick` to assert against.
+        crate::game_state::monster_spawn::spawn_due(&mut state);
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(
+            observation.spawn_interval_ticks,
+            state.monster_spawn().spawn_interval_ticks
+        );
+        let expected_first = state
+            .monster_spawn()
+            .next_spawn_tick
+            .map(|tick| tick.saturating_sub(state.sim_tick().ticks()));
+        assert_eq!(observation.next_spawn_in_ticks, expected_first);
+        assert_eq!(
+            observation.next_spawn_in_ticks,
+            Some(state.monster_spawn().spawn_interval_ticks)
+        );
+
+        state.sim_tick = crate::SimTick::from_ticks(state.sim_tick().ticks() + 1);
+        let later_observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let expected_later = state
+            .monster_spawn()
+            .next_spawn_tick
+            .map(|tick| tick.saturating_sub(state.sim_tick().ticks()));
+        assert_eq!(later_observation.next_spawn_in_ticks, expected_later);
+        assert!(
+            later_observation.next_spawn_in_ticks.unwrap()
+                < observation.next_spawn_in_ticks.unwrap()
+        );
+
+        // Drain the queue: no future spawn should remain. Each spawn only
+        // becomes due once `sim_tick` reaches `next_spawn_tick`, so advance
+        // to it before each attempt instead of looping at a fixed tick.
+        while !state.monster_spawn().monster_queue.is_empty() {
+            if let Some(next_spawn_tick) = state.monster_spawn().next_spawn_tick {
+                state.sim_tick = crate::SimTick::from_ticks(next_spawn_tick);
+            }
+            crate::game_state::monster_spawn::spawn_due(&mut state);
+        }
+        if let Some(next_spawn_tick) = state.monster_spawn().next_spawn_tick {
+            state.sim_tick = crate::SimTick::from_ticks(next_spawn_tick);
+        }
+        crate::game_state::monster_spawn::spawn_due(&mut state);
+        let drained_observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(drained_observation.next_spawn_in_ticks, None);
+    }
+
+    #[test]
+    fn wave_observations_are_deterministic_for_the_same_state() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        let a = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let b = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(a.stage_wave, b.stage_wave);
+        assert_eq!(a.queued_wave, b.queued_wave);
+        assert_eq!(a.next_spawn_in_ticks, b.next_spawn_in_ticks);
+    }
+
+    #[test]
+    fn queued_wave_serialization_never_leaks_a_monster_entity_id_field() {
+        let config = config_with_order_sensitive_stage_one_wave();
+        let mut state = crate::CoreState::new_initial(config, 1);
+        state.flow = crate::GameFlowState::PlacingTower;
+        state.force_start_defense();
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let json =
+            serde_json::to_value(&observation.queued_wave).expect("queued_wave should serialize");
+        let array = json
+            .as_array()
+            .expect("queued_wave should serialize as an array");
+        for entry in array {
+            let object = entry
+                .as_object()
+                .expect("group should serialize as an object");
+            assert!(
+                !object.contains_key("id"),
+                "queued wave group must not expose a monster entity id"
+            );
+        }
+    }
+
     fn card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
             id,
@@ -995,11 +1367,20 @@ mod tests {
         entry.range_raw = 7_777_777;
         entry.cooldown_ms = 4_321;
 
-        let template =
-            crate::game_state::tower_selection::build_template(kind, None, None, Vec::new(), 0, &config);
+        let template = crate::game_state::tower_selection::build_template(
+            kind,
+            None,
+            None,
+            Vec::new(),
+            0,
+            &config,
+        );
         let observation = tower_template_observation(&template, 0);
         assert_eq!(observation.range_raw, 7_777_777);
-        assert_eq!(template.shoot_interval, 4_321u64.saturating_mul(60).div_ceil(1000));
+        assert_eq!(
+            template.shoot_interval,
+            4_321u64.saturating_mul(60).div_ceil(1000)
+        );
         assert_eq!(observation.shoot_interval_ticks, template.shoot_interval);
     }
 
@@ -1140,7 +1521,10 @@ mod tests {
         let placed = observation.towers.first().expect("tower should be placed");
 
         assert_eq!(placed.on_attack_splashes, preview.on_attack_splashes);
-        assert_eq!(placed.template.on_attack_splashes, preview.on_attack_splashes);
+        assert_eq!(
+            placed.template.on_attack_splashes,
+            preview.on_attack_splashes
+        );
     }
 
     /// Test C: with no active status effects, `TowerObservation.
@@ -1188,10 +1572,12 @@ mod tests {
         let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
         place_plain_tower(&mut state);
         let damage_before = state.towers[0].attack_damage_raw();
-        state.towers[0].status_effects.push(crate::TowerStatusEffect {
-            kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 4_242 },
-            end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
-        });
+        state.towers[0]
+            .status_effects
+            .push(crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 4_242 },
+                end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
+            });
         state.sim_tick = crate::SimTick::from_ticks(40);
 
         let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
@@ -1212,10 +1598,12 @@ mod tests {
         let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
         place_plain_tower(&mut state);
         let damage_before = state.towers[0].attack_damage_raw();
-        state.towers[0].status_effects.push(crate::TowerStatusEffect {
-            kind: crate::TowerStatusEffectKind::DamageMul { mul_raw: 2_000_000 },
-            end: crate::TowerStatusEffectEnd::NeverEnd,
-        });
+        state.towers[0]
+            .status_effects
+            .push(crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageMul { mul_raw: 2_000_000 },
+                end: crate::TowerStatusEffectEnd::NeverEnd,
+            });
 
         let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
         let placed = observation.towers.first().expect("tower should be placed");
@@ -1234,10 +1622,12 @@ mod tests {
     fn status_remaining_ticks_decreases_with_sim_tick() {
         let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
         place_plain_tower(&mut state);
-        state.towers[0].status_effects.push(crate::TowerStatusEffect {
-            kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 10 },
-            end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
-        });
+        state.towers[0]
+            .status_effects
+            .push(crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 10 },
+                end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
+            });
 
         state.sim_tick = crate::SimTick::from_ticks(10);
         let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);

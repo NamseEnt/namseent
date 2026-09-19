@@ -61,7 +61,7 @@ semantic macro-action이 shop에서 바로 선택될 수 있으므로 정책은 
 
 `TowerTemplateObservation`에 `effective_damage_raw`를 추가하면서(card polish/upgrade damage bonus double-count correctness fix 포함) observation schema를 다시 올렸다.
 
-현재 값은 `simulator/src/ml/contract.rs`가 유일한 출처다: `OBSERVATION_SCHEMA_VERSION` 8, `FEATURE_SCHEMA_VERSION` 12, `DATASET_SCHEMA_VERSION` 5, `ML_CONTRACT_SCHEMA_VERSION` 2. 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다.
+현재 값은 `simulator/src/ml/contract.rs`가 유일한 출처다: `OBSERVATION_SCHEMA_VERSION` 9, `FEATURE_SCHEMA_VERSION` 12, `DATASET_SCHEMA_VERSION` 5, `ML_CONTRACT_SCHEMA_VERSION` 2. 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다. `stage_wave`/`queued_wave`/`spawn_interval_ticks`/`next_spawn_in_ticks` 추가로 `OBSERVATION_SCHEMA_VERSION`이 8에서 9로 올랐다 - 아래 "웨이브와 장기 상태" 참고.
 
 이 목록은 placement 결과를 미리 실행한 값이 아니다. 위치별 route, occupancy, coverage feature는 candidate template과 별도로 현재 map에서 계산한다. 미래 RNG나 search 전용 값도 포함하지 않는다.
 
@@ -120,6 +120,18 @@ stack_count
 
 장기 판단에 필요한 공개 정보가 configuration에만 있고 observation에 없다면 명시적으로 추가한다.
 
+`Observation`은 wave composition과 spawn timing을 다음 두 가지 의미로 명시적으로 분리해서 노출한다. 둘 다 authoritative `monster_spawn::monster_spawn_profile()`(`start_spawn()`이 실제 spawn 시점에 사용하는 것과 동일한 helper)로 stat을 계산하므로, observation과 runtime spawn logic이 계산식을 따로 복제하지 않는다. 현재 gameplay가 실제로 적용하는 modifier만 반영한다 - 예를 들어 `enemy_health_multipliers_raw`는 `max_hp_raw`에 적용되지만, `enemy_speed_multipliers_raw`는 `start_spawn()`이 실제 spawn velocity에 적용하지 않으므로 이 helper도 적용하지 않는다.
+
+- `stage_wave: Vec<WaveGroupObservation>` - 현재 stage의 `config.monsters.stage_waves` entry 전체를, config에 정의된 순서 그대로 보존해서 노출한다. 이미 spawn된 group도 포함하는 "이번 stage 전체 계획"이며, kind별로 aggregate하지 않는다 - 예를 들어 `A×3, B×2, A×1` 순서의 wave는 정확히 3개의 group으로 남는다(`A×4, B×2`로 합치지 않는다). deterministic public configuration이므로 Shopping/CardSelection/TowerPlacement를 포함한 모든 decision point에서 사용 가능하다.
+- `queued_wave: Vec<QueuedMonsterGroupObservation>` - defense 진행 중 실제 `MonsterSpawnState.monster_queue`에 남아있는, 아직 spawn되지 않은 monster를 실제 queue 순서 그대로 run-length encoding한다. 연속된 동일 kind/동일 stat 구간만 하나의 group으로 압축하며, 서로 다른 kind로 끊긴 non-contiguous same-kind 구간은 합치지 않는다. per-monster entity ID는 포함하지 않는다. defense 시작 전이거나 queue가 소진되면 비어 있다. `queued_monster_count`는 항상 `queued_wave.iter().map(|group| group.count).sum()`과 같다(회귀 테스트로 검증).
+- `spawn_interval_ticks: u64`/`next_spawn_in_ticks: Option<u64>` - 현재 defense의 spawn 간격과, 다음 spawn까지 남은 상대 tick(`next_spawn_tick - sim_tick`)이다. 절대 tick(`next_spawn_tick`)은 노출하지 않는다. defense가 시작되지 않았거나 향후 예정된 spawn이 없으면 `next_spawn_in_ticks`는 `None`이다.
+
+이 값들은 미래 RNG나 hidden order가 아니다 - 현재 `start_spawn()`은 config wave를 순서대로 큐에 채울 뿐 별도 RNG를 사용하지 않으므로, `stage_wave`와 현재 `queued_wave`는 이미 player/teacher 모두가 알 수 있는 deterministic 정보다. 반대로 다음 항목은 절대 포함하지 않는다: RNG state, domain sequence counter, future random draw, deck hidden order, future shop RNG, future random upgrade 선택, 아직 spawn되지 않은 monster의 entity ID.
+
+future model-facing structured 표현으로 `ml::encoding::wave::WaveFeatureBundle`을 별도로 제공한다. `stage_groups`/`queued_groups`(각각 `WaveFeatureRow` - `order_index`/`kind_id`/`count`/`max_hp_raw`/`velocity_raw`/`damage_raw`/`reward`)와 `spawn_interval_ticks`/`next_spawn_in_ticks`를 `&Observation`만으로 계산하며, `GameEnvironment`나 private `CoreState`를 입력받지 않는다. 기존 PPO/BC 모델, `TypedObservation::ENTITY_SET_COUNT`, dataset/trajectory 경로에는 연결하지 않는다.
+
+이 wave 관련 field 추가로 observation schema를 9로 올렸다(`FEATURE_SCHEMA_VERSION`은 12로 유지 - `WaveFeatureBundle`은 아직 기존 encoded feature vector에 연결되지 않는다).
+
 ## Balance configuration
 
 Phase 1 정책은 현재 balance configuration에 고정한다. 모든 balance parameter를 처음부터 입력으로 넣지 않는다.
@@ -157,3 +169,11 @@ configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 �
 - placed tower의 현재 실제 combat state(공격력, active status effect, remaining duration, 실제 splash)가 observation에서 손실 없이 표현된다 (`game_state::observation::tests::placed_tower_attack_damage_matches_authoritative_calculation_with_no_status`, `active_damage_add_status_is_reflected_in_observation`, `active_damage_mul_status_is_reflected_in_observation`, `status_remaining_ticks_decreases_with_sim_tick`, `multiple_status_effects_are_all_preserved`, `status_effect_observation_order_is_deterministic`).
 - `TypedObservation`의 placed tower legacy row가 base damage와 별개로 current attack damage를 노출한다 (`ml::encoding::observation::tests::placed_tower_encodes_position_damage_cooldown_range`).
 - future model-facing structured tower combat/status/splash bundle이 `&Observation`만 입력으로 받아 deterministic하게 계산된다 (`ml::encoding::combat::tests::*`, `ml::encoding::dense_build::tests::dense_build_and_place_tower_bundles_expose_template_splash_rows`).
+- 현재 stage의 configured wave composition이 config entry 순서를 그대로 보존하고 kind별로 aggregate되지 않는다 (`game_state::observation::tests::stage_wave_preserves_order_sensitive_composition_without_kind_aggregation`).
+- Shopping 등 defense 시작 전 decision point에서도 `stage_wave`가 노출된다 (`game_state::observation::tests::stage_wave_is_visible_during_shopping`).
+- `stage_wave`/`queued_wave`의 effective stat이 `start_spawn()`이 실제로 spawn시키는 monster의 stat과 authoritative `monster_spawn_profile()` helper 하나를 공유해 정확히 일치한다 (`game_state::observation::tests::stage_wave_stats_match_authoritative_spawn_profile_with_health_modifier`).
+- defense 시작 직후 `queued_wave`가 실제 `MonsterSpawnState.monster_queue` 순서를 의미상 정확히 보존하고, non-contiguous 동일 kind 구간을 합치지 않는다 (`game_state::observation::tests::queued_wave_matches_actual_spawn_queue_right_after_defense_starts`).
+- 한 마리 spawn된 뒤 `queued_wave`의 run-length encoding과 `queued_monster_count`가 정확히 갱신된다 (`game_state::observation::tests::queue_progress_decrements_count_and_drops_spawned_monster`).
+- `spawn_interval_ticks`/`next_spawn_in_ticks`가 authoritative `MonsterSpawnState`의 값과 일치하고, tick이 지날수록 감소하며, 미래 spawn이 없으면 `None`이다 (`game_state::observation::tests::spawn_timing_reflects_authoritative_next_spawn_tick_and_decreases`).
+- 동일 상태에서 두 번 생성한 wave observation과 `WaveFeatureBundle`이 exact equality를 만족한다 (`game_state::observation::tests::wave_observations_are_deterministic_for_the_same_state`, `ml::encoding::wave::tests::compute_is_deterministic_for_same_observation`).
+- 직렬화된 `queued_wave`가 monster entity ID를 노출하지 않는다 (`game_state::observation::tests::queued_wave_serialization_never_leaks_a_monster_entity_id_field`).
