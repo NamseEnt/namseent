@@ -6,6 +6,7 @@ use crate::environment::{
     AgentAction, DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT, GameEnvironment, LegalAction,
     StepOutcome,
 };
+use crate::joint_action::DenseBuildTowerScoreTable;
 use crate::policy_runner::scripted_expert_action;
 
 pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 1;
@@ -118,10 +119,15 @@ impl EstimateAccumulator {
     }
 }
 
-/// Groups `Reroll`/`BuildTower` candidates by their (sorted) card subset;
-/// every other action kind gets its own singleton group. Used to select a
-/// candidate_limit-sized subset without favoring whichever subset happens
-/// to be generated first (see `select_candidates_fairly`).
+/// Legacy candidate-pruning path (Phase 2 diagnostic, see
+/// `phase2_candidate_limit_bias_report`): groups `Reroll`/`BuildTower`
+/// candidates by their (sorted) card subset; every other action kind gets
+/// its own singleton group. Used to select a candidate_limit-sized subset
+/// without favoring whichever subset happens to be generated first (see
+/// `select_candidates_fairly`). No longer used by
+/// `evaluate_semantic_candidates` - see `dense_semantic_candidates`. Kept
+/// `cfg(test)` since its only remaining caller is the Phase 2 benchmark.
+#[cfg(test)]
 fn candidate_group_key(action: &AgentAction) -> Option<Vec<usize>> {
     match action {
         AgentAction::BuildTower { card_ids, .. } | AgentAction::Reroll { card_ids } => {
@@ -143,6 +149,10 @@ fn candidate_group_key(action: &AgentAction) -> Option<Vec<usize>> {
 /// card subsets and every `PurchaseShopItem`/`UseInventoryItem` candidate
 /// (they are generated after all card actions), even though the position
 /// proposal itself (`position_candidate_limit`) was already unbiased.
+/// Legacy: production candidate pruning is now
+/// `dense_semantic_candidates`'s post-ranking top-K, not this. Kept
+/// `cfg(test)` since its only remaining caller is the Phase 2 benchmark.
+#[cfg(test)]
 fn select_candidates_fairly(candidates: Vec<LegalAction>, limit: usize) -> Vec<LegalAction> {
     if candidates.len() <= limit {
         return candidates;
@@ -192,15 +202,44 @@ fn select_candidates_fairly(candidates: Vec<LegalAction>, limit: usize) -> Vec<L
     selected
 }
 
+/// Assembles the production teacher's candidate set: every legal
+/// non-`BuildTower` semantic action (`Reroll`, shop/inventory/treasure -
+/// this set is small, so it is never pruned), plus the `build_tower_limit`
+/// best `BuildTower` actions by `DenseBuildTowerScoreTable`'s global
+/// ranking over every legal `(card subset, map position)` pair.
+///
+/// Unlike the legacy `position_candidate_limit` position proposal +
+/// generation-order `candidate_limit` truncation
+/// (`select_candidates_fairly`), pruning here is purely a teacher search
+/// -budget decision made *after* every legal `BuildTower` action has been
+/// scored: `build_tower_limit` can never cause a good action to be absent
+/// from consideration, only absent from the (bounded) set actually rolled
+/// out.
+///
+/// `build_tower_limit: None` rolls out every legal `BuildTower` action.
+pub fn dense_semantic_candidates(
+    environment: &GameEnvironment,
+    build_tower_limit: Option<usize>,
+) -> Vec<LegalAction> {
+    let mut candidates = environment.semantic_non_build_actions();
+    if !environment.semantic_card_decision_available() {
+        return candidates;
+    }
+    let observation = environment.snapshot();
+    let table = DenseBuildTowerScoreTable::compute(environment, &observation);
+    let k = build_tower_limit.unwrap_or(usize::MAX);
+    candidates.extend(table.top_k_actions(k).into_iter().map(|action| LegalAction {
+        id: action.action_id(),
+        action,
+    }));
+    candidates
+}
+
 pub fn evaluate_semantic_candidates(
     environment: &GameEnvironment,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutTeacherDecision> {
-    let mut candidates =
-        environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
-    if let Some(candidate_limit) = config.candidate_limit {
-        candidates = select_candidates_fairly(candidates, candidate_limit.max(1));
-    }
+    let candidates = dense_semantic_candidates(environment, config.candidate_limit);
     evaluate_semantic_candidate_set(environment, &candidates, config)
 }
 
@@ -218,16 +257,23 @@ pub fn evaluate_semantic_candidate_set(
     if candidates.is_empty() {
         bail!("rollout teacher requires at least one candidate");
     }
-    let legal_actions =
-        environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
-    if candidates.iter().any(|candidate| {
-        !legal_actions
-            .iter()
-            .any(|legal| legal.action == candidate.action)
-    }) {
+    // Checked per-action (authoritative can_place_at/card-selectability,
+    // see `GameEnvironment::semantic_action_is_legal`) rather than by
+    // membership in a position-limited enumeration: dense `BuildTower`
+    // candidates (`dense_semantic_candidates`) are ranked over the full
+    // map, not just `position_candidate_limit`'s nearest positions, and
+    // materializing the full legal-action list here just to check
+    // membership would reintroduce the O(subset x position) allocation
+    // this module's dense path exists to avoid.
+    if candidates
+        .iter()
+        .any(|candidate| !environment.semantic_action_is_legal(&candidate.action))
+    {
         bail!("rollout teacher candidate is not legal in the source environment");
     }
     let observation = environment.snapshot();
+    let legal_actions =
+        environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
     let baseline_action = scripted_expert_action(&observation, &legal_actions)?;
 
     let mut estimates = Vec::with_capacity(candidates.len());
@@ -474,6 +520,311 @@ mod tests {
         )
         .expect_err("empty scenario schedule should be rejected");
         assert!(error.to_string().contains("scenario seed"));
+    }
+
+    // --- dense_semantic_candidates correctness -----------------------
+
+    fn card_decision_environment(seed: u64) -> GameEnvironment {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+        environment
+            .step(AgentAction::StartSelectingTower)
+            .expect("start selecting tower should be legal");
+        environment
+    }
+
+    /// Independent brute-force oracle: every `(subset_index, position_index)`
+    /// pair, scored by the exact same formula
+    /// `DenseBuildTowerScoreTable::compute` uses, but with legality decided
+    /// by `GameEnvironment::can_place_at` directly rather than the fast-path
+    /// mask - deliberately not reusing any of `joint_action`'s internals -
+    /// then sorted with an ordering written separately from
+    /// `DenseBuildTowerScoreTable::top_k_indices`. Used to check that
+    /// method's sort/truncate logic, not to re-prove legality-mask
+    /// correctness (already covered by
+    /// `full_map_legality_mask_matches_can_place_at_for_every_position`).
+    fn brute_force_joint_ranking(
+        environment: &GameEnvironment,
+        observation: &crate::environment::Observation,
+    ) -> Vec<(usize, usize, crate::joint_action::JointBuildTowerScore)> {
+        use crate::joint_action::{CardSubsetTable, MAP_POSITION_COUNT, position_xy};
+        use crate::policy_runner::tower_range_raw;
+
+        // Legality never depends on card subset (fixed 2x2 footprint), so
+        // it is computed once and reused - same principle
+        // `DenseBuildTowerScoreTable`/`legality::full_map_legality_mask`
+        // use, kept here via the authoritative per-position
+        // `can_place_at` instead of the fast-path mask under test.
+        let legal_positions = (0..MAP_POSITION_COUNT)
+            .filter(|&position_index| {
+                let (left, top) = position_xy(position_index).expect("index in range");
+                environment.can_place_at(left, top)
+            })
+            .collect::<Vec<_>>();
+
+        let subsets = CardSubsetTable::from_observation(observation);
+        let mut ranked = Vec::new();
+        for subset_index in 0..subsets.subset_count() {
+            let card_ids = subsets
+                .card_ids_for_subset(subset_index)
+                .expect("subset_index is in range");
+            // `rank_build_tower_actions_by_heuristic` matches
+            // `candidate.card_ids` by exact (unsorted) equality, so it
+            // can't be reused with `CardSubsetTable`'s id-sorted output
+            // directly - match by sorted-id set here instead (same
+            // approach `joint_action::subset_templates` uses) and compute
+            // the score formula inline.
+            let Some(template) = observation.build_tower_candidates.iter().find_map(|candidate| {
+                let mut ids = candidate.card_ids.clone();
+                ids.sort_unstable();
+                (ids == card_ids).then_some(&candidate.template)
+            }) else {
+                continue;
+            };
+            let range_raw = tower_range_raw(&template.kind);
+            let damage_raw = template.damage_raw;
+            let route = &observation.route_coords;
+            for &position_index in &legal_positions {
+                let (left, top) = position_xy(position_index).expect("index in range");
+                let covered_route = route
+                    .iter()
+                    .filter(|coord| {
+                        let dx = (coord.x as i64 - left as i64)
+                            .saturating_mul(1_000_000)
+                            .saturating_sub(500_000);
+                        let dy = (coord.y as i64 - top as i64)
+                            .saturating_mul(1_000_000)
+                            .saturating_sub(500_000);
+                        dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                            <= range_raw.saturating_mul(range_raw)
+                    })
+                    .count();
+                let nearest_route = route
+                    .iter()
+                    .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
+                    .min()
+                    .unwrap_or(usize::MAX);
+                ranked.push((
+                    subset_index,
+                    position_index,
+                    crate::joint_action::JointBuildTowerScore {
+                        covered_route,
+                        nearest_route,
+                        damage_raw,
+                    },
+                ));
+            }
+        }
+        ranked.sort_by(|left, right| {
+            let left_key = (left.2.covered_route, left.2.nearest_route, left.2.damage_raw);
+            let right_key = (
+                right.2.covered_route,
+                right.2.nearest_route,
+                right.2.damage_raw,
+            );
+            right_key
+                .0
+                .cmp(&left_key.0)
+                .then_with(|| left_key.1.cmp(&right_key.1))
+                .then_with(|| right_key.2.cmp(&left_key.2))
+                .then_with(|| left.0.cmp(&right.0))
+                .then_with(|| left.1.cmp(&right.1))
+        });
+        ranked
+    }
+
+    /// `DenseBuildTowerScoreTable::top_k_indices`' sort/truncate must match
+    /// an independently-written brute-force ranking exactly, for several K
+    /// values including the production default (`None`, i.e. "all").
+    #[test]
+    fn dense_top_k_matches_brute_force_ranking() {
+        for seed in 0..4u64 {
+            let environment = card_decision_environment(seed);
+            let observation = environment.snapshot();
+            let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
+            let brute_force = brute_force_joint_ranking(&environment, &observation);
+            if brute_force.is_empty() {
+                continue;
+            }
+            for k in [1usize, 8, 32, brute_force.len()] {
+                let dense_top_k = table.top_k_indices(k);
+                let expected = brute_force
+                    .iter()
+                    .take(k)
+                    .map(|(subset_index, position_index, _)| (*subset_index, *position_index))
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    dense_top_k, expected,
+                    "seed {seed} k={k}: dense top-K must match the brute-force ranking exactly"
+                );
+                for &(subset_index, position_index) in &dense_top_k {
+                    assert_eq!(
+                        table.score(subset_index, position_index),
+                        brute_force
+                            .iter()
+                            .find(|(s, p, _)| *s == subset_index && *p == position_index)
+                            .map(|(_, _, score)| *score),
+                        "seed {seed} k={k}: scores must agree at ({subset_index}, {position_index})"
+                    );
+                }
+            }
+        }
+    }
+
+    /// `dense_semantic_candidates`'s `BuildTower` portion must be exactly
+    /// `DenseBuildTowerScoreTable::top_k_actions(k)` - i.e. wiring the
+    /// production candidate path to the dense table doesn't lose or
+    /// reorder anything relative to the table itself.
+    #[test]
+    fn dense_semantic_candidates_build_tower_portion_matches_table_top_k() {
+        for seed in 0..4u64 {
+            let environment = card_decision_environment(seed);
+            let observation = environment.snapshot();
+            let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
+            for k in [1usize, 8, 32] {
+                let candidates = dense_semantic_candidates(&environment, Some(k));
+                let build_tower_ids = candidates
+                    .iter()
+                    .filter(|candidate| {
+                        matches!(candidate.action, AgentAction::BuildTower { .. })
+                    })
+                    .map(|candidate| candidate.id.clone())
+                    .collect::<Vec<_>>();
+                let expected_ids = table
+                    .top_k_actions(k)
+                    .into_iter()
+                    .map(|action| action.action_id())
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    build_tower_ids, expected_ids,
+                    "seed {seed} k={k}: candidate BuildTower ids must match the dense table's top-K exactly"
+                );
+            }
+        }
+    }
+
+    /// Every legal non-`BuildTower` semantic action must always be present
+    /// in `dense_semantic_candidates`' output, regardless of how small the
+    /// `BuildTower` search budget is - it must never be dropped just
+    /// because it sorts after `BuildTower` candidates in some generation
+    /// order (the old `select_candidates_fairly`/prefix-truncate bias this
+    /// migration replaces).
+    #[test]
+    fn dense_semantic_candidates_always_keeps_every_non_build_action() {
+        for seed in 0..4u64 {
+            let environment = card_decision_environment(seed);
+            let expected_non_build = environment
+                .semantic_non_build_actions()
+                .into_iter()
+                .map(|legal| legal.id)
+                .collect::<std::collections::BTreeSet<_>>();
+            for build_tower_limit in [Some(0), Some(1), None] {
+                let candidates = dense_semantic_candidates(&environment, build_tower_limit);
+                let actual_non_build = candidates
+                    .iter()
+                    .filter(|candidate| {
+                        !matches!(candidate.action, AgentAction::BuildTower { .. })
+                    })
+                    .map(|candidate| candidate.id.clone())
+                    .collect::<std::collections::BTreeSet<_>>();
+                assert_eq!(
+                    actual_non_build, expected_non_build,
+                    "seed {seed} build_tower_limit={build_tower_limit:?}: non-BuildTower candidates must survive intact"
+                );
+            }
+        }
+    }
+
+    /// The dense `BuildTower` ranking is keyed by the *set* of held card
+    /// ids (`joint_action::CardSubsetTable` sorts by card id), never by
+    /// which physical hand slot a card occupies - so `subset_index` is
+    /// stable under any reordering of the same card id set.
+    #[test]
+    fn card_subset_index_is_independent_of_card_id_input_order() {
+        let ascending = crate::joint_action::CardSubsetTable::from_hand_card_ids([2, 5, 9, 13]);
+        let shuffled = crate::joint_action::CardSubsetTable::from_hand_card_ids([13, 2, 9, 5]);
+        assert_eq!(ascending.subset_count(), shuffled.subset_count());
+        for subset_index in 0..ascending.subset_count() {
+            assert_eq!(
+                ascending.card_ids_for_subset(subset_index),
+                shuffled.card_ids_for_subset(subset_index),
+                "subset_index {subset_index} must resolve to the same card ids regardless of construction order"
+            );
+        }
+        assert_eq!(
+            ascending.subset_index_for_card_ids(&[9, 2]),
+            shuffled.subset_index_for_card_ids(&[2, 9]),
+            "the same card id set must resolve to the same subset_index regardless of query order"
+        );
+    }
+
+    /// Production correctness must not depend on `position_candidate_limit`:
+    /// find a decision where the oracle-best `BuildTower` action (by the
+    /// same heuristic Phase 1 used) sits outside the old
+    /// `DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT`-nearest positions -
+    /// Phase 1's corrected (decoupled-corpus) benchmark showed this
+    /// actually happens ~26% of the time at limit=64, not the 0% the stale
+    /// pre-migration artifact implied - and confirm `dense_semantic_candidates`
+    /// still finds it while the legacy position-limited proposal does not.
+    #[test]
+    fn dense_semantic_candidates_finds_build_tower_actions_outside_legacy_position_limit() {
+        use crate::policy_runner::{rank_build_tower_actions_by_heuristic, scripted_expert_action};
+
+        let mut found_case = false;
+        for seed in 0..24u64 {
+            let mut environment = card_decision_environment(seed);
+            for _decision in 0..24 {
+                let observation = environment.snapshot();
+                let oracle_build_actions = environment
+                    .semantic_legal_actions()
+                    .into_iter()
+                    .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                    .collect::<Vec<_>>();
+                if !oracle_build_actions.is_empty() {
+                    let oracle_ranking =
+                        rank_build_tower_actions_by_heuristic(&observation, &oracle_build_actions);
+                    let oracle_best = oracle_ranking
+                        .first()
+                        .expect("non-empty oracle candidates rank at least one");
+                    let legacy_limited = environment
+                        .semantic_legal_actions_with_position_limit(Some(
+                            DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                        ))
+                        .into_iter()
+                        .any(|legal| legal.action == oracle_best.action);
+                    if !legacy_limited {
+                        found_case = true;
+                        let dense_candidates = dense_semantic_candidates(&environment, None);
+                        assert!(
+                            dense_candidates
+                                .iter()
+                                .any(|candidate| candidate.action == oracle_best.action),
+                            "seed {seed}: dense_semantic_candidates must find the oracle-best \
+                            BuildTower action even when it sits outside the legacy \
+                            position_candidate_limit window"
+                        );
+                        break;
+                    }
+                }
+
+                let legal_actions = environment.semantic_legal_actions();
+                let Ok(action) = scripted_expert_action(&observation, &legal_actions) else {
+                    break;
+                };
+                let Ok(outcome) = environment.semantic_step(action) else {
+                    break;
+                };
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+            if found_case {
+                break;
+            }
+        }
+        assert!(
+            found_case,
+            "expected at least one sampled decision where the oracle best sits outside the legacy position limit"
+        );
     }
 
     #[derive(serde::Serialize)]
@@ -1208,6 +1559,324 @@ mod tests {
             .expect("benchmark artifact directory should be creatable");
         std::fs::write(
             "../artifacts/benchmarks/phase2-candidate-limit-bias.json",
+            &json,
+        )
+        .expect("benchmark report should be written");
+    }
+
+    #[derive(serde::Serialize)]
+    struct MigrationBenchmarkSamplePoint {
+        seed: u64,
+        decision_index: usize,
+        legacy_candidate_generation_seconds: f64,
+        legacy_materialized_build_tower_count: usize,
+        legacy_candidate_count: usize,
+        legacy_includes_oracle_best: bool,
+        legacy_teacher_decision_seconds: f64,
+        dense_candidate_generation_seconds: f64,
+        dense_materialized_build_tower_count: usize,
+        dense_candidate_count: usize,
+        dense_includes_oracle_best: bool,
+        dense_teacher_decision_seconds: f64,
+    }
+
+    #[derive(serde::Serialize)]
+    struct MigrationBenchmarkReport {
+        methodology: String,
+        target_candidate_count: usize,
+        scenario_count: usize,
+        horizon_decisions: usize,
+        sample_points: Vec<MigrationBenchmarkSamplePoint>,
+        mean_legacy_candidate_generation_seconds: f64,
+        mean_dense_candidate_generation_seconds: f64,
+        candidate_generation_speedup: f64,
+        mean_legacy_materialized_build_tower_count: f64,
+        mean_dense_materialized_build_tower_count: f64,
+        legacy_oracle_best_retention_rate: f64,
+        dense_oracle_best_retention_rate: f64,
+        mean_legacy_teacher_decision_seconds: f64,
+        mean_dense_teacher_decision_seconds: f64,
+        teacher_decision_speedup: f64,
+        legacy_decisions_per_sec: f64,
+        dense_decisions_per_sec: f64,
+    }
+
+    /// Compares the legacy position-proposal + `select_candidates_fairly`
+    /// candidate path against `dense_semantic_candidates` on the same
+    /// sampled decision states, with the total candidate (and therefore
+    /// rollout) count held equal between the two so the comparison isolates
+    /// candidate-generation cost/quality from rollout-budget differences.
+    ///
+    /// - `legacy_materialized_build_tower_count`: `BuildTower` actions
+    ///   actually allocated before truncation
+    ///   (`semantic_legal_actions_with_position_limit`'s output) - the
+    ///   thing `dense_semantic_candidates` is built to avoid materializing.
+    /// - `dense_materialized_build_tower_count`: `BuildTower` actions
+    ///   allocated by `dense_semantic_candidates`, which only ever builds
+    ///   its top-K (plus the non-`BuildTower` set).
+    /// - `*_includes_oracle_best`: whether the candidate set contains the
+    ///   oracle-ranked best `BuildTower` action (same heuristic oracle as
+    ///   Phase 1, over the unpruned legal set).
+    /// - `*_teacher_decision_seconds`: `evaluate_semantic_candidate_set`
+    ///   end to end (real rollouts, `scenario_count` scenarios x
+    ///   `horizon_decisions` per candidate) - `legacy` and `dense` use the
+    ///   same candidate *count*, so this isolates candidate-generation
+    ///   overhead plus any oracle-best-inclusion effect on rollout value,
+    ///   not a rollout-budget difference.
+    ///
+    /// Run with: cargo test --release -- --ignored dense_candidate_migration_benchmark --nocapture
+    #[test]
+    #[ignore = "manual release benchmark; writes artifacts/benchmarks/dense-candidate-migration-benchmark.json"]
+    fn dense_candidate_migration_benchmark() {
+        use crate::policy_runner::rank_build_tower_actions_by_heuristic;
+        use std::time::Instant;
+
+        // Kept small on purpose: each sample point runs
+        // TARGET_CANDIDATE_COUNT * SCENARIO_COUNT real rollout forks per
+        // candidate path (this is exactly the rollout cost candidate_limit
+        // exists to bound), so this benchmark's cost scales with their
+        // product, not with candidate-generation cost alone.
+        const SEEDS: std::ops::Range<u64> = 0..3;
+        const SAMPLES_PER_SEED: usize = 2;
+        const MAX_DECISIONS_PER_SEED: usize = 40;
+        const TARGET_CANDIDATE_COUNT: usize = 96;
+        const SCENARIO_COUNT: usize = 1;
+        const HORIZON_DECISIONS: usize = 1;
+
+        let scenario_seeds = (0..SCENARIO_COUNT as u64).collect::<Vec<_>>();
+
+        let mut sample_points = Vec::new();
+        for seed in SEEDS {
+            let mut environment = card_decision_environment(seed);
+            let mut samples_collected = 0usize;
+            let mut decision_index = 0usize;
+            while samples_collected < SAMPLES_PER_SEED && decision_index < MAX_DECISIONS_PER_SEED {
+                decision_index += 1;
+                let observation = environment.snapshot();
+                let oracle_build_actions = environment
+                    .semantic_legal_actions()
+                    .into_iter()
+                    .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                    .collect::<Vec<_>>();
+
+                if !oracle_build_actions.is_empty() {
+                    let oracle_best = rank_build_tower_actions_by_heuristic(
+                        &observation,
+                        &oracle_build_actions,
+                    )
+                    .first()
+                    .expect("non-empty oracle candidates rank at least one")
+                    .action
+                    .clone();
+
+                    let non_build_count = environment.semantic_non_build_actions().len();
+                    let dense_build_tower_budget =
+                        TARGET_CANDIDATE_COUNT.saturating_sub(non_build_count).max(1);
+
+                    let legacy_gen_start = Instant::now();
+                    let legacy_pre_truncation = environment
+                        .semantic_legal_actions_with_position_limit(Some(
+                            DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                        ));
+                    let legacy_materialized_build_tower_count = legacy_pre_truncation
+                        .iter()
+                        .filter(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+                        .count();
+                    let legacy_candidates =
+                        select_candidates_fairly(legacy_pre_truncation, TARGET_CANDIDATE_COUNT);
+                    let legacy_candidate_generation_seconds =
+                        legacy_gen_start.elapsed().as_secs_f64();
+                    let legacy_includes_oracle_best = legacy_candidates
+                        .iter()
+                        .any(|candidate| candidate.action == oracle_best);
+
+                    let dense_gen_start = Instant::now();
+                    let dense_candidates = dense_semantic_candidates(
+                        &environment,
+                        Some(dense_build_tower_budget),
+                    );
+                    let dense_candidate_generation_seconds =
+                        dense_gen_start.elapsed().as_secs_f64();
+                    let dense_materialized_build_tower_count = dense_candidates
+                        .iter()
+                        .filter(|candidate| {
+                            matches!(candidate.action, AgentAction::BuildTower { .. })
+                        })
+                        .count();
+                    let dense_includes_oracle_best = dense_candidates
+                        .iter()
+                        .any(|candidate| candidate.action == oracle_best);
+
+                    let teacher_config = RolloutTeacherConfig {
+                        scenario_seeds: scenario_seeds.clone(),
+                        horizon_decisions: HORIZON_DECISIONS,
+                        position_candidate_limit: Some(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT),
+                        candidate_limit: None,
+                    };
+                    let legacy_decision_start = Instant::now();
+                    evaluate_semantic_candidate_set(
+                        &environment,
+                        &legacy_candidates,
+                        &teacher_config,
+                    )
+                    .expect("legacy candidate set should evaluate");
+                    let legacy_teacher_decision_seconds =
+                        legacy_decision_start.elapsed().as_secs_f64();
+
+                    let dense_decision_start = Instant::now();
+                    evaluate_semantic_candidate_set(
+                        &environment,
+                        &dense_candidates,
+                        &teacher_config,
+                    )
+                    .expect("dense candidate set should evaluate");
+                    let dense_teacher_decision_seconds =
+                        dense_decision_start.elapsed().as_secs_f64();
+
+                    sample_points.push(MigrationBenchmarkSamplePoint {
+                        seed,
+                        decision_index,
+                        legacy_candidate_generation_seconds,
+                        legacy_materialized_build_tower_count,
+                        legacy_candidate_count: legacy_candidates.len(),
+                        legacy_includes_oracle_best,
+                        legacy_teacher_decision_seconds,
+                        dense_candidate_generation_seconds,
+                        dense_materialized_build_tower_count,
+                        dense_candidate_count: dense_candidates.len(),
+                        dense_includes_oracle_best,
+                        dense_teacher_decision_seconds,
+                    });
+                    samples_collected += 1;
+                }
+
+                let legal_actions = environment.semantic_legal_actions();
+                let action = scripted_expert_action(&observation, &legal_actions)
+                    .expect("scripted expert should find an action");
+                let outcome = environment
+                    .semantic_step(action)
+                    .expect("scripted step should be accepted");
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+
+        let count = sample_points.len().max(1) as f64;
+        let mean = |values: Vec<f64>| values.iter().sum::<f64>() / count;
+        let mean_legacy_candidate_generation_seconds = mean(
+            sample_points
+                .iter()
+                .map(|s| s.legacy_candidate_generation_seconds)
+                .collect(),
+        );
+        let mean_dense_candidate_generation_seconds = mean(
+            sample_points
+                .iter()
+                .map(|s| s.dense_candidate_generation_seconds)
+                .collect(),
+        );
+        let mean_legacy_materialized_build_tower_count = mean(
+            sample_points
+                .iter()
+                .map(|s| s.legacy_materialized_build_tower_count as f64)
+                .collect(),
+        );
+        let mean_dense_materialized_build_tower_count = mean(
+            sample_points
+                .iter()
+                .map(|s| s.dense_materialized_build_tower_count as f64)
+                .collect(),
+        );
+        let legacy_oracle_best_retention_rate = mean(
+            sample_points
+                .iter()
+                .map(|s| s.legacy_includes_oracle_best as u8 as f64)
+                .collect(),
+        );
+        let dense_oracle_best_retention_rate = mean(
+            sample_points
+                .iter()
+                .map(|s| s.dense_includes_oracle_best as u8 as f64)
+                .collect(),
+        );
+        let mean_legacy_teacher_decision_seconds = mean(
+            sample_points
+                .iter()
+                .map(|s| s.legacy_teacher_decision_seconds)
+                .collect(),
+        );
+        let mean_dense_teacher_decision_seconds = mean(
+            sample_points
+                .iter()
+                .map(|s| s.dense_teacher_decision_seconds)
+                .collect(),
+        );
+        let candidate_generation_speedup = mean_legacy_candidate_generation_seconds
+            / mean_dense_candidate_generation_seconds.max(f64::EPSILON);
+        let teacher_decision_speedup = mean_legacy_teacher_decision_seconds
+            / mean_dense_teacher_decision_seconds.max(f64::EPSILON);
+        let legacy_decisions_per_sec =
+            1.0 / mean_legacy_teacher_decision_seconds.max(f64::EPSILON);
+        let dense_decisions_per_sec = 1.0 / mean_dense_teacher_decision_seconds.max(f64::EPSILON);
+
+        println!(
+            "sample_count={} mean_legacy_candidate_generation_seconds={:.6} \
+            mean_dense_candidate_generation_seconds={:.6} candidate_generation_speedup={:.2}x \
+            mean_legacy_materialized_build_tower_count={:.1} \
+            mean_dense_materialized_build_tower_count={:.1} \
+            legacy_oracle_best_retention_rate={:.4} dense_oracle_best_retention_rate={:.4} \
+            mean_legacy_teacher_decision_seconds={:.6} mean_dense_teacher_decision_seconds={:.6} \
+            teacher_decision_speedup={:.2}x legacy_decisions_per_sec={:.2} dense_decisions_per_sec={:.2}",
+            sample_points.len(),
+            mean_legacy_candidate_generation_seconds,
+            mean_dense_candidate_generation_seconds,
+            candidate_generation_speedup,
+            mean_legacy_materialized_build_tower_count,
+            mean_dense_materialized_build_tower_count,
+            legacy_oracle_best_retention_rate,
+            dense_oracle_best_retention_rate,
+            mean_legacy_teacher_decision_seconds,
+            mean_dense_teacher_decision_seconds,
+            teacher_decision_speedup,
+            legacy_decisions_per_sec,
+            dense_decisions_per_sec,
+        );
+
+        let report = MigrationBenchmarkReport {
+            methodology: "legacy candidates come from \
+                semantic_legal_actions_with_position_limit(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT) \
+                + select_candidates_fairly(TARGET_CANDIDATE_COUNT) (the pre-migration production \
+                path); dense candidates come from dense_semantic_candidates with a BuildTower \
+                budget sized so total candidate count matches TARGET_CANDIDATE_COUNT, keeping \
+                rollout count comparable between the two. oracle_best is the same rollout-free \
+                heuristic oracle Phase 1 used (rank_build_tower_actions_by_heuristic over the full, \
+                unpruned BuildTower set). teacher_decision_seconds times \
+                evaluate_semantic_candidate_set end to end (real rollouts) for each candidate set."
+                .to_string(),
+            target_candidate_count: TARGET_CANDIDATE_COUNT,
+            scenario_count: SCENARIO_COUNT,
+            horizon_decisions: HORIZON_DECISIONS,
+            sample_points,
+            mean_legacy_candidate_generation_seconds,
+            mean_dense_candidate_generation_seconds,
+            candidate_generation_speedup,
+            mean_legacy_materialized_build_tower_count,
+            mean_dense_materialized_build_tower_count,
+            legacy_oracle_best_retention_rate,
+            dense_oracle_best_retention_rate,
+            mean_legacy_teacher_decision_seconds,
+            mean_dense_teacher_decision_seconds,
+            teacher_decision_speedup,
+            legacy_decisions_per_sec,
+            dense_decisions_per_sec,
+        };
+
+        let json = serde_json::to_string_pretty(&report).expect("report should serialize");
+        std::fs::create_dir_all("../artifacts/benchmarks")
+            .expect("benchmark artifact directory should be creatable");
+        std::fs::write(
+            "../artifacts/benchmarks/dense-candidate-migration-benchmark.json",
             &json,
         )
         .expect("benchmark report should be written");

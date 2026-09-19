@@ -870,7 +870,7 @@ impl GameEnvironment {
         }
     }
 
-    fn semantic_card_decision_available(&self) -> bool {
+    pub fn semantic_card_decision_available(&self) -> bool {
         matches!(
             self.decision_point(),
             DecisionPoint::Shop | DecisionPoint::CardSelection
@@ -1229,7 +1229,7 @@ impl GameEnvironment {
         actions
     }
 
-    fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
+    pub fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
         if !self.semantic_card_decision_available() {
             return self
                 .legal_actions()
@@ -1290,14 +1290,13 @@ impl GameEnvironment {
             || (reroll_health_cost > 0 && state.hp_raw().saturating_sub(reroll_health_cost) > 1_000)
     }
 
-    fn semantic_card_actions(&self, position_limit: Option<usize>) -> Vec<AgentAction> {
-        let card_indices = self.card_hand_indices();
-        if card_indices.is_empty() {
-            return Vec::new();
-        }
-        let state = self.game_state.raw_state();
-        let hand = state.hand();
-        let card_ids_by_offset = card_indices
+    /// Stable card ids of every currently-held hand card, indexed by their
+    /// offset into `card_indices` (i.e. `card_indices`' own iteration
+    /// order) - not to be confused with `joint_action::CardSubsetTable`,
+    /// which re-sorts by card id to be hand-slot independent.
+    fn card_ids_by_offset(&self, card_indices: &[usize]) -> Vec<usize> {
+        let hand = self.game_state.raw_state().hand();
+        card_indices
             .iter()
             .map(|slot_index| match &hand.slots[*slot_index].item {
                 td_core::HandItemState::Card(card) => card.id,
@@ -1305,14 +1304,23 @@ impl GameEnvironment {
                     unreachable!("card_hand_indices only returns card slots")
                 }
             })
-            .collect::<Vec<_>>();
-        let reroll_health_cost = state
-            .stage_modifiers()
-            .reroll_health_cost
-            .saturating_mul(1_000) as i64;
-        let can_afford_reroll = state.progress().left_dice > 0
-            || (reroll_health_cost > 0
-                && state.hp_raw().saturating_sub(reroll_health_cost) > 1_000);
+            .collect()
+    }
+
+    /// Legacy/benchmark candidate path: flattens every card subset's
+    /// Reroll plus (position-limited) BuildTower actions in hand-slot
+    /// generation order. Production `BuildTower` candidate generation uses
+    /// `joint_action::DenseBuildTowerScoreTable` instead (see
+    /// `semantic_non_build_actions` for the non-`BuildTower` half); this
+    /// method remains for `semantic_legal_actions` (the full/oracle set)
+    /// and the Phase 1/2 historical benchmarks in `teacher.rs`.
+    fn semantic_card_actions(&self, position_limit: Option<usize>) -> Vec<AgentAction> {
+        let card_indices = self.card_hand_indices();
+        if card_indices.is_empty() {
+            return Vec::new();
+        }
+        let card_ids_by_offset = self.card_ids_by_offset(&card_indices);
+        let can_afford_reroll = self.can_afford_reroll();
         let legal_positions = self.semantic_legal_positions(position_limit);
         let mut actions = Vec::new();
         let subset_count = 1usize << card_indices.len();
@@ -1337,6 +1345,67 @@ impl GameEnvironment {
             actions.extend(self.semantic_build_actions(canonical_card_ids, &legal_positions));
         }
         actions
+    }
+
+    /// Every legal `Reroll` action (one per non-empty card subset), with no
+    /// position computation at all - `Reroll` doesn't depend on map
+    /// positions, so this avoids the O(map) legality scan
+    /// `semantic_card_actions`/`semantic_legal_positions` would otherwise
+    /// run just to end up discarding every position.
+    fn semantic_reroll_actions(&self) -> Vec<AgentAction> {
+        let card_indices = self.card_hand_indices();
+        if card_indices.is_empty() || !self.can_afford_reroll() {
+            return Vec::new();
+        }
+        let card_ids_by_offset = self.card_ids_by_offset(&card_indices);
+        let subset_count = 1usize << card_indices.len();
+        (1..subset_count)
+            .map(|subset_mask| AgentAction::Reroll {
+                card_ids: card_ids_by_offset
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(offset, card_id)| {
+                        (subset_mask & (1usize << offset) != 0).then_some(*card_id)
+                    })
+                    .collect(),
+            })
+            .collect()
+    }
+
+    /// Every legal semantic action *except* `BuildTower`: `Reroll` (one per
+    /// card subset), shop purchases, inventory items, and treasure
+    /// discards. Pairs with the dense `BuildTower` joint scorer
+    /// (`joint_action::DenseBuildTowerScoreTable`) to assemble the
+    /// production teacher's full candidate set without ever running the
+    /// O(map) position-proposal scan `semantic_card_actions` uses -
+    /// `BuildTower` candidates are added separately, from the dense score
+    /// table's top-K.
+    ///
+    /// Falls back to the full `legal_actions()` set when no card decision
+    /// is available (e.g. mid-defense), matching
+    /// `semantic_legal_actions_with_position_limit`'s fallback for the same
+    /// case.
+    pub fn semantic_non_build_actions(&self) -> Vec<LegalAction> {
+        if !self.semantic_card_decision_available() {
+            return self.legal_actions();
+        }
+        let mut actions = self.semantic_reroll_actions();
+        if matches!(self.decision_point(), DecisionPoint::Shop) {
+            actions.extend(
+                self.shop_actions()
+                    .into_iter()
+                    .filter(|action| matches!(action, AgentAction::PurchaseShopItem { .. })),
+            );
+        }
+        actions.extend(self.inventory_actions());
+        actions.extend(self.treasure_discard_actions());
+        actions
+            .into_iter()
+            .map(|action| LegalAction {
+                id: action.action_id(),
+                action,
+            })
+            .collect()
     }
 
     fn semantic_legal_positions(&self, position_limit: Option<usize>) -> Vec<[usize; 2]> {

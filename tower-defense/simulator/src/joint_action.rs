@@ -391,6 +391,56 @@ impl DenseBuildTowerScoreTable {
         let (subset_index, position_index) = self.best_index()?;
         build_tower_action(&self.subsets, subset_index, position_index)
     }
+
+    /// The `k` best legal `(subset_index, position_index)` pairs, sorted
+    /// descending by [`JointBuildTowerScore::ordering_key`] and, on ties,
+    /// ascending by `(subset_index, position_index)` - the same tie-break
+    /// [`Self::best_index`] uses, so `top_k_indices(1).first()` always
+    /// equals `best_index()`. Deterministic regardless of hand slot order
+    /// or any `AgentAction::action_id()` string: this never materializes an
+    /// action to rank candidates.
+    pub fn top_k_indices(&self, k: usize) -> Vec<(usize, usize)> {
+        if k == 0 {
+            return Vec::new();
+        }
+        let mut scored: Vec<(usize, usize, JointBuildTowerScore)> = self
+            .scores
+            .iter()
+            .enumerate()
+            .filter_map(|(flat_index, score)| {
+                score.map(|score| {
+                    (
+                        flat_index / self.position_count,
+                        flat_index % self.position_count,
+                        score,
+                    )
+                })
+            })
+            .collect();
+        scored.sort_unstable_by(|left, right| {
+            right
+                .2
+                .ordering_key()
+                .cmp(&left.2.ordering_key())
+                .then_with(|| left.0.cmp(&right.0))
+                .then_with(|| left.1.cmp(&right.1))
+        });
+        scored.truncate(k);
+        scored
+            .into_iter()
+            .map(|(subset_index, position_index, _)| (subset_index, position_index))
+            .collect()
+    }
+
+    /// [`Self::top_k_indices`], materialized to `AgentAction::BuildTower`.
+    pub fn top_k_actions(&self, k: usize) -> Vec<AgentAction> {
+        self.top_k_indices(k)
+            .into_iter()
+            .filter_map(|(subset_index, position_index)| {
+                build_tower_action(&self.subsets, subset_index, position_index)
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
