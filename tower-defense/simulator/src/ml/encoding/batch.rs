@@ -465,6 +465,8 @@ mod tests {
             range_raw: 3_000_000,
             shoot_interval_ticks: 30,
             used_cards: Vec::new(),
+            on_hit_splashes: Vec::new(),
+            on_attack_splashes: Vec::new(),
         };
         observation.hand.push(crate::environment::HandObservation {
             index: 0,

@@ -1,4 +1,4 @@
-use crate::{DecisionPoint, StageModifiersObservation};
+use crate::{DecisionPoint, StageModifiersObservation, TowerStatusEffectEnd, TowerStatusEffectKind};
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardObservation {
@@ -14,6 +14,15 @@ pub struct DeckObservation {
     pub all_cards: Vec<CardObservation>,
     pub draw_cards: Vec<CardObservation>,
     pub discard_cards: Vec<CardObservation>,
+}
+
+/// A single splash damage effect: a radius and a percentage of the
+/// triggering attack's damage applied to everything within that radius.
+/// Semantic observation counterpart of `crate::DamageSplash`.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DamageSplashObservation {
+    pub radius_raw: i64,
+    pub damage_pct_raw: i64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -35,6 +44,30 @@ pub struct TowerTemplateObservation {
     pub range_raw: i64,
     pub shoot_interval_ticks: u64,
     pub used_cards: Vec<CardObservation>,
+    /// On-hit splash effects a tower placed from this template would carry,
+    /// derived from `TowerTemplateState::derived_on_hit_splashes` - the same
+    /// authoritative helper `place_tower_with_template` uses.
+    pub on_hit_splashes: Vec<DamageSplashObservation>,
+    /// On-attack splash effects a tower placed from this template would
+    /// carry (e.g. Cactus engraving), derived from
+    /// `TowerTemplateState::derived_on_attack_splashes` - the same
+    /// authoritative helper `place_tower_with_template` uses.
+    pub on_attack_splashes: Vec<DamageSplashObservation>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum TowerStatusEffectObservationKind {
+    DamageMul { mul_raw: i64 },
+    DamageAdd { add_raw: i64 },
+}
+
+/// Semantic observation counterpart of `crate::TowerStatusEffect`: the
+/// absolute `end_at` tick is converted to a decision-relative
+/// `remaining_ticks` so the policy doesn't need `sim_tick` to interpret it.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct TowerStatusEffectObservation {
+    pub kind: TowerStatusEffectObservationKind,
+    pub remaining_ticks: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -112,6 +145,23 @@ pub struct TowerObservation {
     pub template: TowerTemplateObservation,
     pub cooldown_ticks: u64,
     pub range_raw: i64,
+    /// Current actual attack damage of this placed tower, i.e.
+    /// `TowerState::attack_damage_raw()` at observation time - includes
+    /// runtime-only status effects (`status_effects`), unlike
+    /// `template.effective_damage_raw` which is a pre-placement preview.
+    pub attack_damage_raw: i64,
+    /// Full variable-cardinality set of currently active damage status
+    /// effects on this tower, in a deterministic order independent of the
+    /// runtime `Vec` order - see `docs/game-ai/03-observation-contract.md`.
+    pub status_effects: Vec<TowerStatusEffectObservation>,
+    /// Actual runtime on-hit splash effects this placed tower currently
+    /// carries (`TowerState::on_hit_splashes`), as opposed to
+    /// `template.on_hit_splashes`'s pre-placement preview.
+    pub on_hit_splashes: Vec<DamageSplashObservation>,
+    /// Actual runtime on-attack splash effects this placed tower currently
+    /// carries (`TowerState::on_attack_splashes`), as opposed to
+    /// `template.on_attack_splashes`'s pre-placement preview.
+    pub on_attack_splashes: Vec<DamageSplashObservation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -259,10 +309,11 @@ impl crate::CoreState {
             _ => (Vec::new(), Vec::new()),
         };
 
+        let sim_tick = self.sim_tick.ticks();
         let towers = self
             .towers
             .iter()
-            .filter_map(|tower| tower_observation(self, tower))
+            .filter_map(|tower| tower_observation(self, tower, sim_tick))
             .collect::<Vec<_>>();
         let mut tower_grid = vec![None; map_width.saturating_mul(map_height)];
         for tower in &towers {
@@ -533,6 +584,17 @@ fn unordered_cards(cards: &[crate::CardState]) -> Vec<CardObservation> {
     observations
 }
 
+fn damage_splash_observation(splash: &crate::DamageSplash) -> DamageSplashObservation {
+    DamageSplashObservation {
+        radius_raw: splash.radius_raw,
+        damage_pct_raw: splash.damage_pct_raw,
+    }
+}
+
+fn damage_splashes_observation(splashes: &[crate::DamageSplash]) -> Vec<DamageSplashObservation> {
+    splashes.iter().map(damage_splash_observation).collect()
+}
+
 fn tower_template_observation(
     template: &crate::TowerTemplateState,
     upgrade_bonus_raw: i64,
@@ -549,12 +611,60 @@ fn tower_template_observation(
         range_raw: template.default_attack_range_radius_raw,
         shoot_interval_ticks: template.shoot_interval,
         used_cards: template.used_cards.iter().map(card_observation).collect(),
+        on_hit_splashes: damage_splashes_observation(&template.derived_on_hit_splashes()),
+        on_attack_splashes: damage_splashes_observation(&template.derived_on_attack_splashes()),
     }
 }
 
-fn tower_observation(state: &crate::CoreState, tower: &crate::TowerState) -> Option<TowerObservation> {
+/// Deterministic total order for `TowerStatusEffectObservation`, independent
+/// of the runtime `Vec` order: (kind tag, raw value, has-expiry tag,
+/// remaining ticks). See `docs/game-ai/03-observation-contract.md`.
+fn status_effect_sort_key(effect: &TowerStatusEffectObservation) -> (u8, i64, u8, u64) {
+    let (kind_tag, value_raw) = match effect.kind {
+        TowerStatusEffectObservationKind::DamageAdd { add_raw } => (0u8, add_raw),
+        TowerStatusEffectObservationKind::DamageMul { mul_raw } => (1u8, mul_raw),
+    };
+    match effect.remaining_ticks {
+        Some(remaining_ticks) => (kind_tag, value_raw, 0, remaining_ticks),
+        None => (kind_tag, value_raw, 1, 0),
+    }
+}
+
+fn tower_status_effect_observation(
+    effect: &crate::TowerStatusEffect,
+    sim_tick: u64,
+) -> TowerStatusEffectObservation {
+    let kind = match effect.kind {
+        TowerStatusEffectKind::DamageMul { mul_raw } => {
+            TowerStatusEffectObservationKind::DamageMul { mul_raw }
+        }
+        TowerStatusEffectKind::DamageAdd { add_raw } => {
+            TowerStatusEffectObservationKind::DamageAdd { add_raw }
+        }
+    };
+    let remaining_ticks = match effect.end {
+        TowerStatusEffectEnd::Time { end_at } => Some(end_at.saturating_sub(sim_tick)),
+        TowerStatusEffectEnd::NeverEnd => None,
+    };
+    TowerStatusEffectObservation {
+        kind,
+        remaining_ticks,
+    }
+}
+
+fn tower_observation(
+    state: &crate::CoreState,
+    tower: &crate::TowerState,
+    sim_tick: u64,
+) -> Option<TowerObservation> {
     let id = tower.id?;
     let upgrade_bonus_raw = state.upgrades().tower_upgrade_bonus_raw(tower);
+    let mut status_effects = tower
+        .status_effects
+        .iter()
+        .map(|effect| tower_status_effect_observation(effect, sim_tick))
+        .collect::<Vec<_>>();
+    status_effects.sort_by_key(status_effect_sort_key);
     TowerObservation {
         id,
         left: tower.left_top[0],
@@ -562,6 +672,10 @@ fn tower_observation(state: &crate::CoreState, tower: &crate::TowerState) -> Opt
         template: tower_template_observation(&tower.template, upgrade_bonus_raw),
         cooldown_ticks: tower.cooldown,
         range_raw: tower.attack_range_raw(),
+        attack_damage_raw: tower.attack_damage_raw(),
+        status_effects,
+        on_hit_splashes: damage_splashes_observation(&tower.on_hit_splashes),
+        on_attack_splashes: damage_splashes_observation(&tower.on_attack_splashes),
     }
     .into()
 }
@@ -801,7 +915,9 @@ fn card_service_key(value: u8) -> (&'static str, u16) {
 
 #[cfg(test)]
 mod tests {
-    use super::tower_template_observation;
+    use super::{
+        TowerStatusEffectObservation, TowerStatusEffectObservationKind, tower_template_observation,
+    };
 
     fn card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
@@ -953,5 +1069,262 @@ mod tests {
         assert_eq!(observation.owned_upgrades.len(), 1);
         assert_eq!(observation.owned_upgrades[0].scalar_values, vec![3]);
         assert!(observation.owned_upgrades[0].ratio_values.is_empty());
+    }
+
+    fn cactus_card(id: usize, suit: u8, rank: u8) -> crate::CardState {
+        crate::CardState {
+            id,
+            suit,
+            rank,
+            polish_pct_raw: 0,
+            engraving: Some(2),
+        }
+    }
+
+    /// Test A: a resulting template built from a Cactus-engraved card
+    /// exposes exactly one on-attack splash with the authoritative
+    /// radius/damage percentage; a non-Cactus template exposes none.
+    #[test]
+    fn cactus_template_preview_exposes_derived_on_attack_splash() {
+        let config = crate::GameConfig::default_config();
+        let cactus_template = crate::game_state::tower_selection::build_template(
+            1,
+            None,
+            None,
+            vec![cactus_card(1, 0, 4)],
+            0,
+            &config,
+        );
+        let observation = tower_template_observation(&cactus_template, 0);
+        assert_eq!(observation.on_attack_splashes.len(), 1);
+        assert_eq!(
+            observation.on_attack_splashes[0].radius_raw,
+            2 * crate::WORLD_UNITS_PER_TILE
+        );
+        assert_eq!(observation.on_attack_splashes[0].damage_pct_raw, 300_000);
+        assert!(observation.on_hit_splashes.is_empty());
+
+        let plain_template = crate::game_state::tower_selection::build_template(
+            1,
+            None,
+            None,
+            vec![card(2, 0, 5)],
+            0,
+            &config,
+        );
+        let plain_observation = tower_template_observation(&plain_template, 0);
+        assert!(plain_observation.on_attack_splashes.is_empty());
+        assert!(plain_observation.on_hit_splashes.is_empty());
+    }
+
+    /// Test B: the template preview's derived on-attack splash and the
+    /// actually placed tower's runtime on-attack splash must match exactly -
+    /// both go through `TowerTemplateState::derived_on_attack_splashes`.
+    #[test]
+    fn cactus_preview_and_placed_splash_match() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 3);
+        let template = crate::game_state::tower_selection::build_template(
+            1,
+            None,
+            None,
+            vec![cactus_card(1, 0, 4)],
+            0,
+            state.config(),
+        );
+        let preview = tower_template_observation(&template, 0);
+
+        state
+            .place_tower_with_template(template, None, 0, 0)
+            .expect("tower should be placeable");
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let placed = observation.towers.first().expect("tower should be placed");
+
+        assert_eq!(placed.on_attack_splashes, preview.on_attack_splashes);
+        assert_eq!(placed.template.on_attack_splashes, preview.on_attack_splashes);
+    }
+
+    /// Test C: with no active status effects, `TowerObservation.
+    /// attack_damage_raw` must equal `TowerState::attack_damage_raw()`.
+    #[test]
+    fn placed_tower_attack_damage_matches_authoritative_calculation_with_no_status() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        let template = crate::game_state::tower_selection::build_template(
+            1,
+            None,
+            None,
+            Vec::new(),
+            0,
+            state.config(),
+        );
+        state
+            .place_tower_with_template(template, None, 0, 0)
+            .expect("tower should be placeable");
+        let expected = state.towers[0].attack_damage_raw();
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let placed = observation.towers.first().expect("tower should be placed");
+        assert_eq!(placed.attack_damage_raw, expected);
+        assert!(placed.status_effects.is_empty());
+    }
+
+    fn place_plain_tower(state: &mut crate::CoreState) {
+        let template = crate::game_state::tower_selection::build_template(
+            1,
+            None,
+            None,
+            Vec::new(),
+            0,
+            state.config(),
+        );
+        state
+            .place_tower_with_template(template, None, 0, 0)
+            .expect("tower should be placeable");
+    }
+
+    /// Test D: an active `DamageAdd` status changes `attack_damage_raw` and
+    /// is reflected in `status_effects` with a distinctive value.
+    #[test]
+    fn active_damage_add_status_is_reflected_in_observation() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state);
+        let damage_before = state.towers[0].attack_damage_raw();
+        state.towers[0].status_effects.push(crate::TowerStatusEffect {
+            kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 4_242 },
+            end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
+        });
+        state.sim_tick = crate::SimTick::from_ticks(40);
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let placed = observation.towers.first().expect("tower should be placed");
+        assert_eq!(placed.attack_damage_raw, damage_before + 4_242);
+        assert_eq!(placed.status_effects.len(), 1);
+        assert_eq!(
+            placed.status_effects[0].kind,
+            TowerStatusEffectObservationKind::DamageAdd { add_raw: 4_242 }
+        );
+        assert_eq!(placed.status_effects[0].remaining_ticks, Some(60));
+    }
+
+    /// Test E: an active `DamageMul` status changes `attack_damage_raw` and
+    /// is reflected in `status_effects`.
+    #[test]
+    fn active_damage_mul_status_is_reflected_in_observation() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state);
+        let damage_before = state.towers[0].attack_damage_raw();
+        state.towers[0].status_effects.push(crate::TowerStatusEffect {
+            kind: crate::TowerStatusEffectKind::DamageMul { mul_raw: 2_000_000 },
+            end: crate::TowerStatusEffectEnd::NeverEnd,
+        });
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let placed = observation.towers.first().expect("tower should be placed");
+        assert_ne!(placed.attack_damage_raw, damage_before);
+        assert_eq!(placed.status_effects.len(), 1);
+        assert_eq!(
+            placed.status_effects[0].kind,
+            TowerStatusEffectObservationKind::DamageMul { mul_raw: 2_000_000 }
+        );
+        assert_eq!(placed.status_effects[0].remaining_ticks, None);
+    }
+
+    /// Test F: `remaining_ticks` for a `Time`-bounded status decreases as
+    /// `sim_tick` advances, and `NeverEnd` always reports `None`.
+    #[test]
+    fn status_remaining_ticks_decreases_with_sim_tick() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state);
+        state.towers[0].status_effects.push(crate::TowerStatusEffect {
+            kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 10 },
+            end: crate::TowerStatusEffectEnd::Time { end_at: 100 },
+        });
+
+        state.sim_tick = crate::SimTick::from_ticks(10);
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let remaining_at_10 = observation.towers[0].status_effects[0].remaining_ticks;
+
+        state.sim_tick = crate::SimTick::from_ticks(60);
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let remaining_at_60 = observation.towers[0].status_effects[0].remaining_ticks;
+
+        assert_eq!(remaining_at_10, Some(90));
+        assert_eq!(remaining_at_60, Some(40));
+        assert!(remaining_at_60 < remaining_at_10);
+    }
+
+    /// Test G: multiple distinct status effects (different kinds and
+    /// expirations) on the same tower must all survive into the
+    /// observation - no aggregation into a single scalar.
+    #[test]
+    fn multiple_status_effects_are_all_preserved() {
+        let mut state = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state);
+        state.towers[0].status_effects = vec![
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 11 },
+                end: crate::TowerStatusEffectEnd::Time { end_at: 50 },
+            },
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 22 },
+                end: crate::TowerStatusEffectEnd::NeverEnd,
+            },
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageMul { mul_raw: 333_333 },
+                end: crate::TowerStatusEffectEnd::Time { end_at: 80 },
+            },
+        ];
+        state.sim_tick = crate::SimTick::from_ticks(0);
+
+        let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let statuses = &observation.towers[0].status_effects;
+        assert_eq!(statuses.len(), 3);
+        assert!(statuses.contains(&TowerStatusEffectObservation {
+            kind: TowerStatusEffectObservationKind::DamageAdd { add_raw: 11 },
+            remaining_ticks: Some(50),
+        }));
+        assert!(statuses.contains(&TowerStatusEffectObservation {
+            kind: TowerStatusEffectObservationKind::DamageAdd { add_raw: 22 },
+            remaining_ticks: None,
+        }));
+        assert!(statuses.contains(&TowerStatusEffectObservation {
+            kind: TowerStatusEffectObservationKind::DamageMul { mul_raw: 333_333 },
+            remaining_ticks: Some(80),
+        }));
+    }
+
+    /// Test H: the same status set in a different runtime `Vec` order must
+    /// produce the same deterministic observation ordering.
+    #[test]
+    fn status_effect_observation_order_is_deterministic() {
+        let mut state_a = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state_a);
+        let mut state_b = crate::CoreState::new_initial(crate::GameConfig::default_config(), 5);
+        place_plain_tower(&mut state_b);
+
+        let effects = [
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 11 },
+                end: crate::TowerStatusEffectEnd::Time { end_at: 50 },
+            },
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageMul { mul_raw: 333_333 },
+                end: crate::TowerStatusEffectEnd::NeverEnd,
+            },
+            crate::TowerStatusEffect {
+                kind: crate::TowerStatusEffectKind::DamageAdd { add_raw: 22 },
+                end: crate::TowerStatusEffectEnd::NeverEnd,
+            },
+        ];
+        state_a.towers[0].status_effects = effects.to_vec();
+        let mut reversed = effects.to_vec();
+        reversed.reverse();
+        state_b.towers[0].status_effects = reversed;
+
+        let observation_a = state_a.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let observation_b = state_b.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        assert_eq!(
+            observation_a.towers[0].status_effects,
+            observation_b.towers[0].status_effects
+        );
     }
 }

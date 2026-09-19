@@ -61,9 +61,24 @@ semantic macro-action이 shop에서 바로 선택될 수 있으므로 정책은 
 
 `TowerTemplateObservation`에 `effective_damage_raw`를 추가하면서(card polish/upgrade damage bonus double-count correctness fix 포함) observation schema를 다시 올렸다.
 
-현재 값은 `simulator/src/ml/contract.rs`가 유일한 출처다: `OBSERVATION_SCHEMA_VERSION` 7, `FEATURE_SCHEMA_VERSION` 11, `DATASET_SCHEMA_VERSION` 5, `ML_CONTRACT_SCHEMA_VERSION` 2. 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다.
+현재 값은 `simulator/src/ml/contract.rs`가 유일한 출처다: `OBSERVATION_SCHEMA_VERSION` 8, `FEATURE_SCHEMA_VERSION` 12, `DATASET_SCHEMA_VERSION` 5, `ML_CONTRACT_SCHEMA_VERSION` 2. 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다.
 
 이 목록은 placement 결과를 미리 실행한 값이 아니다. 위치별 route, occupancy, coverage feature는 candidate template과 별도로 현재 map에서 계산한다. 미래 RNG나 search 전용 값도 포함하지 않는다.
+
+### Resulting tower context - engraving에서 파생된 공격 효과
+
+`TowerTemplateObservation`은 `damage_raw`/`effective_damage_raw`/authoritative `range_raw`/`shoot_interval_ticks`에 더해 `on_hit_splashes`/`on_attack_splashes`(`Vec<DamageSplashObservation>`, `{ radius_raw, damage_pct_raw }`)를 노출한다. 이 값은 `TowerTemplateState::derived_on_hit_splashes`/`derived_on_attack_splashes`가 유일한 authoritative 출처이며, `place_tower_with_template`의 실제 배치 로직과 observation preview가 이 helper 하나를 공유한다 - Cactus engraving 판정을 observation이나 시뮬레이터 쪽에서 다시 구현하지 않는다. 예를 들어 Cactus engraving을 가진 카드로 만든 template은 `on_attack_splashes`에 `radius_raw = 2 * WORLD_UNITS_PER_TILE`, `damage_pct_raw = 300_000`인 항목 하나를 갖는다. 이 값은 `PlaceTower`가 실제 발동시키는 트리거 전용 효과가 아니라 template만으로 확정 가능한 preview이므로, `NameTag`류 placement-trigger-only 효과와 같은 층위에 포함하지 않는다.
+
+### Placed tower runtime context
+
+배치된 tower의 `TowerObservation`은 template preview와 구분되는 현재 runtime combat state를 제공한다.
+
+- `attack_damage_raw`: observation 생성 시점의 `TowerState::attack_damage_raw()` 그 자체. `template.effective_damage_raw`(placement 전 preview)와 의미가 다르며, 활성 status effect까지 반영한다.
+- `range_raw`/`cooldown_ticks`: 기존과 동일하게 authoritative runtime 값.
+- `status_effects: Vec<TowerStatusEffectObservation>`: 현재 활성화된 `DamageMul`/`DamageAdd` status effect 전체를 variable-cardinality로 노출한다. 절대 tick인 `end_at` 대신, 현재 decision 기준 상대값인 `remaining_ticks`(`Time { end_at }`는 `Some(end_at - sim_tick)`, `NeverEnd`는 `None`)를 제공해 policy가 `sim_tick`을 따로 참조하지 않아도 되게 한다. 순서는 `(kind, value_raw, has-expiry, remaining_ticks)` 기준의 deterministic total order이며 runtime `Vec` 순서에 의존하지 않는다. 여러 effect를 하나의 scalar로 합치거나 개수를 자르지 않는다.
+- `on_hit_splashes`/`on_attack_splashes`: 현재 tower가 실제로 보유한 runtime splash effect(`TowerState.on_hit_splashes`/`on_attack_splashes`)를 그대로 노출한다. 현재 gameplay에서는 대응하는 template preview와 값이 같지만, 의미상 별개다 - template 쪽은 placement 이전 확정 가능한 preview이고 placed 쪽은 실제 보유 상태다.
+
+`ml::encoding::observation::TypedObservation`의 `PLACED_TOWERS` legacy numeric row는 `[x, y, base_damage, cooldown, range, current_attack_damage]` 6개 필드로 구성된다. 여섯 번째 필드는 `TowerObservation.attack_damage_raw`를 `normalize_damage_raw`로 정규화한 값이며 `template.effective_damage_raw`를 사용하지 않는다. `status_effects`처럼 variable-cardinality인 정보는 이 고정폭 row에 억지로 압축하지 않는다 - `ml::encoding::combat::TowerCombatFeatureBundle`이 future structured policy를 위한 tower/status/splash row 기반 표현을 별도로 제공하며, 기존 PPO/BC 모델에는 연결하지 않는다. 같은 원칙으로 dense `BuildTower`/`PlaceTower` bundle(`ml::encoding::dense_build`)도 template splash effect를 `TemplateSplashFeatureRow`(`template_index`로 template row와 연결) 목록으로 노출하며, "Cactus 여부" 같은 단일 bool로 압축하지 않는다.
 
 ## 유물과 upgrade
 
@@ -126,7 +141,7 @@ configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 �
 - 누락과 값 0을 같은 표현으로 합치지 않는다.
 - variable-cardinality entity set의 multiplicity를 보존한다.
 - typed entity numeric row는 upgrade runtime parameter를 포함할 수 있도록 6폭으로 zero-padding한다. 모델의 entity input도 같은 폭을 사용한다.
-- feature를 제거하거나 의미를 변경하면 `FEATURE_SCHEMA_VERSION`을 증가시킨다. historically upgrade parameter row 폭 변경으로 feature schema를 7로 올린 적이 있으며, 이후 `effective_damage_raw` 추가로 다시 올라 현재 `FEATURE_SCHEMA_VERSION`은 11이다(`simulator/src/ml/contract.rs`가 유일한 출처). 이전 checkpoint와 섞지 않는다.
+- feature를 제거하거나 의미를 변경하면 `FEATURE_SCHEMA_VERSION`을 증가시킨다. historically upgrade parameter row 폭 변경으로 feature schema를 7로 올린 적이 있고, `effective_damage_raw` 추가로 11로, placed tower legacy row에 `attack_damage_raw`를 6번째 필드로 추가하면서 다시 올라 현재 `FEATURE_SCHEMA_VERSION`은 12이다(`simulator/src/ml/contract.rs`가 유일한 출처). 이전 checkpoint와 섞지 않는다.
 - damage/effective damage/tower range/cooldown·shoot interval/card polish/route progress/rerolled count/upgrade scalar·ratio·bool처럼 고정 scale을 쓰는 feature family는 `simulator/src/ml/encoding/normalize.rs`의 공유 `normalize_*`/`denormalize_*` 헬퍼로 나눗셈 상수를 한 곳에 고정하고, 각 family의 raw -> normalized -> raw round-trip을 `normalize.rs`의 단위 테스트로 검증한다. position x/y, route coord index처럼 가변 extent(map 크기, route 길이)로 나누는 family는 같은 파일의 `normalize_axis_ratio`/`denormalize_axis_ratio`로 검증한다. categorical vocabulary(수트/랭크/engraving/upgrade key 등)와 hp 비율처럼 두 raw 값의 비율인 feature는 decoder가 의미 없는 lossy/비-scale 값이므로 round-trip 대상에서 제외한다.
 
 ## 승인 기준
@@ -138,3 +153,7 @@ configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 �
 - 유물 parameter 변경이 observation 값 변화로 나타난다 (`ml::encoding::observation::tests::upgrade_scalar_runtime_change_is_reflected_in_encoding`, `..._ratio_...`, `..._bool_...`; scalar/ratio/bool 표현 방식을 각각 한 번씩 검증).
 - feature 단위와 normalization의 round-trip test가 있다 (`ml::encoding::normalize::tests::*`).
 - fixed configuration 범위와 conditioned configuration 범위가 checkpoint metadata에 구분된다 (`MlContract::balance_scope: PolicyBalanceScope`; `ml::contract::tests::contract_from_config_is_fixed_balance_scope`, `legacy_contract_without_balance_scope_field_defaults_to_fixed`, `conditioned_balance_scope_round_trips_through_json`).
+- placed tower의 engraving에서 파생된 공격 효과가 template preview와 실제 배치 사이에서 authoritative helper 하나로 단일화된다 (`TowerTemplateState::derived_on_attack_splashes`/`derived_on_hit_splashes`; `game_state::observation::tests::cactus_template_preview_exposes_derived_on_attack_splash`, `cactus_preview_and_placed_splash_match`).
+- placed tower의 현재 실제 combat state(공격력, active status effect, remaining duration, 실제 splash)가 observation에서 손실 없이 표현된다 (`game_state::observation::tests::placed_tower_attack_damage_matches_authoritative_calculation_with_no_status`, `active_damage_add_status_is_reflected_in_observation`, `active_damage_mul_status_is_reflected_in_observation`, `status_remaining_ticks_decreases_with_sim_tick`, `multiple_status_effects_are_all_preserved`, `status_effect_observation_order_is_deterministic`).
+- `TypedObservation`의 placed tower legacy row가 base damage와 별개로 current attack damage를 노출한다 (`ml::encoding::observation::tests::placed_tower_encodes_position_damage_cooldown_range`).
+- future model-facing structured tower combat/status/splash bundle이 `&Observation`만 입력으로 받아 deterministic하게 계산된다 (`ml::encoding::combat::tests::*`, `ml::encoding::dense_build::tests::dense_build_and_place_tower_bundles_expose_template_splash_rows`).

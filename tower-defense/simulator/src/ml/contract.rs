@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 pub const DATASET_SCHEMA_VERSION: u32 = 5;
-pub const FEATURE_SCHEMA_VERSION: u32 = 11;
+pub const FEATURE_SCHEMA_VERSION: u32 = 12;
 /// Bumped for `MlContract::balance_scope` - see
 /// `docs/game-ai/03-observation-contract.md`'s "Balance configuration"
 /// section.

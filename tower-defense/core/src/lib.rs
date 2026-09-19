@@ -66,10 +66,11 @@ pub(crate) use game_state::monster::{
 };
 pub use game_state::monster_spawn::MonsterSpawnState;
 pub use game_state::observation::{
-    BuildTowerCandidateObservation, CardObservation, CardServiceObservation, DeckObservation,
-    HandItemObservation, HandObservation, InventoryObservation, MonsterObservation, Observation,
-    OwnedUpgradeObservation, RouteCoordObservation, ShopSlotObservation, TowerObservation,
-    TowerTemplateObservation,
+    BuildTowerCandidateObservation, CardObservation, CardServiceObservation,
+    DamageSplashObservation, DeckObservation, HandItemObservation, HandObservation,
+    InventoryObservation, MonsterObservation, Observation, OwnedUpgradeObservation,
+    RouteCoordObservation, ShopSlotObservation, TowerObservation, TowerStatusEffectObservation,
+    TowerStatusEffectObservationKind, TowerTemplateObservation,
 };
 pub use game_state::replay::{
     AUTHORITATIVE_HASH_VERSION, CORE_CONFIG_DIGEST_VERSION, CORE_CONFIG_SCHEMA_VERSION,
@@ -135,7 +136,7 @@ pub use time::{RATIO_SCALE, RatioRaw, SIM_TICKS_PER_SECOND, SimTick, SimTickSpan
 pub use rarity::Rarity;
 pub use world::{WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, integer_sqrt};
 
-pub const OBSERVATION_SCHEMA_VERSION: u32 = 7;
+pub const OBSERVATION_SCHEMA_VERSION: u32 = 8;
 
 pub const WORLD_UNITS_PER_TILE: i64 = world::WORLD_UNITS_PER_TILE;
 

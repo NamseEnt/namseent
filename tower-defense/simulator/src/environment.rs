@@ -124,6 +124,9 @@ pub use td_core::HandObservation;
 
 pub use td_core::TowerObservation;
 pub use td_core::{InventoryObservation, MonsterObservation, OwnedUpgradeObservation};
+pub use td_core::{
+    DamageSplashObservation, TowerStatusEffectObservation, TowerStatusEffectObservationKind,
+};
 
 pub use td_core::DeckObservation;
 

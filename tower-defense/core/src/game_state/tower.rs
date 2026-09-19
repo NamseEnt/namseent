@@ -110,6 +110,32 @@ fn combine_damage_factor_raw(card_polish_raw: i64, upgrade_bonus_raw: i64) -> i6
 }
 
 impl TowerTemplateState {
+    /// Authoritative on-attack splash effects derived from this template's
+    /// `used_cards` engravings (e.g. Cactus). Shared by placement
+    /// (`place_tower_with_template`) and observation
+    /// (`tower_template_observation`) so both compute splash semantics from
+    /// the same source of truth.
+    pub fn derived_on_attack_splashes(&self) -> Vec<crate::DamageSplash> {
+        if self
+            .used_cards
+            .iter()
+            .any(|card| card.engraving == Some(2))
+        {
+            vec![crate::DamageSplash {
+                radius_raw: 2 * crate::WORLD_UNITS_PER_TILE,
+                damage_pct_raw: 300_000,
+            }]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Authoritative on-hit splash effects derived from this template. No
+    /// current engraving derives an on-hit splash, so this is empty.
+    pub fn derived_on_hit_splashes(&self) -> Vec<crate::DamageSplash> {
+        Vec::new()
+    }
+
     pub fn card_polish_raw(&self) -> i64 {
         self.used_cards
             .iter()

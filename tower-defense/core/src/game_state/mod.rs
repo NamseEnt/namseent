@@ -730,19 +730,8 @@ impl CoreState {
             damage_multiplier_raw: crate::RATIO_SCALE,
             attack_range_radius_raw: template.default_attack_range_radius_raw,
             effective_shoot_interval: template.shoot_interval,
-            on_hit_splashes: Vec::new(),
-            on_attack_splashes: if template
-                .used_cards
-                .iter()
-                .any(|card| card.engraving == Some(2))
-            {
-                vec![crate::DamageSplash {
-                    radius_raw: 2 * crate::WORLD_UNITS_PER_TILE,
-                    damage_pct_raw: 300_000,
-                }]
-            } else {
-                Vec::new()
-            },
+            on_hit_splashes: template.derived_on_hit_splashes(),
+            on_attack_splashes: template.derived_on_attack_splashes(),
         };
         self.towers.push(tower.clone());
         if let Some(hand_slot_index) = hand_slot_index {

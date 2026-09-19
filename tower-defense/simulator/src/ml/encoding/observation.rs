@@ -116,6 +116,7 @@ impl TypedObservation {
                         normalize_damage_raw(tower.template.damage_raw),
                         normalize_ticks(tower.cooldown_ticks),
                         normalize_range_raw(tower.range_raw),
+                        normalize_damage_raw(tower.attack_damage_raw),
                     ],
                 )
             })
@@ -329,6 +330,8 @@ mod tests {
             range_raw: 3_000_000,
             shoot_interval_ticks: 30,
             used_cards: Vec::new(),
+            on_hit_splashes: Vec::new(),
+            on_attack_splashes: Vec::new(),
         }
     }
 
@@ -351,7 +354,11 @@ mod tests {
         assert_eq!(typed.sets[OWNED_CARDS].rows[0].numeric[0], 2.5);
     }
 
-    /// Tower position/damage/cooldown/range -> `placed_towers` numeric row.
+    /// Test I: tower position/base damage/cooldown/range/current attack
+    /// damage -> `placed_towers` numeric row. Uses distinct base
+    /// (`template.damage_raw`) and current (`attack_damage_raw`) values so
+    /// the two normalized slots are verified to be genuinely independent,
+    /// not aliases of the same underlying value.
     #[test]
     fn placed_tower_encodes_position_damage_cooldown_range() {
         let mut observation = base_observation();
@@ -362,6 +369,10 @@ mod tests {
             template: tower_template(50_000),
             cooldown_ticks: 300,
             range_raw: 200_000,
+            attack_damage_raw: 75_000,
+            status_effects: Vec::new(),
+            on_hit_splashes: Vec::new(),
+            on_attack_splashes: Vec::new(),
         });
 
         let typed = TypedObservation::from_observation(&observation);
@@ -372,6 +383,7 @@ mod tests {
         assert_eq!(row.numeric[2], 5.0);
         assert_eq!(row.numeric[3], 0.5);
         assert_eq!(row.numeric[4], 2.0);
+        assert_eq!(row.numeric[5], 7.5);
     }
 
     /// Monster route progress/damage -> `monsters` numeric row.

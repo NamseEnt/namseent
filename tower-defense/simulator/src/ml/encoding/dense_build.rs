@@ -16,7 +16,8 @@ use super::normalize::{
     normalize_ticks,
 };
 use crate::environment::{
-    HandItemObservation, Observation, RouteCoordObservation, TowerTemplateObservation,
+    DamageSplashObservation, HandItemObservation, Observation, RouteCoordObservation,
+    TowerTemplateObservation,
 };
 use crate::joint_action::{
     CardSubsetTable, MAP_POSITION_COUNT, MAP_POSITION_HEIGHT, MAP_POSITION_WIDTH, coverage_grid,
@@ -150,6 +151,55 @@ fn template_feature_row(template: &TowerTemplateObservation) -> EntityRow {
     )
 }
 
+/// Which attack event a splash effect triggers on - see
+/// `TowerTemplateObservation::on_hit_splashes`/`on_attack_splashes`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SplashTriggerKind {
+    OnHit,
+    OnAttack,
+}
+
+/// One row per resulting-template splash effect (e.g. Cactus's on-attack
+/// splash), linked back to its owning template row by `template_index` (the
+/// same flat `(subset_index, hand_slot_index)` index `template_row` uses).
+/// Variable-cardinality and never collapsed into a boolean or a fixed slot
+/// count - see `docs/game-ai/03-observation-contract.md`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TemplateSplashFeatureRow {
+    pub template_index: usize,
+    pub trigger_kind: SplashTriggerKind,
+    pub radius_raw: i64,
+    pub damage_pct_raw: i64,
+}
+
+fn template_splash_rows(
+    template_index: usize,
+    template: &TowerTemplateObservation,
+) -> Vec<TemplateSplashFeatureRow> {
+    let on_hit = template
+        .on_hit_splashes
+        .iter()
+        .map(|splash| splash_feature_row(template_index, SplashTriggerKind::OnHit, splash));
+    let on_attack = template
+        .on_attack_splashes
+        .iter()
+        .map(|splash| splash_feature_row(template_index, SplashTriggerKind::OnAttack, splash));
+    on_hit.chain(on_attack).collect()
+}
+
+fn splash_feature_row(
+    template_index: usize,
+    trigger_kind: SplashTriggerKind,
+    splash: &DamageSplashObservation,
+) -> TemplateSplashFeatureRow {
+    TemplateSplashFeatureRow {
+        template_index,
+        trigger_kind,
+        radius_raw: splash.radius_raw,
+        damage_pct_raw: splash.damage_pct_raw,
+    }
+}
+
 /// Shape/size summary of a [`DenseBuildFeatureBundle`], for building model
 /// input tensors without recomputing the bundle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -175,6 +225,7 @@ pub struct DenseBuildFeatureBundle {
     pub coverage: RangeCoverageTable,
     template_rows: Vec<EntityRow>,
     template_range_row: Vec<Option<usize>>,
+    pub splashes: Vec<TemplateSplashFeatureRow>,
 }
 
 impl DenseBuildFeatureBundle {
@@ -194,6 +245,7 @@ impl DenseBuildFeatureBundle {
         let mut template_rows = Vec::with_capacity(subset_count * build_slot_count);
         let mut all_ranges = Vec::with_capacity(subset_count * build_slot_count);
         let mut per_template_range = Vec::with_capacity(subset_count * build_slot_count);
+        let mut splashes = Vec::new();
 
         for subset_index in 0..subset_count {
             let card_ids = subsets
@@ -202,14 +254,18 @@ impl DenseBuildFeatureBundle {
             let template = *by_card_ids
                 .get(&card_ids)
                 .expect("every non-empty card subset should have a build candidate");
+            let template_index = template_rows.len();
             template_rows.push(template_feature_row(template));
             per_template_range.push(template.range_raw);
             all_ranges.push(template.range_raw);
+            splashes.extend(template_splash_rows(template_index, template));
 
             for extra in extra_templates {
+                let template_index = template_rows.len();
                 template_rows.push(template_feature_row(extra));
                 per_template_range.push(extra.range_raw);
                 all_ranges.push(extra.range_raw);
+                splashes.extend(template_splash_rows(template_index, extra));
             }
         }
 
@@ -226,6 +282,7 @@ impl DenseBuildFeatureBundle {
             coverage,
             template_rows,
             template_range_row,
+            splashes,
         }
     }
 
@@ -265,6 +322,21 @@ impl DenseBuildFeatureBundle {
         let range_row = (*self.template_range_row.get(flat_index)?)?;
         self.coverage.coverage(range_row, position_index)
     }
+
+    /// Splash rows for the template at `(subset_index, hand_slot_index)`,
+    /// via the same flat `template_index` `splashes` rows are keyed on.
+    pub fn splashes_at(
+        &self,
+        subset_index: usize,
+        hand_slot_index: usize,
+    ) -> Option<impl Iterator<Item = &TemplateSplashFeatureRow>> {
+        let flat_index = self.flat_index(subset_index, hand_slot_index)?;
+        Some(
+            self.splashes
+                .iter()
+                .filter(move |row| row.template_index == flat_index),
+        )
+    }
 }
 
 /// Dense `PlaceTower` feature bundle for a hand slot already holding a
@@ -277,6 +349,7 @@ pub struct PlaceTowerFeatureBundle {
     pub position: PositionFeatureTable,
     pub coverage: RangeCoverageTable,
     template_row: EntityRow,
+    pub splashes: Vec<TemplateSplashFeatureRow>,
 }
 
 impl PlaceTowerFeatureBundle {
@@ -288,10 +361,12 @@ impl PlaceTowerFeatureBundle {
         let position = PositionFeatureTable::compute(observation);
         let coverage = RangeCoverageTable::compute(&observation.route_coords, [template.range_raw]);
         let template_row = template_feature_row(template);
+        let splashes = template_splash_rows(0, template);
         Some(Self {
             position,
             coverage,
             template_row,
+            splashes,
         })
     }
 
@@ -332,6 +407,8 @@ mod tests {
             range_raw: 3_000_000,
             shoot_interval_ticks: 30,
             used_cards: Vec::new(),
+            on_hit_splashes: Vec::new(),
+            on_attack_splashes: Vec::new(),
         };
 
         let row = template_feature_row(&template);
@@ -487,6 +564,72 @@ mod tests {
                 assert_eq!(extra_row.numeric[3], extra.range_raw as f32 / 100_000.0);
             }
         }
+    }
+
+    /// Test K: a resulting-template splash effect (e.g. Cactus) must appear
+    /// as a `TemplateSplashFeatureRow` linked to the correct template's flat
+    /// index, for both `DenseBuildFeatureBundle` (`BuildTower`) and
+    /// `PlaceTowerFeatureBundle` (`PlaceTower`), using the same semantic
+    /// representation - never a hardcoded boolean.
+    #[test]
+    fn dense_build_and_place_tower_bundles_expose_template_splash_rows() {
+        let environment = environment(0);
+        let mut observation = environment.snapshot();
+        let fabricated_splash = DamageSplashObservation {
+            radius_raw: 2 * 1_000_000,
+            damage_pct_raw: 300_000,
+        };
+        let subsets = CardSubsetTable::from_observation(&observation);
+        let subset_zero_card_ids = subsets
+            .card_ids_for_subset(0)
+            .expect("subset 0 should exist");
+        let candidate_index = observation
+            .build_tower_candidates
+            .iter()
+            .position(|candidate| {
+                let mut key = candidate.card_ids.clone();
+                key.sort_unstable();
+                key == subset_zero_card_ids
+            })
+            .expect("subset 0 should have a matching build candidate");
+        observation.build_tower_candidates[candidate_index]
+            .template
+            .on_attack_splashes = vec![fabricated_splash.clone()];
+
+        let bundle = DenseBuildFeatureBundle::compute(&observation);
+        let splashes: Vec<_> = bundle.splashes_at(0, 0).unwrap().collect();
+        assert_eq!(splashes.len(), 1);
+        assert_eq!(splashes[0].trigger_kind, SplashTriggerKind::OnAttack);
+        assert_eq!(splashes[0].radius_raw, fabricated_splash.radius_raw);
+        assert_eq!(splashes[0].damage_pct_raw, fabricated_splash.damage_pct_raw);
+        assert_eq!(splashes[0].template_index, 0);
+
+        // Other (subset, slot) template rows without a fabricated splash
+        // must not pick up a stray row.
+        let mut total_other_splashes = 0;
+        for subset_index in 1..subsets.subset_count() {
+            total_other_splashes += bundle.splashes_at(subset_index, 0).unwrap().count();
+        }
+        assert_eq!(total_other_splashes, 0);
+        assert_eq!(bundle.splashes.len(), 1);
+
+        // PlaceTowerFeatureBundle must expose the same splash semantics for
+        // a hand slot already holding a resulting tower.
+        let mut placement_observation = observation.clone();
+        let hand_slot_index = 0;
+        placement_observation.hand[hand_slot_index].item = HandItemObservation::Tower(
+            observation.build_tower_candidates[candidate_index].template.clone(),
+        );
+        let place_bundle =
+            PlaceTowerFeatureBundle::compute(&placement_observation, hand_slot_index)
+                .expect("place tower bundle should compute for a tower hand slot");
+        assert_eq!(place_bundle.splashes.len(), 1);
+        assert_eq!(place_bundle.splashes[0].trigger_kind, SplashTriggerKind::OnAttack);
+        assert_eq!(place_bundle.splashes[0].radius_raw, fabricated_splash.radius_raw);
+        assert_eq!(
+            place_bundle.splashes[0].damage_pct_raw,
+            fabricated_splash.damage_pct_raw
+        );
     }
 
     #[test]
