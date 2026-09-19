@@ -102,6 +102,20 @@ impl PolicyActionSpace {
                 .into_iter()
                 .map(|legal: LegalAction| legal.action)
                 .collect::<Vec<_>>();
+            for action in &actions {
+                assert!(
+                    is_other_layout_policy_visible(action.kind()),
+                    "PolicyActionSpace invariant violated: a UI/FSM micro-action {:?} \
+                     (decision_point={:?}) reached the Other layout. PolicyActionSpace::compute \
+                     must only be called at semantic decision boundaries reached via \
+                     GameEnvironment::semantic_step, which never externally returns control mid \
+                     card-selection (e.g. after a bare BeginTowerSelection/BeginRerollSelection) - \
+                     see docs/game-ai/02-action-contract.md and \
+                     policy_action_space_never_exposes_ui_micro_actions_along_semantic_rollouts",
+                    action.kind(),
+                    environment.decision_point(),
+                );
+            }
             actions.sort_by(|left, right| canonical_sort_key(left).cmp(&canonical_sort_key(right)));
             Layout::Other { actions }
         };
@@ -352,13 +366,66 @@ fn sorted(card_ids: &[usize]) -> Vec<usize> {
     sorted
 }
 
+/// `ActionKind`s that may legitimately appear in the `Other` layout: every
+/// non-card-decision point that is still a semantic macro-action decision
+/// per `docs/game-ai/02-action-contract.md`. UI/FSM micro-action kinds with
+/// no strategic content of their own - `StartSelectingTower`,
+/// `BeginRerollSelection`, `BeginTowerSelection`, `SelectHandCard`,
+/// `DeselectHandCard`, `ConfirmCardSelection`, `CancelCardSelection` (the
+/// hand-card-selection UI dance `BuildTower`/`Reroll` exist to collapse into
+/// one macro decision) - are deliberately excluded.
+///
+/// `PlaceTower` *is* included: when `stage_modifiers.extra_tower_cards` is
+/// non-empty, `SelectTower` queues more than one already-built tower (the
+/// chosen subset's own template plus one fixed template per extra-card
+/// entry - see `GameEnvironment::build_tower_slot_count`), and one
+/// `BuildTower` macro only places one of them (`hand_slot_index`). The
+/// remaining pre-built towers have no card content left to choose - the only
+/// remaining decision is *where* to place an already-fixed tower, which is
+/// exactly as strategic as a normal placement and genuinely cannot be
+/// bundled into the original `BuildTower` decision (a single macro step
+/// carries only one position). This is why `DecisionPoint::TowerPlacement`
+/// is ever externally observed at all along a semantic rollout - see
+/// `teacher.rs`'s `extra_slot_actions_differing_only_by_subset_produce_different_states`
+/// and `GameEnvironment::semantic_legal_actions_with_position_limit`, which
+/// already falls back to raw `PlaceTower` legal actions in exactly this
+/// state today. See the `assert!` in `PolicyActionSpace::compute` and
+/// `policy_action_space_never_exposes_ui_micro_actions_along_semantic_rollouts`.
+fn is_other_layout_policy_visible(kind: ActionKind) -> bool {
+    matches!(
+        kind,
+        ActionKind::PlaceTower
+            | ActionKind::RemoveTower
+            | ActionKind::StartDefense
+            | ActionKind::SelectTreasure
+            | ActionKind::SelectCardServiceCard
+            | ActionKind::ConfirmCardServiceSelection
+            | ActionKind::UseInventoryItem
+            | ActionKind::DiscardTreasure
+            | ActionKind::Continue
+    )
+}
+
 /// Canonical ordering for the `Other` layout: by `ActionKind` in a fixed,
 /// explicit priority (mirroring the kind's declaration order in
 /// `td_core::game_state::command`, a static source-code property - not
-/// runtime generation order or hashmap iteration), then by that kind's own
-/// stable numeric identity. Never `action_id()`'s string sort, which is
-/// opaque and fragile to format changes.
-fn canonical_sort_key(action: &AgentAction) -> (u8, u64) {
+/// runtime generation order or hashmap iteration), then by that kind's
+/// *complete* semantic identity - never a partial key such as "the minimum
+/// card id" or "the hand slot index alone" that could let two different
+/// actions collapse onto the same key. Never `action_id()`'s string sort,
+/// which is opaque and fragile to format changes.
+///
+/// The per-kind identity vector is `sorted(card_ids)` (variable length, and
+/// order-insensitive - matching `canonicalize`) followed by a *fixed* number
+/// of remaining scalar fields for that kind (e.g. `[hand_slot_index, left,
+/// top]` for `BuildTower`). Because the fixed suffix always has the same
+/// length for a given kind, two keys of equal length and equal content can
+/// only arise from card-id sets of equal size, which (after sorting) forces
+/// the sets themselves to be identical - so equal keys imply structurally
+/// identical actions (up to `card_ids` order, which is intentional). This is
+/// what makes the ordering a true total order over distinct semantic
+/// identities rather than a lossy projection of them.
+fn canonical_sort_key(action: &AgentAction) -> (u8, Vec<u64>) {
     let kind_rank = match action.kind() {
         ActionKind::PurchaseShopItem => 0,
         ActionKind::StartSelectingTower => 1,
@@ -381,24 +448,54 @@ fn canonical_sort_key(action: &AgentAction) -> (u8, u64) {
         ActionKind::DiscardTreasure => 18,
         ActionKind::Continue => 19,
     };
-    let stable_key = match action {
-        AgentAction::PurchaseShopItem { slot_index } => *slot_index as u64,
+    let identity = match action {
+        AgentAction::PurchaseShopItem { slot_index } => vec![*slot_index as u64],
+        AgentAction::StartSelectingTower
+        | AgentAction::BeginRerollSelection
+        | AgentAction::BeginTowerSelection
+        | AgentAction::ConfirmCardSelection
+        | AgentAction::CancelCardSelection
+        | AgentAction::StartDefense
+        | AgentAction::ConfirmCardServiceSelection
+        | AgentAction::Continue => Vec::new(),
         AgentAction::SelectHandCard { hand_slot_index }
-        | AgentAction::DeselectHandCard { hand_slot_index }
-        | AgentAction::PlaceTower {
-            hand_slot_index, ..
-        } => *hand_slot_index as u64,
+        | AgentAction::DeselectHandCard { hand_slot_index } => vec![*hand_slot_index as u64],
         AgentAction::Reroll { card_ids } | AgentAction::SelectTower { card_ids } => {
-            card_ids.iter().min().copied().unwrap_or(0) as u64
+            sorted_u64(card_ids)
         }
-        AgentAction::RemoveTower { tower_id } => *tower_id,
-        AgentAction::SelectTreasure { option_index } => *option_index as u64,
-        AgentAction::SelectCardServiceCard { card_index } => *card_index as u64,
-        AgentAction::UseInventoryItem { item_index } => *item_index as u64,
-        AgentAction::DiscardTreasure { upgrade_id } => *upgrade_id,
-        _ => 0,
+        AgentAction::BuildTower {
+            card_ids,
+            hand_slot_index,
+            left,
+            top,
+        } => {
+            let mut identity = sorted_u64(card_ids);
+            identity.push(*hand_slot_index as u64);
+            identity.push(*left as u64);
+            identity.push(*top as u64);
+            identity
+        }
+        AgentAction::PlaceTower {
+            hand_slot_index,
+            left,
+            top,
+        } => vec![*hand_slot_index as u64, *left as u64, *top as u64],
+        AgentAction::RemoveTower { tower_id } => vec![*tower_id],
+        AgentAction::SelectTreasure { option_index } => vec![*option_index as u64],
+        AgentAction::SelectCardServiceCard { card_index } => vec![*card_index as u64],
+        AgentAction::UseInventoryItem { item_index } => vec![*item_index as u64],
+        AgentAction::DiscardTreasure { upgrade_id } => vec![*upgrade_id],
     };
-    (kind_rank, stable_key)
+    (kind_rank, identity)
+}
+
+/// `card_ids`' order isn't part of semantic identity (see `canonicalize`);
+/// this returns the sorted, order-insensitive identity as `u64` for use in
+/// `canonical_sort_key`.
+fn sorted_u64(card_ids: &[usize]) -> Vec<u64> {
+    let mut ids: Vec<u64> = card_ids.iter().map(|&id| id as u64).collect();
+    ids.sort_unstable();
+    ids
 }
 
 #[cfg(test)]
@@ -575,6 +672,293 @@ mod tests {
             space_actions.insert(canonicalize(&space.index_to_action(index).unwrap()).action_id());
         }
         assert_eq!(space_actions, oracle);
+    }
+
+    /// Problem 1 (semantic policy boundary): drives full episodes exclusively
+    /// through `GameEnvironment::semantic_step` - the actual policy decision
+    /// boundary a rollout uses (see `policy_runner`'s `semantic_actions=true`
+    /// loop, which calls `semantic_legal_actions_with_position_limit` then
+    /// `semantic_step`, never raw `step` for a policy-chosen action) - and
+    /// calls `PolicyActionSpace::compute` at every single decision point
+    /// reached along the way, exactly as a future model-inference call site
+    /// would. `PolicyActionSpace::compute`'s internal `assert!` (see the
+    /// `Other` layout branch and `is_other_layout_policy_visible`) would
+    /// panic and fail this test if a UI/FSM micro-action with no strategic
+    /// content of its own - a mid card-selection step
+    /// (`SelectHandCard`/`DeselectHandCard`/`ConfirmCardSelection`/
+    /// `CancelCardSelection`, or a bare `BeginRerollSelection`/
+    /// `BeginTowerSelection`/`StartSelectingTower`) - ever reached
+    /// policy-visible territory. This never happens because `semantic_step`'s
+    /// `Reroll`/`BuildTower` handling always drives its internal
+    /// `StartSelectingTower`/`SelectTower`/`Reroll`/`PlaceTower` sub-steps to
+    /// completion within a single call, never returning control to the
+    /// caller mid card-selection.
+    ///
+    /// `PlaceTower` at a `TowerPlacement` decision point legitimately does
+    /// appear here (covered by the `extra_tower_cards` seeds below) - it's
+    /// not a UI micro-action, see `is_other_layout_policy_visible`'s doc
+    /// comment.
+    #[test]
+    fn policy_action_space_never_exposes_ui_micro_actions_along_semantic_rollouts() {
+        let scenarios = (0..6u64)
+            .map(|seed| (format!("seed {seed}"), environment(seed)))
+            .chain((1..3usize).map(|extra_count| {
+                (
+                    format!("extra_tower_cards({extra_count})"),
+                    extra_tower_cards_environment(extra_count),
+                )
+            }));
+        for (label, mut environment) in scenarios {
+            let mut decisions = 0usize;
+            loop {
+                // The actual policy decision boundary: compute the dense
+                // action space before every semantic step, just as a wired-in
+                // model would.
+                let space = PolicyActionSpace::compute(&environment);
+                assert!(
+                    space.action_count() > 0,
+                    "{label} decision {decisions}: expected a non-empty policy action space"
+                );
+
+                let observation = environment.snapshot();
+                let legal = environment.semantic_legal_actions();
+                let Ok(action) = crate::policy_runner::scripted_expert_action(&observation, &legal)
+                else {
+                    break;
+                };
+                let Ok(outcome) = environment.semantic_step(action) else {
+                    break;
+                };
+                decisions += 1;
+                if outcome.terminated || outcome.truncated || decisions > 300 {
+                    break;
+                }
+            }
+            assert!(decisions > 0, "{label}: expected at least one decision");
+        }
+    }
+
+    /// The flip side of the invariant above: `PolicyActionSpace::compute`
+    /// does not merely happen to avoid UI micro-actions along the semantic
+    /// contract - it actively rejects (via `assert!`) any state where they'd
+    /// leak, so a future regression in `semantic_step`'s atomicity (or a
+    /// caller bypassing it) fails loudly instead of silently training a
+    /// policy over UI/FSM steps. This reaches that forbidden state
+    /// deliberately, via the legacy raw `step` UI dance
+    /// (`BeginTowerSelection` leaves `decision_context` as a mid-selection
+    /// `CardSelection`), which `semantic_step` itself never does.
+    #[test]
+    #[should_panic(expected = "PolicyActionSpace invariant violated")]
+    fn other_layout_rejects_a_mid_card_selection_state_reached_outside_the_semantic_contract() {
+        let mut environment = environment(0);
+        environment
+            .step(AgentAction::BeginTowerSelection)
+            .expect("begin tower selection should be legal");
+        assert!(!environment.semantic_card_decision_available());
+        let _ = PolicyActionSpace::compute(&environment);
+    }
+
+    /// Problem 2 (canonical ordering): two different `Reroll`/`SelectTower`
+    /// card subsets, and two different `PlaceTower` positions, must never
+    /// collapse onto the same canonical sort key. The only key collisions
+    /// allowed are between actions that `canonicalize` already considers the
+    /// same semantic identity (i.e. `card_ids` differing only in order).
+    #[test]
+    fn canonical_sort_key_distinguishes_all_semantic_identities() {
+        let actions = vec![
+            AgentAction::PurchaseShopItem { slot_index: 0 },
+            AgentAction::PurchaseShopItem { slot_index: 1 },
+            AgentAction::SelectHandCard { hand_slot_index: 0 },
+            AgentAction::SelectHandCard { hand_slot_index: 1 },
+            AgentAction::DeselectHandCard { hand_slot_index: 0 },
+            AgentAction::DeselectHandCard { hand_slot_index: 1 },
+            AgentAction::Reroll { card_ids: vec![1, 2] },
+            AgentAction::Reroll { card_ids: vec![2, 1] },
+            AgentAction::Reroll { card_ids: vec![1, 3] },
+            AgentAction::Reroll { card_ids: vec![1] },
+            AgentAction::Reroll { card_ids: vec![3] },
+            AgentAction::SelectTower { card_ids: vec![1, 2] },
+            AgentAction::SelectTower { card_ids: vec![2, 1] },
+            AgentAction::SelectTower { card_ids: vec![1, 3] },
+            AgentAction::BuildTower {
+                card_ids: vec![1, 2],
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![1, 2],
+                hand_slot_index: 0,
+                left: 0,
+                top: 1,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![1, 2],
+                hand_slot_index: 0,
+                left: 1,
+                top: 0,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![1, 2],
+                hand_slot_index: 1,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![1, 2, 3],
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![2, 1],
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 0,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 0,
+                left: 0,
+                top: 1,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 0,
+                left: 1,
+                top: 0,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 1,
+                left: 0,
+                top: 0,
+            },
+            AgentAction::RemoveTower { tower_id: 1 },
+            AgentAction::RemoveTower { tower_id: 2 },
+            AgentAction::SelectTreasure { option_index: 0 },
+            AgentAction::SelectTreasure { option_index: 1 },
+            AgentAction::SelectCardServiceCard { card_index: 0 },
+            AgentAction::SelectCardServiceCard { card_index: 1 },
+            AgentAction::UseInventoryItem { item_index: 0 },
+            AgentAction::UseInventoryItem { item_index: 1 },
+            AgentAction::DiscardTreasure { upgrade_id: 1 },
+            AgentAction::DiscardTreasure { upgrade_id: 2 },
+            AgentAction::StartSelectingTower,
+            AgentAction::BeginRerollSelection,
+            AgentAction::BeginTowerSelection,
+            AgentAction::ConfirmCardSelection,
+            AgentAction::CancelCardSelection,
+            AgentAction::StartDefense,
+            AgentAction::ConfirmCardServiceSelection,
+            AgentAction::Continue,
+        ];
+
+        let mut groups: std::collections::HashMap<(u8, Vec<u64>), Vec<AgentAction>> =
+            std::collections::HashMap::new();
+        for action in &actions {
+            groups
+                .entry(canonical_sort_key(action))
+                .or_default()
+                .push(action.clone());
+        }
+        for (key, group) in &groups {
+            let distinct_identities = group
+                .iter()
+                .map(|action| format!("{:?}", canonicalize(action)))
+                .collect::<std::collections::HashSet<_>>();
+            assert_eq!(
+                distinct_identities.len(),
+                1,
+                "distinct semantic actions collapsed onto the same canonical sort key {key:?}: {group:?}"
+            );
+        }
+    }
+
+    /// Problem 2 (canonical ordering): sorting by `canonical_sort_key` must
+    /// produce the same resulting sequence no matter what order the legal
+    /// actions were generated in. This is strictly stronger than repeating
+    /// `PolicyActionSpace::compute` on the same environment twice (which
+    /// wouldn't catch an ordering bug tied to input order, since
+    /// `GameEnvironment::legal_actions` itself generates in a fixed order
+    /// every time) - it directly shuffles the *input* to the sort.
+    #[test]
+    fn canonical_sort_key_orders_actions_independent_of_input_permutation() {
+        let base_actions = vec![
+            AgentAction::PurchaseShopItem { slot_index: 2 },
+            AgentAction::PurchaseShopItem { slot_index: 0 },
+            AgentAction::Reroll { card_ids: vec![5, 1] },
+            AgentAction::Reroll { card_ids: vec![2] },
+            AgentAction::Reroll { card_ids: vec![5, 1, 9] },
+            AgentAction::SelectTower { card_ids: vec![3, 1] },
+            AgentAction::BuildTower {
+                card_ids: vec![4, 2],
+                hand_slot_index: 1,
+                left: 3,
+                top: 2,
+            },
+            AgentAction::BuildTower {
+                card_ids: vec![4, 2],
+                hand_slot_index: 0,
+                left: 3,
+                top: 2,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 1,
+                left: 3,
+                top: 2,
+            },
+            AgentAction::PlaceTower {
+                hand_slot_index: 1,
+                left: 2,
+                top: 3,
+            },
+            AgentAction::RemoveTower { tower_id: 42 },
+            AgentAction::SelectTreasure { option_index: 1 },
+            AgentAction::SelectCardServiceCard { card_index: 4 },
+            AgentAction::UseInventoryItem { item_index: 3 },
+            AgentAction::DiscardTreasure { upgrade_id: 7 },
+            AgentAction::StartDefense,
+            AgentAction::Continue,
+        ];
+
+        let sorted_key = |actions: &mut Vec<AgentAction>| {
+            actions.sort_by(|left, right| canonical_sort_key(left).cmp(&canonical_sort_key(right)));
+        };
+
+        let mut expected = base_actions.clone();
+        sorted_key(&mut expected);
+
+        let mut permutations = Vec::new();
+        let mut reversed = base_actions.clone();
+        reversed.reverse();
+        permutations.push(reversed);
+        for shift in [1usize, 4, 9] {
+            let mut rotated = base_actions.clone();
+            let shift = shift % rotated.len();
+            rotated.rotate_left(shift);
+            permutations.push(rotated);
+        }
+        for seed in 0..5u64 {
+            let mut shuffled = base_actions.clone();
+            let mut state = seed.wrapping_add(0x9E3779B97F4A7C15);
+            for i in (1..shuffled.len()).rev() {
+                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                let j = ((state >> 33) as usize) % (i + 1);
+                shuffled.swap(i, j);
+            }
+            permutations.push(shuffled);
+        }
+
+        for mut permuted in permutations {
+            sorted_key(&mut permuted);
+            assert_eq!(
+                permuted, expected,
+                "canonical ordering depended on the input action order"
+            );
+        }
     }
 
     #[derive(serde::Serialize)]
