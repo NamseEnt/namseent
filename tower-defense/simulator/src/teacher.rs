@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 
 #[cfg(test)]
 use crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT;
+#[cfg(test)]
+use crate::environment::DecisionPoint;
 use crate::environment::{AgentAction, GameEnvironment, LegalAction, StepOutcome};
 use crate::joint_action::DenseBuildTowerScoreTable;
 use crate::policy_runner::{
@@ -13,21 +15,50 @@ use crate::policy_runner::{
 #[cfg(test)]
 use crate::policy_runner::scripted_expert_action;
 
-/// Bumped 1 -> 2: the baseline/regret contract changed from "baseline may be
-/// absent from the candidate set" (`Option` fields) to "baseline is always
-/// evaluated with the identical rollout and always present" (non-`Option`
-/// fields), and the production candidate/continuation contract dropped the
-/// legacy `position_candidate_limit` confound (see
-/// docs/game-ai/05-rollout-teacher.md). Serialized `RolloutTeacherDecision`
-/// values from schema version 1 are not compatible with this version.
-pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 2;
-pub const DEFAULT_TEACHER_HORIZON_DECISIONS: usize = 8;
+/// Bumped 2 -> 3: two diagnostic-confirmed teacher-contract fixes.
+///
+/// 1. Selection is now baseline-conservative: a candidate only overrides the
+///    canonical baseline when it has a *strictly* higher mean score.
+///    Previously, exact score ties fell to an action-id string tie-break
+///    that ignored the baseline and had no relationship to game quality
+///    (91% of tuning-corpus divergences were exact ties, and the tie-break
+///    consistently favored whichever action kind's id string sorted first
+///    alphabetically - e.g. `continue` over `use_inventory_item`,
+///    `discard_treasure`/`remove_tower` over `start_defense`).
+/// 2. `horizon_decisions` (a fixed decision *count*) was replaced by
+///    `horizon_stages` (a fixed stage/wave *progress* target): a
+///    decision-count horizon structurally penalizes any candidate whose
+///    first action doesn't itself advance the stage (e.g. `PurchaseShopItem`
+///    "spends" one of a handful of horizon decisions on a non-progressing
+///    action), independent of actual future value. A seed-100 trace showed
+///    this costing a full stage of rollout progress
+///    (`docs/game-ai/05-rollout-teacher.md`'s "Stage horizon" section).
+///
+/// Serialized `RolloutTeacherDecision`/`RolloutTeacherConfig` values from
+/// schema version < 3 are not compatible with this version (field rename,
+/// no backward alias).
+pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 3;
+pub const DEFAULT_TEACHER_HORIZON_STAGES: usize = 1;
 pub const DEFAULT_TEACHER_SCENARIO_COUNT: usize = 16;
+
+/// Safety guard, not a production tuning knob: `evaluate_candidate_scenario`
+/// bails with an explicit error if canonical continuation can't advance a
+/// rollout to its target stage (or terminal) within this many additional
+/// decisions after the candidate's own action. This exists only to turn a
+/// hypothetical "continuation never reaches the next stage" bug into a loud
+/// evaluation failure instead of a silently-truncated, misleadingly-scored
+/// rollout - it must never be reached in a correctly-functioning rollout,
+/// and is not a substitute for `horizon_stages`.
+const MAX_TEACHER_CONTINUATION_DECISIONS: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RolloutTeacherConfig {
     pub scenario_seeds: Vec<u64>,
-    pub horizon_decisions: usize,
+    /// How many stage boundaries a rollout continues past the candidate's
+    /// pre-action stage before scoring - see `evaluate_candidate_scenario`.
+    /// Replaces the old decision-count `horizon_decisions`, which penalized
+    /// any candidate whose first action didn't itself advance the stage.
+    pub horizon_stages: usize,
     /// How many top-ranked `BuildTower` actions (by
     /// `DenseBuildTowerScoreTable`'s global ranking) to roll out per
     /// decision; every non-`BuildTower` semantic action is always included
@@ -40,7 +71,7 @@ impl Default for RolloutTeacherConfig {
     fn default() -> Self {
         Self {
             scenario_seeds: (0..DEFAULT_TEACHER_SCENARIO_COUNT as u64).collect(),
-            horizon_decisions: DEFAULT_TEACHER_HORIZON_DECISIONS,
+            horizon_stages: DEFAULT_TEACHER_HORIZON_STAGES,
             build_tower_rollout_limit: None,
         }
     }
@@ -65,7 +96,7 @@ pub struct RolloutTeacherDecision {
     pub state_hash: String,
     pub observation: crate::environment::Observation,
     pub scenario_seed_digest: String,
-    pub horizon_decisions: usize,
+    pub horizon_stages: usize,
     pub candidate_count: usize,
     pub selected_action_id: String,
     pub selected_mean_score: f32,
@@ -251,7 +282,7 @@ pub fn dense_semantic_candidates(
 /// A state-local, config-independent preparation step shared by every
 /// `RolloutTeacherConfig` evaluated at the same (unmutated) `environment`
 /// state: the `DenseBuildTowerScoreTable` full ranking (dense candidate
-/// ranking never depends on `scenario_seeds`/`horizon_decisions`), sliced
+/// ranking never depends on `scenario_seeds`/`horizon_stages`), sliced
 /// down to whatever `build_tower_rollout_limit` a caller actually wants via
 /// [`Self::candidates_for_limit`], plus the canonical baseline action -
 /// computed from the *same* table, so a state visited once and evaluated
@@ -370,6 +401,39 @@ pub fn evaluate_semantic_candidate_set(
     evaluate_semantic_candidate_set_with_baseline(environment, candidates, baseline_action, config)
 }
 
+/// Baseline-conservative selection rule: the teacher only overrides the
+/// canonical baseline when some candidate has a *strictly* higher mean
+/// score than it. An exact tie (including baseline tying for the top score)
+/// always keeps the baseline - action-id string tie-breaking among
+/// candidates that merely equal the baseline is not used, since it has no
+/// relationship to game quality (see `TEACHER_SCORE_SCHEMA_VERSION`'s doc
+/// comment: 91% of a tuning-corpus divergence sample were exact ties broken
+/// this way, consistently favoring whichever action kind's id string sorted
+/// first alphabetically). Deterministic action-id tie-break is still used,
+/// but only to choose among candidates that are *each* strictly better than
+/// baseline and tied with each other.
+///
+/// A pure function over already-computed estimates (no rollouts) so it can
+/// be tested directly against synthetic score fixtures, not just through a
+/// full (expensive) rollout evaluation.
+fn select_conservatively(estimates: &[RolloutCandidateEstimate], baseline_action_id: &str) -> String {
+    let baseline_mean_score = estimates
+        .iter()
+        .find(|candidate| candidate.action_id == baseline_action_id)
+        .expect("baseline action must have an estimate")
+        .mean_score;
+    estimates
+        .iter()
+        .filter(|candidate| candidate.mean_score > baseline_mean_score)
+        .max_by(|left, right| {
+            left.mean_score
+                .total_cmp(&right.mean_score)
+                .then_with(|| right.action_id.cmp(&left.action_id))
+        })
+        .map(|candidate| candidate.action_id.clone())
+        .unwrap_or_else(|| baseline_action_id.to_string())
+}
+
 pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
     environment: &GameEnvironment,
     candidates: &[LegalAction],
@@ -379,8 +443,8 @@ pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
     if config.scenario_seeds.is_empty() {
         bail!("rollout teacher requires at least one scenario seed");
     }
-    if config.horizon_decisions == 0 {
-        bail!("rollout teacher horizon must be positive");
+    if config.horizon_stages == 0 {
+        bail!("rollout teacher horizon_stages must be positive");
     }
     if candidates.is_empty() {
         bail!("rollout teacher requires at least one candidate");
@@ -442,32 +506,23 @@ pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
             Ok(accumulator.finish(candidate.action.clone()))
         })
         .collect::<Result<Vec<_>>>()?;
-    let selected_action_id = estimates
-        .iter()
-        .max_by(|left, right| {
-            left.mean_score
-                .total_cmp(&right.mean_score)
-                .then_with(|| right.action_id.cmp(&left.action_id))
-        })
-        .expect("teacher estimates are non-empty")
-        .action_id
-        .clone();
-    let selected_mean_score = estimates
-        .iter()
-        .find(|candidate| candidate.action_id == selected_action_id)
-        .expect("selected teacher action must have an estimate")
-        .mean_score;
     let baseline_mean_score = estimates
         .iter()
         .find(|candidate| candidate.action_id == baseline_action_id)
         .expect("baseline action is always added to the evaluated candidate set")
+        .mean_score;
+    let selected_action_id = select_conservatively(&estimates, &baseline_action_id);
+    let selected_mean_score = estimates
+        .iter()
+        .find(|candidate| candidate.action_id == selected_action_id)
+        .expect("selected teacher action must have an estimate")
         .mean_score;
     Ok(RolloutTeacherDecision {
         score_schema_version: TEACHER_SCORE_SCHEMA_VERSION,
         state_hash: environment.state_hash(),
         observation,
         scenario_seed_digest: scenario_seed_digest(&config.scenario_seeds),
-        horizon_decisions: config.horizon_decisions,
+        horizon_stages: config.horizon_stages,
         candidate_count: estimates.len(),
         selected_action_id,
         selected_mean_score,
@@ -530,19 +585,62 @@ pub fn run_semantic_teacher_episode(
     })
 }
 
+#[derive(Debug)]
 struct RolloutSample {
     score: f32,
     victory: bool,
     clear_rate: f32,
     final_stage: usize,
+    /// The candidate's own action plus every continuation step actually
+    /// taken - exposed only for tests proving the stage horizon is
+    /// action-count-independent (see `evaluate_candidate_scenario`'s doc
+    /// comment); production code never reads it.
+    #[allow(dead_code)]
+    decisions_consumed: usize,
 }
 
+/// Applies `candidate`'s action, then continues via the canonical dense
+/// scripted heuristic (never a legacy position-limited proposal, a
+/// per-candidate policy, or the teacher's own recursive selection - see
+/// docs/game-ai/05-rollout-teacher.md's Continuation policy section) until
+/// `current_stage >= start_stage + horizon_stages` (the stage the candidate
+/// was chosen *in*, not any stage the candidate's own action might already
+/// reach), or terminal. This is a *stage*, not decision-count, horizon: how
+/// many decisions the candidate's action or the continuation actually spend
+/// getting there never affects the target, so a candidate that "spends" a
+/// decision on a non-progressing action (e.g. `PurchaseShopItem`) is not
+/// structurally penalized relative to one that advances the stage
+/// immediately - see `TEACHER_SCORE_SCHEMA_VERSION`'s doc comment.
 fn evaluate_candidate_scenario(
     environment: &GameEnvironment,
     candidate: &LegalAction,
     scenario_seed: u64,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutSample> {
+    evaluate_candidate_scenario_with_cap(
+        environment,
+        candidate,
+        scenario_seed,
+        config,
+        MAX_TEACHER_CONTINUATION_DECISIONS,
+    )
+}
+
+/// [`evaluate_candidate_scenario`], with the safety-guard cap as an explicit
+/// parameter instead of the fixed `MAX_TEACHER_CONTINUATION_DECISIONS`
+/// constant, so tests can prove the guard actually fires (a tiny cap against
+/// an ordinary state that needs more than that many continuation decisions)
+/// without needing a state that's *genuinely* stuck. Production code always
+/// goes through `evaluate_candidate_scenario`, which uses the real constant.
+fn evaluate_candidate_scenario_with_cap(
+    environment: &GameEnvironment,
+    candidate: &LegalAction,
+    scenario_seed: u64,
+    config: &RolloutTeacherConfig,
+    max_continuation_decisions: usize,
+) -> Result<RolloutSample> {
+    let start_stage = environment.snapshot().stage;
+    let target_stage = start_stage.saturating_add(config.horizon_stages);
     let mut rollout = environment
         .fork_for_rollout_seed(scenario_seed)
         .map_err(|error| anyhow::anyhow!("teacher rollout fork failed: {error}"))?;
@@ -550,25 +648,32 @@ fn evaluate_candidate_scenario(
         .semantic_step(candidate.action.clone())
         .map_err(|error| anyhow::anyhow!("teacher candidate failed: {error:?}"))?;
     settle_forced_actions(&mut rollout, &mut outcome)?;
-    // Fixed continuation policy for every candidate: the canonical dense
-    // scripted heuristic, never a legacy position-limited proposal, a
-    // per-candidate policy, or the teacher's own recursive selection (see
-    // docs/game-ai/05-rollout-teacher.md's Continuation policy section).
-    for _ in 1..config.horizon_decisions {
-        if outcome.terminated
-            || outcome.truncated
-            || matches!(
-                rollout.decision_point(),
-                crate::environment::DecisionPoint::Terminal
-            )
-        {
-            break;
+    let mut decisions_consumed = 1usize;
+    let mut continuation_decisions = 0usize;
+    while !outcome.terminated
+        && !outcome.truncated
+        && !matches!(
+            rollout.decision_point(),
+            crate::environment::DecisionPoint::Terminal
+        )
+        && rollout.snapshot().stage < target_stage
+    {
+        if continuation_decisions >= max_continuation_decisions {
+            bail!(
+                "teacher rollout continuation exceeded the safety-guard cap \
+                 ({max_continuation_decisions}) without reaching target stage \
+                 {target_stage} or terminal (stuck at stage {}) - this is a safety-guard \
+                 invariant violation, not a normal horizon endpoint",
+                rollout.snapshot().stage
+            );
         }
         let action = canonical_scripted_semantic_action(&rollout)?;
         outcome = rollout
             .semantic_step(action)
             .map_err(|error| anyhow::anyhow!("teacher continuation failed: {error:?}"))?;
         settle_forced_actions(&mut rollout, &mut outcome)?;
+        continuation_decisions += 1;
+        decisions_consumed += 1;
     }
     let observation = rollout.snapshot();
     let victory = outcome.terminated && rollout.clear_rate() >= 100.0;
@@ -577,6 +682,7 @@ fn evaluate_candidate_scenario(
         victory,
         clear_rate: rollout.clear_rate(),
         final_stage: observation.stage,
+        decisions_consumed,
     })
 }
 
@@ -639,7 +745,7 @@ mod tests {
         }];
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![11, 13],
-            horizon_decisions: 1,
+            horizon_stages: 1,
             build_tower_rollout_limit: None,
         };
         let first = evaluate_semantic_candidate_set(&environment, &candidates, &config)
@@ -675,6 +781,106 @@ mod tests {
         assert!(error.to_string().contains("scenario seed"));
     }
 
+    fn estimate(action_id: &str, mean_score: f32) -> RolloutCandidateEstimate {
+        RolloutCandidateEstimate {
+            action: AgentAction::Continue,
+            action_id: action_id.to_string(),
+            sample_count: 1,
+            mean_score,
+            variance: 0.0,
+            standard_error: 0.0,
+            wins: 0,
+            mean_clear_rate: 0.0,
+            mean_final_stage: 0.0,
+        }
+    }
+
+    /// A: an exact score tie between the baseline and one or more other
+    /// candidates must always select the baseline - never an action-id
+    /// tie-break among them. Holds even when several *other* candidates are
+    /// also tied with baseline at the top score.
+    #[test]
+    fn baseline_wins_every_exact_tie_at_the_top_score() {
+        let estimates = vec![
+            estimate("aaa_alphabetically_first", 1.0),
+            estimate("mmm_baseline", 1.0),
+            estimate("zzz_alphabetically_last", 1.0),
+            estimate("worse", 0.5),
+        ];
+        let selected = select_conservatively(&estimates, "mmm_baseline");
+        assert_eq!(
+            selected, "mmm_baseline",
+            "an exact tie at the top score must keep the baseline, not fall to an action-id tie-break"
+        );
+    }
+
+    /// A (regret side): when the selection stays on the baseline (because
+    /// nothing strictly beats it), `expert_regret` computed the usual way
+    /// (`selected_mean_score - baseline_mean_score`) must be exactly zero -
+    /// "zero-regret but selected != baseline" must never occur.
+    #[test]
+    fn zero_regret_divergence_from_baseline_never_occurs() {
+        let estimates = vec![
+            estimate("aaa_alphabetically_first", 1.0),
+            estimate("mmm_baseline", 1.0),
+            estimate("zzz_alphabetically_last", 1.0),
+        ];
+        let selected = select_conservatively(&estimates, "mmm_baseline");
+        let baseline_mean = estimates
+            .iter()
+            .find(|c| c.action_id == "mmm_baseline")
+            .unwrap()
+            .mean_score;
+        let selected_mean = estimates
+            .iter()
+            .find(|c| c.action_id == selected)
+            .unwrap()
+            .mean_score;
+        let regret = selected_mean - baseline_mean;
+        assert!(
+            !(regret == 0.0 && selected != "mmm_baseline"),
+            "zero regret must never coincide with selecting a non-baseline action"
+        );
+        assert_eq!(selected, "mmm_baseline");
+        assert_eq!(regret, 0.0);
+    }
+
+    /// B: a candidate with a genuinely (strictly) higher mean score than the
+    /// baseline must override it, even when other candidates (including ones
+    /// with a lexicographically smaller action id) merely tie the baseline.
+    #[test]
+    fn strictly_better_candidate_overrides_baseline() {
+        let estimates = vec![
+            estimate("aaa_tied_with_baseline", 1.0),
+            estimate("mmm_baseline", 1.0),
+            estimate("zzz_actually_better", 2.0),
+        ];
+        let selected = select_conservatively(&estimates, "mmm_baseline");
+        assert_eq!(
+            selected, "zzz_actually_better",
+            "the strictly-better candidate must be selected even though its action id sorts last"
+        );
+    }
+
+    /// B (tie among strictly-better candidates): when two candidates both
+    /// beat the baseline and tie with each other, the deterministic
+    /// action-id tie-break still applies among *them* (smallest action id
+    /// wins) - only ties against the baseline are conservative.
+    #[test]
+    fn tie_among_strictly_better_candidates_uses_deterministic_tie_break() {
+        let estimates = vec![
+            estimate("baseline", 1.0),
+            estimate("bbb_better_tied", 2.0),
+            estimate("aaa_better_tied", 2.0),
+        ];
+        let selected = select_conservatively(&estimates, "baseline");
+        assert_eq!(
+            selected, "aaa_better_tied",
+            "among candidates that are each strictly better than baseline and tied with each \
+             other, the smallest action id wins deterministically"
+        );
+    }
+
     /// The baseline action must always be present in the evaluated
     /// candidate set - and `baseline_action_id`/`baseline_mean_score`/
     /// `expert_regret` must always be populated - even when
@@ -697,7 +903,7 @@ mod tests {
         }
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![1],
-            horizon_decisions: 1,
+            horizon_stages: 1,
             build_tower_rollout_limit: Some(1),
         };
         let decision = evaluate_semantic_candidates(&environment, &config)
@@ -723,9 +929,9 @@ mod tests {
     fn evaluating_the_same_state_and_config_twice_is_exactly_reproducible() {
         let environment = card_decision_environment(1);
         let config = RolloutTeacherConfig {
-            scenario_seeds: vec![5, 6, 7],
-            horizon_decisions: 2,
-            build_tower_rollout_limit: Some(4),
+            scenario_seeds: vec![5],
+            horizon_stages: 1,
+            build_tower_rollout_limit: Some(1),
         };
         let first = evaluate_semantic_candidates(&environment, &config)
             .expect("teacher should evaluate candidates");
@@ -739,6 +945,159 @@ mod tests {
         for candidate in &first.candidates {
             assert_eq!(candidate.sample_count, config.scenario_seeds.len());
         }
+    }
+
+    // --- stage-horizon correctness (F, C, D, E) -----------------------
+
+    /// F: the safety guard must fire as an explicit evaluation error, not a
+    /// silently truncated/misleadingly-scored rollout, when continuation
+    /// can't reach the target stage within the cap. Uses a tiny cap (1)
+    /// against an ordinary fresh state that legitimately needs many more
+    /// than one continuation decision to finish stage 1 - proving the guard
+    /// fires without needing a state that's genuinely stuck forever.
+    #[test]
+    fn safety_guard_returns_an_explicit_error_when_the_cap_is_too_small() {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+        let candidates = environment.legal_actions();
+        let candidate = candidates
+            .into_iter()
+            .find(|legal| matches!(legal.action, AgentAction::StartSelectingTower))
+            .expect("StartSelectingTower should be legal from a fresh Shop state");
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![0],
+            horizon_stages: 5,
+            build_tower_rollout_limit: None,
+        };
+        let error = evaluate_candidate_scenario_with_cap(&environment, &candidate, 0, &config, 1)
+            .expect_err(
+                "a 1-decision continuation cap must be insufficient to finish stage 1 \
+                 from a fresh game and must therefore fail explicitly",
+            );
+        assert!(
+            error.to_string().contains("safety-guard"),
+            "the error must identify itself as the safety guard, not an unrelated failure: {error}"
+        );
+    }
+
+    /// E: if a candidate's rollout ends (`outcome.terminated` or
+    /// `outcome.truncated` - the existing episode-end contract, unchanged by
+    /// this rewrite) before the target stage, the rollout must score
+    /// immediately at that end state rather than erroring or continuing
+    /// past it. Uses a stage-capped config (`new_with_stage_limit`) against
+    /// an unreachably large `horizon_stages`: finishing the only configured
+    /// stage ends the episode (`outcome.truncated`) long before
+    /// `start_stage + horizon_stages` could ever be satisfied, so reaching
+    /// `Ok` at all - well short of the declared horizon, in a small,
+    /// bounded number of decisions - is the behavior under test.
+    #[test]
+    fn terminal_before_target_stage_scores_immediately() {
+        let environment = GameEnvironment::new_with_stage_limit(
+            Arc::new(GameConfig::default_config()),
+            0,
+            crate::environment::RewardConfig::default(),
+            1,
+        );
+        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+        let candidates = environment.legal_actions();
+        let candidate = candidates
+            .into_iter()
+            .find(|legal| matches!(legal.action, AgentAction::StartSelectingTower))
+            .expect("StartSelectingTower should be legal from a fresh Shop state");
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![0],
+            horizon_stages: 10,
+            build_tower_rollout_limit: None,
+        };
+        let sample = evaluate_candidate_scenario(&environment, &candidate, 0, &config)
+            .expect("episode end before the target stage must score immediately, not error");
+        assert_eq!(
+            sample.final_stage, 1,
+            "the stage-1-capped episode must end while still at stage 1, far short of \
+             start_stage + horizon_stages (11)"
+        );
+    }
+
+    /// Finds a seed whose first Shop decision offers both a `PurchaseShopItem`
+    /// candidate and a `BuildTower` candidate (the exact shape of the
+    /// seed-100 diagnostic finding), for C and D below.
+    fn shop_purchase_and_build_candidates(
+    ) -> (GameEnvironment, LegalAction, LegalAction) {
+        for seed in 0..24u64 {
+            let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            if environment.decision_point() != DecisionPoint::Shop {
+                continue;
+            }
+            // BuildTower is a *semantic* macro action (folding the raw
+            // select/confirm/select-tower sequence into one step) - it only
+            // appears in `semantic_legal_actions`/`dense_semantic_candidates`,
+            // never in the raw `legal_actions()` micro-action set.
+            let legal = dense_semantic_candidates(&environment, None);
+            let purchase = legal
+                .iter()
+                .find(|l| matches!(l.action, AgentAction::PurchaseShopItem { .. }))
+                .cloned();
+            let build = legal
+                .iter()
+                .find(|l| matches!(l.action, AgentAction::BuildTower { .. }))
+                .cloned();
+            if let (Some(purchase), Some(build)) = (purchase, build) {
+                return (environment, purchase, build);
+            }
+        }
+        panic!("expected at least one seed whose first Shop decision offers both a purchase and a BuildTower candidate");
+    }
+
+    /// C (Shop horizon fairness pin): the exact regression this rewrite
+    /// fixes. One candidate (`PurchaseShopItem`) consumes a decision that
+    /// does not itself advance the stage; the other (`BuildTower`) can lead
+    /// toward `start_defense` immediately. Under a fixed *stage* horizon
+    /// (`horizon_stages=1`), both rollouts must continue to the same stage
+    /// boundary regardless of which one "spent" a decision shopping first -
+    /// if the old fixed-decision-count bug reappears, one of these would
+    /// end a stage behind the other, and this assertion would fail.
+    #[test]
+    fn shop_purchase_and_build_reach_the_same_target_stage_within_one_stage_horizon() {
+        let (environment, purchase, build) = shop_purchase_and_build_candidates();
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![0],
+            horizon_stages: 1,
+            build_tower_rollout_limit: None,
+        };
+        let purchase_sample = evaluate_candidate_scenario(&environment, &purchase, 0, &config)
+            .expect("purchase rollout should evaluate");
+        let build_sample = evaluate_candidate_scenario(&environment, &build, 0, &config)
+            .expect("build rollout should evaluate");
+        assert_eq!(
+            purchase_sample.final_stage, build_sample.final_stage,
+            "both candidates must reach the same target stage under a stage-based horizon, \
+             regardless of which one spent a decision on a non-progressing shop purchase first"
+        );
+    }
+
+    /// D (action-count independence): the same pair of candidates as C
+    /// consume a *different* number of total decisions (candidate action +
+    /// continuation) to reach that shared stage boundary - proving the
+    /// horizon endpoint is chosen by stage, not by counting decisions.
+    #[test]
+    fn candidates_consuming_different_decision_counts_still_share_the_stage_horizon_endpoint() {
+        let (environment, purchase, build) = shop_purchase_and_build_candidates();
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![0],
+            horizon_stages: 1,
+            build_tower_rollout_limit: None,
+        };
+        let purchase_sample = evaluate_candidate_scenario(&environment, &purchase, 0, &config)
+            .expect("purchase rollout should evaluate");
+        let build_sample = evaluate_candidate_scenario(&environment, &build, 0, &config)
+            .expect("build rollout should evaluate");
+        assert_eq!(purchase_sample.final_stage, build_sample.final_stage);
+        assert_ne!(
+            purchase_sample.decisions_consumed, build_sample.decisions_consumed,
+            "this fixture is only a meaningful action-count-independence check if the two \
+             candidates actually consume different total decision counts to reach the shared \
+             stage horizon endpoint"
+        );
     }
 
     // --- dense_semantic_candidates correctness -----------------------
@@ -1439,13 +1798,19 @@ mod tests {
                 .collect()
         }
 
-        let environment = card_decision_environment(1);
+        // Exactly two hand-picked real candidates (from the same fast Shop
+        // fixture C/D use), not the full dense_semantic_candidates() output:
+        // a stage-based horizon makes every candidate's rollout cost a full
+        // stage completion, and the full non-BuildTower action set includes
+        // many Reroll card-subset candidates that would multiply that cost
+        // far past what a fast unit test can afford.
+        let (environment, purchase, build) = shop_purchase_and_build_candidates();
         let config = RolloutTeacherConfig {
-            scenario_seeds: vec![10, 11],
-            horizon_decisions: 1,
-            build_tower_rollout_limit: Some(3),
+            scenario_seeds: vec![10],
+            horizon_stages: 1,
+            build_tower_rollout_limit: Some(1),
         };
-        let candidates = dense_semantic_candidates(&environment, config.build_tower_rollout_limit);
+        let candidates = vec![purchase, build];
         let baseline_action = canonical_scripted_semantic_action(&environment)
             .expect("baseline should be available");
 
@@ -1480,18 +1845,10 @@ mod tests {
             "parallel candidate evaluation must match sequential reference exactly \
              (order, mean, variance, standard error, action identity)"
         );
-        assert_eq!(parallel.selected_action_id, {
-            reference_estimates
-                .iter()
-                .max_by(|left, right| {
-                    left.mean_score
-                        .total_cmp(&right.mean_score)
-                        .then_with(|| right.action_id.cmp(&left.action_id))
-                })
-                .expect("reference estimates are non-empty")
-                .action_id
-                .clone()
-        });
+        assert_eq!(
+            parallel.selected_action_id,
+            select_conservatively(&reference_estimates, &baseline_action_id)
+        );
         assert_eq!(parallel.baseline_action_id, baseline_action_id);
         let reference_baseline_mean = reference_estimates
             .iter()
@@ -2263,7 +2620,7 @@ mod tests {
         methodology: String,
         target_candidate_count: usize,
         scenario_count: usize,
-        horizon_decisions: usize,
+        horizon_stages: usize,
         sample_points: Vec<MigrationBenchmarkSamplePoint>,
         mean_legacy_candidate_generation_seconds: f64,
         mean_dense_candidate_generation_seconds: f64,
@@ -2304,7 +2661,7 @@ mod tests {
     ///   oracle's specific pick.
     /// - `*_teacher_decision_seconds`: `evaluate_semantic_candidate_set`
     ///   end to end (real rollouts, `scenario_count` scenarios x
-    ///   `horizon_decisions` per candidate) - `legacy` and `dense` use the
+    ///   `horizon_stages` per candidate) - `legacy` and `dense` use the
     ///   same candidate *count*, so this isolates candidate-generation
     ///   overhead plus any oracle-best-inclusion effect on rollout value,
     ///   not a rollout-budget difference.
@@ -2326,7 +2683,7 @@ mod tests {
         const MAX_DECISIONS_PER_SEED: usize = 40;
         const TARGET_CANDIDATE_COUNT: usize = 96;
         const SCENARIO_COUNT: usize = 1;
-        const HORIZON_DECISIONS: usize = 1;
+        const HORIZON_STAGES: usize = 1;
 
         let scenario_seeds = (0..SCENARIO_COUNT as u64).collect::<Vec<_>>();
 
@@ -2430,7 +2787,7 @@ mod tests {
 
                     let teacher_config = RolloutTeacherConfig {
                         scenario_seeds: scenario_seeds.clone(),
-                        horizon_decisions: HORIZON_DECISIONS,
+                        horizon_stages: HORIZON_STAGES,
                         build_tower_rollout_limit: None,
                     };
                     let legacy_decision_start = Instant::now();
@@ -2592,7 +2949,7 @@ mod tests {
                 .to_string(),
             target_candidate_count: TARGET_CANDIDATE_COUNT,
             scenario_count: SCENARIO_COUNT,
-            horizon_decisions: HORIZON_DECISIONS,
+            horizon_stages: HORIZON_STAGES,
             sample_points,
             mean_legacy_candidate_generation_seconds,
             mean_dense_candidate_generation_seconds,
