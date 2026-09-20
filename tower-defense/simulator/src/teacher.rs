@@ -1,4 +1,5 @@
 use anyhow::{Result, bail};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -6,7 +7,9 @@ use sha2::{Digest, Sha256};
 use crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT;
 use crate::environment::{AgentAction, GameEnvironment, LegalAction, StepOutcome};
 use crate::joint_action::DenseBuildTowerScoreTable;
-use crate::policy_runner::canonical_scripted_semantic_action;
+use crate::policy_runner::{
+    canonical_scripted_semantic_action, canonical_scripted_semantic_action_from_table,
+};
 #[cfg(test)]
 use crate::policy_runner::scripted_expert_action;
 
@@ -245,12 +248,100 @@ pub fn dense_semantic_candidates(
     candidates
 }
 
+/// A state-local, config-independent preparation step shared by every
+/// `RolloutTeacherConfig` evaluated at the same (unmutated) `environment`
+/// state: the `DenseBuildTowerScoreTable` full ranking (dense candidate
+/// ranking never depends on `scenario_seeds`/`horizon_decisions`), sliced
+/// down to whatever `build_tower_rollout_limit` a caller actually wants via
+/// [`Self::candidates_for_limit`], plus the canonical baseline action -
+/// computed from the *same* table, so a state visited once and evaluated
+/// under several configs (the production teacher's single config, or the
+/// Phase 3 stability grid's several) never recomputes the table per config.
+///
+/// `full_top_k_build_tower` is sorted once at `prepare_semantic_candidates`'s
+/// `max_build_tower_rollout_limit`; a smaller limit's candidate set is
+/// always exactly the matching prefix of that sort
+/// (`DenseBuildTowerScoreTable::top_k_indices`'s ordering is deterministic
+/// and limit-independent), so this is byte-for-byte/action-id-for-action-id
+/// identical to calling `dense_semantic_candidates` at that smaller limit
+/// directly.
+pub(crate) struct PreparedSemanticCandidates {
+    non_build_actions: Vec<LegalAction>,
+    full_top_k_build_tower: Vec<AgentAction>,
+    pub(crate) baseline_action: AgentAction,
+}
+
+impl PreparedSemanticCandidates {
+    pub(crate) fn candidates_for_limit(&self, build_tower_rollout_limit: Option<usize>) -> Vec<LegalAction> {
+        let mut candidates = self.non_build_actions.clone();
+        let k = build_tower_rollout_limit
+            .unwrap_or(usize::MAX)
+            .min(self.full_top_k_build_tower.len());
+        candidates.extend(self.full_top_k_build_tower[..k].iter().cloned().map(|action| {
+            LegalAction {
+                id: action.action_id(),
+                action,
+            }
+        }));
+        candidates
+    }
+}
+
+/// Prepares [`PreparedSemanticCandidates`] for `environment`'s current
+/// state, computing the `DenseBuildTowerScoreTable` at most once for
+/// `max_build_tower_rollout_limit` (the largest `build_tower_rollout_limit`
+/// any caller will request via [`PreparedSemanticCandidates::candidates_for_limit`]
+/// for this state - pass the single config's limit for one evaluation, or
+/// the largest limit across a batch of configs sharing this state).
+pub(crate) fn prepare_semantic_candidates(
+    environment: &GameEnvironment,
+    max_build_tower_rollout_limit: Option<usize>,
+) -> Result<PreparedSemanticCandidates> {
+    let observation = environment.snapshot();
+    if environment.semantic_card_decision_available() {
+        let table = DenseBuildTowerScoreTable::compute(environment, &observation);
+        let non_build_actions = environment.semantic_non_build_actions();
+        let k = max_build_tower_rollout_limit.unwrap_or(usize::MAX);
+        let full_top_k_build_tower = table.top_k_actions(k);
+        let baseline_action =
+            canonical_scripted_semantic_action_from_table(environment, &observation, &table)?;
+        Ok(PreparedSemanticCandidates {
+            non_build_actions,
+            full_top_k_build_tower,
+            baseline_action,
+        })
+    } else {
+        Ok(PreparedSemanticCandidates {
+            non_build_actions: environment.semantic_non_build_actions(),
+            full_top_k_build_tower: Vec::new(),
+            baseline_action: canonical_scripted_semantic_action(environment)?,
+        })
+    }
+}
+
+/// Production teacher entry point: like `evaluate_semantic_candidate_set`,
+/// but computes the `DenseBuildTowerScoreTable` for this state only once
+/// (via [`prepare_semantic_candidates`]) and shares it between the top-K
+/// `BuildTower` candidates and the canonical baseline action - both need the
+/// same state's dense ranking, and `evaluate_semantic_candidates` is always
+/// called with `environment` unmutated between the two, so recomputing it
+/// twice was pure waste. Semantics are unchanged: the candidate set and
+/// baseline action are byte-for-byte/action-id-for-action-id identical to
+/// calling `dense_semantic_candidates` and `canonical_scripted_semantic_action`
+/// separately (see `dense_table_reuse_matches_separate_calls` and
+/// `canonical_baseline_reuse_matches_standalone_helper`).
 pub fn evaluate_semantic_candidates(
     environment: &GameEnvironment,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutTeacherDecision> {
-    let candidates = dense_semantic_candidates(environment, config.build_tower_rollout_limit);
-    evaluate_semantic_candidate_set(environment, &candidates, config)
+    let prepared = prepare_semantic_candidates(environment, config.build_tower_rollout_limit)?;
+    let candidates = prepared.candidates_for_limit(config.build_tower_rollout_limit);
+    evaluate_semantic_candidate_set_with_baseline(
+        environment,
+        &candidates,
+        prepared.baseline_action.clone(),
+        config,
+    )
 }
 
 /// Evaluates `candidates` plus the canonical heuristic baseline action
@@ -263,9 +354,26 @@ pub fn evaluate_semantic_candidates(
 /// way every candidate (including the baseline) is evaluated with the same
 /// `config.scenario_seeds` schedule and the same canonical continuation
 /// policy.
+///
+/// Recomputes the baseline action independently (a fresh
+/// `DenseBuildTowerScoreTable::compute` when a card decision is available) -
+/// callers with a candidate set that already came from a
+/// `DenseBuildTowerScoreTable` for this same state should use
+/// `evaluate_semantic_candidates` instead, which shares one table between
+/// candidate ranking and the baseline to avoid computing it twice.
 pub fn evaluate_semantic_candidate_set(
     environment: &GameEnvironment,
     candidates: &[LegalAction],
+    config: &RolloutTeacherConfig,
+) -> Result<RolloutTeacherDecision> {
+    let baseline_action = canonical_scripted_semantic_action(environment)?;
+    evaluate_semantic_candidate_set_with_baseline(environment, candidates, baseline_action, config)
+}
+
+pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
+    environment: &GameEnvironment,
+    candidates: &[LegalAction],
+    baseline_action: AgentAction,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutTeacherDecision> {
     if config.scenario_seeds.is_empty() {
@@ -292,7 +400,6 @@ pub fn evaluate_semantic_candidate_set(
         bail!("rollout teacher candidate is not legal in the source environment");
     }
     let observation = environment.snapshot();
-    let baseline_action = canonical_scripted_semantic_action(environment)?;
     let baseline_action_id = baseline_action.action_id();
 
     let mut all_candidates = candidates.to_vec();
@@ -308,21 +415,33 @@ pub fn evaluate_semantic_candidate_set(
     let mut seen_ids = std::collections::HashSet::with_capacity(all_candidates.len());
     all_candidates.retain(|candidate| seen_ids.insert(candidate.id.clone()));
 
-    let mut estimates = Vec::with_capacity(all_candidates.len());
-    for candidate in &all_candidates {
-        let mut accumulator = EstimateAccumulator::default();
-        for &scenario_seed in &config.scenario_seeds {
-            let sample =
-                evaluate_candidate_scenario(environment, candidate, scenario_seed, config)?;
-            accumulator.record(
-                sample.score,
-                sample.victory,
-                sample.clear_rate,
-                sample.final_stage,
-            );
-        }
-        estimates.push(accumulator.finish(candidate.action.clone()));
-    }
+    // Candidates are independent (each forks its own rollout environment via
+    // `fork_for_rollout_seed`), so they're evaluated in parallel via Rayon's
+    // global pool - `par_iter().collect()` on an `IndexedParallelIterator`
+    // preserves `all_candidates`' order in `estimates` regardless of
+    // completion order. Each candidate's own `scenario_seeds` loop stays a
+    // sequential accumulator, exactly as before, so floating-point
+    // accumulation order (and therefore `mean_score`/`variance`) is
+    // unchanged - only which candidates run concurrently changes, not how
+    // any single candidate's estimate is computed. Scenario-level work is
+    // deliberately not also parallelized (no nested double-parallelism here).
+    let estimates = all_candidates
+        .par_iter()
+        .map(|candidate| -> Result<RolloutCandidateEstimate> {
+            let mut accumulator = EstimateAccumulator::default();
+            for &scenario_seed in &config.scenario_seeds {
+                let sample =
+                    evaluate_candidate_scenario(environment, candidate, scenario_seed, config)?;
+                accumulator.record(
+                    sample.score,
+                    sample.victory,
+                    sample.clear_rate,
+                    sample.final_stage,
+                );
+            }
+            Ok(accumulator.finish(candidate.action.clone()))
+        })
+        .collect::<Result<Vec<_>>>()?;
     let selected_action_id = estimates
         .iter()
         .max_by(|left, right| {
@@ -1213,6 +1332,176 @@ mod tests {
         assert!(
             found_case,
             "expected at least one sampled decision where the oracle best sits outside the legacy position limit"
+        );
+    }
+
+    // --- dense-table reuse correctness (Phase 3B: dedup + parallelism) ---
+
+    fn shop_environment() -> GameEnvironment {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        assert_eq!(
+            environment.decision_point(),
+            crate::environment::DecisionPoint::Shop
+        );
+        environment
+    }
+
+    /// A: `prepare_semantic_candidates`'s baseline action (computed from a
+    /// table it builds itself) must exactly equal the standalone
+    /// `canonical_scripted_semantic_action` helper's - reusing the table for
+    /// the teacher's candidate ranking must never change what the canonical
+    /// baseline picks.
+    #[test]
+    fn reused_dense_table_baseline_matches_standalone_canonical_helper() {
+        let states: Vec<(&str, GameEnvironment)> = vec![
+            ("ordinary build tower", card_decision_environment(0)),
+            ("extra tower card = 1", extra_tower_cards_environment(1)),
+            ("extra tower card = 2", extra_tower_cards_environment(2)),
+            ("shop", shop_environment()),
+        ];
+        for (label, environment) in states {
+            let standalone = canonical_scripted_semantic_action(&environment)
+                .unwrap_or_else(|error| panic!("{label}: standalone helper failed: {error}"));
+            let prepared = prepare_semantic_candidates(&environment, None)
+                .unwrap_or_else(|error| panic!("{label}: prepare_semantic_candidates failed: {error}"));
+            assert_eq!(
+                prepared.baseline_action, standalone,
+                "{label}: reused-table baseline must match the standalone canonical helper"
+            );
+        }
+    }
+
+    /// B: `PreparedSemanticCandidates::candidates_for_limit`'s `BuildTower`
+    /// portion (built from one shared, prefix-sliced ranking) must contain
+    /// exactly the same action IDs as calling `dense_semantic_candidates`
+    /// (which computes its own table) at that same limit - across ordinary
+    /// `BuildTower`, extra-tower-card, and Shop (reroll-eligible) states.
+    #[test]
+    fn reused_candidate_preparation_top_k_matches_dense_semantic_candidates() {
+        fn build_tower_ids(candidates: &[LegalAction]) -> std::collections::BTreeSet<String> {
+            candidates
+                .iter()
+                .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
+                .map(|candidate| candidate.id.clone())
+                .collect()
+        }
+
+        let states: Vec<(&str, GameEnvironment)> = vec![
+            ("ordinary build tower", card_decision_environment(0)),
+            ("extra tower card = 1", extra_tower_cards_environment(1)),
+            ("extra tower card = 2", extra_tower_cards_environment(2)),
+            ("shop", shop_environment()),
+        ];
+        for (label, environment) in states {
+            for limit in [Some(1usize), Some(8), None] {
+                let expected = build_tower_ids(&dense_semantic_candidates(&environment, limit));
+                let prepared = prepare_semantic_candidates(&environment, limit)
+                    .unwrap_or_else(|error| panic!("{label} limit {limit:?}: prepare failed: {error}"));
+                let actual = build_tower_ids(&prepared.candidates_for_limit(limit));
+                assert_eq!(
+                    actual, expected,
+                    "{label} limit {limit:?}: reused top-K BuildTower action IDs must match \
+                     dense_semantic_candidates"
+                );
+            }
+        }
+    }
+
+    /// C: candidate-level Rayon parallelization inside
+    /// `evaluate_semantic_candidate_set_with_baseline` must not change any
+    /// evaluated statistic or the candidate ordering: compares against a
+    /// reference sequential evaluation (the same accumulation loop, just not
+    /// run through `par_iter`) for exact equality on every reported field.
+    #[test]
+    fn parallel_candidate_evaluation_matches_sequential_reference() {
+        fn sequential_reference(
+            environment: &GameEnvironment,
+            candidates: &[LegalAction],
+            config: &RolloutTeacherConfig,
+        ) -> Vec<RolloutCandidateEstimate> {
+            candidates
+                .iter()
+                .map(|candidate| {
+                    let mut accumulator = EstimateAccumulator::default();
+                    for &scenario_seed in &config.scenario_seeds {
+                        let sample =
+                            evaluate_candidate_scenario(environment, candidate, scenario_seed, config)
+                                .expect("reference scenario evaluation should succeed");
+                        accumulator.record(
+                            sample.score,
+                            sample.victory,
+                            sample.clear_rate,
+                            sample.final_stage,
+                        );
+                    }
+                    accumulator.finish(candidate.action.clone())
+                })
+                .collect()
+        }
+
+        let environment = card_decision_environment(1);
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![10, 11],
+            horizon_decisions: 1,
+            build_tower_rollout_limit: Some(3),
+        };
+        let candidates = dense_semantic_candidates(&environment, config.build_tower_rollout_limit);
+        let baseline_action = canonical_scripted_semantic_action(&environment)
+            .expect("baseline should be available");
+
+        let parallel = evaluate_semantic_candidate_set_with_baseline(
+            &environment,
+            &candidates,
+            baseline_action.clone(),
+            &config,
+        )
+        .expect("parallel evaluation should succeed");
+
+        // Reference set mirrors evaluate_semantic_candidate_set_with_baseline's
+        // baseline-inclusion/dedup step so the two candidate lists line up
+        // exactly before comparing per-candidate statistics.
+        let mut reference_candidates = candidates.clone();
+        let baseline_action_id = baseline_action.action_id();
+        if !reference_candidates
+            .iter()
+            .any(|candidate| candidate.id == baseline_action_id)
+        {
+            reference_candidates.push(LegalAction {
+                id: baseline_action_id.clone(),
+                action: baseline_action,
+            });
+        }
+        let mut seen = std::collections::HashSet::new();
+        reference_candidates.retain(|candidate| seen.insert(candidate.id.clone()));
+        let reference_estimates = sequential_reference(&environment, &reference_candidates, &config);
+
+        assert_eq!(
+            parallel.candidates, reference_estimates,
+            "parallel candidate evaluation must match sequential reference exactly \
+             (order, mean, variance, standard error, action identity)"
+        );
+        assert_eq!(parallel.selected_action_id, {
+            reference_estimates
+                .iter()
+                .max_by(|left, right| {
+                    left.mean_score
+                        .total_cmp(&right.mean_score)
+                        .then_with(|| right.action_id.cmp(&left.action_id))
+                })
+                .expect("reference estimates are non-empty")
+                .action_id
+                .clone()
+        });
+        assert_eq!(parallel.baseline_action_id, baseline_action_id);
+        let reference_baseline_mean = reference_estimates
+            .iter()
+            .find(|candidate| candidate.action_id == baseline_action_id)
+            .expect("baseline estimate must be present")
+            .mean_score;
+        assert_eq!(parallel.baseline_mean_score, reference_baseline_mean);
+        assert_eq!(
+            parallel.expert_regret,
+            parallel.selected_mean_score - reference_baseline_mean
         );
     }
 

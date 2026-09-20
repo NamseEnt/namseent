@@ -955,17 +955,35 @@ pub(crate) fn best_build_tower_action_by_heuristic(
 /// `scripted_expert_action(&environment.snapshot(), &environment.legal_actions())`.
 pub fn canonical_scripted_semantic_action(environment: &GameEnvironment) -> Result<AgentAction> {
     let observation = environment.snapshot();
-    let mut legal_actions = environment.semantic_non_build_actions();
     if environment.semantic_card_decision_available() {
         let table = crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
-        if let Some(best) = table.best_action() {
-            legal_actions.push(LegalAction {
-                id: best.action_id(),
-                action: best,
-            });
-        }
+        return canonical_scripted_semantic_action_from_table(environment, &observation, &table);
     }
-    scripted_expert_action(&observation, &legal_actions)
+    scripted_expert_action(&observation, &environment.semantic_non_build_actions())
+}
+
+/// Same semantics as [`canonical_scripted_semantic_action`], for a caller
+/// that already computed `table` (a `DenseBuildTowerScoreTable`) for this
+/// exact `environment`/`observation` state and wants to avoid a second,
+/// redundant `DenseBuildTowerScoreTable::compute` (e.g. the production
+/// teacher's top-K ranking and canonical baseline are the same state - see
+/// `teacher::evaluate_semantic_candidates`). Only valid to call when
+/// `environment.semantic_card_decision_available()` is true; callers that
+/// already branched on that (as `canonical_scripted_semantic_action` does)
+/// can call this directly instead of recomputing the table.
+pub(crate) fn canonical_scripted_semantic_action_from_table(
+    environment: &GameEnvironment,
+    observation: &Observation,
+    table: &crate::joint_action::DenseBuildTowerScoreTable,
+) -> Result<AgentAction> {
+    let mut legal_actions = environment.semantic_non_build_actions();
+    if let Some(best) = table.best_action() {
+        legal_actions.push(LegalAction {
+            id: best.action_id(),
+            action: best,
+        });
+    }
+    scripted_expert_action(observation, &legal_actions)
 }
 
 pub fn scripted_expert_action(

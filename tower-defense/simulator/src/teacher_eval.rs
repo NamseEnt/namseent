@@ -20,8 +20,9 @@ use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use crate::policy_runner::canonical_scripted_semantic_action;
 use crate::teacher::{
-    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION, evaluate_semantic_candidates,
-    run_semantic_teacher_episode, scenario_seed_digest, settle_forced_actions,
+    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION, evaluate_semantic_candidate_set_with_baseline,
+    prepare_semantic_candidates, run_semantic_teacher_episode, scenario_seed_digest,
+    settle_forced_actions,
 };
 
 /// A "large regret" threshold fixed before any stability results are seen -
@@ -242,6 +243,15 @@ pub fn run_stability_grid(
             }
             let state_hash = environment.state_hash();
             let decision_point = format!("{:?}", environment.decision_point());
+            // Dense `BuildTower` ranking and the canonical baseline action
+            // depend only on this (unmutated) state, never on
+            // scenario_count/horizon_decisions/build_tower_rollout_limit -
+            // prepared once per state and reused (sliced per
+            // build_tower_rollout_limit) across every config combination
+            // below, instead of recomputing a full
+            // `DenseBuildTowerScoreTable` per combination.
+            let prepared =
+                prepare_semantic_candidates(&environment, reference_build_tower_rollout_limit)?;
             for &scenario_count in &grid.scenario_counts {
                 let scenario_seeds = (grid.scenario_seed_start
                     ..grid.scenario_seed_start.saturating_add(scenario_count as u64))
@@ -253,8 +263,14 @@ pub fn run_stability_grid(
                             horizon_decisions,
                             build_tower_rollout_limit,
                         };
+                        let candidates = prepared.candidates_for_limit(build_tower_rollout_limit);
                         let start = Instant::now();
-                        let decision = evaluate_semantic_candidates(&environment, &config)?;
+                        let decision = evaluate_semantic_candidate_set_with_baseline(
+                            &environment,
+                            &candidates,
+                            prepared.baseline_action.clone(),
+                            &config,
+                        )?;
                         let elapsed_seconds = start.elapsed().as_secs_f64();
                         let mut sorted_scores = decision
                             .candidates
@@ -586,20 +602,17 @@ mod tests {
         );
     }
 
-    /// Every `evaluate_semantic_candidates` call recomputes a full
-    /// `DenseBuildTowerScoreTable` for the candidate set *and* a second one
-    /// for the canonical baseline (see `canonical_scripted_semantic_action`),
-    /// so even this grid's smallest possible shape (1 seed, 1 state, 2
-    /// combos, evaluated twice for a determinism check = 4 calls) costs
-    /// several full-table computations in an unoptimized debug build -
-    /// multi-minute wall time, unsuitable for a `cargo test` regression run.
-    /// Manual release-mode benchmark only, matching this crate's existing
-    /// `#[ignore]` convention for heavy diagnostics (see
-    /// `teacher::tests::dense_candidate_migration_benchmark`); real stability
-    /// grids are a release-mode `teacher-eval` CLI run, not a unit test - see
+    /// `run_stability_grid` now shares one `DenseBuildTowerScoreTable`
+    /// (`prepare_semantic_candidates`) across every scenario/horizon/limit
+    /// combination at a given state, but each candidate's rollout scenarios
+    /// still run real fixed-horizon simulation - a full stability grid over
+    /// a meaningful seed/state range is still a release-mode
+    /// `teacher-eval` CLI run, not a unit test. Kept `#[ignore]`, matching
+    /// this crate's existing convention for heavy diagnostics (see
+    /// `teacher::tests::dense_candidate_migration_benchmark`) - see
     /// docs/game-ai/05-rollout-teacher.md's "Stability evaluation harness".
     #[test]
-    #[ignore = "several full DenseBuildTowerScoreTable computations even at minimum grid size; run in release mode: cargo test --release -- --ignored stability_grid_is_deterministic_and_covers_every_config"]
+    #[ignore = "real fixed-horizon rollout simulation per candidate; run in release mode: cargo test --release -- --ignored stability_grid_is_deterministic_and_covers_every_config"]
     fn stability_grid_is_deterministic_and_covers_every_config() {
         let grid = StabilityGridConfig {
             seed_start: 0,
@@ -638,7 +651,17 @@ mod tests {
         }
     }
 
+    /// A rollout-teacher episode's decisions vary widely in cost - some
+    /// early-game states have dozens of legal `Reroll` card-subset actions
+    /// (independent of `build_tower_rollout_limit`, which only bounds the
+    /// `BuildTower` portion), each requiring its own fixed-horizon rollout -
+    /// so a handful of real teacher decisions can cost tens of seconds even
+    /// in an optimized debug build. Manual/release-mode check only, matching
+    /// this crate's `#[ignore]` convention for heavy diagnostics (see
+    /// `stability_grid_is_deterministic_and_covers_every_config`); smoke-run
+    /// via the `teacher-eval --run-paired-full-game` CLI instead.
     #[test]
+    #[ignore = "real rollout-teacher episode decisions can each cost tens of seconds in debug; run in release mode: cargo test --release -- --ignored paired_full_game_uses_identical_seed_lists"]
     fn paired_full_game_uses_identical_seed_lists() {
         let seeds = vec![0u64, 1];
         let teacher_config = RolloutTeacherConfig {
