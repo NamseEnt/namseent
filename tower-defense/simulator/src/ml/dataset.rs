@@ -47,8 +47,7 @@ pub struct TeacherDatasetMetadata {
     pub scenario_seed_digest: String,
     pub scenario_count: usize,
     pub horizon_decisions: usize,
-    pub position_candidate_limit: Option<usize>,
-    pub candidate_limit: Option<usize>,
+    pub build_tower_rollout_limit: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -127,8 +126,7 @@ pub fn collect_semantic_rollout_teacher_behavior_dataset(
         scenario_seed_digest: scenario_seed_digest(&teacher_config.scenario_seeds),
         scenario_count: teacher_config.scenario_seeds.len(),
         horizon_decisions: teacher_config.horizon_decisions,
-        position_candidate_limit: teacher_config.position_candidate_limit,
-        candidate_limit: teacher_config.candidate_limit,
+        build_tower_rollout_limit: teacher_config.build_tower_rollout_limit,
     };
     let mut dataset = collect_behavior_dataset_with_runner(
         config,

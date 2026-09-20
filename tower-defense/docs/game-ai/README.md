@@ -29,7 +29,7 @@
 | [`00-goals-and-acceptance.md`](00-goals-and-acceptance.md) | 목표, 비목표, 전체 승인 기준 | Accepted |
 | [`01-current-system-baseline.md`](01-current-system-baseline.md) | 현재 구현과 측정 기준 | Draft |
 | [`02-action-contract.md`](02-action-contract.md) | semantic action과 joint build-placement 계약 | Accepted design |
-| [`03-observation-contract.md`](03-observation-contract.md) | 정책과 teacher가 사용하는 상태 정보 | Implemented |
+| [`03-observation-contract.md`](03-observation-contract.md) | 정책과 teacher가 사용하는 상태 정보 | Verified |
 | [`04-simulator-performance.md`](04-simulator-performance.md) | 시뮬레이터 프로파일링과 최적화 계획 | Accepted plan |
 | [`05-rollout-teacher.md`](05-rollout-teacher.md) | non-cheating rollout teacher | Implemented (minimum) |
 | [`06-dataset-and-distillation.md`](06-dataset-and-distillation.md) | teacher dataset과 빠른 정책 압축 | Proposed |
@@ -119,11 +119,11 @@ cargo run --release --manifest-path simulator/Cargo.toml -- teacher \
   --max-decisions 8 \
   --scenario-count 4 \
   --horizon-decisions 4 \
-  --position-candidate-limit 32 \
+  --build-tower-rollout-limit 32 \
   --output artifacts/teacher/seed-0.json
 ```
 
-이 명령은 semantic candidate를 동일 scenario seed로 평가하고, 결과의 평균 score, variance, standard error, 승리 수와 선택 action을 JSON으로 저장한다. 현재는 scripted continuation과 고정 decision horizon만 제공하며, teacher가 기존 heuristic보다 강한지 확인하기 전까지 learned value나 반복 policy improvement는 추가하지 않는다.
+이 명령은 semantic candidate를 동일 scenario seed로 평가하고, 결과의 평균 score, variance, standard error, 승리 수와 선택 action을 JSON으로 저장한다. baseline action은 `canonical_scripted_semantic_action`으로 결정되며 항상 후보 집합에 포함되어 `baseline_action_id`/`baseline_mean_score`/`expert_regret`가 항상 채워진다. 현재는 canonical scripted continuation과 고정 decision horizon만 제공하며, teacher가 기존 heuristic보다 강한지 확인하기 전까지 learned value나 반복 policy improvement는 추가하지 않는다.
 
 teacher-selected macro-action을 distillation dataset으로 저장하려면 다음 경로를 사용한다.
 
@@ -131,11 +131,13 @@ teacher-selected macro-action을 distillation dataset으로 저장하려면 다�
 cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml collect-teacher \
   --seed-start 0 --seed-end 3 \
   --max-decisions 64 --scenario-count 16 --horizon-decisions 8 \
-  --position-candidate-limit 32 --candidate-limit 64 \
+  --build-tower-rollout-limit 64 \
   --output artifacts/datasets/semantic-teacher.jsonl
 ```
 
 이 dataset은 semantic macro-action trajectory만 포함하며, teacher rollout의 future sample은 관측에 저장하지 않는다.
+
+label 안정성과 비용을 scenario/horizon/build-tower rollout budget 축으로 비교하려면 `teacher-eval` 명령을 사용한다([`05-rollout-teacher.md`](05-rollout-teacher.md)의 "Stability evaluation harness" 참고). 이 harness와 그 paired full-game API는 진단 도구이며, 실제 held-out full-game strength gate는 별도 후속 작업이다.
 
 성공하기 전에는 tree search, learned value bootstrap, 반복 policy improvement를 추가하지 않는다.
 

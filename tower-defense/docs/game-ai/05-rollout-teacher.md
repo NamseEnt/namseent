@@ -24,11 +24,19 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 이 값은 확정된 기본값이 아니다. simulator 처리량 측정과 label 안정성 실험으로 정한다.
 
-현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 scripted continuation을 실행한다. report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `candidate_limit`을 지정하면 semantic proposal 중 `candidate_limit`개만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다. 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_decisions` 동안 canonical continuation을 실행한다(아래 "Continuation policy" 참고). report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `build_tower_rollout_limit`을 지정하면 `dense_semantic_candidates`가 `DenseBuildTowerScoreTable`의 전체 map 랭킹에서 상위 `build_tower_rollout_limit`개의 `BuildTower` action만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다(`Reroll`/shop/inventory/treasure 같은 non-`BuildTower` action은 이 한도와 무관하게 항상 전부 포함된다). 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
 
-`candidate_limit`은 단순 앞부분 truncate가 아니라 `select_candidates_fairly`로 선택한다. `phase2_candidate_limit_bias_report`(`simulator/src/teacher.rs`, `cargo test --release -- --ignored phase2_candidate_limit_bias_report`)로 측정한 결과, 단순 truncate는 card subset의 97%(limit 64 기준)를 완전히 배제했고 이 배제가 hand slot index 기반 생성 순서와 체계적으로 상관되어 있었다(뒤쪽 subset은 limit 1024에서도 여전히 대부분 배제). `PurchaseShopItem`/`UseInventoryItem`도 항상 card action 뒤에 생성되어 limit 2048 미만에서는 한 번도 살아남지 못했다. 이 truncate 방식에서 oracle 순위 1위 후보의 exact-best 보존율은 limit 1024까지 0%였다. `select_candidates_fairly`는 각 card subset(및 그 외 action)을 하나의 block으로 유지한 채, block의 순서만 hand slot 생성 순서와 무관한 키(card id 합)로 재배열한다. 같은 벤치마크에서 exact-best 보존율이 limit 128에서 60%, limit 512 이상에서 100%로 개선되었고 coverage regret은 limit 128 이상에서 0으로 측정되었다. 후보 수가 늘어난 만큼 rollout 비용도 대략 선형으로 늘어난다(release 측정: limit 64→256에서 벽시계 시간 약 3.3배).
+### Legacy candidate confound (해소됨)
 
-`candidate_limit=64`에서도 exact-best 보존율이 34%에 그치고 100%를 얻으려면 ≈512가 필요하다는 점, 그리고 rollout 비용이 후보 수에 선형으로 붙는다는 점은 quality와 throughput이 구조적으로 trade-off 관계에 있음을 보여준다. 이 flattened candidate list 표현 자체를 [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md)에서 재검토했으며, vectorized joint scorer로 교체할 것을 권고했다([`decisions/0008-vectorized-joint-action-scoring.md`](decisions/0008-vectorized-joint-action-scoring.md)). 이 절의 내용은 그 마이그레이션 전까지의 baseline/regression 근거로 유지한다.
+과거 production teacher candidate 경로는 `dense_semantic_candidates`(전체 map 기준 dense `BuildTower` 랭킹)를 사용하면서도, `evaluate_semantic_candidate_set`의 baseline action과 rollout continuation은 여전히 `semantic_legal_actions_with_position_limit(position_candidate_limit)`(위치 제한이 걸린 legacy proposal)에서 나왔다. 즉 teacher candidate는 전체 map 기준인데 baseline/continuation은 제한된 proposal 기준이어서, 측정된 "teacher가 baseline보다 낫다"는 개선폭이 실제 rollout 품질이 아니라 candidate 표현 방식 차이(artifact)일 수 있었다.
+
+이 confound은 `policy_runner::canonical_scripted_semantic_action`을 도입해 해소했다. 이 함수는 baseline과 continuation 모두에 쓰이는 유일한 canonical heuristic이며, `semantic_legal_actions_with_position_limit`을 전혀 사용하지 않는다: semantic card decision이 가능하면 `GameEnvironment::semantic_non_build_actions`(모든 non-`BuildTower` action, pruning 없음)에 `DenseBuildTowerScoreTable::best_action()`(전체 map 기준 global-best `BuildTower` action 단 하나)을 더해 `scripted_expert_action`에 넘긴다. card decision이 불가능한 상태(예: 잔여 `TowerPlacement`)에서는 `semantic_non_build_actions`가 이미 전체 legal action set으로 fallback하므로 그대로 사용한다.
+
+legacy `position_candidate_limit`은 프로덕션 teacher 계약에서 완전히 제거되었다 - `RolloutTeacherConfig`, teacher CLI, teacher dataset collector 어디에도 남아 있지 않다. 남은 곳은 `simulator/src/teacher.rs`의 `#[cfg(test)]` 전용 legacy diagnostic 벤치마크(`phase1_candidate_recall_report`, `phase2_candidate_limit_bias_report`, `dense_candidate_migration_benchmark`)뿐이며, 이들은 historical evidence로만 유지한다.
+
+`candidate_limit`은 단순 앞부분 truncate가 아니라 `select_candidates_fairly`로 선택했다(legacy). `phase2_candidate_limit_bias_report`(`simulator/src/teacher.rs`, `cargo test --release -- --ignored phase2_candidate_limit_bias_report`)로 측정한 결과, 단순 truncate는 card subset의 97%(limit 64 기준)를 완전히 배제했고 이 배제가 hand slot index 기반 생성 순서와 체계적으로 상관되어 있었다(뒤쪽 subset은 limit 1024에서도 여전히 대부분 배제). `PurchaseShopItem`/`UseInventoryItem`도 항상 card action 뒤에 생성되어 limit 2048 미만에서는 한 번도 살아남지 못했다. 이 truncate 방식에서 oracle 순위 1위 후보의 exact-best 보존율은 limit 1024까지 0%였다. `select_candidates_fairly`는 각 card subset(및 그 외 action)을 하나의 block으로 유지한 채, block의 순서만 hand slot 생성 순서와 무관한 키(card id 합)로 재배열한다. 같은 벤치마크에서 exact-best 보존율이 limit 128에서 60%, limit 512 이상에서 100%로 개선되었고 coverage regret은 limit 128 이상에서 0으로 측정되었다. 후보 수가 늘어난 만큼 rollout 비용도 대략 선형으로 늘어난다(release 측정: limit 64→256에서 벽시계 시간 약 3.3배).
+
+`candidate_limit=64`에서도 exact-best 보존율이 34%에 그치고 100%를 얻으려면 ≈512가 필요하다는 점, 그리고 rollout 비용이 후보 수에 선형으로 붙는다는 점은 quality와 throughput이 구조적으로 trade-off 관계에 있음을 보여준다. 이 flattened candidate list 표현 자체를 [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md)에서 재검토했으며, vectorized joint scorer로 교체할 것을 권고했다([`decisions/0008-vectorized-joint-action-scoring.md`](decisions/0008-vectorized-joint-action-scoring.md)). 이 절의 flattened-candidate-bias 수치는 legacy 경로에 대한 historical evidence로 유지한다 - 현재 production candidate 표현은 `dense_semantic_candidates`(dense 전체 map `BuildTower` top-K + 모든 non-`BuildTower` action)다.
 
 현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
 
@@ -74,23 +82,19 @@ full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다
 
 후보 적용 후 horizon까지 사용할 continuation policy도 teacher 계약의 일부다.
 
-초기에는 다음 중 재현 가능하고 가장 강한 하나를 baseline으로 고정한다.
+현재 production continuation policy는 `policy_runner::canonical_scripted_semantic_action` 하나로 고정되어 있다. 모든 후보가 첫 action 이후 `horizon_decisions`가 끝날 때까지 매 decision마다 이 동일한 canonical heuristic으로 continuation을 진행하며, 후보마다 다른 continuation policy를 사용하지 않는다. legacy position-limited proposal, 후보별로 다른 policy, teacher 자신의 재귀적 선택, MCTS, learned value bootstrap, learned policy continuation은 사용하지 않는다. policy가 개선되면 teacher dataset version도 변경한다.
 
-- 개선된 deterministic heuristic
-- 현재 distilled policy
-- 제한된 추가 rollout decision
+## Baseline과 Expert regret
 
-후보마다 다른 continuation policy를 사용하지 않는다. policy가 개선되면 teacher dataset version도 변경한다.
-
-## Expert regret
-
-기존 expert의 품질은 imitation accuracy가 아니라 regret으로 측정한다.
+기존 expert(baseline)의 품질은 imitation accuracy가 아니라 regret으로 측정한다.
 
 ```text
 regret(state)
   = estimated_value(best_candidate)
-  - estimated_value(expert_candidate)
+  - estimated_value(baseline_action)
 ```
+
+baseline action은 매 decision마다 `canonical_scripted_semantic_action(environment)`으로 결정되며, teacher candidate set에 포함되어 있지 않으면 명시적으로 추가한 뒤 action identity로 dedup한다. baseline과 모든 teacher candidate는 정확히 동일한 `config.scenario_seeds` 스케줄과 동일한 continuation policy로 평가된다 - baseline만 다른(더 적은 또는 다른) scenario 집합으로 평가되는 경우는 없다. 이 계약 덕분에 `RolloutTeacherDecision`의 `baseline_action_id`/`baseline_mean_score`/`expert_regret`는 항상(옵션이 아니라) 채워진다.
 
 action type별 regret, 큰 regret state의 비율, catastrophic choice 예시를 기록한다. 기존 heuristic이 자주 틀리는 decision point부터 teacher dataset을 집중 생성할 수 있다.
 
@@ -102,11 +106,39 @@ teacher가 선택한 macro-action을 기존 UI micro-action trajectory와 섞지
 cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml collect-teacher \
   --seed-start 0 --seed-end 3 \
   --max-decisions 64 --scenario-count 16 --horizon-decisions 8 \
-  --position-candidate-limit 32 --candidate-limit 64 \
+  --build-tower-rollout-limit 64 \
   --output artifacts/datasets/semantic-teacher.jsonl
 ```
 
-dataset observation에는 현재 state와 legal macro candidates만 저장한다. candidate rollout의 future result는 label 생성에만 사용하고 observation feature로 저장하지 않는다. `candidate-limit`은 teacher strength를 제한하므로 production dataset에서는 recall과 held-out full-clear 승률을 함께 검증한다.
+dataset observation에는 현재 state와 legal macro candidates만 저장한다. candidate rollout의 future result는 label 생성에만 사용하고 observation feature로 저장하지 않는다. `--build-tower-rollout-limit`은 teacher strength를 제한하므로 production dataset에서는 recall과 held-out full-clear 승률을 함께 검증한다.
+
+## Stability evaluation harness (`teacher-eval`)
+
+`td-simulator teacher-eval` (`simulator/src/teacher_eval.rs`)은 서로 다른 scenario count/horizon/`build_tower_rollout_limit` 설정에서 label이 얼마나 안정적인지, 그리고 비용이 얼마나 늘어나는지 비교하는 Phase 3 harness다. 이 harness는 teacher를 "충분히 강하다"고 승인하지 않는다 - 실제 held-out full-game strength gate는 별도 후속 작업이다.
+
+development state corpus는 **teacher가 선택한 action이 아니라 canonical baseline trajectory**(`canonical_scripted_semantic_action`)를 따라 생성한다. teacher의 선택으로 corpus를 만들면 방문하는 state 자체가 평가 대상 config에 의존하게 되어 안정성 비교가 오염되기 때문이다. 각 baseline state에서 환경을 변형하지 않고 grid의 모든 config(`scenario_counts x horizon_decisions x build_tower_rollout_limits`)를 평가한 뒤에만, 실제 environment를 canonical baseline action으로 한 스텝 전진시킨다.
+
+scenario count N에 대한 seed schedule은 항상 `scenario_seed_start .. scenario_seed_start + N` prefix다(nested common-random-number schedule, 예: 2 -> `[0,1]`, 4 -> `[0,1,2,3]`). "reference setting"은 grid에서 가장 큰 `scenario_count`, 가장 큰 `horizon_decisions`, 가장 큰 `build_tower_rollout_limit`(`None`/unlimited가 가장 큼) 조합이며, "ground truth"가 아니라 안정성 비교의 기준점일 뿐이다.
+
+state/config 레벌 record에는 최소한 seed, decision_index, state_hash, decision_point, scenario_count, horizon_decisions, build_tower_rollout_limit, candidate_count, selected_action_id, baseline_action_id, selected/baseline mean score, expert_regret, selected/baseline standard error, elapsed_seconds, score_margin(가능한 경우)이 포함된다. aggregate report는 reference 대비 agreement rate, decision_point별 agreement, mean/median regret, positive-regret 비율, large-regret 비율, 평균 candidate 수, decision당 평균 wall time, 총 scenario rollout 수를 포함한다. "large regret" 임계값은 실험 전에 `LARGE_REGRET_THRESHOLD = 0.05`로 고정하고 report metadata에 기록하며, 결과를 보고 사후에 조정하지 않는다.
+
+## Paired full-game evaluation (foundation)
+
+같은 `teacher-eval` 모듈은 canonical baseline과 rollout teacher를 동일한 gameplay seed 목록에서 비교하는 paired full-game API(`run_paired_full_game_evaluation`)도 제공한다. seed별로 baseline/teacher의 victory, clear rate, final stage, decision count를 기록하고, aggregate로 각각의 full-clear rate, teacher-win/baseline-loss와 baseline-win/teacher-loss 수, 평균 clear-rate/최종 stage 차이를 계산한다. 이 API는 현재 smoke 규모로만 실행하며, 그 결과로 teacher 강도를 승인하지 않는다 - 실제 held-out validation은 더 큰 규모로 후속 진행한다.
+
+CLI 예시:
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- teacher-eval \
+  --seed-start 0 --seed-end 3 \
+  --max-decisions 64 --state-limit-per-seed 8 \
+  --scenario-seed-start 1000 \
+  --scenario-counts 2,4 --horizons 2,4 --build-tower-rollout-limits 8,16 \
+  --run-paired-full-game --paired-seed-start 0 --paired-seed-end 1 --paired-max-decisions 128 \
+  --output artifacts/teacher-eval/smoke.json
+```
+
+report는 provenance로 teacher score/observation/action schema version, config digest, RNG algorithm version, seed range digest, scenario schedule, grid 값, decision/state 제한을 함께 기록한다.
 
 ## 확장 조건
 

@@ -2,14 +2,22 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::environment::{
-    AgentAction, DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT, GameEnvironment, LegalAction,
-    StepOutcome,
-};
+#[cfg(test)]
+use crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT;
+use crate::environment::{AgentAction, GameEnvironment, LegalAction, StepOutcome};
 use crate::joint_action::DenseBuildTowerScoreTable;
+use crate::policy_runner::canonical_scripted_semantic_action;
+#[cfg(test)]
 use crate::policy_runner::scripted_expert_action;
 
-pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 1;
+/// Bumped 1 -> 2: the baseline/regret contract changed from "baseline may be
+/// absent from the candidate set" (`Option` fields) to "baseline is always
+/// evaluated with the identical rollout and always present" (non-`Option`
+/// fields), and the production candidate/continuation contract dropped the
+/// legacy `position_candidate_limit` confound (see
+/// docs/game-ai/05-rollout-teacher.md). Serialized `RolloutTeacherDecision`
+/// values from schema version 1 are not compatible with this version.
+pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 2;
 pub const DEFAULT_TEACHER_HORIZON_DECISIONS: usize = 8;
 pub const DEFAULT_TEACHER_SCENARIO_COUNT: usize = 16;
 
@@ -17,9 +25,12 @@ pub const DEFAULT_TEACHER_SCENARIO_COUNT: usize = 16;
 pub struct RolloutTeacherConfig {
     pub scenario_seeds: Vec<u64>,
     pub horizon_decisions: usize,
-    pub position_candidate_limit: Option<usize>,
-    #[serde(default)]
-    pub candidate_limit: Option<usize>,
+    /// How many top-ranked `BuildTower` actions (by
+    /// `DenseBuildTowerScoreTable`'s global ranking) to roll out per
+    /// decision; every non-`BuildTower` semantic action is always included
+    /// regardless of this limit (see `dense_semantic_candidates`). `None`
+    /// rolls out every legal `BuildTower` action.
+    pub build_tower_rollout_limit: Option<usize>,
 }
 
 impl Default for RolloutTeacherConfig {
@@ -27,8 +38,7 @@ impl Default for RolloutTeacherConfig {
         Self {
             scenario_seeds: (0..DEFAULT_TEACHER_SCENARIO_COUNT as u64).collect(),
             horizon_decisions: DEFAULT_TEACHER_HORIZON_DECISIONS,
-            position_candidate_limit: Some(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT),
-            candidate_limit: None,
+            build_tower_rollout_limit: None,
         }
     }
 }
@@ -56,9 +66,9 @@ pub struct RolloutTeacherDecision {
     pub candidate_count: usize,
     pub selected_action_id: String,
     pub selected_mean_score: f32,
-    pub baseline_action_id: Option<String>,
-    pub baseline_mean_score: Option<f32>,
-    pub expert_regret: Option<f32>,
+    pub baseline_action_id: String,
+    pub baseline_mean_score: f32,
+    pub expert_regret: f32,
     pub candidates: Vec<RolloutCandidateEstimate>,
 }
 
@@ -239,10 +249,20 @@ pub fn evaluate_semantic_candidates(
     environment: &GameEnvironment,
     config: &RolloutTeacherConfig,
 ) -> Result<RolloutTeacherDecision> {
-    let candidates = dense_semantic_candidates(environment, config.candidate_limit);
+    let candidates = dense_semantic_candidates(environment, config.build_tower_rollout_limit);
     evaluate_semantic_candidate_set(environment, &candidates, config)
 }
 
+/// Evaluates `candidates` plus the canonical heuristic baseline action
+/// (`canonical_scripted_semantic_action`) under an identical scenario/
+/// continuation contract, so `baseline_mean_score`/`expert_regret` are
+/// always populated - never a candidate-representation artifact of the
+/// caller's `candidates` set being smaller than the full legal action space.
+/// If the baseline action is not already present in `candidates` (by action
+/// identity, i.e. `LegalAction::id`), it is added before evaluation; either
+/// way every candidate (including the baseline) is evaluated with the same
+/// `config.scenario_seeds` schedule and the same canonical continuation
+/// policy.
 pub fn evaluate_semantic_candidate_set(
     environment: &GameEnvironment,
     candidates: &[LegalAction],
@@ -261,10 +281,10 @@ pub fn evaluate_semantic_candidate_set(
     // see `GameEnvironment::semantic_action_is_legal`) rather than by
     // membership in a position-limited enumeration: dense `BuildTower`
     // candidates (`dense_semantic_candidates`) are ranked over the full
-    // map, not just `position_candidate_limit`'s nearest positions, and
-    // materializing the full legal-action list here just to check
-    // membership would reintroduce the O(subset x position) allocation
-    // this module's dense path exists to avoid.
+    // map, not just a position-limited window, and materializing the full
+    // legal-action list here just to check membership would reintroduce the
+    // O(subset x position) allocation this module's dense path exists to
+    // avoid.
     if candidates
         .iter()
         .any(|candidate| !environment.semantic_action_is_legal(&candidate.action))
@@ -272,12 +292,24 @@ pub fn evaluate_semantic_candidate_set(
         bail!("rollout teacher candidate is not legal in the source environment");
     }
     let observation = environment.snapshot();
-    let legal_actions =
-        environment.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
-    let baseline_action = scripted_expert_action(&observation, &legal_actions)?;
+    let baseline_action = canonical_scripted_semantic_action(environment)?;
+    let baseline_action_id = baseline_action.action_id();
 
-    let mut estimates = Vec::with_capacity(candidates.len());
-    for candidate in candidates {
+    let mut all_candidates = candidates.to_vec();
+    if !all_candidates
+        .iter()
+        .any(|candidate| candidate.id == baseline_action_id)
+    {
+        all_candidates.push(LegalAction {
+            id: baseline_action_id.clone(),
+            action: baseline_action,
+        });
+    }
+    let mut seen_ids = std::collections::HashSet::with_capacity(all_candidates.len());
+    all_candidates.retain(|candidate| seen_ids.insert(candidate.id.clone()));
+
+    let mut estimates = Vec::with_capacity(all_candidates.len());
+    for candidate in &all_candidates {
         let mut accumulator = EstimateAccumulator::default();
         for &scenario_seed in &config.scenario_seeds {
             let sample =
@@ -306,11 +338,11 @@ pub fn evaluate_semantic_candidate_set(
         .find(|candidate| candidate.action_id == selected_action_id)
         .expect("selected teacher action must have an estimate")
         .mean_score;
-    let baseline_action_id = baseline_action.action_id();
     let baseline_mean_score = estimates
         .iter()
         .find(|candidate| candidate.action_id == baseline_action_id)
-        .map(|candidate| candidate.mean_score);
+        .expect("baseline action is always added to the evaluated candidate set")
+        .mean_score;
     Ok(RolloutTeacherDecision {
         score_schema_version: TEACHER_SCORE_SCHEMA_VERSION,
         state_hash: environment.state_hash(),
@@ -320,9 +352,9 @@ pub fn evaluate_semantic_candidate_set(
         candidate_count: estimates.len(),
         selected_action_id,
         selected_mean_score,
-        baseline_action_id: baseline_mean_score.map(|_| baseline_action_id),
+        baseline_action_id,
         baseline_mean_score,
-        expert_regret: baseline_mean_score.map(|score| selected_mean_score - score),
+        expert_regret: selected_mean_score - baseline_mean_score,
         candidates: estimates,
     })
 }
@@ -399,16 +431,21 @@ fn evaluate_candidate_scenario(
         .semantic_step(candidate.action.clone())
         .map_err(|error| anyhow::anyhow!("teacher candidate failed: {error:?}"))?;
     settle_forced_actions(&mut rollout, &mut outcome)?;
+    // Fixed continuation policy for every candidate: the canonical dense
+    // scripted heuristic, never a legacy position-limited proposal, a
+    // per-candidate policy, or the teacher's own recursive selection (see
+    // docs/game-ai/05-rollout-teacher.md's Continuation policy section).
     for _ in 1..config.horizon_decisions {
-        if outcome.terminated || outcome.truncated {
+        if outcome.terminated
+            || outcome.truncated
+            || matches!(
+                rollout.decision_point(),
+                crate::environment::DecisionPoint::Terminal
+            )
+        {
             break;
         }
-        let legal_actions =
-            rollout.semantic_legal_actions_with_position_limit(config.position_candidate_limit);
-        if legal_actions.is_empty() {
-            break;
-        }
-        let action = scripted_expert_action(&rollout.snapshot(), &legal_actions)?;
+        let action = canonical_scripted_semantic_action(&rollout)?;
         outcome = rollout
             .semantic_step(action)
             .map_err(|error| anyhow::anyhow!("teacher continuation failed: {error:?}"))?;
@@ -424,7 +461,7 @@ fn evaluate_candidate_scenario(
     })
 }
 
-fn settle_forced_actions(
+pub(crate) fn settle_forced_actions(
     environment: &mut GameEnvironment,
     outcome: &mut StepOutcome,
 ) -> Result<()> {
@@ -475,16 +512,16 @@ mod tests {
         environment
             .step(AgentAction::StartSelectingTower)
             .expect("tower selection should start");
-        let candidates = environment
-            .semantic_legal_actions_with_position_limit(Some(2))
-            .into_iter()
-            .take(2)
-            .collect::<Vec<_>>();
+        let baseline = canonical_scripted_semantic_action(&environment)
+            .expect("canonical baseline should be available");
+        let candidates = vec![LegalAction {
+            id: baseline.action_id(),
+            action: baseline,
+        }];
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![11, 13],
             horizon_decisions: 1,
-            position_candidate_limit: Some(2),
-            candidate_limit: None,
+            build_tower_rollout_limit: None,
         };
         let first = evaluate_semantic_candidate_set(&environment, &candidates, &config)
             .expect("teacher should evaluate candidates");
@@ -492,14 +529,11 @@ mod tests {
             .expect("teacher should repeat deterministically");
 
         assert_eq!(first, second);
-        assert_eq!(first.candidate_count, 2);
+        assert_eq!(first.candidate_count, 1);
         assert_eq!(first.candidates[0].sample_count, 2);
         assert_eq!(first.scenario_seed_digest, scenario_seed_digest(&[11, 13]));
-        assert!(
-            candidates
-                .iter()
-                .any(|candidate| candidate.id == first.selected_action_id)
-        );
+        assert_eq!(first.selected_action_id, candidates[0].id);
+        assert_eq!(first.baseline_action_id, candidates[0].id);
     }
 
     #[test]
@@ -520,6 +554,72 @@ mod tests {
         )
         .expect_err("empty scenario schedule should be rejected");
         assert!(error.to_string().contains("scenario seed"));
+    }
+
+    /// The baseline action must always be present in the evaluated
+    /// candidate set - and `baseline_action_id`/`baseline_mean_score`/
+    /// `expert_regret` must always be populated - even when
+    /// `build_tower_rollout_limit` is small enough that
+    /// `dense_semantic_candidates` would otherwise never include the
+    /// canonical baseline's own `BuildTower` choice.
+    #[test]
+    fn baseline_action_is_always_present_even_with_a_tiny_rollout_limit() {
+        let mut environment = card_decision_environment(0);
+        // Drive a few scripted steps so a real BuildTower decision is live.
+        for _ in 0..4 {
+            let observation = environment.snapshot();
+            let legal_actions = environment.semantic_legal_actions();
+            let Ok(action) = scripted_expert_action(&observation, &legal_actions) else {
+                break;
+            };
+            if environment.semantic_step(action).is_err() {
+                break;
+            }
+        }
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![1],
+            horizon_decisions: 1,
+            build_tower_rollout_limit: Some(1),
+        };
+        let decision = evaluate_semantic_candidates(&environment, &config)
+            .expect("teacher should evaluate with a tiny rollout limit");
+        assert!(!decision.baseline_action_id.is_empty());
+        assert!(
+            decision
+                .candidates
+                .iter()
+                .any(|candidate| candidate.action_id == decision.baseline_action_id),
+            "baseline action must be present in the evaluated candidate set"
+        );
+        assert_eq!(
+            decision.expert_regret,
+            decision.selected_mean_score - decision.baseline_mean_score
+        );
+    }
+
+    /// Baseline and every teacher candidate must be scored under an
+    /// identical scenario seed schedule/digest, and re-evaluating the same
+    /// state with the same config must reproduce exactly the same decision.
+    #[test]
+    fn evaluating_the_same_state_and_config_twice_is_exactly_reproducible() {
+        let environment = card_decision_environment(1);
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![5, 6, 7],
+            horizon_decisions: 2,
+            build_tower_rollout_limit: Some(4),
+        };
+        let first = evaluate_semantic_candidates(&environment, &config)
+            .expect("teacher should evaluate candidates");
+        let second = evaluate_semantic_candidates(&environment, &config)
+            .expect("teacher should repeat deterministically");
+        assert_eq!(first, second);
+        assert_eq!(
+            first.scenario_seed_digest,
+            scenario_seed_digest(&config.scenario_seeds)
+        );
+        for candidate in &first.candidates {
+            assert_eq!(candidate.sample_count, config.scenario_seeds.len());
+        }
     }
 
     // --- dense_semantic_candidates correctness -----------------------
@@ -2042,8 +2142,7 @@ mod tests {
                     let teacher_config = RolloutTeacherConfig {
                         scenario_seeds: scenario_seeds.clone(),
                         horizon_decisions: HORIZON_DECISIONS,
-                        position_candidate_limit: Some(DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT),
-                        candidate_limit: None,
+                        build_tower_rollout_limit: None,
                     };
                     let legacy_decision_start = Instant::now();
                     evaluate_semantic_candidate_set(

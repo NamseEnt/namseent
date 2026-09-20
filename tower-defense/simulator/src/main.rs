@@ -8,7 +8,7 @@ use std::sync::Arc;
 use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
 use td_simulator::environment::{
-    AgentAction, DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT, LegalAction, Observation,
+    AgentAction, LegalAction, Observation,
 };
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
@@ -27,6 +27,10 @@ use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig, run_batch};
 use td_simulator::recording::{SimRecorder, SimulationProvenance};
 use td_simulator::stats::Database;
 use td_simulator::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
+use td_simulator::teacher_eval::{
+    LARGE_REGRET_THRESHOLD, StabilityGridConfig, run_paired_full_game_evaluation,
+    run_stability_grid,
+};
 
 mod stats_cli;
 
@@ -44,6 +48,7 @@ enum Command {
     Baseline(BaselineOptions),
     Benchmark(BenchmarkOptions),
     Teacher(TeacherOptions),
+    TeacherEval(TeacherEvalOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -126,10 +131,40 @@ struct TeacherOptions {
     scenario_seed_start: u64,
     #[arg(long, default_value_t = 4)]
     horizon_decisions: usize,
-    #[arg(long, default_value_t = DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT)]
-    position_candidate_limit: usize,
     #[arg(long)]
-    candidate_limit: Option<usize>,
+    build_tower_rollout_limit: Option<usize>,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherEvalOptions {
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
+    #[arg(long, default_value_t = 3)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 64)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 8)]
+    state_limit_per_seed: usize,
+    #[arg(long, default_value_t = 0)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value = "2,4")]
+    scenario_counts: String,
+    #[arg(long, default_value = "2,4")]
+    horizons: String,
+    #[arg(long, default_value = "8,16")]
+    build_tower_rollout_limits: String,
+    #[arg(long)]
+    run_paired_full_game: bool,
+    #[arg(long)]
+    paired_seed_start: Option<u64>,
+    #[arg(long)]
+    paired_seed_end: Option<u64>,
+    #[arg(long)]
+    paired_max_decisions: Option<usize>,
     #[arg(long)]
     config: Option<PathBuf>,
     #[arg(long)]
@@ -172,6 +207,7 @@ fn main() -> Result<()> {
         Command::Baseline(options) => run_baseline(options),
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
+        Command::TeacherEval(options) => run_teacher_eval(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
@@ -182,8 +218,8 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
     if options.scenario_count == 0 {
         anyhow::bail!("--scenario-count must be positive");
     }
-    if options.candidate_limit == Some(0) {
-        anyhow::bail!("--candidate-limit must be positive when provided");
+    if options.build_tower_rollout_limit == Some(0) {
+        anyhow::bail!("--build-tower-rollout-limit must be positive when provided");
     }
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
@@ -199,13 +235,12 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
                 .saturating_add(options.scenario_count as u64))
             .collect(),
         horizon_decisions: options.horizon_decisions,
-        position_candidate_limit: Some(options.position_candidate_limit),
-        candidate_limit: options.candidate_limit,
+        build_tower_rollout_limit: options.build_tower_rollout_limit,
     };
     let report =
         run_semantic_teacher_episode(&mut environment, &teacher_config, options.max_decisions)?;
     let json = serde_json::to_string_pretty(&serde_json::json!({
-        "teacher_schema_version": 1,
+        "teacher_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
         "config_digest": config::config_digest(config.as_ref()),
         "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
         "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
@@ -213,8 +248,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
         "scenario_seed_start": options.scenario_seed_start,
         "scenario_count": options.scenario_count,
         "horizon_decisions": options.horizon_decisions,
-        "position_candidate_limit": options.position_candidate_limit,
-        "candidate_limit": options.candidate_limit,
+        "build_tower_rollout_limit": options.build_tower_rollout_limit,
         "episode": report,
     }))?;
     if let Some(path) = options.output {
@@ -225,6 +259,123 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
         }
         std::fs::write(&path, format!("{json}\n"))?;
         println!("Teacher report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
+}
+
+fn parse_usize_list(raw: &str) -> Result<Vec<usize>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            part.parse::<usize>()
+                .with_context(|| format!("invalid integer in list: {part}"))
+        })
+        .collect()
+}
+
+fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            if part.eq_ignore_ascii_case("none") || part.eq_ignore_ascii_case("unlimited") {
+                Ok(None)
+            } else {
+                Ok(Some(part.parse::<usize>().with_context(|| {
+                    format!("invalid integer (or 'none') in list: {part}")
+                })?))
+            }
+        })
+        .collect()
+}
+
+fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
+    let scenario_counts = parse_usize_list(&options.scenario_counts)?;
+    let horizon_decisions = parse_usize_list(&options.horizons)?;
+    let build_tower_rollout_limits = parse_optional_usize_list(&options.build_tower_rollout_limits)?;
+
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+
+    let grid = StabilityGridConfig {
+        seed_start: options.seed_start,
+        seed_end: options.seed_end,
+        max_decisions: options.max_decisions,
+        state_limit_per_seed: options.state_limit_per_seed,
+        scenario_seed_start: options.scenario_seed_start,
+        scenario_counts,
+        horizon_decisions,
+        build_tower_rollout_limits,
+    };
+    let stability_report = run_stability_grid(Arc::clone(&config), &grid)?;
+
+    let paired_report = if options.run_paired_full_game {
+        let (reference_scenario_count, reference_horizon, reference_build_tower_rollout_limit) = (
+            stability_report.reference_scenario_count,
+            stability_report.reference_horizon_decisions,
+            stability_report.reference_build_tower_rollout_limit,
+        );
+        let paired_seed_start = options.paired_seed_start.unwrap_or(options.seed_start);
+        let paired_seed_end = options.paired_seed_end.unwrap_or(options.seed_end);
+        let paired_max_decisions = options.paired_max_decisions.unwrap_or(options.max_decisions);
+        let paired_seeds = (paired_seed_start..=paired_seed_end).collect::<Vec<_>>();
+        let teacher_config = RolloutTeacherConfig {
+            scenario_seeds: (options.scenario_seed_start
+                ..options
+                    .scenario_seed_start
+                    .saturating_add(reference_scenario_count as u64))
+                .collect(),
+            horizon_decisions: reference_horizon,
+            build_tower_rollout_limit: reference_build_tower_rollout_limit,
+        };
+        Some(run_paired_full_game_evaluation(
+            Arc::clone(&config),
+            &paired_seeds,
+            paired_max_decisions,
+            &teacher_config,
+        )?)
+    } else {
+        None
+    };
+
+    let seed_digest = {
+        use sha2::{Digest, Sha256};
+        let mut digest = Sha256::new();
+        digest.update(b"tower-defense-teacher-eval-seed-range-v1");
+        digest.update(options.seed_start.to_be_bytes());
+        digest.update(options.seed_end.to_be_bytes());
+        format!("{:x}", digest.finalize())
+    };
+
+    let report = serde_json::json!({
+        "teacher_eval_schema_version": 1,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "observation_schema_version": td_simulator::ml::contract::OBSERVATION_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "seed_range_digest": seed_digest,
+        "large_regret_threshold": LARGE_REGRET_THRESHOLD,
+        "grid": stability_report.grid,
+        "stability": stability_report,
+        "paired_full_game": paired_report,
+    });
+    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Teacher-eval report saved to: {}", path.display());
     } else {
         println!("{json}");
     }

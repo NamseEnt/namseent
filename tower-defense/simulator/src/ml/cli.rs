@@ -152,10 +152,8 @@ pub enum Command {
         scenario_count: usize,
         #[arg(long, default_value_t = 8)]
         horizon_decisions: usize,
-        #[arg(long, default_value_t = crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT)]
-        position_candidate_limit: usize,
         #[arg(long)]
-        candidate_limit: Option<usize>,
+        build_tower_rollout_limit: Option<usize>,
         #[arg(long, default_value_t = 0)]
         threads: usize,
         #[arg(long)]
@@ -415,8 +413,7 @@ pub fn run_command(command: Command) -> Result<()> {
             max_decisions,
             scenario_count,
             horizon_decisions,
-            position_candidate_limit,
-            candidate_limit,
+            build_tower_rollout_limit,
             threads,
             config,
         } => collect_teacher_command(
@@ -426,8 +423,7 @@ pub fn run_command(command: Command) -> Result<()> {
             max_decisions,
             scenario_count,
             horizon_decisions,
-            position_candidate_limit,
-            candidate_limit,
+            build_tower_rollout_limit,
             threads,
             config,
         ),
@@ -722,8 +718,7 @@ fn collect_teacher_command(
     max_decisions: usize,
     scenario_count: usize,
     horizon_decisions: usize,
-    position_candidate_limit: usize,
-    candidate_limit: Option<usize>,
+    build_tower_rollout_limit: Option<usize>,
     threads: usize,
     config_path: Option<PathBuf>,
 ) -> Result<()> {
@@ -733,19 +728,15 @@ fn collect_teacher_command(
     if horizon_decisions == 0 {
         bail!("teacher horizon must be positive");
     }
-    if position_candidate_limit == 0 {
-        bail!("teacher position candidate limit must be positive");
-    }
-    if candidate_limit == Some(0) {
-        bail!("teacher candidate limit must be positive when provided");
+    if build_tower_rollout_limit == Some(0) {
+        bail!("teacher build tower rollout limit must be positive when provided");
     }
     let config = Arc::new(load_config(config_path)?);
     let seed_range = SeedRange::try_new(seed_start, seed_end)?;
     let teacher_config = RolloutTeacherConfig {
         scenario_seeds: (0..scenario_count as u64).collect(),
         horizon_decisions,
-        position_candidate_limit: Some(position_candidate_limit),
-        candidate_limit,
+        build_tower_rollout_limit,
     };
     let dataset = run_with_threads(threads, || {
         collect_semantic_rollout_teacher_behavior_dataset(

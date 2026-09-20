@@ -849,18 +849,46 @@ pub(crate) fn rank_build_tower_actions_by_heuristic(
         .filter_map(|legal| {
             let AgentAction::BuildTower {
                 card_ids,
+                hand_slot_index,
                 left,
                 top,
-                ..
             } = &legal.action
             else {
                 return None;
             };
-            let template = observation
-                .build_tower_candidates
-                .iter()
-                .find(|candidate| &candidate.card_ids == card_ids)
-                .map(|candidate| &candidate.template)?;
+            // Hand slot 0 is the selected card subset's own template; slots
+            // 1.. are `stage_modifiers.extra_tower_cards`, a fixed template
+            // per slot independent of which subset was selected (see
+            // `joint_action::extra_slot_templates`) - `card_ids` still
+            // names the subset in that case (it still determines the
+            // still-queued primary-slot tower), but scoring *this* action
+            // must use the extra slot's own template, not the subset's.
+            let template = if *hand_slot_index == 0 {
+                // Match by card *set* (sorted), not raw `Vec` order: a legal
+                // `BuildTower` action's card_ids order only has to be a
+                // selectable subset (`card_ids_are_selectable` is
+                // membership-only), so a caller-provided legal_actions list
+                // whose card_ids come pre-sorted (e.g. the dense
+                // joint-action table's `CardSubsetTable`, see
+                // `joint_action`'s module docs) must still resolve to the
+                // same template as the hand-slot generation-order
+                // equivalent.
+                let mut sorted_card_ids = card_ids.clone();
+                sorted_card_ids.sort_unstable();
+                observation
+                    .build_tower_candidates
+                    .iter()
+                    .find(|candidate| {
+                        let mut candidate_ids = candidate.card_ids.clone();
+                        candidate_ids.sort_unstable();
+                        candidate_ids == sorted_card_ids
+                    })
+                    .map(|candidate| &candidate.template)?
+            } else {
+                observation
+                    .extra_tower_card_templates
+                    .get(hand_slot_index - 1)?
+            };
             let range_raw = template.range_raw;
             let covered_route = route
                 .iter()
@@ -902,6 +930,42 @@ pub(crate) fn best_build_tower_action_by_heuristic(
         .into_iter()
         .next()
         .map(|score| score.action)
+}
+
+/// The canonical, non-cheating scripted heuristic action for `environment`'s
+/// current decision state - the single production heuristic baseline used
+/// for both the rollout teacher's baseline/regret contract and its
+/// fixed-horizon continuation policy (see docs/game-ai/05-rollout-teacher.md).
+///
+/// Does not use the legacy `semantic_legal_actions_with_position_limit`
+/// proposal. When a semantic card decision is possible, the `BuildTower`
+/// portion of the decision uses `DenseBuildTowerScoreTable`'s full legal-map
+/// ranking, but only materializes its single global-best action (via
+/// `DenseBuildTowerScoreTable::best_action`) rather than the whole dense
+/// space - `scripted_expert_action`'s heuristic never needs more than the
+/// top-1 to reproduce its selection. Non-`BuildTower` semantic actions
+/// (`Reroll`, shop/inventory/treasure) come from
+/// `GameEnvironment::semantic_non_build_actions`, which is exhaustive (never
+/// pruned) - this candidate set's only bound is a single `BuildTower`
+/// action, not a position- or count-limited proposal.
+///
+/// When no semantic card decision is available (e.g. `TowerPlacement`,
+/// mid-defense), `semantic_non_build_actions` already falls back to the full
+/// legal action set, so this reduces to
+/// `scripted_expert_action(&environment.snapshot(), &environment.legal_actions())`.
+pub fn canonical_scripted_semantic_action(environment: &GameEnvironment) -> Result<AgentAction> {
+    let observation = environment.snapshot();
+    let mut legal_actions = environment.semantic_non_build_actions();
+    if environment.semantic_card_decision_available() {
+        let table = crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
+        if let Some(best) = table.best_action() {
+            legal_actions.push(LegalAction {
+                id: best.action_id(),
+                action: best,
+            });
+        }
+    }
+    scripted_expert_action(&observation, &legal_actions)
 }
 
 pub fn scripted_expert_action(
@@ -1977,5 +2041,166 @@ mod tests {
             unrestricted.steps[0].selected_action_id,
             "start_selecting_tower"
         );
+    }
+
+    // --- canonical_scripted_semantic_action differential tests -------
+
+    /// The exhaustive, non-production oracle this differential suite checks
+    /// `canonical_scripted_semantic_action` against: `scripted_expert_action`
+    /// over `GameEnvironment::semantic_legal_actions()` (position-limit
+    /// `None`, i.e. every legal semantic action, fully materialized). Full
+    /// materialization is only ever done here, in the test oracle - never in
+    /// production code.
+    fn oracle_action_for(environment: &GameEnvironment) -> AgentAction {
+        let observation = environment.snapshot();
+        let legal_actions = environment.semantic_legal_actions();
+        scripted_expert_action(&observation, &legal_actions).expect("oracle action should exist")
+    }
+
+    /// Asserts `canonical_scripted_semantic_action` agrees with
+    /// `oracle_action_for`. For a `BuildTower` decision, ties at the top
+    /// heuristic score are routine (see
+    /// `teacher::dense_candidate_migration_benchmark`'s methodology note),
+    /// so the two sides are compared by `DenseBuildTowerScoreTable` score
+    /// equality (`canonical` must literally equal the dense table's own
+    /// `best_action()`, and the oracle's pick must score identically) rather
+    /// than by exact `AgentAction` identity. Every other decision kind
+    /// (`Reroll`, shop, `TowerPlacement`, ...) has no such tie-break
+    /// ambiguity between the canonical and oracle candidate sets, so those
+    /// are compared by exact equality.
+    fn assert_canonical_matches_oracle(environment: &GameEnvironment, label: &str) {
+        let canonical = canonical_scripted_semantic_action(environment)
+            .unwrap_or_else(|error| panic!("{label}: canonical action failed: {error}"));
+        let oracle = oracle_action_for(environment);
+        let either_is_build_tower = matches!(canonical, AgentAction::BuildTower { .. })
+            || matches!(oracle, AgentAction::BuildTower { .. });
+        if either_is_build_tower {
+            let observation = environment.snapshot();
+            let table =
+                crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
+            assert_eq!(
+                Some(canonical.clone()),
+                table.best_action(),
+                "{label}: canonical BuildTower action must be the dense table's global best"
+            );
+            let score_of = |action: &AgentAction| {
+                crate::joint_action::joint_index_for_action(&table.subsets, action)
+                    .and_then(|(subset, hand_slot, position)| table.score(subset, hand_slot, position))
+            };
+            let canonical_score = score_of(&canonical)
+                .unwrap_or_else(|| panic!("{label}: canonical BuildTower action must be scored"));
+            let oracle_score = score_of(&oracle)
+                .unwrap_or_else(|| panic!("{label}: oracle BuildTower action must be scored"));
+            assert_eq!(
+                canonical_score, oracle_score,
+                "{label}: canonical and oracle BuildTower choice must have identical heuristic score"
+            );
+        } else {
+            assert_eq!(
+                canonical, oracle,
+                "{label}: canonical and oracle actions must match exactly for non-BuildTower decisions"
+            );
+        }
+    }
+
+    fn card_decision_environment(seed: u64) -> GameEnvironment {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+        environment
+            .step(AgentAction::StartSelectingTower)
+            .expect("start selecting tower should be legal");
+        environment
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_ordinary_build_tower_states() {
+        for seed in 0..8u64 {
+            let environment = card_decision_environment(seed);
+            if environment
+                .semantic_legal_actions()
+                .iter()
+                .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+            {
+                assert_canonical_matches_oracle(&environment, &format!("build_tower seed {seed}"));
+            }
+        }
+    }
+
+    #[test]
+    fn canonical_matches_oracle_when_reroll_is_chosen() {
+        let mut found = false;
+        for seed in 0..64u64 {
+            let environment = card_decision_environment(seed);
+            let observation = environment.snapshot();
+            if should_scripted_reroll(&observation) && observation.rerolled_count == 0 {
+                assert_canonical_matches_oracle(&environment, &format!("reroll seed {seed}"));
+                found = true;
+                break;
+            }
+        }
+        assert!(found, "expected at least one seed to trigger the scripted reroll heuristic");
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_shop_state() {
+        for seed in 0..4u64 {
+            let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+            assert_canonical_matches_oracle(&environment, &format!("shop seed {seed}"));
+        }
+    }
+
+    /// Walks a fresh environment with the plain (non-semantic/micro-action)
+    /// `legal_actions`/`step` flow until it reaches `TowerPlacement` - this
+    /// naturally passes through `BeginTowerSelection` -> `SelectHandCard`(s)
+    /// -> `ConfirmCardSelection` -> `SelectTower`, each a legal micro-action
+    /// only in that specific sequence (unlike `semantic_step`'s `BuildTower`,
+    /// which folds the whole sequence into one macro step and never leaves a
+    /// residual `TowerPlacement` decision open).
+    fn residual_tower_placement_environment(seed: u64) -> Option<GameEnvironment> {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+        for _ in 0..64 {
+            if environment.decision_point() == DecisionPoint::TowerPlacement {
+                return Some(environment);
+            }
+            let observation = environment.snapshot();
+            let legal_actions = environment.legal_actions();
+            let action = scripted_expert_action(&observation, &legal_actions).ok()?;
+            let outcome = environment.step(action).ok()?;
+            if outcome.terminated || outcome.truncated {
+                return None;
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_residual_tower_placement_state() {
+        let mut found = false;
+        for seed in 0..8u64 {
+            let Some(environment) = residual_tower_placement_environment(seed) else {
+                continue;
+            };
+            assert_canonical_matches_oracle(
+                &environment,
+                &format!("residual tower placement seed {seed}"),
+            );
+            found = true;
+        }
+        assert!(found, "expected at least one seed to reach TowerPlacement");
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_extra_tower_card_states() {
+        for extra_count in [1usize, 2usize] {
+            let mut environment = card_decision_environment(0);
+            environment
+                .test_only_seed_extra_tower_cards(extra_count)
+                .expect("extra tower card fixture should be a valid snapshot");
+            assert_eq!(environment.build_tower_slot_count(), extra_count + 1);
+            assert_canonical_matches_oracle(
+                &environment,
+                &format!("extra tower cards={extra_count}"),
+            );
+        }
     }
 }

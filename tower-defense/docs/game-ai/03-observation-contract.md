@@ -177,3 +177,7 @@ configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 �
 - `spawn_interval_ticks`/`next_spawn_in_ticks`가 authoritative `MonsterSpawnState`의 값과 일치하고, tick이 지날수록 감소하며, 미래 spawn이 없으면 `None`이다 (`game_state::observation::tests::spawn_timing_reflects_authoritative_next_spawn_tick_and_decreases`).
 - 동일 상태에서 두 번 생성한 wave observation과 `WaveFeatureBundle`이 exact equality를 만족한다 (`game_state::observation::tests::wave_observations_are_deterministic_for_the_same_state`, `ml::encoding::wave::tests::compute_is_deterministic_for_same_observation`).
 - 직렬화된 `queued_wave`가 monster entity ID를 노출하지 않는다 (`game_state::observation::tests::queued_wave_serialization_never_leaks_a_monster_entity_id_field`).
+
+## Phase 2 종료 (Verified)
+
+위 승인 기준 항목은 모두 현재 코드의 observation/schema/normalization/wave 관련 테스트로 커버되며(각 항목에 test 경로를 함께 기록), Phase 2 시작 이후 추가 코드 변경 없이 존재하는 테스트 스위트로 통과가 재확인되었다. 이에 따라 이 문서의 상태를 `Implemented`에서 `Verified`로 올린다. 이 승인은 관측 계약 자체(무엇을 노출하는지, 어떻게 정규화하는지, schema version이 의미 변화와 함께 오르는지)에 대한 것이며, Phase 3 이후 rollout teacher나 최종 held-out full-clear 성능 승인과는 별개다.
