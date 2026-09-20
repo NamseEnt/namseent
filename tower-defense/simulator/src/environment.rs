@@ -3179,4 +3179,153 @@ mod tests {
         let before = environment.progress_fingerprint();
         assert_eq!(before, environment.progress_fingerprint());
     }
+
+    // --- legal-action -> executable invariant (shop purchase legality) --
+    //
+    // `GameEnvironment::shop_actions`/`legal_actions` only ever list a
+    // `PurchaseShopItem` that `td_core::CoreState::can_purchase_shop_slot`
+    // considers legal, and (since `can_purchase_shop_slot` and the real
+    // `PurchaseShopItem` command now share one authoritative transaction,
+    // `CoreState::try_purchase_shop_slot`) that legality can no longer
+    // disagree with what actually executes. This suite pins that contract
+    // from the simulator side.
+
+    /// A byte-identical copy of `environment` (unlike
+    /// `fork_for_rollout_seed`, which deliberately reseeds the scenario
+    /// RNG) - lets a test apply a trial action without mutating the
+    /// original.
+    fn identical_clone(environment: &GameEnvironment) -> GameEnvironment {
+        let snapshot = environment.game_state.core_state_snapshot();
+        let game_state =
+            GameCore::from_core_state_snapshot(snapshot).expect("clone snapshot must be valid");
+        GameEnvironment {
+            game_state,
+            config: Arc::clone(&environment.config),
+            seed: environment.seed,
+            max_advance_ticks: environment.max_advance_ticks,
+            card_service_selection: environment.card_service_selection.clone(),
+            decision_context: environment.decision_context.clone(),
+            environment_actions: environment.environment_actions.clone(),
+            policy_trace: environment.policy_trace.clone(),
+            metrics: environment.metrics.clone(),
+            reward_config: environment.reward_config.clone(),
+            max_stage: environment.max_stage,
+        }
+    }
+
+    /// Asserts the legal-action -> executable invariant at `environment`'s
+    /// current state: every `PurchaseShopItem` action
+    /// `environment.legal_actions()` exposes must succeed when applied to an
+    /// identical clone.
+    fn assert_every_legal_shop_purchase_executes(environment: &GameEnvironment, label: &str) {
+        for legal in environment.legal_actions() {
+            if let AgentAction::PurchaseShopItem { slot_index } = legal.action {
+                let mut clone = identical_clone(environment);
+                clone
+                    .step(AgentAction::PurchaseShopItem { slot_index })
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "{label}: legal PurchaseShopItem (slot {slot_index}) was rejected on \
+                             execution: {error:?}"
+                        )
+                    });
+            }
+        }
+    }
+
+    /// E (targeted regression pin): with item inventory forced to capacity,
+    /// a shop screen containing an `Item` slot must not expose it as a
+    /// legal `PurchaseShopItem` - this is the exact shape of the
+    /// legality-contract violation this suite guards against
+    /// (`can_purchase_shop_slot` used to ignore post-purchase capacity).
+    #[test]
+    fn item_purchase_is_not_legal_once_item_capacity_is_reached() {
+        let mut environment = environment();
+        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+
+        let mut core_state = environment.game_state.core_state_snapshot();
+        let item_capacity = core_state.item_capacity();
+        let mut injected_slot_index = None;
+        core_state
+            .edit_snapshot(|parts| {
+                parts.items = td_core::ItemCollection::from_entries(
+                    (0..item_capacity)
+                        .map(|_| td_core::generated_item(td_core::ItemKind::Bread).expect("bread"))
+                        .collect(),
+                );
+                parts.progress.gold = 1_000;
+                if let td_core::GameFlowState::Shopping(shop) = &mut parts.flow {
+                    injected_slot_index = Some(shop.slots.len());
+                    shop.slots.push(td_core::ShopSlotDataState {
+                        id: shop
+                            .slots
+                            .iter()
+                            .map(|slot| slot.id)
+                            .max()
+                            .map_or(0, |id| id + 1),
+                        slot: td_core::ShopSlotState::Item {
+                            item: td_core::generated_item(td_core::ItemKind::Bread)
+                                .expect("bread"),
+                            cost: 0,
+                        },
+                        purchased: false,
+                    });
+                }
+            })
+            .expect("item-capacity fixture must be a valid snapshot");
+        environment.game_state =
+            GameCore::from_core_state_snapshot(core_state).expect("fixture snapshot must be valid");
+        let injected_slot_index = injected_slot_index.expect("fixture must reach the Shop flow");
+
+        // The full-capacity slot we injected must never appear as legal...
+        assert!(
+            !environment.legal_actions().iter().any(|legal| matches!(
+                legal.action,
+                AgentAction::PurchaseShopItem { slot_index } if slot_index == injected_slot_index
+            )),
+            "an Item purchase at item capacity must not be exposed as legal"
+        );
+        // ...and every PurchaseShopItem that *is* still legal must execute.
+        assert_every_legal_shop_purchase_executes(&environment, "item capacity fixture");
+    }
+
+    /// E (state-corpus differential): walking several seeds through the
+    /// canonical scripted policy, the legal-action -> executable invariant
+    /// must hold at every visited decision state, not just the injected
+    /// fixture above.
+    #[test]
+    fn every_legal_shop_purchase_executes_along_scripted_trajectories() {
+        // Semantic macro-actions via the canonical helper
+        // (`canonical_scripted_semantic_action`/`semantic_step`), not raw UI
+        // micro-actions (`scripted_expert_action` is not cycle-safe over the
+        // raw `SelectHandCard`/`DeselectHandCard`-style legal-action space
+        // on its own) and not the full O(subset x position)
+        // `semantic_legal_actions()` oracle (too slow to walk many
+        // decisions with - that cost is exactly why the dense/canonical
+        // path exists). Shop legality itself is identical across all of
+        // these: `PurchaseShopItem` is generated the same way regardless of
+        // which action-representation path produced the *other* action.
+        for seed in 0..2u64 {
+            let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            for decision in 0..8 {
+                if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                    break;
+                }
+                assert_every_legal_shop_purchase_executes(
+                    &environment,
+                    &format!("seed {seed} decision {decision}"),
+                );
+                let Ok(action) = crate::policy_runner::canonical_scripted_semantic_action(&environment)
+                else {
+                    break;
+                };
+                let Ok(outcome) = environment.semantic_step(action) else {
+                    break;
+                };
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+    }
 }

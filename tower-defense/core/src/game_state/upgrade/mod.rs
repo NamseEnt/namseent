@@ -1304,8 +1304,9 @@ mod tests {
         with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
         let template = tower_template_with_polish(100_000, 100_000);
 
-        let preview_upgrade_bonus_raw =
-            core.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+        let preview_upgrade_bonus_raw = core
+            .upgrades()
+            .tower_upgrade_bonus_raw_for_template(&template);
         let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
 
         let output = core
@@ -1333,8 +1334,9 @@ mod tests {
             .expect("name tag acquisition must succeed");
         let template = tower_template_with_polish(100_000, 0);
 
-        let preview_upgrade_bonus_raw =
-            core.upgrades().tower_upgrade_bonus_raw_for_template(&template);
+        let preview_upgrade_bonus_raw = core
+            .upgrades()
+            .tower_upgrade_bonus_raw_for_template(&template);
         let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
         assert_eq!(
             preview_damage_raw, 100_000,
@@ -1383,6 +1385,148 @@ mod tests {
         assert_eq!(
             core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::Apple)),
             Err(crate::CommandError::TreasureCapacityReached)
+        );
+    }
+
+    // --- Shop purchase legality/execution contract --------------------
+    //
+    // `CoreState::can_purchase_shop_slot` and the real
+    // `PlayerCommand::PurchaseShopItem` execution both go through
+    // `CoreState::try_purchase_shop_slot` (see `game_state::mod`), so a
+    // slot that fails only once its payload is applied (item/treasure
+    // capacity) can no longer be exposed as legal while the real command
+    // rejects it - the legality-contract violation this suite guards
+    // against.
+
+    fn shopping_session_with(
+        item_count: usize,
+        treasure_count: usize,
+        slots: Vec<crate::ShopSlotDataState>,
+    ) -> crate::CoreSession {
+        let mut session = crate::CoreSession::from_state(test_core())
+            .expect("test core must be a valid snapshot");
+        session
+            .edit_snapshot(|parts| {
+                parts.items = crate::ItemCollection::from_entries(
+                    (0..item_count)
+                        .map(|_| crate::generated_item(crate::ItemKind::Bread).expect("bread"))
+                        .collect(),
+                );
+                parts.upgrades = crate::UpgradeCollection::from_entries(
+                    (0..treasure_count)
+                        .map(|_| crate::generated_upgrade(crate::UpgradeKind::Apple))
+                        .collect(),
+                    0,
+                );
+                parts.progress.gold = 1_000;
+                parts.flow = crate::GameFlowState::Shopping(crate::ShopState { slots });
+            })
+            .expect("shopping fixture must be a valid snapshot");
+        session
+    }
+
+    fn item_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::Item {
+                item: crate::generated_item(crate::ItemKind::Bread).expect("bread"),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    fn upgrade_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::Upgrade {
+                upgrade: crate::generated_upgrade(crate::UpgradeKind::Apple),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    fn card_service_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::CardService {
+                kind: crate::CardServiceKind::LongSword.raw(),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    /// A: with item inventory already at capacity, the `Item` shop slot is
+    /// not legal (`can_purchase_shop_slot` is false) - it must not be
+    /// exposed as a legal `PurchaseShopItem` action.
+    #[test]
+    fn item_slot_is_illegal_once_item_capacity_is_reached() {
+        let session = shopping_session_with(5, 0, vec![item_slot(0)]);
+        assert_eq!(session.items().entries().len(), session.item_capacity());
+        assert!(!session.can_purchase_shop_slot(0));
+    }
+
+    /// B: executing `PurchaseShopItem` directly against that same state is
+    /// rejected, and the state (hash and full content) is unchanged - no
+    /// partial gold/purchased-flag/inventory mutation.
+    #[test]
+    fn purchase_command_rejects_item_slot_at_capacity_without_mutating_state() {
+        let mut session = shopping_session_with(5, 0, vec![item_slot(0)]);
+        let before_hash = session.authoritative_hash();
+        let before_state = session.raw_state().clone();
+
+        let result = session.apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 });
+
+        assert_eq!(result, Err(crate::CommandError::ItemCapacityReached));
+        assert_eq!(session.authoritative_hash(), before_hash);
+        assert_eq!(session.raw_state(), &before_state);
+    }
+
+    /// C: the same holds for an `Upgrade` slot once treasure capacity is
+    /// reached.
+    #[test]
+    fn upgrade_slot_is_illegal_once_treasure_capacity_is_reached() {
+        let session = shopping_session_with(0, 5, vec![upgrade_slot(0)]);
+        assert_eq!(session.upgrades().len(), session.treasure_capacity());
+        assert!(!session.can_purchase_shop_slot(0));
+
+        let mut session = session;
+        let before_hash = session.authoritative_hash();
+        let before_state = session.raw_state().clone();
+        let result = session.apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 });
+        assert_eq!(result, Err(crate::CommandError::TreasureCapacityReached));
+        assert_eq!(session.authoritative_hash(), before_hash);
+        assert_eq!(session.raw_state(), &before_state);
+    }
+
+    /// D: purchasable Item/Upgrade/CardService slots remain legal and their
+    /// commands succeed, applying the expected payload effect.
+    #[test]
+    fn purchasable_item_upgrade_and_card_service_slots_stay_legal_and_succeed() {
+        let mut session =
+            shopping_session_with(0, 0, vec![item_slot(0), upgrade_slot(1), card_service_slot(2)]);
+        assert!(session.can_purchase_shop_slot(0));
+        assert!(session.can_purchase_shop_slot(1));
+        assert!(session.can_purchase_shop_slot(2));
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 })
+            .expect("item purchase should succeed");
+        assert_eq!(session.items().entries().len(), 1);
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 1 })
+            .expect("upgrade purchase should succeed");
+        assert_eq!(session.upgrades().len(), 1);
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 2 })
+            .expect("card service purchase should succeed");
+        assert_eq!(
+            session.pending_card_service_kind(),
+            Some(crate::CardServiceKind::LongSword.raw())
         );
     }
 

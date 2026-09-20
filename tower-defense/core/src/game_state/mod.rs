@@ -839,7 +839,18 @@ impl CoreState {
             .clamp(0, i128::from(crate::RATIO_SCALE)) as i64
     }
 
-    pub fn can_purchase_shop_slot(&self, slot_index: usize) -> bool {
+    /// Slot-level purchase precondition: purchased flag, the
+    /// purchase-disable stage modifier, gold, and (for `CardService`) deck
+    /// availability. Deliberately excludes anything that can only fail once
+    /// the purchase's payload is actually applied (item/treasure capacity,
+    /// card-service selection legality) - those are only knowable by running
+    /// the real transaction, which `try_purchase_shop_slot` does. Kept
+    /// private: `purchase_shop_item` uses it directly (to avoid the
+    /// recursion `can_purchase_shop_slot` -> `try_purchase_shop_slot` ->
+    /// `purchase_shop_item` -> `can_purchase_shop_slot` would otherwise
+    /// create), and `can_purchase_shop_slot` reflects the full transaction
+    /// via `try_purchase_shop_slot` instead.
+    fn shop_slot_purchase_precondition(&self, slot_index: usize) -> bool {
         let crate::GameFlowState::Shopping(shop) = &self.flow else {
             return false;
         };
@@ -870,6 +881,55 @@ impl CoreState {
             }
     }
 
+    /// Whether `slot_index` is purchasable *and* its full purchase
+    /// transaction (`try_purchase_shop_slot`) succeeds - the same
+    /// authoritative check the real `PlayerCommand::PurchaseShopItem`
+    /// executes, run here on a discarded clone so this never mutates `self`
+    /// (no RNG/domain-counter/event/metric side effects). This is the only
+    /// legality source for shop purchases: it cannot disagree with actual
+    /// command execution, because both call `try_purchase_shop_slot`.
+    pub fn can_purchase_shop_slot(&self, slot_index: usize) -> bool {
+        self.try_purchase_shop_slot(slot_index).is_ok()
+    }
+
+    /// The authoritative purchase transaction for `slot_index`: the shop
+    /// purchase itself, plus its payload effect (item grant / upgrade
+    /// acquisition / card-service selection start). Returns the resulting
+    /// state without mutating `self` - `can_purchase_shop_slot` (legality)
+    /// and `PlayerCommand::PurchaseShopItem` (execution, via
+    /// `GameSession::apply_to`) both call this, so they can never disagree
+    /// about what "purchasable" means (see docs/game-ai/05-rollout-teacher.md's
+    /// legality-contract note, and `CommandError::ItemCapacityReached` /
+    /// `TreasureCapacityReached`, which only `grant_inventory_item` /
+    /// `acquire_upgrade` can determine).
+    pub(crate) fn try_purchase_shop_slot(
+        &self,
+        slot_index: usize,
+    ) -> Result<Self, crate::CommandError> {
+        let mut next = self.clone();
+        let purchase = next.purchase_shop_item(slot_index)?;
+        if let crate::ShopSlotState::Item { item, .. } = &purchase.slot {
+            next.grant_inventory_item(item.clone())?;
+        }
+        if let crate::ShopSlotState::Upgrade { upgrade, .. } = &purchase.slot {
+            let acquire = next.acquire_upgrade(upgrade.clone())?;
+            next.apply_upgrade_recovery(acquire.recovery);
+        }
+        if let crate::ShopSlotState::CardService { kind, .. } = &purchase.slot {
+            next.begin_card_service_selection_raw(*kind)?;
+        }
+        Ok(next)
+    }
+
+    /// Applies the shop-slot purchase itself: marks the slot purchased,
+    /// deducts gold, records spend metrics, and triggers
+    /// purchase-upgrade hooks. Does not apply the slot's payload effect
+    /// (item grant / upgrade acquisition / card-service selection) - see
+    /// `try_purchase_shop_slot`, which composes this with the payload step
+    /// and is the only legality/execution-shared entry point. Kept `pub`
+    /// for existing direct callers/tests that only need the slot-purchase
+    /// half; `can_purchase_shop_slot` reflects the *full* transaction, not
+    /// just this step.
     pub fn purchase_shop_item(
         &mut self,
         slot_index: usize,
@@ -886,7 +946,7 @@ impl CoreState {
             }
             _ => return Err(crate::CommandError::InvalidFlow),
         }
-        if !self.can_purchase_shop_slot(slot_index) {
+        if !self.shop_slot_purchase_precondition(slot_index) {
             return Err(crate::CommandError::Rejected);
         }
 
