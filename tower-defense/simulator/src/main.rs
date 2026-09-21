@@ -53,6 +53,7 @@ enum Command {
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
     TeacherSelectionValidation(TeacherSelectionValidationOptions),
     TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
+    TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -141,6 +142,51 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherMultifidelityTopkOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    /// Comma-separated `seed/decision_index` pairs, e.g. 0/6,1/5.
+    #[arg(long, default_value = "0/6,1/5,2/1,3/1")]
+    states: String,
+    #[arg(long, default_value = "1,2,4,8")]
+    ks: String,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> Result<()> {
+    let states = options
+        .states
+        .split(',')
+        .map(|pair| {
+            let (seed, index) = pair.split_once('/').context("state must be seed/index")?;
+            Ok((seed.trim().parse::<u64>()?, index.trim().parse::<usize>()?))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let results = td_simulator::teacher_reroll_diag::run_multifidelity_topk(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &states,
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(3000..3008).collect::<Vec<u64>>(),
+        &(4000..4016).collect::<Vec<u64>>(),
+        &parse_usize_list(&options.ks)?,
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!("Multi-fidelity diagnostic saved to: {} ({} states)", options.output.display(), results.len());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -362,6 +408,7 @@ fn main() -> Result<()> {
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
         Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
         Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
+        Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),

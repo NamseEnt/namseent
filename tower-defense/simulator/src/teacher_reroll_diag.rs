@@ -637,3 +637,250 @@ pub fn run_frozen_horizon_sweep(
     }
     Ok(results)
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TerminalOutcome {
+    pub clear_rate: f32,
+    pub final_stage: usize,
+    pub victory: bool,
+    pub decisions: usize,
+}
+
+impl From<&BranchSample> for TerminalOutcome {
+    fn from(sample: &BranchSample) -> Self {
+        Self {
+            clear_rate: sample.clear_rate,
+            final_stage: sample.final_stage,
+            victory: sample.victory,
+            decisions: sample.decisions,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct LowFidelityEntry {
+    pub action_id: String,
+    pub mean_score: f32,
+    pub standard_error: f32,
+    pub mean_minus_baseline: f32,
+    pub rank_among_all: usize,
+    pub is_baseline: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TerminalSeries {
+    pub action_id: String,
+    pub low_fidelity_rank: Option<usize>,
+    pub outcomes: Vec<TerminalOutcome>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct KWinner {
+    pub k: usize,
+    pub winner_action_id: String,
+    pub winner_is_baseline: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct MultiFidelityState {
+    pub game_seed: u64,
+    pub decision_index: usize,
+    pub decision_point: String,
+    pub state_hash: String,
+    pub baseline_action_id: String,
+    pub frozen_phase3h_action_id: String,
+    pub low_fidelity: Vec<LowFidelityEntry>,
+    pub discovery_seeds: Vec<u64>,
+    pub discovery: Vec<TerminalSeries>,
+    pub k_winners: Vec<KWinner>,
+    pub validation_seeds: Vec<u64>,
+    pub validation: Vec<TerminalSeries>,
+    pub low_fidelity_seconds: f64,
+    pub discovery_seconds: f64,
+    pub validation_seconds: f64,
+    pub terminal_rollouts: usize,
+}
+
+fn mean_clear(series: &TerminalSeries) -> f32 {
+    series.outcomes.iter().map(|o| o.clear_rate).sum::<f32>() / series.outcomes.len() as f32
+}
+
+/// Diagnostic-only top-K multi-fidelity check: low-fidelity (production
+/// score, 8 scenarios) ranks the full candidate set; baseline + top-8 are
+/// run to terminal on fresh discovery seeds; each K's winner is frozen and
+/// validated on further fresh seeds. No teacher call in any continuation.
+#[allow(clippy::too_many_arguments)]
+pub fn run_multifidelity_topk(
+    game_config: Arc<GameConfig>,
+    frozen_artifact: &Path,
+    states: &[(u64, usize)],
+    low_seeds: &[u64],
+    discovery_seeds: &[u64],
+    validation_seeds: &[u64],
+    ks: &[usize],
+    horizon_sim_ticks: u64,
+    build_tower_rollout_limit: usize,
+    max_continuation_decisions: usize,
+) -> Result<Vec<MultiFidelityState>> {
+    use crate::teacher::{
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+    };
+    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let frozen = frozen.as_array().context("frozen artifact")?;
+    let max_k = *ks.iter().max().context("ks")?;
+    let mut wanted = states.to_vec();
+    wanted.sort();
+    let mut results = Vec::new();
+    let mut seeds = wanted.iter().map(|s| s.0).collect::<Vec<_>>();
+    seeds.dedup();
+    for seed in seeds {
+        let mine = wanted.iter().filter(|s| s.0 == seed).collect::<Vec<_>>();
+        let last_index = mine.iter().map(|s| s.1).max().unwrap();
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
+        for decision_index in 0..=last_index {
+            if mine.iter().any(|s| s.1 == decision_index) {
+                let record = frozen
+                    .iter()
+                    .find(|f| f["game_seed"].as_u64() == Some(seed) && f["decision_index"].as_u64() == Some(decision_index as u64))
+                    .context("state missing in frozen artifact")?;
+                let state_hash = environment.state_hash();
+                if state_hash != record["state_hash"].as_str().unwrap_or_default() {
+                    bail!("state hash mismatch seed {seed} index {decision_index}");
+                }
+                let baseline_action = canonical_scripted_semantic_action(&environment)?;
+                let baseline_id = baseline_action.action_id();
+                if baseline_id != record["baseline_action_id"].as_str().unwrap_or_default() {
+                    bail!("baseline action mismatch seed {seed} index {decision_index}");
+                }
+                let frozen_id = record["selection_selected_action_id"].as_str().unwrap_or_default().to_string();
+
+                let started = std::time::Instant::now();
+                let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+                let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
+                let config = RolloutTeacherConfig {
+                    scenario_seeds: low_seeds.to_vec(),
+                    horizon_sim_ticks,
+                    build_tower_rollout_limit: Some(build_tower_rollout_limit),
+                };
+                let decision = evaluate_semantic_candidate_set_with_baseline(
+                    &environment,
+                    &candidates,
+                    prepared.baseline_action.clone(),
+                    &config,
+                )?;
+                let low_fidelity_seconds = started.elapsed().as_secs_f64();
+                let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
+                ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
+                let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+                let low_fidelity = ranked
+                    .iter()
+                    .enumerate()
+                    .map(|(index, c)| LowFidelityEntry {
+                        action_id: c.action_id.clone(),
+                        mean_score: c.mean_score,
+                        standard_error: c.standard_error,
+                        mean_minus_baseline: c.mean_score - baseline_low,
+                        rank_among_all: index + 1,
+                        is_baseline: c.action_id == baseline_id,
+                    })
+                    .collect::<Vec<_>>();
+                let action_of = |id: &str| -> Result<AgentAction> {
+                    Ok(decision
+                        .candidates
+                        .iter()
+                        .find(|c| c.action_id == id)
+                        .with_context(|| format!("candidate {id} missing"))?
+                        .action
+                        .clone())
+                };
+                let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
+                let shortlist = low_fidelity
+                    .iter()
+                    .filter(|e| !e.is_baseline)
+                    .take(max_k)
+                    .map(|e| e.action_id.clone())
+                    .collect::<Vec<_>>();
+
+                let run_series = |id: &str, seeds: &[u64]| -> Result<TerminalSeries> {
+                    let action = if id == baseline_id { baseline_action.clone() } else { action_of(id)? };
+                    let outcomes = seeds
+                        .par_iter()
+                        .map(|&s| run_branch(&environment, &action, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+                        .collect::<Result<Vec<_>>>()?;
+                    Ok(TerminalSeries { action_id: id.to_string(), low_fidelity_rank: rank_of(id), outcomes })
+                };
+
+                let started = std::time::Instant::now();
+                let mut discovery_ids = vec![baseline_id.clone()];
+                discovery_ids.extend(shortlist.iter().cloned());
+                if !discovery_ids.contains(&frozen_id) {
+                    discovery_ids.push(frozen_id.clone());
+                }
+                let discovery = discovery_ids
+                    .iter()
+                    .map(|id| run_series(id, discovery_seeds))
+                    .collect::<Result<Vec<_>>>()?;
+                let discovery_seconds = started.elapsed().as_secs_f64();
+                let baseline_series = discovery.iter().find(|s| s.action_id == baseline_id).unwrap();
+                let baseline_mean = mean_clear(baseline_series);
+                let k_winners = ks
+                    .iter()
+                    .map(|&k| {
+                        let mut best_id = baseline_id.clone();
+                        let mut best_mean = baseline_mean;
+                        for id in shortlist.iter().take(k) {
+                            let series = discovery.iter().find(|s| &s.action_id == id).unwrap();
+                            let mean = mean_clear(series);
+                            if mean > best_mean || (mean == best_mean && best_id != baseline_id && *id < best_id) {
+                                best_id = id.clone();
+                                best_mean = mean;
+                            }
+                        }
+                        KWinner { k, winner_is_baseline: best_id == baseline_id, winner_action_id: best_id }
+                    })
+                    .collect::<Vec<_>>();
+
+                let started = std::time::Instant::now();
+                let mut validation_ids = vec![baseline_id.clone()];
+                for winner in &k_winners {
+                    if !validation_ids.contains(&winner.winner_action_id) {
+                        validation_ids.push(winner.winner_action_id.clone());
+                    }
+                }
+                if !validation_ids.contains(&frozen_id) {
+                    validation_ids.push(frozen_id.clone());
+                }
+                let validation = validation_ids
+                    .iter()
+                    .map(|id| run_series(id, validation_seeds))
+                    .collect::<Result<Vec<_>>>()?;
+                let validation_seconds = started.elapsed().as_secs_f64();
+                let terminal_rollouts = discovery.len() * discovery_seeds.len() + validation.len() * validation_seeds.len();
+                results.push(MultiFidelityState {
+                    game_seed: seed,
+                    decision_index,
+                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    state_hash,
+                    baseline_action_id: baseline_id,
+                    frozen_phase3h_action_id: frozen_id,
+                    low_fidelity,
+                    discovery_seeds: discovery_seeds.to_vec(),
+                    discovery,
+                    k_winners,
+                    validation_seeds: validation_seeds.to_vec(),
+                    validation,
+                    low_fidelity_seconds,
+                    discovery_seconds,
+                    validation_seconds,
+                    terminal_rollouts,
+                });
+            }
+            let action = canonical_scripted_semantic_action(&environment)?;
+            let mut outcome = environment
+                .semantic_step(action)
+                .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+            settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+    }
+    Ok(results)
+}
