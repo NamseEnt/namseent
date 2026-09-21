@@ -88,7 +88,7 @@ B: scenario seeds 1, 2, 3, ... N
 
 ## Horizon과 점수
 
-full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed stage/wave horizon**을 쓴다(당시 `horizon_stages`, 현재는 `horizon_sim_ticks`) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
+full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed simulation-time horizon (`horizon_sim_ticks`)**을 쓴다(중간에 `horizon_stages`를 썼으나 v4에서 교체됨) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
 
 - horizon 도중 terminal win/loss 여부
 - 완료한 stage/wave
