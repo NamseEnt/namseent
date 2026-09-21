@@ -244,6 +244,9 @@ pub struct GameEnvironment {
     config: Arc<GameConfig>,
     seed: u64,
     max_advance_ticks: u64,
+    /// Teacher-rollout-only absolute `sim_tick` cutoff (see
+    /// `set_rollout_tick_deadline`); `None` in every non-rollout environment.
+    rollout_tick_deadline: Option<u64>,
     card_service_selection: Option<td_core::CardServiceSelectionState>,
     decision_context: DecisionContext,
     environment_actions: Vec<AgentAction>,
@@ -457,6 +460,7 @@ impl GameEnvironment {
             config,
             seed,
             max_advance_ticks: DEFAULT_MAX_ADVANCE_TICKS,
+            rollout_tick_deadline: None,
             card_service_selection: None,
             decision_context: DecisionContext::None,
             environment_actions: Vec::new(),
@@ -516,6 +520,7 @@ impl GameEnvironment {
             config: Arc::clone(&self.config),
             seed: self.seed,
             max_advance_ticks: self.max_advance_ticks,
+            rollout_tick_deadline: None,
             card_service_selection: self.card_service_selection.clone(),
             decision_context: self.decision_context.clone(),
             environment_actions: self.environment_actions.clone(),
@@ -524,6 +529,21 @@ impl GameEnvironment {
             reward_config: self.reward_config.clone(),
             max_stage: self.max_stage,
         })
+    }
+
+    /// Current authoritative simulation tick.
+    pub fn sim_tick(&self) -> u64 {
+        self.game_state.sim_tick().ticks()
+    }
+
+    /// Bounds defense advancement for teacher rollouts: while set,
+    /// `advance_until_decision_or_terminal` stops the tick loop the moment
+    /// `sim_tick` reaches `deadline` (checked before every tick, so it can
+    /// never overshoot), returning as if at an ordinary decision point.
+    /// Production gameplay never sets this; `fork_for_rollout_seed` always
+    /// starts with `None`, so normal environment semantics are unchanged.
+    pub(crate) fn set_rollout_tick_deadline(&mut self, deadline: Option<u64>) {
+        self.rollout_tick_deadline = deadline;
     }
 
     pub fn set_max_advance_ticks(&mut self, max_advance_ticks: u64) {
@@ -1164,6 +1184,12 @@ impl GameEnvironment {
             }
             if ticks_advanced >= self.max_advance_ticks {
                 return StepReason::MaxTicks;
+            }
+            if self
+                .rollout_tick_deadline
+                .is_some_and(|deadline| self.game_state.sim_tick().ticks() >= deadline)
+            {
+                return StepReason::DecisionPoint;
             }
             let hp_before = self.game_state.hp().raw();
             let tick_before = self.game_state.sim_tick().ticks();
@@ -3203,6 +3229,7 @@ mod tests {
             config: Arc::clone(&environment.config),
             seed: environment.seed,
             max_advance_ticks: environment.max_advance_ticks,
+            rollout_tick_deadline: environment.rollout_tick_deadline,
             card_service_selection: environment.card_service_selection.clone(),
             decision_context: environment.decision_context.clone(),
             environment_actions: environment.environment_actions.clone(),

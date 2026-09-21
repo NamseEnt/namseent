@@ -150,8 +150,8 @@ pub enum Command {
         max_decisions: usize,
         #[arg(long, default_value_t = 16)]
         scenario_count: usize,
-        #[arg(long, default_value_t = 1)]
-        horizon_stages: usize,
+        #[arg(long, default_value_t = 3_600)]
+        horizon_sim_ticks: u64,
         #[arg(long)]
         build_tower_rollout_limit: Option<usize>,
         #[arg(long, default_value_t = 0)]
@@ -412,7 +412,7 @@ pub fn run_command(command: Command) -> Result<()> {
             seed_end,
             max_decisions,
             scenario_count,
-            horizon_stages,
+            horizon_sim_ticks,
             build_tower_rollout_limit,
             threads,
             config,
@@ -422,7 +422,7 @@ pub fn run_command(command: Command) -> Result<()> {
             seed_end,
             max_decisions,
             scenario_count,
-            horizon_stages,
+            horizon_sim_ticks,
             build_tower_rollout_limit,
             threads,
             config,
@@ -717,7 +717,7 @@ fn collect_teacher_command(
     seed_end: u64,
     max_decisions: usize,
     scenario_count: usize,
-    horizon_stages: usize,
+    horizon_sim_ticks: u64,
     build_tower_rollout_limit: Option<usize>,
     threads: usize,
     config_path: Option<PathBuf>,
@@ -725,8 +725,8 @@ fn collect_teacher_command(
     if scenario_count == 0 {
         bail!("teacher scenario count must be positive");
     }
-    if horizon_stages == 0 {
-        bail!("teacher horizon_stages must be positive");
+    if horizon_sim_ticks == 0 {
+        bail!("teacher horizon_sim_ticks must be positive");
     }
     if build_tower_rollout_limit == Some(0) {
         bail!("teacher build tower rollout limit must be positive when provided");
@@ -735,7 +735,7 @@ fn collect_teacher_command(
     let seed_range = SeedRange::try_new(seed_start, seed_end)?;
     let teacher_config = RolloutTeacherConfig {
         scenario_seeds: (0..scenario_count as u64).collect(),
-        horizon_stages,
+        horizon_sim_ticks,
         build_tower_rollout_limit,
     };
     let dataset = run_with_threads(threads, || {

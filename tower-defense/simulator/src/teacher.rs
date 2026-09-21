@@ -15,50 +15,49 @@ use crate::policy_runner::{
 #[cfg(test)]
 use crate::policy_runner::scripted_expert_action;
 
-/// Bumped 2 -> 3: two diagnostic-confirmed teacher-contract fixes.
+/// Bumped 3 -> 4 (previously 2 -> 3, and 1 -> 2; see
+/// docs/game-ai/05-rollout-teacher.md).
 ///
-/// 1. Selection is now baseline-conservative: a candidate only overrides the
-///    canonical baseline when it has a *strictly* higher mean score.
-///    Previously, exact score ties fell to an action-id string tie-break
-///    that ignored the baseline and had no relationship to game quality
-///    (91% of tuning-corpus divergences were exact ties, and the tie-break
-///    consistently favored whichever action kind's id string sorted first
-///    alphabetically - e.g. `continue` over `use_inventory_item`,
-///    `discard_treasure`/`remove_tower` over `start_defense`).
-/// 2. `horizon_decisions` (a fixed decision *count*) was replaced by
-///    `horizon_stages` (a fixed stage/wave *progress* target): a
-///    decision-count horizon structurally penalizes any candidate whose
-///    first action doesn't itself advance the stage (e.g. `PurchaseShopItem`
-///    "spends" one of a handful of horizon decisions on a non-progressing
-///    action), independent of actual future value. A seed-100 trace showed
-///    this costing a full stage of rollout progress
-///    (`docs/game-ai/05-rollout-teacher.md`'s "Stage horizon" section).
+/// - v3: selection became baseline-conservative (a candidate overrides the
+///   canonical baseline only with a *strictly* higher mean score), and the
+///   decision-count horizon (`horizon_decisions`) was replaced by a stage
+///   horizon, because counting decisions structurally penalized candidates
+///   whose first action doesn't advance the stage (e.g. `PurchaseShopItem`).
+/// - v4: the stage horizon (`horizon_stages`) was replaced by a simulation
+///   *time* horizon (`horizon_sim_ticks`). With `stage_progress_v1` scoring
+///   ((stage - 1) + completion), stopping every rollout at the same stage
+///   boundary made almost every surviving candidate land on the identical
+///   score (same stage, completion 0), erasing the ranking signal - 256/256
+///   tuning-corpus records had `selected == baseline` with regret 0
+///   regardless of config. A fixed amount of *simulated game time* instead
+///   lets candidates differ in how far into a stage they got.
 ///
 /// Serialized `RolloutTeacherDecision`/`RolloutTeacherConfig` values from
-/// schema version < 3 are not compatible with this version (field rename,
+/// schema version < 4 are not compatible with this version (field rename,
 /// no backward alias).
-pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 3;
-pub const DEFAULT_TEACHER_HORIZON_STAGES: usize = 1;
+pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 4;
+/// Placeholder default (60 ticks/s * 60 s); real horizons are chosen from
+/// measured canonical-baseline stage durations (see the docs), not this.
+pub const DEFAULT_TEACHER_HORIZON_SIM_TICKS: u64 = 3_600;
 pub const DEFAULT_TEACHER_SCENARIO_COUNT: usize = 16;
 
-/// Safety guard, not a production tuning knob: `evaluate_candidate_scenario`
-/// bails with an explicit error if canonical continuation can't advance a
-/// rollout to its target stage (or terminal) within this many additional
-/// decisions after the candidate's own action. This exists only to turn a
-/// hypothetical "continuation never reaches the next stage" bug into a loud
-/// evaluation failure instead of a silently-truncated, misleadingly-scored
-/// rollout - it must never be reached in a correctly-functioning rollout,
-/// and is not a substitute for `horizon_stages`.
+/// Safety guard, not a horizon: `evaluate_candidate_scenario` bails with an
+/// explicit error if this many *consecutive* policy decisions pass without
+/// the simulation tick advancing at all (a decision cycle that never lets
+/// game time progress toward the horizon). It exists only to turn such a bug
+/// into a loud evaluation failure instead of a hang or a silently mis-scored
+/// rollout, and must never be reached in a correctly-functioning rollout.
 const MAX_TEACHER_CONTINUATION_DECISIONS: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RolloutTeacherConfig {
     pub scenario_seeds: Vec<u64>,
-    /// How many stage boundaries a rollout continues past the candidate's
-    /// pre-action stage before scoring - see `evaluate_candidate_scenario`.
-    /// Replaces the old decision-count `horizon_decisions`, which penalized
-    /// any candidate whose first action didn't itself advance the stage.
-    pub horizon_stages: usize,
+    /// How many simulation ticks of game time each rollout covers, counted
+    /// from the tick the candidate was chosen at and enforced exactly (never
+    /// overshot) - see `evaluate_candidate_scenario`. Decisions that don't
+    /// advance simulation time (shop, cards, treasure, placement) consume
+    /// none of it.
+    pub horizon_sim_ticks: u64,
     /// How many top-ranked `BuildTower` actions (by
     /// `DenseBuildTowerScoreTable`'s global ranking) to roll out per
     /// decision; every non-`BuildTower` semantic action is always included
@@ -71,7 +70,7 @@ impl Default for RolloutTeacherConfig {
     fn default() -> Self {
         Self {
             scenario_seeds: (0..DEFAULT_TEACHER_SCENARIO_COUNT as u64).collect(),
-            horizon_stages: DEFAULT_TEACHER_HORIZON_STAGES,
+            horizon_sim_ticks: DEFAULT_TEACHER_HORIZON_SIM_TICKS,
             build_tower_rollout_limit: None,
         }
     }
@@ -96,7 +95,7 @@ pub struct RolloutTeacherDecision {
     pub state_hash: String,
     pub observation: crate::environment::Observation,
     pub scenario_seed_digest: String,
-    pub horizon_stages: usize,
+    pub horizon_sim_ticks: u64,
     pub candidate_count: usize,
     pub selected_action_id: String,
     pub selected_mean_score: f32,
@@ -282,7 +281,7 @@ pub fn dense_semantic_candidates(
 /// A state-local, config-independent preparation step shared by every
 /// `RolloutTeacherConfig` evaluated at the same (unmutated) `environment`
 /// state: the `DenseBuildTowerScoreTable` full ranking (dense candidate
-/// ranking never depends on `scenario_seeds`/`horizon_stages`), sliced
+/// ranking never depends on `scenario_seeds`/`horizon_sim_ticks`), sliced
 /// down to whatever `build_tower_rollout_limit` a caller actually wants via
 /// [`Self::candidates_for_limit`], plus the canonical baseline action -
 /// computed from the *same* table, so a state visited once and evaluated
@@ -443,8 +442,8 @@ pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
     if config.scenario_seeds.is_empty() {
         bail!("rollout teacher requires at least one scenario seed");
     }
-    if config.horizon_stages == 0 {
-        bail!("rollout teacher horizon_stages must be positive");
+    if config.horizon_sim_ticks == 0 {
+        bail!("rollout teacher horizon_sim_ticks must be positive");
     }
     if candidates.is_empty() {
         bail!("rollout teacher requires at least one candidate");
@@ -522,7 +521,7 @@ pub(crate) fn evaluate_semantic_candidate_set_with_baseline(
         state_hash: environment.state_hash(),
         observation,
         scenario_seed_digest: scenario_seed_digest(&config.scenario_seeds),
-        horizon_stages: config.horizon_stages,
+        horizon_sim_ticks: config.horizon_sim_ticks,
         candidate_count: estimates.len(),
         selected_action_id,
         selected_mean_score,
@@ -591,26 +590,37 @@ struct RolloutSample {
     victory: bool,
     clear_rate: f32,
     final_stage: usize,
-    /// The candidate's own action plus every continuation step actually
-    /// taken - exposed only for tests proving the stage horizon is
-    /// action-count-independent (see `evaluate_candidate_scenario`'s doc
-    /// comment); production code never reads it.
+    /// Test/diagnostic-only: candidate action plus every continuation
+    /// decision taken, and the simulation ticks the rollout started and
+    /// ended at. Production code only reads `score`..`final_stage`.
     #[allow(dead_code)]
     decisions_consumed: usize,
+    #[allow(dead_code)]
+    start_sim_tick: u64,
+    #[allow(dead_code)]
+    end_sim_tick: u64,
+    #[allow(dead_code)]
+    terminal: bool,
 }
 
 /// Applies `candidate`'s action, then continues via the canonical dense
 /// scripted heuristic (never a legacy position-limited proposal, a
 /// per-candidate policy, or the teacher's own recursive selection - see
 /// docs/game-ai/05-rollout-teacher.md's Continuation policy section) until
-/// `current_stage >= start_stage + horizon_stages` (the stage the candidate
-/// was chosen *in*, not any stage the candidate's own action might already
-/// reach), or terminal. This is a *stage*, not decision-count, horizon: how
-/// many decisions the candidate's action or the continuation actually spend
-/// getting there never affects the target, so a candidate that "spends" a
-/// decision on a non-progressing action (e.g. `PurchaseShopItem`) is not
-/// structurally penalized relative to one that advances the stage
-/// immediately - see `TEACHER_SCORE_SCHEMA_VERSION`'s doc comment.
+/// the simulation reaches *exactly* `start_sim_tick + horizon_sim_ticks`, or
+/// terminal.
+///
+/// The cutoff is exact, not "first decision point at or after the target":
+/// the rollout environment carries a tick deadline
+/// (`GameEnvironment::set_rollout_tick_deadline`) that stops defense
+/// advancement the moment `sim_tick` hits the target, so a candidate whose
+/// step would otherwise run several ticks past it (up to the next decision
+/// point) ends at the same tick as every other candidate. Decisions that
+/// don't advance simulation time (shop, cards, treasure, placement) consume
+/// none of the horizon, so a candidate that "spends" a decision on a
+/// preparation action is not penalized relative to one that doesn't. The
+/// deadline exists only on the forked rollout copy; production environment
+/// stepping is unchanged.
 fn evaluate_candidate_scenario(
     environment: &GameEnvironment,
     candidate: &LegalAction,
@@ -626,56 +636,70 @@ fn evaluate_candidate_scenario(
     )
 }
 
-/// [`evaluate_candidate_scenario`], with the safety-guard cap as an explicit
-/// parameter instead of the fixed `MAX_TEACHER_CONTINUATION_DECISIONS`
-/// constant, so tests can prove the guard actually fires (a tiny cap against
-/// an ordinary state that needs more than that many continuation decisions)
-/// without needing a state that's *genuinely* stuck. Production code always
-/// goes through `evaluate_candidate_scenario`, which uses the real constant.
+/// [`evaluate_candidate_scenario`] with the safety-guard cap as a parameter,
+/// so tests can prove the guard fires. Production always passes
+/// `MAX_TEACHER_CONTINUATION_DECISIONS`.
 fn evaluate_candidate_scenario_with_cap(
     environment: &GameEnvironment,
     candidate: &LegalAction,
     scenario_seed: u64,
     config: &RolloutTeacherConfig,
-    max_continuation_decisions: usize,
+    max_ticks_free_decisions: usize,
 ) -> Result<RolloutSample> {
-    let start_stage = environment.snapshot().stage;
-    let target_stage = start_stage.saturating_add(config.horizon_stages);
+    let start_sim_tick = environment.sim_tick();
+    let target_tick = start_sim_tick.saturating_add(config.horizon_sim_ticks);
     let mut rollout = environment
         .fork_for_rollout_seed(scenario_seed)
         .map_err(|error| anyhow::anyhow!("teacher rollout fork failed: {error}"))?;
+    rollout.set_rollout_tick_deadline(Some(target_tick));
     let mut outcome = rollout
         .semantic_step(candidate.action.clone())
         .map_err(|error| anyhow::anyhow!("teacher candidate failed: {error:?}"))?;
-    settle_forced_actions(&mut rollout, &mut outcome)?;
     let mut decisions_consumed = 1usize;
-    let mut continuation_decisions = 0usize;
-    while !outcome.terminated
-        && !outcome.truncated
-        && !matches!(
-            rollout.decision_point(),
-            crate::environment::DecisionPoint::Terminal
-        )
-        && rollout.snapshot().stage < target_stage
-    {
-        if continuation_decisions >= max_continuation_decisions {
+    let mut decisions_without_tick_progress = 0usize;
+    let mut last_tick = rollout.sim_tick();
+    loop {
+        if outcome.terminated
+            || outcome.truncated
+            || matches!(
+                rollout.decision_point(),
+                crate::environment::DecisionPoint::Terminal
+            )
+            || rollout.sim_tick() >= target_tick
+        {
+            break;
+        }
+        if decisions_without_tick_progress >= max_ticks_free_decisions {
             bail!(
-                "teacher rollout continuation exceeded the safety-guard cap \
-                 ({max_continuation_decisions}) without reaching target stage \
-                 {target_stage} or terminal (stuck at stage {}) - this is a safety-guard \
-                 invariant violation, not a normal horizon endpoint",
-                rollout.snapshot().stage
+                "teacher rollout made {max_ticks_free_decisions} consecutive decisions without \
+                 the simulation tick advancing (stuck at tick {}, target {target_tick}) - this \
+                 is a safety-guard invariant violation, not a normal horizon endpoint",
+                rollout.sim_tick()
             );
         }
-        let action = canonical_scripted_semantic_action(&rollout)?;
+        let action = match rollout.forced_action() {
+            Some(action) => action,
+            None => canonical_scripted_semantic_action(&rollout)?,
+        };
         outcome = rollout
             .semantic_step(action)
             .map_err(|error| anyhow::anyhow!("teacher continuation failed: {error:?}"))?;
-        settle_forced_actions(&mut rollout, &mut outcome)?;
-        continuation_decisions += 1;
         decisions_consumed += 1;
+        let tick = rollout.sim_tick();
+        if tick > last_tick {
+            decisions_without_tick_progress = 0;
+            last_tick = tick;
+        } else {
+            decisions_without_tick_progress += 1;
+        }
     }
     let observation = rollout.snapshot();
+    let terminal = outcome.terminated
+        || outcome.truncated
+        || matches!(
+            rollout.decision_point(),
+            crate::environment::DecisionPoint::Terminal
+        );
     let victory = outcome.terminated && rollout.clear_rate() >= 100.0;
     Ok(RolloutSample {
         score: rollout_score(&observation, victory),
@@ -683,6 +707,9 @@ fn evaluate_candidate_scenario_with_cap(
         clear_rate: rollout.clear_rate(),
         final_stage: observation.stage,
         decisions_consumed,
+        start_sim_tick,
+        end_sim_tick: observation.sim_tick,
+        terminal,
     })
 }
 
@@ -745,7 +772,7 @@ mod tests {
         }];
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![11, 13],
-            horizon_stages: 1,
+            horizon_sim_ticks: 120,
             build_tower_rollout_limit: None,
         };
         let first = evaluate_semantic_candidate_set(&environment, &candidates, &config)
@@ -903,7 +930,7 @@ mod tests {
         }
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![1],
-            horizon_stages: 1,
+            horizon_sim_ticks: 120,
             build_tower_rollout_limit: Some(1),
         };
         let decision = evaluate_semantic_candidates(&environment, &config)
@@ -930,7 +957,7 @@ mod tests {
         let environment = card_decision_environment(1);
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![5],
-            horizon_stages: 1,
+            horizon_sim_ticks: 120,
             build_tower_rollout_limit: Some(1),
         };
         let first = evaluate_semantic_candidates(&environment, &config)
@@ -947,91 +974,18 @@ mod tests {
         }
     }
 
-    // --- stage-horizon correctness (F, C, D, E) -----------------------
-
-    /// F: the safety guard must fire as an explicit evaluation error, not a
-    /// silently truncated/misleadingly-scored rollout, when continuation
-    /// can't reach the target stage within the cap. Uses a tiny cap (1)
-    /// against an ordinary fresh state that legitimately needs many more
-    /// than one continuation decision to finish stage 1 - proving the guard
-    /// fires without needing a state that's genuinely stuck forever.
-    #[test]
-    fn safety_guard_returns_an_explicit_error_when_the_cap_is_too_small() {
-        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
-        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
-        let candidates = environment.legal_actions();
-        let candidate = candidates
-            .into_iter()
-            .find(|legal| matches!(legal.action, AgentAction::StartSelectingTower))
-            .expect("StartSelectingTower should be legal from a fresh Shop state");
-        let config = RolloutTeacherConfig {
-            scenario_seeds: vec![0],
-            horizon_stages: 5,
-            build_tower_rollout_limit: None,
-        };
-        let error = evaluate_candidate_scenario_with_cap(&environment, &candidate, 0, &config, 1)
-            .expect_err(
-                "a 1-decision continuation cap must be insufficient to finish stage 1 \
-                 from a fresh game and must therefore fail explicitly",
-            );
-        assert!(
-            error.to_string().contains("safety-guard"),
-            "the error must identify itself as the safety guard, not an unrelated failure: {error}"
-        );
-    }
-
-    /// E: if a candidate's rollout ends (`outcome.terminated` or
-    /// `outcome.truncated` - the existing episode-end contract, unchanged by
-    /// this rewrite) before the target stage, the rollout must score
-    /// immediately at that end state rather than erroring or continuing
-    /// past it. Uses a stage-capped config (`new_with_stage_limit`) against
-    /// an unreachably large `horizon_stages`: finishing the only configured
-    /// stage ends the episode (`outcome.truncated`) long before
-    /// `start_stage + horizon_stages` could ever be satisfied, so reaching
-    /// `Ok` at all - well short of the declared horizon, in a small,
-    /// bounded number of decisions - is the behavior under test.
-    #[test]
-    fn terminal_before_target_stage_scores_immediately() {
-        let environment = GameEnvironment::new_with_stage_limit(
-            Arc::new(GameConfig::default_config()),
-            0,
-            crate::environment::RewardConfig::default(),
-            1,
-        );
-        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
-        let candidates = environment.legal_actions();
-        let candidate = candidates
-            .into_iter()
-            .find(|legal| matches!(legal.action, AgentAction::StartSelectingTower))
-            .expect("StartSelectingTower should be legal from a fresh Shop state");
-        let config = RolloutTeacherConfig {
-            scenario_seeds: vec![0],
-            horizon_stages: 10,
-            build_tower_rollout_limit: None,
-        };
-        let sample = evaluate_candidate_scenario(&environment, &candidate, 0, &config)
-            .expect("episode end before the target stage must score immediately, not error");
-        assert_eq!(
-            sample.final_stage, 1,
-            "the stage-1-capped episode must end while still at stage 1, far short of \
-             start_stage + horizon_stages (11)"
-        );
-    }
+    // --- simulation-tick horizon correctness --------------------------
 
     /// Finds a seed whose first Shop decision offers both a `PurchaseShopItem`
-    /// candidate and a `BuildTower` candidate (the exact shape of the
-    /// seed-100 diagnostic finding), for C and D below.
-    fn shop_purchase_and_build_candidates(
-    ) -> (GameEnvironment, LegalAction, LegalAction) {
+    /// and a `BuildTower` candidate (the shape of the seed-100 diagnostic
+    /// finding). `BuildTower` is a semantic macro action, so it only appears
+    /// in `dense_semantic_candidates`, never in raw `legal_actions()`.
+    fn shop_purchase_and_build_candidates() -> (GameEnvironment, LegalAction, LegalAction) {
         for seed in 0..24u64 {
             let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
             if environment.decision_point() != DecisionPoint::Shop {
                 continue;
             }
-            // BuildTower is a *semantic* macro action (folding the raw
-            // select/confirm/select-tower sequence into one step) - it only
-            // appears in `semantic_legal_actions`/`dense_semantic_candidates`,
-            // never in the raw `legal_actions()` micro-action set.
             let legal = dense_semantic_candidates(&environment, None);
             let purchase = legal
                 .iter()
@@ -1045,59 +999,171 @@ mod tests {
                 return (environment, purchase, build);
             }
         }
-        panic!("expected at least one seed whose first Shop decision offers both a purchase and a BuildTower candidate");
+        panic!("expected a seed whose first Shop decision offers both a purchase and a BuildTower");
     }
 
-    /// C (Shop horizon fairness pin): the exact regression this rewrite
-    /// fixes. One candidate (`PurchaseShopItem`) consumes a decision that
-    /// does not itself advance the stage; the other (`BuildTower`) can lead
-    /// toward `start_defense` immediately. Under a fixed *stage* horizon
-    /// (`horizon_stages=1`), both rollouts must continue to the same stage
-    /// boundary regardless of which one "spent" a decision shopping first -
-    /// if the old fixed-decision-count bug reappears, one of these would
-    /// end a stage behind the other, and this assertion would fail.
-    #[test]
-    fn shop_purchase_and_build_reach_the_same_target_stage_within_one_stage_horizon() {
-        let (environment, purchase, build) = shop_purchase_and_build_candidates();
-        let config = RolloutTeacherConfig {
+    fn ticks_config(horizon_sim_ticks: u64) -> RolloutTeacherConfig {
+        RolloutTeacherConfig {
             scenario_seeds: vec![0],
-            horizon_stages: 1,
+            horizon_sim_ticks,
             build_tower_rollout_limit: None,
-        };
-        let purchase_sample = evaluate_candidate_scenario(&environment, &purchase, 0, &config)
-            .expect("purchase rollout should evaluate");
-        let build_sample = evaluate_candidate_scenario(&environment, &build, 0, &config)
-            .expect("build rollout should evaluate");
-        assert_eq!(
-            purchase_sample.final_stage, build_sample.final_stage,
-            "both candidates must reach the same target stage under a stage-based horizon, \
-             regardless of which one spent a decision on a non-progressing shop purchase first"
-        );
+        }
     }
 
-    /// D (action-count independence): the same pair of candidates as C
-    /// consume a *different* number of total decisions (candidate action +
-    /// continuation) to reach that shared stage boundary - proving the
-    /// horizon endpoint is chosen by stage, not by counting decisions.
+    /// A + B + C: a purchase (extra non-time-advancing decision) and a
+    /// BuildTower candidate consume different decision counts, yet both
+    /// rollouts cover exactly the same simulated time and end at exactly
+    /// `start_sim_tick + horizon_sim_ticks` - no overshoot, and preparation
+    /// actions consume zero horizon.
     #[test]
-    fn candidates_consuming_different_decision_counts_still_share_the_stage_horizon_endpoint() {
+    fn candidates_with_different_decision_counts_end_at_the_exact_target_tick() {
         let (environment, purchase, build) = shop_purchase_and_build_candidates();
-        let config = RolloutTeacherConfig {
-            scenario_seeds: vec![0],
-            horizon_stages: 1,
-            build_tower_rollout_limit: None,
-        };
-        let purchase_sample = evaluate_candidate_scenario(&environment, &purchase, 0, &config)
-            .expect("purchase rollout should evaluate");
-        let build_sample = evaluate_candidate_scenario(&environment, &build, 0, &config)
-            .expect("build rollout should evaluate");
-        assert_eq!(purchase_sample.final_stage, build_sample.final_stage);
+        // A horizon that ends mid-defense, between decision points.
+        let horizon = 137;
+        let config = ticks_config(horizon);
+        let start = environment.sim_tick();
+        let p = evaluate_candidate_scenario(&environment, &purchase, 0, &config).unwrap();
+        let b = evaluate_candidate_scenario(&environment, &build, 0, &config).unwrap();
+        assert!(!p.terminal && !b.terminal, "fixture must not hit terminal");
+        assert_eq!(p.start_sim_tick, start);
+        assert_eq!(b.start_sim_tick, start);
+        assert_eq!(p.end_sim_tick, start + horizon, "purchase rollout overshot/undershot");
+        assert_eq!(b.end_sim_tick, start + horizon, "build rollout overshot/undershot");
+        assert_eq!(p.end_sim_tick - p.start_sim_tick, b.end_sim_tick - b.start_sim_tick);
         assert_ne!(
-            purchase_sample.decisions_consumed, build_sample.decisions_consumed,
-            "this fixture is only a meaningful action-count-independence check if the two \
-             candidates actually consume different total decision counts to reach the shared \
-             stage horizon endpoint"
+            p.decisions_consumed, b.decisions_consumed,
+            "fixture is only meaningful if the candidates consume different decision counts"
         );
+    }
+
+    /// D: reaching terminal before the target tick ends the rollout normally
+    /// (no error, no continuation past terminal). A stage-capped game ends
+    /// (`truncated`) after stage 1, far before an enormous tick horizon.
+    #[test]
+    fn terminal_before_target_tick_ends_normally() {
+        let environment = GameEnvironment::new_with_stage_limit(
+            Arc::new(GameConfig::default_config()),
+            0,
+            crate::environment::RewardConfig::default(),
+            1,
+        );
+        let candidate = environment
+            .legal_actions()
+            .into_iter()
+            .find(|l| matches!(l.action, AgentAction::StartSelectingTower))
+            .unwrap();
+        let config = ticks_config(10_000_000);
+        let sample = evaluate_candidate_scenario(&environment, &candidate, 0, &config)
+            .expect("episode end before the target tick must score, not error");
+        assert!(sample.terminal);
+        assert!(sample.end_sim_tick < environment.sim_tick() + 10_000_000);
+    }
+
+    /// E: the safety guard fires as an explicit error when decisions keep
+    /// happening without simulation time advancing. With a cap of 1, an
+    /// ordinary fresh Shop state (several zero-time preparation decisions
+    /// before defense can start) trips it.
+    #[test]
+    fn safety_guard_errors_when_decisions_never_advance_the_tick() {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        let candidate = environment
+            .legal_actions()
+            .into_iter()
+            .find(|l| matches!(l.action, AgentAction::StartSelectingTower))
+            .unwrap();
+        let error =
+            evaluate_candidate_scenario_with_cap(&environment, &candidate, 0, &ticks_config(500), 1)
+                .expect_err("a cap of 1 tick-free decision must trip on a fresh Shop state");
+        assert!(error.to_string().contains("safety-guard"), "{error}");
+    }
+
+    #[test]
+    fn zero_horizon_is_rejected() {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        let candidates = environment.legal_actions();
+        let error = evaluate_semantic_candidate_set(&environment, &candidates[..1], &ticks_config(0))
+            .expect_err("horizon_sim_ticks == 0 must be rejected");
+        assert!(error.to_string().contains("horizon_sim_ticks"));
+    }
+
+    /// Rollout tick deadlines exist only on rollout forks: a plain
+    /// environment stepping through defense is unaffected.
+    #[test]
+    fn production_stepping_is_unaffected_by_rollout_deadlines() {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        let fork = environment.fork_for_rollout_seed(0).unwrap();
+        // fork starts without a deadline: a full canonical episode prefix
+        // must advance well past any small tick count in one defense.
+        let mut fork = fork;
+        let mut max_delta = 0u64;
+        for _ in 0..12 {
+            let before = fork.sim_tick();
+            let Ok(action) = canonical_scripted_semantic_action(&fork) else { break };
+            let Ok(mut outcome) = fork.semantic_step(action) else { break };
+            settle_forced_actions(&mut fork, &mut outcome).unwrap();
+            max_delta = max_delta.max(fork.sim_tick() - before);
+            if outcome.terminated || outcome.truncated {
+                break;
+            }
+        }
+        assert!(max_delta > 137, "unbounded defense should run many ticks per step");
+    }
+
+    /// Manual diagnostic (seed 100's stage-1 Shop decision, the state where a
+    /// decision-count horizon scored `PurchaseShopItem` a full stage below
+    /// `BuildTower`): prints both candidates' rollouts under one shared tick
+    /// horizon. Run with `cargo test --release -- --ignored --nocapture
+    /// seed100_shop_purchase_vs_build_under_tick_horizon`.
+    #[test]
+    #[ignore = "manual diagnostic; run in release with --nocapture"]
+    fn seed100_shop_purchase_vs_build_under_tick_horizon() {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 100);
+        // decision 0 is the TreasureSelection; take the canonical baseline action.
+        let mut guard = 0;
+        while environment.decision_point() != DecisionPoint::Shop {
+            let action = canonical_scripted_semantic_action(&environment).unwrap();
+            println!("pre-shop baseline action: {}", action.action_id());
+            let mut outcome = environment.semantic_step(action).unwrap();
+            settle_forced_actions(&mut environment, &mut outcome).unwrap();
+            guard += 1;
+            assert!(guard < 8, "never reached Shop");
+        }
+        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+        let baseline = canonical_scripted_semantic_action(&environment).unwrap();
+        let candidates = dense_semantic_candidates(&environment, Some(16));
+        let build = candidates
+            .iter()
+            .find(|l| matches!(l.action, AgentAction::BuildTower { .. }))
+            .unwrap()
+            .clone();
+        let purchase = candidates
+            .iter()
+            .find(|l| l.action == baseline)
+            .cloned()
+            .or_else(|| {
+                candidates
+                    .iter()
+                    .find(|l| matches!(l.action, AgentAction::PurchaseShopItem { .. }))
+                    .cloned()
+            })
+            .unwrap();
+        let config = ticks_config(1633);
+        for (label, candidate) in [("baseline/purchase", &purchase), ("build", &build)] {
+            for seed in [1000u64, 1001] {
+                let sample = evaluate_candidate_scenario(&environment, candidate, seed, &config).unwrap();
+                println!(
+                    "{label} {} scenario={seed} decisions_consumed={} start_tick={} end_tick={} stage={} completion={:.4} score={:.4} terminal={}",
+                    candidate.id,
+                    sample.decisions_consumed,
+                    sample.start_sim_tick,
+                    sample.end_sim_tick,
+                    sample.final_stage,
+                    sample.score - (sample.final_stage as f32 - 1.0),
+                    sample.score,
+                    sample.terminal
+                );
+            }
+        }
     }
 
     // --- dense_semantic_candidates correctness -----------------------
@@ -1807,7 +1873,7 @@ mod tests {
         let (environment, purchase, build) = shop_purchase_and_build_candidates();
         let config = RolloutTeacherConfig {
             scenario_seeds: vec![10],
-            horizon_stages: 1,
+            horizon_sim_ticks: 120,
             build_tower_rollout_limit: Some(1),
         };
         let candidates = vec![purchase, build];
@@ -2620,7 +2686,7 @@ mod tests {
         methodology: String,
         target_candidate_count: usize,
         scenario_count: usize,
-        horizon_stages: usize,
+        horizon_sim_ticks: u64,
         sample_points: Vec<MigrationBenchmarkSamplePoint>,
         mean_legacy_candidate_generation_seconds: f64,
         mean_dense_candidate_generation_seconds: f64,
@@ -2661,7 +2727,7 @@ mod tests {
     ///   oracle's specific pick.
     /// - `*_teacher_decision_seconds`: `evaluate_semantic_candidate_set`
     ///   end to end (real rollouts, `scenario_count` scenarios x
-    ///   `horizon_stages` per candidate) - `legacy` and `dense` use the
+    ///   `horizon_sim_ticks` per candidate) - `legacy` and `dense` use the
     ///   same candidate *count*, so this isolates candidate-generation
     ///   overhead plus any oracle-best-inclusion effect on rollout value,
     ///   not a rollout-budget difference.
@@ -2683,7 +2749,7 @@ mod tests {
         const MAX_DECISIONS_PER_SEED: usize = 40;
         const TARGET_CANDIDATE_COUNT: usize = 96;
         const SCENARIO_COUNT: usize = 1;
-        const HORIZON_STAGES: usize = 1;
+        const HORIZON_STAGES: u64 = 120;
 
         let scenario_seeds = (0..SCENARIO_COUNT as u64).collect::<Vec<_>>();
 
@@ -2787,7 +2853,7 @@ mod tests {
 
                     let teacher_config = RolloutTeacherConfig {
                         scenario_seeds: scenario_seeds.clone(),
-                        horizon_stages: HORIZON_STAGES,
+                        horizon_sim_ticks: HORIZON_STAGES,
                         build_tower_rollout_limit: None,
                     };
                     let legacy_decision_start = Instant::now();
@@ -2949,7 +3015,7 @@ mod tests {
                 .to_string(),
             target_candidate_count: TARGET_CANDIDATE_COUNT,
             scenario_count: SCENARIO_COUNT,
-            horizon_stages: HORIZON_STAGES,
+            horizon_sim_ticks: HORIZON_STAGES,
             sample_points,
             mean_legacy_candidate_generation_seconds,
             mean_dense_candidate_generation_seconds,

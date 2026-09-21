@@ -24,7 +24,7 @@ teacher는 느리지만 현재 heuristic보다 강한 행동 label과 후보별 
 
 이 값은 확정된 기본값이 아니다. simulator 처리량 측정과 label 안정성 실험으로 정한다.
 
-현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_stages`만큼의 stage boundary까지 canonical continuation을 실행한다(decision 개수가 아니라 stage 진행도 기준 - 아래 "Horizon과 점수", "Continuation policy" 참고). report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `build_tower_rollout_limit`을 지정하면 `dense_semantic_candidates`가 `DenseBuildTowerScoreTable`의 전체 map 랭킹에서 상위 `build_tower_rollout_limit`개의 `BuildTower` action만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다(`Reroll`/shop/inventory/treasure 같은 non-`BuildTower` action은 이 한도와 무관하게 항상 전부 포함된다). 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
+현재 최소 구현은 `td-simulator teacher` 명령과 `run_semantic_teacher_episode` API다. candidate마다 `GameEnvironment::fork_for_rollout_seed`를 사용하고, `horizon_sim_ticks`만큼의 simulation 시간 동안 canonical continuation을 실행한다(decision 개수도 stage boundary도 아닌 정확한 sim tick 기준 - 아래 "Horizon과 점수", "Continuation policy" 참고). report에는 candidate action, sample count, mean score, variance, standard error, wins, 평균 clear rate와 stage가 포함된다. `build_tower_rollout_limit`을 지정하면 `dense_semantic_candidates`가 `DenseBuildTowerScoreTable`의 전체 map 랭킹에서 상위 `build_tower_rollout_limit`개의 `BuildTower` action만 teacher에 공급해 smoke 또는 비용 제한 실험을 할 수 있다(`Reroll`/shop/inventory/treasure 같은 non-`BuildTower` action은 이 한도와 무관하게 항상 전부 포함된다). 기본 CLI 값은 검증 가능한 작은 smoke workload이며 production dataset의 최종값이 아니다.
 
 ### Legacy candidate confound (해소됨)
 
@@ -40,6 +40,15 @@ legacy `position_candidate_limit`은 프로덕션 teacher 계약에서 완전히
 
 현재 score는 `stage_progress_v1` 계약으로 stage 진행도와 현재 stage completion을 합산하고, full clear에는 1,000의 terminal victory bonus를 준다. 이 score는 candidate ranking용 fixed-horizon signal이며 최종 승률 평가를 대체하지 않는다.
 
+### 후속 결함 3: stage horizon이 score signal을 지웠다 (schema v3 -> v4)
+
+Phase 3C의 `horizon_stages`는 모든 rollout을 같은 stage boundary에서 멈추게 했다. `stage_progress_v1`(= (stage-1) + completion)에서는 생존한 후보 대부분이 같은 stage, completion 0에 도달해 score가 구조적으로 동일해졌고, tuning corpus 256/256이 `selected == baseline`, regret 0이 되었다(teacher 강도의 증거가 아니라 ranking signal 소거). 그래서 stopping criterion을 **정확한 simulation tick 기준**(`horizon_sim_ticks`)으로 바꿨다. score 공식은 변경하지 않았다.
+
+- rollout은 `target_tick = start_sim_tick + horizon_sim_ticks`까지 정확히 진행한다. rollout fork에만 붙는 tick deadline(`GameEnvironment::set_rollout_tick_deadline`)이 defense advancement를 target tick에서 멈추므로 다음 decision point까지 여러 tick을 진행하는 step도 overshoot하지 않는다. production environment stepping은 변하지 않는다.
+- Shop/Card/Treasure/Placement처럼 sim 시간을 진행시키지 않는 decision은 horizon을 소비하지 않는다.
+- safety guard: sim tick이 전혀 증가하지 않는 decision이 `MAX_TEACHER_CONTINUATION_DECISIONS`(64)번 연속되면 explicit error. `horizon_sim_ticks > 0` 필수.
+- horizon 값은 임의로 고르지 않고 canonical baseline stage duration(seeds 0..=3, 완료 stage 81개: min 744, p25 1400, median 1633, p75 1908, max 2447, mean 1669.4 ticks; 60 tps에서 median 27.2초)으로 정한다: short = median(1633), long = 2 x median(3266). 선택 근거는 `teacher-eval --horizon-selection-note`로 report metadata에 기록한다.
+
 ### held-out diagnostic으로 확인한 두 가지 구조적 결함 (해소됨, schema v2 -> v3)
 
 tuning corpus(scenario=2, horizon=4 decisions, limit=16)에서 teacher selected action이 baseline과 다른 경우가 23/32(72%)였고, 그중 21/23(91%)는 **정확한 score 동점**이었다. held-out seed 100..107 paired full-game smoke에서는 8/8 seed 모두 teacher가 baseline보다 clear_rate/final_stage가 낮았다. 원인은 다음 두 가지로 확인됐다.
@@ -50,9 +59,9 @@ tuning corpus(scenario=2, horizon=4 decisions, limit=16)에서 teacher selected 
 두 문제를 함께 고쳤다(`TEACHER_SCORE_SCHEMA_VERSION` 2 -> 3):
 
 - **Baseline-conservative selection**: `teacher::select_conservatively`가 selection을 전담한다. 어떤 후보의 mean score가 baseline보다 **엄격히(strictly) 높을 때만** override하고, 그렇지 않으면(정확한 동점 포함) 항상 baseline을 선택한다. action-id tie-break는 baseline과 비교할 때는 전혀 쓰이지 않고, baseline보다 각각 엄격히 더 나은 후보끼리 서로 동점일 때만 결정론적으로 사용된다. 이 규칙 덕분에 `expert_regret == 0`이면서 `selected_action_id != baseline_action_id`인 경우는 구조적으로 발생할 수 없다.
-- **Stage 기반 horizon**: `RolloutTeacherConfig.horizon_decisions`(decision 개수)를 제거하고 `horizon_stages`(stage 진행 목표)로 교체했다. candidate 적용 직전의 `start_stage`를 기록하고, `current_stage >= start_stage + horizon_stages`가 될 때까지(또는 terminal까지) canonical continuation을 반복한다. 후보나 continuation이 decision을 몇 개 쓰든 target은 stage로만 결정되므로, 구매처럼 stage를 즉시 진행시키지 않는 행동이 구조적으로 불리해지지 않는다.
+- **Stage 기반 horizon**: `RolloutTeacherConfig.horizon_decisions`(decision 개수)를 제거하고 `horizon_stages`(stage 진행 목표)로 교체했다. candidate 적용 직전의 `start_stage`를 기록하고 `current_stage >= start_stage + horizon_stages`(또는 terminal)까지 canonical continuation을 반복했다(v4에서 sim tick 기준으로 다시 교체됨 - 위 참고). 후보나 continuation이 decision을 몇 개 쓰든 target은 stage로만 결정되므로, 구매처럼 stage를 즉시 진행시키지 않는 행동이 구조적으로 불리해지지 않는다.
 
-안전장치로 `MAX_TEACHER_CONTINUATION_DECISIONS`(현재 64) internal 상수를 도입했다: 만약 canonical continuation이 이 수만큼 decision을 써도 target stage나 terminal에 도달하지 못하면 - 정상적인 horizon 종료가 아니라 invariant violation으로 보고 - evaluation을 조용히 truncate하지 않고 명시적 error로 실패시킨다. production teacher config에는 노출하지 않는다.
+안전장치로 `MAX_TEACHER_CONTINUATION_DECISIONS`(현재 64) internal 상수를 도입했다(v4에서는 sim tick이 증가하지 않는 연속 decision 수로 의미가 바뀜): canonical continuation이 이 수만큼 진행하고도 목표에 도달하지 못하면 - 정상적인 horizon 종료가 아니라 invariant violation으로 보고 - evaluation을 조용히 truncate하지 않고 명시적 error로 실패시킨다. production teacher config에는 노출하지 않는다.
 
 ## Common random numbers
 
@@ -79,7 +88,7 @@ B: scenario seeds 1, 2, 3, ... N
 
 ## Horizon과 점수
 
-full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed stage/wave horizon**을 쓴다(`horizon_stages`) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
+full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed stage/wave horizon**을 쓴다(당시 `horizon_stages`, 현재는 `horizon_sim_ticks`) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
 
 - horizon 도중 terminal win/loss 여부
 - 완료한 stage/wave
@@ -96,7 +105,7 @@ full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다
 
 후보 적용 후 horizon까지 사용할 continuation policy도 teacher 계약의 일부다.
 
-현재 production continuation policy는 `policy_runner::canonical_scripted_semantic_action` 하나로 고정되어 있다. 모든 후보가 첫 action 이후 `current_stage >= start_stage + horizon_stages`가 될 때까지(또는 terminal까지) 매 decision마다 이 동일한 canonical heuristic으로 continuation을 진행하며, 후보마다 다른 continuation policy를 사용하지 않는다. legacy position-limited proposal, 후보별로 다른 policy, teacher 자신의 재귀적 선택, MCTS, learned value bootstrap, learned policy continuation은 사용하지 않는다. policy가 개선되면 teacher dataset version도 변경한다. continuation이 `MAX_TEACHER_CONTINUATION_DECISIONS`(64) decision 안에 target stage나 terminal에 도달하지 못하면 evaluation은 명시적 error로 실패한다(정상적인 horizon 종료가 아니라 safety-guard invariant 위반으로 취급).
+현재 production continuation policy는 `policy_runner::canonical_scripted_semantic_action` 하나로 고정되어 있다. 모든 후보가 첫 action 이후 `start_sim_tick + horizon_sim_ticks`에 정확히 도달할 때까지(또는 terminal까지) 매 decision마다 이 동일한 canonical heuristic으로 continuation을 진행하며, 후보마다 다른 continuation policy를 사용하지 않는다. legacy position-limited proposal, 후보별로 다른 policy, teacher 자신의 재귀적 선택, MCTS, learned value bootstrap, learned policy continuation은 사용하지 않는다. policy가 개선되면 teacher dataset version도 변경한다. sim tick이 증가하지 않는 decision이 `MAX_TEACHER_CONTINUATION_DECISIONS`(64)번 연속되면 evaluation은 명시적 error로 실패한다(정상적인 horizon 종료가 아니라 safety-guard invariant 위반으로 취급).
 
 ## Baseline과 Expert regret
 
@@ -121,7 +130,7 @@ teacher가 선택한 macro-action을 기존 UI micro-action trajectory와 섞지
 ```text
 cargo run --release --manifest-path simulator/Cargo.toml --features simulator-wgpu -- ml collect-teacher \
   --seed-start 0 --seed-end 3 \
-  --max-decisions 64 --scenario-count 16 --horizon-stages 1 \
+  --max-decisions 64 --scenario-count 16 --horizon-sim-ticks 1633 \
   --build-tower-rollout-limit 64 \
   --output artifacts/datasets/semantic-teacher.jsonl
 ```
@@ -132,11 +141,11 @@ dataset observation에는 현재 state와 legal macro candidates만 저장한다
 
 `td-simulator teacher-eval` (`simulator/src/teacher_eval.rs`)은 서로 다른 scenario count/horizon/`build_tower_rollout_limit` 설정에서 label이 얼마나 안정적인지, 그리고 비용이 얼마나 늘어나는지 비교하는 Phase 3 harness다. 이 harness는 teacher를 "충분히 강하다"고 승인하지 않는다 - 실제 held-out full-game strength gate는 별도 후속 작업이다.
 
-development state corpus는 **teacher가 선택한 action이 아니라 canonical baseline trajectory**(`canonical_scripted_semantic_action`)를 따라 생성한다. teacher의 선택으로 corpus를 만들면 방문하는 state 자체가 평가 대상 config에 의존하게 되어 안정성 비교가 오염되기 때문이다. 각 baseline state에서 환경을 변형하지 않고 grid의 모든 config(`scenario_counts x horizon_stages x build_tower_rollout_limits`)를 평가한 뒤에만, 실제 environment를 canonical baseline action으로 한 스텝 전진시킨다. dense table/canonical baseline은 state당 한 번만 계산되어(`prepare_semantic_candidates`) 같은 state의 여러 config가 재사용한다(Phase 3B).
+development state corpus는 **teacher가 선택한 action이 아니라 canonical baseline trajectory**(`canonical_scripted_semantic_action`)를 따라 생성한다. teacher의 선택으로 corpus를 만들면 방문하는 state 자체가 평가 대상 config에 의존하게 되어 안정성 비교가 오염되기 때문이다. 각 baseline state에서 환경을 변형하지 않고 grid의 모든 config(`scenario_counts x horizon_sim_ticks x build_tower_rollout_limits`)를 평가한 뒤에만, 실제 environment를 canonical baseline action으로 한 스텝 전진시킨다. dense table/canonical baseline은 state당 한 번만 계산되어(`prepare_semantic_candidates`) 같은 state의 여러 config가 재사용한다(Phase 3B).
 
-scenario count N에 대한 seed schedule은 항상 `scenario_seed_start .. scenario_seed_start + N` prefix다(nested common-random-number schedule, 예: 2 -> `[0,1]`, 4 -> `[0,1,2,3]`). "reference setting"은 grid에서 가장 큰 `scenario_count`, 가장 큰 `horizon_stages`, 가장 큰 `build_tower_rollout_limit`(`None`/unlimited가 가장 큼) 조합이며, "ground truth"가 아니라 안정성 비교의 기준점일 뿐이다.
+scenario count N에 대한 seed schedule은 항상 `scenario_seed_start .. scenario_seed_start + N` prefix다(nested common-random-number schedule, 예: 2 -> `[0,1]`, 4 -> `[0,1,2,3]`). "reference setting"은 grid에서 가장 큰 `scenario_count`, 가장 큰 `horizon_sim_ticks`, 가장 큰 `build_tower_rollout_limit`(`None`/unlimited가 가장 큼) 조합이며, "ground truth"가 아니라 안정성 비교의 기준점일 뿐이다.
 
-state/config 레벨 record에는 최소한 seed, decision_index, state_hash, decision_point, scenario_count, horizon_stages, build_tower_rollout_limit, candidate_count, selected_action_id, baseline_action_id, selected/baseline mean score, expert_regret, selected/baseline standard error, elapsed_seconds, score_margin(가능한 경우)이 포함된다. aggregate report는 reference 대비 agreement rate, decision_point별 agreement, mean/median regret, positive-regret 비율, large-regret 비율, 평균 candidate 수, decision당 평균 wall time, 총 scenario rollout 수를 포함한다. "large regret" 임계값은 실험 전에 `LARGE_REGRET_THRESHOLD = 0.05`로 고정하고 report metadata에 기록하며, 결과를 보고 사후에 조정하지 않는다.
+state/config 레벨 record에는 최소한 seed, decision_index, state_hash, decision_point, scenario_count, horizon_sim_ticks, build_tower_rollout_limit, candidate_count, selected_action_id, baseline_action_id, selected/baseline mean score, expert_regret, selected/baseline standard error, elapsed_seconds, score_margin(가능한 경우)이 포함된다. aggregate report는 reference 대비 agreement rate, decision_point별 agreement, mean/median regret, positive-regret 비율, large-regret 비율, 평균 candidate 수, decision당 평균 wall time, 총 scenario rollout 수를 포함한다. "large regret" 임계값은 실험 전에 `LARGE_REGRET_THRESHOLD = 0.05`로 고정하고 report metadata에 기록하며, 결과를 보고 사후에 조정하지 않는다.
 
 ## Paired full-game evaluation (foundation)
 
@@ -149,7 +158,7 @@ cargo run --release --manifest-path simulator/Cargo.toml -- teacher-eval \
   --seed-start 0 --seed-end 3 \
   --max-decisions 64 --state-limit-per-seed 8 \
   --scenario-seed-start 1000 \
-  --scenario-counts 2,4 --horizons 2,4 --build-tower-rollout-limits 8,16 \
+  --scenario-counts 2,4 --horizon-sim-ticks 1633,3266 --build-tower-rollout-limits 8,16 \
   --run-paired-full-game --paired-seed-start 0 --paired-seed-end 1 --paired-max-decisions 128 \
   --output artifacts/teacher-eval/smoke.json
 ```

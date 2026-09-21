@@ -618,14 +618,22 @@ mod tests {
         let mut placement_observation = observation.clone();
         let hand_slot_index = 0;
         placement_observation.hand[hand_slot_index].item = HandItemObservation::Tower(
-            observation.build_tower_candidates[candidate_index].template.clone(),
+            observation.build_tower_candidates[candidate_index]
+                .template
+                .clone(),
         );
         let place_bundle =
             PlaceTowerFeatureBundle::compute(&placement_observation, hand_slot_index)
                 .expect("place tower bundle should compute for a tower hand slot");
         assert_eq!(place_bundle.splashes.len(), 1);
-        assert_eq!(place_bundle.splashes[0].trigger_kind, SplashTriggerKind::OnAttack);
-        assert_eq!(place_bundle.splashes[0].radius_raw, fabricated_splash.radius_raw);
+        assert_eq!(
+            place_bundle.splashes[0].trigger_kind,
+            SplashTriggerKind::OnAttack
+        );
+        assert_eq!(
+            place_bundle.splashes[0].radius_raw,
+            fabricated_splash.radius_raw
+        );
         assert_eq!(
             place_bundle.splashes[0].damage_pct_raw,
             fabricated_splash.damage_pct_raw

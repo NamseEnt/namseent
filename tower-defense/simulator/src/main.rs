@@ -129,8 +129,8 @@ struct TeacherOptions {
     scenario_count: usize,
     #[arg(long, default_value_t = 0)]
     scenario_seed_start: u64,
-    #[arg(long, default_value_t = 1)]
-    horizon_stages: usize,
+    #[arg(long, default_value_t = 3_600)]
+    horizon_sim_ticks: u64,
     #[arg(long)]
     build_tower_rollout_limit: Option<usize>,
     #[arg(long)]
@@ -153,8 +153,12 @@ struct TeacherEvalOptions {
     scenario_seed_start: u64,
     #[arg(long, default_value = "2,4")]
     scenario_counts: String,
-    #[arg(long, default_value = "2,4")]
-    horizons: String,
+    #[arg(long, default_value = "1800,3600")]
+    horizon_sim_ticks: String,
+    /// Free-form note recorded in the report explaining how the horizon
+    /// values were chosen (e.g. measured baseline stage-duration statistics).
+    #[arg(long)]
+    horizon_selection_note: Option<String>,
     #[arg(long, default_value = "8,16")]
     build_tower_rollout_limits: String,
     #[arg(long)]
@@ -234,7 +238,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
                 .scenario_seed_start
                 .saturating_add(options.scenario_count as u64))
             .collect(),
-        horizon_stages: options.horizon_stages,
+        horizon_sim_ticks: options.horizon_sim_ticks,
         build_tower_rollout_limit: options.build_tower_rollout_limit,
     };
     let report =
@@ -247,7 +251,7 @@ fn run_teacher(options: TeacherOptions) -> Result<()> {
         "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
         "scenario_seed_start": options.scenario_seed_start,
         "scenario_count": options.scenario_count,
-        "horizon_stages": options.horizon_stages,
+        "horizon_sim_ticks": options.horizon_sim_ticks,
         "build_tower_rollout_limit": options.build_tower_rollout_limit,
         "episode": report,
     }))?;
@@ -276,6 +280,17 @@ fn parse_usize_list(raw: &str) -> Result<Vec<usize>> {
         .collect()
 }
 
+fn parse_u64_list(raw: &str) -> Result<Vec<u64>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            part.parse::<u64>()
+                .with_context(|| format!("invalid integer in list: {part}"))
+        })
+        .collect()
+}
+
 fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
     raw.split(',')
         .map(str::trim)
@@ -294,7 +309,7 @@ fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
 
 fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     let scenario_counts = parse_usize_list(&options.scenario_counts)?;
-    let horizon_stages = parse_usize_list(&options.horizons)?;
+    let horizon_sim_ticks = parse_u64_list(&options.horizon_sim_ticks)?;
     let build_tower_rollout_limits = parse_optional_usize_list(&options.build_tower_rollout_limits)?;
 
     let config = Arc::new(match options.config {
@@ -310,7 +325,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
         state_limit_per_seed: options.state_limit_per_seed,
         scenario_seed_start: options.scenario_seed_start,
         scenario_counts,
-        horizon_stages,
+        horizon_sim_ticks,
         build_tower_rollout_limits,
     };
     let stability_report = run_stability_grid(Arc::clone(&config), &grid)?;
@@ -318,7 +333,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     let paired_report = if options.run_paired_full_game {
         let (reference_scenario_count, reference_horizon, reference_build_tower_rollout_limit) = (
             stability_report.reference_scenario_count,
-            stability_report.reference_horizon_stages,
+            stability_report.reference_horizon_sim_ticks,
             stability_report.reference_build_tower_rollout_limit,
         );
         let paired_seed_start = options.paired_seed_start.unwrap_or(options.seed_start);
@@ -331,7 +346,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
                     .scenario_seed_start
                     .saturating_add(reference_scenario_count as u64))
                 .collect(),
-            horizon_stages: reference_horizon,
+            horizon_sim_ticks: reference_horizon,
             build_tower_rollout_limit: reference_build_tower_rollout_limit,
         };
         Some(run_paired_full_game_evaluation(
@@ -354,7 +369,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     };
 
     let report = serde_json::json!({
-        "teacher_eval_schema_version": 2,
+        "teacher_eval_schema_version": 3,
         "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
         "observation_schema_version": td_simulator::ml::contract::OBSERVATION_SCHEMA_VERSION,
         "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
@@ -363,6 +378,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
         "config_digest": config::config_digest(config.as_ref()),
         "seed_range_digest": seed_digest,
         "large_regret_threshold": LARGE_REGRET_THRESHOLD,
+        "horizon_selection_note": options.horizon_selection_note,
         "grid": stability_report.grid,
         "stability": stability_report,
         "paired_full_game": paired_report,

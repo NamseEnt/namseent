@@ -121,7 +121,7 @@ pub struct StabilityGridConfig {
     pub state_limit_per_seed: usize,
     pub scenario_seed_start: u64,
     pub scenario_counts: Vec<usize>,
-    pub horizon_stages: Vec<usize>,
+    pub horizon_sim_ticks: Vec<u64>,
     pub build_tower_rollout_limits: Vec<Option<usize>>,
 }
 
@@ -139,8 +139,8 @@ impl StabilityGridConfig {
         if self.scenario_counts.is_empty() || self.scenario_counts.iter().any(|&count| count == 0) {
             bail!("scenario_counts must be non-empty and positive");
         }
-        if self.horizon_stages.is_empty() || self.horizon_stages.iter().any(|&h| h == 0) {
-            bail!("horizon_stages must be non-empty and positive");
+        if self.horizon_sim_ticks.is_empty() || self.horizon_sim_ticks.iter().any(|&h| h == 0) {
+            bail!("horizon_sim_ticks must be non-empty and positive");
         }
         if self.build_tower_rollout_limits.is_empty()
             || self
@@ -154,13 +154,13 @@ impl StabilityGridConfig {
     }
 
     /// The reference setting: largest `scenario_count`, largest
-    /// `horizon_stages`, largest `build_tower_rollout_limit` (`None`,
+    /// `horizon_sim_ticks`, largest `build_tower_rollout_limit` (`None`,
     /// i.e. unlimited, counts as the largest). Not "ground truth" - just the
     /// most expensive combination this grid evaluates, used as a stability
     /// comparison anchor.
-    fn reference_setting(&self) -> (usize, usize, Option<usize>) {
+    fn reference_setting(&self) -> (usize, u64, Option<usize>) {
         let scenario_count = *self.scenario_counts.iter().max().expect("non-empty");
-        let horizon = *self.horizon_stages.iter().max().expect("non-empty");
+        let horizon = *self.horizon_sim_ticks.iter().max().expect("non-empty");
         let build_tower_rollout_limit = self
             .build_tower_rollout_limits
             .iter()
@@ -178,7 +178,7 @@ pub struct StabilityStateConfigRecord {
     pub state_hash: String,
     pub decision_point: String,
     pub scenario_count: usize,
-    pub horizon_stages: usize,
+    pub horizon_sim_ticks: u64,
     pub build_tower_rollout_limit: Option<usize>,
     pub candidate_count: usize,
     pub selected_action_id: String,
@@ -189,6 +189,11 @@ pub struct StabilityStateConfigRecord {
     pub selected_standard_error: f32,
     pub baseline_standard_error: f32,
     pub score_margin: Option<f32>,
+    /// Number of distinct candidate mean scores at this state/config (1 means
+    /// the score signal is degenerate: every candidate scored identically).
+    pub candidate_score_unique_count: usize,
+    /// max - min candidate mean score at this state/config.
+    pub candidate_score_range: f32,
     pub elapsed_seconds: f64,
 }
 
@@ -211,7 +216,7 @@ pub struct StabilityReport {
     pub grid: StabilityGridConfig,
     pub large_regret_threshold: f32,
     pub reference_scenario_count: usize,
-    pub reference_horizon_stages: usize,
+    pub reference_horizon_sim_ticks: u64,
     pub reference_build_tower_rollout_limit: Option<usize>,
     pub records: Vec<StabilityStateConfigRecord>,
     pub aggregate: StabilityAggregate,
@@ -220,7 +225,7 @@ pub struct StabilityReport {
 /// Builds the development state corpus by following the canonical baseline
 /// trajectory (never the teacher's own choice - see this module's doc
 /// comment) and, at each visited state, evaluates every
-/// (scenario_count, horizon_stages, build_tower_rollout_limit)
+/// (scenario_count, horizon_sim_ticks, build_tower_rollout_limit)
 /// combination in `grid` without mutating the environment. Only after every
 /// config has been evaluated for a state does the harness advance the real
 /// environment by the canonical baseline action.
@@ -245,7 +250,7 @@ pub fn run_stability_grid(
             let decision_point = format!("{:?}", environment.decision_point());
             // Dense `BuildTower` ranking and the canonical baseline action
             // depend only on this (unmutated) state, never on
-            // scenario_count/horizon_stages/build_tower_rollout_limit -
+            // scenario_count/horizon_sim_ticks/build_tower_rollout_limit -
             // prepared once per state and reused (sliced per
             // build_tower_rollout_limit) across every config combination
             // below, instead of recomputing a full
@@ -256,11 +261,11 @@ pub fn run_stability_grid(
                 let scenario_seeds = (grid.scenario_seed_start
                     ..grid.scenario_seed_start.saturating_add(scenario_count as u64))
                     .collect::<Vec<_>>();
-                for &horizon_stages in &grid.horizon_stages {
+                for &horizon_sim_ticks in &grid.horizon_sim_ticks {
                     for &build_tower_rollout_limit in &grid.build_tower_rollout_limits {
                         let config = RolloutTeacherConfig {
                             scenario_seeds: scenario_seeds.clone(),
-                            horizon_stages,
+                            horizon_sim_ticks,
                             build_tower_rollout_limit,
                         };
                         let candidates = prepared.candidates_for_limit(build_tower_rollout_limit);
@@ -283,6 +288,14 @@ pub fn run_stability_grid(
                         } else {
                             None
                         };
+                        let candidate_score_unique_count = decision
+                            .candidates
+                            .iter()
+                            .map(|candidate| candidate.mean_score.to_bits())
+                            .collect::<std::collections::HashSet<_>>()
+                            .len();
+                        let candidate_score_range = sorted_scores.first().copied().unwrap_or(0.0)
+                            - sorted_scores.last().copied().unwrap_or(0.0);
                         let selected_standard_error = decision
                             .candidates
                             .iter()
@@ -301,7 +314,7 @@ pub fn run_stability_grid(
                             state_hash: state_hash.clone(),
                             decision_point: decision_point.clone(),
                             scenario_count,
-                            horizon_stages,
+                            horizon_sim_ticks,
                             build_tower_rollout_limit,
                             candidate_count: decision.candidate_count,
                             selected_action_id: decision.selected_action_id,
@@ -312,6 +325,8 @@ pub fn run_stability_grid(
                             selected_standard_error,
                             baseline_standard_error,
                             score_margin,
+                            candidate_score_unique_count,
+                            candidate_score_range,
                             elapsed_seconds,
                         });
                     }
@@ -341,7 +356,7 @@ pub fn run_stability_grid(
         grid: grid.clone(),
         large_regret_threshold: LARGE_REGRET_THRESHOLD,
         reference_scenario_count,
-        reference_horizon_stages: reference_horizon,
+        reference_horizon_sim_ticks: reference_horizon,
         reference_build_tower_rollout_limit,
         records,
         aggregate,
@@ -351,7 +366,7 @@ pub fn run_stability_grid(
 fn aggregate_stability_records(
     records: &[StabilityStateConfigRecord],
     reference_scenario_count: usize,
-    reference_horizon: usize,
+    reference_horizon: u64,
     reference_build_tower_rollout_limit: Option<usize>,
 ) -> StabilityAggregate {
     let sample_count = records.len();
@@ -375,7 +390,7 @@ fn aggregate_stability_records(
         std::collections::HashMap::new();
     for record in records {
         if record.scenario_count == reference_scenario_count
-            && record.horizon_stages == reference_horizon
+            && record.horizon_sim_ticks == reference_horizon
             && record.build_tower_rollout_limit == reference_build_tower_rollout_limit
         {
             reference_selection.insert(
@@ -621,7 +636,7 @@ mod tests {
             state_limit_per_seed: 1,
             scenario_seed_start: 1000,
             scenario_counts: vec![1, 2],
-            horizon_stages: vec![1],
+            horizon_sim_ticks: vec![1],
             build_tower_rollout_limits: vec![Some(2), Some(4)],
         };
         let first = run_stability_grid(config(), &grid).expect("grid should run");
@@ -629,7 +644,7 @@ mod tests {
         assert_eq!(first, second);
         // Every state should produce exactly one record per grid combination.
         let combos = grid.scenario_counts.len()
-            * grid.horizon_stages.len()
+            * grid.horizon_sim_ticks.len()
             * grid.build_tower_rollout_limits.len();
         assert_eq!(first.records.len() % combos, 0);
         // State hash for a given (seed, decision_index) must be identical
@@ -666,7 +681,7 @@ mod tests {
         let seeds = vec![0u64, 1];
         let teacher_config = RolloutTeacherConfig {
             scenario_seeds: vec![2000, 2001],
-            horizon_stages: 2,
+            horizon_sim_ticks: 2,
             build_tower_rollout_limit: Some(4),
         };
         let report = run_paired_full_game_evaluation(config(), &seeds, 8, &teacher_config)
