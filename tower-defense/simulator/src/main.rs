@@ -52,6 +52,7 @@ enum Command {
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
     TeacherSelectionValidation(TeacherSelectionValidationOptions),
+    TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -140,6 +141,33 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherFrozenHorizonSweepOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value_t = 2000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    validation_count: u64,
+    #[arg(long, default_value = "3266,6532,9798,13064")]
+    horizons: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -> Result<()> {
+    let horizons = parse_u64_list(&options.horizons)?;
+    let results = td_simulator::teacher_reroll_diag::run_frozen_horizon_sweep(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        &horizons,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!("Frozen horizon sweep saved to: {} ({} states)", options.output.display(), results.len());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -333,6 +361,7 @@ fn main() -> Result<()> {
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
         Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
+        Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),

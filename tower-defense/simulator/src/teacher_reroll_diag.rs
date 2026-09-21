@@ -536,3 +536,104 @@ pub fn run_selection_validation(
     }
     Ok(results)
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct HorizonScores {
+    pub horizon_sim_ticks: u64,
+    pub baseline_scores: Vec<f32>,
+    pub selected_scores: Vec<f32>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FrozenHorizonSweep {
+    pub game_seed: u64,
+    pub decision_index: usize,
+    pub state_hash: String,
+    pub baseline_action_id: String,
+    pub selected_action_id: String,
+    pub validation_seeds: Vec<u64>,
+    pub horizons: Vec<HorizonScores>,
+}
+
+/// Diagnostic-only: re-scores a frozen {baseline, selected} action pair from
+/// a prior selection-validation artifact at several exact tick horizons on
+/// the same validation scenarios. Never re-selects.
+pub fn run_frozen_horizon_sweep(
+    game_config: Arc<GameConfig>,
+    frozen_artifact: &Path,
+    validation_seeds: &[u64],
+    horizons: &[u64],
+) -> Result<Vec<FrozenHorizonSweep>> {
+    use crate::environment::LegalAction;
+    use crate::teacher::{RolloutTeacherConfig, candidate_scenario_score};
+    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let mut states = frozen.as_array().context("frozen artifact")?.clone();
+    states.sort_by_key(|s| (s["game_seed"].as_u64(), s["decision_index"].as_u64()));
+    let mut results = Vec::new();
+    let mut seeds = states.iter().filter_map(|s| s["game_seed"].as_u64()).collect::<Vec<_>>();
+    seeds.dedup();
+    for seed in seeds {
+        let wanted = states.iter().filter(|s| s["game_seed"].as_u64() == Some(seed)).collect::<Vec<_>>();
+        let last_index = wanted.iter().filter_map(|s| s["decision_index"].as_u64()).max().unwrap() as usize;
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
+        for decision_index in 0..=last_index {
+            if let Some(state) = wanted.iter().find(|s| s["decision_index"].as_u64() == Some(decision_index as u64)) {
+                let state_hash = environment.state_hash();
+                if state_hash != state["state_hash"].as_str().unwrap_or_default() {
+                    bail!("state hash mismatch seed {seed} index {decision_index}");
+                }
+                let baseline_action = canonical_scripted_semantic_action(&environment)?;
+                let baseline_id = baseline_action.action_id();
+                if baseline_id != state["baseline_action_id"].as_str().unwrap_or_default() {
+                    bail!("baseline action mismatch seed {seed} index {decision_index}");
+                }
+                let selected_id = state["selection_selected_action_id"].as_str().unwrap_or_default().to_string();
+                let selected_action = environment
+                    .semantic_legal_actions()
+                    .into_iter()
+                    .find(|legal| legal.id == selected_id)
+                    .with_context(|| format!("frozen action {selected_id} not legal"))?
+                    .action;
+                let baseline_legal = LegalAction { id: baseline_id.clone(), action: baseline_action };
+                let selected_legal = LegalAction { id: selected_id.clone(), action: selected_action };
+                let mut horizon_results = Vec::new();
+                for &horizon in horizons {
+                    let config = RolloutTeacherConfig {
+                        scenario_seeds: validation_seeds.to_vec(),
+                        horizon_sim_ticks: horizon,
+                        build_tower_rollout_limit: None,
+                    };
+                    let scored = validation_seeds
+                        .par_iter()
+                        .map(|&scenario_seed| {
+                            Ok((
+                                candidate_scenario_score(&environment, &baseline_legal, scenario_seed, &config)?,
+                                candidate_scenario_score(&environment, &selected_legal, scenario_seed, &config)?,
+                            ))
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    horizon_results.push(HorizonScores {
+                        horizon_sim_ticks: horizon,
+                        baseline_scores: scored.iter().map(|s| s.0).collect(),
+                        selected_scores: scored.iter().map(|s| s.1).collect(),
+                    });
+                }
+                results.push(FrozenHorizonSweep {
+                    game_seed: seed,
+                    decision_index,
+                    state_hash,
+                    baseline_action_id: baseline_id,
+                    selected_action_id: selected_id,
+                    validation_seeds: validation_seeds.to_vec(),
+                    horizons: horizon_results,
+                });
+            }
+            let action = canonical_scripted_semantic_action(&environment)?;
+            let mut outcome = environment
+                .semantic_step(action)
+                .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+            settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+    }
+    Ok(results)
+}
