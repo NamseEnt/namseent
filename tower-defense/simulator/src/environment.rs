@@ -25,6 +25,60 @@ pub const DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT: usize = 64;
 
 pub use td_core::RewardConfig;
 
+const HIDDEN_ORDER_DRAW_PILE: u64 = 0;
+const HIDDEN_ORDER_SHOP_CATEGORY: u64 = 1;
+const HIDDEN_ORDER_SHOP_RARITY: u64 = 2;
+const HIDDEN_ORDER_SHOP_CONTENT: u64 = 3;
+const HIDDEN_ORDER_REWARD_UPGRADE: u64 = 4;
+
+/// Teacher-only information-set resampling. The authoritative state already
+/// materializes future random order (the draw pile order and the unconsumed
+/// suffix of every shop/reward bag) that no `Observation` exposes. A rollout
+/// fork that kept it would let candidates "see" e.g. which card a `Reroll`
+/// draws. This keeps membership, cursors and cycles and reshuffles only that
+/// hidden order, deterministically per (game seed, scenario seed, source
+/// tick, component), so every candidate of one scenario shares one sample.
+fn resample_hidden_order(parts: &mut td_core::CoreSnapshotParts, game_seed: u64, scenario_seed: u64) {
+    let sim_tick = parts.sim_tick.ticks();
+    let rng = |component: u64, index: u64| {
+        td_core::rng_for(
+            game_seed,
+            td_core::domain::ML_TOWER_TEACHER_HIDDEN_ORDER,
+            &[scenario_seed, sim_tick, component, index],
+        )
+    };
+    td_core::shuffle(
+        &mut parts.deck.draw_pile,
+        &mut rng(HIDDEN_ORDER_DRAW_PILE, 0),
+    );
+    let shop = &mut parts.rng.shop;
+    let cursor = shop.category_bag.cursor.min(shop.category_bag.entries.len());
+    td_core::shuffle(
+        &mut shop.category_bag.entries[cursor..],
+        &mut rng(HIDDEN_ORDER_SHOP_CATEGORY, 0),
+    );
+    for (index, bag) in shop.rarity_bags.iter_mut().enumerate() {
+        let cursor = bag.cursor.min(bag.entries.len());
+        td_core::shuffle(
+            &mut bag.entries[cursor..],
+            &mut rng(HIDDEN_ORDER_SHOP_RARITY, index as u64),
+        );
+    }
+    for (index, bag) in shop.content_bags.iter_mut().enumerate() {
+        let cursor = bag.cursor.min(bag.entries.len());
+        td_core::shuffle(
+            &mut bag.entries[cursor..],
+            &mut rng(HIDDEN_ORDER_SHOP_CONTENT, index as u64),
+        );
+    }
+    let bag = &mut parts.rng.reward_upgrade_bag;
+    let cursor = bag.cursor.min(bag.entries.len());
+    td_core::shuffle(
+        &mut bag.entries[cursor..],
+        &mut rng(HIDDEN_ORDER_REWARD_UPGRADE, 0),
+    );
+}
+
 pub fn potential(observation: &Observation) -> f32 {
     let hp_ratio = observation.hp_raw.max(0) as f32 / observation.max_hp_raw.max(1) as f32;
     let stage_progress =
@@ -511,8 +565,12 @@ impl GameEnvironment {
                 .try_into()
                 .expect("derived seed must contain eight bytes"),
         );
+        let game_seed = self.seed;
         snapshot
-            .edit_snapshot(|parts| parts.rng.seed = scenario_master_seed)
+            .edit_snapshot(|parts| {
+                parts.rng.seed = scenario_master_seed;
+                resample_hidden_order(parts, game_seed, scenario_seed);
+            })
             .map_err(|_| "rollout scenario seed produced an invalid snapshot".to_string())?;
         let game_state = GameCore::from_core_state_snapshot(snapshot)?;
         Ok(Self {
@@ -2435,6 +2493,168 @@ mod tests {
                 "can_place_at disagreed with the actual placement outcome at ({left}, {top})"
             );
         }
+    }
+
+    fn hidden_order_parts(environment: &GameEnvironment) -> td_core::CoreSnapshotParts {
+        environment.game_state.core_state_snapshot().snapshot_parts()
+    }
+
+    fn shop_reroll_environment() -> (GameEnvironment, AgentAction) {
+        let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
+        assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+        let reroll = environment
+            .semantic_legal_actions()
+            .into_iter()
+            .find(|legal| matches!(legal.action, AgentAction::Reroll { .. }))
+            .expect("a fresh Shop state offers Reroll")
+            .action;
+        (environment, reroll)
+    }
+
+    #[test]
+    fn hidden_order_fork_preserves_observation_and_legal_actions_for_all_scenarios() {
+        let (environment, _) = shop_reroll_environment();
+        let before = environment.snapshot();
+        let before_actions = environment.semantic_legal_actions();
+        for scenario_seed in 2000..2016 {
+            let fork = environment.fork_for_rollout_seed(scenario_seed).unwrap();
+            assert_eq!(fork.snapshot(), before, "scenario {scenario_seed}");
+            assert_eq!(fork.semantic_legal_actions(), before_actions);
+            assert_eq!(fork.snapshot().shop, before.shop);
+        }
+    }
+
+    #[test]
+    fn hidden_order_fork_is_reproducible_and_shared_across_candidates() {
+        let (environment, _) = shop_reroll_environment();
+        let first = environment.fork_for_rollout_seed(2003).unwrap();
+        let second = environment.fork_for_rollout_seed(2003).unwrap();
+        assert_eq!(first.game_state.core_state_snapshot(), second.game_state.core_state_snapshot());
+        assert_eq!(first.state_hash(), second.state_hash());
+        let other = environment.fork_for_rollout_seed(2004).unwrap();
+        assert_ne!(
+            first.game_state.core_state_snapshot().snapshot_parts().deck.draw_pile,
+            other.game_state.core_state_snapshot().snapshot_parts().deck.draw_pile
+        );
+    }
+
+    #[test]
+    fn hidden_order_fork_keeps_draw_pile_membership() {
+        let (environment, _) = shop_reroll_environment();
+        let ids = |parts: &td_core::CoreSnapshotParts| {
+            let mut ids = parts.deck.draw_pile.iter().map(|card| card.id).collect::<Vec<_>>();
+            ids.sort_unstable();
+            ids
+        };
+        let source = hidden_order_parts(&environment);
+        assert!(source.deck.draw_pile.len() > 4);
+        for scenario_seed in 2000..2016 {
+            let fork = environment.fork_for_rollout_seed(scenario_seed).unwrap();
+            let forked = hidden_order_parts(&fork);
+            assert_eq!(ids(&forked), ids(&source));
+            assert_eq!(forked.deck.discard_pile, source.deck.discard_pile);
+            assert_eq!(forked.deck.all_cards, source.deck.all_cards);
+            assert_eq!(forked.hand, source.hand);
+        }
+    }
+
+    #[test]
+    fn hidden_order_fork_makes_reroll_outcome_vary_across_scenarios() {
+        let (environment, reroll) = shop_reroll_environment();
+        let mut hands = HashSet::new();
+        for scenario_seed in 2000..2016 {
+            let mut fork = environment.fork_for_rollout_seed(scenario_seed).unwrap();
+            fork.semantic_step(reroll.clone()).unwrap();
+            hands.insert(serde_json::to_string(&fork.snapshot().hand).unwrap());
+        }
+        assert!(hands.len() > 1, "reroll drew the same hand in all 16 scenarios");
+    }
+
+    fn assert_bag_suffix_resampled<T: Clone + Ord + std::fmt::Debug>(
+        label: &str,
+        entries: &[T],
+        cursor: usize,
+        resample: impl Fn(u64) -> Vec<T>,
+    ) {
+        let mut suffixes = HashSet::new();
+        for scenario_seed in 2000..2016 {
+            let resampled = resample(scenario_seed);
+            assert_eq!(&resampled[..cursor], &entries[..cursor], "{label}: consumed prefix");
+            let mut expected = entries[cursor..].to_vec();
+            let mut actual = resampled[cursor..].to_vec();
+            expected.sort();
+            actual.sort();
+            assert_eq!(actual, expected, "{label}: suffix multiset");
+            suffixes.insert(format!("{:?}", &resampled[cursor..]));
+        }
+        assert!(suffixes.len() > 1, "{label}: suffix order never varied");
+    }
+
+    #[test]
+    fn hidden_order_resampling_preserves_bag_prefix_cursor_cycle_and_multiset() {
+        let (environment, _) = shop_reroll_environment();
+        let mut parts = hidden_order_parts(&environment);
+        parts.rng.shop.category_bag = td_core::BagState {
+            entries: vec![0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
+            cursor: 3,
+            cycle: 5,
+        };
+        parts.rng.shop.rarity_bags[1] = td_core::BagState {
+            entries: vec![0, 0, 1, 1, 1, 2, 2, 0, 1, 2],
+            cursor: 2,
+            cycle: 7,
+        };
+        parts.rng.shop.content_bags[4] = td_core::ContentBagState {
+            entries: ["a", "b", "c", "d", "e", "f"].map(str::to_string).to_vec(),
+            cursor: 1,
+            cycle: 2,
+        };
+        parts.rng.reward_upgrade_bag = td_core::BagState {
+            entries: vec![4, 2, 1, 3, 0, 5, 6],
+            cursor: 2,
+            cycle: 3,
+        };
+        let game_seed = environment.seed();
+        let resampled = |scenario_seed: u64| {
+            let mut copy = parts.clone();
+            super::resample_hidden_order(&mut copy, game_seed, scenario_seed);
+            copy
+        };
+        for scenario_seed in 2000..2016 {
+            let copy = resampled(scenario_seed);
+            assert_eq!(copy.rng.shop.category_bag.cursor, 3);
+            assert_eq!(copy.rng.shop.category_bag.cycle, 5);
+            assert_eq!(copy.rng.shop.rarity_bags[1].cursor, 2);
+            assert_eq!(copy.rng.shop.rarity_bags[1].cycle, 7);
+            assert_eq!(copy.rng.shop.content_bags[4].cursor, 1);
+            assert_eq!(copy.rng.shop.content_bags[4].cycle, 2);
+            assert_eq!(copy.rng.reward_upgrade_bag.cursor, 2);
+            assert_eq!(copy.rng.reward_upgrade_bag.cycle, 3);
+        }
+        assert_bag_suffix_resampled(
+            "shop category",
+            &parts.rng.shop.category_bag.entries,
+            3,
+            |seed| resampled(seed).rng.shop.category_bag.entries,
+        );
+        assert_bag_suffix_resampled(
+            "shop rarity",
+            &parts.rng.shop.rarity_bags[1].entries,
+            2,
+            |seed| resampled(seed).rng.shop.rarity_bags[1].entries.clone(),
+        );
+        assert_bag_suffix_resampled(
+            "shop content",
+            &parts.rng.shop.content_bags[4].entries,
+            1,
+            |seed| resampled(seed).rng.shop.content_bags[4].entries.clone(),
+        );
+        assert_bag_suffix_resampled(
+            "reward upgrade",
+            &parts.rng.reward_upgrade_bag.entries,
+            2,
+            |seed| resampled(seed).rng.reward_upgrade_bag.entries,
+        );
     }
 
     #[test]

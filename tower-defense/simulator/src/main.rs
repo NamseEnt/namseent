@@ -409,7 +409,7 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     };
 
     let report = serde_json::json!({
-        "teacher_eval_schema_version": 3,
+        "teacher_eval_schema_version": 4,
         "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
         "observation_schema_version": td_simulator::ml::contract::OBSERVATION_SCHEMA_VERSION,
         "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,

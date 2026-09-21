@@ -32,10 +32,15 @@ use crate::policy_runner::scripted_expert_action;
 ///   regardless of config. A fixed amount of *simulated game time* instead
 ///   lets candidates differ in how far into a stage they got.
 ///
+/// Version 5: `fork_for_rollout_seed` resamples hidden materialized order
+/// (draw pile, shop/reward bag suffixes) per scenario, so version <= 4
+/// labels that exploited it (e.g. `Reroll` seeing the actual next card) are
+/// invalid.
+///
 /// Serialized `RolloutTeacherDecision`/`RolloutTeacherConfig` values from
 /// schema version < 4 are not compatible with this version (field rename,
 /// no backward alias).
-pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 4;
+pub const TEACHER_SCORE_SCHEMA_VERSION: u32 = 5;
 /// Placeholder default (60 ticks/s * 60 s); real horizons are chosen from
 /// measured canonical-baseline stage durations (see the docs), not this.
 pub const DEFAULT_TEACHER_HORIZON_SIM_TICKS: u64 = 3_600;
@@ -1769,6 +1774,19 @@ mod tests {
             crate::environment::DecisionPoint::Shop
         );
         environment
+    }
+
+    #[test]
+    fn teacher_decision_is_deterministic_under_hidden_order_resampling() {
+        let environment = shop_environment();
+        let config = RolloutTeacherConfig {
+            scenario_seeds: vec![2000, 2001],
+            horizon_sim_ticks: 600,
+            build_tower_rollout_limit: Some(2),
+        };
+        let first = evaluate_semantic_candidates(&environment, &config).unwrap();
+        let second = evaluate_semantic_candidates(&environment, &config).unwrap();
+        assert_eq!(first, second);
     }
 
     /// A: `prepare_semantic_candidates`'s baseline action (computed from a

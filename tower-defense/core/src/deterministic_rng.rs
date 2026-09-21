@@ -23,6 +23,7 @@ pub mod domain {
     pub const SHOP_PRICE: u64 = 0x5348_4f50_0000_0009;
     pub const ML_TOWER_EXPERT: u64 = 0x4d4c_544f_0000_0001;
     pub const ML_TOWER_TEACHER_SCENARIO: u64 = 0x4d4c_544f_0000_0002;
+    pub const ML_TOWER_TEACHER_HIDDEN_ORDER: u64 = 0x4d4c_544f_0000_0003;
 }
 
 fn split_mix(mut value: u64) -> u64 {

@@ -76,13 +76,16 @@ B: scenario seeds 1, 2, 3, ... N
 
 가능한 경우 RNG domain을 카드 draw, wave spawn, shop, treasure 등으로 분리하고 scenario seed에서 domain별 stream을 파생한다. domain separation이 구현되기 전에는 action-dependent RNG divergence를 teacher report에 제한 사항으로 기록한다.
 
-현재 simulator는 `GameEnvironment::fork_for_rollout_seed`를 통해 현재 authoritative snapshot을 복제하고 `ML_TOWER_TEACHER_SCENARIO` domain에서 scenario seed를 파생한다. 따라서 후보 평가 시작 시점의 공개 observation과 legal action은 유지하면서 미래 RNG stream만 분리할 수 있다. domain별 RNG 소비가 후보 행동에 따라 달라지는 한계는 여전히 report에 남긴다.
+현재 simulator는 `GameEnvironment::fork_for_rollout_seed`를 통해 현재 authoritative snapshot을 복제하고 `ML_TOWER_TEACHER_SCENARIO` domain에서 scenario seed를 파생한다. 이것만으로는 부족하다. authoritative state에는 이미 materialize된 hidden order(draw pile 순서, shop category/rarity/content bag과 reward upgrade bag의 미소비 suffix 순서)가 들어 있고 `Reroll` 같은 action은 그 순서를 그대로 소비한다. 그래서 seed만 바꾼 fork에서는 16개 scenario가 모두 같은 reroll 결과를 보았고, teacher가 실제 다음 카드를 이용해 reroll을 골랐다(observation contract 위반, schema v4 이하의 reroll label은 무효). domain별 RNG 소비가 후보 행동에 따라 달라지는 한계는 여전히 report에 남긴다.
+
+**Hidden-order resampling (schema v5)**: `fork_for_rollout_seed`는 scenario RNG seed 교체와 함께, fork 시점에 한 번, 다음 component의 순서만 teacher 전용 domain `ML_TOWER_TEACHER_HIDDEN_ORDER`에서 (game seed, scenario seed, source sim_tick, component tag/index)로 파생한 RNG로 다시 섞는다: `deck.draw_pile`, `shop.category_bag`, `shop.rarity_bags[i]`, `shop.content_bags[i]`, `reward_upgrade_bag`. bag은 `entries[cursor..]`(미소비 suffix)만 섞고 membership, consumed prefix, cursor, cycle은 보존한다. `discard_pile`은 재사용 시 scenario RNG로 다시 shuffle되므로 건드리지 않는다. 같은 source state와 scenario seed는 항상 같은 sample을 주고 candidate별로 다시 뽑지 않으므로 common random numbers가 유지되며, `source.snapshot() == fork.snapshot()`(공개 observation, legal action, 현재 shop slot 불변)이다. production gameplay RNG와 environment/action/observation schema는 변하지 않는다.
 
 ## Non-cheating 규칙
 
 - 실제 다음 카드나 미래 treasure 결과를 보고 후보를 선택하지 않는다.
 - 후보 생성은 현재 observation과 공개된 규칙만 사용한다.
 - future scenario seed는 모든 후보를 평가하기 위해 simulator 내부에서만 사용한다.
+- rollout fork는 observation에 없는 이미 materialize된 hidden order(draw pile, shop/reward bag suffix)를 그대로 복제하지 않고 scenario별로 다시 sampling한다(위 "Hidden-order resampling").
 - teacher dataset에 실제 미래 결과를 observation feature처럼 저장하지 않는다.
 - candidate pruning policy도 hidden future를 입력으로 받지 않는다.
 
