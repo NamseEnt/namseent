@@ -1726,6 +1726,9 @@ impl GameEnvironment {
     fn treasure_actions(&self) -> Vec<AgentAction> {
         match self.game_state.raw_state().flow() {
             td_core::GameFlowState::TreasureSelection { options, .. } => (0..options.len())
+                .filter(|&option_index| {
+                    self.game_state.raw_state().can_select_treasure(option_index)
+                })
                 .map(|option_index| AgentAction::SelectTreasure { option_index })
                 .collect(),
             _ => Vec::new(),
@@ -1738,6 +1741,7 @@ impl GameEnvironment {
             .upgrades()
             .entries()
             .iter()
+            .filter(|upgrade| self.game_state.raw_state().can_discard_treasure(upgrade.id()))
             .map(|upgrade| AgentAction::DiscardTreasure {
                 upgrade_id: upgrade.id(),
             })
@@ -2655,6 +2659,162 @@ mod tests {
             2,
             |seed| resampled(seed).rng.reward_upgrade_bag.entries,
         );
+    }
+
+    fn environment_with_core_state(
+        environment: &GameEnvironment,
+        state: td_core::CoreState,
+    ) -> GameEnvironment {
+        GameEnvironment {
+            game_state: GameCore::from_core_state_snapshot(state).expect("valid core state"),
+            config: Arc::clone(&environment.config),
+            seed: environment.seed,
+            max_advance_ticks: environment.max_advance_ticks,
+            rollout_tick_deadline: environment.rollout_tick_deadline,
+            card_service_selection: environment.card_service_selection.clone(),
+            decision_context: environment.decision_context.clone(),
+            environment_actions: environment.environment_actions.clone(),
+            policy_trace: environment.policy_trace.clone(),
+            metrics: environment.metrics.clone(),
+            reward_config: environment.reward_config.clone(),
+            max_stage: environment.max_stage,
+        }
+    }
+
+    fn treasure_selection_environment(fill_treasures: bool) -> GameEnvironment {
+        // `GameCore::new` skips the opening treasure selection in test
+        // builds, so start from the real initial core state instead.
+        let base = environment();
+        let opening = GameCore::from_core_config((*base.config).clone(), base.seed)
+            .expect("valid default config");
+        let environment = environment_with_core_state(&base, opening.core_state_snapshot());
+        assert_eq!(environment.decision_point(), DecisionPoint::TreasureSelection);
+        let mut state = environment.game_state.core_state_snapshot();
+        if fill_treasures {
+            while state.upgrades().len() < state.treasure_capacity() {
+                state
+                    .acquire_upgrade(td_core::generated_upgrade(td_core::UpgradeKind::Apple))
+                    .expect("treasures up to capacity fit");
+            }
+            assert_eq!(state.upgrades().len(), state.treasure_capacity());
+        }
+        environment_with_core_state(&environment, state)
+    }
+
+    fn treasure_legal_actions(environment: &GameEnvironment) -> Vec<AgentAction> {
+        let mut actions = environment
+            .legal_actions()
+            .into_iter()
+            .map(|legal| legal.action)
+            .filter(|action| {
+                matches!(
+                    action,
+                    AgentAction::SelectTreasure { .. } | AgentAction::DiscardTreasure { .. }
+                )
+            })
+            .collect::<Vec<_>>();
+        actions.extend(
+            environment
+                .semantic_legal_actions()
+                .into_iter()
+                .map(|legal| legal.action)
+                .filter(|action| {
+                    matches!(
+                        action,
+                        AgentAction::SelectTreasure { .. } | AgentAction::DiscardTreasure { .. }
+                    )
+                }),
+        );
+        actions
+    }
+
+    #[test]
+    fn full_treasure_capacity_hides_select_treasure_and_exposes_executable_discards() {
+        let environment = treasure_selection_environment(true);
+        let actions = treasure_legal_actions(&environment);
+        assert!(
+            !actions.iter().any(|a| matches!(a, AgentAction::SelectTreasure { .. })),
+            "SelectTreasure must not be legal when treasure slots are full"
+        );
+        let discards = actions
+            .iter()
+            .filter(|a| matches!(a, AgentAction::DiscardTreasure { .. }))
+            .count();
+        assert!(discards >= 5, "expected discard actions for the full treasures, got {discards}");
+    }
+
+    #[test]
+    fn every_legal_treasure_action_executes_without_rejection() {
+        for fill in [false, true] {
+            let environment = treasure_selection_environment(fill);
+            let actions = treasure_legal_actions(&environment);
+            assert!(!actions.is_empty());
+            for action in actions {
+                let state = environment.game_state.core_state_snapshot();
+                let mut clone = environment_with_core_state(&environment, state);
+                clone
+                    .step(action.clone())
+                    .unwrap_or_else(|error| panic!("fill={fill}: legal {action:?} rejected: {error:?}"));
+            }
+        }
+    }
+
+    #[test]
+    fn discard_then_select_treasure_completes_the_selection_flow() {
+        let mut environment = treasure_selection_environment(true);
+        let discard = environment
+            .legal_actions()
+            .into_iter()
+            .map(|legal| legal.action)
+            .find(|action| matches!(action, AgentAction::DiscardTreasure { .. }))
+            .expect("a full treasure bag exposes a discard");
+        environment.step(discard).expect("discard must execute");
+        assert_eq!(environment.decision_point(), DecisionPoint::TreasureSelection);
+        let select = environment
+            .legal_actions()
+            .into_iter()
+            .map(|legal| legal.action)
+            .find(|action| matches!(action, AgentAction::SelectTreasure { .. }))
+            .expect("SelectTreasure becomes legal once a slot is free");
+        environment.step(select).expect("select must execute");
+        assert_ne!(environment.decision_point(), DecisionPoint::TreasureSelection);
+    }
+
+    #[test]
+    fn treasure_selection_with_room_keeps_every_option_legal() {
+        let environment = treasure_selection_environment(false);
+        let options = match environment.game_state.raw_state().flow() {
+            td_core::GameFlowState::TreasureSelection { options, .. } => options.len(),
+            other => panic!("expected TreasureSelection, got {other:?}"),
+        };
+        let selects = treasure_legal_actions(&environment)
+            .into_iter()
+            .filter(|a| matches!(a, AgentAction::SelectTreasure { .. }))
+            .count();
+        assert!(options > 0);
+        assert_eq!(selects, options * 2, "legal + semantic lists each expose all options");
+    }
+
+    #[test]
+    fn canonical_continuation_discards_then_selects_at_full_treasure_capacity() {
+        let mut environment = treasure_selection_environment(true);
+        let first = crate::policy_runner::canonical_scripted_semantic_action(&environment)
+            .expect("canonical policy must find a legal action");
+        assert!(
+            matches!(first, AgentAction::DiscardTreasure { .. }),
+            "with no legal SelectTreasure the canonical fallback takes a legal discard, got {first:?}"
+        );
+        let mut steps = 0;
+        while environment.decision_point() == DecisionPoint::TreasureSelection {
+            let action = crate::policy_runner::canonical_scripted_semantic_action(&environment)
+                .expect("canonical action");
+            environment
+                .step(action)
+                .expect("canonical continuation must never be rejected");
+            steps += 1;
+            assert!(steps <= 4, "treasure selection did not resolve");
+        }
+        assert_eq!(steps, 2, "discard, then select");
     }
 
     #[test]

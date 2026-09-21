@@ -1501,6 +1501,30 @@ mod tests {
         assert_eq!(session.raw_state(), &before_state);
     }
 
+    /// `can_discard_treasure` must agree exactly with the real
+    /// `discard_treasure` for every id (present or not).
+    #[test]
+    fn can_discard_treasure_matches_discard_treasure_for_every_id() {
+        let mut core = test_core();
+        for _ in 0..core.treasure_capacity() {
+            core.acquire_upgrade(generated_upgrade(crate::UpgradeKind::Apple))
+                .expect("treasures up to capacity fit");
+        }
+        let mut ids = core
+            .upgrades()
+            .entries()
+            .iter()
+            .map(|upgrade| upgrade.id())
+            .collect::<Vec<_>>();
+        assert!(!ids.is_empty());
+        ids.push(9_999);
+        for id in ids {
+            let predicted = core.can_discard_treasure(id);
+            let mut trial = core.clone();
+            assert_eq!(predicted, trial.discard_treasure(id).is_ok(), "id {id}");
+        }
+    }
+
     /// D: purchasable Item/Upgrade/CardService slots remain legal and their
     /// commands succeed, applying the expected payload effect.
     #[test]

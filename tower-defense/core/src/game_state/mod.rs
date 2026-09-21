@@ -1004,40 +1004,66 @@ impl CoreState {
             .saturating_add(self.upgrades.cache_state().treasure_capacity_bonus)
     }
 
-    pub fn discard_treasure(
-        &mut self,
-        upgrade_id: u64,
-    ) -> Result<crate::UpgradeEntry, crate::CommandError> {
+    /// Single source of truth for whether discarding `upgrade_id` is allowed:
+    /// both [`Self::discard_treasure`] and [`Self::can_discard_treasure`] go
+    /// through it, so legality and execution cannot drift. Only the upgrade
+    /// collection (capacity bonuses) and the inventory size matter, so the
+    /// trial removal runs on a clone of just the collection.
+    fn discard_treasure_error(&self, upgrade_id: u64) -> Result<(), crate::CommandError> {
         if matches!(
             self.flow,
             crate::GameFlowState::Initializing | crate::GameFlowState::Result { .. }
         ) {
             return Err(crate::CommandError::InvalidFlow);
         }
+        let mut remaining = self.upgrades.clone();
+        remaining
+            .remove_by_id(upgrade_id)
+            .ok_or(crate::CommandError::InvalidIndex)?;
+        let bonuses = remaining.cache_state();
+        let item_capacity =
+            crate::game_state::item::BASE_ITEM_CAPACITY.saturating_add(bonuses.item_capacity_bonus);
+        if self.items.len() > item_capacity {
+            return Err(crate::CommandError::TreasureDiscardWouldOverflowInventory);
+        }
+        let treasure_capacity = crate::game_state::upgrade::BASE_TREASURE_CAPACITY
+            .saturating_add(bonuses.treasure_capacity_bonus);
+        if remaining.len() > treasure_capacity {
+            return Err(crate::CommandError::TreasureCapacityReached);
+        }
+        Ok(())
+    }
 
-        let mut next = self.clone();
-        let removed = next
+    pub fn discard_treasure(
+        &mut self,
+        upgrade_id: u64,
+    ) -> Result<crate::UpgradeEntry, crate::CommandError> {
+        self.discard_treasure_error(upgrade_id)?;
+        let removed = self
             .upgrades
             .remove_by_id(upgrade_id)
             .ok_or(crate::CommandError::InvalidIndex)?;
-        if next.items.len() > next.item_capacity() {
-            return Err(crate::CommandError::TreasureDiscardWouldOverflowInventory);
-        }
-        if next.upgrades.len() > next.treasure_capacity() {
-            return Err(crate::CommandError::TreasureCapacityReached);
-        }
-        next.refresh_upgrade_damage_multipliers();
-        next.hp_raw = next.hp_raw.min(next.max_hp_raw());
-        next.push_event(crate::CoreEvent::TreasureDiscarded {
+        self.refresh_upgrade_damage_multipliers();
+        self.hp_raw = self.hp_raw.min(self.max_hp_raw());
+        self.push_event(crate::CoreEvent::TreasureDiscarded {
             upgrade: removed.clone(),
         });
-        *self = next;
         Ok(removed)
     }
 
     pub fn can_discard_treasure(&self, upgrade_id: u64) -> bool {
-        let mut next = self.clone();
-        next.discard_treasure(upgrade_id).is_ok()
+        self.discard_treasure_error(upgrade_id).is_ok()
+    }
+
+    /// Whether `select_treasure(option_index)` would succeed right now
+    /// (trial run on a discarded clone, so it can never disagree with the
+    /// real command).
+    pub fn can_select_treasure(&self, option_index: usize) -> bool {
+        if !matches!(self.flow, crate::GameFlowState::TreasureSelection { .. }) {
+            return false;
+        }
+        let mut trial = self.clone();
+        trial.select_treasure(option_index).is_ok()
     }
 
     pub fn earn_gold(&mut self, amount: usize) {
