@@ -56,6 +56,8 @@ enum Command {
     TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
     TeacherExhaustiveTerminal(TeacherExhaustiveTerminalOptions),
     TeacherCandidateOrder(TeacherCandidateOrderOptions),
+    TeacherSelectFreshStates(TeacherSelectFreshStatesOptions),
+    TeacherExhaustivePrereg(TeacherExhaustivePreregOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -144,6 +146,55 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherSelectFreshStatesOptions {
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> Result<()> {
+    let selections = td_simulator::teacher_reroll_diag::select_fresh_states(
+        Arc::new(GameConfig::default_config()),
+        &[(4, "Shop"), (5, "CardSelection"), (6, "Shop"), (7, "CardSelection")],
+        16,
+        40,
+        16,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&selections)?)?;
+    println!("Fresh state selection saved to: {}", options.output.display());
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherExhaustivePreregOptions {
+    #[arg(long)]
+    selection_artifact: PathBuf,
+    #[arg(long)]
+    game_seed: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Result<()> {
+    let result = td_simulator::teacher_reroll_diag::run_exhaustive_prereg(
+        Arc::new(GameConfig::default_config()),
+        &options.selection_artifact,
+        options.game_seed,
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(7000..7032).collect::<Vec<u64>>(),
+        &(8000..8064).collect::<Vec<u64>>(),
+        4,
+        3266,
+        16,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!("Prereg exhaustive diagnostic saved to: {}", options.output.display());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -481,6 +532,8 @@ fn main() -> Result<()> {
         Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
         Command::TeacherExhaustiveTerminal(options) => run_teacher_exhaustive_terminal(options),
         Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
+        Command::TeacherSelectFreshStates(options) => run_teacher_select_fresh_states(options),
+        Command::TeacherExhaustivePrereg(options) => run_teacher_exhaustive_prereg(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),

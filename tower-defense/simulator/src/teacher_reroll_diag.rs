@@ -1094,3 +1094,261 @@ pub fn candidate_orders(
     }
     Ok(out)
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FreshStateSelection {
+    pub game_seed: u64,
+    pub rule: String,
+    pub found: bool,
+    pub decision_index: Option<usize>,
+    pub decision_point: Option<String>,
+    pub state_hash: Option<String>,
+    pub baseline_action_id: Option<String>,
+    pub candidate_count: Option<usize>,
+    pub kind_counts: std::collections::BTreeMap<String, usize>,
+    pub scanned: Vec<(usize, String, usize)>,
+}
+
+/// Diagnostic-only, terminal-free state selection: first state within the
+/// first `scan_decisions` baseline decisions whose decision point equals
+/// `wanted_point` and whose production candidate count is >= `min_candidates`.
+pub fn select_fresh_states(
+    game_config: Arc<GameConfig>,
+    rules: &[(u64, &str)],
+    scan_decisions: usize,
+    min_candidates: usize,
+    build_tower_rollout_limit: usize,
+) -> Result<Vec<FreshStateSelection>> {
+    use crate::teacher::prepare_semantic_candidates;
+    let mut out = Vec::new();
+    for &(seed, wanted_point) in rules {
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
+        let mut selection = FreshStateSelection {
+            game_seed: seed,
+            rule: format!("first {wanted_point} with candidate_count >= {min_candidates} in first {scan_decisions} decisions"),
+            found: false,
+            decision_index: None,
+            decision_point: None,
+            state_hash: None,
+            baseline_action_id: None,
+            candidate_count: None,
+            kind_counts: Default::default(),
+            scanned: Vec::new(),
+        };
+        for decision_index in 0..scan_decisions {
+            if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                break;
+            }
+            let point = format!("{:?}", environment.decision_point());
+            let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+            let mut ids = prepared
+                .candidates_for_limit(Some(build_tower_rollout_limit))
+                .into_iter()
+                .map(|c| c.id)
+                .collect::<Vec<_>>();
+            let baseline_id = prepared.baseline_action.action_id();
+            if !ids.contains(&baseline_id) {
+                ids.push(baseline_id.clone());
+            }
+            selection.scanned.push((decision_index, point.clone(), ids.len()));
+            if !selection.found && point == wanted_point && ids.len() >= min_candidates {
+                selection.found = true;
+                selection.decision_index = Some(decision_index);
+                selection.decision_point = Some(point);
+                selection.state_hash = Some(environment.state_hash());
+                selection.baseline_action_id = Some(baseline_id);
+                selection.candidate_count = Some(ids.len());
+                for id in &ids {
+                    *selection.kind_counts.entry(id.split(':').next().unwrap_or("").to_string()).or_default() += 1;
+                }
+            }
+            let action = canonical_scripted_semantic_action(&environment)?;
+            let mut outcome = environment
+                .semantic_step(action)
+                .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+            settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+        out.push(selection);
+    }
+    Ok(out)
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PreregResult {
+    pub base: ExhaustiveTerminalResult,
+    pub candidate_order: Vec<String>,
+    pub s41: Vec<String>,
+}
+
+/// Preregistered proposal rule S4/1 = baseline + all non-reroll/non-build
+/// candidates + first 4 dense-order BuildTower + top-1 low-fidelity reroll.
+/// Otherwise identical to [`run_exhaustive_terminal`], except that the
+/// validation set also contains the S4/1 discovery-best candidate.
+#[allow(clippy::too_many_arguments)]
+pub fn run_exhaustive_prereg(
+    game_config: Arc<GameConfig>,
+    selection_artifact: &Path,
+    game_seed: u64,
+    low_seeds: &[u64],
+    discovery_seeds: &[u64],
+    validation_seeds: &[u64],
+    validation_top: usize,
+    horizon_sim_ticks: u64,
+    build_tower_rollout_limit: usize,
+    max_continuation_decisions: usize,
+) -> Result<PreregResult> {
+    use crate::teacher::{
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+    };
+    let selections: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(selection_artifact)?)?;
+    let record = selections
+        .as_array()
+        .context("selection artifact")?
+        .iter()
+        .find(|s| s["game_seed"].as_u64() == Some(game_seed))
+        .context("seed missing in selection artifact")?
+        .clone();
+    if record["found"].as_bool() != Some(true) {
+        bail!("seed {game_seed} has no selected state");
+    }
+    let decision_index = record["decision_index"].as_u64().context("decision_index")? as usize;
+    let mut environment = GameEnvironment::new(Arc::clone(&game_config), game_seed);
+    for _ in 0..decision_index {
+        let action = canonical_scripted_semantic_action(&environment)?;
+        let mut outcome = environment
+            .semantic_step(action)
+            .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+        settle_forced_actions(&mut environment, &mut outcome)?;
+    }
+    let state_hash = environment.state_hash();
+    if state_hash != record["state_hash"].as_str().unwrap_or_default() {
+        bail!("state hash mismatch");
+    }
+    let baseline_action = canonical_scripted_semantic_action(&environment)?;
+    let baseline_id = baseline_action.action_id();
+    if baseline_id != record["baseline_action_id"].as_str().unwrap_or_default() {
+        bail!("baseline action mismatch");
+    }
+
+    let started = std::time::Instant::now();
+    let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+    let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
+    let candidate_order = candidates.iter().map(|c| c.id.clone()).collect::<Vec<_>>();
+    let config = RolloutTeacherConfig {
+        scenario_seeds: low_seeds.to_vec(),
+        horizon_sim_ticks,
+        build_tower_rollout_limit: Some(build_tower_rollout_limit),
+    };
+    let decision = evaluate_semantic_candidate_set_with_baseline(
+        &environment,
+        &candidates,
+        prepared.baseline_action.clone(),
+        &config,
+    )?;
+    let low_fidelity_seconds = started.elapsed().as_secs_f64();
+    let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
+    ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
+    let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+    let low_fidelity = ranked
+        .iter()
+        .enumerate()
+        .map(|(index, c)| LowFidelityEntry {
+            action_id: c.action_id.clone(),
+            mean_score: c.mean_score,
+            standard_error: c.standard_error,
+            mean_minus_baseline: c.mean_score - baseline_low,
+            rank_among_all: index + 1,
+            is_baseline: c.action_id == baseline_id,
+        })
+        .collect::<Vec<_>>();
+    let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
+    let all = decision.candidates.iter().map(|c| (c.action_id.clone(), c.action.clone())).collect::<Vec<_>>();
+    let kind = |id: &str| id.split(':').next().unwrap_or("").to_string();
+
+    let mut s41 = vec![baseline_id.clone()];
+    for (id, _) in &all {
+        if kind(id) != "reroll" && kind(id) != "build_tower" && !s41.contains(id) {
+            s41.push(id.clone());
+        }
+    }
+    for id in candidate_order.iter().filter(|id| kind(id) == "build_tower").take(4) {
+        if !s41.contains(id) {
+            s41.push(id.clone());
+        }
+    }
+    if let Some(top_reroll) = low_fidelity.iter().find(|e| kind(&e.action_id) == "reroll") {
+        if !s41.contains(&top_reroll.action_id) {
+            s41.push(top_reroll.action_id.clone());
+        }
+    }
+
+    let run_grid = |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
+        let flat = actions
+            .iter()
+            .enumerate()
+            .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
+            .collect::<Vec<_>>();
+        let outcomes = flat
+            .par_iter()
+            .map(|&(a, s)| run_branch(&environment, &actions[a].1, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(actions
+            .iter()
+            .enumerate()
+            .map(|(a, (id, _))| TerminalSeries {
+                action_id: id.clone(),
+                low_fidelity_rank: rank_of(id),
+                outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
+            })
+            .collect())
+    };
+
+    let started = std::time::Instant::now();
+    let discovery = run_grid(&all, discovery_seeds)?;
+    let discovery_seconds = started.elapsed().as_secs_f64();
+    let mut by_terminal = discovery.iter().filter(|s| s.action_id != baseline_id).collect::<Vec<_>>();
+    by_terminal.sort_by(|a, b| mean_clear(b).total_cmp(&mean_clear(a)).then_with(|| a.action_id.cmp(&b.action_id)));
+    let baseline_mean = mean_clear(discovery.iter().find(|s| s.action_id == baseline_id).unwrap());
+    let mut validation_ids = vec![baseline_id.clone()];
+    validation_ids.extend(by_terminal.iter().take(validation_top).map(|s| s.action_id.clone()));
+    if let Some(best) = by_terminal.iter().find(|s| s41.contains(&s.action_id)) {
+        if mean_clear(best) > baseline_mean && !validation_ids.contains(&best.action_id) {
+            validation_ids.push(best.action_id.clone());
+        }
+    }
+    if let Some(low_top) = low_fidelity.iter().find(|e| !e.is_baseline) {
+        if !validation_ids.contains(&low_top.action_id) {
+            validation_ids.push(low_top.action_id.clone());
+        }
+    }
+    let validation_actions = validation_ids
+        .iter()
+        .map(|id| Ok((id.clone(), all.iter().find(|(a, _)| a == id).context("validation action")?.1.clone())))
+        .collect::<Result<Vec<_>>>()?;
+    let started = std::time::Instant::now();
+    let validation = run_grid(&validation_actions, validation_seeds)?;
+    let validation_seconds = started.elapsed().as_secs_f64();
+    Ok(PreregResult {
+        base: ExhaustiveTerminalResult {
+            game_seed,
+            decision_index,
+            decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+            state_hash,
+            baseline_action_id: baseline_id,
+            candidate_count: all.len(),
+            low_fidelity,
+            discovery_seeds: discovery_seeds.to_vec(),
+            discovery_rollouts: all.len() * discovery_seeds.len(),
+            discovery,
+            validation_rollouts: validation_actions.len() * validation_seeds.len(),
+            validation_action_ids: validation_ids,
+            validation_seeds: validation_seeds.to_vec(),
+            validation,
+            low_fidelity_seconds,
+            discovery_seconds,
+            validation_seconds,
+        },
+        candidate_order,
+        s41,
+    })
+}
