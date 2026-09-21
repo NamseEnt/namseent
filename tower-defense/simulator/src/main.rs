@@ -49,6 +49,7 @@ enum Command {
     Benchmark(BenchmarkOptions),
     Teacher(TeacherOptions),
     TeacherEval(TeacherEvalOptions),
+    TeacherOverrideDiag(TeacherOverrideDiagOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -140,6 +141,44 @@ struct TeacherOptions {
 }
 
 #[derive(Args)]
+struct TeacherOverrideDiagOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 2000)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    scenario_count: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> {
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let scenario_seeds = (options.scenario_seed_start..options.scenario_seed_start + options.scenario_count)
+        .collect::<Vec<_>>();
+    let results = td_simulator::teacher_reroll_diag::run_override_intervention(
+        config,
+        &options.artifact,
+        &options.action_kind,
+        &scenario_seeds,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!("Override diagnostic saved to: {} ({} states)", options.output.display(), results.len());
+    Ok(())
+}
+
+#[derive(Args)]
 struct TeacherEvalOptions {
     #[arg(long, default_value_t = 0)]
     seed_start: u64,
@@ -212,6 +251,7 @@ fn main() -> Result<()> {
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
+        Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),

@@ -28,6 +28,7 @@ pub mod stats;
 pub mod teacher;
 #[cfg(feature = "simulator")]
 pub mod teacher_eval;
+pub mod teacher_reroll_diag;
 pub mod trajectory;
 
 pub(crate) fn canonicalize_kind_name(name: String) -> String {
