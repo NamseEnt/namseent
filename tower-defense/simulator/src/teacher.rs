@@ -641,6 +641,17 @@ fn evaluate_candidate_scenario(
     )
 }
 
+/// Diagnostic entry point: the exact production per-scenario score of one
+/// candidate (same fork, horizon and continuation as the teacher).
+pub(crate) fn candidate_scenario_score(
+    environment: &GameEnvironment,
+    candidate: &LegalAction,
+    scenario_seed: u64,
+    config: &RolloutTeacherConfig,
+) -> Result<f32> {
+    Ok(evaluate_candidate_scenario(environment, candidate, scenario_seed, config)?.score)
+}
+
 /// [`evaluate_candidate_scenario`] with the safety-guard cap as a parameter,
 /// so tests can prove the guard fires. Production always passes
 /// `MAX_TEACHER_CONTINUATION_DECISIONS`.

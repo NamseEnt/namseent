@@ -51,6 +51,7 @@ enum Command {
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
+    TeacherSelectionValidation(TeacherSelectionValidationOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -139,6 +140,49 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherSelectionValidationOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long)]
+    expected_artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 1000)]
+    selection_seed_start: u64,
+    #[arg(long, default_value_t = 8)]
+    selection_count: u64,
+    #[arg(long, default_value_t = 2000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) -> Result<()> {
+    let results = td_simulator::teacher_reroll_diag::run_selection_validation(
+        Arc::new(GameConfig::default_config()),
+        &options.artifact,
+        &options.expected_artifact,
+        &options.action_kind,
+        &(options.selection_seed_start..options.selection_seed_start + options.selection_count).collect::<Vec<_>>(),
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!("Selection validation saved to: {} ({} states)", options.output.display(), results.len());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -288,6 +332,7 @@ fn main() -> Result<()> {
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
+        Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
