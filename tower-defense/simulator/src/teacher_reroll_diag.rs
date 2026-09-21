@@ -238,3 +238,146 @@ pub fn run_override_intervention(
     }
     Ok(results)
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CandidateStat {
+    pub action_id: String,
+    pub mean_score: f32,
+    pub standard_error: f32,
+    pub variance: f32,
+    pub wins: usize,
+    pub mean_clear_rate: f32,
+    pub mean_final_stage: f32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ScenarioCountEvaluation {
+    pub scenario_count: usize,
+    pub selected_action_id: String,
+    pub baseline_action_id: String,
+    pub baseline_mean_score: f32,
+    pub expert_regret: f32,
+    pub candidate_count: usize,
+    pub candidates: Vec<CandidateStat>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct StateSensitivity {
+    pub game_seed: u64,
+    pub decision_index: usize,
+    pub decision_point: String,
+    pub state_hash: String,
+    pub reference_selected_action_id: String,
+    pub evaluations: Vec<ScenarioCountEvaluation>,
+}
+
+/// Diagnostic-only: re-evaluates the full production candidate set of the
+/// artifact's reference-config states whose selected action kind is
+/// `action_kind`, once per scenario count (nested seed prefixes), and keeps
+/// every candidate's mean/SE.
+pub fn run_state_scenario_sensitivity(
+    game_config: Arc<GameConfig>,
+    artifact: &Path,
+    action_kind: &str,
+    scenario_seed_start: u64,
+    scenario_counts: &[usize],
+    horizon_sim_ticks: u64,
+    build_tower_rollout_limit: usize,
+) -> Result<Vec<StateSensitivity>> {
+    use crate::teacher::{
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+    };
+    let report: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(artifact).with_context(|| format!("read {}", artifact.display()))?,
+    )?;
+    let stability = &report["stability"];
+    let mut targets = stability["records"]
+        .as_array()
+        .context("records")?
+        .iter()
+        .filter(|r| {
+            r["selected_action_id"]
+                .as_str()
+                .is_some_and(|id| id.split(':').next() == Some(action_kind))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    targets.sort_by_key(|r| (r["seed"].as_u64(), r["decision_index"].as_u64()));
+    let mut results = Vec::new();
+    let mut seeds = targets.iter().filter_map(|r| r["seed"].as_u64()).collect::<Vec<_>>();
+    seeds.dedup();
+    for seed in seeds {
+        let wanted = targets
+            .iter()
+            .filter(|r| r["seed"].as_u64() == Some(seed))
+            .collect::<Vec<_>>();
+        let last_index = wanted.iter().filter_map(|r| r["decision_index"].as_u64()).max().unwrap() as usize;
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
+        for decision_index in 0..=last_index {
+            if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                bail!("seed {seed} reached terminal before decision {decision_index}");
+            }
+            if let Some(record) = wanted
+                .iter()
+                .find(|r| r["decision_index"].as_u64() == Some(decision_index as u64))
+            {
+                let state_hash = environment.state_hash();
+                let expected_hash = record["state_hash"].as_str().unwrap_or_default();
+                if state_hash != expected_hash {
+                    bail!("state hash mismatch seed {seed} index {decision_index}: replay {state_hash} vs artifact {expected_hash}");
+                }
+                let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+                let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
+                let mut evaluations = Vec::new();
+                for &scenario_count in scenario_counts {
+                    let config = RolloutTeacherConfig {
+                        scenario_seeds: (scenario_seed_start..scenario_seed_start + scenario_count as u64).collect(),
+                        horizon_sim_ticks,
+                        build_tower_rollout_limit: Some(build_tower_rollout_limit),
+                    };
+                    let decision = evaluate_semantic_candidate_set_with_baseline(
+                        &environment,
+                        &candidates,
+                        prepared.baseline_action.clone(),
+                        &config,
+                    )?;
+                    evaluations.push(ScenarioCountEvaluation {
+                        scenario_count,
+                        selected_action_id: decision.selected_action_id.clone(),
+                        baseline_action_id: decision.baseline_action_id.clone(),
+                        baseline_mean_score: decision.baseline_mean_score,
+                        expert_regret: decision.expert_regret,
+                        candidate_count: decision.candidate_count,
+                        candidates: decision
+                            .candidates
+                            .iter()
+                            .map(|c| CandidateStat {
+                                action_id: c.action_id.clone(),
+                                mean_score: c.mean_score,
+                                standard_error: c.standard_error,
+                                variance: c.variance,
+                                wins: c.wins,
+                                mean_clear_rate: c.mean_clear_rate,
+                                mean_final_stage: c.mean_final_stage,
+                            })
+                            .collect(),
+                    });
+                }
+                results.push(StateSensitivity {
+                    game_seed: seed,
+                    decision_index,
+                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    state_hash,
+                    reference_selected_action_id: record["selected_action_id"].as_str().unwrap_or_default().to_string(),
+                    evaluations,
+                });
+            }
+            let action = canonical_scripted_semantic_action(&environment)?;
+            let mut outcome = environment
+                .semantic_step(action)
+                .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+            settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+    }
+    Ok(results)
+}

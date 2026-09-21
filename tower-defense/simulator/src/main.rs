@@ -50,6 +50,7 @@ enum Command {
     Teacher(TeacherOptions),
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
+    TeacherStateSensitivity(TeacherStateSensitivityOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -138,6 +139,40 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherStateSensitivityOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 1000)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value = "2,4,8")]
+    scenario_counts: String,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Result<()> {
+    let counts = parse_usize_list(&options.scenario_counts)?;
+    let results = td_simulator::teacher_reroll_diag::run_state_scenario_sensitivity(
+        Arc::new(GameConfig::default_config()),
+        &options.artifact,
+        &options.action_kind,
+        options.scenario_seed_start,
+        &counts,
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!("State sensitivity saved to: {} ({} states)", options.output.display(), results.len());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -252,6 +287,7 @@ fn main() -> Result<()> {
         Command::Teacher(options) => run_teacher(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
+        Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
