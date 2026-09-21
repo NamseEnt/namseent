@@ -54,6 +54,7 @@ enum Command {
     TeacherSelectionValidation(TeacherSelectionValidationOptions),
     TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
     TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
+    TeacherExhaustiveTerminal(TeacherExhaustiveTerminalOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -142,6 +143,44 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherExhaustiveTerminalOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value_t = 1)]
+    game_seed: u64,
+    #[arg(long, default_value_t = 5)]
+    decision_index: usize,
+    #[arg(long, default_value_t = 32)]
+    discovery_count: u64,
+    #[arg(long, default_value_t = 64)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 4)]
+    validation_top: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) -> Result<()> {
+    let result = td_simulator::teacher_reroll_diag::run_exhaustive_terminal(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        (options.game_seed, options.decision_index),
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(5000..5000 + options.discovery_count).collect::<Vec<u64>>(),
+        &(6000..6000 + options.validation_count).collect::<Vec<u64>>(),
+        options.validation_top,
+        3266,
+        16,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!("Exhaustive terminal diagnostic saved to: {}", options.output.display());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -409,6 +448,7 @@ fn main() -> Result<()> {
         Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
         Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
         Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
+        Command::TeacherExhaustiveTerminal(options) => run_teacher_exhaustive_terminal(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),

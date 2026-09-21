@@ -884,3 +884,168 @@ pub fn run_multifidelity_topk(
     }
     Ok(results)
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ExhaustiveTerminalResult {
+    pub game_seed: u64,
+    pub decision_index: usize,
+    pub decision_point: String,
+    pub state_hash: String,
+    pub baseline_action_id: String,
+    pub candidate_count: usize,
+    pub low_fidelity: Vec<LowFidelityEntry>,
+    pub discovery_seeds: Vec<u64>,
+    pub discovery: Vec<TerminalSeries>,
+    pub validation_action_ids: Vec<String>,
+    pub validation_seeds: Vec<u64>,
+    pub validation: Vec<TerminalSeries>,
+    pub low_fidelity_seconds: f64,
+    pub discovery_seconds: f64,
+    pub validation_seconds: f64,
+    pub discovery_rollouts: usize,
+    pub validation_rollouts: usize,
+}
+
+/// Diagnostic-only: terminal oracle over the *entire* production candidate
+/// set of one state on `discovery_seeds`, plus fresh validation of the
+/// baseline, the discovery top-`validation_top` and the low-fidelity rank-1
+/// candidate on `validation_seeds`. Nothing here feeds back into selection.
+#[allow(clippy::too_many_arguments)]
+pub fn run_exhaustive_terminal(
+    game_config: Arc<GameConfig>,
+    frozen_artifact: &Path,
+    state: (u64, usize),
+    low_seeds: &[u64],
+    discovery_seeds: &[u64],
+    validation_seeds: &[u64],
+    validation_top: usize,
+    horizon_sim_ticks: u64,
+    build_tower_rollout_limit: usize,
+    max_continuation_decisions: usize,
+) -> Result<ExhaustiveTerminalResult> {
+    use crate::teacher::{
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+    };
+    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let record = frozen
+        .as_array()
+        .context("frozen artifact")?
+        .iter()
+        .find(|f| f["game_seed"].as_u64() == Some(state.0) && f["decision_index"].as_u64() == Some(state.1 as u64))
+        .context("state missing in frozen artifact")?
+        .clone();
+    let mut environment = GameEnvironment::new(Arc::clone(&game_config), state.0);
+    for decision_index in 0..state.1 {
+        let action = canonical_scripted_semantic_action(&environment)?;
+        let mut outcome = environment
+            .semantic_step(action)
+            .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+        settle_forced_actions(&mut environment, &mut outcome)?;
+        if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+            bail!("terminal before decision {}", decision_index + 1);
+        }
+    }
+    let state_hash = environment.state_hash();
+    if state_hash != record["state_hash"].as_str().unwrap_or_default() {
+        bail!("state hash mismatch");
+    }
+    let baseline_action = canonical_scripted_semantic_action(&environment)?;
+    let baseline_id = baseline_action.action_id();
+    if baseline_id != record["baseline_action_id"].as_str().unwrap_or_default() {
+        bail!("baseline action mismatch");
+    }
+
+    let started = std::time::Instant::now();
+    let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+    let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
+    let config = RolloutTeacherConfig {
+        scenario_seeds: low_seeds.to_vec(),
+        horizon_sim_ticks,
+        build_tower_rollout_limit: Some(build_tower_rollout_limit),
+    };
+    let decision = evaluate_semantic_candidate_set_with_baseline(
+        &environment,
+        &candidates,
+        prepared.baseline_action.clone(),
+        &config,
+    )?;
+    let low_fidelity_seconds = started.elapsed().as_secs_f64();
+    let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
+    ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
+    let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+    let low_fidelity = ranked
+        .iter()
+        .enumerate()
+        .map(|(index, c)| LowFidelityEntry {
+            action_id: c.action_id.clone(),
+            mean_score: c.mean_score,
+            standard_error: c.standard_error,
+            mean_minus_baseline: c.mean_score - baseline_low,
+            rank_among_all: index + 1,
+            is_baseline: c.action_id == baseline_id,
+        })
+        .collect::<Vec<_>>();
+    let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
+    let all = decision.candidates.iter().map(|c| (c.action_id.clone(), c.action.clone())).collect::<Vec<_>>();
+
+    let run_grid = |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
+        let flat = actions
+            .iter()
+            .enumerate()
+            .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
+            .collect::<Vec<_>>();
+        let outcomes = flat
+            .par_iter()
+            .map(|&(a, s)| run_branch(&environment, &actions[a].1, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(actions
+            .iter()
+            .enumerate()
+            .map(|(a, (id, _))| TerminalSeries {
+                action_id: id.clone(),
+                low_fidelity_rank: rank_of(id),
+                outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
+            })
+            .collect())
+    };
+
+    let started = std::time::Instant::now();
+    let discovery = run_grid(&all, discovery_seeds)?;
+    let discovery_seconds = started.elapsed().as_secs_f64();
+    let baseline_mean = mean_clear(discovery.iter().find(|s| s.action_id == baseline_id).unwrap());
+    let _ = baseline_mean;
+    let mut by_terminal = discovery.iter().filter(|s| s.action_id != baseline_id).collect::<Vec<_>>();
+    by_terminal.sort_by(|a, b| mean_clear(b).total_cmp(&mean_clear(a)).then_with(|| a.action_id.cmp(&b.action_id)));
+    let mut validation_ids = vec![baseline_id.clone()];
+    validation_ids.extend(by_terminal.iter().take(validation_top).map(|s| s.action_id.clone()));
+    let low_top = low_fidelity.iter().find(|e| !e.is_baseline).context("low-fidelity top")?.action_id.clone();
+    if !validation_ids.contains(&low_top) {
+        validation_ids.push(low_top);
+    }
+    let validation_actions = validation_ids
+        .iter()
+        .map(|id| Ok((id.clone(), all.iter().find(|(a, _)| a == id).context("validation action")?.1.clone())))
+        .collect::<Result<Vec<_>>>()?;
+    let started = std::time::Instant::now();
+    let validation = run_grid(&validation_actions, validation_seeds)?;
+    let validation_seconds = started.elapsed().as_secs_f64();
+    Ok(ExhaustiveTerminalResult {
+        game_seed: state.0,
+        decision_index: state.1,
+        decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+        state_hash,
+        baseline_action_id: baseline_id,
+        candidate_count: all.len(),
+        low_fidelity,
+        discovery_seeds: discovery_seeds.to_vec(),
+        discovery_rollouts: all.len() * discovery_seeds.len(),
+        discovery,
+        validation_rollouts: validation_actions.len() * validation_seeds.len(),
+        validation_action_ids: validation_ids,
+        validation_seeds: validation_seeds.to_vec(),
+        validation,
+        low_fidelity_seconds,
+        discovery_seconds,
+        validation_seconds,
+    })
+}
