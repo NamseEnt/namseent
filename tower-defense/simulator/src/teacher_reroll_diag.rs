@@ -1049,3 +1049,48 @@ pub fn run_exhaustive_terminal(
         validation_seconds,
     })
 }
+
+/// Diagnostic-only: production candidate order (non-build actions, then
+/// dense-ranked `BuildTower` top-K) for states of a frozen artifact.
+pub fn candidate_orders(
+    game_config: Arc<GameConfig>,
+    frozen_artifact: &Path,
+    states: &[(u64, usize)],
+    build_tower_rollout_limit: usize,
+) -> Result<Vec<serde_json::Value>> {
+    use crate::teacher::prepare_semantic_candidates;
+    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let mut out = Vec::new();
+    for &(seed, index) in states {
+        let record = frozen
+            .as_array()
+            .context("frozen artifact")?
+            .iter()
+            .find(|f| f["game_seed"].as_u64() == Some(seed) && f["decision_index"].as_u64() == Some(index as u64))
+            .context("state missing in frozen artifact")?;
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
+        for _ in 0..index {
+            let action = canonical_scripted_semantic_action(&environment)?;
+            let mut outcome = environment
+                .semantic_step(action)
+                .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+            settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+        if environment.state_hash() != record["state_hash"].as_str().unwrap_or_default() {
+            bail!("state hash mismatch seed {seed} index {index}");
+        }
+        let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+        let ids = prepared
+            .candidates_for_limit(Some(build_tower_rollout_limit))
+            .into_iter()
+            .map(|c| c.id)
+            .collect::<Vec<_>>();
+        out.push(serde_json::json!({
+            "game_seed": seed,
+            "decision_index": index,
+            "baseline_action_id": prepared.baseline_action.action_id(),
+            "candidate_order": ids,
+        }));
+    }
+    Ok(out)
+}

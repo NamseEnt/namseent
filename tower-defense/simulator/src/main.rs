@@ -55,6 +55,7 @@ enum Command {
     TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
     TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
     TeacherExhaustiveTerminal(TeacherExhaustiveTerminalOptions),
+    TeacherCandidateOrder(TeacherCandidateOrderOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -143,6 +144,36 @@ struct TeacherOptions {
     config: Option<PathBuf>,
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherCandidateOrderOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value = "0/6,1/5,2/1,3/1")]
+    states: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_candidate_order(options: TeacherCandidateOrderOptions) -> Result<()> {
+    let states = options
+        .states
+        .split(',')
+        .map(|pair| {
+            let (seed, index) = pair.split_once('/').context("state must be seed/index")?;
+            Ok((seed.trim().parse::<u64>()?, index.trim().parse::<usize>()?))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let orders = td_simulator::teacher_reroll_diag::candidate_orders(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &states,
+        16,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&orders)?)?;
+    println!("Candidate orders saved to: {}", options.output.display());
+    Ok(())
 }
 
 #[derive(Args)]
@@ -449,6 +480,7 @@ fn main() -> Result<()> {
         Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
         Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
         Command::TeacherExhaustiveTerminal(options) => run_teacher_exhaustive_terminal(options),
+        Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
