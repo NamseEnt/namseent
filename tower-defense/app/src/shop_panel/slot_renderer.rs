@@ -1,4 +1,5 @@
 use super::items::ShopItem;
+use crate::PresentationInstant;
 use crate::game_state::shop_purchase::ShopPurchaseStatus;
 use crate::hand::xy_with_spring;
 use crate::shop::{ShopSlot, ShopSlotId};
@@ -14,6 +15,7 @@ pub struct ShopSlotView<'a> {
     pub target_xy: Xy<Px>,
     pub hovered_slot_id: Option<ShopSlotId>,
     pub set_hovered_slot_id: &'a dyn Fn(Option<ShopSlotId>),
+    pub presentation_instant: PresentationInstant,
 }
 
 impl Component for ShopSlotView<'_> {
@@ -26,6 +28,7 @@ impl Component for ShopSlotView<'_> {
             target_xy,
             hovered_slot_id,
             set_hovered_slot_id,
+            presentation_instant,
         } = self;
 
         let slot_id = slot_data.id;
@@ -46,6 +49,7 @@ impl Component for ShopSlotView<'_> {
                 wh,
                 slot_data,
                 purchase_status: purchase_status.clone(),
+                presentation_instant,
             });
 
             if !is_exiting {

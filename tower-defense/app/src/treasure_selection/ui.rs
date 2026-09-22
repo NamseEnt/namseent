@@ -175,9 +175,9 @@ fn render_treasure_background(
 
         ctx.add(RarityParticleEffect {
             xy: treasure_bg_wh.to_xy() * 0.5,
-            radius: (treasure_halo_wh.width + treasure_halo_wh.height) * 0.25,
+            radius: (treasure_halo_wh.width + treasure_halo_wh.height) * 0.3,
             rarity: Rarity::Legendary,
-            strength: 0.8,
+            strength: 1.5,
             enabled: !is_closing,
             presentation_instant,
         });

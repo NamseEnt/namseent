@@ -281,7 +281,9 @@ impl Component for Game {
             ])(screen_wh, ctx);
         });
 
-        ctx.add(shop_panel::ShopPanel);
+        ctx.add(shop_panel::ShopPanel {
+            presentation_instant,
+        });
         ctx.add(hand_panel::HandPanel);
         ctx.add(treasure_selection::TreasureSelectionUi {
             presentation_instant,

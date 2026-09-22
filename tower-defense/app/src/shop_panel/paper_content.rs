@@ -1,3 +1,4 @@
+use crate::PresentationInstant;
 use crate::game_state::{dispatch_shop_purchase, flow::GameFlow, use_game_state};
 use crate::shop::ShopSlotId;
 use crate::shop_panel::constants::*;
@@ -9,11 +10,15 @@ use namui_prebuilt::table;
 
 pub(super) struct ShopPaperContent {
     pub wh: Wh<Px>,
+    pub presentation_instant: PresentationInstant,
 }
 
 impl Component for ShopPaperContent {
     fn render(self, ctx: &RenderCtx) {
-        let Self { wh } = self;
+        let Self {
+            wh,
+            presentation_instant,
+        } = self;
         let game_state = use_game_state(ctx);
 
         let flow = game_state.state().presentation_flow_snapshot();
@@ -83,6 +88,7 @@ impl Component for ShopPaperContent {
                                         target_xy,
                                         hovered_slot_id: *hovered_slot_id,
                                         set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                        presentation_instant,
                                     },
                                 );
                             }
@@ -106,6 +112,7 @@ impl Component for ShopPaperContent {
                                             target_xy,
                                             hovered_slot_id: *hovered_slot_id,
                                             set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                            presentation_instant,
                                         },
                                     );
                                 }
@@ -130,6 +137,7 @@ impl Component for ShopPaperContent {
                                         target_xy,
                                         hovered_slot_id: *hovered_slot_id,
                                         set_hovered_slot_id: &|id| set_hovered_slot_id.set(id),
+                                        presentation_instant,
                                     },
                                 );
                             }
