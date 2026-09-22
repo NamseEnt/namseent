@@ -1352,3 +1352,80 @@ pub fn run_exhaustive_prereg(
         s41,
     })
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct FrozenCandidateValidation {
+    pub game_seed: u64,
+    pub decision_index: usize,
+    pub state_hash: String,
+    pub baseline_action_id: String,
+    pub candidate_ids: Vec<String>,
+    pub validation_seeds: Vec<u64>,
+    pub baseline: TerminalSeries,
+    pub candidates: Vec<TerminalSeries>,
+}
+
+/// Diagnostic-only: replays to (game_seed, decision_index), verifies the
+/// state hash and baseline action, then runs baseline + the given frozen
+/// candidate ids to terminal on fresh scenarios. No discovery, no
+/// reselection - candidate_ids are supplied by the caller (e.g. an S4/1
+/// discovery top-3 computed offline from an existing exhaustive artifact).
+pub fn run_frozen_candidate_validation(
+    game_config: Arc<GameConfig>,
+    game_seed: u64,
+    decision_index: usize,
+    expected_state_hash: &str,
+    expected_baseline_action_id: &str,
+    candidate_ids: &[String],
+    validation_seeds: &[u64],
+    max_continuation_decisions: usize,
+) -> Result<FrozenCandidateValidation> {
+    let mut environment = GameEnvironment::new(Arc::clone(&game_config), game_seed);
+    for _ in 0..decision_index {
+        let action = canonical_scripted_semantic_action(&environment)?;
+        let mut outcome = environment
+            .semantic_step(action)
+            .map_err(|error| anyhow::anyhow!("corpus replay step failed: {error:?}"))?;
+        settle_forced_actions(&mut environment, &mut outcome)?;
+    }
+    let state_hash = environment.state_hash();
+    if state_hash != expected_state_hash {
+        bail!("state hash mismatch: replay {state_hash} vs expected {expected_state_hash}");
+    }
+    let baseline_action = canonical_scripted_semantic_action(&environment)?;
+    let baseline_id = baseline_action.action_id();
+    if baseline_id != expected_baseline_action_id {
+        bail!("baseline action mismatch: replay {baseline_id} vs expected {expected_baseline_action_id}");
+    }
+    let prepared = crate::teacher::prepare_semantic_candidates(&environment, None)?;
+    let all_candidates = prepared.candidates_for_limit(None);
+    let find = |id: &str| -> Result<AgentAction> {
+        all_candidates
+            .iter()
+            .find(|l| l.id == id)
+            .map(|l| l.action.clone())
+            .with_context(|| format!("candidate {id} not legal in replayed state"))
+    };
+    let run_series = |id: &str, action: &AgentAction| -> Result<TerminalSeries> {
+        let outcomes = validation_seeds
+            .par_iter()
+            .map(|&s| run_branch(&environment, action, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(TerminalSeries { action_id: id.to_string(), low_fidelity_rank: None, outcomes })
+    };
+    let baseline = run_series(&baseline_id, &baseline_action)?;
+    let candidates = candidate_ids
+        .iter()
+        .map(|id| run_series(id, &find(id)?))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(FrozenCandidateValidation {
+        game_seed,
+        decision_index,
+        state_hash,
+        baseline_action_id: baseline_id,
+        candidate_ids: candidate_ids.to_vec(),
+        validation_seeds: validation_seeds.to_vec(),
+        baseline,
+        candidates,
+    })
+}

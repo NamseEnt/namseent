@@ -58,6 +58,7 @@ enum Command {
     TeacherCandidateOrder(TeacherCandidateOrderOptions),
     TeacherSelectFreshStates(TeacherSelectFreshStatesOptions),
     TeacherExhaustivePrereg(TeacherExhaustivePreregOptions),
+    TeacherFrozenCandidateValidation(TeacherFrozenCandidateValidationOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -164,6 +165,45 @@ fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> 
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&selections)?)?;
     println!("Fresh state selection saved to: {}", options.output.display());
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherFrozenCandidateValidationOptions {
+    #[arg(long)]
+    game_seed: u64,
+    #[arg(long)]
+    decision_index: usize,
+    #[arg(long)]
+    state_hash: String,
+    #[arg(long)]
+    baseline_action_id: String,
+    #[arg(long)]
+    candidate_ids: String,
+    #[arg(long, default_value_t = 9000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 64)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_frozen_candidate_validation(options: TeacherFrozenCandidateValidationOptions) -> Result<()> {
+    let candidate_ids = options.candidate_ids.split('|').map(str::to_string).collect::<Vec<_>>();
+    let result = td_simulator::teacher_reroll_diag::run_frozen_candidate_validation(
+        Arc::new(GameConfig::default_config()),
+        options.game_seed,
+        options.decision_index,
+        &options.state_hash,
+        &options.baseline_action_id,
+        &candidate_ids,
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!("Frozen candidate validation saved to: {}", options.output.display());
     Ok(())
 }
 
@@ -534,6 +574,7 @@ fn main() -> Result<()> {
         Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
         Command::TeacherSelectFreshStates(options) => run_teacher_select_fresh_states(options),
         Command::TeacherExhaustivePrereg(options) => run_teacher_exhaustive_prereg(options),
+        Command::TeacherFrozenCandidateValidation(options) => run_teacher_frozen_candidate_validation(options),
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
