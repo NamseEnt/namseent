@@ -486,6 +486,24 @@ mod purchase_tests {
     }
 
     #[test]
+    fn brush_and_fountain_pen_use_candidate_selection() {
+        let state = core_state();
+
+        for kind in [
+            crate::CardServiceKind::Brush,
+            crate::CardServiceKind::FountainPen,
+        ] {
+            let selection =
+                CardServiceSelectionState::new(kind).expect("selection must be registered");
+            let candidates = selection
+                .candidate_card_ids(&state.deck, &state.rng)
+                .expect("enhancement service uses candidate selection");
+
+            assert_eq!(candidates.len(), 3, "service kind {kind:?}");
+        }
+    }
+
+    #[test]
     fn tricycle_candidates_use_all_matching_cards_when_fewer_than_three_exist() {
         let mut state = core_state();
         state
@@ -604,6 +622,7 @@ mod purchase_tests {
         ];
 
         for (kind, selected) in cases {
+            let mut selected = selected;
             let mut state = core_state();
             state
                 .edit_snapshot(|parts| {
@@ -623,6 +642,11 @@ mod purchase_tests {
             state
                 .begin_card_service_selection(kind)
                 .expect("service should begin");
+            let selection = CardServiceSelectionState::new(kind).expect("selection must exist");
+            if let Some(candidate_card_ids) = selection.candidate_card_ids(&state.deck, &state.rng)
+            {
+                selected = vec![vec![candidate_card_ids[0]]];
+            }
             let before = state.deck().all_cards.clone();
             state
                 .apply_card_service_selection_mutation(&selected)
@@ -639,7 +663,7 @@ mod purchase_tests {
                         assert_eq!(card.suit, crate::Suit::Spades);
                         assert_eq!(card.polish_pct_raw, 2_000_000);
                     } else {
-                        assert_eq!(card.id, 36);
+                        assert_eq!(card.id, selected[0][0]);
                         assert_eq!(card.suit, crate::Suit::Hearts);
                         assert_eq!(card.polish_pct_raw, 3_000_000);
                     }

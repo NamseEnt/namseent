@@ -61,12 +61,11 @@ impl CardServiceBehavior for TricycleCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Select one Ace, Two, or Three card and give it +200% damage.")
-            }
-            crate::l10n::locale::Language::Korean => {
-                builder.static_text("A, 2, 3 카드 중 1장을 선택해 데미지 +200%를 부여합니다.")
-            }
+            crate::l10n::locale::Language::English => builder.static_text(
+                "Choose one of up to three Ace, Two, or Three cards and give it +200% damage.",
+            ),
+            crate::l10n::locale::Language::Korean => builder
+                .static_text("A, 2, 3 카드 최대 3장 중 1장을 선택해 데미지 +200%를 부여합니다."),
         };
     }
 
