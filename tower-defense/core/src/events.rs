@@ -64,6 +64,8 @@ pub enum CoreEvent {
     CardServiceSelectionRequested {
         service_kind: String,
         step_counts: Vec<usize>,
+        #[serde(default)]
+        candidate_card_ids: Option<Vec<usize>>,
     },
 }
 

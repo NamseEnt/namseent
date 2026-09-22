@@ -8,6 +8,7 @@ pub mod domain {
     pub const DECK_SHUFFLE: u64 = 0x4445_434b_0000_0001;
     pub const DECK_DRAW: u64 = 0x4445_434b_0000_0002;
     pub const CARD_REROLL: u64 = 0x4341_5244_0000_0001;
+    pub const CARD_SERVICE_CANDIDATES: u64 = 0x4341_5244_0000_0002;
     pub const DIFFICULTY_OFFER: u64 = 0x4449_4646_0000_0001;
     pub const EFFECT_PAYLOAD: u64 = 0x4546_4645_0000_0001;
     pub const ITEM_GENERATION: u64 = 0x4954_454d_0000_0001;

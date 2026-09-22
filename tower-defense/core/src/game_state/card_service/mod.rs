@@ -94,6 +94,7 @@ impl CardServiceSelectionState {
         &self,
         service_kind: crate::CardServiceKind,
         deck: &DeckState,
+        rng: &crate::RngState,
         selected_card_ids: &[Vec<usize>],
     ) -> Result<(), crate::CommandError> {
         if self.service_kind != service_kind.raw() {
@@ -101,7 +102,46 @@ impl CardServiceSelectionState {
         }
         let behavior =
             card_service_behavior(service_kind).ok_or(crate::CommandError::InvalidSelection)?;
+        if let Some(candidate_card_ids) = self.candidate_card_ids(deck, rng) {
+            let Some(selected_card_id) = selected_card_ids
+                .first()
+                .and_then(|card_ids| card_ids.first())
+                .copied()
+            else {
+                return Err(crate::CommandError::InvalidSelection);
+            };
+            if selected_card_ids.len() != 1
+                || selected_card_ids[0].len() != 1
+                || !candidate_card_ids.contains(&selected_card_id)
+            {
+                return Err(crate::CommandError::InvalidSelection);
+            }
+        }
         behavior.validate(self, deck, selected_card_ids)
+    }
+
+    pub fn candidate_card_ids(
+        &self,
+        deck: &DeckState,
+        rng: &crate::RngState,
+    ) -> Option<Vec<usize>> {
+        let service_kind = self.service_kind()?;
+        let candidate_count = card_service_behavior(service_kind)?.candidate_count()?;
+        let step = self.steps.first()?;
+        let mut candidate_card_ids = deck
+            .all_cards
+            .iter()
+            .filter(|card| step.filter.matches(card))
+            .map(|card| card.id)
+            .collect::<Vec<_>>();
+        candidate_card_ids.sort_unstable();
+        let mut candidate_rng = rng.rng_for(
+            crate::deterministic_rng::domain::CARD_SERVICE_CANDIDATES,
+            &[u64::from(self.service_kind), deck.revision as u64],
+        );
+        crate::deterministic_rng::shuffle(&mut candidate_card_ids, &mut candidate_rng);
+        candidate_card_ids.truncate(candidate_count);
+        Some(candidate_card_ids)
     }
 }
 
@@ -117,7 +157,7 @@ impl crate::CoreState {
             .ok_or(crate::CommandError::InvalidCardServiceKind { raw: service_kind })?;
         let selection =
             CardServiceSelectionState::new(service_kind).ok_or(crate::CommandError::InvalidFlow)?;
-        selection.validate(service_kind, &self.deck, selected_card_ids)?;
+        selection.validate(service_kind, &self.deck, &self.rng, selected_card_ids)?;
         let behavior = card_service_behavior(service_kind).ok_or(crate::CommandError::Rejected)?;
         behavior.apply(self, selected_card_ids)?;
         self.clear_card_service_selection();
@@ -422,6 +462,72 @@ mod purchase_tests {
             polish_pct_raw: 0,
             engraving: None,
         }));
+    }
+
+    #[test]
+    fn tricycle_candidates_are_seed_deterministic_and_limited_to_three() {
+        let first = core_state();
+        let second = core_state();
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+
+        let first_candidates = selection.candidate_card_ids(&first.deck, &first.rng);
+        let second_candidates = selection.candidate_card_ids(&second.deck, &second.rng);
+
+        assert_eq!(first_candidates, second_candidates);
+        let candidates = first_candidates.expect("tricycle uses candidate selection");
+        assert_eq!(candidates.len(), 3);
+        assert!(candidates.iter().all(|card_id| {
+            first
+                .deck
+                .get_card(*card_id)
+                .is_some_and(|card| selection.steps[0].filter.matches(&card))
+        }));
+    }
+
+    #[test]
+    fn tricycle_candidates_use_all_matching_cards_when_fewer_than_three_exist() {
+        let mut state = core_state();
+        state
+            .edit_snapshot(|parts| {
+                parts.deck.all_cards.truncate(2);
+                parts.deck.draw_pile.truncate(2);
+                parts.deck.discard_pile.clear();
+            })
+            .expect("small deck fixture must be valid");
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+
+        let candidates = selection
+            .candidate_card_ids(&state.deck, &state.rng)
+            .expect("tricycle uses candidate selection");
+
+        assert_eq!(candidates.len(), 2);
+    }
+
+    #[test]
+    fn tricycle_rejects_a_matching_card_outside_the_candidate_list() {
+        let mut state = core_state();
+        state
+            .begin_card_service_selection(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection should begin");
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+        let candidates = selection
+            .candidate_card_ids(&state.deck, &state.rng)
+            .expect("tricycle uses candidate selection");
+        let card_id = state
+            .deck
+            .all_cards
+            .iter()
+            .find(|card| selection.steps[0].filter.matches(card) && !candidates.contains(&card.id))
+            .expect("the default deck has a fourth low-rank card")
+            .id;
+
+        assert_eq!(
+            state.apply_card_service_selection_mutation(&[vec![card_id]]),
+            Err(crate::CommandError::InvalidSelection)
+        );
     }
 
     #[test]
