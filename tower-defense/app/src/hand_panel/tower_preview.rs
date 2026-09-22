@@ -1,8 +1,10 @@
 use crate::PresentationInstant;
 use crate::card::RenderTowerCard;
+use crate::card::render::polish_rarity_config;
 use crate::format_compact_number;
 use crate::game_state::tower::TowerTemplate;
 use crate::hand::HAND_SLOT_WH;
+use crate::theme::rarity_particle::{RarityParticleEffect, strength_for_rarity};
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::theme::{
     palette,
@@ -46,6 +48,7 @@ struct PreviewEntryComponent {
     template: TowerTemplate,
     active: bool,
     rotation_deg: f32,
+    presentation_instant: PresentationInstant,
 }
 
 impl Component for PreviewEntryComponent {
@@ -112,14 +115,28 @@ impl Component for PreviewEntryComponent {
                 let badge_height = 28.px();
                 let _ = render_attack_power_badge(&ctx, dps_text, preview_width, badge_height);
 
-                ctx.translate(card_xy)
+                let card_ctx = ctx
+                    .translate(card_xy)
                     .translate(card_center)
                     .rotate(self.rotation_deg.deg())
-                    .translate(-card_center)
-                    .add(RenderTowerCard {
-                        wh: card_wh,
-                        tower_template: &template,
+                    .translate(-card_center);
+
+                card_ctx.add(RenderTowerCard {
+                    wh: card_wh,
+                    tower_template: &template,
+                });
+                if let Some((rarity, _halo_strength)) =
+                    polish_rarity_config(template.card_polish_pct().as_f32())
+                {
+                    card_ctx.add(RarityParticleEffect {
+                        xy: card_center,
+                        radius: card_wh.width * 0.22,
+                        rarity,
+                        strength: strength_for_rarity(rarity),
+                        enabled: self.active,
+                        presentation_instant: self.presentation_instant,
                     });
+                }
             });
 
             ctx.add(PaperContainerBackground {
@@ -209,6 +226,7 @@ impl Component for HandTowerPreview {
                     template: entry.template.clone(),
                     active,
                     rotation_deg: entry.rotation_deg,
+                    presentation_instant,
                 },
             );
         }

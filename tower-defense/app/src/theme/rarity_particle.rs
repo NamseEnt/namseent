@@ -149,6 +149,15 @@ pub struct RarityParticleEffect {
     pub presentation_instant: PresentationInstant,
 }
 
+pub fn strength_for_rarity(rarity: Rarity) -> f32 {
+    match rarity {
+        Rarity::Common => 0.05,
+        Rarity::Rare => 0.15,
+        Rarity::Epic => 0.25,
+        Rarity::Legendary => 0.4,
+    }
+}
+
 impl RarityParticleEffect {
     pub fn from_wh(
         wh: Wh<Px>,

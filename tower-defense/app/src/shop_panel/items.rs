@@ -6,7 +6,7 @@ use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData};
 use crate::theme::card_halo_fx::CardHaloFx;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
-use crate::theme::rarity_particle::RarityParticleEffect;
+use crate::theme::rarity_particle::{RarityParticleEffect, strength_for_rarity};
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail as render_thumbnail_source};
 use namui::*;
@@ -91,7 +91,7 @@ fn render_thumbnail(
             xy: thumbnail_wh.to_xy() * 0.5,
             radius: thumbnail_size,
             rarity,
-            strength: rarity_particle_strength(rarity),
+            strength: strength_for_rarity(rarity),
             enabled: true,
             presentation_instant,
         });
@@ -106,15 +106,6 @@ fn render_thumbnail(
             });
         }
     });
-}
-
-fn rarity_particle_strength(rarity: crate::Rarity) -> f32 {
-    match rarity {
-        crate::Rarity::Common => 0.05,
-        crate::Rarity::Rare => 0.15,
-        crate::Rarity::Epic => 0.25,
-        crate::Rarity::Legendary => 0.4,
-    }
 }
 
 fn rarity_halo_config(rarity: crate::Rarity) -> Option<(Color, f32)> {
