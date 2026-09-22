@@ -283,7 +283,9 @@ impl Component for Game {
 
         ctx.add(shop_panel::ShopPanel);
         ctx.add(hand_panel::HandPanel);
-        ctx.add(treasure_selection::TreasureSelectionUi);
+        ctx.add(treasure_selection::TreasureSelectionUi {
+            presentation_instant,
+        });
 
         ctx.add(sound::SoundRenderer);
 

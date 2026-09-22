@@ -4,5 +4,6 @@ pub mod fab;
 pub mod halo;
 pub mod palette;
 pub mod paper_container;
+pub mod rarity_particle;
 pub mod slider;
 pub mod typography;
