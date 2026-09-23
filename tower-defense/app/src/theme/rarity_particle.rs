@@ -25,6 +25,7 @@ enum RarityParticleKind {
     Stroke,
 }
 
+#[derive(Clone, State)]
 pub struct RarityParticle {
     xy: Xy<Px>,
     src_rect: Rect<Px>,
@@ -107,6 +108,10 @@ impl RarityParticle {
         self.rotation_rad = self.initial_rotation_rad + self.rotation_distance_rad * eased_progress;
     }
 
+    fn is_done_impl(&self, now: Instant) -> bool {
+        now - self.created_at >= self.lifetime
+    }
+
     fn render_impl(&self) -> namui::particle::ParticleSprites {
         let mut sprites = namui::particle::ParticleSprites::new();
         if self.alpha <= 0.0 || self.scale <= 0.0 {
@@ -136,7 +141,7 @@ impl namui::particle::Particle for RarityParticle {
     }
 
     fn is_done(&self, now: Instant) -> bool {
-        now - self.created_at >= self.lifetime
+        self.is_done_impl(now)
     }
 }
 
@@ -179,9 +184,10 @@ impl RarityParticleEffect {
 
 impl Component for RarityParticleEffect {
     fn render(self, ctx: &RenderCtx) {
-        let (emitter, _) = ctx.state(namui::particle::Emitter::<RarityParticle>::new);
+        let (particle_list, set_particle_list) = ctx.state(Vec::<RarityParticle>::new);
         let (last_particle_spawn, set_last_particle_spawn) =
             ctx.state(|| None::<PresentationInstant>);
+        let mut particle_list = particle_list.clone_inner();
 
         if self.enabled {
             let should_spawn = match *last_particle_spawn {
@@ -201,30 +207,49 @@ impl Component for RarityParticleEffect {
                 let whole_particle_count = expected_particle_count.floor() as usize;
                 let fractional_particle_count = expected_particle_count.fract();
 
-                emitter.spawn_batch(move |particles| {
-                    let mut rng = rand::thread_rng();
-                    let particle_count = whole_particle_count
-                        + usize::from(rng.gen_bool(fractional_particle_count as f64));
-                    for _ in 0..particle_count {
-                        particles.push(RarityParticle::new(
-                            xy, radius, rarity, created_at, &mut rng,
-                        ));
-                    }
-                });
+                let mut rng = rand::thread_rng();
+                let particle_count = whole_particle_count
+                    + usize::from(rng.gen_bool(fractional_particle_count as f64));
+                for _ in 0..particle_count {
+                    particle_list.push(RarityParticle::new(
+                        xy, radius, rarity, created_at, &mut rng,
+                    ));
+                }
+                if particle_count > 0 {
+                    set_particle_list.set(particle_list.clone());
+                }
                 set_last_particle_spawn.set(Some(self.presentation_instant));
             }
         }
 
-        ctx.interval("rarity particle emitter", Duration::from_millis(16), |dt| {
-            emitter.tick(self.presentation_instant.as_namui(), dt)
-        });
+        let now = self.presentation_instant.as_namui();
+        let mut particles_for_tick = particle_list.clone();
+        ctx.interval(
+            "rarity particle tick",
+            Duration::from_millis(16),
+            move |dt| {
+                for particle in &mut particles_for_tick {
+                    particle.tick_impl(now, dt);
+                }
+                particles_for_tick.retain(|particle| !particle.is_done_impl(now));
+                set_particle_list.set(particles_for_tick);
+            },
+        );
 
-        ctx.add(namui::particle::RenderEmitter {
-            emitter: &*emitter,
-            image: crate::asset::image::ui::particle::RARITY,
-            sprite_colors_blend_mode: BlendMode::Modulate,
-            paint: Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen)),
-        });
+        let sprites = particle_list
+            .iter()
+            .flat_map(RarityParticle::render_impl)
+            .collect::<Vec<_>>();
+        if !sprites.is_empty() {
+            ctx.add(RenderingTree::Node(DrawCommand::Image {
+                command: arena_alloc(ImageDrawCommand {
+                    image: crate::asset::image::ui::particle::RARITY,
+                    sprites,
+                    sprite_colors_blend_mode: BlendMode::Modulate,
+                    paint: Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen)),
+                }),
+            }));
+        }
     }
 }
 
