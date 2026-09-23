@@ -3736,3 +3736,35 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod clear_rate_trace_tests {
+    use super::*;
+    use crate::policy_runner::canonical_scripted_semantic_action;
+
+    #[test]
+    #[ignore = "plays full canonical episodes; slow in debug builds"]
+    fn clear_rate_is_non_decreasing_across_semantic_steps() {
+        let config = Arc::new(GameConfig::default_config());
+        for seed in 0..2u64 {
+            let mut environment = GameEnvironment::new(config.clone(), seed);
+            let mut previous = environment.clear_rate();
+            while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                let action = match environment.forced_action() {
+                    Some(action) => action,
+                    None => canonical_scripted_semantic_action(&environment).unwrap(),
+                };
+                let outcome = environment.semantic_step(action).unwrap();
+                let current = environment.clear_rate();
+                assert!(
+                    current >= previous,
+                    "seed {seed}: clear_rate decreased {previous} -> {current}"
+                );
+                previous = current;
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+    }
+}
