@@ -1,4 +1,5 @@
 use crate::game_state::card_service::CardServiceBehavior;
+use crate::game_state::modal::card_candidate::CardCandidateModal;
 use crate::game_state::modal::deck::CardSelectionState;
 use crate::game_state::{GameState, UserModal};
 
@@ -13,9 +14,12 @@ pub(crate) fn consume_headed(
             td_core::CoreEvent::CardServiceSelectionRequested {
                 service_kind,
                 step_counts,
-            } => {
-                game_state.open_card_service_selection_from_core_event(&service_kind, &step_counts)
-            }
+                candidate_card_ids,
+            } => game_state.open_card_service_selection_from_core_event(
+                &service_kind,
+                &step_counts,
+                candidate_card_ids.as_deref(),
+            ),
             td_core::CoreEvent::StageStarted { stage, card_count } => {
                 crate::game_state::presentation_effect::apply_stage_start(
                     game_state, stage, card_count,
@@ -394,6 +398,7 @@ pub(crate) fn card_service_selection(
     game_state: &GameState,
     service_kind: &str,
     step_counts: &[usize],
+    candidate_card_ids: Option<&[usize]>,
 ) -> Option<UserModal> {
     let service = td_core::CardServiceKind::ALL
         .iter()
@@ -408,10 +413,21 @@ pub(crate) fn card_service_selection(
     for (step, count) in steps.iter_mut().zip(step_counts) {
         step.count = *count;
     }
-    Some(UserModal::Deck(crate::game_state::modal::deck::DeckModal {
-        deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
-        selection: Some(CardSelectionState::new(steps, service)),
-    }))
+    if let Some(candidate_card_ids) = candidate_card_ids {
+        Some(UserModal::CardCandidate(CardCandidateModal {
+            card_service: service,
+            candidate_card_ids: candidate_card_ids
+                .iter()
+                .copied()
+                .map(crate::card::CardId::from_raw)
+                .collect(),
+        }))
+    } else {
+        Some(UserModal::Deck(crate::game_state::modal::deck::DeckModal {
+            deck_kind: crate::game_state::modal::deck::DeckKind::Deck,
+            selection: Some(CardSelectionState::new(steps, service)),
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -421,7 +437,8 @@ mod tests {
     #[test]
     fn card_service_event_uses_authoritative_step_counts() {
         let game_state = crate::game_state::create_game_state_with_seed(7);
-        let modal = card_service_selection(&game_state, "eraser", &[2]).expect("eraser modal");
+        let modal =
+            card_service_selection(&game_state, "eraser", &[2], None).expect("eraser modal");
         let UserModal::Deck(deck) = modal else {
             panic!("expected deck modal");
         };
@@ -429,10 +446,29 @@ mod tests {
     }
 
     #[test]
+    fn card_service_event_with_candidates_uses_candidate_modal() {
+        let game_state = crate::game_state::create_game_state_with_seed(7);
+        let modal = card_service_selection(&game_state, "tricycle", &[1], Some(&[0, 1, 2]))
+            .expect("tricycle modal");
+
+        let UserModal::CardCandidate(modal) = modal else {
+            panic!("expected candidate modal");
+        };
+        assert_eq!(
+            modal.candidate_card_ids,
+            vec![
+                crate::card::CardId::from_raw(0),
+                crate::card::CardId::from_raw(1),
+                crate::card::CardId::from_raw(2),
+            ]
+        );
+    }
+
+    #[test]
     fn invalid_card_service_event_is_ignored() {
         let game_state = crate::game_state::create_game_state_with_seed(7);
-        assert!(card_service_selection(&game_state, "unknown", &[1]).is_none());
-        assert!(card_service_selection(&game_state, "eraser", &[1, 2]).is_none());
+        assert!(card_service_selection(&game_state, "unknown", &[1], None).is_none());
+        assert!(card_service_selection(&game_state, "eraser", &[1, 2], None).is_none());
     }
 
     #[test]

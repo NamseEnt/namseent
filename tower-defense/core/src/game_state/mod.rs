@@ -726,6 +726,7 @@ impl CoreState {
         self.push_event(crate::CoreEvent::CardServiceSelectionRequested {
             service_kind: crate::CardServiceSelectionState::service_key(service_kind).to_string(),
             step_counts: selection.steps.iter().map(|step| step.count).collect(),
+            candidate_card_ids: selection.candidate_card_ids(&self.deck, &self.rng),
         });
         self.card_service_selection = None;
         Ok(())
@@ -753,7 +754,7 @@ impl CoreState {
             .ok_or(crate::CommandError::InvalidCardServiceKind { raw: service_kind })?;
         let selection = crate::CardServiceSelectionState::new(service_kind)
             .ok_or(crate::CommandError::InvalidFlow)?;
-        selection.validate(service_kind, &self.deck, selected_card_ids)
+        selection.validate(service_kind, &self.deck, &self.rng, selected_card_ids)
     }
 
     pub fn clear_rate_raw(&self) -> i64 {

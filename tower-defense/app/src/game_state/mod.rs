@@ -2298,10 +2298,14 @@ impl GameState {
         &mut self,
         service_kind: &str,
         step_counts: &[usize],
+        candidate_card_ids: Option<&[usize]>,
     ) {
-        let Some(modal) =
-            core_event_bridge::card_service_selection(self, service_kind, step_counts)
-        else {
+        let Some(modal) = core_event_bridge::card_service_selection(
+            self,
+            service_kind,
+            step_counts,
+            candidate_card_ids,
+        ) else {
             return;
         };
         self.set_user_modal(Some(modal));

@@ -14,6 +14,10 @@ impl CardServiceBehavior for Behavior {
         selection_face()
     }
 
+    fn candidate_count(&self) -> Option<usize> {
+        Some(3)
+    }
+
     fn purchase_block_reasons(
         &self,
         deck: &crate::DeckState,

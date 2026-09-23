@@ -26,6 +26,9 @@ pub(super) mod tricycle;
 pub(crate) trait CardServiceBehavior {
     fn kind(&self) -> crate::CardServiceKind;
     fn selection_steps(&self) -> Vec<CardServiceSelectionStepState>;
+    fn candidate_count(&self) -> Option<usize> {
+        None
+    }
     fn purchase_block_reasons(&self, deck: &DeckState) -> Vec<CardServicePurchaseBlockReason>;
     fn validate(
         &self,

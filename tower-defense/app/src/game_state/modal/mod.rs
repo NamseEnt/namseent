@@ -1,3 +1,4 @@
+pub mod card_candidate;
 mod card_grid;
 pub mod deck;
 pub mod encyclopedia;
@@ -7,6 +8,7 @@ mod tower_details;
 #[cfg(feature = "debug-tools")]
 use crate::game_state::debug_tools::DebugToolsModal;
 use crate::game_state::modal::settings::SettingsModal;
+pub use card_candidate::CardCandidateModal;
 pub use deck::DeckModal;
 use encyclopedia::EncyclopediaModal;
 use namui::*;
@@ -46,6 +48,7 @@ impl Component for &SystemModal {
 #[derive(Debug, Clone, State)]
 pub enum UserModal {
     Deck(DeckModal),
+    CardCandidate(CardCandidateModal),
     TowerDetails(TowerDetailsModal),
 }
 
@@ -53,6 +56,7 @@ impl Component for &UserModal {
     fn render(self, ctx: &RenderCtx) {
         match self {
             UserModal::Deck(deck_modal) => ctx.add(deck_modal.clone()),
+            UserModal::CardCandidate(card_candidate_modal) => ctx.add(card_candidate_modal.clone()),
             UserModal::TowerDetails(tower_details_modal) => ctx.add(tower_details_modal.clone()),
         };
     }
