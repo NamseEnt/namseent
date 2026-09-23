@@ -132,6 +132,17 @@ S4/1의 non-baseline 후보 집합이 비어 있으면(예: TowerPlacement에서
 - Phase 3K/3L: 한 state의 exhaustive terminal oracle에서 실제로 유용한 candidate가 short-score 상위 8, 심지어 16 밖(rank 15~26)에 있는 경우가 반복됐다 - global top-K short-score shortlist는 채택하지 않았다.
 - Phase 3M/3N: baseline + non-reroll/non-build 전부 + dense-order top-4 build + short-score top-1 reroll(S4/1)로 proposal을 제한하고, discovery top-3을 독립 validation + Holm gate로 거르는 현재 구조에서 development 7 states 전부(0/6, 1/5, 2/1, 3/1, 4/1, 5/3, 6/1) 검증: false override 0, 이미 확인된 clear-positive candidate를 놓친 case 0, discovery top-1이 validation에서 기각되고 top-2/top-3이 대신 선택된 case 확인(noisy discovery winner를 걸러냄).
 
+### Phase 3 held-out gate (preregistered)
+
+This criterion was fixed before any held-out result was observed. It must not be changed after results are seen.
+
+- Run: `td-simulator teacher-selection-heldout --seed-start 108 --seed-end 115 --max-decisions 64` at commit `8759d225`, default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
+- Primary metric: per-seed `paired_clear_rate_delta` (teacher `clear_rate` - baseline `clear_rate`) over the 8 seeds.
+- Gate: mean paired delta > 0 is positive, = 0 is tie, < 0 is negative.
+- Reported alongside, to judge the strength of evidence separately from the gate: paired SE, median, all 8 per-seed deltas, and teacher-better / baseline-better / tie counts.
+- No significance threshold is part of the gate. A t-test or CI may be reported only as a descriptive secondary statistic.
+- The selection rule (S4/1, scenario pools, alpha) is not retuned based on held-out results.
+
 ## Horizon과 점수
 
 full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed simulation-time horizon (`horizon_sim_ticks`)**을 쓴다(중간에 `horizon_stages`를 썼으나 v4에서 교체됨) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
