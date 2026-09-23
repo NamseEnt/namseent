@@ -89,6 +89,49 @@ B: scenario seeds 1, 2, 3, ... N
 - teacher dataset에 실제 미래 결과를 observation feature처럼 저장하지 않는다.
 - candidate pruning policy도 hidden future를 입력으로 받지 않는다.
 
+## Production selection algorithm (S4/1 + discovery top-3 + independent validation, schema v1)
+
+Phase 3E~3N 진단(hidden-order leak, winner's curse, short-horizon score와 full-game 결과의 불일치, top-K discovery의 sampling noise)을 거쳐 확정된 production teacher는 더 이상 `evaluate_semantic_candidate_set_with_baseline`의 baseline-conservative 단일 short-horizon score로 최종 action을 정하지 않는다. **`stage_progress_v1`은 이제 최종 teacher value가 아니라 Reroll proposal ranking에만 쓰이는 low-fidelity 신호다.** 구현은 `simulator/src/teacher_selection.rs`(`TEACHER_SELECTION_SCHEMA_VERSION = 1`), CLI는 `td-simulator teacher-selection-heldout`.
+
+각 decision은 4단계로 진행한다.
+
+1. **Proposal (S4/1)**: baseline은 항상 별도로 포함하고, non-baseline 후보 집합은 정확히:
+   - kind가 Reroll도 BuildTower도 아닌 모든 legal action 전부
+   - 기존 production dense-build candidate order의 상위 4개 BuildTower
+   - Reroll candidate 중 기존 `stage_progress_v1` low-fidelity score(8 scenario, `horizon_sim_ticks = 3266`) 최고 1개 (동점은 action-id 오름차순)
+
+   dedup 후 이 집합을 넘지 않는다. non-reroll/non-build action을 short score로 자르지 않는다.
+
+2. **Terminal discovery**: S4/1의 non-baseline 후보 전부를 각각 한 번씩 적용한 뒤 `canonical_scripted_semantic_action`만으로 continuation해 terminal까지 실행한다(teacher 재귀 호출 없음, tick deadline 없음). 후보별 mean `environment.clear_rate()`로 내림차순 정렬해 상위 3개(부족하면 있는 만큼)를 freeze한다. baseline보다 낮은 discovery mean이어도 top-3에서 미리 제외하지 않는다(제외 판단은 다음 단계의 독립 validation이 담당).
+
+3. **Independent validation**: baseline과 frozen top-3만, discovery와 완전히 분리된 fresh scenario seed에서 다시 terminal까지 평가한다. 후보별로 `paired_delta_i = candidate_clear_rate_i - baseline_clear_rate_i`(같은 scenario에서 baseline과 candidate 비교)를 계산하고, `H0: E[delta] <= 0` vs `H1: E[delta] > 0`의 one-sided paired t-test를 수행한다. 분산이 0인 case는 명시적으로: mean>0이면 p=0, mean==0이면 p=1, mean<0이면 p=1(NaN이 나오지 않는다).
+
+4. **Holm-Bonferroni gate**: 그 state에서 실제 validation한 후보 수 기준으로 family-wise alpha 0.05로 step-down 보정한다. 통과한 후보가 없으면 baseline을 유지한다. 하나 이상 통과하면 그중 validation mean paired delta가 가장 큰 후보를 선택한다(동점만 action-id 오름차순).
+
+### Scenario pool
+
+세 pool은 서로 disjoint하며 held-out *game seed*와도, 과거 어떤 diagnostic의 scenario range와도 겹치지 않는다(`TeacherSelectionPools::production()`):
+
+```text
+proposal (reroll low-fidelity ranking): 10000..10008   (8)
+terminal discovery:                     20000..20032   (32)
+independent validation:                 30000..30064   (64)
+```
+
+같은 state 안에서는 candidate 간 common random numbers를 유지한다(`fork_for_rollout_seed`의 information-set-correct hidden-order resampling, schema v5 그대로). candidate마다 다른 scenario를 다시 뽑지 않는다.
+
+### Cheap/forced shortcut
+
+S4/1의 non-baseline 후보 집합이 비어 있으면(예: TowerPlacement에서 legal alternative가 baseline 하나뿐인 state) discovery/validation을 건너뛰고 baseline을 그대로 선택한다. 이 shortcut은 selection semantics를 바꾸지 않는다 - 빈 candidate set은 애초에 baseline 외의 결론이 나올 수 없다.
+
+### 이 algorithm이 왜 필요했는가
+
+- Phase 3E: teacher rollout fork가 observation에 없는 hidden order(draw pile, shop/reward bag suffix)를 그대로 복제해 `Reroll`이 실제 다음 카드를 보고 선택되던 leak을 resampling으로 막았다(schema v5, 위 "Hidden-order resampling").
+- Phase 3H: n=8 scenario로 전체 후보를 한 번에 골라 선택하는 기존 방식은 winner's curse에 취약했다(selection margin이 독립 validation에서 절반 이하로 줄어듦).
+- Phase 3I: horizon을 3266→13064 ticks로 늘려도 `stage_progress_v1`과 실제 full-game 방향이 일치하지 않았다(noise가 signal보다 빨리 커짐) - horizon을 더 늘리는 방향은 폐기했다.
+- Phase 3K/3L: 한 state의 exhaustive terminal oracle에서 실제로 유용한 candidate가 short-score 상위 8, 심지어 16 밖(rank 15~26)에 있는 경우가 반복됐다 - global top-K short-score shortlist는 채택하지 않았다.
+- Phase 3M/3N: baseline + non-reroll/non-build 전부 + dense-order top-4 build + short-score top-1 reroll(S4/1)로 proposal을 제한하고, discovery top-3을 독립 validation + Holm gate로 거르는 현재 구조에서 development 7 states 전부(0/6, 1/5, 2/1, 3/1, 4/1, 5/3, 6/1) 검증: false override 0, 이미 확인된 clear-positive candidate를 놓친 case 0, discovery top-1이 validation에서 기각되고 top-2/top-3이 대신 선택된 case 확인(noisy discovery winner를 걸러냄).
+
 ## Horizon과 점수
 
 full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed simulation-time horizon (`horizon_sim_ticks`)**을 쓴다(중간에 `horizon_stages`를 썼으나 v4에서 교체됨) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.

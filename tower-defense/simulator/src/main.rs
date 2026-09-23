@@ -48,6 +48,7 @@ enum Command {
     Baseline(BaselineOptions),
     Benchmark(BenchmarkOptions),
     Teacher(TeacherOptions),
+    TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
@@ -564,6 +565,7 @@ fn main() -> Result<()> {
         Command::Baseline(options) => run_baseline(options),
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
+        Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
@@ -579,6 +581,77 @@ fn main() -> Result<()> {
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
     }
+}
+
+#[derive(Args)]
+struct TeacherSelectionHeldoutOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 64)]
+    max_decisions: usize,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Result<()> {
+    use td_simulator::environment::GameEnvironment;
+    use td_simulator::teacher_eval::run_canonical_scripted_semantic_episode;
+    use td_simulator::teacher_selection::{TeacherSelectionPools, run_teacher_selection_episode};
+
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let pools = TeacherSelectionPools::production();
+    let mut per_seed = Vec::new();
+    for seed in options.seed_start..=options.seed_end {
+        let started = std::time::Instant::now();
+        let baseline = run_canonical_scripted_semantic_episode(
+            Arc::clone(&config),
+            seed,
+            options.max_decisions,
+        )?;
+        let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+        let teacher = run_teacher_selection_episode(&mut environment, &pools, options.max_decisions)?;
+        let elapsed_seconds = started.elapsed().as_secs_f64();
+        eprintln!(
+            "seed {seed}: baseline clear_rate={:.2} teacher clear_rate={:.2} decisions={} elapsed={:.1}s",
+            baseline.clear_rate, teacher.clear_rate, teacher.decision_count, elapsed_seconds
+        );
+        per_seed.push(serde_json::json!({
+            "game_seed": seed,
+            "elapsed_seconds": elapsed_seconds,
+            "baseline": baseline,
+            "teacher": teacher,
+            "paired_clear_rate_delta": teacher.clear_rate - baseline.clear_rate,
+        }));
+    }
+    let json = serde_json::to_string_pretty(&serde_json::json!({
+        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "seed_start": options.seed_start,
+        "seed_end": options.seed_end,
+        "max_decisions": options.max_decisions,
+        "pools": pools,
+        "results": per_seed,
+    }))?;
+    if let Some(parent) = options.output.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, format!("{json}\n"))?;
+    println!("Teacher selection held-out report saved to: {}", options.output.display());
+    Ok(())
 }
 
 fn run_teacher(options: TeacherOptions) -> Result<()> {
