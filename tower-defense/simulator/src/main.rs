@@ -608,8 +608,78 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
         None => GameConfig::default_config(),
     });
     let pools = TeacherSelectionPools::production();
-    let mut per_seed = Vec::new();
+    let config_digest = config::config_digest(config.as_ref());
+    let provenance = serde_json::json!({
+        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config_digest,
+        "seed_start": options.seed_start,
+        "seed_end": options.seed_end,
+        "max_decisions": options.max_decisions,
+        "pools": pools,
+    });
+
+    // Resumable: each already-completed seed's result is checkpointed to
+    // `options.output` immediately, so an interrupted run (including a
+    // handoff to a different machine) can continue from the same file
+    // instead of restarting seed_start. A provenance mismatch (schema
+    // version, config, pool, or seed-range change) refuses to resume rather
+    // than silently mixing incompatible partial results.
+    let mut per_seed: Vec<serde_json::Value> = Vec::new();
+    if options.output.exists() {
+        let existing: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&options.output)?)
+                .with_context(|| format!("existing output {} is not valid JSON", options.output.display()))?;
+        let mut existing_provenance = existing.clone();
+        if let Some(map) = existing_provenance.as_object_mut() {
+            map.remove("results");
+        }
+        if existing_provenance != provenance {
+            anyhow::bail!(
+                "refusing to resume {}: provenance differs from this run's config/pools/schema/seed \
+                 range (existing: {existing_provenance}, this run: {provenance}) - use a fresh --output \
+                 path if this is an intentional change",
+                options.output.display()
+            );
+        }
+        per_seed = existing["results"]
+            .as_array()
+            .cloned()
+            .context("existing output missing results array")?;
+        println!(
+            "Resuming {}: {} seed(s) already completed",
+            options.output.display(),
+            per_seed.len()
+        );
+    }
+    let already_done: std::collections::HashSet<u64> = per_seed
+        .iter()
+        .filter_map(|entry| entry["game_seed"].as_u64())
+        .collect();
+
+    let write_checkpoint = |per_seed: &[serde_json::Value]| -> Result<()> {
+        let mut report = provenance.clone();
+        report["results"] = serde_json::Value::Array(per_seed.to_vec());
+        let json = serde_json::to_string_pretty(&report)?;
+        if let Some(parent) = options.output.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        let tmp_path = options.output.with_extension("json.tmp");
+        std::fs::write(&tmp_path, format!("{json}\n"))?;
+        std::fs::rename(&tmp_path, &options.output)?;
+        Ok(())
+    };
+
     for seed in options.seed_start..=options.seed_end {
+        if already_done.contains(&seed) {
+            println!("seed {seed}: already completed, skipping");
+            continue;
+        }
         let started = std::time::Instant::now();
         let baseline = run_canonical_scripted_semantic_episode(
             Arc::clone(&config),
@@ -630,26 +700,8 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
             "teacher": teacher,
             "paired_clear_rate_delta": teacher.clear_rate - baseline.clear_rate,
         }));
+        write_checkpoint(&per_seed)?;
     }
-    let json = serde_json::to_string_pretty(&serde_json::json!({
-        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
-        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
-        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
-        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
-        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
-        "config_digest": config::config_digest(config.as_ref()),
-        "seed_start": options.seed_start,
-        "seed_end": options.seed_end,
-        "max_decisions": options.max_decisions,
-        "pools": pools,
-        "results": per_seed,
-    }))?;
-    if let Some(parent) = options.output.parent()
-        && !parent.as_os_str().is_empty()
-    {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::write(&options.output, format!("{json}\n"))?;
     println!("Teacher selection held-out report saved to: {}", options.output.display());
     Ok(())
 }
