@@ -134,6 +134,10 @@ pub(crate) fn render_polish_overlay(ctx: &RenderCtx, wh: Wh<Px>, bonus_pct: f32,
 }
 
 pub fn polish_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
+    polish_rarity_config(bonus_pct).map(|(rarity, strength)| (rarity.color(), strength))
+}
+
+pub fn polish_rarity_config(bonus_pct: f32) -> Option<(Rarity, f32)> {
     if bonus_pct <= 0.0 {
         return None;
     }
@@ -153,7 +157,7 @@ pub fn polish_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
         let strength = HALO_COMMON_STRENGTH_MIN
             + (HALO_COMMON_STRENGTH_MAX - HALO_COMMON_STRENGTH_MIN)
                 * progress(HALO_COMMON_MIN, HALO_COMMON_MAX);
-        return Some((Rarity::Common.color(), strength));
+        return Some((Rarity::Common, strength));
     }
 
     match counts.symbol.unwrap() {
@@ -161,19 +165,19 @@ pub fn polish_halo_config(bonus_pct: f32) -> Option<(Color, f32)> {
             let strength = HALO_RARE_STRENGTH_MIN
                 + (HALO_RARE_STRENGTH_MAX - HALO_RARE_STRENGTH_MIN)
                     * progress(HALO_RARE_MIN, HALO_RARE_MAX);
-            Some((Rarity::Rare.color(), strength))
+            Some((Rarity::Rare, strength))
         }
         SideSymbolKind::Burr => {
             let strength = HALO_EPIC_STRENGTH_MIN
                 + (HALO_EPIC_STRENGTH_MAX - HALO_EPIC_STRENGTH_MIN)
                     * progress(HALO_EPIC_MIN, HALO_EPIC_MAX);
-            Some((Rarity::Epic.color(), strength))
+            Some((Rarity::Epic, strength))
         }
         SideSymbolKind::Star => {
             let strength = HALO_LEGENDARY_STRENGTH_MIN
                 + (HALO_LEGENDARY_STRENGTH_MAX - HALO_LEGENDARY_STRENGTH_MIN)
                     * progress(HALO_LEGENDARY_MIN, HALO_LEGENDARY_MAX);
-            Some((Rarity::Legendary.color(), strength))
+            Some((Rarity::Legendary, strength))
         }
     }
 }

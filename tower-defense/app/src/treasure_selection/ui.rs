@@ -1,6 +1,8 @@
 use crate::game_state::upgrade::Upgrade;
 use crate::game_state::{PlayerCommand, dispatch_player_command, flow::GameFlow, use_game_state};
+use crate::theme::rarity_particle::RarityParticleEffect;
 use crate::theme::{halo::Halo, palette};
+use crate::{PresentationInstant, Rarity};
 use namui::*;
 use namui_prebuilt::{simple_rect, table};
 
@@ -10,7 +12,9 @@ use super::{
     CARD_GAP, MODAL_HEIGHT, MODAL_WIDTH, PADDING, TREASURE_BG_PADDING, TREASURE_HALO_PADDING,
 };
 
-pub struct TreasureSelectionUi;
+pub struct TreasureSelectionUi {
+    pub presentation_instant: PresentationInstant,
+}
 
 impl Component for TreasureSelectionUi {
     fn render(self, ctx: &RenderCtx) {
@@ -56,15 +60,21 @@ impl Component for TreasureSelectionUi {
 
         let modal_center = modal_wh.to_xy() * 0.5;
 
-        Self::render_modal(
-            ctx,
-            modal_wh,
-            modal_xy,
-            modal_scale,
-            &flow.options,
-            locale,
-            modal_center,
-        );
+        ctx.compose(|ctx| {
+            let ctx = ctx
+                .translate(modal_xy + modal_center)
+                .scale(Xy::single(modal_scale))
+                .translate(-modal_center);
+
+            Self::render_treasure_layer(
+                &ctx,
+                modal_wh,
+                &flow.options,
+                locale,
+                is_closing,
+                self.presentation_instant,
+            );
+        });
 
         ctx.add(simple_rect(
             screen_wh,
@@ -82,37 +92,19 @@ impl Component for TreasureSelectionUi {
 }
 
 impl TreasureSelectionUi {
-    fn render_modal(
-        ctx: &RenderCtx,
-        modal_wh: Wh<Px>,
-        modal_xy: Xy<Px>,
-        modal_scale: f32,
-        options: &[Upgrade],
-        locale: crate::l10n::Locale,
-        modal_center: Xy<Px>,
-    ) {
-        ctx.compose(|ctx| {
-            let ctx = ctx
-                .translate(modal_xy + modal_center)
-                .scale(Xy::single(modal_scale))
-                .translate(-modal_center);
-
-            Self::render_treasure_layer(&ctx, modal_wh, options, locale);
-        });
-    }
-
     fn render_treasure_layer(
         ctx: &ComposeCtx,
         modal_wh: Wh<Px>,
         options: &[Upgrade],
         locale: crate::l10n::Locale,
+        is_closing: bool,
+        presentation_instant: PresentationInstant,
     ) {
         let treasure_bg_wh = Wh::new(
             modal_wh.width + TREASURE_BG_PADDING * 2.0,
             modal_wh.height + TREASURE_BG_PADDING * 2.0,
         );
         let treasure_bg_xy = Xy::new(-TREASURE_BG_PADDING, -TREASURE_BG_PADDING);
-
         ctx.compose(|ctx| {
             table::padding_no_clip(
                 PADDING,
@@ -156,11 +148,23 @@ impl TreasureSelectionUi {
             )(modal_wh, ctx);
         });
 
-        render_treasure_background(ctx, treasure_bg_wh, treasure_bg_xy);
+        render_treasure_background(
+            ctx,
+            treasure_bg_wh,
+            treasure_bg_xy,
+            is_closing,
+            presentation_instant,
+        );
     }
 }
 
-fn render_treasure_background(ctx: &ComposeCtx, treasure_bg_wh: Wh<Px>, treasure_bg_xy: Xy<Px>) {
+fn render_treasure_background(
+    ctx: &ComposeCtx,
+    treasure_bg_wh: Wh<Px>,
+    treasure_bg_xy: Xy<Px>,
+    is_closing: bool,
+    presentation_instant: PresentationInstant,
+) {
     let treasure_halo_wh = Wh::new(
         treasure_bg_wh.width + TREASURE_HALO_PADDING * 2.0,
         treasure_bg_wh.height + TREASURE_HALO_PADDING * 2.0,
@@ -168,6 +172,15 @@ fn render_treasure_background(ctx: &ComposeCtx, treasure_bg_wh: Wh<Px>, treasure
 
     ctx.compose(|ctx| {
         let ctx = ctx.translate(treasure_bg_xy);
+
+        ctx.add(RarityParticleEffect {
+            xy: treasure_bg_wh.to_xy() * 0.5,
+            radius: (treasure_halo_wh.width + treasure_halo_wh.height) * 0.3,
+            rarity: Rarity::Legendary,
+            strength: 1.5,
+            enabled: !is_closing,
+            presentation_instant,
+        });
 
         ctx.add(Halo {
             wh: treasure_halo_wh,
