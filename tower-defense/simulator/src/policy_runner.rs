@@ -986,6 +986,68 @@ pub(crate) fn canonical_scripted_semantic_action_from_table(
     scripted_expert_action(observation, &legal_actions)
 }
 
+type PlaceTowerRankKey = (usize, std::cmp::Reverse<usize>, i64, String);
+
+/// Canonical `TowerPlacement` ordering for a `PlaceTower` action: most
+/// route cells in range, then nearest to the route, then highest tower
+/// damage, then action id. `None` for any other action.
+fn place_tower_rank_key(observation: &Observation, action: &AgentAction) -> Option<PlaceTowerRankKey> {
+    let AgentAction::PlaceTower {
+        hand_slot_index,
+        left,
+        top,
+    } = *action
+    else {
+        return None;
+    };
+    let tower = observation.hand.iter().find_map(|item| {
+        (item.index == hand_slot_index).then_some(match &item.item {
+            super::environment::HandItemObservation::Tower(tower) => tower,
+            super::environment::HandItemObservation::Card(_) => return None,
+        })
+    })?;
+    let route = &observation.route_coords;
+    let range_raw = tower.range_raw;
+    let covered_route = route
+        .iter()
+        .filter(|coord| {
+            let dx = (coord.x as i64 - left as i64)
+                .saturating_mul(1_000_000)
+                .saturating_sub(500_000);
+            let dy = (coord.y as i64 - top as i64)
+                .saturating_mul(1_000_000)
+                .saturating_sub(500_000);
+            dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                <= range_raw.saturating_mul(range_raw)
+        })
+        .count();
+    let nearest_route = route
+        .iter()
+        .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
+        .min()
+        .unwrap_or(usize::MAX);
+    Some((
+        covered_route,
+        std::cmp::Reverse(nearest_route),
+        tower.damage_raw,
+        action.action_id(),
+    ))
+}
+
+/// `PlaceTower` actions in `legal_actions`, best first under the same
+/// ordering `scripted_expert_action` uses to pick its placement.
+pub(crate) fn rank_place_tower_actions(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Vec<LegalAction> {
+    let mut ranked = legal_actions
+        .iter()
+        .filter_map(|legal| place_tower_rank_key(observation, &legal.action).map(|key| (key, legal)))
+        .collect::<Vec<_>>();
+    ranked.sort_by(|(left, _), (right, _)| right.cmp(left));
+    ranked.into_iter().map(|(_, legal)| legal.clone()).collect()
+}
+
 pub fn scripted_expert_action(
     observation: &Observation,
     legal_actions: &[LegalAction],
@@ -1082,68 +1144,20 @@ pub fn scripted_expert_action(
                 .or_else(|| legal_actions.first().map(|legal| legal.action.clone()))
                 .ok_or_else(|| anyhow::anyhow!("scripted expert found no card action"))
         }
-        DecisionPoint::TowerPlacement => {
-            let route = &observation.route_coords;
-            legal_actions
-                .iter()
-                .filter_map(|legal| {
-                    let AgentAction::PlaceTower {
-                        hand_slot_index,
-                        left,
-                        top,
-                    } = legal.action
-                    else {
-                        return None;
-                    };
-                    let tower = observation.hand.iter().find_map(|item| {
-                        (item.index == hand_slot_index).then_some(match &item.item {
-                            super::environment::HandItemObservation::Tower(tower) => tower,
-                            super::environment::HandItemObservation::Card(_) => return None,
-                        })
-                    })?;
-                    let range_raw = tower.range_raw;
-                    let covered_route = route
-                        .iter()
-                        .filter(|coord| {
-                            let dx = (coord.x as i64 - left as i64)
-                                .saturating_mul(1_000_000)
-                                .saturating_sub(500_000);
-                            let dy = (coord.y as i64 - top as i64)
-                                .saturating_mul(1_000_000)
-                                .saturating_sub(500_000);
-                            dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
-                                <= range_raw.saturating_mul(range_raw)
-                        })
-                        .count();
-                    let nearest_route = route
-                        .iter()
-                        .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
-                        .min()
-                        .unwrap_or(usize::MAX);
-                    Some((
-                        covered_route,
-                        nearest_route,
-                        tower.damage_raw,
-                        legal.action.clone(),
-                    ))
-                })
-                .max_by_key(|(covered_route, nearest_route, damage, action)| {
-                    (
-                        *covered_route,
-                        std::cmp::Reverse(*nearest_route),
-                        *damage,
-                        action.action_id(),
-                    )
-                })
-                .map(|(_, _, _, action)| action)
-                .or_else(|| {
-                    legal_actions
-                        .iter()
-                        .find(|legal| matches!(legal.action, AgentAction::StartDefense))
-                        .map(|legal| legal.action.clone())
-                })
-                .ok_or_else(|| anyhow::anyhow!("scripted expert found no placement"))
-        }
+        DecisionPoint::TowerPlacement => legal_actions
+            .iter()
+            .filter_map(|legal| {
+                place_tower_rank_key(observation, &legal.action).map(|key| (key, &legal.action))
+            })
+            .max_by(|(left, _), (right, _)| left.cmp(right))
+            .map(|(_, action)| action.clone())
+            .or_else(|| {
+                legal_actions
+                    .iter()
+                    .find(|legal| matches!(legal.action, AgentAction::StartDefense))
+                    .map(|legal| legal.action.clone())
+            })
+            .ok_or_else(|| anyhow::anyhow!("scripted expert found no placement")),
         DecisionPoint::CardServiceSelection => {
             let selected = observation
                 .card_service

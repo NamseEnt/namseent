@@ -11,9 +11,10 @@
 //!
 //! Pipeline per decision:
 //! 1. Proposal (`build_s41_proposal`): baseline (always) + every legal
-//!    non-Reroll/non-BuildTower action + the first 4 `BuildTower` candidates
-//!    in the existing dense-build order + the single best `Reroll` by
-//!    low-fidelity `stage_progress_v1` score (8 scenarios).
+//!    discrete action (not Reroll, BuildTower or PlaceTower) + the first 4
+//!    `BuildTower` candidates in the existing dense-build order + the first 4
+//!    `PlaceTower` candidates in the canonical placement order + the single
+//!    best `Reroll` by low-fidelity `stage_progress_v1` score (8 scenarios).
 //! 2. Discovery (`terminal_clear_rate` over `discovery_seeds`): every
 //!    non-baseline proposal candidate is applied once, then continued with
 //!    `canonical_scripted_semantic_action` only (never the teacher itself)
@@ -33,7 +34,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::environment::{AgentAction, DecisionPoint, GameEnvironment, LegalAction};
-use crate::policy_runner::canonical_scripted_semantic_action;
+use crate::policy_runner::{canonical_scripted_semantic_action, rank_place_tower_actions};
 use crate::teacher::{
     RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
     settle_forced_actions,
@@ -45,7 +46,7 @@ use crate::teacher::{
 /// rollout-score primitive itself; that primitive's computation is
 /// unchanged here, only repurposed as the Reroll proposal's ranking score -
 /// see the module doc comment).
-pub const TEACHER_SELECTION_SCHEMA_VERSION: u32 = 1;
+pub const TEACHER_SELECTION_SCHEMA_VERSION: u32 = 2;
 
 /// Low-fidelity Reroll-proposal-ranking horizon (unchanged from the Phase 3
 /// production default).
@@ -361,29 +362,34 @@ fn terminal_clear_rate(
 /// `BuildTower` and the low-fidelity best `Reroll`, into the S4/1 set.
 /// Returns `(non_reroll_non_build, build_top4, reroll_all)`, each already
 /// filtered to legal, still-deduplicated production candidates.
-fn partition_candidates(
-    environment: &GameEnvironment,
-) -> Result<(Vec<LegalAction>, Vec<LegalAction>, Vec<LegalAction>)> {
+const PLACE_TOWER_PROPOSAL_LIMIT: usize = 4;
+
+#[derive(Default)]
+struct PartitionedCandidates {
+    discrete: Vec<LegalAction>,
+    build_top4: Vec<LegalAction>,
+    place_top4: Vec<LegalAction>,
+    reroll_all: Vec<LegalAction>,
+}
+
+fn partition_candidates(environment: &GameEnvironment) -> Result<PartitionedCandidates> {
     let prepared = prepare_semantic_candidates(environment, Some(4))?;
     let with_build_top4 = prepared.candidates_for_limit(Some(4));
-    let non_reroll_non_build = with_build_top4
-        .iter()
-        .filter(|candidate| {
-            let kind = action_kind(&candidate.id);
-            kind != "reroll" && kind != "build_tower"
-        })
-        .cloned()
-        .collect();
-    let build_top4 = with_build_top4
-        .iter()
-        .filter(|candidate| action_kind(&candidate.id) == "build_tower")
-        .cloned()
-        .collect();
-    let reroll_all = with_build_top4
+    let mut partitioned = PartitionedCandidates::default();
+    let mut place_all = Vec::new();
+    for candidate in with_build_top4 {
+        match action_kind(&candidate.id) {
+            "reroll" => partitioned.reroll_all.push(candidate),
+            "build_tower" => partitioned.build_top4.push(candidate),
+            "place_tower" => place_all.push(candidate),
+            _ => partitioned.discrete.push(candidate),
+        }
+    }
+    partitioned.place_top4 = rank_place_tower_actions(&environment.snapshot(), &place_all)
         .into_iter()
-        .filter(|candidate| action_kind(&candidate.id) == "reroll")
+        .take(PLACE_TOWER_PROPOSAL_LIMIT)
         .collect();
-    Ok((non_reroll_non_build, build_top4, reroll_all))
+    Ok(partitioned)
 }
 
 /// Ranks `reroll_candidates` by the existing low-fidelity
@@ -433,14 +439,17 @@ pub(crate) fn build_s41_proposal(
     pools: &TeacherSelectionPools,
 ) -> Result<Vec<LegalAction>> {
     let baseline_id = baseline_action.action_id();
-    let (non_reroll_non_build, build_top4, reroll_all) = partition_candidates(environment)?;
-    let best_reroll = rank_best_reroll(environment, baseline_action, &reroll_all, pools)?;
+    let partitioned = partition_candidates(environment)?;
+    let best_reroll =
+        rank_best_reroll(environment, baseline_action, &partitioned.reroll_all, pools)?;
 
     let mut proposal = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for candidate in non_reroll_non_build
+    for candidate in partitioned
+        .discrete
         .into_iter()
-        .chain(build_top4)
+        .chain(partitioned.build_top4)
+        .chain(partitioned.place_top4)
         .chain(best_reroll)
     {
         if candidate.id == baseline_id {
@@ -739,10 +748,10 @@ mod tests {
     fn proposal_includes_every_non_reroll_non_build_legal_action() {
         let (_, environment) = find_shop_seed();
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
-        let (non_reroll_non_build, _, _) = partition_candidates(&environment).unwrap();
+        let discrete = partition_candidates(&environment).unwrap().discrete;
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
-        for candidate in &non_reroll_non_build {
+        for candidate in &discrete {
             if candidate.id == baseline.action_id() {
                 continue;
             }
@@ -758,7 +767,7 @@ mod tests {
     fn proposal_build_tower_is_exactly_dense_order_top_4() {
         let (_, environment) = find_shop_seed();
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
-        let (_, build_top4, _) = partition_candidates(&environment).unwrap();
+        let build_top4 = partition_candidates(&environment).unwrap().build_top4;
         assert_eq!(build_top4.len(), 4, "fixture must offer >=4 BuildTower candidates");
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
@@ -773,6 +782,45 @@ mod tests {
             .filter(|id| **id != baseline.action_id())
             .collect();
         assert_eq!(proposal_builds, expected);
+    }
+
+    fn tower_placement_with_hand_tower() -> GameEnvironment {
+        let mut environment = GameEnvironment::new(config(), 109);
+        for _ in 0..12 {
+            let action = canonical_scripted_semantic_action(&environment).unwrap();
+            let mut outcome = environment.semantic_step(action).unwrap();
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+        }
+        assert_eq!(environment.decision_point(), DecisionPoint::TowerPlacement);
+        environment
+    }
+
+    #[test]
+    fn proposal_place_tower_is_exactly_canonical_order_top_4() {
+        let environment = tower_placement_with_hand_tower();
+        let baseline = canonical_scripted_semantic_action(&environment).unwrap();
+        let place_all = environment
+            .semantic_legal_actions()
+            .into_iter()
+            .filter(|candidate| action_kind(&candidate.id) == "place_tower")
+            .collect::<Vec<_>>();
+        assert!(place_all.len() > PLACE_TOWER_PROPOSAL_LIMIT);
+        let ranked = rank_place_tower_actions(&environment.snapshot(), &place_all);
+        assert_eq!(ranked[0].id, baseline.action_id());
+        let pools = TeacherSelectionPools::production();
+        let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
+        let proposal_places: Vec<&String> = proposal
+            .iter()
+            .filter(|candidate| action_kind(&candidate.id) == "place_tower")
+            .map(|candidate| &candidate.id)
+            .collect();
+        let expected: Vec<&String> = ranked
+            .iter()
+            .take(PLACE_TOWER_PROPOSAL_LIMIT)
+            .map(|candidate| &candidate.id)
+            .filter(|id| **id != baseline.action_id())
+            .collect();
+        assert_eq!(proposal_places, expected);
     }
 
     #[test]
@@ -799,7 +847,7 @@ mod tests {
         let (_, environment) = find_shop_seed();
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
         let pools = TeacherSelectionPools::production();
-        let (_, _, reroll_all) = partition_candidates(&environment).unwrap();
+        let reroll_all = partition_candidates(&environment).unwrap().reroll_all;
         eprintln!(
             "[timing] proposal/partition phase: {:.3}s, reroll_all={}",
             test_started.elapsed().as_secs_f64(),
