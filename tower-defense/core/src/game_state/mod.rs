@@ -104,7 +104,7 @@ impl PlacementCheck {
 #[derive(Clone, Debug)]
 pub struct TowerPlacementContext {
     occupied: Vec<[usize; 2]>,
-    route_dependencies: std::sync::OnceLock<Option<Vec<bool>>>,
+    route_dependencies: std::sync::OnceLock<Option<Vec<Vec<bool>>>>,
 }
 
 impl PartialEq for TowerPlacementContext {
@@ -132,29 +132,48 @@ impl TowerPlacementContext {
         let Ok(new_coords) = self.placement_coords(left, top) else {
             return PlacementCheck::Invalid;
         };
-        if let Some(dependencies) = self.route_dependencies()
-            && new_coords
+        let Some(dependencies) = self.route_dependencies() else {
+            return if crate::route::routes_exist_with_extra_blockers(
+                &self.occupied,
+                &new_coords,
+                &crate::TRAVEL_POINTS,
+                crate::MAP_SIZE,
+            ) {
+                PlacementCheck::Connected
+            } else {
+                PlacementCheck::Disconnected
+            };
+        };
+        let mut searched = false;
+        for (segment, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+            if new_coords
                 .iter()
-                .all(|&[x, y]| !dependencies[y * crate::MAP_SIZE[0] + x])
-        {
-            return PlacementCheck::RouteCertified;
+                .all(|&[x, y]| !segment[y * crate::MAP_SIZE[0] + x])
+            {
+                continue;
+            }
+            searched = true;
+            if !crate::route::path_exists_with_extra_blockers(
+                crate::MAP_SIZE,
+                points[0],
+                points[1],
+                &self.occupied,
+                &new_coords,
+            ) {
+                return PlacementCheck::Disconnected;
+            }
         }
-        if crate::route::routes_exist_with_extra_blockers(
-            &self.occupied,
-            &new_coords,
-            &crate::TRAVEL_POINTS,
-            crate::MAP_SIZE,
-        ) {
+        if searched {
             PlacementCheck::Connected
         } else {
-            PlacementCheck::Disconnected
+            PlacementCheck::RouteCertified
         }
     }
 
-    fn route_dependencies(&self) -> Option<&[bool]> {
+    fn route_dependencies(&self) -> Option<&[Vec<bool>]> {
         self.route_dependencies
             .get_or_init(|| {
-                crate::route::route_dependency_grid(
+                crate::route::route_dependency_grids(
                     &self.occupied,
                     &crate::TRAVEL_POINTS,
                     crate::MAP_SIZE,
@@ -2160,21 +2179,29 @@ mod placement_certificate_tests {
 
     #[test]
     fn route_certificate_respects_diagonal_side_cells() {
-        // Tower at (10, 10) blocks (10..=11, 10..=11). A witness route that
-        // steps diagonally between (12, 11) and (11, 12) relies on side cell
-        // (12, 12) staying open, even though (12, 12) is not on the route.
-        let context = context_with(vec![[10, 10], [11, 10], [10, 11], [11, 11]]);
-        let dependencies = context.route_dependencies().unwrap();
-        let route =
-            crate::calculate_routes(&context.occupied, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+        let mut diagonal_steps = 0usize;
+        for seed in 0..16u64 {
+            let context = random_connected_context(seed);
+            let dependencies = context.route_dependencies().unwrap();
+            for (segment, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+                let route = crate::route::find_shortest_route(
+                    crate::MAP_SIZE,
+                    points[0],
+                    points[1],
+                    &context.occupied,
+                )
                 .unwrap();
-        for step in route.map_coords.windows(2) {
-            let [from_xy, to_xy] = [step[0], step[1]];
-            if from_xy[0] != to_xy[0] && from_xy[1] != to_xy[1] {
-                for side in [[from_xy[0], to_xy[1]], [to_xy[0], from_xy[1]]] {
-                    assert!(dependencies[side[1] * crate::MAP_SIZE[0] + side[0]]);
+                for step in route.windows(2) {
+                    let [from_xy, to_xy] = [step[0], step[1]];
+                    if from_xy[0] != to_xy[0] && from_xy[1] != to_xy[1] {
+                        diagonal_steps += 1;
+                        for side in [[from_xy[0], to_xy[1]], [to_xy[0], from_xy[1]]] {
+                            assert!(segment[side[1] * crate::MAP_SIZE[0] + side[0]]);
+                        }
+                    }
                 }
             }
         }
+        assert!(diagonal_steps > 0);
     }
 }

@@ -246,37 +246,41 @@ pub fn calculate_routes(
     })
 }
 
-/// Marks every cell whose blocking could invalidate one witness route through
-/// each consecutive `travel_points` pair: the route cells themselves plus,
-/// for every diagonal step, both orthogonal side cells, because a diagonal
-/// step is only rejected when both of those are blockers. Any extra blocker
-/// set that avoids every marked cell leaves the witness route valid, so the
-/// travel points stay connected without another search.
-pub(crate) fn route_dependency_grid(
+/// For each consecutive `travel_points` pair, marks every cell whose blocking
+/// could invalidate one witness route for that pair: the route cells
+/// themselves plus, for every diagonal step, both orthogonal side cells,
+/// because a diagonal step is only rejected when both of those are
+/// blockers. Any extra blocker set that avoids every cell marked for a pair
+/// leaves that pair's witness route valid, so the pair stays connected
+/// without another search.
+pub(crate) fn route_dependency_grids(
     blockers: &[[usize; 2]],
     travel_points: &[[usize; 2]],
     map_wh: [usize; 2],
-) -> Option<Vec<bool>> {
-    let mut grid = vec![false; map_wh[0].saturating_mul(map_wh[1])];
-    let mut mark = |xy: [usize; 2]| {
-        if xy[0] < map_wh[0] && xy[1] < map_wh[1] {
-            grid[xy[1] * map_wh[0] + xy[0]] = true;
-        }
-    };
-    for points in travel_points.windows(2) {
-        let route = find_shortest_route(map_wh, points[0], points[1], blockers)?;
-        for &xy in &route {
-            mark(xy);
-        }
-        for step in route.windows(2) {
-            let [from_xy, to_xy] = [step[0], step[1]];
-            if !is_orthogonal(from_xy, to_xy) {
-                mark([from_xy[0], to_xy[1]]);
-                mark([to_xy[0], from_xy[1]]);
+) -> Option<Vec<Vec<bool>>> {
+    travel_points
+        .windows(2)
+        .map(|points| {
+            let route = find_shortest_route(map_wh, points[0], points[1], blockers)?;
+            let mut grid = vec![false; map_wh[0].saturating_mul(map_wh[1])];
+            let mut mark = |xy: [usize; 2]| {
+                if xy[0] < map_wh[0] && xy[1] < map_wh[1] {
+                    grid[xy[1] * map_wh[0] + xy[0]] = true;
+                }
+            };
+            for &xy in &route {
+                mark(xy);
             }
-        }
-    }
-    Some(grid)
+            for step in route.windows(2) {
+                let [from_xy, to_xy] = [step[0], step[1]];
+                if !is_orthogonal(from_xy, to_xy) {
+                    mark([from_xy[0], to_xy[1]]);
+                    mark([to_xy[0], from_xy[1]]);
+                }
+            }
+            Some(grid)
+        })
+        .collect()
 }
 
 pub(crate) fn routes_exist_with_extra_blockers(
@@ -312,7 +316,7 @@ fn neighbor_route(last_xy: [usize; 2]) -> impl Iterator<Item = [usize; 2]> {
     })
 }
 
-fn path_exists_with_extra_blockers(
+pub(crate) fn path_exists_with_extra_blockers(
     wh: [usize; 2],
     start_xy: [usize; 2],
     end_xy: [usize; 2],
