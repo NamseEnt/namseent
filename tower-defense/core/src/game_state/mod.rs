@@ -87,16 +87,39 @@ pub struct CoreState {
     events: crate::CoreEventQueue,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PlacementCheck {
+    Invalid,
+    RouteCertified,
+    Connected,
+    Disconnected,
+}
+
+impl PlacementCheck {
+    pub fn is_legal(self) -> bool {
+        matches!(self, Self::RouteCertified | Self::Connected)
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct TowerPlacementContext {
     occupied: Vec<[usize; 2]>,
+    route_dependencies: std::sync::OnceLock<Option<Vec<bool>>>,
 }
+
+impl PartialEq for TowerPlacementContext {
+    fn eq(&self, other: &Self) -> bool {
+        self.occupied == other.occupied
+    }
+}
+
+impl Eq for TowerPlacementContext {}
 
 impl TowerPlacementContext {
     pub fn can_place_at(&self, left: usize, top: usize) -> bool {
         #[cfg(feature = "diagnostics")]
         let started = std::time::Instant::now();
-        let result = self.can_place_at_unrecorded(left, top);
+        let result = self.check_placement(left, top).is_legal();
         #[cfg(feature = "diagnostics")]
         crate::diagnostics::record(|counters| {
             counters.can_place_at_calls += 1;
@@ -105,16 +128,39 @@ impl TowerPlacementContext {
         result
     }
 
-    fn can_place_at_unrecorded(&self, left: usize, top: usize) -> bool {
+    pub fn check_placement(&self, left: usize, top: usize) -> PlacementCheck {
         let Ok(new_coords) = self.placement_coords(left, top) else {
-            return false;
+            return PlacementCheck::Invalid;
         };
-        crate::route::routes_exist_with_extra_blockers(
+        if let Some(dependencies) = self.route_dependencies()
+            && new_coords
+                .iter()
+                .all(|&[x, y]| !dependencies[y * crate::MAP_SIZE[0] + x])
+        {
+            return PlacementCheck::RouteCertified;
+        }
+        if crate::route::routes_exist_with_extra_blockers(
             &self.occupied,
             &new_coords,
             &crate::TRAVEL_POINTS,
             crate::MAP_SIZE,
-        )
+        ) {
+            PlacementCheck::Connected
+        } else {
+            PlacementCheck::Disconnected
+        }
+    }
+
+    fn route_dependencies(&self) -> Option<&[bool]> {
+        self.route_dependencies
+            .get_or_init(|| {
+                crate::route::route_dependency_grid(
+                    &self.occupied,
+                    &crate::TRAVEL_POINTS,
+                    crate::MAP_SIZE,
+                )
+            })
+            .as_deref()
     }
 
     pub fn can_place_tower(
@@ -765,6 +811,7 @@ impl CoreState {
     pub fn tower_placement_context(&self) -> TowerPlacementContext {
         TowerPlacementContext {
             occupied: crate::game_state::tower::tower_blockers(&self.towers),
+            route_dependencies: std::sync::OnceLock::new(),
         }
     }
 
@@ -2018,3 +2065,116 @@ pub use crate::{
     MonsterSpawnState, MonsterState, ShopPurchaseOutput, ShopSlotDataState, ShopSlotState,
     ShopState, TowerState, TowerTemplateState, UpgradeCacheState, UpgradeEntryIdentityState,
 };
+
+#[cfg(test)]
+mod placement_certificate_tests {
+    use super::*;
+    use rand::{Rng, SeedableRng};
+
+    fn search_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
+        let Ok(new_coords) = context.placement_coords(left, top) else {
+            return false;
+        };
+        crate::route::routes_exist_with_extra_blockers(
+            &context.occupied,
+            &new_coords,
+            &crate::TRAVEL_POINTS,
+            crate::MAP_SIZE,
+        )
+    }
+
+    fn context_with(occupied: Vec<[usize; 2]>) -> TowerPlacementContext {
+        TowerPlacementContext {
+            occupied,
+            route_dependencies: std::sync::OnceLock::new(),
+        }
+    }
+
+    fn random_connected_context(seed: u64) -> TowerPlacementContext {
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let target_towers = rng.gen_range(0..=160usize);
+        let mut context = context_with(Vec::new());
+        for _ in 0..target_towers * 8 {
+            if context.occupied.len() / 4 >= target_towers {
+                break;
+            }
+            let left = rng.gen_range(0..crate::MAP_SIZE[0] - 1);
+            let top = rng.gen_range(0..crate::MAP_SIZE[1] - 1);
+            if search_only(&context, left, top) {
+                let mut occupied = context.occupied.clone();
+                occupied.extend(context.placement_coords(left, top).unwrap());
+                context = context_with(occupied);
+            }
+        }
+        context
+    }
+
+    fn route_vertex_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
+        let Ok(new_coords) = context.placement_coords(left, top) else {
+            return false;
+        };
+        let Some(route) =
+            crate::calculate_routes(&context.occupied, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+        else {
+            return search_only(context, left, top);
+        };
+        if new_coords
+            .iter()
+            .all(|coord| !route.map_coords.contains(coord))
+        {
+            return true;
+        }
+        search_only(context, left, top)
+    }
+
+    #[test]
+    fn route_certificate_matches_search_for_every_position_on_random_maps() {
+        let mut certified = 0usize;
+        let mut vertex_only_mismatches = 0usize;
+        for seed in 0..48u64 {
+            let context = random_connected_context(seed);
+            for top in 0..crate::MAP_SIZE[1] {
+                for left in 0..crate::MAP_SIZE[0] {
+                    let expected = search_only(&context, left, top);
+                    let check = context.check_placement(left, top);
+                    assert_eq!(
+                        check.is_legal(),
+                        expected,
+                        "seed {seed} ({left}, {top}): {check:?} disagreed with search"
+                    );
+                    if check == PlacementCheck::RouteCertified {
+                        certified += 1;
+                    }
+                    if route_vertex_only(&context, left, top) != expected {
+                        vertex_only_mismatches += 1;
+                    }
+                }
+            }
+        }
+        assert!(certified > 0);
+        assert!(
+            vertex_only_mismatches > 0,
+            "generated maps should include diagonal side-cell cases"
+        );
+    }
+
+    #[test]
+    fn route_certificate_respects_diagonal_side_cells() {
+        // Tower at (10, 10) blocks (10..=11, 10..=11). A witness route that
+        // steps diagonally between (12, 11) and (11, 12) relies on side cell
+        // (12, 12) staying open, even though (12, 12) is not on the route.
+        let context = context_with(vec![[10, 10], [11, 10], [10, 11], [11, 11]]);
+        let dependencies = context.route_dependencies().unwrap();
+        let route =
+            crate::calculate_routes(&context.occupied, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+                .unwrap();
+        for step in route.map_coords.windows(2) {
+            let [from_xy, to_xy] = [step[0], step[1]];
+            if from_xy[0] != to_xy[0] && from_xy[1] != to_xy[1] {
+                for side in [[from_xy[0], to_xy[1]], [to_xy[0], from_xy[1]]] {
+                    assert!(dependencies[side[1] * crate::MAP_SIZE[0] + side[0]]);
+                }
+            }
+        }
+    }
+}

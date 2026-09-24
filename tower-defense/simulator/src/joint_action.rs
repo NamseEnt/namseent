@@ -365,7 +365,7 @@ impl DenseBuildTowerScoreTable {
         let build_slot_count = extra_templates.len() + 1;
 
         let (legal, legality_stats) =
-            crate::legality::full_map_legality_mask(environment, observation);
+            crate::legality::full_map_legality_mask(environment);
 
         let mut coverage_by_range: HashMap<i64, Vec<usize>> = HashMap::new();
         let nearest_route = nearest_route_grid(&observation.route_coords);
@@ -966,7 +966,7 @@ mod tests {
 
                     let new_legality_start = Instant::now();
                     let (_new_mask, legality_stats) =
-                        crate::legality::full_map_legality_mask(&environment, &observation);
+                        crate::legality::full_map_legality_mask(&environment);
                     let new_legality_mask_seconds = new_legality_start.elapsed().as_secs_f64();
 
                     let heuristic_start = Instant::now();

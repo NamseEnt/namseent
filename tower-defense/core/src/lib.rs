@@ -126,7 +126,7 @@ pub use game_state::{
     RecordedTickOutput, RenderMonsterSnapshot, RenderSnapshot, RenderSpatialAttackSnapshot,
     RenderTowerSnapshot, TickEventsOutput, TickOutput, TickTransition, TowerDamageStats,
 };
-pub use game_state::{CoreState, TowerPlacementContext};
+pub use game_state::{CoreState, PlacementCheck, TowerPlacementContext};
 use route::multiply_ratio_raw;
 pub use route::{
     MoveOnRouteState, RouteState, advance_move_on_route, apply_ratio_product_raw, calculate_routes,
