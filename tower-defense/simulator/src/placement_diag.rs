@@ -289,3 +289,70 @@ pub fn run_placement_diag(
         branches,
     })
 }
+
+#[derive(Debug, Serialize)]
+pub struct FingerprintDecision {
+    pub decision_index: usize,
+    pub decision_point: String,
+    pub state_hash: String,
+    pub legal_action_ids: Vec<String>,
+    pub semantic_legal_action_ids: Vec<String>,
+    pub proposal_action_ids: Vec<String>,
+    pub action_id: String,
+    pub clear_rate: f32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TrajectoryFingerprint {
+    pub game_seed: u64,
+    pub decisions: Vec<FingerprintDecision>,
+    pub final_state_hash: String,
+    pub final_clear_rate: f32,
+}
+
+pub fn trajectory_fingerprint(
+    config: Arc<GameConfig>,
+    game_seed: u64,
+    max_decisions: usize,
+) -> Result<TrajectoryFingerprint> {
+    let pools = TeacherSelectionPools::production();
+    let mut environment = GameEnvironment::new(config, game_seed);
+    let mut decisions = Vec::new();
+    while decisions.len() < max_decisions
+        && !matches!(environment.decision_point(), DecisionPoint::Terminal)
+    {
+        let action = canonical_scripted_semantic_action(&environment)?;
+        let proposal = build_s41_proposal(&environment, &action, &pools)?;
+        decisions.push(FingerprintDecision {
+            decision_index: decisions.len(),
+            decision_point: format!("{:?}", environment.decision_point()),
+            state_hash: environment.state_hash(),
+            legal_action_ids: environment
+                .legal_actions()
+                .into_iter()
+                .map(|legal| legal.id)
+                .collect(),
+            semantic_legal_action_ids: environment
+                .semantic_legal_actions()
+                .into_iter()
+                .map(|legal| legal.id)
+                .collect(),
+            proposal_action_ids: proposal.into_iter().map(|legal| legal.id).collect(),
+            action_id: action.action_id(),
+            clear_rate: environment.clear_rate(),
+        });
+        let mut outcome = environment
+            .semantic_step(action)
+            .map_err(|error| anyhow::anyhow!("fingerprint step failed: {error:?}"))?;
+        settle_forced_actions(&mut environment, &mut outcome)?;
+        if outcome.terminated || outcome.truncated {
+            break;
+        }
+    }
+    Ok(TrajectoryFingerprint {
+        game_seed,
+        decisions,
+        final_state_hash: environment.state_hash(),
+        final_clear_rate: environment.clear_rate(),
+    })
+}

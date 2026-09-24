@@ -51,6 +51,8 @@ enum Command {
     TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
     #[cfg(feature = "diagnostics")]
     PlacementDiag(PlacementDiagOptions),
+    #[cfg(feature = "diagnostics")]
+    TrajectoryFingerprint(TrajectoryFingerprintOptions),
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
@@ -570,6 +572,8 @@ fn main() -> Result<()> {
         Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
         #[cfg(feature = "diagnostics")]
         Command::PlacementDiag(options) => run_placement_diag(options),
+        #[cfg(feature = "diagnostics")]
+        Command::TrajectoryFingerprint(options) => run_trajectory_fingerprint(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
@@ -618,6 +622,41 @@ fn run_placement_diag(options: PlacementDiagOptions) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+    Ok(())
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct TrajectoryFingerprintOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 512)]
+    max_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<()> {
+    use rayon::prelude::*;
+    let config = Arc::new(GameConfig::default_config());
+    let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
+    let fingerprints = seeds
+        .par_iter()
+        .map(|&seed| {
+            td_simulator::placement_diag::trajectory_fingerprint(
+                Arc::clone(&config),
+                seed,
+                options.max_decisions,
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, serde_json::to_string_pretty(&fingerprints)?)?;
     Ok(())
 }
 
