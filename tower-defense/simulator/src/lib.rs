@@ -17,6 +17,8 @@ pub mod hp_balance;
 pub mod joint_action;
 #[cfg(feature = "simulator")]
 pub mod legality;
+#[cfg(feature = "diagnostics")]
+pub mod placement_diag;
 pub mod ml;
 #[cfg(feature = "simulator")]
 pub mod policy_action;

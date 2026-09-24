@@ -94,6 +94,18 @@ pub struct TowerPlacementContext {
 
 impl TowerPlacementContext {
     pub fn can_place_at(&self, left: usize, top: usize) -> bool {
+        #[cfg(feature = "diagnostics")]
+        let started = std::time::Instant::now();
+        let result = self.can_place_at_unrecorded(left, top);
+        #[cfg(feature = "diagnostics")]
+        crate::diagnostics::record(|counters| {
+            counters.can_place_at_calls += 1;
+            counters.can_place_at_nanos += started.elapsed().as_nanos() as u64;
+        });
+        result
+    }
+
+    fn can_place_at_unrecorded(&self, left: usize, top: usize) -> bool {
         let Ok(new_coords) = self.placement_coords(left, top) else {
             return false;
         };

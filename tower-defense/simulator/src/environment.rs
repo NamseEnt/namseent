@@ -657,6 +657,8 @@ impl GameEnvironment {
     }
 
     pub fn snapshot(&self) -> Observation {
+        #[cfg(feature = "diagnostics")]
+        td_core::diagnostics::record(|counters| counters.snapshot_calls += 1);
         let mut observation = self.game_state.observation(
             ENVIRONMENT_VERSION,
             ACTION_SCHEMA_VERSION,
@@ -700,6 +702,11 @@ impl GameEnvironment {
             card_service_observation_raw(self.game_state.raw_state(), selection)
         });
         observation
+    }
+
+    #[cfg(feature = "diagnostics")]
+    pub fn tower_count(&self) -> usize {
+        self.game_state.raw_state().towers().len()
     }
 
     pub fn state_hash(&self) -> String {
@@ -1371,6 +1378,8 @@ impl GameEnvironment {
                 left,
                 top,
             } => {
+                #[cfg(feature = "diagnostics")]
+                td_core::diagnostics::record(|counters| counters.build_tower_legality_checks += 1);
                 card_ids_are_selectable(card_ids)
                     && *hand_slot_index < self.build_tower_slot_count()
                     && self
@@ -1515,6 +1524,8 @@ impl GameEnvironment {
     }
 
     fn semantic_legal_positions(&self, position_limit: Option<usize>) -> Vec<[usize; 2]> {
+        #[cfg(feature = "diagnostics")]
+        td_core::diagnostics::record(|counters| counters.semantic_legal_positions_scans += 1);
         let state = self.game_state.raw_state();
         let placement_context = state.tower_placement_context();
         let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
@@ -1689,6 +1700,8 @@ impl GameEnvironment {
         &self,
         mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
     ) -> Vec<AgentAction> {
+        #[cfg(feature = "diagnostics")]
+        td_core::diagnostics::record(|counters| counters.tower_placement_action_scans += 1);
         let hand_slot_indices = self.tower_hand_indices();
         let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
         let map_height = td_core::MAP_SIZE[1].saturating_sub(1);

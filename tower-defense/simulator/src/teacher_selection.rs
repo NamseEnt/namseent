@@ -427,7 +427,7 @@ fn rank_best_reroll(
     }))
 }
 
-fn build_s41_proposal(
+pub(crate) fn build_s41_proposal(
     environment: &GameEnvironment,
     baseline_action: &AgentAction,
     pools: &TeacherSelectionPools,

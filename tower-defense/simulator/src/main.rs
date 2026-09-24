@@ -49,6 +49,8 @@ enum Command {
     Benchmark(BenchmarkOptions),
     Teacher(TeacherOptions),
     TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
+    #[cfg(feature = "diagnostics")]
+    PlacementDiag(PlacementDiagOptions),
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
@@ -566,6 +568,8 @@ fn main() -> Result<()> {
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
         Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
+        #[cfg(feature = "diagnostics")]
+        Command::PlacementDiag(options) => run_placement_diag(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
@@ -581,6 +585,40 @@ fn main() -> Result<()> {
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
     }
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct PlacementDiagOptions {
+    #[arg(long)]
+    seed: u64,
+    #[arg(long)]
+    prefix_decisions: usize,
+    #[arg(long, value_delimiter = ',')]
+    scenario_seeds: Vec<u64>,
+    #[arg(long)]
+    baseline_only: bool,
+    #[arg(long, default_value_t = 900.0)]
+    branch_time_limit_seconds: f64,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_placement_diag(options: PlacementDiagOptions) -> Result<()> {
+    let report = td_simulator::placement_diag::run_placement_diag(
+        Arc::new(GameConfig::default_config()),
+        options.seed,
+        options.prefix_decisions,
+        &options.scenario_seeds,
+        options.baseline_only,
+        options.branch_time_limit_seconds,
+    )?;
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+    Ok(())
 }
 
 #[derive(Args)]

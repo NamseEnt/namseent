@@ -1,6 +1,8 @@
 pub mod catalog;
 pub mod combat_number;
 pub mod deterministic_rng;
+#[cfg(feature = "diagnostics")]
+pub mod diagnostics;
 mod events;
 pub use catalog::*;
 pub mod game_state;

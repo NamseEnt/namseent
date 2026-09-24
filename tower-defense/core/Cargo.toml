@@ -13,3 +13,5 @@ rand_chacha = "=0.3.1"
 enum_dispatch = "0.3"
 
 [dev-dependencies]
+[features]
+diagnostics = []

@@ -175,6 +175,8 @@ pub fn find_shortest_route(
         return None;
     }
 
+    #[cfg(feature = "diagnostics")]
+    crate::diagnostics::record(|counters| counters.shortest_route_bfs_calls += 1);
     let mut map = RouteMap::new(wh, blockers);
 
     let mut queue = VecDeque::new();
@@ -295,6 +297,8 @@ fn path_exists_with_extra_blockers(
         return false;
     }
 
+    #[cfg(feature = "diagnostics")]
+    crate::diagnostics::record(|counters| counters.placement_bfs_calls += 1);
     let mut map = RouteMap::new(wh, blockers);
     for &blocker in extra_blockers {
         if !map.is_outside(blocker) {

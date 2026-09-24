@@ -120,6 +120,8 @@ pub fn full_map_legality_mask(
     environment: &GameEnvironment,
     observation: &Observation,
 ) -> (Vec<bool>, LegalityMaskStats) {
+    #[cfg(feature = "diagnostics")]
+    td_core::diagnostics::record(|counters| counters.full_map_legality_mask_scans += 1);
     let map_width = observation.map_width;
     let route_cell = route_cell_grid(observation);
     let mut stats = LegalityMaskStats::default();
