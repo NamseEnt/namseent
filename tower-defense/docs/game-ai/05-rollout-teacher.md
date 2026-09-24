@@ -89,18 +89,21 @@ B: scenario seeds 1, 2, 3, ... N
 - teacher dataset에 실제 미래 결과를 observation feature처럼 저장하지 않는다.
 - candidate pruning policy도 hidden future를 입력으로 받지 않는다.
 
-## Production selection algorithm (S4/1 + discovery top-3 + independent validation, schema v1)
+## Production selection algorithm (S4/1 + discovery top-3 + independent validation, schema v2)
 
-Phase 3E~3N 진단(hidden-order leak, winner's curse, short-horizon score와 full-game 결과의 불일치, top-K discovery의 sampling noise)을 거쳐 확정된 production teacher는 더 이상 `evaluate_semantic_candidate_set_with_baseline`의 baseline-conservative 단일 short-horizon score로 최종 action을 정하지 않는다. **`stage_progress_v1`은 이제 최종 teacher value가 아니라 Reroll proposal ranking에만 쓰이는 low-fidelity 신호다.** 구현은 `simulator/src/teacher_selection.rs`(`TEACHER_SELECTION_SCHEMA_VERSION = 1`), CLI는 `td-simulator teacher-selection-heldout`.
+Phase 3E~3N 진단(hidden-order leak, winner's curse, short-horizon score와 full-game 결과의 불일치, top-K discovery의 sampling noise)을 거쳐 확정된 production teacher는 더 이상 `evaluate_semantic_candidate_set_with_baseline`의 baseline-conservative 단일 short-horizon score로 최종 action을 정하지 않는다. **`stage_progress_v1`은 이제 최종 teacher value가 아니라 Reroll proposal ranking에만 쓰이는 low-fidelity 신호다.** 구현은 `simulator/src/teacher_selection.rs`(`TEACHER_SELECTION_SCHEMA_VERSION = 2`), CLI는 `td-simulator teacher-selection-heldout`.
 
 각 decision은 4단계로 진행한다.
 
 1. **Proposal (S4/1)**: baseline은 항상 별도로 포함하고, non-baseline 후보 집합은 정확히:
-   - kind가 Reroll도 BuildTower도 아닌 모든 legal action 전부
+   - every legal discrete action (kind is not Reroll, BuildTower or PlaceTower)
    - 기존 production dense-build candidate order의 상위 4개 BuildTower
+   - the first 4 PlaceTower actions in the canonical scripted placement order (most route cells in range, then nearest to the route, then highest tower damage, then action id; `policy_runner::rank_place_tower_actions`)
    - Reroll candidate 중 기존 `stage_progress_v1` low-fidelity score(8 scenario, `horizon_sim_ticks = 3266`) 최고 1개 (동점은 action-id 오름차순)
 
-   dedup 후 이 집합을 넘지 않는다. non-reroll/non-build action을 short score로 자르지 않는다.
+   dedup 후 이 집합을 넘지 않는다. Discrete actions are never cut by a short score.
+
+   Schema v2 amendment: v1 treated PlaceTower as a discrete action, so a TowerPlacement state with a tower in hand put every legal position into the proposal (4,739 candidates at held-out seed 109 decision 12, about 23 hours of discovery on 12 threads). PlaceTower is a parameterized placement family like BuildTower, so it now gets the same top-4 limit. The amendment was made for feasibility, without looking at any teacher outcome for that state.
 
 2. **Terminal discovery**: S4/1의 non-baseline 후보 전부를 각각 한 번씩 적용한 뒤 `canonical_scripted_semantic_action`만으로 continuation해 terminal까지 실행한다(teacher 재귀 호출 없음, tick deadline 없음). 후보별 mean `environment.clear_rate()`로 내림차순 정렬해 상위 3개(부족하면 있는 만큼)를 freeze한다. baseline보다 낮은 discovery mean이어도 top-3에서 미리 제외하지 않는다(제외 판단은 다음 단계의 독립 validation이 담당).
 
@@ -136,12 +139,14 @@ S4/1의 non-baseline 후보 집합이 비어 있으면(예: TowerPlacement에서
 
 This criterion was fixed before any held-out result was observed. It must not be changed after results are seen.
 
-- Run: `td-simulator teacher-selection-heldout --seed-start 108 --seed-end 115 --max-decisions 64` at commit `8759d225`, default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
+- Final run: `td-simulator teacher-selection-heldout --seed-start 116 --seed-end 123 --max-decisions 64` at the schema v2 freeze commit (recorded below when frozen), default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
 - Primary metric: per-seed `paired_clear_rate_delta` (teacher `clear_rate` - baseline `clear_rate`) over the 8 seeds.
 - Gate: mean paired delta > 0 is positive, = 0 is tie, < 0 is negative.
 - Reported alongside, to judge the strength of evidence separately from the gate: paired SE, median, all 8 per-seed deltas, and teacher-better / baseline-better / tie counts.
 - No significance threshold is part of the gate. A t-test or CI may be reported only as a descriptive secondary statistic.
 - The selection rule (S4/1, scenario pools, alpha) is not retuned based on held-out results.
+
+Seeds 108-115 are no longer held out. The first attempt at commit `8759d225` (schema v1) completed seed 108 and then stalled on seed 109 decision 12, whose state and proposal were inspected to motivate the schema v2 amendment. That attempt is kept only as pre-amendment feasibility/pilot evidence (`simulator/artifacts/teacher/phase3-heldout-attempt1/`) and is not part of the gate.
 
 ## Horizon과 점수
 
