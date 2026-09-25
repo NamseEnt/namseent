@@ -135,18 +135,59 @@ S4/1의 non-baseline 후보 집합이 비어 있으면(예: TowerPlacement에서
 - Phase 3K/3L: 한 state의 exhaustive terminal oracle에서 실제로 유용한 candidate가 short-score 상위 8, 심지어 16 밖(rank 15~26)에 있는 경우가 반복됐다 - global top-K short-score shortlist는 채택하지 않았다.
 - Phase 3M/3N: baseline + non-reroll/non-build 전부 + dense-order top-4 build + short-score top-1 reroll(S4/1)로 proposal을 제한하고, discovery top-3을 독립 validation + Holm gate로 거르는 현재 구조에서 development 7 states 전부(0/6, 1/5, 2/1, 3/1, 4/1, 5/3, 6/1) 검증: false override 0, 이미 확인된 clear-positive candidate를 놓친 case 0, discovery top-1이 validation에서 기각되고 top-2/top-3이 대신 선택된 case 확인(noisy discovery winner를 걸러냄).
 
-### Phase 3 held-out gate (preregistered)
+### Phase 3 v2 decision-count-truncated held-out (seeds 116-123, preregistered, completed)
 
-This criterion was fixed before any held-out result was observed. It must not be changed after results are seen.
+This criterion was fixed before any held-out result was observed and was not changed afterwards.
 
-- Final run: `td-simulator teacher-selection-heldout --seed-start 116 --seed-end 123 --max-decisions 64` at the schema v2 freeze commit `2d874b22`, default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
-- Primary metric: per-seed `paired_clear_rate_delta` (teacher `clear_rate` - baseline `clear_rate`) over the 8 seeds.
-- Gate: mean paired delta > 0 is positive, = 0 is tie, < 0 is negative.
-- Reported alongside, to judge the strength of evidence separately from the gate: paired SE, median, all 8 per-seed deltas, and teacher-better / baseline-better / tie counts.
-- No significance threshold is part of the gate. A t-test or CI may be reported only as a descriptive secondary statistic.
-- The selection rule (S4/1, scenario pools, alpha) is not retuned based on held-out results.
+- Run: `td-simulator teacher-selection-heldout --seed-start 116 --seed-end 123 --max-decisions 64` at the schema v2 freeze commit `2d874b22`, default config, `TeacherSelectionPools::production()`. Artifact: `simulator/artifacts/teacher/phase3-heldout-116-123.json` (kept unmodified).
+- Primary metric: per-seed `paired_clear_rate_delta` (teacher `clear_rate` - baseline `clear_rate`) over the 8 seeds. Gate: mean > 0 positive, = 0 tie, < 0 negative. No significance threshold.
+- **Pre-registered result: NEGATIVE.**
 
-Seeds 108-115 are no longer held out. The first attempt at commit `8759d225` (schema v1) completed seed 108 and then stalled on seed 109 decision 12, whose state and proposal were inspected to motivate the schema v2 amendment. That attempt is kept only as pre-amendment feasibility/pilot evidence (`simulator/artifacts/teacher/phase3-heldout-attempt1/`) and is not part of the gate.
+  | seed | 116 | 117 | 118 | 119 | 120 | 121 | 122 | 123 |
+  |---|---|---|---|---|---|---|---|---|
+  | delta | 0 | -11.16 | -8.00 | -2.00 | -6.00 | -1.87 | 0 | +4.00 |
+
+  Summary statistics:
+
+  - mean -3.13, SE 1.74, median -1.93
+  - teacher better / baseline better / tie = 1 / 5 / 2
+  - descriptive paired t = -1.80 (df 7)
+
+- 15/16 episodes truncated at 64 decisions. Therefore this gate measures clear_rate at a fixed decision-count horizon, not terminal clear_rate. The teacher selects actions by terminal clear_rate, so the evaluation objective and the teacher objective differ. The result stands as recorded. It is not reinterpreted, and it is not replaced by the terminal gate below.
+
+Seeds 108-115 are no longer held out. The first attempt at commit `8759d225` (schema v1) completed seed 108 and then stalled on seed 109 decision 12, whose state and proposal were inspected to motivate the schema v2 amendment. That attempt is kept only as pre-amendment feasibility/pilot evidence (`simulator/artifacts/teacher/phase3-heldout-attempt1/`) and is not part of any gate.
+
+### Post-hoc terminal extension of seeds 116-123 (diagnostic, not a gate)
+
+`td-simulator teacher-terminal-extension --input simulator/artifacts/teacher/phase3-heldout-116-123.json` replays both recorded episodes of each seed exactly. Every recorded teacher decision state hash and both final state hashes must match. It then continues both episodes from the truncation state to the actual terminal with `canonical_scripted_semantic_action` only; the teacher is not applied after decision 64. This measures how much the 64-decision truncation changed the comparison. Results are reported below as a post-hoc diagnostic and do not change the gate result above.
+
+### Phase 3 terminal held-out gate (seeds 124-131, preregistered)
+
+Fixed before any teacher or baseline result on seeds 124-131 was observed. This single run closes Phase 3 whatever the outcome. After seeing results, none of these change: the teacher budget, proposal limits, Holm, scenario counts or seeds. No seeds are added and no subset is selected.
+
+- Game seeds: 124..131 (8 seeds).
+- Teacher: frozen schema v2 rule (`TEACHER_SELECTION_SCHEMA_VERSION = 2`), unchanged since `2d874b22`:
+  - proposal limits: BuildTower 4, PlaceTower 4, Reroll 1
+  - scenario pools: proposal 10000..10007, discovery 20000..20031 (32 scenarios), validation 30000..30063 (64 scenarios)
+  - validation: paired one-sided t-test per finalist + Holm FWER 0.05
+  - canonical continuation inside candidate rollouts
+- Integration smoke before freezing: `teacher-selection-heldout` on seeds 7 (6 decisions) and 109 (13 decisions) gave identical proposals, discovery means, top-3, validation statistics, selected actions, state hashes and clear_rates for reference `d510e092` and `87116c35` (every field except `elapsed_seconds`).
+- Code: gate run at commit `87116c35` (teacher rule v2 plus the semantics-preserving rollout optimizations of `efbbc119`, verified identical to reference `d510e092`). Built from a clean worktree.
+- Baseline episode: `canonical_scripted_semantic_action` only, from the start to the actual terminal.
+- Teacher episode: the frozen teacher selects every real decision, from the start to the actual terminal.
+- No decision-count evaluation horizon. `MAX_EPISODE_DECISIONS = 512` is only a runaway guard: reaching it, or the environment tick limit, is an invariant failure that stops the gate with an error. The cap is not raised to force a result. The teacher's internal 512-decision continuation guard is also kept as an invariant guard.
+- Primary metric: `paired_delta(seed) = teacher_terminal_clear_rate - baseline_terminal_clear_rate`. Gate: mean over the 8 seeds > 0 positive, = 0 tie, < 0 negative. No significance test is part of the gate.
+- Reported descriptively:
+  - SE, median, all 8 paired deltas
+  - teacher better / baseline better / tie counts
+  - victories, final stages, decisions per episode
+  - teacher override count and override action-kind histogram
+  - wall-clock and terminal rollout count
+  - a paired t statistic may be reported, but only as a descriptive number
+- Command: `td-simulator teacher-selection-terminal-gate --seed-start 124 --seed-end 131 --teacher-frozen-commit 87116c35 --simulator-optimized-commit efbbc119 --output simulator/artifacts/teacher/phase3-terminal-gate-124-131.json`.
+- Closing rule:
+  - Positive: record evidence that the Phase 3 teacher improves the terminal objective over the baseline. Phase 4 may use it as an optional oracle / selective labeler.
+  - Tie or negative: do not tune the teacher further. Keep the simulator/action/observation/rollout infrastructure and move Phase 4 to canonical BC followed by PPO. Keep the teacher only as a diagnostic/reference.
 
 ## Horizon과 점수
 
