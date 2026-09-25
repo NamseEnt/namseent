@@ -104,7 +104,8 @@ impl PlacementCheck {
 #[derive(Clone, Debug)]
 pub struct TowerPlacementContext {
     occupied: Vec<[usize; 2]>,
-    route_dependencies: std::sync::OnceLock<Option<Vec<Vec<bool>>>>,
+    occupied_grid: Box<[bool; crate::route::MAP_CELL_COUNT]>,
+    route_dependencies: std::sync::OnceLock<Option<Vec<Vec<Vec<bool>>>>>,
 }
 
 impl PartialEq for TowerPlacementContext {
@@ -116,6 +117,20 @@ impl PartialEq for TowerPlacementContext {
 impl Eq for TowerPlacementContext {}
 
 impl TowerPlacementContext {
+    fn new(occupied: Vec<[usize; 2]>) -> Self {
+        let mut occupied_grid = Box::new([false; crate::route::MAP_CELL_COUNT]);
+        for &xy in &occupied {
+            if let Some(index) = crate::route::map_cell_index(xy) {
+                occupied_grid[index] = true;
+            }
+        }
+        Self {
+            occupied,
+            occupied_grid,
+            route_dependencies: std::sync::OnceLock::new(),
+        }
+    }
+
     pub fn can_place_at(&self, left: usize, top: usize) -> bool {
         self.check_placement(left, top).is_legal()
     }
@@ -153,21 +168,24 @@ impl TowerPlacementContext {
             };
         };
         let mut searched = false;
-        for (segment, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
-            if new_coords
-                .iter()
-                .all(|&[x, y]| !segment[y * crate::MAP_SIZE[0] + x])
-            {
+        let mut blocked = None;
+        for (witnesses, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+            if witnesses.iter().any(|witness| {
+                new_coords
+                    .iter()
+                    .all(|&[x, y]| !witness[y * crate::MAP_SIZE[0] + x])
+            }) {
                 continue;
             }
             searched = true;
-            if !crate::route::path_exists_with_extra_blockers(
-                crate::MAP_SIZE,
-                points[0],
-                points[1],
-                &self.occupied,
-                &new_coords,
-            ) {
+            let blocked = blocked.get_or_insert_with(|| {
+                let mut blocked = *self.occupied_grid;
+                for &[x, y] in &new_coords {
+                    blocked[y * crate::MAP_SIZE[0] + x] = true;
+                }
+                blocked
+            });
+            if !crate::route::grid_path_exists(blocked, points[0], points[1]) {
                 return PlacementCheck::Disconnected;
             }
         }
@@ -178,7 +196,7 @@ impl TowerPlacementContext {
         }
     }
 
-    fn route_dependencies(&self) -> Option<&[Vec<bool>]> {
+    fn route_dependencies(&self) -> Option<&[Vec<Vec<bool>>]> {
         self.route_dependencies
             .get_or_init(|| {
                 crate::route::route_dependency_grids(
@@ -237,7 +255,7 @@ impl TowerPlacementContext {
             coord[0] >= crate::MAP_SIZE[0]
                 || coord[1] >= crate::MAP_SIZE[1]
                 || crate::TRAVEL_POINTS.contains(coord)
-                || self.occupied.contains(coord)
+                || self.occupied_grid[coord[1] * crate::MAP_SIZE[0] + coord[0]]
         }) {
             return Err(crate::CommandError::InvalidPlacement);
         }
@@ -836,10 +854,7 @@ impl CoreState {
     }
 
     pub fn tower_placement_context(&self) -> TowerPlacementContext {
-        TowerPlacementContext {
-            occupied: crate::game_state::tower::tower_blockers(&self.towers),
-            route_dependencies: std::sync::OnceLock::new(),
-        }
+        TowerPlacementContext::new(crate::game_state::tower::tower_blockers(&self.towers))
     }
 
     pub fn refresh_tower_damage_multipliers(&mut self) {
@@ -2099,9 +2114,15 @@ mod placement_certificate_tests {
     use rand::{Rng, SeedableRng};
 
     fn search_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
-        let Ok(new_coords) = context.placement_coords(left, top) else {
+        let new_coords = [[left, top], [left + 1, top], [left, top + 1], [left + 1, top + 1]];
+        if new_coords.iter().any(|coord| {
+            coord[0] >= crate::MAP_SIZE[0]
+                || coord[1] >= crate::MAP_SIZE[1]
+                || crate::TRAVEL_POINTS.contains(coord)
+                || context.occupied.contains(coord)
+        }) {
             return false;
-        };
+        }
         crate::route::routes_exist_with_extra_blockers(
             &context.occupied,
             &new_coords,
@@ -2111,10 +2132,7 @@ mod placement_certificate_tests {
     }
 
     fn context_with(occupied: Vec<[usize; 2]>) -> TowerPlacementContext {
-        TowerPlacementContext {
-            occupied,
-            route_dependencies: std::sync::OnceLock::new(),
-        }
+        TowerPlacementContext::new(occupied)
     }
 
     fn random_connected_context(seed: u64) -> TowerPlacementContext {
@@ -2191,7 +2209,8 @@ mod placement_certificate_tests {
         for seed in 0..16u64 {
             let context = random_connected_context(seed);
             let dependencies = context.route_dependencies().unwrap();
-            for (segment, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+            for (witnesses, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+                let segment = &witnesses[0];
                 let route = crate::route::find_shortest_route(
                     crate::MAP_SIZE,
                     points[0],
