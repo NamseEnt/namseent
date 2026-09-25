@@ -469,3 +469,63 @@ pub fn rollout_bench(
         states,
     })
 }
+
+#[derive(Debug, Serialize)]
+pub struct RolloutThroughputReport {
+    pub threads: usize,
+    pub rollouts: usize,
+    pub total_seconds: f64,
+    pub rollouts_per_second: f64,
+    pub clear_rates: Vec<f32>,
+}
+
+pub fn rollout_throughput(
+    config: Arc<GameConfig>,
+    game_seeds: &[u64],
+    prefix_decisions: &[usize],
+    scenario_seeds: &[u64],
+) -> Result<RolloutThroughputReport> {
+    let mut sources = Vec::new();
+    for &game_seed in game_seeds {
+        for &prefix in prefix_decisions {
+            let mut environment = GameEnvironment::new(Arc::clone(&config), game_seed);
+            for _ in 0..prefix {
+                if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                    break;
+                }
+                let action = canonical_scripted_semantic_action(&environment)?;
+                let mut outcome = environment
+                    .semantic_step(action)
+                    .map_err(|error| anyhow::anyhow!("bench prefix step failed: {error:?}"))?;
+                settle_forced_actions(&mut environment, &mut outcome)?;
+            }
+            if !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                let baseline = canonical_scripted_semantic_action(&environment)?;
+                sources.push((environment, baseline));
+            }
+        }
+    }
+    let jobs = sources
+        .iter()
+        .flat_map(|(environment, baseline)| {
+            scenario_seeds
+                .iter()
+                .map(move |&scenario_seed| (environment, baseline, scenario_seed))
+        })
+        .collect::<Vec<_>>();
+    let started = Instant::now();
+    let clear_rates = jobs
+        .par_iter()
+        .map(|(environment, baseline, scenario_seed)| {
+            crate::teacher_selection::terminal_clear_rate(environment, baseline, *scenario_seed)
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let total_seconds = started.elapsed().as_secs_f64();
+    Ok(RolloutThroughputReport {
+        threads: rayon::current_num_threads(),
+        rollouts: jobs.len(),
+        total_seconds,
+        rollouts_per_second: jobs.len() as f64 / total_seconds,
+        clear_rates,
+    })
+}

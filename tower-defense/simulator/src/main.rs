@@ -677,11 +677,27 @@ struct RolloutBenchOptions {
     #[arg(long, value_delimiter = ',')]
     scenario_seeds: Vec<u64>,
     #[arg(long)]
+    throughput: bool,
+    #[arg(long)]
     output: PathBuf,
 }
 
 #[cfg(feature = "diagnostics")]
 fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
+    if options.throughput {
+        let report = td_simulator::placement_diag::rollout_throughput(
+            Arc::new(GameConfig::default_config()),
+            &options.game_seeds,
+            &options.prefix_decisions,
+            &options.scenario_seeds,
+        )?;
+        eprintln!(
+            "threads={} rollouts={} seconds={:.2} rollouts/sec={:.2}",
+            report.threads, report.rollouts, report.total_seconds, report.rollouts_per_second
+        );
+        std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+        return Ok(());
+    }
     let report = td_simulator::placement_diag::rollout_bench(
         Arc::new(GameConfig::default_config()),
         &options.game_seeds,
