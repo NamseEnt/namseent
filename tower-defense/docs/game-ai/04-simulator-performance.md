@@ -120,6 +120,26 @@ At commit `c63a8e37`, `TowerPlacementContext::can_place_at` took 96% of a canoni
 - Correctness: `route_certificate_matches_search_for_every_position_on_random_maps` (48 random maps x every position) agrees with the full search, while the old vertex-only rule disagreed on 17 positions. Trajectory fingerprints for seeds 0-11 (1,179 decisions, 23.5M legal action ids) are identical before and after.
 - Speed (release, 1 thread, seed 109 decision 12 baseline branch, 6 scenarios): 6.91s -> 0.58s per terminal rollout; placement BFS calls 4.66M -> 0.18M. Placement is now 44% of the rollout.
 
+### Teacher terminal rollout latency (measured, branch `feat/rollout-latency`)
+
+Official numbers were measured on an idle machine: release build with the `diagnostics` feature, 160 identical terminal rollouts (seeds 0/1/2/3/109 x prefix decisions 0/12/30/50 x scenarios 20000-20007). Every stage gives identical clear rates and source state hashes.
+
+| stage | change | sec / rollout | placement BFS / rollout |
+|---|---|---|---|
+| 0 | fast-path baseline (`d510e092` + profiling) | 0.493 | 23,620 |
+| 1 | trusted minimal rollout step: no legality re-check, observation, state hash, reward or trace | 0.177 | 8,517 |
+| 2 | prepared placement legality reused while occupied cells are unchanged | 0.131 | 3,900 |
+| 3 | fixed-grid allocation-free BFS + three witness routes per travel segment | 0.094 | 288 |
+| 4 | route scoring grids cached per route; legal actions sorted by precomputed ids | 0.070 | 288 |
+
+Throughput on 320 rollouts: 1 thread 2.00 -> 14.09 rollouts/s; 12 threads 13.15 -> 103.9 rollouts/s.
+
+At stage 4 the remaining time splits into:
+
+- core defense ticks: 38.5% (23.7k ticks per rollout)
+- canonical policy: 47% in total, of which the dense BuildTower table is 12.8%, legal-action generation 11.9% and placement scans 9.4%
+- action application: 11%
+
 ## 장치별 책임
 
 | 작업 | 기본 장치 | 이유 |
