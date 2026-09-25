@@ -117,9 +117,17 @@ impl Eq for TowerPlacementContext {}
 
 impl TowerPlacementContext {
     pub fn can_place_at(&self, left: usize, top: usize) -> bool {
+        self.check_placement(left, top).is_legal()
+    }
+
+    pub fn occupied(&self) -> &[[usize; 2]] {
+        &self.occupied
+    }
+
+    pub fn check_placement(&self, left: usize, top: usize) -> PlacementCheck {
         #[cfg(feature = "diagnostics")]
         let started = std::time::Instant::now();
-        let result = self.check_placement(left, top).is_legal();
+        let result = self.check_placement_unrecorded(left, top);
         #[cfg(feature = "diagnostics")]
         crate::diagnostics::record(|counters| {
             counters.can_place_at_calls += 1;
@@ -128,7 +136,7 @@ impl TowerPlacementContext {
         result
     }
 
-    pub fn check_placement(&self, left: usize, top: usize) -> PlacementCheck {
+    fn check_placement_unrecorded(&self, left: usize, top: usize) -> PlacementCheck {
         let Ok(new_coords) = self.placement_coords(left, top) else {
             return PlacementCheck::Invalid;
         };

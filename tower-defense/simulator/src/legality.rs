@@ -31,7 +31,7 @@
 //! coverage/route-distance grids already are.
 
 use crate::environment::GameEnvironment;
-use crate::joint_action::{MAP_POSITION_COUNT, position_xy};
+use crate::joint_action::{MAP_POSITION_COUNT, position_index, position_xy};
 use td_core::PlacementCheck;
 
 /// Breakdown of how a [`full_map_legality_mask`] call resolved each
@@ -54,20 +54,60 @@ impl LegalityMaskStats {
     }
 }
 
-/// Computes legality for every position in `0..joint_action::MAP_POSITION_COUNT`
-/// with one shared `TowerPlacementContext`, so its route certificate is
-/// built once per decision and reused for every position.
-pub fn full_map_legality_mask(environment: &GameEnvironment) -> (Vec<bool>, LegalityMaskStats) {
-    td_core::diag_scope!(PlacementScan);
-    #[cfg(feature = "diagnostics")]
-    td_core::diagnostics::record(|counters| counters.full_map_legality_mask_scans += 1);
-    let context = environment.tower_placement_context();
-    let mut stats = LegalityMaskStats::default();
+/// Placement legality of every position in `0..joint_action::MAP_POSITION_COUNT`
+/// for one set of occupied cells. Legality depends on nothing else, so one
+/// prepared grid serves every consumer while the occupied cells are
+/// unchanged.
+pub struct PreparedPlacementLegality {
+    occupied: Vec<[usize; 2]>,
+    checks: Vec<PlacementCheck>,
+}
 
-    let mask = (0..MAP_POSITION_COUNT)
-        .map(|index| {
-            let (left, top) = position_xy(index).expect("index is in 0..MAP_POSITION_COUNT");
-            let check = context.check_placement(left, top);
+impl PreparedPlacementLegality {
+    pub(crate) fn compute(context: &td_core::TowerPlacementContext) -> Self {
+        #[cfg(feature = "diagnostics")]
+        td_core::diagnostics::record(|counters| counters.full_map_legality_mask_scans += 1);
+        td_core::diag_scope!(PlacementScan);
+        let checks = (0..MAP_POSITION_COUNT)
+            .map(|index| {
+                let (left, top) = position_xy(index).expect("index is in 0..MAP_POSITION_COUNT");
+                context.check_placement(left, top)
+            })
+            .collect();
+        Self {
+            occupied: context.occupied().to_vec(),
+            checks,
+        }
+    }
+
+    pub(crate) fn matches(&self, context: &td_core::TowerPlacementContext) -> bool {
+        self.occupied == context.occupied()
+    }
+
+    pub fn check(&self, left: usize, top: usize) -> PlacementCheck {
+        position_index(left, top)
+            .map(|index| self.checks[index])
+            .unwrap_or(PlacementCheck::Invalid)
+    }
+
+    pub fn is_legal(&self, left: usize, top: usize) -> bool {
+        self.check(left, top).is_legal()
+    }
+
+    pub fn checks(&self) -> &[PlacementCheck] {
+        &self.checks
+    }
+}
+
+/// Legality for every position in `0..joint_action::MAP_POSITION_COUNT`,
+/// taken from the environment's prepared placement legality.
+pub fn full_map_legality_mask(environment: &GameEnvironment) -> (Vec<bool>, LegalityMaskStats) {
+    let prepared = environment.prepared_placement_legality();
+    let mut stats = LegalityMaskStats::default();
+    let mask = prepared
+        .checks()
+        .iter()
+        .map(|&check| {
             match check {
                 PlacementCheck::Invalid => stats.locally_blocked += 1,
                 PlacementCheck::RouteCertified => stats.fast_path_legal += 1,
@@ -78,7 +118,6 @@ pub fn full_map_legality_mask(environment: &GameEnvironment) -> (Vec<bool>, Lega
             check.is_legal()
         })
         .collect();
-
     (mask, stats)
 }
 
@@ -176,5 +215,31 @@ mod tests {
         let legal_count = mask.iter().filter(|&&legal| legal).count();
         assert!(legal_count >= stats.fast_path_legal);
         assert!(legal_count <= stats.fast_path_legal + stats.connectivity_checked);
+    }
+
+    #[test]
+    fn prepared_placement_legality_matches_fresh_computation_along_trajectories() {
+        use crate::policy_runner::canonical_scripted_semantic_action;
+
+        let mut checked = 0usize;
+        for seed in 0..6u64 {
+            let mut environment =
+                GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            while !matches!(
+                environment.decision_point(),
+                crate::environment::DecisionPoint::Terminal
+            ) {
+                let prepared = environment.prepared_placement_legality();
+                let fresh = PreparedPlacementLegality::compute(&environment.tower_placement_context());
+                assert_eq!(prepared.checks(), fresh.checks(), "seed {seed}");
+                checked += 1;
+                let action = canonical_scripted_semantic_action(&environment).unwrap();
+                let outcome = environment.semantic_step(action).unwrap();
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+        assert!(checked > 300, "checked {checked}");
     }
 }

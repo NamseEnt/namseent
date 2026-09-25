@@ -310,6 +310,7 @@ pub struct GameEnvironment {
     metrics: EnvironmentMetrics,
     reward_config: RewardConfig,
     max_stage: Option<usize>,
+    placement_legality: std::sync::Mutex<Option<Arc<crate::legality::PreparedPlacementLegality>>>,
 }
 
 impl GameEnvironment {
@@ -524,6 +525,7 @@ impl GameEnvironment {
             metrics: EnvironmentMetrics::default(),
             reward_config,
             max_stage,
+            placement_legality: std::sync::Mutex::new(None),
         }
     }
 
@@ -589,6 +591,7 @@ impl GameEnvironment {
             metrics: self.metrics.clone(),
             reward_config: self.reward_config.clone(),
             max_stage: self.max_stage,
+            placement_legality: std::sync::Mutex::new(None),
         })
     }
 
@@ -860,6 +863,26 @@ impl GameEnvironment {
 
     pub fn semantic_legal_actions(&self) -> Vec<LegalAction> {
         self.semantic_legal_actions_with_position_limit(None)
+    }
+
+    /// Placement legality of every position for the current occupied
+    /// cells, computed once and reused until the occupied cells change.
+    pub(crate) fn prepared_placement_legality(
+        &self,
+    ) -> Arc<crate::legality::PreparedPlacementLegality> {
+        let context = self.tower_placement_context();
+        let mut cached = self
+            .placement_legality
+            .lock()
+            .expect("placement legality cache lock");
+        if let Some(prepared) = cached.as_ref()
+            && prepared.matches(&context)
+        {
+            return Arc::clone(prepared);
+        }
+        let prepared = Arc::new(crate::legality::PreparedPlacementLegality::compute(&context));
+        *cached = Some(Arc::clone(&prepared));
+        prepared
     }
 
     pub(crate) fn tower_placement_context(&self) -> td_core::TowerPlacementContext {
@@ -1623,17 +1646,15 @@ impl GameEnvironment {
     }
 
     fn semantic_legal_positions(&self, position_limit: Option<usize>) -> Vec<[usize; 2]> {
-        td_core::diag_scope!(PlacementScan);
         #[cfg(feature = "diagnostics")]
         td_core::diagnostics::record(|counters| counters.semantic_legal_positions_scans += 1);
-        let state = self.game_state.raw_state();
-        let placement_context = state.tower_placement_context();
+        let placement = self.prepared_placement_legality();
         let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
         let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
         let mut positions = Vec::new();
         for top in 0..map_height {
             for left in 0..map_width {
-                if placement_context.can_place_at(left, top) {
+                if placement.is_legal(left, top) {
                     positions.push([left, top]);
                 }
             }
@@ -1800,21 +1821,19 @@ impl GameEnvironment {
         &self,
         mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
     ) -> Vec<AgentAction> {
-        td_core::diag_scope!(PlacementScan);
         #[cfg(feature = "diagnostics")]
         td_core::diagnostics::record(|counters| counters.tower_placement_action_scans += 1);
         let hand_slot_indices = self.tower_hand_indices();
         let map_width = td_core::MAP_SIZE[0].saturating_sub(1);
         let map_height = td_core::MAP_SIZE[1].saturating_sub(1);
         let mut actions = Vec::with_capacity(hand_slot_indices.len() * map_width * map_height);
-        let state = self.game_state.raw_state();
-        let placement_context = state.tower_placement_context();
+        let placement = self.prepared_placement_legality();
         for top in 0..map_height {
             for left in 0..map_width {
                 if let Some(metrics) = generation_metrics.as_deref_mut() {
                     metrics.placement_position_checks += 1;
                 }
-                if placement_context.can_place_at(left, top) {
+                if placement.is_legal(left, top) {
                     for &hand_slot_index in &hand_slot_indices {
                         actions.push(AgentAction::PlaceTower {
                             hand_slot_index,
@@ -2804,6 +2823,7 @@ mod tests {
             metrics: environment.metrics.clone(),
             reward_config: environment.reward_config.clone(),
             max_stage: environment.max_stage,
+            placement_legality: std::sync::Mutex::new(None),
         }
     }
 
@@ -3743,6 +3763,7 @@ mod tests {
             metrics: environment.metrics.clone(),
             reward_config: environment.reward_config.clone(),
             max_stage: environment.max_stage,
+            placement_legality: std::sync::Mutex::new(None),
         }
     }
 
