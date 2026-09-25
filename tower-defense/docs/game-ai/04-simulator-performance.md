@@ -140,6 +140,27 @@ At stage 4 the remaining time splits into:
 - canonical policy: 47% in total, of which the dense BuildTower table is 12.8%, legal-action generation 11.9% and placement scans 9.4%
 - action application: 11%
 
+#### Provenance and correctness evidence
+
+- Reference (pre-optimization) commit: `d510e092`.
+- Final optimized code commit: `efbbc119` (branch `feat/rollout-latency`; later commits there change only docs).
+- 1 thread: 0.493 -> 0.070 sec per terminal rollout. 12 threads: 13.15 -> 103.9 rollouts per second.
+- Trajectory fingerprints (`trajectory-fingerprint`, diagnostics feature) for seeds 0-11 are identical to the reference after every stage: 1,179 decisions and 23.5M legal action ids. At every decision the fingerprint compares:
+  - decision point
+  - authoritative state hash (the full core state, including RNG)
+  - legal and semantic legal action ids and their order
+  - canonical selected action
+  - clear_rate
+  - final state hash and clear_rate
+- `rollout-bench` terminal clear_rates and source state hashes are identical across all five stages (160 rollouts), and the 12-thread clear_rates are identical between stage 0 and stage 4 (320 rollouts).
+- `trusted_rollout_step_matches_semantic_step_at_every_decision` steps the public `semantic_step` and the teacher-only trusted step in lockstep (3 seeds x 3 prefixes x 2 scenarios, over 1,000 decisions). At every decision it requires identical progress fingerprint, legal action ids, canonical action, metrics and termination.
+- The legality and route caches are checked against fresh computation at every decision of 6 canonical trajectories.
+- Core placement differential tests:
+  - every position on 48 random tower maps against the original BFS
+  - 40,000 random blocker grids for the fixed-grid BFS
+  - an assertion that the generated maps include cases where the old route-vertex-only rule is wrong
+- Teacher end-to-end: `teacher-selection-heldout` on seed 7 (6 decisions) gives identical proposals, discovery means, top-3, validation statistics, selections and clear_rate for reference and optimized binaries (all fields except `elapsed_seconds`).
+
 ## 장치별 책임
 
 | 작업 | 기본 장치 | 이유 |
