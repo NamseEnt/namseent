@@ -113,6 +113,13 @@ cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache 
 
 현재 구현은 `GameEnvironment::fork_for_rollout_seed`로 authoritative core snapshot을 복제하고, 현재 관찰값과 합법 행동을 유지한 채 teacher 전용 RNG domain seed만 교체한다. 이 fork는 먼저 correctness 기준으로 사용하며, candidate batch에서의 snapshot 비용은 별도 benchmark로 측정한다.
 
+### Placement legality route certificate (measured)
+
+At commit `c63a8e37`, `TowerPlacementContext::can_place_at` took 96% of a canonical terminal rollout, because every position ran up to six fresh BFS searches. Now `TowerPlacementContext` builds one witness route per travel segment, lazily and once per context. That covers the route cells plus both orthogonal side cells of every diagonal step, since a diagonal step is only blocked when both side cells are blockers. A footprint only needs a BFS for the segments whose certificate it touches. The old route-vertex-only fast path in `legality.rs` ignored diagonal side cells and could report an illegal footprint as legal; it now uses the same primitive.
+
+- Correctness: `route_certificate_matches_search_for_every_position_on_random_maps` (48 random maps x every position) agrees with the full search, while the old vertex-only rule disagreed on 17 positions. Trajectory fingerprints for seeds 0-11 (1,179 decisions, 23.5M legal action ids) are identical before and after.
+- Speed (release, 1 thread, seed 109 decision 12 baseline branch, 6 scenarios): 6.91s -> 0.58s per terminal rollout; placement BFS calls 4.66M -> 0.18M. Placement is now 44% of the rollout.
+
 ## 장치별 책임
 
 | 작업 | 기본 장치 | 이유 |

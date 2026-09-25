@@ -139,7 +139,7 @@ S4/1의 non-baseline 후보 집합이 비어 있으면(예: TowerPlacement에서
 
 This criterion was fixed before any held-out result was observed. It must not be changed after results are seen.
 
-- Final run: `td-simulator teacher-selection-heldout --seed-start 116 --seed-end 123 --max-decisions 64` at the schema v2 freeze commit (recorded below when frozen), default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
+- Final run: `td-simulator teacher-selection-heldout --seed-start 116 --seed-end 123 --max-decisions 64` at the schema v2 freeze commit `2d874b22`, default config, `TeacherSelectionPools::production()`. Rayon thread count does not affect results.
 - Primary metric: per-seed `paired_clear_rate_delta` (teacher `clear_rate` - baseline `clear_rate`) over the 8 seeds.
 - Gate: mean paired delta > 0 is positive, = 0 is tie, < 0 is negative.
 - Reported alongside, to judge the strength of evidence separately from the gate: paired SE, median, all 8 per-seed deltas, and teacher-better / baseline-better / tie counts.
