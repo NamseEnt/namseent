@@ -329,7 +329,7 @@ pub(crate) fn terminal_clear_rate(
         .fork_for_rollout_seed(scenario_seed)
         .map_err(|error| anyhow::anyhow!("teacher selection fork failed: {error}"))?;
     let mut outcome = rollout
-        .semantic_step(action.clone())
+        .rollout_step_trusted(action.clone())
         .map_err(|error| anyhow::anyhow!("teacher selection candidate action failed: {error:?}"))?;
     let mut decisions = 1usize;
     loop {
@@ -351,7 +351,7 @@ pub(crate) fn terminal_clear_rate(
             None => canonical_scripted_semantic_action(&rollout)?,
         };
         outcome = rollout
-            .semantic_step(action)
+            .rollout_step_trusted(action)
             .map_err(|error| anyhow::anyhow!("teacher selection continuation failed: {error:?}"))?;
         decisions += 1;
     }
@@ -731,6 +731,76 @@ mod tests {
             }
         }
         panic!("expected a seed with an opening Shop decision");
+    }
+
+    fn legal_ids(environment: &GameEnvironment) -> (Vec<String>, Vec<String>) {
+        (
+            environment
+                .legal_actions()
+                .into_iter()
+                .map(|legal| legal.id)
+                .collect(),
+            environment
+                .semantic_legal_actions()
+                .into_iter()
+                .map(|legal| legal.id)
+                .collect(),
+        )
+    }
+
+    /// Steps two forks of the same scenario in lockstep, one through the
+    /// public `semantic_step` and one through `rollout_step_trusted`, and
+    /// requires identical state, context, legal actions, canonical choices,
+    /// metrics and terminal outcome at every decision.
+    #[test]
+    fn trusted_rollout_step_matches_semantic_step_at_every_decision() {
+        let mut decisions_checked = 0usize;
+        for game_seed in [0u64, 3, 109] {
+            for prefix in [0usize, 14, 33] {
+                let mut source = GameEnvironment::new(config(), game_seed);
+                for _ in 0..prefix {
+                    let action = canonical_scripted_semantic_action(&source).unwrap();
+                    let mut outcome = source.semantic_step(action).unwrap();
+                    crate::teacher::settle_forced_actions(&mut source, &mut outcome).unwrap();
+                }
+                for scenario_seed in [20000u64, 20001] {
+                    let mut reference = source.fork_for_rollout_seed(scenario_seed).unwrap();
+                    let mut trusted = source.fork_for_rollout_seed(scenario_seed).unwrap();
+                    loop {
+                        assert_eq!(
+                            reference.progress_fingerprint(),
+                            trusted.progress_fingerprint(),
+                            "seed {game_seed} prefix {prefix} scenario {scenario_seed}"
+                        );
+                        assert_eq!(legal_ids(&reference), legal_ids(&trusted));
+                        assert_eq!(reference.metrics(), trusted.metrics());
+                        if matches!(reference.decision_point(), DecisionPoint::Terminal) {
+                            break;
+                        }
+                        let action = match reference.forced_action() {
+                            Some(action) => action,
+                            None => canonical_scripted_semantic_action(&reference).unwrap(),
+                        };
+                        let trusted_action = match trusted.forced_action() {
+                            Some(action) => action,
+                            None => canonical_scripted_semantic_action(&trusted).unwrap(),
+                        };
+                        assert_eq!(action, trusted_action);
+                        let expected = reference.semantic_step(action).unwrap();
+                        let actual = trusted.rollout_step_trusted(trusted_action).unwrap();
+                        assert_eq!(expected.terminated, actual.terminated);
+                        assert_eq!(expected.truncated, actual.truncated);
+                        decisions_checked += 1;
+                        if expected.terminated || expected.truncated {
+                            break;
+                        }
+                    }
+                    assert_eq!(reference.clear_rate(), trusted.clear_rate());
+                    assert_eq!(reference.state_hash(), trusted.state_hash());
+                }
+            }
+        }
+        assert!(decisions_checked > 1000, "checked {decisions_checked}");
     }
 
     // --- proposal ------------------------------------------------------

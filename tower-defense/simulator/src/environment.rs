@@ -1005,6 +1005,56 @@ impl GameEnvironment {
         }
     }
 
+    /// Teacher-rollout-only equivalent of [`Self::semantic_step`] for an
+    /// action already taken from this state's legal candidates or chosen by
+    /// the canonical policy from them. Performs exactly the same state
+    /// mutations, including the `BuildTower`/`Reroll` macro expansion, but
+    /// skips the legality re-check, observations, state hashes, rewards and
+    /// the policy trace, none of which a terminal rollout reads. Test and
+    /// debug builds still verify the action is legal.
+    pub(crate) fn rollout_step_trusted(
+        &mut self,
+        action: AgentAction,
+    ) -> Result<RolloutStepOutcome, EnvironmentError> {
+        td_core::diag_scope!(SemanticStep);
+        #[cfg(any(test, debug_assertions))]
+        assert!(
+            self.semantic_action_is_legal(&action),
+            "trusted rollout action {} is not legal at state {}",
+            action.action_id(),
+            self.state_hash()
+        );
+        let starts_from_shop = matches!(self.decision_point(), DecisionPoint::Shop)
+            && matches!(self.decision_context, DecisionContext::None);
+        let last = match action {
+            AgentAction::Reroll { card_ids } if starts_from_shop => {
+                self.apply_and_advance(&AgentAction::StartSelectingTower)?;
+                self.apply_and_advance(&AgentAction::Reroll { card_ids })?
+            }
+            AgentAction::BuildTower {
+                card_ids,
+                hand_slot_index,
+                left,
+                top,
+            } => {
+                if starts_from_shop {
+                    self.apply_and_advance(&AgentAction::StartSelectingTower)?;
+                }
+                self.apply_and_advance(&AgentAction::SelectTower { card_ids })?;
+                self.apply_and_advance(&AgentAction::PlaceTower {
+                    hand_slot_index,
+                    left,
+                    top,
+                })?
+            }
+            action => self.apply_and_advance(&action)?,
+        };
+        Ok(RolloutStepOutcome {
+            terminated: matches!(self.decision_point(), DecisionPoint::Terminal),
+            truncated: matches!(last.reason, StepReason::MaxTicks),
+        })
+    }
+
     pub fn semantic_card_decision_available(&self) -> bool {
         matches!(
             self.decision_point(),
@@ -1092,78 +1142,19 @@ impl GameEnvironment {
             Vec::new()
         };
 
-        let reward_metrics_before = self.game_state.reward_metrics();
-        let escaped_hp_before = reward_metrics_before.total_escaped_hp;
-        let tower_damage_before = reward_metrics_before.total_tower_damage;
+        let tower_damage_before = self.game_state.reward_metrics().total_tower_damage;
         let clear_rate_before = self.clear_rate() / 100.0;
         let observation_before = self.snapshot();
         let pre_state_hash = self.state_hash();
         let pre_decision_point = self.decision_point();
         let command_count_before = self.game_state.replay().commands.len();
 
-        let deferred_card_service = self.card_service_kind_for_action(&action);
-        let hand_card_ids = td_core::hand_card_id_slots(self.game_state.raw_state().hand());
-        let action_result = match action.to_player_command(&hand_card_ids) {
-            Ok(Some(command)) => self
-                .game_state
-                .apply(command)
-                .map_err(|error| EnvironmentError::CommandRejected {
-                    action_id: action.action_id(),
-                    error,
-                })
-                .map(|_| ()),
-            Ok(None) => self.apply_environment_action(&action),
-            Err(error) => Err(EnvironmentError::CommandRejected {
-                action_id: action.action_id(),
-                error,
-            }),
-        };
-        action_result?;
-        self.apply_card_selection_action(&action)?;
-        if matches!(action, AgentAction::Continue)
-            && matches!(
-                self.decision_context,
-                DecisionContext::PreDefenseItem { .. } | DecisionContext::DamageResponseItem { .. }
-            )
-        {
-            self.decision_context = DecisionContext::None;
-        }
-        if matches!(action, AgentAction::StartDefense)
-            && matches!(
-                self.game_state.raw_state().flow(),
-                td_core::GameFlowState::Defense(_)
-            )
-        {
-            self.decision_context = DecisionContext::PreDefenseItem {
-                stage: self.game_state.stage(),
-            };
-        }
-        match action {
-            AgentAction::PlaceTower { .. } => self.metrics.total_towers_placed += 1,
-            AgentAction::UseInventoryItem { .. } => self.metrics.total_items_used += 1,
-            _ => {}
-        }
-        if deferred_card_service.is_some() {
-            self.card_service_selection = self.game_state.take_card_service_selection();
-        }
-        self.environment_actions.push(action.clone());
-
-        let ticks_before = self.game_state.sim_tick().ticks();
-        let mut reason = self.advance_until_decision_or_terminal();
-        if self.max_stage.is_some()
-            && matches!(
-                self.game_state.raw_state().flow(),
-                td_core::GameFlowState::Result { clear_rate_raw }
-                    if *clear_rate_raw == td_core::RATIO_SCALE
-            )
-        {
-            reason = StepReason::CurriculumComplete;
-        }
-        let ticks_advanced = self
-            .game_state
-            .sim_tick()
-            .ticks()
-            .saturating_sub(ticks_before);
+        let AppliedStep {
+            reason,
+            ticks_advanced,
+            player_damage,
+            escaped_hp,
+        } = self.apply_and_advance(&action)?;
         let terminated = matches!(self.decision_point(), DecisionPoint::Terminal);
         let truncated = matches!(reason, StepReason::MaxTicks);
         let terminal_reward = match self.game_state.raw_state().flow() {
@@ -1177,11 +1168,6 @@ impl GameEnvironment {
         };
         let clear_rate_after = self.clear_rate() / 100.0;
         let reward_metrics_after = self.game_state.reward_metrics();
-        let player_damage =
-            reward_metrics_after.total_player_damage - self.metrics.total_player_damage;
-        self.metrics.total_player_damage = reward_metrics_after.total_player_damage;
-        let escaped_hp = (reward_metrics_after.total_escaped_hp - escaped_hp_before).max(0.0);
-        self.metrics.total_escaped_hp += escaped_hp;
         let stage_total_hp = match self.game_state.raw_state().flow() {
             td_core::GameFlowState::Defense(flow) => flow.start_total_hp_raw as f32 / 1_000.0,
             _ => {
@@ -1260,6 +1246,93 @@ impl GameEnvironment {
         }
 
         Ok(outcome)
+    }
+
+    /// Every state mutation of one environment step: applies `action`,
+    /// updates decision context, environment metrics and the recorded
+    /// action list, then advances to the next decision point or terminal.
+    /// Observation, state hash, reward and trace bookkeeping are left to the
+    /// caller.
+    fn apply_and_advance(&mut self, action: &AgentAction) -> Result<AppliedStep, EnvironmentError> {
+        let escaped_hp_before = self.game_state.reward_metrics().total_escaped_hp;
+        let deferred_card_service = self.card_service_kind_for_action(action);
+        let hand_card_ids = td_core::hand_card_id_slots(self.game_state.raw_state().hand());
+        let action_result = {
+            td_core::diag_scope!(ApplyAction);
+            match action.to_player_command(&hand_card_ids) {
+                Ok(Some(command)) => self
+                    .game_state
+                    .apply(command)
+                    .map_err(|error| EnvironmentError::CommandRejected {
+                        action_id: action.action_id(),
+                        error,
+                    })
+                    .map(|_| ()),
+                Ok(None) => self.apply_environment_action(action),
+                Err(error) => Err(EnvironmentError::CommandRejected {
+                    action_id: action.action_id(),
+                    error,
+                }),
+            }
+        };
+        action_result?;
+        self.apply_card_selection_action(action)?;
+        if matches!(action, AgentAction::Continue)
+            && matches!(
+                self.decision_context,
+                DecisionContext::PreDefenseItem { .. } | DecisionContext::DamageResponseItem { .. }
+            )
+        {
+            self.decision_context = DecisionContext::None;
+        }
+        if matches!(action, AgentAction::StartDefense)
+            && matches!(
+                self.game_state.raw_state().flow(),
+                td_core::GameFlowState::Defense(_)
+            )
+        {
+            self.decision_context = DecisionContext::PreDefenseItem {
+                stage: self.game_state.stage(),
+            };
+        }
+        match action {
+            AgentAction::PlaceTower { .. } => self.metrics.total_towers_placed += 1,
+            AgentAction::UseInventoryItem { .. } => self.metrics.total_items_used += 1,
+            _ => {}
+        }
+        if deferred_card_service.is_some() {
+            self.card_service_selection = self.game_state.take_card_service_selection();
+        }
+        self.environment_actions.push(action.clone());
+
+        let ticks_before = self.game_state.sim_tick().ticks();
+        let mut reason = self.advance_until_decision_or_terminal();
+        if self.max_stage.is_some()
+            && matches!(
+                self.game_state.raw_state().flow(),
+                td_core::GameFlowState::Result { clear_rate_raw }
+                    if *clear_rate_raw == td_core::RATIO_SCALE
+            )
+        {
+            reason = StepReason::CurriculumComplete;
+        }
+        let ticks_advanced = self
+            .game_state
+            .sim_tick()
+            .ticks()
+            .saturating_sub(ticks_before);
+        let reward_metrics_after = self.game_state.reward_metrics();
+        let player_damage =
+            reward_metrics_after.total_player_damage - self.metrics.total_player_damage;
+        self.metrics.total_player_damage = reward_metrics_after.total_player_damage;
+        let escaped_hp = (reward_metrics_after.total_escaped_hp - escaped_hp_before).max(0.0);
+        self.metrics.total_escaped_hp += escaped_hp;
+        Ok(AppliedStep {
+            reason,
+            ticks_advanced,
+            player_damage,
+            escaped_hp,
+        })
     }
 
     pub fn advance_until_decision_or_terminal(&mut self) -> StepReason {
@@ -1944,6 +2017,18 @@ impl GameEnvironment {
             })
             .collect()
     }
+}
+
+pub(crate) struct RolloutStepOutcome {
+    pub(crate) terminated: bool,
+    pub(crate) truncated: bool,
+}
+
+struct AppliedStep {
+    reason: StepReason,
+    ticks_advanced: u64,
+    player_damage: f32,
+    escaped_hp: f32,
 }
 
 fn merge_step_outcome(target: &mut StepOutcome, prefix: &StepOutcome) {
