@@ -159,7 +159,26 @@ Seeds 108-115 are no longer held out. The first attempt at commit `8759d225` (sc
 
 ### Post-hoc terminal extension of seeds 116-123 (diagnostic, not a gate)
 
-`td-simulator teacher-terminal-extension --input simulator/artifacts/teacher/phase3-heldout-116-123.json` replays both recorded episodes of each seed exactly. Every recorded teacher decision state hash and both final state hashes must match. It then continues both episodes from the truncation state to the actual terminal with `canonical_scripted_semantic_action` only; the teacher is not applied after decision 64. This measures how much the 64-decision truncation changed the comparison. Results are reported below as a post-hoc diagnostic and do not change the gate result above.
+`td-simulator teacher-terminal-extension --input simulator/artifacts/teacher/phase3-heldout-116-123.json` replays both recorded episodes of each seed exactly. Every recorded teacher decision state hash and both final state hashes must match. It then continues both episodes from the truncation state to the actual terminal with `canonical_scripted_semantic_action` only; the teacher is not applied after decision 64. This measures how much the 64-decision truncation changed the comparison. This is a post-hoc diagnostic and does not change the gate result above.
+
+Run at commit `865ed81f`, a diagnostic-only fix to replay recorded BuildTower selections from the teacher candidate set; the gate code path is unchanged from `87116c35`. Every replayed state hash matched the artifact. Output: `simulator/artifacts/teacher/phase3-heldout-116-123-terminal-extension.json`.
+
+| seed | delta@64 | terminalized delta | baseline stage@64 -> terminal (clear_rate, decisions) | teacher stage@64 -> terminal (clear_rate, decisions) |
+|---|---|---|---|---|
+| 116 | 0.00 | +1.24 | 13 -> 17 (33.63, 80) | 13 -> 18 (34.88, 86) |
+| 117 | -11.16 | +4.49 | 17 -> 17 (32.73, 60) | 11 -> 19 (37.22, 95) |
+| 118 | -8.00 | +4.18 | 14 -> 17 (33.44, 75) | 10 -> 19 (37.62, 110) |
+| 119 | -2.00 | +2.16 | 15 -> 22 (43.12, 93) | 14 -> 23 (45.28, 110) |
+| 120 | -6.00 | +12.94 | 15 -> 17 (32.52, 70) | 12 -> 23 (45.46, 116) |
+| 121 | -1.87 | +2.97 | 12 -> 17 (33.70, 77) | 11 -> 19 (36.67, 96) |
+| 122 | 0.00 | +5.83 | 12 -> 20 (38.36, 91) | 12 -> 23 (44.19, 110) |
+| 123 | +4.00 | +18.02 | 11 -> 18 (35.45, 105) | 13 -> 27 (53.46, 148) |
+
+- delta@64: mean -3.13, SE 1.74, median -1.93, teacher better / worse / tie = 1 / 5 / 2.
+- Terminalized: mean +6.48, SE 2.08, median +4.34, teacher better / worse / tie = 8 / 0 / 0 (descriptive t = 3.11).
+- 5 negative deltas flipped sign and both ties resolved positive. No victories in either arm.
+- In every seed, the teacher's first 64 decisions produced a state that the same canonical continuation carried further than the baseline's state. The teacher arm needs more decisions (86-148 vs 60-105), which is what the 64-decision horizon penalized.
+- Caveat: after decision 64 both arms use the canonical policy, so this measures the value of the teacher's first 64 decisions, not a full teacher episode. The recorded gate result stays NEGATIVE. The preregistered terminal gate on seeds 124-131 is the Phase 3 decision.
 
 ### Phase 3 terminal held-out gate (seeds 124-131, preregistered)
 
