@@ -311,6 +311,7 @@ pub struct GameEnvironment {
     reward_config: RewardConfig,
     max_stage: Option<usize>,
     placement_legality: std::sync::Mutex<Option<Arc<crate::legality::PreparedPlacementLegality>>>,
+    route_grids: std::sync::Mutex<Option<Arc<crate::joint_action::PreparedRouteGrids>>>,
 }
 
 impl GameEnvironment {
@@ -526,6 +527,7 @@ impl GameEnvironment {
             reward_config,
             max_stage,
             placement_legality: std::sync::Mutex::new(None),
+            route_grids: std::sync::Mutex::new(None),
         }
     }
 
@@ -592,6 +594,7 @@ impl GameEnvironment {
             reward_config: self.reward_config.clone(),
             max_stage: self.max_stage,
             placement_legality: std::sync::Mutex::new(None),
+            route_grids: std::sync::Mutex::new(None),
         })
     }
 
@@ -834,14 +837,15 @@ impl GameEnvironment {
             actions.extend(self.treasure_discard_actions());
         }
 
-        actions.sort_by_key(AgentAction::action_id);
-        actions
+        let mut legal_actions = actions
             .into_iter()
             .map(|action| LegalAction {
                 id: action.action_id(),
                 action,
             })
-            .collect()
+            .collect::<Vec<_>>();
+        legal_actions.sort_by(|left, right| left.id.cmp(&right.id));
+        legal_actions
     }
 
     pub fn action_mask(&self) -> Vec<bool> {
@@ -881,6 +885,23 @@ impl GameEnvironment {
             return Arc::clone(prepared);
         }
         let prepared = Arc::new(crate::legality::PreparedPlacementLegality::compute(&context));
+        *cached = Some(Arc::clone(&prepared));
+        prepared
+    }
+
+    /// Route-derived dense scoring grids for `route_coords`, reused while the
+    /// route is unchanged.
+    pub(crate) fn prepared_route_grids(
+        &self,
+        route_coords: &[td_core::game_state::observation::RouteCoordObservation],
+    ) -> Arc<crate::joint_action::PreparedRouteGrids> {
+        let mut cached = self.route_grids.lock().expect("route grid cache lock");
+        if let Some(prepared) = cached.as_ref()
+            && prepared.matches(route_coords)
+        {
+            return Arc::clone(prepared);
+        }
+        let prepared = Arc::new(crate::joint_action::PreparedRouteGrids::new(route_coords));
         *cached = Some(Arc::clone(&prepared));
         prepared
     }
@@ -2824,6 +2845,7 @@ mod tests {
             reward_config: environment.reward_config.clone(),
             max_stage: environment.max_stage,
             placement_legality: std::sync::Mutex::new(None),
+            route_grids: std::sync::Mutex::new(None),
         }
     }
 
@@ -3764,6 +3786,7 @@ mod tests {
             reward_config: environment.reward_config.clone(),
             max_stage: environment.max_stage,
             placement_legality: std::sync::Mutex::new(None),
+            route_grids: std::sync::Mutex::new(None),
         }
     }
 

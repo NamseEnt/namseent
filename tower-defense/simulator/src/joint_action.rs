@@ -11,6 +11,7 @@ use crate::environment::{
     RouteCoordObservation,
 };
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Valid top-left corners for a tower's 2x2 footprint: `left, top` each range
 /// over `0..MAP_SIZE[axis] - 1` (the footprint's bottom-right corner must
@@ -283,6 +284,45 @@ pub fn nearest_route_grid(route_coords: &[RouteCoordObservation]) -> Vec<usize> 
         .collect()
 }
 
+/// Route-derived grids for one exact route: nearest-route distance and, per
+/// range, route coverage of every position. Filled lazily and reused while
+/// the route is unchanged.
+pub struct PreparedRouteGrids {
+    route_coords: Vec<RouteCoordObservation>,
+    nearest_route: Vec<usize>,
+    coverage_by_range: std::sync::Mutex<HashMap<i64, Arc<Vec<usize>>>>,
+}
+
+impl PreparedRouteGrids {
+    pub(crate) fn new(route_coords: &[RouteCoordObservation]) -> Self {
+        Self {
+            route_coords: route_coords.to_vec(),
+            nearest_route: nearest_route_grid(route_coords),
+            coverage_by_range: std::sync::Mutex::new(HashMap::new()),
+        }
+    }
+
+    pub(crate) fn matches(&self, route_coords: &[RouteCoordObservation]) -> bool {
+        self.route_coords == route_coords
+    }
+
+    pub fn nearest_route(&self) -> &[usize] {
+        &self.nearest_route
+    }
+
+    pub fn coverage(&self, range_raw: i64) -> Arc<Vec<usize>> {
+        let mut coverage_by_range = self
+            .coverage_by_range
+            .lock()
+            .expect("route coverage cache lock");
+        Arc::clone(
+            coverage_by_range
+                .entry(range_raw)
+                .or_insert_with(|| Arc::new(coverage_grid(&self.route_coords, range_raw))),
+        )
+    }
+}
+
 /// Count of route cells within `range_raw` (world-unit radius, matching
 /// the authoritative tower template's scale) of every position, for one
 /// specific range value. There are at most 9 distinct range values (one per
@@ -368,18 +408,16 @@ impl DenseBuildTowerScoreTable {
         let (legal, legality_stats) =
             crate::legality::full_map_legality_mask(environment);
 
-        let mut coverage_by_range: HashMap<i64, Vec<usize>> = HashMap::new();
-        let nearest_route = nearest_route_grid(&observation.route_coords);
-        for template in templates.iter().flatten() {
-            coverage_by_range
-                .entry(template.range_raw)
-                .or_insert_with(|| coverage_grid(&observation.route_coords, template.range_raw));
-        }
-        for extra in &extra_templates {
-            coverage_by_range
-                .entry(extra.range_raw)
-                .or_insert_with(|| coverage_grid(&observation.route_coords, extra.range_raw));
-        }
+        let route_grids = environment.prepared_route_grids(&observation.route_coords);
+        let ranges = templates
+            .iter()
+            .flatten()
+            .map(|template| template.range_raw)
+            .chain(extra_templates.iter().map(|extra| extra.range_raw));
+        let coverage_by_range: HashMap<i64, Arc<Vec<usize>>> = ranges
+            .map(|range_raw| (range_raw, route_grids.coverage(range_raw)))
+            .collect();
+        let nearest_route = route_grids.nearest_route();
 
         let row_stride = build_slot_count * MAP_POSITION_COUNT;
         let mut scores = vec![None; subset_count * row_stride];
@@ -545,7 +583,6 @@ mod tests {
     use crate::config::GameConfig;
     use crate::environment::{AgentAction, GameEnvironment};
     use crate::policy_runner::{rank_build_tower_actions_by_heuristic, scripted_expert_action};
-    use std::sync::Arc;
 
     fn environment(seed: u64) -> GameEnvironment {
         let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
@@ -1082,5 +1119,37 @@ mod tests {
             &json,
         )
         .expect("benchmark report should be written");
+    }
+
+    #[test]
+    fn prepared_route_grids_match_fresh_computation_along_trajectories() {
+        use crate::policy_runner::canonical_scripted_semantic_action;
+
+        let mut checked = 0usize;
+        for seed in 0..6u64 {
+            let mut environment =
+                GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            while !matches!(
+                environment.decision_point(),
+                crate::environment::DecisionPoint::Terminal
+            ) {
+                let observation = environment.snapshot();
+                let grids = environment.prepared_route_grids(&observation.route_coords);
+                assert_eq!(grids.nearest_route(), nearest_route_grid(&observation.route_coords));
+                for range_raw in [0i64, 1_000_000, 2_500_000, 3_000_000, 4_500_000, 7_000_000] {
+                    assert_eq!(
+                        *grids.coverage(range_raw),
+                        coverage_grid(&observation.route_coords, range_raw)
+                    );
+                }
+                checked += 1;
+                let action = canonical_scripted_semantic_action(&environment).unwrap();
+                let outcome = environment.semantic_step(action).unwrap();
+                if outcome.terminated || outcome.truncated {
+                    break;
+                }
+            }
+        }
+        assert!(checked > 300, "checked {checked}");
     }
 }
