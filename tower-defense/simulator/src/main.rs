@@ -635,6 +635,8 @@ struct TrajectoryFingerprintOptions {
     #[arg(long, default_value_t = 512)]
     max_decisions: usize,
     #[arg(long)]
+    with_proposals: bool,
+    #[arg(long)]
     output: PathBuf,
 }
 
@@ -650,6 +652,7 @@ fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<(
                 Arc::clone(&config),
                 seed,
                 options.max_decisions,
+                options.with_proposals,
             )
         })
         .collect::<Result<Vec<_>>>()?;

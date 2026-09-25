@@ -314,6 +314,7 @@ pub fn trajectory_fingerprint(
     config: Arc<GameConfig>,
     game_seed: u64,
     max_decisions: usize,
+    with_proposals: bool,
 ) -> Result<TrajectoryFingerprint> {
     let pools = TeacherSelectionPools::production();
     let mut environment = GameEnvironment::new(config, game_seed);
@@ -322,7 +323,11 @@ pub fn trajectory_fingerprint(
         && !matches!(environment.decision_point(), DecisionPoint::Terminal)
     {
         let action = canonical_scripted_semantic_action(&environment)?;
-        let proposal = build_s41_proposal(&environment, &action, &pools)?;
+        let proposal = if with_proposals {
+            build_s41_proposal(&environment, &action, &pools)?
+        } else {
+            Vec::new()
+        };
         decisions.push(FingerprintDecision {
             decision_index: decisions.len(),
             decision_point: format!("{:?}", environment.decision_point()),
