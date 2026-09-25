@@ -31,7 +31,7 @@
 | [`02-action-contract.md`](02-action-contract.md) | semantic action과 joint build-placement 계약 | Accepted design |
 | [`03-observation-contract.md`](03-observation-contract.md) | 정책과 teacher가 사용하는 상태 정보 | Verified |
 | [`04-simulator-performance.md`](04-simulator-performance.md) | 시뮬레이터 프로파일링과 최적화 계획 | Accepted plan |
-| [`05-rollout-teacher.md`](05-rollout-teacher.md) | non-cheating rollout teacher | Implemented (minimum) |
+| [`05-rollout-teacher.md`](05-rollout-teacher.md) | non-cheating rollout teacher | Verified (Phase 3 terminal gate, seeds 124-131) |
 | [`06-dataset-and-distillation.md`](06-dataset-and-distillation.md) | teacher dataset과 빠른 정책 압축 | Proposed |
 | [`07-policy-and-rl.md`](07-policy-and-rl.md) | 표현 구조와 RL fine-tuning | Proposed |
 | [`08-evaluation.md`](08-evaluation.md) | 모델 비교와 최종 평가 | Accepted design |

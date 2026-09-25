@@ -208,6 +208,42 @@ Fixed before any teacher or baseline result on seeds 124-131 was observed. This 
   - Positive: record evidence that the Phase 3 teacher improves the terminal objective over the baseline. Phase 4 may use it as an optional oracle / selective labeler.
   - Tie or negative: do not tune the teacher further. Keep the simulator/action/observation/rollout infrastructure and move Phase 4 to canonical BC followed by PPO. Keep the teacher only as a diagnostic/reference.
 
+#### Result: POSITIVE (Phase 3 closed)
+
+Artifact: `simulator/artifacts/teacher/phase3-terminal-gate-124-131.json`, run from `87116c35` with 12 Rayon threads.
+
+| seed | baseline clear_rate (stage, decisions) | teacher clear_rate (stage, decisions) | paired delta | overrides |
+|---|---|---|---|---|
+| 124 | 30.45 (16, 64) | 58.00 (29, 146) | +27.55 | 27 |
+| 125 | 38.91 (20, 82) | 62.34 (32, 168) | +23.43 | 47 |
+| 126 | 32.87 (17, 67) | 47.29 (24, 122) | +14.42 | 36 |
+| 127 | 43.30 (22, 112) | 57.46 (29, 166) | +14.16 | 32 |
+| 128 | 60.00 (30, 150) | 72.78 (37, 245) | +12.78 | 32 |
+| 129 | 32.51 (17, 78) | 38.69 (20, 114) | +6.18 | 15 |
+| 130 | 40.00 (20, 89) | 49.81 (25, 131) | +9.81 | 15 |
+| 131 | 40.00 (20, 94) | 52.19 (27, 144) | +12.20 | 23 |
+
+- **Mean paired terminal clear_rate delta +15.07: positive.**
+- SE 2.49, median +13.47, teacher better / baseline better / tie = 8 / 0 / 0; descriptive paired t = 6.05 (df 7).
+- No victories in either arm.
+- Every episode reached the actual terminal state. There were no safety-cap hits and no truncation.
+- Teacher overrides: 227 of 1,236 decisions. By kind:
+
+  | kind | overrides |
+  |---|---|
+  | reroll | 97 |
+  | remove_tower | 34 |
+  | build_tower | 32 |
+  | continue | 26 |
+  | use_inventory_item | 14 |
+  | select_treasure | 11 |
+  | purchase_shop_item | 10 |
+  | select_card_service_card | 3 |
+
+- Compute: 791,776 terminal rollouts (641 per teacher decision on average) and 8,776 s wall-clock on 12 threads. Peak memory was about 240 MB.
+
+Conclusion: under the terminal objective, the frozen Phase 3 v2 teacher improved over the canonical baseline on all 8 untouched seeds. Phase 4 may use it as an optional oracle / selective labeler. The truncated gate on 116-123 stays recorded as NEGATIVE; its post-hoc terminal extension (above) was consistent with this result.
+
 ## Horizon과 점수
 
 full-game rollout이 충분히 싸지기 전에는 fixed horizon을 사용한다. production minimum teacher는 **decision 개수가 아니라 fixed simulation-time horizon (`horizon_sim_ticks`)**을 쓴다(중간에 `horizon_stages`를 썼으나 v4에서 교체됨) - decision-count horizon은 action의 소요 decision 수에 따른 구조적 편향(위 "held-out diagnostic으로 확인한 두 가지 구조적 결함" 참고)이 확인되어 폐기했다. 짧은 horizon은 장기 build를 과소평가할 수 있으므로 다음을 함께 기록한다.
