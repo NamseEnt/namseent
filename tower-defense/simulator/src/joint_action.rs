@@ -358,6 +358,7 @@ pub struct DenseBuildTowerScoreTable {
 
 impl DenseBuildTowerScoreTable {
     pub fn compute(environment: &GameEnvironment, observation: &Observation) -> Self {
+        td_core::diag_scope!(DenseBuildTable);
         let subsets = CardSubsetTable::from_observation(observation);
         let subset_count = subsets.subset_count();
         let templates = subset_templates(&subsets, observation);

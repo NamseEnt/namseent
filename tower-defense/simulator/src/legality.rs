@@ -58,6 +58,7 @@ impl LegalityMaskStats {
 /// with one shared `TowerPlacementContext`, so its route certificate is
 /// built once per decision and reused for every position.
 pub fn full_map_legality_mask(environment: &GameEnvironment) -> (Vec<bool>, LegalityMaskStats) {
+    td_core::diag_scope!(PlacementScan);
     #[cfg(feature = "diagnostics")]
     td_core::diagnostics::record(|counters| counters.full_map_legality_mask_scans += 1);
     let context = environment.tower_placement_context();

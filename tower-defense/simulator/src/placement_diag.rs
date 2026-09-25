@@ -361,3 +361,111 @@ pub fn trajectory_fingerprint(
         final_clear_rate: environment.clear_rate(),
     })
 }
+
+#[derive(Debug, Serialize)]
+pub struct RolloutBenchState {
+    pub game_seed: u64,
+    pub prefix_decisions: usize,
+    pub decision_point: String,
+    pub state_hash: String,
+    pub baseline_action_id: String,
+    pub clear_rates: Vec<f32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RolloutBenchReport {
+    pub rollouts: usize,
+    pub total_seconds: f64,
+    pub seconds_per_rollout: f64,
+    pub decisions_per_rollout: f64,
+    pub ticks_per_rollout: f64,
+    pub counters_per_rollout: BTreeMap<String, f64>,
+    pub scopes: Vec<(diagnostics::Scope, diagnostics::ScopeTotals)>,
+    pub scope_share: BTreeMap<String, f64>,
+    pub states: Vec<RolloutBenchState>,
+}
+
+pub fn rollout_bench(
+    config: Arc<GameConfig>,
+    game_seeds: &[u64],
+    prefix_decisions: &[usize],
+    scenario_seeds: &[u64],
+) -> Result<RolloutBenchReport> {
+    let mut sources = Vec::new();
+    for &game_seed in game_seeds {
+        for &prefix in prefix_decisions {
+            let mut environment = GameEnvironment::new(Arc::clone(&config), game_seed);
+            for _ in 0..prefix {
+                if matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                    break;
+                }
+                let action = canonical_scripted_semantic_action(&environment)?;
+                let mut outcome = environment
+                    .semantic_step(action)
+                    .map_err(|error| anyhow::anyhow!("bench prefix step failed: {error:?}"))?;
+                settle_forced_actions(&mut environment, &mut outcome)?;
+            }
+            if !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                sources.push((game_seed, prefix, environment));
+            }
+        }
+    }
+
+    let counters_before = diagnostics::snapshot();
+    let scopes_before = diagnostics::scope_totals();
+    let started = Instant::now();
+    let mut states = Vec::new();
+    let mut rollouts = 0usize;
+    for (game_seed, prefix, environment) in &sources {
+        let baseline = canonical_scripted_semantic_action(environment)?;
+        let mut clear_rates = Vec::new();
+        for &scenario_seed in scenario_seeds {
+            clear_rates.push(crate::teacher_selection::terminal_clear_rate(
+                environment,
+                &baseline,
+                scenario_seed,
+            )?);
+            rollouts += 1;
+        }
+        states.push(RolloutBenchState {
+            game_seed: *game_seed,
+            prefix_decisions: *prefix,
+            decision_point: format!("{:?}", environment.decision_point()),
+            state_hash: environment.state_hash(),
+            baseline_action_id: baseline.action_id(),
+            clear_rates,
+        });
+    }
+    let total_seconds = started.elapsed().as_secs_f64();
+    let counters = diagnostics::snapshot().delta(&counters_before);
+    let scopes = diagnostics::scope_delta(&diagnostics::scope_totals(), &scopes_before);
+    let per = |value: u64| value as f64 / rollouts.max(1) as f64;
+    let counters_json = serde_json::to_value(counters)?;
+    let counters_per_rollout = counters_json
+        .as_object()
+        .expect("counters serialize as an object")
+        .iter()
+        .map(|(key, value)| (key.clone(), per(value.as_u64().unwrap_or(0))))
+        .collect();
+    let total_nanos = total_seconds * 1e9;
+    let scope_share = scopes
+        .iter()
+        .map(|(scope, totals)| (format!("{scope:?}"), totals.nanos as f64 / total_nanos))
+        .collect();
+    let ticks = scopes
+        .iter()
+        .find(|(scope, _)| *scope == diagnostics::Scope::CoreTick)
+        .map(|(_, totals)| totals.calls)
+        .unwrap_or(0);
+    Ok(RolloutBenchReport {
+        rollouts,
+        total_seconds,
+        seconds_per_rollout: total_seconds / rollouts.max(1) as f64,
+        decisions_per_rollout: per(counters.rollout_decisions),
+        ticks_per_rollout: per(ticks),
+        counters_per_rollout,
+        scopes,
+        scope_share,
+        states,
+    })
+}

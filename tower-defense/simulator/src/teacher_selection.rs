@@ -320,7 +320,7 @@ fn holm_bonferroni(p_values: &[f64], alpha: f64) -> Vec<(f64, bool)> {
 /// continues with `canonical_scripted_semantic_action` (never the teacher)
 /// until terminal, and returns the terminal `clear_rate`. No tick deadline:
 /// this runs to the actual end of the episode.
-fn terminal_clear_rate(
+pub(crate) fn terminal_clear_rate(
     source: &GameEnvironment,
     action: &AgentAction,
     scenario_seed: u64,
@@ -355,6 +355,8 @@ fn terminal_clear_rate(
             .map_err(|error| anyhow::anyhow!("teacher selection continuation failed: {error:?}"))?;
         decisions += 1;
     }
+    #[cfg(feature = "diagnostics")]
+    td_core::diagnostics::record(|counters| counters.rollout_decisions += decisions as u64);
     Ok(rollout.clear_rate())
 }
 

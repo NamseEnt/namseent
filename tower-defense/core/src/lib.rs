@@ -3,6 +3,16 @@ pub mod combat_number;
 pub mod deterministic_rng;
 #[cfg(feature = "diagnostics")]
 pub mod diagnostics;
+
+#[macro_export]
+macro_rules! diag_scope {
+    ($scope:ident) => {
+        #[cfg(feature = "diagnostics")]
+        let _diag_scope_guard =
+            $crate::diagnostics::ScopeGuard::new($crate::diagnostics::Scope::$scope);
+    };
+}
+
 mod events;
 pub use catalog::*;
 pub mod game_state;

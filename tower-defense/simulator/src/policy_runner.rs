@@ -954,6 +954,7 @@ pub(crate) fn best_build_tower_action_by_heuristic(
 /// legal action set, so this reduces to
 /// `scripted_expert_action(&environment.snapshot(), &environment.legal_actions())`.
 pub fn canonical_scripted_semantic_action(environment: &GameEnvironment) -> Result<AgentAction> {
+    td_core::diag_scope!(CanonicalPolicy);
     let observation = environment.snapshot();
     if environment.semantic_card_decision_available() {
         let table = crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);

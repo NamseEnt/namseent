@@ -53,6 +53,8 @@ enum Command {
     PlacementDiag(PlacementDiagOptions),
     #[cfg(feature = "diagnostics")]
     TrajectoryFingerprint(TrajectoryFingerprintOptions),
+    #[cfg(feature = "diagnostics")]
+    RolloutBench(RolloutBenchOptions),
     TeacherEval(TeacherEvalOptions),
     TeacherOverrideDiag(TeacherOverrideDiagOptions),
     TeacherStateSensitivity(TeacherStateSensitivityOptions),
@@ -574,6 +576,8 @@ fn main() -> Result<()> {
         Command::PlacementDiag(options) => run_placement_diag(options),
         #[cfg(feature = "diagnostics")]
         Command::TrajectoryFingerprint(options) => run_trajectory_fingerprint(options),
+        #[cfg(feature = "diagnostics")]
+        Command::RolloutBench(options) => run_rollout_bench(options),
         Command::TeacherEval(options) => run_teacher_eval(options),
         Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
         Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
@@ -660,6 +664,41 @@ fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<(
         std::fs::create_dir_all(parent)?;
     }
     std::fs::write(&options.output, serde_json::to_string_pretty(&fingerprints)?)?;
+    Ok(())
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct RolloutBenchOptions {
+    #[arg(long, value_delimiter = ',')]
+    game_seeds: Vec<u64>,
+    #[arg(long, value_delimiter = ',')]
+    prefix_decisions: Vec<usize>,
+    #[arg(long, value_delimiter = ',')]
+    scenario_seeds: Vec<u64>,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
+    let report = td_simulator::placement_diag::rollout_bench(
+        Arc::new(GameConfig::default_config()),
+        &options.game_seeds,
+        &options.prefix_decisions,
+        &options.scenario_seeds,
+    )?;
+    eprintln!(
+        "rollouts={} sec/rollout={:.4} decisions/rollout={:.1} ticks/rollout={:.0}",
+        report.rollouts,
+        report.seconds_per_rollout,
+        report.decisions_per_rollout,
+        report.ticks_per_rollout
+    );
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
     Ok(())
 }
 

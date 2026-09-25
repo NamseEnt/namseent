@@ -92,6 +92,7 @@ pub fn potential_shaping(
     terminated: bool,
     config: &RewardConfig,
 ) -> f32 {
+        td_core::diag_scope!(RewardShaping);
     let next_potential = if terminated { 0.0 } else { potential(after) };
     config.potential_weight * (config.potential_gamma * next_potential - potential(before))
 }
@@ -118,6 +119,7 @@ fn shaping_rewards(
     tower_damage: f32,
     config: &RewardConfig,
 ) -> BTreeMap<String, f32> {
+        td_core::diag_scope!(RewardShaping);
     let progress_reward = clear_rate_after - clear_rate_before;
     let escaped_penalty = -(escaped_hp / stage_total_hp.max(1.0) / config.escaped_hp_penalty_scale);
     let hp_loss_penalty = -(player_damage / config.player_hp_loss_penalty_scale);
@@ -553,6 +555,7 @@ impl GameEnvironment {
     }
 
     pub fn fork_for_rollout_seed(&self, scenario_seed: u64) -> Result<Self, String> {
+        td_core::diag_scope!(Fork);
         let mut snapshot = self.game_state.core_state_snapshot();
         let sim_tick = snapshot.sim_tick().ticks();
         let derived_seed = td_core::derive_seed(
@@ -657,6 +660,7 @@ impl GameEnvironment {
     }
 
     pub fn snapshot(&self) -> Observation {
+        td_core::diag_scope!(Snapshot);
         #[cfg(feature = "diagnostics")]
         td_core::diagnostics::record(|counters| counters.snapshot_calls += 1);
         let mut observation = self.game_state.observation(
@@ -710,6 +714,7 @@ impl GameEnvironment {
     }
 
     pub fn state_hash(&self) -> String {
+        td_core::diag_scope!(StateHash);
         self.game_state.authoritative_hash()
     }
 
@@ -797,6 +802,7 @@ impl GameEnvironment {
         &self,
         mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
     ) -> Vec<LegalAction> {
+        td_core::diag_scope!(LegalActions);
         let mut actions = match self.decision_point() {
             DecisionPoint::Shop => self.shop_actions(),
             DecisionPoint::CardSelection => self.card_selection_actions(),
@@ -876,6 +882,7 @@ impl GameEnvironment {
         &self,
         position_limit: Option<usize>,
     ) -> Vec<LegalAction> {
+        td_core::diag_scope!(SemanticLegalActions);
         if self.semantic_card_decision_available() {
             let mut actions = self.semantic_card_actions(position_limit);
             if matches!(self.decision_point(), DecisionPoint::Shop) {
@@ -900,6 +907,7 @@ impl GameEnvironment {
     }
 
     pub fn semantic_step(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
+        td_core::diag_scope!(SemanticStep);
         if !self.semantic_action_is_legal(&action) {
             return Err(EnvironmentError::IllegalAction {
                 decision_point: self.decision_point(),
@@ -915,15 +923,19 @@ impl GameEnvironment {
                     return self.step_unchecked(AgentAction::Reroll { card_ids });
                 }
                 let trace_start = self.policy_trace.steps.len();
-                let trace_pre_observation = self.snapshot();
-                let trace_pre_state_hash = self.state_hash();
-                let trace_legal_actions = self
-                    .semantic_legal_actions_with_position_limit(Some(
+                let (trace_pre_observation, trace_pre_state_hash) = {
+                    td_core::diag_scope!(TraceConstruction);
+                    (self.snapshot(), self.state_hash())
+                };
+                let trace_legal_actions = {
+                    td_core::diag_scope!(TraceConstruction);
+                    self.semantic_legal_actions_with_position_limit(Some(
                         DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
                     ))
                     .into_iter()
                     .map(|legal| legal.action)
-                    .collect::<Vec<_>>();
+                    .collect::<Vec<_>>()
+                };
                 let trace_action = AgentAction::Reroll {
                     card_ids: card_ids.clone(),
                 };
@@ -947,16 +959,20 @@ impl GameEnvironment {
                 top,
             } => {
                 let trace_start = self.policy_trace.steps.len();
-                let trace_pre_observation = self.snapshot();
-                let trace_pre_state_hash = self.state_hash();
+                let (trace_pre_observation, trace_pre_state_hash) = {
+                    td_core::diag_scope!(TraceConstruction);
+                    (self.snapshot(), self.state_hash())
+                };
                 let trace_card_ids = card_ids.clone();
-                let trace_legal_actions = self
-                    .semantic_legal_actions_with_position_limit(Some(
+                let trace_legal_actions = {
+                    td_core::diag_scope!(TraceConstruction);
+                    self.semantic_legal_actions_with_position_limit(Some(
                         DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
                     ))
                     .into_iter()
                     .map(|legal| legal.action)
-                    .collect::<Vec<_>>();
+                    .collect::<Vec<_>>()
+                };
                 let start_outcome = starts_from_shop
                     .then(|| self.step_unchecked_untraced(AgentAction::StartSelectingTower))
                     .transpose()?;
@@ -1005,6 +1021,7 @@ impl GameEnvironment {
         action: AgentAction,
         outcome: &StepOutcome,
     ) {
+        td_core::diag_scope!(TraceConstruction);
         self.policy_trace.steps.truncate(trace_start);
         let action_mask = vec![true; legal_actions.len()];
         self.policy_trace.steps.push(td_core::PolicyTraceStep {
@@ -1029,11 +1046,13 @@ impl GameEnvironment {
     /// terminal state; this may execute multiple fixed simulation ticks.
     pub fn step(&mut self, action: AgentAction) -> Result<StepOutcome, EnvironmentError> {
         let action_id = action.action_id();
-        let legal_actions_before = self.legal_actions();
-        if !legal_actions_before
-            .iter()
-            .any(|legal_action| legal_action.action == action)
-        {
+        let is_legal = {
+            td_core::diag_scope!(StepLegalityCheck);
+            self.legal_actions()
+                .iter()
+                .any(|legal_action| legal_action.action == action)
+        };
+        if !is_legal {
             return Err(EnvironmentError::IllegalAction {
                 decision_point: self.decision_point(),
                 action_id,
@@ -1244,6 +1263,7 @@ impl GameEnvironment {
     }
 
     pub fn advance_until_decision_or_terminal(&mut self) -> StepReason {
+        td_core::diag_scope!(AdvanceUntilDecision);
         let mut ticks_advanced = 0;
         while matches!(
             self.game_state.raw_state().flow(),
@@ -1355,6 +1375,7 @@ impl GameEnvironment {
     }
 
     pub fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
+        td_core::diag_scope!(SemanticActionIsLegal);
         if !self.semantic_card_decision_available() {
             return self
                 .legal_actions()
@@ -1529,6 +1550,7 @@ impl GameEnvironment {
     }
 
     fn semantic_legal_positions(&self, position_limit: Option<usize>) -> Vec<[usize; 2]> {
+        td_core::diag_scope!(PlacementScan);
         #[cfg(feature = "diagnostics")]
         td_core::diagnostics::record(|counters| counters.semantic_legal_positions_scans += 1);
         let state = self.game_state.raw_state();
@@ -1705,6 +1727,7 @@ impl GameEnvironment {
         &self,
         mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
     ) -> Vec<AgentAction> {
+        td_core::diag_scope!(PlacementScan);
         #[cfg(feature = "diagnostics")]
         td_core::diagnostics::record(|counters| counters.tower_placement_action_scans += 1);
         let hand_slot_indices = self.tower_hand_indices();

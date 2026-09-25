@@ -436,6 +436,7 @@ impl GameCore {
     /// or computing replay metadata. Use this for explicit bulk statistics;
     /// use [`Self::advance_tick`] for replayable or policy-traced execution.
     pub fn advance_tick_unrecorded(&mut self) -> TickTransition {
+        td_core::diag_scope!(CoreTick);
         let output = self.session.advance_tick_unrecorded();
         TickTransition {
             sim_tick: SimTick::from_ticks(output.sim_tick.ticks()),
