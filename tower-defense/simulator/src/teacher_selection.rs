@@ -364,7 +364,8 @@ pub(crate) fn terminal_clear_rate(
 /// `BuildTower` and the low-fidelity best `Reroll`, into the S4/1 set.
 /// Returns `(non_reroll_non_build, build_top4, reroll_all)`, each already
 /// filtered to legal, still-deduplicated production candidates.
-const PLACE_TOWER_PROPOSAL_LIMIT: usize = 4;
+pub const BUILD_TOWER_PROPOSAL_LIMIT: usize = 4;
+pub const PLACE_TOWER_PROPOSAL_LIMIT: usize = 4;
 
 #[derive(Default)]
 struct PartitionedCandidates {
@@ -375,8 +376,8 @@ struct PartitionedCandidates {
 }
 
 fn partition_candidates(environment: &GameEnvironment) -> Result<PartitionedCandidates> {
-    let prepared = prepare_semantic_candidates(environment, Some(4))?;
-    let with_build_top4 = prepared.candidates_for_limit(Some(4));
+    let prepared = prepare_semantic_candidates(environment, Some(BUILD_TOWER_PROPOSAL_LIMIT))?;
+    let with_build_top4 = prepared.candidates_for_limit(Some(BUILD_TOWER_PROPOSAL_LIMIT));
     let mut partitioned = PartitionedCandidates::default();
     let mut place_all = Vec::new();
     for candidate in with_build_top4 {

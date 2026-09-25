@@ -49,6 +49,8 @@ enum Command {
     Benchmark(BenchmarkOptions),
     Teacher(TeacherOptions),
     TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
+    TeacherSelectionTerminalGate(TeacherSelectionTerminalGateOptions),
+    TeacherTerminalExtension(TeacherTerminalExtensionOptions),
     #[cfg(feature = "diagnostics")]
     PlacementDiag(PlacementDiagOptions),
     #[cfg(feature = "diagnostics")]
@@ -572,6 +574,8 @@ fn main() -> Result<()> {
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
         Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
+        Command::TeacherSelectionTerminalGate(options) => run_teacher_selection_terminal_gate(options),
+        Command::TeacherTerminalExtension(options) => run_teacher_terminal_extension(options),
         #[cfg(feature = "diagnostics")]
         Command::PlacementDiag(options) => run_placement_diag(options),
         #[cfg(feature = "diagnostics")]
@@ -838,6 +842,155 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
         write_checkpoint(&per_seed)?;
     }
     println!("Teacher selection held-out report saved to: {}", options.output.display());
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherSelectionTerminalGateOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long)]
+    teacher_frozen_commit: String,
+    #[arg(long)]
+    simulator_optimized_commit: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn write_json_atomically(path: &std::path::Path, value: &serde_json::Value) -> Result<()> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp_path = path.with_extension("json.tmp");
+    std::fs::write(&tmp_path, format!("{}\n", serde_json::to_string_pretty(value)?))?;
+    std::fs::rename(&tmp_path, path)?;
+    Ok(())
+}
+
+fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOptions) -> Result<()> {
+    use td_simulator::teacher_selection::{
+        BUILD_TOWER_PROPOSAL_LIMIT, PLACE_TOWER_PROPOSAL_LIMIT, TeacherSelectionPools,
+    };
+    use td_simulator::teacher_terminal_gate::{MAX_EPISODE_DECISIONS, run_terminal_gate_seed};
+
+    let config = Arc::new(GameConfig::default_config());
+    let pools = TeacherSelectionPools::production();
+    let provenance = serde_json::json!({
+        "gate": "phase3_terminal_heldout",
+        "game_seed_start": options.seed_start,
+        "game_seed_end": options.seed_end,
+        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "teacher_frozen_commit": options.teacher_frozen_commit,
+        "simulator_optimized_commit": options.simulator_optimized_commit,
+        "pools": pools,
+        "build_tower_proposal_limit": BUILD_TOWER_PROPOSAL_LIMIT,
+        "place_tower_proposal_limit": PLACE_TOWER_PROPOSAL_LIMIT,
+        "reroll_proposal_limit": 1,
+        "discovery_scenarios": pools.discovery_seeds.len(),
+        "validation_scenarios": pools.validation_seeds.len(),
+        "validation_rule": "paired one-sided t-test per finalist + Holm FWER 0.05",
+        "episode_evaluation": "terminal",
+        "episode_safety_cap": MAX_EPISODE_DECISIONS,
+        "episode_safety_cap_behavior": "error on hit",
+        "primary_metric": "mean over seeds of teacher_terminal_clear_rate - baseline_terminal_clear_rate",
+        "gate_rule": "mean > 0 positive, = 0 tie, < 0 negative",
+    });
+
+    let mut results: Vec<serde_json::Value> = Vec::new();
+    if options.output.exists() {
+        let existing: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&options.output)?)?;
+        let mut existing_provenance = existing.clone();
+        if let Some(map) = existing_provenance.as_object_mut() {
+            map.remove("results");
+            map.remove("performance");
+        }
+        if existing_provenance != provenance {
+            anyhow::bail!(
+                "refusing to resume {}: provenance differs - use a fresh --output path",
+                options.output.display()
+            );
+        }
+        results = existing["results"]
+            .as_array()
+            .cloned()
+            .context("existing output missing results array")?;
+    }
+    let done: std::collections::HashSet<u64> = results
+        .iter()
+        .filter_map(|entry| entry["game_seed"].as_u64())
+        .collect();
+    let performance = serde_json::json!({
+        "rayon_threads": rayon::current_num_threads(),
+    });
+    for seed in options.seed_start..=options.seed_end {
+        if done.contains(&seed) {
+            println!("seed {seed}: already completed, skipping");
+            continue;
+        }
+        let result = run_terminal_gate_seed(Arc::clone(&config), seed, &pools)?;
+        eprintln!(
+            "seed {seed}: baseline terminal clear_rate={:.4} (decisions {}) teacher terminal clear_rate={:.4} (decisions {}, overrides {}) delta={:+.4} teacher_seconds={:.1}",
+            result.baseline.clear_rate,
+            result.baseline.decision_count,
+            result.teacher.clear_rate,
+            result.teacher.decision_count,
+            result.teacher_cost.override_count,
+            result.paired_terminal_clear_rate_delta,
+            result.teacher_seconds
+        );
+        results.push(serde_json::to_value(&result)?);
+        let mut report = provenance.clone();
+        report["performance"] = performance.clone();
+        report["results"] = serde_json::Value::Array(results.clone());
+        write_json_atomically(&options.output, &report)?;
+    }
+    println!("Terminal gate report saved to: {}", options.output.display());
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherTerminalExtensionOptions {
+    #[arg(long)]
+    input: PathBuf,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> Result<()> {
+    let config = Arc::new(GameConfig::default_config());
+    let input: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&options.input)?)?;
+    let records = input["results"]
+        .as_array()
+        .context("input missing results array")?;
+    let mut seeds = Vec::new();
+    for record in records {
+        let extended =
+            td_simulator::teacher_terminal_gate::extend_truncated_seed(Arc::clone(&config), record)?;
+        eprintln!(
+            "seed {}: delta@truncation={:+.4} terminalized delta={:+.4}",
+            extended.game_seed, extended.delta_at_truncation, extended.terminalized_delta
+        );
+        seeds.push(serde_json::to_value(&extended)?);
+    }
+    let report = serde_json::json!({
+        "analysis": "post-hoc diagnostic, not a gate",
+        "input": options.input,
+        "continuation_policy": "canonical_scripted_semantic_action from the recorded truncation state to terminal",
+        "episode_safety_cap": td_simulator::teacher_terminal_gate::MAX_EPISODE_DECISIONS,
+        "results": seeds,
+    });
+    write_json_atomically(&options.output, &report)?;
+    println!("Terminal extension report saved to: {}", options.output.display());
     Ok(())
 }
 
