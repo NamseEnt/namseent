@@ -248,18 +248,20 @@ pub fn extend_truncated_seed(
         let action = if decision.selected_action_id == decision.baseline_action_id {
             canonical_scripted_semantic_action(&teacher_environment)?
         } else {
-            teacher_environment
-                .semantic_legal_actions()
-                .into_iter()
-                .chain(teacher_environment.legal_actions())
-                .find(|legal| legal.id == decision.selected_action_id)
-                .map(|legal| legal.action)
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "seed {game_seed}: recorded action {} is not legal on replay",
-                        decision.selected_action_id
-                    )
-                })?
+            crate::teacher::prepare_semantic_candidates(
+                &teacher_environment,
+                Some(crate::teacher_selection::BUILD_TOWER_PROPOSAL_LIMIT),
+            )?
+            .candidates_for_limit(Some(crate::teacher_selection::BUILD_TOWER_PROPOSAL_LIMIT))
+            .into_iter()
+            .find(|legal| legal.id == decision.selected_action_id)
+            .map(|legal| legal.action)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "seed {game_seed}: recorded action {} is not a teacher candidate on replay",
+                    decision.selected_action_id
+                )
+            })?
         };
         if action.action_id() != decision.selected_action_id {
             bail!("seed {game_seed}: replayed action id differs from the recorded one");
