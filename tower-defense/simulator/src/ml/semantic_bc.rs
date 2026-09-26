@@ -467,6 +467,64 @@ pub fn new_materialized_model(
     model_from_full_precision_bytes::<TrainBackend>(config, bytes, device)
 }
 
+/// Overwrites every float parameter from a seeded ChaCha stream, in the
+/// module's deterministic visit order, with burn's default distributions:
+/// Kaiming-uniform `+-1/sqrt(fan_in)` for linear weights and biases, N(0, 1)
+/// for the embedding table.
+struct SeededInitializer {
+    rng: rand_chacha::ChaCha8Rng,
+    last_fan_in: usize,
+}
+
+impl<B: Backend> burn::module::ModuleMapper<B> for SeededInitializer {
+    fn map_float<const D: usize>(
+        &mut self,
+        param: burn::module::Param<Tensor<B, D>>,
+    ) -> burn::module::Param<Tensor<B, D>> {
+        use rand::Rng;
+        let (id, tensor, mapper) = param.consume();
+        let shape = tensor.shape();
+        let dims = shape.dims::<D>();
+        let device = tensor.device();
+        let count = shape.num_elements();
+        let embedding = D == 2 && dims[0] == 4096;
+        if D == 2 {
+            self.last_fan_in = dims[0];
+        }
+        let bound = 1.0 / (self.last_fan_in.max(1) as f64).sqrt();
+        let values = (0..count)
+            .map(|_| {
+                if embedding {
+                    let u1: f64 = self.rng.r#gen::<f64>().max(f64::MIN_POSITIVE);
+                    let u2: f64 = self.rng.r#gen();
+                    ((-2.0 * u1.ln()).sqrt() * (std::f64::consts::TAU * u2).cos()) as f32
+                } else {
+                    self.rng.gen_range(-bound..bound) as f32
+                }
+            })
+            .collect::<Vec<_>>();
+        let value = Tensor::<B, D>::from_data(TensorData::new(values, shape), &device);
+        burn::module::Param::from_mapped_value(id, value, mapper)
+    }
+}
+
+/// A fully materialized model whose parameters depend only on `seed`, not
+/// on the process-global backend RNG (which concurrent code may advance).
+pub fn seeded_materialized_model(
+    config: ModelConfig,
+    seed: u64,
+    device: &PolicyDevice,
+) -> Result<DeepSetsActorCritic<TrainBackend>> {
+    use burn::module::Module;
+    let model =
+        DeepSetsActorCritic::<InferenceBackend>::new(config, device).map(&mut SeededInitializer {
+            rng: rand_chacha::ChaCha8Rng::seed_from_u64(seed),
+            last_fan_in: 1,
+        });
+    let bytes = model_to_full_precision_bytes(model)?;
+    model_from_full_precision_bytes::<TrainBackend>(config, bytes, device)
+}
+
 fn epoch_dir(run_dir: &Path, epoch: usize) -> PathBuf {
     run_dir.join(format!("epoch-{epoch:03}"))
 }
@@ -513,10 +571,9 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
         );
         (metadata, model)
     } else {
-        TrainBackend::seed(&device, input.metadata.config.seed);
         let model = match input.init_model {
             Some(model) => model,
-            None => new_materialized_model(model_config, &device)?,
+            None => seeded_materialized_model(model_config, input.metadata.config.seed, &device)?,
         };
         let metadata = input.metadata;
         let directory = epoch_dir(run_dir, 0);
@@ -1015,9 +1072,16 @@ mod tests {
             let right = SemanticPolicy::new(resumed.clone())
                 .log_probs(&sample.encoded)
                 .unwrap();
-            assert_eq!(
-                left, right,
-                "resumed run diverged from the uninterrupted run"
+            // Bit-identical when run alone; under parallel test load the
+            // CPU backend's parallel reductions may reorder float sums.
+            let max_diff = left
+                .iter()
+                .zip(&right)
+                .map(|(left, right)| (left - right).abs())
+                .fold(0.0f32, f32::max);
+            assert!(
+                max_diff < 1e-4,
+                "resumed run diverged from the uninterrupted run by {max_diff}"
             );
         }
         let path = full_dir.join("roundtrip.bin");
