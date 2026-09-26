@@ -137,13 +137,20 @@ pub fn run_override_intervention(
     max_continuation_decisions: usize,
 ) -> Result<Vec<StateDiagnostic>> {
     let report: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(artifact).with_context(|| format!("read {}", artifact.display()))?,
+        &std::fs::read_to_string(artifact)
+            .with_context(|| format!("read {}", artifact.display()))?,
     )?;
     let stability = &report["stability"];
     let (ref_scenarios, ref_horizon, ref_limit) = (
-        stability["reference_scenario_count"].as_u64().context("reference_scenario_count")?,
-        stability["reference_horizon_sim_ticks"].as_u64().context("reference_horizon")?,
-        stability["reference_build_tower_rollout_limit"].as_u64().context("reference_limit")?,
+        stability["reference_scenario_count"]
+            .as_u64()
+            .context("reference_scenario_count")?,
+        stability["reference_horizon_sim_ticks"]
+            .as_u64()
+            .context("reference_horizon")?,
+        stability["reference_build_tower_rollout_limit"]
+            .as_u64()
+            .context("reference_limit")?,
     );
     let mut targets = stability["records"]
         .as_array()
@@ -163,7 +170,10 @@ pub fn run_override_intervention(
     targets.sort_by_key(|r| (r["seed"].as_u64(), r["decision_index"].as_u64()));
 
     let mut results = Vec::new();
-    let mut seeds = targets.iter().filter_map(|r| r["seed"].as_u64()).collect::<Vec<_>>();
+    let mut seeds = targets
+        .iter()
+        .filter_map(|r| r["seed"].as_u64())
+        .collect::<Vec<_>>();
     seeds.dedup();
     for seed in seeds {
         let wanted = targets
@@ -193,11 +203,17 @@ pub fn run_override_intervention(
                 }
                 let baseline_action = canonical_scripted_semantic_action(&environment)?;
                 let baseline_id = baseline_action.action_id();
-                let artifact_baseline_id = record["baseline_action_id"].as_str().unwrap_or_default();
+                let artifact_baseline_id =
+                    record["baseline_action_id"].as_str().unwrap_or_default();
                 if baseline_id != artifact_baseline_id {
-                    bail!("baseline action mismatch seed {seed} index {decision_index}: {baseline_id} vs {artifact_baseline_id}");
+                    bail!(
+                        "baseline action mismatch seed {seed} index {decision_index}: {baseline_id} vs {artifact_baseline_id}"
+                    );
                 }
-                let teacher_id = record["selected_action_id"].as_str().unwrap_or_default().to_string();
+                let teacher_id = record["selected_action_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
                 let teacher_action = environment
                     .semantic_legal_actions()
                     .into_iter()
@@ -209,8 +225,18 @@ pub fn run_override_intervention(
                     .map(|&scenario_seed| {
                         Ok(ScenarioPair {
                             scenario_seed,
-                            baseline: run_branch(&environment, &baseline_action, scenario_seed, max_continuation_decisions)?,
-                            teacher: run_branch(&environment, &teacher_action, scenario_seed, max_continuation_decisions)?,
+                            baseline: run_branch(
+                                &environment,
+                                &baseline_action,
+                                scenario_seed,
+                                max_continuation_decisions,
+                            )?,
+                            teacher: run_branch(
+                                &environment,
+                                &teacher_action,
+                                scenario_seed,
+                                max_continuation_decisions,
+                            )?,
                         })
                     })
                     .collect::<Result<Vec<_>>>()?;
@@ -219,7 +245,10 @@ pub fn run_override_intervention(
                 results.push(StateDiagnostic {
                     game_seed: seed,
                     decision_index,
-                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    decision_point: record["decision_point"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
                     state_hash,
                     baseline_action_id: baseline_id,
                     teacher_action_id: teacher_id,
@@ -285,10 +314,12 @@ pub fn run_state_scenario_sensitivity(
     build_tower_rollout_limit: usize,
 ) -> Result<Vec<StateSensitivity>> {
     use crate::teacher::{
-        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline,
+        prepare_semantic_candidates,
     };
     let report: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(artifact).with_context(|| format!("read {}", artifact.display()))?,
+        &std::fs::read_to_string(artifact)
+            .with_context(|| format!("read {}", artifact.display()))?,
     )?;
     let stability = &report["stability"];
     let mut targets = stability["records"]
@@ -304,14 +335,21 @@ pub fn run_state_scenario_sensitivity(
         .collect::<Vec<_>>();
     targets.sort_by_key(|r| (r["seed"].as_u64(), r["decision_index"].as_u64()));
     let mut results = Vec::new();
-    let mut seeds = targets.iter().filter_map(|r| r["seed"].as_u64()).collect::<Vec<_>>();
+    let mut seeds = targets
+        .iter()
+        .filter_map(|r| r["seed"].as_u64())
+        .collect::<Vec<_>>();
     seeds.dedup();
     for seed in seeds {
         let wanted = targets
             .iter()
             .filter(|r| r["seed"].as_u64() == Some(seed))
             .collect::<Vec<_>>();
-        let last_index = wanted.iter().filter_map(|r| r["decision_index"].as_u64()).max().unwrap() as usize;
+        let last_index = wanted
+            .iter()
+            .filter_map(|r| r["decision_index"].as_u64())
+            .max()
+            .unwrap() as usize;
         let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
         for decision_index in 0..=last_index {
             if matches!(environment.decision_point(), DecisionPoint::Terminal) {
@@ -324,14 +362,19 @@ pub fn run_state_scenario_sensitivity(
                 let state_hash = environment.state_hash();
                 let expected_hash = record["state_hash"].as_str().unwrap_or_default();
                 if state_hash != expected_hash {
-                    bail!("state hash mismatch seed {seed} index {decision_index}: replay {state_hash} vs artifact {expected_hash}");
+                    bail!(
+                        "state hash mismatch seed {seed} index {decision_index}: replay {state_hash} vs artifact {expected_hash}"
+                    );
                 }
-                let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+                let prepared =
+                    prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
                 let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
                 let mut evaluations = Vec::new();
                 for &scenario_count in scenario_counts {
                     let config = RolloutTeacherConfig {
-                        scenario_seeds: (scenario_seed_start..scenario_seed_start + scenario_count as u64).collect(),
+                        scenario_seeds: (scenario_seed_start
+                            ..scenario_seed_start + scenario_count as u64)
+                            .collect(),
                         horizon_sim_ticks,
                         build_tower_rollout_limit: Some(build_tower_rollout_limit),
                     };
@@ -366,9 +409,15 @@ pub fn run_state_scenario_sensitivity(
                 results.push(StateSensitivity {
                     game_seed: seed,
                     decision_index,
-                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    decision_point: record["decision_point"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
                     state_hash,
-                    reference_selected_action_id: record["selected_action_id"].as_str().unwrap_or_default().to_string(),
+                    reference_selected_action_id: record["selected_action_id"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
                     evaluations,
                 });
             }
@@ -424,11 +473,12 @@ pub fn run_selection_validation(
 ) -> Result<Vec<SelectionValidation>> {
     use crate::environment::LegalAction;
     use crate::teacher::{
-        RolloutTeacherConfig, candidate_scenario_score, evaluate_semantic_candidate_set_with_baseline,
-        prepare_semantic_candidates,
+        RolloutTeacherConfig, candidate_scenario_score,
+        evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
     };
     let report: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(artifact)?)?;
-    let expected: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(expected_artifact)?)?;
+    let expected: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(expected_artifact)?)?;
     let mut targets = report["stability"]["records"]
         .as_array()
         .context("records")?
@@ -442,19 +492,33 @@ pub fn run_selection_validation(
         .collect::<Vec<_>>();
     targets.sort_by_key(|r| (r["seed"].as_u64(), r["decision_index"].as_u64()));
     let mut results = Vec::new();
-    let mut seeds = targets.iter().filter_map(|r| r["seed"].as_u64()).collect::<Vec<_>>();
+    let mut seeds = targets
+        .iter()
+        .filter_map(|r| r["seed"].as_u64())
+        .collect::<Vec<_>>();
     seeds.dedup();
     for seed in seeds {
-        let wanted = targets.iter().filter(|r| r["seed"].as_u64() == Some(seed)).collect::<Vec<_>>();
-        let last_index = wanted.iter().filter_map(|r| r["decision_index"].as_u64()).max().unwrap() as usize;
+        let wanted = targets
+            .iter()
+            .filter(|r| r["seed"].as_u64() == Some(seed))
+            .collect::<Vec<_>>();
+        let last_index = wanted
+            .iter()
+            .filter_map(|r| r["decision_index"].as_u64())
+            .max()
+            .unwrap() as usize;
         let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
         for decision_index in 0..=last_index {
-            if let Some(record) = wanted.iter().find(|r| r["decision_index"].as_u64() == Some(decision_index as u64)) {
+            if let Some(record) = wanted
+                .iter()
+                .find(|r| r["decision_index"].as_u64() == Some(decision_index as u64))
+            {
                 let state_hash = environment.state_hash();
                 if state_hash != record["state_hash"].as_str().unwrap_or_default() {
                     bail!("state hash mismatch seed {seed} index {decision_index}");
                 }
-                let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+                let prepared =
+                    prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
                 let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
                 let selection_config = RolloutTeacherConfig {
                     scenario_seeds: selection_seeds.to_vec(),
@@ -471,9 +535,14 @@ pub fn run_selection_validation(
                     .as_array()
                     .context("expected artifact")?
                     .iter()
-                    .find(|s| s["game_seed"].as_u64() == Some(seed) && s["decision_index"].as_u64() == Some(decision_index as u64))
+                    .find(|s| {
+                        s["game_seed"].as_u64() == Some(seed)
+                            && s["decision_index"].as_u64() == Some(decision_index as u64)
+                    })
                     .and_then(|s| {
-                        s["evaluations"].as_array()?.iter().find(|e| e["scenario_count"].as_u64() == Some(selection_seeds.len() as u64))
+                        s["evaluations"].as_array()?.iter().find(|e| {
+                            e["scenario_count"].as_u64() == Some(selection_seeds.len() as u64)
+                        })
                     })
                     .and_then(|e| e["selected_action_id"].as_str().map(str::to_string))
                     .context("expected selection missing")?;
@@ -507,17 +576,40 @@ pub fn run_selection_validation(
                     .map(|&scenario_seed| {
                         Ok(ValidationScenario {
                             scenario_seed,
-                            baseline_score: candidate_scenario_score(&environment, &baseline_legal, scenario_seed, &validation_config)?,
-                            selected_score: candidate_scenario_score(&environment, &selected_legal, scenario_seed, &validation_config)?,
-                            baseline_full: run_branch(&environment, &baseline_legal.action, scenario_seed, max_continuation_decisions)?,
-                            selected_full: run_branch(&environment, &selected_legal.action, scenario_seed, max_continuation_decisions)?,
+                            baseline_score: candidate_scenario_score(
+                                &environment,
+                                &baseline_legal,
+                                scenario_seed,
+                                &validation_config,
+                            )?,
+                            selected_score: candidate_scenario_score(
+                                &environment,
+                                &selected_legal,
+                                scenario_seed,
+                                &validation_config,
+                            )?,
+                            baseline_full: run_branch(
+                                &environment,
+                                &baseline_legal.action,
+                                scenario_seed,
+                                max_continuation_decisions,
+                            )?,
+                            selected_full: run_branch(
+                                &environment,
+                                &selected_legal.action,
+                                scenario_seed,
+                                max_continuation_decisions,
+                            )?,
                         })
                     })
                     .collect::<Result<Vec<_>>>()?;
                 results.push(SelectionValidation {
                     game_seed: seed,
                     decision_index,
-                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    decision_point: record["decision_point"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
                     state_hash,
                     baseline_action_id: baseline_id,
                     selection_selected_action_id: decision.selected_action_id.clone(),
@@ -566,18 +658,32 @@ pub fn run_frozen_horizon_sweep(
 ) -> Result<Vec<FrozenHorizonSweep>> {
     use crate::environment::LegalAction;
     use crate::teacher::{RolloutTeacherConfig, candidate_scenario_score};
-    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let frozen: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
     let mut states = frozen.as_array().context("frozen artifact")?.clone();
     states.sort_by_key(|s| (s["game_seed"].as_u64(), s["decision_index"].as_u64()));
     let mut results = Vec::new();
-    let mut seeds = states.iter().filter_map(|s| s["game_seed"].as_u64()).collect::<Vec<_>>();
+    let mut seeds = states
+        .iter()
+        .filter_map(|s| s["game_seed"].as_u64())
+        .collect::<Vec<_>>();
     seeds.dedup();
     for seed in seeds {
-        let wanted = states.iter().filter(|s| s["game_seed"].as_u64() == Some(seed)).collect::<Vec<_>>();
-        let last_index = wanted.iter().filter_map(|s| s["decision_index"].as_u64()).max().unwrap() as usize;
+        let wanted = states
+            .iter()
+            .filter(|s| s["game_seed"].as_u64() == Some(seed))
+            .collect::<Vec<_>>();
+        let last_index = wanted
+            .iter()
+            .filter_map(|s| s["decision_index"].as_u64())
+            .max()
+            .unwrap() as usize;
         let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
         for decision_index in 0..=last_index {
-            if let Some(state) = wanted.iter().find(|s| s["decision_index"].as_u64() == Some(decision_index as u64)) {
+            if let Some(state) = wanted
+                .iter()
+                .find(|s| s["decision_index"].as_u64() == Some(decision_index as u64))
+            {
                 let state_hash = environment.state_hash();
                 if state_hash != state["state_hash"].as_str().unwrap_or_default() {
                     bail!("state hash mismatch seed {seed} index {decision_index}");
@@ -587,15 +693,24 @@ pub fn run_frozen_horizon_sweep(
                 if baseline_id != state["baseline_action_id"].as_str().unwrap_or_default() {
                     bail!("baseline action mismatch seed {seed} index {decision_index}");
                 }
-                let selected_id = state["selection_selected_action_id"].as_str().unwrap_or_default().to_string();
+                let selected_id = state["selection_selected_action_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
                 let selected_action = environment
                     .semantic_legal_actions()
                     .into_iter()
                     .find(|legal| legal.id == selected_id)
                     .with_context(|| format!("frozen action {selected_id} not legal"))?
                     .action;
-                let baseline_legal = LegalAction { id: baseline_id.clone(), action: baseline_action };
-                let selected_legal = LegalAction { id: selected_id.clone(), action: selected_action };
+                let baseline_legal = LegalAction {
+                    id: baseline_id.clone(),
+                    action: baseline_action,
+                };
+                let selected_legal = LegalAction {
+                    id: selected_id.clone(),
+                    action: selected_action,
+                };
                 let mut horizon_results = Vec::new();
                 for &horizon in horizons {
                     let config = RolloutTeacherConfig {
@@ -607,8 +722,18 @@ pub fn run_frozen_horizon_sweep(
                         .par_iter()
                         .map(|&scenario_seed| {
                             Ok((
-                                candidate_scenario_score(&environment, &baseline_legal, scenario_seed, &config)?,
-                                candidate_scenario_score(&environment, &selected_legal, scenario_seed, &config)?,
+                                candidate_scenario_score(
+                                    &environment,
+                                    &baseline_legal,
+                                    scenario_seed,
+                                    &config,
+                                )?,
+                                candidate_scenario_score(
+                                    &environment,
+                                    &selected_legal,
+                                    scenario_seed,
+                                    &config,
+                                )?,
                             ))
                         })
                         .collect::<Result<Vec<_>>>()?;
@@ -723,9 +848,11 @@ pub fn run_multifidelity_topk(
     max_continuation_decisions: usize,
 ) -> Result<Vec<MultiFidelityState>> {
     use crate::teacher::{
-        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline,
+        prepare_semantic_candidates,
     };
-    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let frozen: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
     let frozen = frozen.as_array().context("frozen artifact")?;
     let max_k = *ks.iter().max().context("ks")?;
     let mut wanted = states.to_vec();
@@ -741,7 +868,10 @@ pub fn run_multifidelity_topk(
             if mine.iter().any(|s| s.1 == decision_index) {
                 let record = frozen
                     .iter()
-                    .find(|f| f["game_seed"].as_u64() == Some(seed) && f["decision_index"].as_u64() == Some(decision_index as u64))
+                    .find(|f| {
+                        f["game_seed"].as_u64() == Some(seed)
+                            && f["decision_index"].as_u64() == Some(decision_index as u64)
+                    })
                     .context("state missing in frozen artifact")?;
                 let state_hash = environment.state_hash();
                 if state_hash != record["state_hash"].as_str().unwrap_or_default() {
@@ -752,10 +882,14 @@ pub fn run_multifidelity_topk(
                 if baseline_id != record["baseline_action_id"].as_str().unwrap_or_default() {
                     bail!("baseline action mismatch seed {seed} index {decision_index}");
                 }
-                let frozen_id = record["selection_selected_action_id"].as_str().unwrap_or_default().to_string();
+                let frozen_id = record["selection_selected_action_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
 
                 let started = std::time::Instant::now();
-                let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+                let prepared =
+                    prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
                 let candidates = prepared.candidates_for_limit(Some(build_tower_rollout_limit));
                 let config = RolloutTeacherConfig {
                     scenario_seeds: low_seeds.to_vec(),
@@ -770,8 +904,16 @@ pub fn run_multifidelity_topk(
                 )?;
                 let low_fidelity_seconds = started.elapsed().as_secs_f64();
                 let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
-                ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
-                let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+                ranked.sort_by(|a, b| {
+                    b.mean_score
+                        .total_cmp(&a.mean_score)
+                        .then_with(|| a.action_id.cmp(&b.action_id))
+                });
+                let baseline_low = ranked
+                    .iter()
+                    .find(|c| c.action_id == baseline_id)
+                    .context("baseline estimate")?
+                    .mean_score;
                 let low_fidelity = ranked
                     .iter()
                     .enumerate()
@@ -793,7 +935,12 @@ pub fn run_multifidelity_topk(
                         .action
                         .clone())
                 };
-                let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
+                let rank_of = |id: &str| {
+                    low_fidelity
+                        .iter()
+                        .find(|e| e.action_id == id)
+                        .map(|e| e.rank_among_all)
+                };
                 let shortlist = low_fidelity
                     .iter()
                     .filter(|e| !e.is_baseline)
@@ -802,12 +949,23 @@ pub fn run_multifidelity_topk(
                     .collect::<Vec<_>>();
 
                 let run_series = |id: &str, seeds: &[u64]| -> Result<TerminalSeries> {
-                    let action = if id == baseline_id { baseline_action.clone() } else { action_of(id)? };
+                    let action = if id == baseline_id {
+                        baseline_action.clone()
+                    } else {
+                        action_of(id)?
+                    };
                     let outcomes = seeds
                         .par_iter()
-                        .map(|&s| run_branch(&environment, &action, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+                        .map(|&s| {
+                            run_branch(&environment, &action, s, max_continuation_decisions)
+                                .map(|b| TerminalOutcome::from(&b))
+                        })
                         .collect::<Result<Vec<_>>>()?;
-                    Ok(TerminalSeries { action_id: id.to_string(), low_fidelity_rank: rank_of(id), outcomes })
+                    Ok(TerminalSeries {
+                        action_id: id.to_string(),
+                        low_fidelity_rank: rank_of(id),
+                        outcomes,
+                    })
                 };
 
                 let started = std::time::Instant::now();
@@ -821,7 +979,10 @@ pub fn run_multifidelity_topk(
                     .map(|id| run_series(id, discovery_seeds))
                     .collect::<Result<Vec<_>>>()?;
                 let discovery_seconds = started.elapsed().as_secs_f64();
-                let baseline_series = discovery.iter().find(|s| s.action_id == baseline_id).unwrap();
+                let baseline_series = discovery
+                    .iter()
+                    .find(|s| s.action_id == baseline_id)
+                    .unwrap();
                 let baseline_mean = mean_clear(baseline_series);
                 let k_winners = ks
                     .iter()
@@ -831,12 +992,18 @@ pub fn run_multifidelity_topk(
                         for id in shortlist.iter().take(k) {
                             let series = discovery.iter().find(|s| &s.action_id == id).unwrap();
                             let mean = mean_clear(series);
-                            if mean > best_mean || (mean == best_mean && best_id != baseline_id && *id < best_id) {
+                            if mean > best_mean
+                                || (mean == best_mean && best_id != baseline_id && *id < best_id)
+                            {
                                 best_id = id.clone();
                                 best_mean = mean;
                             }
                         }
-                        KWinner { k, winner_is_baseline: best_id == baseline_id, winner_action_id: best_id }
+                        KWinner {
+                            k,
+                            winner_is_baseline: best_id == baseline_id,
+                            winner_action_id: best_id,
+                        }
                     })
                     .collect::<Vec<_>>();
 
@@ -855,11 +1022,15 @@ pub fn run_multifidelity_topk(
                     .map(|id| run_series(id, validation_seeds))
                     .collect::<Result<Vec<_>>>()?;
                 let validation_seconds = started.elapsed().as_secs_f64();
-                let terminal_rollouts = discovery.len() * discovery_seeds.len() + validation.len() * validation_seeds.len();
+                let terminal_rollouts = discovery.len() * discovery_seeds.len()
+                    + validation.len() * validation_seeds.len();
                 results.push(MultiFidelityState {
                     game_seed: seed,
                     decision_index,
-                    decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+                    decision_point: record["decision_point"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
                     state_hash,
                     baseline_action_id: baseline_id,
                     frozen_phase3h_action_id: frozen_id,
@@ -924,14 +1095,19 @@ pub fn run_exhaustive_terminal(
     max_continuation_decisions: usize,
 ) -> Result<ExhaustiveTerminalResult> {
     use crate::teacher::{
-        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline,
+        prepare_semantic_candidates,
     };
-    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let frozen: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
     let record = frozen
         .as_array()
         .context("frozen artifact")?
         .iter()
-        .find(|f| f["game_seed"].as_u64() == Some(state.0) && f["decision_index"].as_u64() == Some(state.1 as u64))
+        .find(|f| {
+            f["game_seed"].as_u64() == Some(state.0)
+                && f["decision_index"].as_u64() == Some(state.1 as u64)
+        })
         .context("state missing in frozen artifact")?
         .clone();
     let mut environment = GameEnvironment::new(Arc::clone(&game_config), state.0);
@@ -971,8 +1147,16 @@ pub fn run_exhaustive_terminal(
     )?;
     let low_fidelity_seconds = started.elapsed().as_secs_f64();
     let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
-    ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
-    let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+    ranked.sort_by(|a, b| {
+        b.mean_score
+            .total_cmp(&a.mean_score)
+            .then_with(|| a.action_id.cmp(&b.action_id))
+    });
+    let baseline_low = ranked
+        .iter()
+        .find(|c| c.action_id == baseline_id)
+        .context("baseline estimate")?
+        .mean_score;
     let low_fidelity = ranked
         .iter()
         .enumerate()
@@ -985,46 +1169,90 @@ pub fn run_exhaustive_terminal(
             is_baseline: c.action_id == baseline_id,
         })
         .collect::<Vec<_>>();
-    let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
-    let all = decision.candidates.iter().map(|c| (c.action_id.clone(), c.action.clone())).collect::<Vec<_>>();
-
-    let run_grid = |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
-        let flat = actions
+    let rank_of = |id: &str| {
+        low_fidelity
             .iter()
-            .enumerate()
-            .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
-            .collect::<Vec<_>>();
-        let outcomes = flat
-            .par_iter()
-            .map(|&(a, s)| run_branch(&environment, &actions[a].1, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
-            .collect::<Result<Vec<_>>>()?;
-        Ok(actions
-            .iter()
-            .enumerate()
-            .map(|(a, (id, _))| TerminalSeries {
-                action_id: id.clone(),
-                low_fidelity_rank: rank_of(id),
-                outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
-            })
-            .collect())
+            .find(|e| e.action_id == id)
+            .map(|e| e.rank_among_all)
     };
+    let all = decision
+        .candidates
+        .iter()
+        .map(|c| (c.action_id.clone(), c.action.clone()))
+        .collect::<Vec<_>>();
+
+    let run_grid =
+        |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
+            let flat = actions
+                .iter()
+                .enumerate()
+                .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
+                .collect::<Vec<_>>();
+            let outcomes = flat
+                .par_iter()
+                .map(|&(a, s)| {
+                    run_branch(&environment, &actions[a].1, s, max_continuation_decisions)
+                        .map(|b| TerminalOutcome::from(&b))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            Ok(actions
+                .iter()
+                .enumerate()
+                .map(|(a, (id, _))| TerminalSeries {
+                    action_id: id.clone(),
+                    low_fidelity_rank: rank_of(id),
+                    outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
+                })
+                .collect())
+        };
 
     let started = std::time::Instant::now();
     let discovery = run_grid(&all, discovery_seeds)?;
     let discovery_seconds = started.elapsed().as_secs_f64();
-    let baseline_mean = mean_clear(discovery.iter().find(|s| s.action_id == baseline_id).unwrap());
+    let baseline_mean = mean_clear(
+        discovery
+            .iter()
+            .find(|s| s.action_id == baseline_id)
+            .unwrap(),
+    );
     let _ = baseline_mean;
-    let mut by_terminal = discovery.iter().filter(|s| s.action_id != baseline_id).collect::<Vec<_>>();
-    by_terminal.sort_by(|a, b| mean_clear(b).total_cmp(&mean_clear(a)).then_with(|| a.action_id.cmp(&b.action_id)));
+    let mut by_terminal = discovery
+        .iter()
+        .filter(|s| s.action_id != baseline_id)
+        .collect::<Vec<_>>();
+    by_terminal.sort_by(|a, b| {
+        mean_clear(b)
+            .total_cmp(&mean_clear(a))
+            .then_with(|| a.action_id.cmp(&b.action_id))
+    });
     let mut validation_ids = vec![baseline_id.clone()];
-    validation_ids.extend(by_terminal.iter().take(validation_top).map(|s| s.action_id.clone()));
-    let low_top = low_fidelity.iter().find(|e| !e.is_baseline).context("low-fidelity top")?.action_id.clone();
+    validation_ids.extend(
+        by_terminal
+            .iter()
+            .take(validation_top)
+            .map(|s| s.action_id.clone()),
+    );
+    let low_top = low_fidelity
+        .iter()
+        .find(|e| !e.is_baseline)
+        .context("low-fidelity top")?
+        .action_id
+        .clone();
     if !validation_ids.contains(&low_top) {
         validation_ids.push(low_top);
     }
     let validation_actions = validation_ids
         .iter()
-        .map(|id| Ok((id.clone(), all.iter().find(|(a, _)| a == id).context("validation action")?.1.clone())))
+        .map(|id| {
+            Ok((
+                id.clone(),
+                all.iter()
+                    .find(|(a, _)| a == id)
+                    .context("validation action")?
+                    .1
+                    .clone(),
+            ))
+        })
         .collect::<Result<Vec<_>>>()?;
     let started = std::time::Instant::now();
     let validation = run_grid(&validation_actions, validation_seeds)?;
@@ -1032,7 +1260,10 @@ pub fn run_exhaustive_terminal(
     Ok(ExhaustiveTerminalResult {
         game_seed: state.0,
         decision_index: state.1,
-        decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+        decision_point: record["decision_point"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string(),
         state_hash,
         baseline_action_id: baseline_id,
         candidate_count: all.len(),
@@ -1059,14 +1290,18 @@ pub fn candidate_orders(
     build_tower_rollout_limit: usize,
 ) -> Result<Vec<serde_json::Value>> {
     use crate::teacher::prepare_semantic_candidates;
-    let frozen: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
+    let frozen: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(frozen_artifact)?)?;
     let mut out = Vec::new();
     for &(seed, index) in states {
         let record = frozen
             .as_array()
             .context("frozen artifact")?
             .iter()
-            .find(|f| f["game_seed"].as_u64() == Some(seed) && f["decision_index"].as_u64() == Some(index as u64))
+            .find(|f| {
+                f["game_seed"].as_u64() == Some(seed)
+                    && f["decision_index"].as_u64() == Some(index as u64)
+            })
             .context("state missing in frozen artifact")?;
         let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
         for _ in 0..index {
@@ -1125,7 +1360,9 @@ pub fn select_fresh_states(
         let mut environment = GameEnvironment::new(Arc::clone(&game_config), seed);
         let mut selection = FreshStateSelection {
             game_seed: seed,
-            rule: format!("first {wanted_point} with candidate_count >= {min_candidates} in first {scan_decisions} decisions"),
+            rule: format!(
+                "first {wanted_point} with candidate_count >= {min_candidates} in first {scan_decisions} decisions"
+            ),
             found: false,
             decision_index: None,
             decision_point: None,
@@ -1140,7 +1377,8 @@ pub fn select_fresh_states(
                 break;
             }
             let point = format!("{:?}", environment.decision_point());
-            let prepared = prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
+            let prepared =
+                prepare_semantic_candidates(&environment, Some(build_tower_rollout_limit))?;
             let mut ids = prepared
                 .candidates_for_limit(Some(build_tower_rollout_limit))
                 .into_iter()
@@ -1150,7 +1388,9 @@ pub fn select_fresh_states(
             if !ids.contains(&baseline_id) {
                 ids.push(baseline_id.clone());
             }
-            selection.scanned.push((decision_index, point.clone(), ids.len()));
+            selection
+                .scanned
+                .push((decision_index, point.clone(), ids.len()));
             if !selection.found && point == wanted_point && ids.len() >= min_candidates {
                 selection.found = true;
                 selection.decision_index = Some(decision_index);
@@ -1159,7 +1399,10 @@ pub fn select_fresh_states(
                 selection.baseline_action_id = Some(baseline_id);
                 selection.candidate_count = Some(ids.len());
                 for id in &ids {
-                    *selection.kind_counts.entry(id.split(':').next().unwrap_or("").to_string()).or_default() += 1;
+                    *selection
+                        .kind_counts
+                        .entry(id.split(':').next().unwrap_or("").to_string())
+                        .or_default() += 1;
                 }
             }
             let action = canonical_scripted_semantic_action(&environment)?;
@@ -1198,9 +1441,11 @@ pub fn run_exhaustive_prereg(
     max_continuation_decisions: usize,
 ) -> Result<PreregResult> {
     use crate::teacher::{
-        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+        RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline,
+        prepare_semantic_candidates,
     };
-    let selections: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(selection_artifact)?)?;
+    let selections: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(selection_artifact)?)?;
     let record = selections
         .as_array()
         .context("selection artifact")?
@@ -1211,7 +1456,9 @@ pub fn run_exhaustive_prereg(
     if record["found"].as_bool() != Some(true) {
         bail!("seed {game_seed} has no selected state");
     }
-    let decision_index = record["decision_index"].as_u64().context("decision_index")? as usize;
+    let decision_index = record["decision_index"]
+        .as_u64()
+        .context("decision_index")? as usize;
     let mut environment = GameEnvironment::new(Arc::clone(&game_config), game_seed);
     for _ in 0..decision_index {
         let action = canonical_scripted_semantic_action(&environment)?;
@@ -1247,8 +1494,16 @@ pub fn run_exhaustive_prereg(
     )?;
     let low_fidelity_seconds = started.elapsed().as_secs_f64();
     let mut ranked = decision.candidates.iter().collect::<Vec<_>>();
-    ranked.sort_by(|a, b| b.mean_score.total_cmp(&a.mean_score).then_with(|| a.action_id.cmp(&b.action_id)));
-    let baseline_low = ranked.iter().find(|c| c.action_id == baseline_id).context("baseline estimate")?.mean_score;
+    ranked.sort_by(|a, b| {
+        b.mean_score
+            .total_cmp(&a.mean_score)
+            .then_with(|| a.action_id.cmp(&b.action_id))
+    });
+    let baseline_low = ranked
+        .iter()
+        .find(|c| c.action_id == baseline_id)
+        .context("baseline estimate")?
+        .mean_score;
     let low_fidelity = ranked
         .iter()
         .enumerate()
@@ -1261,8 +1516,17 @@ pub fn run_exhaustive_prereg(
             is_baseline: c.action_id == baseline_id,
         })
         .collect::<Vec<_>>();
-    let rank_of = |id: &str| low_fidelity.iter().find(|e| e.action_id == id).map(|e| e.rank_among_all);
-    let all = decision.candidates.iter().map(|c| (c.action_id.clone(), c.action.clone())).collect::<Vec<_>>();
+    let rank_of = |id: &str| {
+        low_fidelity
+            .iter()
+            .find(|e| e.action_id == id)
+            .map(|e| e.rank_among_all)
+    };
+    let all = decision
+        .candidates
+        .iter()
+        .map(|c| (c.action_id.clone(), c.action.clone()))
+        .collect::<Vec<_>>();
     let kind = |id: &str| id.split(':').next().unwrap_or("").to_string();
 
     let mut s41 = vec![baseline_id.clone()];
@@ -1271,59 +1535,94 @@ pub fn run_exhaustive_prereg(
             s41.push(id.clone());
         }
     }
-    for id in candidate_order.iter().filter(|id| kind(id) == "build_tower").take(4) {
+    for id in candidate_order
+        .iter()
+        .filter(|id| kind(id) == "build_tower")
+        .take(4)
+    {
         if !s41.contains(id) {
             s41.push(id.clone());
         }
     }
-    if let Some(top_reroll) = low_fidelity.iter().find(|e| kind(&e.action_id) == "reroll") {
-        if !s41.contains(&top_reroll.action_id) {
-            s41.push(top_reroll.action_id.clone());
-        }
+    if let Some(top_reroll) = low_fidelity.iter().find(|e| kind(&e.action_id) == "reroll")
+        && !s41.contains(&top_reroll.action_id)
+    {
+        s41.push(top_reroll.action_id.clone());
     }
 
-    let run_grid = |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
-        let flat = actions
-            .iter()
-            .enumerate()
-            .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
-            .collect::<Vec<_>>();
-        let outcomes = flat
-            .par_iter()
-            .map(|&(a, s)| run_branch(&environment, &actions[a].1, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
-            .collect::<Result<Vec<_>>>()?;
-        Ok(actions
-            .iter()
-            .enumerate()
-            .map(|(a, (id, _))| TerminalSeries {
-                action_id: id.clone(),
-                low_fidelity_rank: rank_of(id),
-                outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
-            })
-            .collect())
-    };
+    let run_grid =
+        |actions: &[(String, AgentAction)], seeds: &[u64]| -> Result<Vec<TerminalSeries>> {
+            let flat = actions
+                .iter()
+                .enumerate()
+                .flat_map(|(a, _)| seeds.iter().map(move |&s| (a, s)))
+                .collect::<Vec<_>>();
+            let outcomes = flat
+                .par_iter()
+                .map(|&(a, s)| {
+                    run_branch(&environment, &actions[a].1, s, max_continuation_decisions)
+                        .map(|b| TerminalOutcome::from(&b))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            Ok(actions
+                .iter()
+                .enumerate()
+                .map(|(a, (id, _))| TerminalSeries {
+                    action_id: id.clone(),
+                    low_fidelity_rank: rank_of(id),
+                    outcomes: outcomes[a * seeds.len()..(a + 1) * seeds.len()].to_vec(),
+                })
+                .collect())
+        };
 
     let started = std::time::Instant::now();
     let discovery = run_grid(&all, discovery_seeds)?;
     let discovery_seconds = started.elapsed().as_secs_f64();
-    let mut by_terminal = discovery.iter().filter(|s| s.action_id != baseline_id).collect::<Vec<_>>();
-    by_terminal.sort_by(|a, b| mean_clear(b).total_cmp(&mean_clear(a)).then_with(|| a.action_id.cmp(&b.action_id)));
-    let baseline_mean = mean_clear(discovery.iter().find(|s| s.action_id == baseline_id).unwrap());
+    let mut by_terminal = discovery
+        .iter()
+        .filter(|s| s.action_id != baseline_id)
+        .collect::<Vec<_>>();
+    by_terminal.sort_by(|a, b| {
+        mean_clear(b)
+            .total_cmp(&mean_clear(a))
+            .then_with(|| a.action_id.cmp(&b.action_id))
+    });
+    let baseline_mean = mean_clear(
+        discovery
+            .iter()
+            .find(|s| s.action_id == baseline_id)
+            .unwrap(),
+    );
     let mut validation_ids = vec![baseline_id.clone()];
-    validation_ids.extend(by_terminal.iter().take(validation_top).map(|s| s.action_id.clone()));
-    if let Some(best) = by_terminal.iter().find(|s| s41.contains(&s.action_id)) {
-        if mean_clear(best) > baseline_mean && !validation_ids.contains(&best.action_id) {
-            validation_ids.push(best.action_id.clone());
-        }
+    validation_ids.extend(
+        by_terminal
+            .iter()
+            .take(validation_top)
+            .map(|s| s.action_id.clone()),
+    );
+    if let Some(best) = by_terminal.iter().find(|s| s41.contains(&s.action_id))
+        && mean_clear(best) > baseline_mean
+        && !validation_ids.contains(&best.action_id)
+    {
+        validation_ids.push(best.action_id.clone());
     }
-    if let Some(low_top) = low_fidelity.iter().find(|e| !e.is_baseline) {
-        if !validation_ids.contains(&low_top.action_id) {
-            validation_ids.push(low_top.action_id.clone());
-        }
+    if let Some(low_top) = low_fidelity.iter().find(|e| !e.is_baseline)
+        && !validation_ids.contains(&low_top.action_id)
+    {
+        validation_ids.push(low_top.action_id.clone());
     }
     let validation_actions = validation_ids
         .iter()
-        .map(|id| Ok((id.clone(), all.iter().find(|(a, _)| a == id).context("validation action")?.1.clone())))
+        .map(|id| {
+            Ok((
+                id.clone(),
+                all.iter()
+                    .find(|(a, _)| a == id)
+                    .context("validation action")?
+                    .1
+                    .clone(),
+            ))
+        })
         .collect::<Result<Vec<_>>>()?;
     let started = std::time::Instant::now();
     let validation = run_grid(&validation_actions, validation_seeds)?;
@@ -1332,7 +1631,10 @@ pub fn run_exhaustive_prereg(
         base: ExhaustiveTerminalResult {
             game_seed,
             decision_index,
-            decision_point: record["decision_point"].as_str().unwrap_or_default().to_string(),
+            decision_point: record["decision_point"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string(),
             state_hash,
             baseline_action_id: baseline_id,
             candidate_count: all.len(),
@@ -1370,6 +1672,7 @@ pub struct FrozenCandidateValidation {
 /// candidate ids to terminal on fresh scenarios. No discovery, no
 /// reselection - candidate_ids are supplied by the caller (e.g. an S4/1
 /// discovery top-3 computed offline from an existing exhaustive artifact).
+#[allow(clippy::too_many_arguments)]
 pub fn run_frozen_candidate_validation(
     game_config: Arc<GameConfig>,
     game_seed: u64,
@@ -1395,7 +1698,9 @@ pub fn run_frozen_candidate_validation(
     let baseline_action = canonical_scripted_semantic_action(&environment)?;
     let baseline_id = baseline_action.action_id();
     if baseline_id != expected_baseline_action_id {
-        bail!("baseline action mismatch: replay {baseline_id} vs expected {expected_baseline_action_id}");
+        bail!(
+            "baseline action mismatch: replay {baseline_id} vs expected {expected_baseline_action_id}"
+        );
     }
     let prepared = crate::teacher::prepare_semantic_candidates(&environment, None)?;
     let all_candidates = prepared.candidates_for_limit(None);
@@ -1409,9 +1714,16 @@ pub fn run_frozen_candidate_validation(
     let run_series = |id: &str, action: &AgentAction| -> Result<TerminalSeries> {
         let outcomes = validation_seeds
             .par_iter()
-            .map(|&s| run_branch(&environment, action, s, max_continuation_decisions).map(|b| TerminalOutcome::from(&b)))
+            .map(|&s| {
+                run_branch(&environment, action, s, max_continuation_decisions)
+                    .map(|b| TerminalOutcome::from(&b))
+            })
             .collect::<Result<Vec<_>>>()?;
-        Ok(TerminalSeries { action_id: id.to_string(), low_fidelity_rank: None, outcomes })
+        Ok(TerminalSeries {
+            action_id: id.to_string(),
+            low_fidelity_rank: None,
+            outcomes,
+        })
     };
     let baseline = run_series(&baseline_id, &baseline_action)?;
     let candidates = candidate_ids

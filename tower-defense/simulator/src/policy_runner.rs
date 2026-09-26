@@ -957,7 +957,8 @@ pub fn canonical_scripted_semantic_action(environment: &GameEnvironment) -> Resu
     td_core::diag_scope!(CanonicalPolicy);
     let observation = environment.snapshot();
     if environment.semantic_card_decision_available() {
-        let table = crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
+        let table =
+            crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
         return canonical_scripted_semantic_action_from_table(environment, &observation, &table);
     }
     scripted_expert_action(&observation, &environment.semantic_non_build_actions())
@@ -992,7 +993,10 @@ type PlaceTowerRankKey = (usize, std::cmp::Reverse<usize>, i64, String);
 /// Canonical `TowerPlacement` ordering for a `PlaceTower` action: most
 /// route cells in range, then nearest to the route, then highest tower
 /// damage, then action id. `None` for any other action.
-fn place_tower_rank_key(observation: &Observation, action: &AgentAction) -> Option<PlaceTowerRankKey> {
+fn place_tower_rank_key(
+    observation: &Observation,
+    action: &AgentAction,
+) -> Option<PlaceTowerRankKey> {
     let AgentAction::PlaceTower {
         hand_slot_index,
         left,
@@ -1043,7 +1047,9 @@ pub(crate) fn rank_place_tower_actions(
 ) -> Vec<LegalAction> {
     let mut ranked = legal_actions
         .iter()
-        .filter_map(|legal| place_tower_rank_key(observation, &legal.action).map(|key| (key, legal)))
+        .filter_map(|legal| {
+            place_tower_rank_key(observation, &legal.action).map(|key| (key, legal))
+        })
         .collect::<Vec<_>>();
     ranked.sort_by(|(left, _), (right, _)| right.cmp(left));
     ranked.into_iter().map(|(_, legal)| legal.clone()).collect()
@@ -2117,8 +2123,9 @@ mod tests {
                 "{label}: canonical BuildTower action must be the dense table's global best"
             );
             let score_of = |action: &AgentAction| {
-                crate::joint_action::joint_index_for_action(&table.subsets, action)
-                    .and_then(|(subset, hand_slot, position)| table.score(subset, hand_slot, position))
+                crate::joint_action::joint_index_for_action(&table.subsets, action).and_then(
+                    |(subset, hand_slot, position)| table.score(subset, hand_slot, position),
+                )
             };
             let canonical_score = score_of(&canonical)
                 .unwrap_or_else(|| panic!("{label}: canonical BuildTower action must be scored"));
@@ -2170,7 +2177,10 @@ mod tests {
                 break;
             }
         }
-        assert!(found, "expected at least one seed to trigger the scripted reroll heuristic");
+        assert!(
+            found,
+            "expected at least one seed to trigger the scripted reroll heuristic"
+        );
     }
 
     #[test]

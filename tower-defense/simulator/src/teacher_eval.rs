@@ -20,9 +20,9 @@ use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use crate::policy_runner::canonical_scripted_semantic_action;
 use crate::teacher::{
-    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION, evaluate_semantic_candidate_set_with_baseline,
-    prepare_semantic_candidates, run_semantic_teacher_episode, scenario_seed_digest,
-    settle_forced_actions,
+    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION,
+    evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
+    run_semantic_teacher_episode, scenario_seed_digest, settle_forced_actions,
 };
 
 /// A "large regret" threshold fixed before any stability results are seen -
@@ -105,7 +105,9 @@ pub fn run_canonical_scripted_semantic_batch(
 ) -> Result<Vec<CanonicalEpisodeResult>> {
     let mut results = seeds
         .par_iter()
-        .map(|&seed| run_canonical_scripted_semantic_episode(Arc::clone(&game_config), seed, max_decisions))
+        .map(|&seed| {
+            run_canonical_scripted_semantic_episode(Arc::clone(&game_config), seed, max_decisions)
+        })
         .collect::<Result<Vec<_>>>()?;
     results.sort_by_key(|episode| episode.seed);
     Ok(results)
@@ -136,17 +138,14 @@ impl StabilityGridConfig {
         if self.state_limit_per_seed == 0 {
             bail!("state_limit_per_seed must be positive");
         }
-        if self.scenario_counts.is_empty() || self.scenario_counts.iter().any(|&count| count == 0) {
+        if self.scenario_counts.is_empty() || self.scenario_counts.contains(&0) {
             bail!("scenario_counts must be non-empty and positive");
         }
-        if self.horizon_sim_ticks.is_empty() || self.horizon_sim_ticks.iter().any(|&h| h == 0) {
+        if self.horizon_sim_ticks.is_empty() || self.horizon_sim_ticks.contains(&0) {
             bail!("horizon_sim_ticks must be non-empty and positive");
         }
         if self.build_tower_rollout_limits.is_empty()
-            || self
-                .build_tower_rollout_limits
-                .iter()
-                .any(|limit| *limit == Some(0))
+            || self.build_tower_rollout_limits.contains(&Some(0))
         {
             bail!("build_tower_rollout_limits must be non-empty and positive when set");
         }
@@ -259,7 +258,9 @@ pub fn run_stability_grid(
                 prepare_semantic_candidates(&environment, reference_build_tower_rollout_limit)?;
             for &scenario_count in &grid.scenario_counts {
                 let scenario_seeds = (grid.scenario_seed_start
-                    ..grid.scenario_seed_start.saturating_add(scenario_count as u64))
+                    ..grid
+                        .scenario_seed_start
+                        .saturating_add(scenario_count as u64))
                     .collect::<Vec<_>>();
                 for &horizon_sim_ticks in &grid.horizon_sim_ticks {
                     for &build_tower_rollout_limit in &grid.build_tower_rollout_limits {
@@ -403,7 +404,9 @@ fn aggregate_stability_records(
     let mut agreements_by_point: std::collections::BTreeMap<String, (usize, usize)> =
         std::collections::BTreeMap::new();
     for record in records {
-        if let Some(&reference_action_id) = reference_selection.get(&(record.seed, record.decision_index)) {
+        if let Some(&reference_action_id) =
+            reference_selection.get(&(record.seed, record.decision_index))
+        {
             let agrees = record.selected_action_id == reference_action_id;
             agreements += agrees as usize;
             let entry = agreements_by_point
@@ -419,7 +422,10 @@ fn aggregate_stability_records(
         .map(|(point, (agree, total))| (point, agree as f64 / total.max(1) as f64))
         .collect();
 
-    let mut regrets = records.iter().map(|r| r.expert_regret as f64).collect::<Vec<_>>();
+    let mut regrets = records
+        .iter()
+        .map(|r| r.expert_regret as f64)
+        .collect::<Vec<_>>();
     regrets.sort_by(|a, b| a.total_cmp(b));
     let mean_expert_regret = regrets.iter().sum::<f64>() / sample_count as f64;
     let median_expert_regret = if sample_count % 2 == 1 {
@@ -434,8 +440,11 @@ fn aggregate_stability_records(
         .filter(|r| r.expert_regret >= LARGE_REGRET_THRESHOLD)
         .count() as f64
         / sample_count as f64;
-    let mean_candidate_count =
-        records.iter().map(|r| r.candidate_count as f64).sum::<f64>() / sample_count as f64;
+    let mean_candidate_count = records
+        .iter()
+        .map(|r| r.candidate_count as f64)
+        .sum::<f64>()
+        / sample_count as f64;
     let mean_wall_time_seconds =
         records.iter().map(|r| r.elapsed_seconds).sum::<f64>() / sample_count as f64;
     let scenario_rollout_count = records

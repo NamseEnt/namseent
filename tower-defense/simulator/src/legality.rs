@@ -230,7 +230,8 @@ mod tests {
                 crate::environment::DecisionPoint::Terminal
             ) {
                 let prepared = environment.prepared_placement_legality();
-                let fresh = PreparedPlacementLegality::compute(&environment.tower_placement_context());
+                let fresh =
+                    PreparedPlacementLegality::compute(&environment.tower_placement_context());
                 assert_eq!(prepared.checks(), fresh.checks(), "seed {seed}");
                 checked += 1;
                 let action = canonical_scripted_semantic_action(&environment).unwrap();

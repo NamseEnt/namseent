@@ -711,6 +711,7 @@ fn pretrain_command(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_teacher_command(
     output: PathBuf,
     seed_start: u64,

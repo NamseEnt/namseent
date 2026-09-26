@@ -17,9 +17,11 @@ pub mod hp_balance;
 pub mod joint_action;
 #[cfg(feature = "simulator")]
 pub mod legality;
+pub mod ml;
 #[cfg(feature = "diagnostics")]
 pub mod placement_diag;
-pub mod ml;
+#[cfg(feature = "simulator")]
+pub mod play;
 #[cfg(feature = "simulator")]
 pub mod policy_action;
 #[cfg(feature = "simulator")]
@@ -32,9 +34,9 @@ pub mod teacher;
 pub mod teacher_eval;
 pub mod teacher_reroll_diag;
 pub mod teacher_selection;
-pub mod teacher_terminal_gate;
 #[cfg(test)]
 pub mod teacher_selection_phase3n_fixture;
+pub mod teacher_terminal_gate;
 pub mod trajectory;
 
 pub(crate) fn canonicalize_kind_name(name: String) -> String {

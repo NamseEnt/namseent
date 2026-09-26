@@ -258,7 +258,7 @@ mod tests {
         )
         .expect("benchmark should run");
 
-        assert_eq!(report.provenance.record_steps, false);
+        assert!(!report.provenance.record_steps);
         assert_eq!(report.episodes, 1);
         assert_eq!(report.decisions, 1);
         assert!(report.candidate_evaluations > 0);

@@ -4,6 +4,34 @@
 
 기존 [`../ml-policy.md`](../ml-policy.md)는 현재 구현된 BC/PPO 시스템의 설명이다. 이 디렉터리는 그 구현을 무조건 유지하거나 폐기하는 문서가 아니라, 새 계약으로 교체하기 위한 기준이다. 새 계약이 구현되고 검증되기 전까지 기존 문서를 현재 시스템의 참고 자료로 유지한다.
 
+## Play one game with the AI
+
+Run from `tower-defense/`. Always use `--release`; debug builds are far too slow for the teacher.
+
+```text
+cargo run --release --manifest-path simulator/Cargo.toml -- play --policy scripted --seed 0
+cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teacher --seed 0
+```
+
+| policy | what it is | time per game |
+| --- | --- | --- |
+| `scripted` (default) | Hand-written heuristic. It is also the baseline every other AI is compared against. | under 1 s |
+| `teacher` | Current strongest AI. At every decision it simulates each candidate action to the end of the game on many sampled futures and keeps the heuristic's choice unless a candidate is statistically better. It never sees the real future of the game. | about 20 minutes on an 8-core Apple M1 |
+
+- `--seed` picks the game. The same seed always produces the same map, shop, and waves, so `scripted` and `teacher` on the same seed are a fair comparison.
+- Each line is one decision: decision index, stage, base HP, gold, decision point, and the chosen action. `[teacher override]` marks a decision where the teacher chose differently from the heuristic.
+- The summary at the end shows victory or defeat, the final stage, the clear rate, and the number of decisions.
+- The teacher uses every CPU core. Set `RAYON_NUM_THREADS` to limit it.
+- Files written under `artifacts/` by the other subcommands are local run outputs and are not committed. The documents quote the numbers that matter.
+
+### Where the AI stands now
+
+- Phase 3 (rollout teacher) passed its gate. It runs on the semantic macro actions, the faster simulator, and the observation contract from Phase 0-2.
+- On 8 untouched seeds (124-131), the teacher beat the heuristic on every seed: mean clear rate +15.1 points, final stage about 20 → 28. See [`05-rollout-teacher.md`](05-rollout-teacher.md).
+- The gain is an average, not a per-seed guarantee. On seed 0 the teacher reached stage 22 (clear rate 43.8%) and the heuristic reached stage 26 (50.2%).
+- Neither AI has cleared a full game yet.
+- Next is Phase 4: distill the teacher into a fast policy, because the teacher is far too slow for large-scale play.
+
 ## 최종 합의
 
 - 1차 목표는 사람처럼 보이는 고수의 재현이 아니라 현재 고정 밸런스에서 full-clear 확률이 높은 AI다.

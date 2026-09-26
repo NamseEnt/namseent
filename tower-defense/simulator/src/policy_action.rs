@@ -116,7 +116,7 @@ impl PolicyActionSpace {
                     environment.decision_point(),
                 );
             }
-            actions.sort_by(|left, right| canonical_sort_key(left).cmp(&canonical_sort_key(right)));
+            actions.sort_by_key(canonical_sort_key);
             Layout::Other { actions }
         };
         let legal_mask = compute_legal_mask(environment, &layout);
@@ -232,14 +232,17 @@ impl PolicyActionSpace {
                     .subsets
                     .subset_index_for_card_ids(card_ids)
                     .map(|subset_index| build_tower_len + subset_index),
-                AgentAction::PurchaseShopItem { slot_index } => (*slot_index < *shop_len)
-                    .then(|| build_tower_len + reroll_len + slot_index),
+                AgentAction::PurchaseShopItem { slot_index } => {
+                    (*slot_index < *shop_len).then(|| build_tower_len + reroll_len + slot_index)
+                }
                 AgentAction::UseInventoryItem { item_index } => (*item_index < *inventory_len)
                     .then(|| build_tower_len + reroll_len + shop_len + item_index),
                 AgentAction::DiscardTreasure { upgrade_id } => treasure_upgrade_ids
                     .iter()
                     .position(|id| id == upgrade_id)
-                    .map(|position| build_tower_len + reroll_len + shop_len + inventory_len + position),
+                    .map(|position| {
+                        build_tower_len + reroll_len + shop_len + inventory_len + position
+                    }),
                 _ => None,
             },
             Layout::Other { actions } => {
@@ -288,7 +291,11 @@ fn compute_legal_mask(environment: &GameEnvironment, layout: &Layout) -> Vec<boo
             treasure_upgrade_ids,
         } => {
             let mut mask = Vec::with_capacity(
-                build_tower_len + reroll_len + shop_len + inventory_len + treasure_upgrade_ids.len(),
+                build_tower_len
+                    + reroll_len
+                    + shop_len
+                    + inventory_len
+                    + treasure_upgrade_ids.len(),
             );
             for subset_index in 0..build_table.subsets.subset_count() {
                 for hand_slot_index in 0..build_table.build_slot_count {
@@ -312,18 +319,21 @@ fn compute_legal_mask(environment: &GameEnvironment, layout: &Layout) -> Vec<boo
                 mask.push(legal);
             }
             for slot_index in 0..*shop_len {
-                mask.push(environment.semantic_action_is_legal(&AgentAction::PurchaseShopItem {
-                    slot_index,
-                }));
+                mask.push(
+                    environment
+                        .semantic_action_is_legal(&AgentAction::PurchaseShopItem { slot_index }),
+                );
             }
             for item_index in 0..*inventory_len {
-                mask.push(environment.semantic_action_is_legal(&AgentAction::UseInventoryItem {
-                    item_index,
-                }));
+                mask.push(
+                    environment
+                        .semantic_action_is_legal(&AgentAction::UseInventoryItem { item_index }),
+                );
             }
             for &upgrade_id in treasure_upgrade_ids {
                 mask.push(
-                    environment.semantic_action_is_legal(&AgentAction::DiscardTreasure { upgrade_id }),
+                    environment
+                        .semantic_action_is_legal(&AgentAction::DiscardTreasure { upgrade_id }),
                 );
             }
             mask
@@ -522,7 +532,11 @@ mod tests {
 
     #[test]
     fn round_trip_holds_for_every_legal_action_in_card_decision_states() {
-        for environment in [environment(0), environment(1), extra_tower_cards_environment(1)] {
+        for environment in [
+            environment(0),
+            environment(1),
+            extra_tower_cards_environment(1),
+        ] {
             let space = PolicyActionSpace::compute(&environment);
             let mut checked = 0usize;
             for index in 0..space.action_count() {
@@ -553,7 +567,9 @@ mod tests {
                 if !space.legal_mask()[index] {
                     continue;
                 }
-                let action = space.index_to_action(index).expect("legal index materializes");
+                let action = space
+                    .index_to_action(index)
+                    .expect("legal index materializes");
                 assert!(
                     seen.insert(action.action_id()),
                     "index {index} duplicates an earlier action: {action:?}"
@@ -603,7 +619,10 @@ mod tests {
                 .into_iter()
                 .map(|legal| canonicalize(&legal.action).action_id())
                 .collect::<std::collections::HashSet<_>>();
-            assert!(!oracle.is_empty(), "environment {index}: expected a non-empty oracle set");
+            assert!(
+                !oracle.is_empty(),
+                "environment {index}: expected a non-empty oracle set"
+            );
 
             let mut space_actions = std::collections::HashSet::new();
             for policy_index in 0..space.action_count() {
@@ -668,7 +687,10 @@ mod tests {
             .collect::<std::collections::HashSet<_>>();
         let mut space_actions = std::collections::HashSet::new();
         for index in 0..space.action_count() {
-            assert!(space.legal_mask()[index], "Other layout entries must all be legal");
+            assert!(
+                space.legal_mask()[index],
+                "Other layout entries must all be legal"
+            );
             space_actions.insert(canonicalize(&space.index_to_action(index).unwrap()).action_id());
         }
         assert_eq!(space_actions, oracle);
@@ -772,14 +794,26 @@ mod tests {
             AgentAction::SelectHandCard { hand_slot_index: 1 },
             AgentAction::DeselectHandCard { hand_slot_index: 0 },
             AgentAction::DeselectHandCard { hand_slot_index: 1 },
-            AgentAction::Reroll { card_ids: vec![1, 2] },
-            AgentAction::Reroll { card_ids: vec![2, 1] },
-            AgentAction::Reroll { card_ids: vec![1, 3] },
+            AgentAction::Reroll {
+                card_ids: vec![1, 2],
+            },
+            AgentAction::Reroll {
+                card_ids: vec![2, 1],
+            },
+            AgentAction::Reroll {
+                card_ids: vec![1, 3],
+            },
             AgentAction::Reroll { card_ids: vec![1] },
             AgentAction::Reroll { card_ids: vec![3] },
-            AgentAction::SelectTower { card_ids: vec![1, 2] },
-            AgentAction::SelectTower { card_ids: vec![2, 1] },
-            AgentAction::SelectTower { card_ids: vec![1, 3] },
+            AgentAction::SelectTower {
+                card_ids: vec![1, 2],
+            },
+            AgentAction::SelectTower {
+                card_ids: vec![2, 1],
+            },
+            AgentAction::SelectTower {
+                card_ids: vec![1, 3],
+            },
             AgentAction::BuildTower {
                 card_ids: vec![1, 2],
                 hand_slot_index: 0,
@@ -889,10 +923,16 @@ mod tests {
         let base_actions = vec![
             AgentAction::PurchaseShopItem { slot_index: 2 },
             AgentAction::PurchaseShopItem { slot_index: 0 },
-            AgentAction::Reroll { card_ids: vec![5, 1] },
+            AgentAction::Reroll {
+                card_ids: vec![5, 1],
+            },
             AgentAction::Reroll { card_ids: vec![2] },
-            AgentAction::Reroll { card_ids: vec![5, 1, 9] },
-            AgentAction::SelectTower { card_ids: vec![3, 1] },
+            AgentAction::Reroll {
+                card_ids: vec![5, 1, 9],
+            },
+            AgentAction::SelectTower {
+                card_ids: vec![3, 1],
+            },
             AgentAction::BuildTower {
                 card_ids: vec![4, 2],
                 hand_slot_index: 1,
@@ -925,7 +965,7 @@ mod tests {
         ];
 
         let sorted_key = |actions: &mut Vec<AgentAction>| {
-            actions.sort_by(|left, right| canonical_sort_key(left).cmp(&canonical_sort_key(right)));
+            actions.sort_by_key(canonical_sort_key);
         };
 
         let mut expected = base_actions.clone();
@@ -945,7 +985,9 @@ mod tests {
             let mut shuffled = base_actions.clone();
             let mut state = seed.wrapping_add(0x9E3779B97F4A7C15);
             for i in (1..shuffled.len()).rev() {
-                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                state = state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
                 let j = ((state >> 33) as usize) % (i + 1);
                 shuffled.swap(i, j);
             }
@@ -1031,7 +1073,8 @@ mod tests {
                 samples_collected += 1;
 
                 let legal_actions = environment.semantic_legal_actions();
-                let Ok(action) = crate::policy_runner::scripted_expert_action(&observation, &legal_actions)
+                let Ok(action) =
+                    crate::policy_runner::scripted_expert_action(&observation, &legal_actions)
                 else {
                     break;
                 };
@@ -1070,8 +1113,8 @@ mod tests {
                 .map(|s| s.legacy_action_count as f64)
                 .collect(),
         );
-        let layout_generation_speedup =
-            mean_legacy_enumeration_seconds / mean_policy_layout_generation_seconds.max(f64::EPSILON);
+        let layout_generation_speedup = mean_legacy_enumeration_seconds
+            / mean_policy_layout_generation_seconds.max(f64::EPSILON);
 
         println!(
             "sample_count={} mean_policy_layout_generation_seconds={:.6} \

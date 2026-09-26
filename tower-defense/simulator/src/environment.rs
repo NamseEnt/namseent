@@ -38,7 +38,11 @@ const HIDDEN_ORDER_REWARD_UPGRADE: u64 = 4;
 /// draws. This keeps membership, cursors and cycles and reshuffles only that
 /// hidden order, deterministically per (game seed, scenario seed, source
 /// tick, component), so every candidate of one scenario shares one sample.
-fn resample_hidden_order(parts: &mut td_core::CoreSnapshotParts, game_seed: u64, scenario_seed: u64) {
+fn resample_hidden_order(
+    parts: &mut td_core::CoreSnapshotParts,
+    game_seed: u64,
+    scenario_seed: u64,
+) {
     let sim_tick = parts.sim_tick.ticks();
     let rng = |component: u64, index: u64| {
         td_core::rng_for(
@@ -52,7 +56,10 @@ fn resample_hidden_order(parts: &mut td_core::CoreSnapshotParts, game_seed: u64,
         &mut rng(HIDDEN_ORDER_DRAW_PILE, 0),
     );
     let shop = &mut parts.rng.shop;
-    let cursor = shop.category_bag.cursor.min(shop.category_bag.entries.len());
+    let cursor = shop
+        .category_bag
+        .cursor
+        .min(shop.category_bag.entries.len());
     td_core::shuffle(
         &mut shop.category_bag.entries[cursor..],
         &mut rng(HIDDEN_ORDER_SHOP_CATEGORY, 0),
@@ -92,7 +99,7 @@ pub fn potential_shaping(
     terminated: bool,
     config: &RewardConfig,
 ) -> f32 {
-        td_core::diag_scope!(RewardShaping);
+    td_core::diag_scope!(RewardShaping);
     let next_potential = if terminated { 0.0 } else { potential(after) };
     config.potential_weight * (config.potential_gamma * next_potential - potential(before))
 }
@@ -119,7 +126,7 @@ fn shaping_rewards(
     tower_damage: f32,
     config: &RewardConfig,
 ) -> BTreeMap<String, f32> {
-        td_core::diag_scope!(RewardShaping);
+    td_core::diag_scope!(RewardShaping);
     let progress_reward = clear_rate_after - clear_rate_before;
     let escaped_penalty = -(escaped_hp / stage_total_hp.max(1.0) / config.escaped_hp_penalty_scale);
     let hp_loss_penalty = -(player_damage / config.player_hp_loss_penalty_scale);
@@ -806,16 +813,14 @@ impl GameEnvironment {
 
     fn legal_actions_internal(
         &self,
-        mut generation_metrics: Option<&mut LegalActionGenerationMetrics>,
+        generation_metrics: Option<&mut LegalActionGenerationMetrics>,
     ) -> Vec<LegalAction> {
         td_core::diag_scope!(LegalActions);
         let mut actions = match self.decision_point() {
             DecisionPoint::Shop => self.shop_actions(),
             DecisionPoint::CardSelection => self.card_selection_actions(),
             DecisionPoint::CardServiceSelection => self.card_service_actions(),
-            DecisionPoint::TowerPlacement => {
-                self.tower_placement_actions(generation_metrics.as_deref_mut())
-            }
+            DecisionPoint::TowerPlacement => self.tower_placement_actions(generation_metrics),
             DecisionPoint::PreDefenseItem | DecisionPoint::DamageResponseItem => {
                 let mut actions = self.inventory_actions();
                 actions.push(AgentAction::Continue);
@@ -884,7 +889,9 @@ impl GameEnvironment {
         {
             return Arc::clone(prepared);
         }
-        let prepared = Arc::new(crate::legality::PreparedPlacementLegality::compute(&context));
+        let prepared = Arc::new(crate::legality::PreparedPlacementLegality::compute(
+            &context,
+        ));
         *cached = Some(Arc::clone(&prepared));
         prepared
     }
@@ -1881,7 +1888,9 @@ impl GameEnvironment {
         match self.game_state.raw_state().flow() {
             td_core::GameFlowState::TreasureSelection { options, .. } => (0..options.len())
                 .filter(|&option_index| {
-                    self.game_state.raw_state().can_select_treasure(option_index)
+                    self.game_state
+                        .raw_state()
+                        .can_select_treasure(option_index)
                 })
                 .map(|option_index| AgentAction::SelectTreasure { option_index })
                 .collect(),
@@ -1895,7 +1904,11 @@ impl GameEnvironment {
             .upgrades()
             .entries()
             .iter()
-            .filter(|upgrade| self.game_state.raw_state().can_discard_treasure(upgrade.id()))
+            .filter(|upgrade| {
+                self.game_state
+                    .raw_state()
+                    .can_discard_treasure(upgrade.id())
+            })
             .map(|upgrade| AgentAction::DiscardTreasure {
                 upgrade_id: upgrade.id(),
             })
@@ -2666,7 +2679,10 @@ mod tests {
     }
 
     fn hidden_order_parts(environment: &GameEnvironment) -> td_core::CoreSnapshotParts {
-        environment.game_state.core_state_snapshot().snapshot_parts()
+        environment
+            .game_state
+            .core_state_snapshot()
+            .snapshot_parts()
     }
 
     fn shop_reroll_environment() -> (GameEnvironment, AgentAction) {
@@ -2699,12 +2715,25 @@ mod tests {
         let (environment, _) = shop_reroll_environment();
         let first = environment.fork_for_rollout_seed(2003).unwrap();
         let second = environment.fork_for_rollout_seed(2003).unwrap();
-        assert_eq!(first.game_state.core_state_snapshot(), second.game_state.core_state_snapshot());
+        assert_eq!(
+            first.game_state.core_state_snapshot(),
+            second.game_state.core_state_snapshot()
+        );
         assert_eq!(first.state_hash(), second.state_hash());
         let other = environment.fork_for_rollout_seed(2004).unwrap();
         assert_ne!(
-            first.game_state.core_state_snapshot().snapshot_parts().deck.draw_pile,
-            other.game_state.core_state_snapshot().snapshot_parts().deck.draw_pile
+            first
+                .game_state
+                .core_state_snapshot()
+                .snapshot_parts()
+                .deck
+                .draw_pile,
+            other
+                .game_state
+                .core_state_snapshot()
+                .snapshot_parts()
+                .deck
+                .draw_pile
         );
     }
 
@@ -2712,7 +2741,12 @@ mod tests {
     fn hidden_order_fork_keeps_draw_pile_membership() {
         let (environment, _) = shop_reroll_environment();
         let ids = |parts: &td_core::CoreSnapshotParts| {
-            let mut ids = parts.deck.draw_pile.iter().map(|card| card.id).collect::<Vec<_>>();
+            let mut ids = parts
+                .deck
+                .draw_pile
+                .iter()
+                .map(|card| card.id)
+                .collect::<Vec<_>>();
             ids.sort_unstable();
             ids
         };
@@ -2737,7 +2771,10 @@ mod tests {
             fork.semantic_step(reroll.clone()).unwrap();
             hands.insert(serde_json::to_string(&fork.snapshot().hand).unwrap());
         }
-        assert!(hands.len() > 1, "reroll drew the same hand in all 16 scenarios");
+        assert!(
+            hands.len() > 1,
+            "reroll drew the same hand in all 16 scenarios"
+        );
     }
 
     fn assert_bag_suffix_resampled<T: Clone + Ord + std::fmt::Debug>(
@@ -2749,7 +2786,11 @@ mod tests {
         let mut suffixes = HashSet::new();
         for scenario_seed in 2000..2016 {
             let resampled = resample(scenario_seed);
-            assert_eq!(&resampled[..cursor], &entries[..cursor], "{label}: consumed prefix");
+            assert_eq!(
+                &resampled[..cursor],
+                &entries[..cursor],
+                "{label}: consumed prefix"
+            );
             let mut expected = entries[cursor..].to_vec();
             let mut actual = resampled[cursor..].to_vec();
             expected.sort();
@@ -2856,7 +2897,10 @@ mod tests {
         let opening = GameCore::from_core_config((*base.config).clone(), base.seed)
             .expect("valid default config");
         let environment = environment_with_core_state(&base, opening.core_state_snapshot());
-        assert_eq!(environment.decision_point(), DecisionPoint::TreasureSelection);
+        assert_eq!(
+            environment.decision_point(),
+            DecisionPoint::TreasureSelection
+        );
         let mut state = environment.game_state.core_state_snapshot();
         if fill_treasures {
             while state.upgrades().len() < state.treasure_capacity() {
@@ -2901,14 +2945,19 @@ mod tests {
         let environment = treasure_selection_environment(true);
         let actions = treasure_legal_actions(&environment);
         assert!(
-            !actions.iter().any(|a| matches!(a, AgentAction::SelectTreasure { .. })),
+            !actions
+                .iter()
+                .any(|a| matches!(a, AgentAction::SelectTreasure { .. })),
             "SelectTreasure must not be legal when treasure slots are full"
         );
         let discards = actions
             .iter()
             .filter(|a| matches!(a, AgentAction::DiscardTreasure { .. }))
             .count();
-        assert!(discards >= 5, "expected discard actions for the full treasures, got {discards}");
+        assert!(
+            discards >= 5,
+            "expected discard actions for the full treasures, got {discards}"
+        );
     }
 
     #[test]
@@ -2920,9 +2969,9 @@ mod tests {
             for action in actions {
                 let state = environment.game_state.core_state_snapshot();
                 let mut clone = environment_with_core_state(&environment, state);
-                clone
-                    .step(action.clone())
-                    .unwrap_or_else(|error| panic!("fill={fill}: legal {action:?} rejected: {error:?}"));
+                clone.step(action.clone()).unwrap_or_else(|error| {
+                    panic!("fill={fill}: legal {action:?} rejected: {error:?}")
+                });
             }
         }
     }
@@ -2937,7 +2986,10 @@ mod tests {
             .find(|action| matches!(action, AgentAction::DiscardTreasure { .. }))
             .expect("a full treasure bag exposes a discard");
         environment.step(discard).expect("discard must execute");
-        assert_eq!(environment.decision_point(), DecisionPoint::TreasureSelection);
+        assert_eq!(
+            environment.decision_point(),
+            DecisionPoint::TreasureSelection
+        );
         let select = environment
             .legal_actions()
             .into_iter()
@@ -2945,7 +2997,10 @@ mod tests {
             .find(|action| matches!(action, AgentAction::SelectTreasure { .. }))
             .expect("SelectTreasure becomes legal once a slot is free");
         environment.step(select).expect("select must execute");
-        assert_ne!(environment.decision_point(), DecisionPoint::TreasureSelection);
+        assert_ne!(
+            environment.decision_point(),
+            DecisionPoint::TreasureSelection
+        );
     }
 
     #[test]
@@ -2960,7 +3015,11 @@ mod tests {
             .filter(|a| matches!(a, AgentAction::SelectTreasure { .. }))
             .count();
         assert!(options > 0);
-        assert_eq!(selects, options * 2, "legal + semantic lists each expose all options");
+        assert_eq!(
+            selects,
+            options * 2,
+            "legal + semantic lists each expose all options"
+        );
     }
 
     #[test]
@@ -3841,8 +3900,7 @@ mod tests {
                             .max()
                             .map_or(0, |id| id + 1),
                         slot: td_core::ShopSlotState::Item {
-                            item: td_core::generated_item(td_core::ItemKind::Bread)
-                                .expect("bread"),
+                            item: td_core::generated_item(td_core::ItemKind::Bread).expect("bread"),
                             cost: 0,
                         },
                         purchased: false,
@@ -3883,7 +3941,8 @@ mod tests {
         // these: `PurchaseShopItem` is generated the same way regardless of
         // which action-representation path produced the *other* action.
         for seed in 0..2u64 {
-            let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            let mut environment =
+                GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
             for decision in 0..8 {
                 if matches!(environment.decision_point(), DecisionPoint::Terminal) {
                     break;
@@ -3892,7 +3951,8 @@ mod tests {
                     &environment,
                     &format!("seed {seed} decision {decision}"),
                 );
-                let Ok(action) = crate::policy_runner::canonical_scripted_semantic_action(&environment)
+                let Ok(action) =
+                    crate::policy_runner::canonical_scripted_semantic_action(&environment)
                 else {
                     break;
                 };

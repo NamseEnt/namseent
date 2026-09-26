@@ -36,8 +36,8 @@ use serde::{Deserialize, Serialize};
 use crate::environment::{AgentAction, DecisionPoint, GameEnvironment, LegalAction};
 use crate::policy_runner::{canonical_scripted_semantic_action, rank_place_tower_actions};
 use crate::teacher::{
-    RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline, prepare_semantic_candidates,
-    settle_forced_actions,
+    RolloutTeacherConfig, evaluate_semantic_candidate_set_with_baseline,
+    prepare_semantic_candidates, settle_forced_actions,
 };
 
 /// Schema for [`TeacherSelectionDecision`]/[`TeacherSelectionEpisode`] - a
@@ -277,8 +277,7 @@ fn paired_one_sided_t_test(deltas: &[f64]) -> (f64, f64, f64, f64, f64) {
     let n = deltas.len();
     assert!(n >= 2, "paired t-test requires at least two pairs");
     let mean = deltas.iter().sum::<f64>() / n as f64;
-    let variance =
-        deltas.iter().map(|d| (d - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
+    let variance = deltas.iter().map(|d| (d - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
     let sd = variance.max(0.0).sqrt();
     if sd == 0.0 {
         let (t, p) = if mean > 0.0 {
@@ -548,7 +547,12 @@ pub fn select_teacher_action(
     let candidate_pairs = frozen
         .iter()
         .enumerate()
-        .flat_map(|(index, _)| pools.validation_seeds.iter().map(move |&seed| (index, seed)))
+        .flat_map(|(index, _)| {
+            pools
+                .validation_seeds
+                .iter()
+                .map(move |&seed| (index, seed))
+        })
         .collect::<Vec<_>>();
     let candidate_outcomes = candidate_pairs
         .par_iter()
@@ -562,9 +566,7 @@ pub fn select_teacher_action(
         let deltas: Vec<f64> = candidate_outcomes[start..end]
             .iter()
             .zip(&baseline_outcomes)
-            .map(|(&candidate_clear, &baseline_clear)| {
-                (candidate_clear - baseline_clear) as f64
-            })
+            .map(|(&candidate_clear, &baseline_clear)| (candidate_clear - baseline_clear) as f64)
             .collect();
         let (mean, sd, se, t, p) = paired_one_sided_t_test(&deltas);
         validation.push(CandidateValidationStat {
@@ -579,7 +581,10 @@ pub fn select_teacher_action(
         });
     }
     let p_values: Vec<f64> = validation.iter().map(|stat| stat.p_value).collect();
-    for (stat, (adjusted, passed)) in validation.iter_mut().zip(holm_bonferroni(&p_values, FWER_ALPHA)) {
+    for (stat, (adjusted, passed)) in validation
+        .iter_mut()
+        .zip(holm_bonferroni(&p_values, FWER_ALPHA))
+    {
         stat.p_holm = adjusted;
         stat.passed = passed;
     }
@@ -613,7 +618,10 @@ pub fn select_teacher_action(
             state_hash,
             baseline_action_id: baseline_id,
             forced: false,
-            proposal_action_ids: proposal.iter().map(|candidate| candidate.id.clone()).collect(),
+            proposal_action_ids: proposal
+                .iter()
+                .map(|candidate| candidate.id.clone())
+                .collect(),
             discovery,
             discovery_top3,
             validation,
@@ -681,7 +689,9 @@ pub fn run_teacher_selection_episode(
         );
         let mut outcome = environment
             .semantic_step(selected_action)
-            .map_err(|error| anyhow::anyhow!("teacher selection episode action failed: {error:?}"))?;
+            .map_err(|error| {
+                anyhow::anyhow!("teacher selection episode action failed: {error:?}")
+            })?;
         settle_forced_actions(environment, &mut outcome)?;
         terminated = outcome.terminated;
         truncated = outcome.truncated;
@@ -812,7 +822,11 @@ mod tests {
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
-        assert!(!proposal.iter().any(|candidate| candidate.id == baseline.action_id()));
+        assert!(
+            !proposal
+                .iter()
+                .any(|candidate| candidate.id == baseline.action_id())
+        );
         let unique: HashSet<&String> = proposal.iter().map(|candidate| &candidate.id).collect();
         assert_eq!(unique.len(), proposal.len());
     }
@@ -841,7 +855,11 @@ mod tests {
         let (_, environment) = find_shop_seed();
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
         let build_top4 = partition_candidates(&environment).unwrap().build_top4;
-        assert_eq!(build_top4.len(), 4, "fixture must offer >=4 BuildTower candidates");
+        assert_eq!(
+            build_top4.len(),
+            4,
+            "fixture must offer >=4 BuildTower candidates"
+        );
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
         let proposal_builds: Vec<&String> = proposal
@@ -1013,7 +1031,11 @@ mod tests {
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
-        assert!(!proposal.iter().any(|candidate| action_kind(&candidate.id) == "reroll"));
+        assert!(
+            !proposal
+                .iter()
+                .any(|candidate| action_kind(&candidate.id) == "reroll")
+        );
     }
 
     #[test]
@@ -1022,7 +1044,11 @@ mod tests {
         let baseline = canonical_scripted_semantic_action(&environment).unwrap();
         let pools = TeacherSelectionPools::production();
         let proposal = build_s41_proposal(&environment, &baseline, &pools).unwrap();
-        assert!(!proposal.iter().any(|candidate| action_kind(&candidate.id) == "build_tower"));
+        assert!(
+            !proposal
+                .iter()
+                .any(|candidate| action_kind(&candidate.id) == "build_tower")
+        );
     }
 
     // --- statistics ------------------------------------------------------
@@ -1033,7 +1059,7 @@ mod tests {
         let deltas = vec![0.0, 1.0, 1.0, 1.0, 2.0];
         let (mean, sd, se, t, p) = paired_one_sided_t_test(&deltas);
         assert!((mean - 1.0).abs() < 1e-9);
-        assert!((sd - 0.707_106_78).abs() < 1e-6);
+        assert!((sd - std::f64::consts::FRAC_1_SQRT_2).abs() < 1e-6);
         assert!((se - 0.316_227_77).abs() < 1e-6);
         assert!((t - 3.162_277_66).abs() < 1e-5);
         // one-sided p for t=3.1623, df=4 is about 0.01704 (R: pt(3.1623,4,lower.tail=FALSE))
@@ -1131,7 +1157,10 @@ mod tests {
             })
             .collect();
         let p_values: Vec<f64> = validation.iter().map(|s| s.p_value).collect();
-        for (stat, (adjusted, passed)) in validation.iter_mut().zip(holm_bonferroni(&p_values, FWER_ALPHA)) {
+        for (stat, (adjusted, passed)) in validation
+            .iter_mut()
+            .zip(holm_bonferroni(&p_values, FWER_ALPHA))
+        {
             stat.p_holm = adjusted;
             stat.passed = passed;
         }
@@ -1240,8 +1269,9 @@ mod tests {
                 })
                 .collect();
             let p_values: Vec<f64> = validation.iter().map(|stat| stat.p_value).collect();
-            for (stat, (adjusted, passed)) in
-                validation.iter_mut().zip(holm_bonferroni(&p_values, FWER_ALPHA))
+            for (stat, (adjusted, passed)) in validation
+                .iter_mut()
+                .zip(holm_bonferroni(&p_values, FWER_ALPHA))
             {
                 stat.p_holm = adjusted;
                 stat.passed = passed;

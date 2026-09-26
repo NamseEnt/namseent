@@ -446,8 +446,8 @@ mod tests {
         let mut card_slots: Vec<_> = reordered_observation
             .hand
             .iter()
+            .filter(|&item| matches!(item.item, HandItemObservation::Card(_)))
             .cloned()
-            .filter(|item| matches!(item.item, HandItemObservation::Card(_)))
             .collect();
         card_slots.reverse();
         let mut reversed_hand = reordered_observation.hand.clone();
@@ -501,11 +501,8 @@ mod tests {
         let observation = environment.snapshot();
         let position = PositionFeatureTable::compute(&observation);
         let grid = nearest_route_grid(&observation.route_coords);
-        for position_index in 0..MAP_POSITION_COUNT {
-            assert_eq!(
-                position.nearest_route_raw(position_index),
-                Some(grid[position_index])
-            );
+        for (position_index, &expected) in grid.iter().enumerate() {
+            assert_eq!(position.nearest_route_raw(position_index), Some(expected));
         }
     }
 
@@ -516,10 +513,10 @@ mod tests {
         let bundle = DenseBuildFeatureBundle::compute(&observation);
         for (range_row, &range_raw) in bundle.coverage.distinct_ranges().iter().enumerate() {
             let grid = coverage_grid(&observation.route_coords, range_raw);
-            for position_index in 0..MAP_POSITION_COUNT {
+            for (position_index, &expected) in grid.iter().enumerate() {
                 assert_eq!(
                     bundle.coverage.coverage(range_row, position_index),
-                    Some(grid[position_index])
+                    Some(expected)
                 );
             }
         }

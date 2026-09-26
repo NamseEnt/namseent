@@ -854,14 +854,14 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: 0,
                 took_damage: false,
             })
         );
         assert_eq!(
             core.session.monster_spawn().monster_queue[0].max_hp_raw,
-            67_657
+            35_520
         );
         assert_eq!(
             core.session.monster_spawn().monster_queue[0]
@@ -1038,7 +1038,7 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: 1_000,
                 took_damage: false,
             })
@@ -1063,7 +1063,7 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: hp_before,
                 took_damage: false,
             })
@@ -1097,7 +1097,7 @@ mod tests {
         core.advance_tick();
 
         assert_eq!(core.session.hp_raw(), 59_000);
-        assert_eq!(core.session.metrics().total_escaped_hp_raw, 67_657);
+        assert_eq!(core.session.metrics().total_escaped_hp_raw, 35_520);
         assert_eq!(core.session.metrics().total_player_damage_raw, 1_000);
         assert_eq!(core.session.monsters().len(), 0);
         assert!(matches!(core.flow(), td_core::GameFlowState::Defense(_)));
@@ -1171,7 +1171,7 @@ mod tests {
         core.advance_tick();
 
         assert_eq!(core.session.monsters().len(), 0);
-        assert_eq!(core.session.metrics().total_escaped_hp_raw, 67_657);
+        assert_eq!(core.session.metrics().total_escaped_hp_raw, 35_520);
         assert_eq!(core.session.hp_raw(), 60_000);
     }
 

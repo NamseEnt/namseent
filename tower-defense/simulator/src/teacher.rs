@@ -9,11 +9,11 @@ use crate::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT;
 use crate::environment::DecisionPoint;
 use crate::environment::{AgentAction, GameEnvironment, LegalAction, StepOutcome};
 use crate::joint_action::DenseBuildTowerScoreTable;
+#[cfg(test)]
+use crate::policy_runner::scripted_expert_action;
 use crate::policy_runner::{
     canonical_scripted_semantic_action, canonical_scripted_semantic_action_from_table,
 };
-#[cfg(test)]
-use crate::policy_runner::scripted_expert_action;
 
 /// Bumped 3 -> 4 (previously 2 -> 3, and 1 -> 2; see
 /// docs/game-ai/05-rollout-teacher.md).
@@ -276,10 +276,15 @@ pub fn dense_semantic_candidates(
     let observation = environment.snapshot();
     let table = DenseBuildTowerScoreTable::compute(environment, &observation);
     let k = build_tower_limit.unwrap_or(usize::MAX);
-    candidates.extend(table.top_k_actions(k).into_iter().map(|action| LegalAction {
-        id: action.action_id(),
-        action,
-    }));
+    candidates.extend(
+        table
+            .top_k_actions(k)
+            .into_iter()
+            .map(|action| LegalAction {
+                id: action.action_id(),
+                action,
+            }),
+    );
     candidates
 }
 
@@ -307,17 +312,23 @@ pub(crate) struct PreparedSemanticCandidates {
 }
 
 impl PreparedSemanticCandidates {
-    pub(crate) fn candidates_for_limit(&self, build_tower_rollout_limit: Option<usize>) -> Vec<LegalAction> {
+    pub(crate) fn candidates_for_limit(
+        &self,
+        build_tower_rollout_limit: Option<usize>,
+    ) -> Vec<LegalAction> {
         let mut candidates = self.non_build_actions.clone();
         let k = build_tower_rollout_limit
             .unwrap_or(usize::MAX)
             .min(self.full_top_k_build_tower.len());
-        candidates.extend(self.full_top_k_build_tower[..k].iter().cloned().map(|action| {
-            LegalAction {
-                id: action.action_id(),
-                action,
-            }
-        }));
+        candidates.extend(
+            self.full_top_k_build_tower[..k]
+                .iter()
+                .cloned()
+                .map(|action| LegalAction {
+                    id: action.action_id(),
+                    action,
+                }),
+        );
         candidates
     }
 }
@@ -420,7 +431,10 @@ pub fn evaluate_semantic_candidate_set(
 /// A pure function over already-computed estimates (no rollouts) so it can
 /// be tested directly against synthetic score fixtures, not just through a
 /// full (expensive) rollout evaluation.
-fn select_conservatively(estimates: &[RolloutCandidateEstimate], baseline_action_id: &str) -> String {
+fn select_conservatively(
+    estimates: &[RolloutCandidateEstimate],
+    baseline_action_id: &str,
+) -> String {
     let baseline_mean_score = estimates
         .iter()
         .find(|candidate| candidate.action_id == baseline_action_id)
@@ -1043,9 +1057,20 @@ mod tests {
         assert!(!p.terminal && !b.terminal, "fixture must not hit terminal");
         assert_eq!(p.start_sim_tick, start);
         assert_eq!(b.start_sim_tick, start);
-        assert_eq!(p.end_sim_tick, start + horizon, "purchase rollout overshot/undershot");
-        assert_eq!(b.end_sim_tick, start + horizon, "build rollout overshot/undershot");
-        assert_eq!(p.end_sim_tick - p.start_sim_tick, b.end_sim_tick - b.start_sim_tick);
+        assert_eq!(
+            p.end_sim_tick,
+            start + horizon,
+            "purchase rollout overshot/undershot"
+        );
+        assert_eq!(
+            b.end_sim_tick,
+            start + horizon,
+            "build rollout overshot/undershot"
+        );
+        assert_eq!(
+            p.end_sim_tick - p.start_sim_tick,
+            b.end_sim_tick - b.start_sim_tick
+        );
         assert_ne!(
             p.decisions_consumed, b.decisions_consumed,
             "fixture is only meaningful if the candidates consume different decision counts"
@@ -1087,9 +1112,14 @@ mod tests {
             .into_iter()
             .find(|l| matches!(l.action, AgentAction::StartSelectingTower))
             .unwrap();
-        let error =
-            evaluate_candidate_scenario_with_cap(&environment, &candidate, 0, &ticks_config(500), 1)
-                .expect_err("a cap of 1 tick-free decision must trip on a fresh Shop state");
+        let error = evaluate_candidate_scenario_with_cap(
+            &environment,
+            &candidate,
+            0,
+            &ticks_config(500),
+            1,
+        )
+        .expect_err("a cap of 1 tick-free decision must trip on a fresh Shop state");
         assert!(error.to_string().contains("safety-guard"), "{error}");
     }
 
@@ -1097,8 +1127,9 @@ mod tests {
     fn zero_horizon_is_rejected() {
         let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), 0);
         let candidates = environment.legal_actions();
-        let error = evaluate_semantic_candidate_set(&environment, &candidates[..1], &ticks_config(0))
-            .expect_err("horizon_sim_ticks == 0 must be rejected");
+        let error =
+            evaluate_semantic_candidate_set(&environment, &candidates[..1], &ticks_config(0))
+                .expect_err("horizon_sim_ticks == 0 must be rejected");
         assert!(error.to_string().contains("horizon_sim_ticks"));
     }
 
@@ -1114,15 +1145,22 @@ mod tests {
         let mut max_delta = 0u64;
         for _ in 0..12 {
             let before = fork.sim_tick();
-            let Ok(action) = canonical_scripted_semantic_action(&fork) else { break };
-            let Ok(mut outcome) = fork.semantic_step(action) else { break };
+            let Ok(action) = canonical_scripted_semantic_action(&fork) else {
+                break;
+            };
+            let Ok(mut outcome) = fork.semantic_step(action) else {
+                break;
+            };
             settle_forced_actions(&mut fork, &mut outcome).unwrap();
             max_delta = max_delta.max(fork.sim_tick() - before);
             if outcome.terminated || outcome.truncated {
                 break;
             }
         }
-        assert!(max_delta > 137, "unbounded defense should run many ticks per step");
+        assert!(
+            max_delta > 137,
+            "unbounded defense should run many ticks per step"
+        );
     }
 
     /// Manual diagnostic (seed 100's stage-1 Shop decision, the state where a
@@ -1166,7 +1204,8 @@ mod tests {
         let config = ticks_config(1633);
         for (label, candidate) in [("baseline/purchase", &purchase), ("build", &build)] {
             for seed in [1000u64, 1001] {
-                let sample = evaluate_candidate_scenario(&environment, candidate, seed, &config).unwrap();
+                let sample =
+                    evaluate_candidate_scenario(&environment, candidate, seed, &config).unwrap();
                 println!(
                     "{label} {} scenario={seed} decisions_consumed={} start_tick={} end_tick={} stage={} completion={:.4} score={:.4} terminal={}",
                     candidate.id,
@@ -1222,7 +1261,12 @@ mod tests {
     fn brute_force_joint_ranking(
         environment: &GameEnvironment,
         observation: &crate::environment::Observation,
-    ) -> Vec<(usize, usize, usize, crate::joint_action::JointBuildTowerScore)> {
+    ) -> Vec<(
+        usize,
+        usize,
+        usize,
+        crate::joint_action::JointBuildTowerScore,
+    )> {
         use crate::joint_action::{CardSubsetTable, MAP_POSITION_COUNT, position_xy};
 
         // Legality never depends on card subset or build slot (fixed 2x2
@@ -1284,11 +1328,16 @@ mod tests {
             // directly - match by sorted-id set here instead (same
             // approach `joint_action::subset_templates` uses) and compute
             // the score formula inline.
-            if let Some(template) = observation.build_tower_candidates.iter().find_map(|candidate| {
-                let mut ids = candidate.card_ids.clone();
-                ids.sort_unstable();
-                (ids == card_ids).then_some(&candidate.template)
-            }) {
+            if let Some(template) =
+                observation
+                    .build_tower_candidates
+                    .iter()
+                    .find_map(|candidate| {
+                        let mut ids = candidate.card_ids.clone();
+                        ids.sort_unstable();
+                        (ids == card_ids).then_some(&candidate.template)
+                    })
+            {
                 let range_raw = template.range_raw;
                 for &position_index in &legal_positions {
                     ranked.push((
@@ -1315,7 +1364,11 @@ mod tests {
             }
         }
         ranked.sort_by(|left, right| {
-            let left_key = (left.3.covered_route, left.3.nearest_route, left.3.damage_raw);
+            let left_key = (
+                left.3.covered_route,
+                left.3.nearest_route,
+                left.3.damage_raw,
+            );
             let right_key = (
                 right.3.covered_route,
                 right.3.nearest_route,
@@ -1429,7 +1482,9 @@ mod tests {
         joint_action::tests::dense_scorer_matches_exhaustive_heuristic_oracle - run with \
         cargo test --release -- --ignored dense_build_tower_support_matches_oracle_bidirectionally"]
     fn dense_build_tower_support_matches_oracle_bidirectionally() {
-        use crate::joint_action::{DenseBuildTowerScoreTable, build_tower_action, joint_index_for_action};
+        use crate::joint_action::{
+            DenseBuildTowerScoreTable, build_tower_action, joint_index_for_action,
+        };
         use std::collections::HashSet;
 
         let environments = (0..3u64)
@@ -1468,12 +1523,19 @@ mod tests {
 
             // oracle -> dense: every oracle-legal action must be scored.
             for action in &oracle_build_actions {
-                let (subset_index, hand_slot_index, position_index) =
-                    joint_index_for_action(&table.subsets, action).unwrap_or_else(|| {
-                        panic!("environment {index}: oracle action {action:?} should map to a joint index")
-                    });
+                let (subset_index, hand_slot_index, position_index) = joint_index_for_action(
+                    &table.subsets,
+                    action,
+                )
+                .unwrap_or_else(|| {
+                    panic!(
+                        "environment {index}: oracle action {action:?} should map to a joint index"
+                    )
+                });
                 assert!(
-                    table.score(subset_index, hand_slot_index, position_index).is_some(),
+                    table
+                        .score(subset_index, hand_slot_index, position_index)
+                        .is_some(),
                     "environment {index}: oracle action {action:?} \
                     (subset={subset_index}, hand_slot={hand_slot_index}, position={position_index}) \
                     must be scored by the dense table"
@@ -1490,7 +1552,8 @@ mod tests {
             for subset_index in 0..table.subsets.subset_count() {
                 for hand_slot_index in 0..table.build_slot_count {
                     for position_index in 0..table.position_count {
-                        let Some(score) = table.score(subset_index, hand_slot_index, position_index)
+                        let Some(score) =
+                            table.score(subset_index, hand_slot_index, position_index)
                         else {
                             continue;
                         };
@@ -1545,9 +1608,7 @@ mod tests {
                 let candidates = dense_semantic_candidates(&environment, Some(k));
                 let build_tower_ids = candidates
                     .iter()
-                    .filter(|candidate| {
-                        matches!(candidate.action, AgentAction::BuildTower { .. })
-                    })
+                    .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
                     .map(|candidate| candidate.id.clone())
                     .collect::<Vec<_>>();
                 let expected_ids = table
@@ -1618,7 +1679,9 @@ mod tests {
         let subset_b = subsets.card_ids_for_subset(1).expect("subset 1 exists");
         assert_ne!(subset_a, subset_b);
 
-        let mut env_a = environment.fork_for_rollout_seed(0).expect("fork should succeed");
+        let mut env_a = environment
+            .fork_for_rollout_seed(0)
+            .expect("fork should succeed");
         env_a
             .semantic_step(AgentAction::BuildTower {
                 card_ids: subset_a,
@@ -1628,7 +1691,9 @@ mod tests {
             })
             .expect("placing the extra slot should be legal");
 
-        let mut env_b = environment.fork_for_rollout_seed(0).expect("fork should succeed");
+        let mut env_b = environment
+            .fork_for_rollout_seed(0)
+            .expect("fork should succeed");
         env_b
             .semantic_step(AgentAction::BuildTower {
                 card_ids: subset_b,
@@ -1670,9 +1735,7 @@ mod tests {
                 let candidates = dense_semantic_candidates(&environment, build_tower_limit);
                 let actual_non_build = candidates
                     .iter()
-                    .filter(|candidate| {
-                        !matches!(candidate.action, AgentAction::BuildTower { .. })
-                    })
+                    .filter(|candidate| !matches!(candidate.action, AgentAction::BuildTower { .. }))
                     .map(|candidate| candidate.id.clone())
                     .collect::<std::collections::BTreeSet<_>>();
                 assert_eq!(
@@ -1816,8 +1879,10 @@ mod tests {
         for (label, environment) in states {
             let standalone = canonical_scripted_semantic_action(&environment)
                 .unwrap_or_else(|error| panic!("{label}: standalone helper failed: {error}"));
-            let prepared = prepare_semantic_candidates(&environment, None)
-                .unwrap_or_else(|error| panic!("{label}: prepare_semantic_candidates failed: {error}"));
+            let prepared =
+                prepare_semantic_candidates(&environment, None).unwrap_or_else(|error| {
+                    panic!("{label}: prepare_semantic_candidates failed: {error}")
+                });
             assert_eq!(
                 prepared.baseline_action, standalone,
                 "{label}: reused-table baseline must match the standalone canonical helper"
@@ -1849,8 +1914,10 @@ mod tests {
         for (label, environment) in states {
             for limit in [Some(1usize), Some(8), None] {
                 let expected = build_tower_ids(&dense_semantic_candidates(&environment, limit));
-                let prepared = prepare_semantic_candidates(&environment, limit)
-                    .unwrap_or_else(|error| panic!("{label} limit {limit:?}: prepare failed: {error}"));
+                let prepared =
+                    prepare_semantic_candidates(&environment, limit).unwrap_or_else(|error| {
+                        panic!("{label} limit {limit:?}: prepare failed: {error}")
+                    });
                 let actual = build_tower_ids(&prepared.candidates_for_limit(limit));
                 assert_eq!(
                     actual, expected,
@@ -1878,9 +1945,13 @@ mod tests {
                 .map(|candidate| {
                     let mut accumulator = EstimateAccumulator::default();
                     for &scenario_seed in &config.scenario_seeds {
-                        let sample =
-                            evaluate_candidate_scenario(environment, candidate, scenario_seed, config)
-                                .expect("reference scenario evaluation should succeed");
+                        let sample = evaluate_candidate_scenario(
+                            environment,
+                            candidate,
+                            scenario_seed,
+                            config,
+                        )
+                        .expect("reference scenario evaluation should succeed");
                         accumulator.record(
                             sample.score,
                             sample.victory,
@@ -1906,8 +1977,8 @@ mod tests {
             build_tower_rollout_limit: Some(1),
         };
         let candidates = vec![purchase, build];
-        let baseline_action = canonical_scripted_semantic_action(&environment)
-            .expect("baseline should be available");
+        let baseline_action =
+            canonical_scripted_semantic_action(&environment).expect("baseline should be available");
 
         let parallel = evaluate_semantic_candidate_set_with_baseline(
             &environment,
@@ -1933,7 +2004,8 @@ mod tests {
         }
         let mut seen = std::collections::HashSet::new();
         reference_candidates.retain(|candidate| seen.insert(candidate.id.clone()));
-        let reference_estimates = sequential_reference(&environment, &reference_candidates, &config);
+        let reference_estimates =
+            sequential_reference(&environment, &reference_candidates, &config);
 
         assert_eq!(
             parallel.candidates, reference_estimates,
@@ -2588,8 +2660,11 @@ mod tests {
                     / count as f64;
                 let mut quartile_sum = [0.0; 4];
                 for entry in &entries {
-                    for index in 0..4 {
-                        quartile_sum[index] += entry.subset_quartile_survival_rate[index];
+                    for (sum, rate) in quartile_sum
+                        .iter_mut()
+                        .zip(entry.subset_quartile_survival_rate.iter())
+                    {
+                        *sum += rate;
                     }
                 }
                 let mean_subset_quartile_survival_rate =
@@ -2810,12 +2885,16 @@ mod tests {
                     // the meaningful question, not "does it contain this
                     // exact one of the tied actions" - see the report's
                     // methodology string.
-                    let oracle_best_score =
-                        (oracle_best.covered_route, oracle_best.nearest_route, oracle_best.damage_raw);
+                    let oracle_best_score = (
+                        oracle_best.covered_route,
+                        oracle_best.nearest_route,
+                        oracle_best.damage_raw,
+                    );
 
                     let non_build_count = environment.semantic_non_build_actions().len();
-                    let dense_build_tower_budget =
-                        TARGET_CANDIDATE_COUNT.saturating_sub(non_build_count).max(1);
+                    let dense_build_tower_budget = TARGET_CANDIDATE_COUNT
+                        .saturating_sub(non_build_count)
+                        .max(1);
 
                     let legacy_gen_start = Instant::now();
                     let legacy_pre_truncation = environment
@@ -2832,10 +2911,13 @@ mod tests {
                         legacy_gen_start.elapsed().as_secs_f64();
                     let legacy_build_tower_candidates = legacy_candidates
                         .iter()
-                        .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
+                        .filter(|candidate| {
+                            matches!(candidate.action, AgentAction::BuildTower { .. })
+                        })
                         .cloned()
                         .collect::<Vec<_>>();
-                    let legacy_achieves_oracle_best_score = !legacy_build_tower_candidates.is_empty()
+                    let legacy_achieves_oracle_best_score = !legacy_build_tower_candidates
+                        .is_empty()
                         && rank_build_tower_actions_by_heuristic(
                             &observation,
                             &legacy_build_tower_candidates,
@@ -2847,15 +2929,15 @@ mod tests {
                         });
 
                     let dense_gen_start = Instant::now();
-                    let dense_candidates = dense_semantic_candidates(
-                        &environment,
-                        Some(dense_build_tower_budget),
-                    );
+                    let dense_candidates =
+                        dense_semantic_candidates(&environment, Some(dense_build_tower_budget));
                     let dense_candidate_generation_seconds =
                         dense_gen_start.elapsed().as_secs_f64();
                     let dense_materialized_build_tower_count = dense_candidates
                         .iter()
-                        .filter(|candidate| matches!(candidate.action, AgentAction::BuildTower { .. }))
+                        .filter(|candidate| {
+                            matches!(candidate.action, AgentAction::BuildTower { .. })
+                        })
                         .count();
                     // Can't reuse rank_build_tower_actions_by_heuristic here
                     // the way legacy does above: it matches an action's
@@ -2988,8 +3070,7 @@ mod tests {
             / mean_dense_candidate_generation_seconds.max(f64::EPSILON);
         let teacher_decision_speedup = mean_legacy_teacher_decision_seconds
             / mean_dense_teacher_decision_seconds.max(f64::EPSILON);
-        let legacy_decisions_per_sec =
-            1.0 / mean_legacy_teacher_decision_seconds.max(f64::EPSILON);
+        let legacy_decisions_per_sec = 1.0 / mean_legacy_teacher_decision_seconds.max(f64::EPSILON);
         let dense_decisions_per_sec = 1.0 / mean_dense_teacher_decision_seconds.max(f64::EPSILON);
 
         println!(

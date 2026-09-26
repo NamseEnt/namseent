@@ -405,8 +405,7 @@ impl DenseBuildTowerScoreTable {
         let extra_templates = extra_slot_templates(observation);
         let build_slot_count = extra_templates.len() + 1;
 
-        let (legal, legality_stats) =
-            crate::legality::full_map_legality_mask(environment);
+        let (legal, legality_stats) = crate::legality::full_map_legality_mask(environment);
 
         let route_grids = environment.prepared_route_grids(&observation.route_coords);
         let ranges = templates
@@ -468,7 +467,12 @@ impl DenseBuildTowerScoreTable {
         }
     }
 
-    fn flat_index(&self, subset_index: usize, hand_slot_index: usize, position_index: usize) -> usize {
+    fn flat_index(
+        &self,
+        subset_index: usize,
+        hand_slot_index: usize,
+        position_index: usize,
+    ) -> usize {
         (subset_index * self.build_slot_count + hand_slot_index) * self.position_count
             + position_index
     }
@@ -613,8 +617,10 @@ mod tests {
         let large_environment = ready_environment(50_000_000);
         let small_observation = small_environment.snapshot();
         let large_observation = large_environment.snapshot();
-        let small_table = DenseBuildTowerScoreTable::compute(&small_environment, &small_observation);
-        let large_table = DenseBuildTowerScoreTable::compute(&large_environment, &large_observation);
+        let small_table =
+            DenseBuildTowerScoreTable::compute(&small_environment, &small_observation);
+        let large_table =
+            DenseBuildTowerScoreTable::compute(&large_environment, &large_observation);
 
         let full_hand_subset = CardSubsetTable::from_observation(&small_observation)
             .subset_index_for_card_ids(&[])
@@ -725,7 +731,8 @@ mod tests {
                     let action =
                         build_tower_action(&subsets, subset_index, hand_slot_index, position_index)
                             .expect("in-range index pair should materialize");
-                    if let Some(previous) = seen.insert(action.action_id(), (subset_index, hand_slot_index))
+                    if let Some(previous) =
+                        seen.insert(action.action_id(), (subset_index, hand_slot_index))
                     {
                         panic!(
                             "seed {seed}: (subset {subset_index}, hand_slot {hand_slot_index}) and \
@@ -833,7 +840,11 @@ mod tests {
                         .best_index()
                         .expect("dense table should also find a legal candidate");
                     let dense_score = table
-                        .score(dense_subset_index, dense_hand_slot_index, dense_position_index)
+                        .score(
+                            dense_subset_index,
+                            dense_hand_slot_index,
+                            dense_position_index,
+                        )
                         .expect("best_index should always point at a scored entry");
                     let dense_best_score = (
                         dense_score.covered_route,
@@ -1135,7 +1146,10 @@ mod tests {
             ) {
                 let observation = environment.snapshot();
                 let grids = environment.prepared_route_grids(&observation.route_coords);
-                assert_eq!(grids.nearest_route(), nearest_route_grid(&observation.route_coords));
+                assert_eq!(
+                    grids.nearest_route(),
+                    nearest_route_grid(&observation.route_coords)
+                );
                 for range_raw in [0i64, 1_000_000, 2_500_000, 3_000_000, 4_500_000, 7_000_000] {
                     assert_eq!(
                         *grids.coverage(range_raw),

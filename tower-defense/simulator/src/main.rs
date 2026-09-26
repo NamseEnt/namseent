@@ -7,9 +7,7 @@ use std::sync::Arc;
 
 use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
-use td_simulator::environment::{
-    AgentAction, LegalAction, Observation,
-};
+use td_simulator::environment::{AgentAction, LegalAction, Observation};
 use td_simulator::hp_balance::{self, BalanceOptions};
 use td_simulator::ml::MlContract;
 use td_simulator::ml::cli::{self, Command as MlCommand};
@@ -44,6 +42,8 @@ struct Cli {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Play one full game with an AI policy and print every decision")]
+    Play(PlayOptions),
     Simulate(SimulateOptions),
     Baseline(BaselineOptions),
     Benchmark(BenchmarkOptions),
@@ -75,6 +75,47 @@ enum Command {
         #[command(subcommand)]
         command: MlCommand,
     },
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum PlayPolicyArg {
+    Scripted,
+    Teacher,
+}
+
+#[derive(Args)]
+struct PlayOptions {
+    #[arg(long, value_enum, default_value_t = PlayPolicyArg::Scripted)]
+    policy: PlayPolicyArg,
+    #[arg(long, default_value_t = 0)]
+    seed: u64,
+}
+
+fn run_play(options: PlayOptions) -> Result<()> {
+    use td_simulator::play::{PlayPolicy, play_episode};
+
+    let policy = match options.policy {
+        PlayPolicyArg::Scripted => PlayPolicy::Scripted,
+        PlayPolicyArg::Teacher => PlayPolicy::Teacher,
+    };
+    let summary = play_episode(Arc::new(GameConfig::default_config()), options.seed, policy)?;
+    println!();
+    println!("seed:        {}", summary.seed);
+    println!(
+        "result:      {}",
+        if summary.victory { "victory" } else { "defeat" }
+    );
+    println!(
+        "final stage: {}/{}",
+        summary.final_stage, summary.max_stages
+    );
+    println!("clear rate:  {:.2}%", summary.clear_rate);
+    println!("decisions:   {}", summary.decision_count);
+    if policy == PlayPolicy::Teacher {
+        println!("overrides:   {}", summary.override_count);
+    }
+    println!("elapsed:     {:.1}s", summary.elapsed_seconds);
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -167,13 +208,21 @@ struct TeacherSelectFreshStatesOptions {
 fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> Result<()> {
     let selections = td_simulator::teacher_reroll_diag::select_fresh_states(
         Arc::new(GameConfig::default_config()),
-        &[(4, "Shop"), (5, "CardSelection"), (6, "Shop"), (7, "CardSelection")],
+        &[
+            (4, "Shop"),
+            (5, "CardSelection"),
+            (6, "Shop"),
+            (7, "CardSelection"),
+        ],
         16,
         40,
         16,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&selections)?)?;
-    println!("Fresh state selection saved to: {}", options.output.display());
+    println!(
+        "Fresh state selection saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -199,8 +248,14 @@ struct TeacherFrozenCandidateValidationOptions {
     output: PathBuf,
 }
 
-fn run_teacher_frozen_candidate_validation(options: TeacherFrozenCandidateValidationOptions) -> Result<()> {
-    let candidate_ids = options.candidate_ids.split('|').map(str::to_string).collect::<Vec<_>>();
+fn run_teacher_frozen_candidate_validation(
+    options: TeacherFrozenCandidateValidationOptions,
+) -> Result<()> {
+    let candidate_ids = options
+        .candidate_ids
+        .split('|')
+        .map(str::to_string)
+        .collect::<Vec<_>>();
     let result = td_simulator::teacher_reroll_diag::run_frozen_candidate_validation(
         Arc::new(GameConfig::default_config()),
         options.game_seed,
@@ -208,11 +263,15 @@ fn run_teacher_frozen_candidate_validation(options: TeacherFrozenCandidateValida
         &options.state_hash,
         &options.baseline_action_id,
         &candidate_ids,
-        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
-    println!("Frozen candidate validation saved to: {}", options.output.display());
+    println!(
+        "Frozen candidate validation saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -242,7 +301,10 @@ fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Res
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
-    println!("Prereg exhaustive diagnostic saved to: {}", options.output.display());
+    println!(
+        "Prereg exhaustive diagnostic saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -310,7 +372,10 @@ fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) ->
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
-    println!("Exhaustive terminal diagnostic saved to: {}", options.output.display());
+    println!(
+        "Exhaustive terminal diagnostic saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -355,7 +420,11 @@ fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> R
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
-    println!("Multi-fidelity diagnostic saved to: {} ({} states)", options.output.display(), results.len());
+    println!(
+        "Multi-fidelity diagnostic saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
     Ok(())
 }
 
@@ -378,11 +447,16 @@ fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -
     let results = td_simulator::teacher_reroll_diag::run_frozen_horizon_sweep(
         Arc::new(GameConfig::default_config()),
         &options.frozen_artifact,
-        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
         &horizons,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
-    println!("Frozen horizon sweep saved to: {} ({} states)", options.output.display(), results.len());
+    println!(
+        "Frozen horizon sweep saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
     Ok(())
 }
 
@@ -418,14 +492,20 @@ fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) 
         &options.artifact,
         &options.expected_artifact,
         &options.action_kind,
-        &(options.selection_seed_start..options.selection_seed_start + options.selection_count).collect::<Vec<_>>(),
-        &(options.validation_seed_start..options.validation_seed_start + options.validation_count).collect::<Vec<_>>(),
+        &(options.selection_seed_start..options.selection_seed_start + options.selection_count)
+            .collect::<Vec<_>>(),
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
         options.horizon_sim_ticks,
         options.build_tower_rollout_limit,
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
-    println!("Selection validation saved to: {} ({} states)", options.output.display(), results.len());
+    println!(
+        "Selection validation saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
     Ok(())
 }
 
@@ -459,7 +539,11 @@ fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Res
         options.build_tower_rollout_limit,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
-    println!("State sensitivity saved to: {} ({} states)", options.output.display(), results.len());
+    println!(
+        "State sensitivity saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
     Ok(())
 }
 
@@ -487,7 +571,8 @@ fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> 
             .with_context(|| format!("failed to load config {}", path.display()))?,
         None => GameConfig::default_config(),
     });
-    let scenario_seeds = (options.scenario_seed_start..options.scenario_seed_start + options.scenario_count)
+    let scenario_seeds = (options.scenario_seed_start
+        ..options.scenario_seed_start + options.scenario_count)
         .collect::<Vec<_>>();
     let results = td_simulator::teacher_reroll_diag::run_override_intervention(
         config,
@@ -497,7 +582,11 @@ fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> 
         options.max_continuation_decisions,
     )?;
     std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
-    println!("Override diagnostic saved to: {} ({} states)", options.output.display(), results.len());
+    println!(
+        "Override diagnostic saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
     Ok(())
 }
 
@@ -569,12 +658,15 @@ struct SimulateOptions {
 
 fn main() -> Result<()> {
     match Cli::parse().command {
+        Command::Play(options) => run_play(options),
         Command::Simulate(options) => run_simulate(options),
         Command::Baseline(options) => run_baseline(options),
         Command::Benchmark(options) => run_benchmark(options),
         Command::Teacher(options) => run_teacher(options),
         Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
-        Command::TeacherSelectionTerminalGate(options) => run_teacher_selection_terminal_gate(options),
+        Command::TeacherSelectionTerminalGate(options) => {
+            run_teacher_selection_terminal_gate(options)
+        }
         Command::TeacherTerminalExtension(options) => run_teacher_terminal_extension(options),
         #[cfg(feature = "diagnostics")]
         Command::PlacementDiag(options) => run_placement_diag(options),
@@ -592,7 +684,9 @@ fn main() -> Result<()> {
         Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
         Command::TeacherSelectFreshStates(options) => run_teacher_select_fresh_states(options),
         Command::TeacherExhaustivePrereg(options) => run_teacher_exhaustive_prereg(options),
-        Command::TeacherFrozenCandidateValidation(options) => run_teacher_frozen_candidate_validation(options),
+        Command::TeacherFrozenCandidateValidation(options) => {
+            run_teacher_frozen_candidate_validation(options)
+        }
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
@@ -667,7 +761,10 @@ fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<(
     if let Some(parent) = options.output.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&options.output, serde_json::to_string_pretty(&fingerprints)?)?;
+    std::fs::write(
+        &options.output,
+        serde_json::to_string_pretty(&fingerprints)?,
+    )?;
     Ok(())
 }
 
@@ -769,9 +866,15 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
     // than silently mixing incompatible partial results.
     let mut per_seed: Vec<serde_json::Value> = Vec::new();
     if options.output.exists() {
-        let existing: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(&options.output)?)
-                .with_context(|| format!("existing output {} is not valid JSON", options.output.display()))?;
+        let existing: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(
+            &options.output,
+        )?)
+        .with_context(|| {
+            format!(
+                "existing output {} is not valid JSON",
+                options.output.display()
+            )
+        })?;
         let mut existing_provenance = existing.clone();
         if let Some(map) = existing_provenance.as_object_mut() {
             map.remove("results");
@@ -826,7 +929,8 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
             options.max_decisions,
         )?;
         let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
-        let teacher = run_teacher_selection_episode(&mut environment, &pools, options.max_decisions)?;
+        let teacher =
+            run_teacher_selection_episode(&mut environment, &pools, options.max_decisions)?;
         let elapsed_seconds = started.elapsed().as_secs_f64();
         eprintln!(
             "seed {seed}: baseline clear_rate={:.2} teacher clear_rate={:.2} decisions={} elapsed={:.1}s",
@@ -841,7 +945,10 @@ fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Res
         }));
         write_checkpoint(&per_seed)?;
     }
-    println!("Teacher selection held-out report saved to: {}", options.output.display());
+    println!(
+        "Teacher selection held-out report saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -866,7 +973,10 @@ fn write_json_atomically(path: &std::path::Path, value: &serde_json::Value) -> R
         std::fs::create_dir_all(parent)?;
     }
     let tmp_path = path.with_extension("json.tmp");
-    std::fs::write(&tmp_path, format!("{}\n", serde_json::to_string_pretty(value)?))?;
+    std::fs::write(
+        &tmp_path,
+        format!("{}\n", serde_json::to_string_pretty(value)?),
+    )?;
     std::fs::rename(&tmp_path, path)?;
     Ok(())
 }
@@ -954,7 +1064,10 @@ fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOpti
         report["results"] = serde_json::Value::Array(results.clone());
         write_json_atomically(&options.output, &report)?;
     }
-    println!("Terminal gate report saved to: {}", options.output.display());
+    println!(
+        "Terminal gate report saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -974,8 +1087,10 @@ fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> R
         .context("input missing results array")?;
     let mut seeds = Vec::new();
     for record in records {
-        let extended =
-            td_simulator::teacher_terminal_gate::extend_truncated_seed(Arc::clone(&config), record)?;
+        let extended = td_simulator::teacher_terminal_gate::extend_truncated_seed(
+            Arc::clone(&config),
+            record,
+        )?;
         eprintln!(
             "seed {}: delta@truncation={:+.4} terminalized delta={:+.4}",
             extended.game_seed, extended.delta_at_truncation, extended.terminalized_delta
@@ -990,7 +1105,10 @@ fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> R
         "results": seeds,
     });
     write_json_atomically(&options.output, &report)?;
-    println!("Terminal extension report saved to: {}", options.output.display());
+    println!(
+        "Terminal extension report saved to: {}",
+        options.output.display()
+    );
     Ok(())
 }
 
@@ -1086,7 +1204,8 @@ fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
 fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
     let scenario_counts = parse_usize_list(&options.scenario_counts)?;
     let horizon_sim_ticks = parse_u64_list(&options.horizon_sim_ticks)?;
-    let build_tower_rollout_limits = parse_optional_usize_list(&options.build_tower_rollout_limits)?;
+    let build_tower_rollout_limits =
+        parse_optional_usize_list(&options.build_tower_rollout_limits)?;
 
     let config = Arc::new(match options.config {
         Some(ref path) => config::load_jsonc(path)
@@ -1114,7 +1233,9 @@ fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
         );
         let paired_seed_start = options.paired_seed_start.unwrap_or(options.seed_start);
         let paired_seed_end = options.paired_seed_end.unwrap_or(options.seed_end);
-        let paired_max_decisions = options.paired_max_decisions.unwrap_or(options.max_decisions);
+        let paired_max_decisions = options
+            .paired_max_decisions
+            .unwrap_or(options.max_decisions);
         let paired_seeds = (paired_seed_start..=paired_seed_end).collect::<Vec<_>>();
         let teacher_config = RolloutTeacherConfig {
             scenario_seeds: (options.scenario_seed_start
@@ -1190,7 +1311,7 @@ fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
         };
         builder.build()?
     };
-    let threads = pool.install(|| rayon::current_num_threads());
+    let threads = pool.install(rayon::current_num_threads);
     let semantic_actions = matches!(options.action_mode, BenchmarkActionModeArg::Semantic);
     let report = match options.policy {
         BenchmarkPolicyArg::RandomLegal if semantic_actions => pool.install(|| {

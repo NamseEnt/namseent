@@ -2,8 +2,8 @@
 //!
 //! `Observation.stage_wave`/`queued_wave` are variable-cardinality,
 //! order-sensitive group lists and must not be collapsed into a fixed-width
-//! row or a per-kind aggregate (see `docs/game-ai/03-observation-contract.md`
-//! - "웨이브와 장기 상태"). This module gives a future structured policy head
+//! row or a per-kind aggregate (see `docs/game-ai/03-observation-contract.md`,
+//! section "웨이브와 장기 상태"). This module gives a future structured policy head
 //! a way to consume that full set without collapsing it: one row per stage
 //! wave group and one row per queued wave group, plus current spawn timing.
 //!
