@@ -1065,6 +1065,7 @@ mod tests {
         assert_eq!(trained.num_params(), ppo.num_params());
     }
 
+    #[cfg(feature = "simulator-cuda")]
     fn compare_bc_step_with_device<G: burn::tensor::backend::AutodiffBackend>(
         label: &str,
         device: G::Device,
