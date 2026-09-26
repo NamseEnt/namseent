@@ -41,6 +41,7 @@ pub struct PolicyEpisode {
     pub decisions: usize,
     pub illegal_actions: usize,
     pub fallback_actions: usize,
+    pub guard_interventions: usize,
     pub canonical_agreement: usize,
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub decision_seconds: f64,
@@ -65,6 +66,7 @@ pub fn run_policy_episode(
         decisions: 0,
         illegal_actions: 0,
         fallback_actions: 0,
+        guard_interventions: 0,
         canonical_agreement: 0,
         chosen_kind_counts: BTreeMap::new(),
         decision_seconds: 0.0,
@@ -72,12 +74,15 @@ pub fn run_policy_episode(
         wall_seconds: 0.0,
         final_state_hash: String::new(),
     };
+    let mut recent = Vec::new();
     while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
         if episode.decisions >= MAX_EPISODE_DECISIONS {
             bail!(
                 "seed {seed} policy {}: reached the {MAX_EPISODE_DECISIONS}-decision safety cap \
-                 - invariant failure",
-                policy.name()
+                 - invariant failure (stage {}, last actions {:?})",
+                policy.name(),
+                environment.snapshot().stage,
+                recent
             );
         }
         let decision_started = Instant::now();
@@ -90,6 +95,7 @@ pub fn run_policy_episode(
             EvalPolicy::Learned { policy, .. } => match policy.choose(&environment) {
                 Ok(choice) => {
                     episode.forward_seconds += choice.forward_seconds;
+                    episode.guard_interventions += choice.guard_intervention as usize;
                     let candidate = &choice.candidates.candidates[choice.index];
                     if !choice.legal_mask[choice.index]
                         || !environment.semantic_action_is_legal(&candidate.action)
@@ -112,6 +118,14 @@ pub fn run_policy_episode(
             },
         };
         episode.decision_seconds += decision_started.elapsed().as_secs_f64();
+        recent.push(format!(
+            "{:?}:{}",
+            environment.decision_point(),
+            action.action_id()
+        ));
+        if recent.len() > 12 {
+            recent.remove(0);
+        }
         *episode
             .chosen_kind_counts
             .entry(action.kind().wire_name().to_string())
@@ -140,6 +154,7 @@ pub struct PolicySummary {
     pub mean_decisions: f64,
     pub illegal_actions: usize,
     pub fallback_actions: usize,
+    pub guard_interventions: usize,
     pub canonical_agreement_rate: f64,
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub mean_decision_ms: f64,
@@ -216,6 +231,10 @@ pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySumm
         fallback_actions: episodes
             .iter()
             .map(|episode| episode.fallback_actions)
+            .sum(),
+        guard_interventions: episodes
+            .iter()
+            .map(|episode| episode.guard_interventions)
             .sum(),
         canonical_agreement_rate: episodes
             .iter()

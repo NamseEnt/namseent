@@ -623,6 +623,24 @@ pub struct PolicyChoice {
     pub index: usize,
     pub log_probs: Vec<f32>,
     pub forward_seconds: f64,
+    /// The no-undo rule changed the greedy choice.
+    pub guard_intervention: bool,
+}
+
+/// Deselecting an already selected card-service card only undoes an earlier
+/// choice and can make a greedy policy toggle forever, so the learned
+/// policy never takes it. Canonical play never deselects either.
+pub fn is_undo_action(
+    observation: &crate::environment::Observation,
+    action: &crate::environment::AgentAction,
+) -> bool {
+    match action {
+        crate::environment::AgentAction::SelectCardServiceCard { card_index } => observation
+            .card_service
+            .as_ref()
+            .is_some_and(|service| service.selected_card_indices.contains(card_index)),
+        _ => false,
+    }
 }
 
 impl SemanticPolicy {
@@ -681,14 +699,28 @@ impl SemanticPolicy {
             legal_mask.clone(),
         );
         let started = Instant::now();
-        let (index, log_probs) = self.choose_encoded(&encoded)?;
+        let (unguarded, log_probs) = self.choose_encoded(&encoded)?;
         let forward_seconds = started.elapsed().as_secs_f64();
+        let index = log_probs
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| {
+                legal_mask[*index]
+                    && !is_undo_action(
+                        &candidates.observation,
+                        &candidates.candidates[*index].action,
+                    )
+            })
+            .max_by(|left, right| left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0)))
+            .map(|(index, _)| index)
+            .unwrap_or(unguarded);
         Ok(PolicyChoice {
             candidates,
             legal_mask,
             index,
             log_probs,
             forward_seconds,
+            guard_intervention: index != unguarded,
         })
     }
 }

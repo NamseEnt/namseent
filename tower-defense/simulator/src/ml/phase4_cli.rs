@@ -99,6 +99,18 @@ pub enum Phase4Command {
         #[arg(long, default_value_t = 0)]
         threads: usize,
     },
+    /// Teacher override/disagreement analysis of a teacher corpus.
+    TeacherAnalysis {
+        #[arg(long)]
+        dataset: PathBuf,
+        /// Canonical BC run whose predictions are compared on the same states.
+        #[arg(long)]
+        bc_run_dir: Option<PathBuf>,
+        #[arg(long)]
+        output: Option<PathBuf>,
+        #[arg(long, default_value_t = 0)]
+        threads: usize,
+    },
     /// Paired terminal evaluation of canonical and learned policies.
     TerminalEval {
         #[arg(long, value_enum)]
@@ -430,6 +442,22 @@ pub fn run(command: Phase4Command) -> Result<()> {
             let metrics = evaluate_samples(&model, &samples, &device)?;
             write_json(output.as_deref(), &metrics)
         }
+        Phase4Command::TeacherAnalysis {
+            dataset,
+            bc_run_dir,
+            output,
+            threads,
+        } => {
+            configure_threads(threads)?;
+            let episodes = load_limited(&dataset, &config, None)?;
+            let policy = bc_run_dir
+                .as_deref()
+                .map(SemanticPolicy::from_run_dir)
+                .transpose()?;
+            let analysis =
+                super::phase4_analysis::analyze_teacher_corpus(&episodes, policy.as_ref())?;
+            write_json(output.as_deref(), &analysis)
+        }
         Phase4Command::TerminalEval {
             split,
             count,
@@ -487,7 +515,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 evaluate_policies(config, split.name(), &seeds, &eval_policies, &comparisons)?;
             for summary in &report.summaries {
                 eprintln!(
-                    "{}: mean {:.2} median {:.2} stage {:.2} decisions {:.1} illegal {} fallback {} \
+                    "{}: mean {:.2} median {:.2} stage {:.2} decisions {:.1} illegal {} fallback {} guard {} \
                      agreement {:.3} {:.3} ms/decision",
                     summary.policy,
                     summary.mean_terminal_clear_rate,
@@ -496,6 +524,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     summary.mean_decisions,
                     summary.illegal_actions,
                     summary.fallback_actions,
+                    summary.guard_interventions,
                     summary.canonical_agreement_rate,
                     summary.mean_decision_ms
                 );

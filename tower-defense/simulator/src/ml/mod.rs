@@ -18,6 +18,8 @@ pub mod model;
 #[cfg(feature = "simulator")]
 pub mod neural_checkpoint;
 #[cfg(feature = "simulator")]
+pub mod phase4_analysis;
+#[cfg(feature = "simulator")]
 pub mod phase4_cli;
 #[cfg(feature = "simulator")]
 pub mod phase4_dataset;
