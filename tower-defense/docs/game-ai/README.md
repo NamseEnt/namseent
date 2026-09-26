@@ -30,7 +30,9 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 - On 8 untouched seeds (124-131), the teacher beat the heuristic on every seed: mean clear rate +15.1 points, final stage about 20 → 28. See [`05-rollout-teacher.md`](05-rollout-teacher.md).
 - The gain is an average, not a per-seed guarantee. On seed 0 the teacher reached stage 22 (clear rate 43.8%) and the heuristic reached stage 26 (50.2%).
 - Neither AI has cleared a full game yet.
-- Next is Phase 4: distill the teacher into a fast policy, because the teacher is far too slow for large-scale play.
+- Phase 4A: a search-free neural policy imitates the heuristic almost exactly (BC), but distilling the teacher's labels added almost nothing (+0.11). See [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md).
+- Phase 4B (latest gameplay rules): PPO starting from the BC policy beats the heuristic by +4.98 clear rate on 256 untouched seeds (about 2.5 more stages, better on 210 of 256 seeds), without search. See [`14-phase4b-ppo.md`](14-phase4b-ppo.md).
+- The learned policy only chooses among the heuristic's top 8 placements and builds, so tower placement has not improved yet. That is the next step.
 
 ## 최종 합의
 
