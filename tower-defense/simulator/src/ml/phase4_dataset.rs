@@ -33,7 +33,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
-pub const PHASE4_DATASET_SCHEMA_VERSION: u32 = 1;
+pub const PHASE4_DATASET_SCHEMA_VERSION: u32 = 2;
+/// Identifies the authoritative core gameplay rules a dataset/checkpoint was
+/// produced under. The game config digest alone does not change when core
+/// rules change, so this epoch is bumped at every gameplay-semantics
+/// boundary. 1: Phase 4A (core at `ac27e2a1`). 2: Phase 4B (poker-hand tower
+/// selection rewrite and 3-card candidate card services from #1369-#1371).
+pub const GAME_RULES_EPOCH: u32 = 2;
 /// Runaway guard: reaching it is an invariant failure, never a result.
 pub const MAX_EPISODE_DECISIONS: usize = 512;
 /// Game seeds used by the Phase 3 pilot, held-out, post-hoc extension and
@@ -49,15 +55,25 @@ pub enum Phase4Split {
     TeacherTrain,
     DevelopmentEvaluation,
     FinalEvaluation,
+    Phase4bCanonicalTrain,
+    Phase4bCanonicalValidation,
+    PpoTrain,
+    PpoDevelopment,
+    Phase4bFinal,
 }
 
 impl Phase4Split {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 10] = [
         Self::CanonicalTrain,
         Self::CanonicalValidation,
         Self::TeacherTrain,
         Self::DevelopmentEvaluation,
         Self::FinalEvaluation,
+        Self::Phase4bCanonicalTrain,
+        Self::Phase4bCanonicalValidation,
+        Self::PpoTrain,
+        Self::PpoDevelopment,
+        Self::Phase4bFinal,
     ];
 
     /// Frozen before any Phase 4A data was generated (see
@@ -69,7 +85,38 @@ impl Phase4Split {
             Self::TeacherTrain => 2_200_000..=2_200_015,
             Self::DevelopmentEvaluation => 2_300_000..=2_300_127,
             Self::FinalEvaluation => 2_400_000..=2_400_255,
+            // Phase 4B, frozen before any Phase 4B data was generated (see
+            // docs/game-ai/14-phase4b-ppo.md).
+            Self::Phase4bCanonicalTrain => 3_000_000..=3_009_999,
+            Self::Phase4bCanonicalValidation => 3_100_000..=3_100_063,
+            Self::PpoTrain => 3_200_000..=3_999_999,
+            Self::PpoDevelopment => 4_000_000..=4_000_127,
+            Self::Phase4bFinal => 4_100_000..=4_100_255,
         }
+    }
+
+    pub fn is_canonical_data_split(self) -> bool {
+        matches!(
+            self,
+            Self::CanonicalTrain
+                | Self::CanonicalValidation
+                | Self::Phase4bCanonicalTrain
+                | Self::Phase4bCanonicalValidation
+        )
+    }
+
+    pub fn is_evaluation_split(self) -> bool {
+        matches!(
+            self,
+            Self::DevelopmentEvaluation
+                | Self::FinalEvaluation
+                | Self::PpoDevelopment
+                | Self::Phase4bFinal
+        )
+    }
+
+    pub fn is_final_split(self) -> bool {
+        matches!(self, Self::FinalEvaluation | Self::Phase4bFinal)
     }
 
     pub fn name(self) -> &'static str {
@@ -79,6 +126,11 @@ impl Phase4Split {
             Self::TeacherTrain => "teacher_train",
             Self::DevelopmentEvaluation => "development_evaluation",
             Self::FinalEvaluation => "final_evaluation",
+            Self::Phase4bCanonicalTrain => "phase4b_canonical_train",
+            Self::Phase4bCanonicalValidation => "phase4b_canonical_validation",
+            Self::PpoTrain => "ppo_train",
+            Self::PpoDevelopment => "ppo_development",
+            Self::Phase4bFinal => "phase4b_final",
         }
     }
 
@@ -115,6 +167,13 @@ pub struct DatasetProvenance {
     pub candidate_encoder_version: u32,
     pub game_config_version: u32,
     pub game_config_digest: String,
+    /// `GAME_RULES_EPOCH`; absent (0) in Phase 4A datasets.
+    #[serde(default)]
+    pub game_rules_epoch: u32,
+    /// `git rev-parse HEAD:tower-defense/core` - content hash of the core
+    /// rules source at generation time (informational; dirty trees differ).
+    #[serde(default)]
+    pub core_tree_hash: String,
     pub source_policy: SourcePolicy,
     pub split: Phase4Split,
     pub split_range: (u64, u64),
@@ -143,6 +202,8 @@ impl DatasetProvenance {
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
             game_config_version: GAME_CONFIG_VERSION,
             game_config_digest: config_digest(config),
+            game_rules_epoch: GAME_RULES_EPOCH,
+            core_tree_hash: core_tree_hash(),
             source_policy,
             split,
             split_range: (*range.start(), *range.end()),
@@ -166,6 +227,7 @@ impl DatasetProvenance {
             self.policy_candidate_set_version,
             self.game_config_version,
             &self.game_config_digest,
+            self.game_rules_epoch,
             self.source_policy,
             self.split,
             self.teacher_rule_version,
@@ -183,11 +245,28 @@ impl DatasetProvenance {
             || self.policy_candidate_set_version != POLICY_CANDIDATE_SET_VERSION
             || self.game_config_version != GAME_CONFIG_VERSION
             || self.game_config_digest != config_digest(config)
+            || self.game_rules_epoch != GAME_RULES_EPOCH
         {
             bail!("dataset provenance does not match the current schema/config contract");
         }
         Ok(())
     }
+}
+
+pub fn core_tree_hash() -> String {
+    std::process::Command::new("git")
+        .args([
+            "-C",
+            env!("CARGO_MANIFEST_DIR"),
+            "rev-parse",
+            "HEAD:tower-defense/core",
+        ])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|text| text.trim().to_string())
+        .unwrap_or_else(|| "<git rev-parse failed>".to_string())
 }
 
 fn git_dirty_paths() -> Vec<String> {

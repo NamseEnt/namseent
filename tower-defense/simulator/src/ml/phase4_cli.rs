@@ -242,12 +242,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     )
                 }
             };
-            if source == SourcePolicy::Canonical
-                && !matches!(
-                    split,
-                    Phase4Split::CanonicalTrain | Phase4Split::CanonicalValidation
-                )
-            {
+            if source == SourcePolicy::Canonical && !split.is_canonical_data_split() {
                 bail!("canonical training data may only come from canonical_train/validation");
             }
             let seeds = split.seeds(count)?;
@@ -468,13 +463,10 @@ pub fn run(command: Phase4Command) -> Result<()> {
             threads,
         } => {
             configure_threads(threads)?;
-            if !matches!(
-                split,
-                Phase4Split::DevelopmentEvaluation | Phase4Split::FinalEvaluation
-            ) {
+            if !split.is_evaluation_split() {
                 bail!("terminal evaluation runs on development or final evaluation seeds only");
             }
-            if split == Phase4Split::FinalEvaluation {
+            if split.is_final_split() {
                 if !confirm_final {
                     bail!("the final evaluation runs once; pass --confirm-final");
                 }
@@ -515,7 +507,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 evaluate_policies(config, split.name(), &seeds, &eval_policies, &comparisons)?;
             for summary in &report.summaries {
                 eprintln!(
-                    "{}: mean {:.2} median {:.2} stage {:.2} decisions {:.1} illegal {} fallback {} guard {} \
+                    "{}: mean {:.2} median {:.2} stage {:.2} decisions {:.1} illegal {} fallback {} post_sampling_mutations {} \
                      agreement {:.3} {:.3} ms/decision",
                     summary.policy,
                     summary.mean_terminal_clear_rate,
@@ -524,7 +516,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     summary.mean_decisions,
                     summary.illegal_actions,
                     summary.fallback_actions,
-                    summary.guard_interventions,
+                    summary.post_sampling_mutations,
                     summary.canonical_agreement_rate,
                     summary.mean_decision_ms
                 );

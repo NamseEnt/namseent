@@ -41,7 +41,7 @@ pub struct PolicyEpisode {
     pub decisions: usize,
     pub illegal_actions: usize,
     pub fallback_actions: usize,
-    pub guard_interventions: usize,
+    pub post_sampling_mutations: usize,
     pub canonical_agreement: usize,
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub decision_seconds: f64,
@@ -66,7 +66,7 @@ pub fn run_policy_episode(
         decisions: 0,
         illegal_actions: 0,
         fallback_actions: 0,
-        guard_interventions: 0,
+        post_sampling_mutations: 0,
         canonical_agreement: 0,
         chosen_kind_counts: BTreeMap::new(),
         decision_seconds: 0.0,
@@ -86,6 +86,7 @@ pub fn run_policy_episode(
             );
         }
         let decision_started = Instant::now();
+        let mut sampled_action_id = None;
         let action = match policy {
             EvalPolicy::Canonical => {
                 let action = canonical_scripted_semantic_action(&environment)?;
@@ -95,8 +96,8 @@ pub fn run_policy_episode(
             EvalPolicy::Learned { policy, .. } => match policy.choose(&environment) {
                 Ok(choice) => {
                     episode.forward_seconds += choice.forward_seconds;
-                    episode.guard_interventions += choice.guard_intervention as usize;
                     let candidate = &choice.candidates.candidates[choice.index];
+                    sampled_action_id = Some(candidate.action_id.clone());
                     if !choice.legal_mask[choice.index]
                         || !environment.semantic_action_is_legal(&candidate.action)
                     {
@@ -117,6 +118,9 @@ pub fn run_policy_episode(
                 }
             },
         };
+        if sampled_action_id.is_some_and(|sampled| sampled != action.action_id()) {
+            episode.post_sampling_mutations += 1;
+        }
         episode.decision_seconds += decision_started.elapsed().as_secs_f64();
         recent.push(format!(
             "{:?}:{}",
@@ -154,7 +158,7 @@ pub struct PolicySummary {
     pub mean_decisions: f64,
     pub illegal_actions: usize,
     pub fallback_actions: usize,
-    pub guard_interventions: usize,
+    pub post_sampling_mutations: usize,
     pub canonical_agreement_rate: f64,
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub mean_decision_ms: f64,
@@ -232,9 +236,9 @@ pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySumm
             .iter()
             .map(|episode| episode.fallback_actions)
             .sum(),
-        guard_interventions: episodes
+        post_sampling_mutations: episodes
             .iter()
-            .map(|episode| episode.guard_interventions)
+            .map(|episode| episode.post_sampling_mutations)
             .sum(),
         canonical_agreement_rate: episodes
             .iter()

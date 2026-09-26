@@ -35,7 +35,7 @@ use crate::policy_runner::{
 use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 
-pub const POLICY_CANDIDATE_SET_VERSION: u32 = 1;
+pub const POLICY_CANDIDATE_SET_VERSION: u32 = 2;
 pub const SEMANTIC_CANDIDATE_ENCODER_VERSION: u32 = 1;
 pub const BUILD_TOWER_CANDIDATE_LIMIT: usize = 8;
 pub const PLACE_TOWER_CANDIDATE_LIMIT: usize = 8;

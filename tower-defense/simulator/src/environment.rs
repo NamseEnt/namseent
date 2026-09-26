@@ -10,7 +10,7 @@ use td_core::CommandError;
 use td_core::PlayerCommand;
 
 pub const ENVIRONMENT_VERSION: u32 = 7;
-pub const ACTION_SCHEMA_VERSION: u32 = 7;
+pub const ACTION_SCHEMA_VERSION: u32 = 8;
 pub const ENVIRONMENT_REPLAY_SCHEMA_VERSION: u32 = 7;
 pub const DEFAULT_MAX_ADVANCE_TICKS: u64 = 60 * 60 * 5;
 /// Provisional: measured via `teacher::tests::phase1_candidate_recall_report`
@@ -1932,21 +1932,25 @@ impl GameEnvironment {
             .collect()
     }
 
+    /// Card-service selection is monotone: while the current step still
+    /// needs cards, every selectable card that is not already selected is
+    /// offered; once the step is full, only `ConfirmCardServiceSelection` is.
+    /// Deselecting (undo) and selecting into a full step (a no-op) are not
+    /// actions, so a policy can never loop without making progress.
     fn card_service_actions(&self) -> Vec<AgentAction> {
         let Some(selection) = self.card_service_selection() else {
             return Vec::new();
         };
-        let mut actions =
-            card_service_selectable_card_indices(self.game_state.raw_state(), selection)
-                .into_iter()
-                .map(|card_index| AgentAction::SelectCardServiceCard { card_index })
-                .collect::<Vec<_>>();
-        if selection.selected_card_ids[selection.current_step].len()
-            == selection.steps[selection.current_step].count
-        {
-            actions.push(AgentAction::ConfirmCardServiceSelection);
+        if card_service_step_is_full(selection) {
+            return vec![AgentAction::ConfirmCardServiceSelection];
         }
-        actions
+        let cards = &self.game_state.raw_state().deck().all_cards;
+        let selected = &selection.selected_card_ids[selection.current_step];
+        card_service_selectable_card_indices(self.game_state.raw_state(), selection)
+            .into_iter()
+            .filter(|card_index| !selected.contains(&cards[*card_index].id))
+            .map(|card_index| AgentAction::SelectCardServiceCard { card_index })
+            .collect()
     }
 
     fn card_service_kind_for_action(
@@ -1985,11 +1989,18 @@ impl GameEnvironment {
                     .ok_or_else(|| EnvironmentError::CardServiceRejected {
                         action_id: action.action_id(),
                     })?;
+                let card_id = card.id;
                 let selectable = self
                     .card_service_selection
                     .as_ref()
                     .is_some_and(|selection| {
-                        card_service_selectable_card_indices(self.game_state.raw_state(), selection)
+                        !card_service_step_is_full(selection)
+                            && !selection.selected_card_ids[selection.current_step]
+                                .contains(&card_id)
+                            && card_service_selectable_card_indices(
+                                self.game_state.raw_state(),
+                                selection,
+                            )
                             .contains(card_index)
                     });
                 if !selectable {
@@ -2002,12 +2013,7 @@ impl GameEnvironment {
                         action_id: action.action_id(),
                     }
                 })?;
-                let selected = &mut selection.selected_card_ids[selection.current_step];
-                if let Some(index) = selected.iter().position(|id| *id == card.id) {
-                    selected.remove(index);
-                } else if selected.len() < selection.steps[selection.current_step].count {
-                    selected.push(card.id);
-                }
+                selection.selected_card_ids[selection.current_step].push(card_id);
                 Ok(())
             }
             AgentAction::ConfirmCardServiceSelection => {
@@ -2141,6 +2147,11 @@ fn card_service_observation_raw(
         selected_card_indices,
         candidate_card_indices,
     })
+}
+
+fn card_service_step_is_full(selection: &td_core::CardServiceSelectionState) -> bool {
+    selection.selected_card_ids[selection.current_step].len()
+        >= selection.steps[selection.current_step].count
 }
 
 /// Deck indices the current card-service step may select, taken from the
@@ -3885,6 +3896,70 @@ mod tests {
                 "{kind:?}"
             );
         }
+    }
+
+    #[test]
+    fn card_service_selection_offers_no_undo_or_noop_actions() {
+        let mut exercised = 0usize;
+        for kind in td_core::CardServiceKind::ALL.iter().copied() {
+            let mut environment = environment();
+            let slot_index = environment
+                .game_state
+                .add_card_service_shop_slot_of_kind_for_test(kind.raw());
+            if environment
+                .step(AgentAction::PurchaseShopItem { slot_index })
+                .is_err()
+            {
+                continue;
+            }
+            exercised += 1;
+            let mut decisions = 0usize;
+            while environment.decision_point() == DecisionPoint::CardServiceSelection {
+                let selection = environment.card_service_selection().unwrap().clone();
+                let selected = &selection.selected_card_ids[selection.current_step];
+                let legal = environment
+                    .legal_actions()
+                    .into_iter()
+                    .map(|legal| legal.action)
+                    .collect::<Vec<_>>();
+                if selected.len() >= selection.steps[selection.current_step].count {
+                    assert_eq!(legal, vec![AgentAction::ConfirmCardServiceSelection]);
+                } else {
+                    assert!(!legal.contains(&AgentAction::ConfirmCardServiceSelection));
+                    for action in &legal {
+                        let AgentAction::SelectCardServiceCard { card_index } = action else {
+                            panic!("unexpected card-service action {action:?}");
+                        };
+                        let card_id =
+                            environment.game_state.raw_state().deck().all_cards[*card_index].id;
+                        assert!(!selected.contains(&card_id), "undo offered for {kind:?}");
+                    }
+                }
+                for (card_index, card) in environment
+                    .game_state
+                    .raw_state()
+                    .deck()
+                    .all_cards
+                    .iter()
+                    .enumerate()
+                {
+                    if selected.contains(&card.id) {
+                        let undo = AgentAction::SelectCardServiceCard { card_index };
+                        assert!(!environment.semantic_action_is_legal(&undo));
+                        let mut probe = identical_clone(&environment);
+                        assert!(probe.step(undo).is_err(), "undo accepted for {kind:?}");
+                    }
+                }
+                let action = legal.last().cloned().expect("card service has an action");
+                environment.step(action).expect("legal card-service action");
+                decisions += 1;
+                assert!(
+                    decisions <= 8,
+                    "card service {kind:?} did not finish monotonically"
+                );
+            }
+        }
+        assert!(exercised >= 8, "only {exercised} card services exercised");
     }
 
     #[test]

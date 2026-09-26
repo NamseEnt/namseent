@@ -29,11 +29,11 @@ pub mod phase4_eval;
 pub mod ppo;
 #[cfg(feature = "simulator")]
 pub mod rollout;
+pub mod seed;
 #[cfg(feature = "simulator")]
 pub mod semantic_bc;
 #[cfg(feature = "simulator")]
 pub mod semantic_candidates;
-pub mod seed;
 #[cfg(feature = "simulator")]
 pub mod toy_overfit;
 #[cfg(feature = "simulator")]
