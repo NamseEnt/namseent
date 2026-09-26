@@ -1046,7 +1046,7 @@ pub(crate) fn trainer_hyperparameters(config: &PpoConfig) -> BTreeMap<String, St
     ])
 }
 
-fn gradient_l2_norm<B: burn::tensor::backend::AutodiffBackend>(
+pub(crate) fn gradient_l2_norm<B: burn::tensor::backend::AutodiffBackend>(
     model: &DeepSetsActorCritic<B>,
     gradients: &GradientsParams,
 ) -> f32 {

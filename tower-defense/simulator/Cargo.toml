@@ -7,6 +7,7 @@ edition = "2024"
 default = ["simulator"]
 simulator = []
 simulator-wgpu = ["simulator", "dep:burn-wgpu"]
+simulator-cuda = ["simulator", "dep:burn-cuda"]
 diagnostics = ["td-core/diagnostics"]
 
 [dependencies]
@@ -28,6 +29,7 @@ rand_chacha = "=0.3.1"
 burn = { version = "0.21.0", default-features = false, features = ["std"] }
 burn-autodiff = "0.21.0"
 burn-flex = "0.21.0"
+burn-cuda = { version = "0.21.0", optional = true }
 burn-wgpu = { version = "0.21.0", default-features = false, features = ["std", "fusion", "webgpu"], optional = true }
 td-core = { path = "../core" }
 

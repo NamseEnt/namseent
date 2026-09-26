@@ -16,12 +16,10 @@
 //! between consecutive decisions. With `gamma = 1` the return telescopes to
 //! `reward_scale * (terminal - current clear_rate)`.
 
-use super::bc::MaskedGroups;
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
-    default_policy_device, model_from_full_precision_bytes, model_to_full_precision_bytes,
-    tensor_from_rows,
+    default_policy_device, model_to_full_precision_bytes, tensor_from_rows,
 };
 use super::neural_checkpoint::current_git_revision;
 use super::phase4_dataset::{
@@ -76,8 +74,7 @@ pub const TRACKED_ACTION_KINDS: [&str; 12] = [
     "confirm_card_service_selection",
 ];
 
-type ActorCriticOptimizer =
-    OptimizerAdaptor<Adam, DeepSetsActorCritic<TrainBackend>, TrainBackend>;
+type ActorCriticOptimizer = OptimizerAdaptor<Adam, DeepSetsActorCritic<TrainBackend>, TrainBackend>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoConfig {
@@ -248,7 +245,10 @@ enum StepEnd {
 }
 
 /// Applies `action` and settles forced actions up to the next decision.
-fn advance(environment: &mut GameEnvironment, action: crate::environment::AgentAction) -> Result<StepEnd> {
+fn advance(
+    environment: &mut GameEnvironment,
+    action: crate::environment::AgentAction,
+) -> Result<StepEnd> {
     let mut outcome = environment
         .rollout_step_trusted(action)
         .map_err(|error| anyhow::anyhow!("semantic step failed: {error:?}"))?;
@@ -455,12 +455,15 @@ impl PpoLearner {
         self.critic.clone().valid()
     }
 
-    fn critic_step(&mut self, batch: &[&Transition]) -> Option<(f64, f32)> {
+    fn critic_step(&mut self, batch: &[&Transition], learning_rate: f64) -> Option<(f64, f32)> {
         let decisions = batch.iter().map(|step| &step.encoded).collect::<Vec<_>>();
         let values = critic_values(&self.critic, &decisions, &self.device);
         let returns = Tensor::<TrainBackend, 2>::from_data(
             TensorData::new(
-                batch.iter().map(|step| step.return_value).collect::<Vec<_>>(),
+                batch
+                    .iter()
+                    .map(|step| step.return_value)
+                    .collect::<Vec<_>>(),
                 [batch.len(), 1],
             ),
             &self.device,
@@ -475,11 +478,9 @@ impl PpoLearner {
         if !norm.is_finite() {
             return None;
         }
-        self.critic = self.critic_optimizer.step(
-            self.critic_learning_rate,
-            self.critic.clone(),
-            gradients,
-        );
+        self.critic = self
+            .critic_optimizer
+            .step(learning_rate, self.critic.clone(), gradients);
         Some((loss_value as f64, norm))
     }
 }
@@ -506,19 +507,27 @@ fn actor_terms(
     let rows = batch.len();
     let width = groups.width();
     let actions = groups.target_tensor::<TrainBackend>(
-        &batch.iter().map(|step| step.action_index).collect::<Vec<_>>(),
+        &batch
+            .iter()
+            .map(|step| step.action_index)
+            .collect::<Vec<_>>(),
         device,
     );
     let new_log_prob = log_probs.clone().gather(1, actions);
     let old_log_prob = Tensor::<TrainBackend, 2>::from_data(
         TensorData::new(
-            batch.iter().map(|step| step.old_log_prob).collect::<Vec<_>>(),
+            batch
+                .iter()
+                .map(|step| step.old_log_prob)
+                .collect::<Vec<_>>(),
             [rows, 1],
         ),
         device,
     );
-    let advantage =
-        Tensor::<TrainBackend, 2>::from_data(TensorData::new(advantages.to_vec(), [rows, 1]), device);
+    let advantage = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(advantages.to_vec(), [rows, 1]),
+        device,
+    );
     let log_ratio = new_log_prob - old_log_prob;
     let ratio = log_ratio.clone().exp();
     let clipped = ratio
@@ -630,18 +639,26 @@ impl PpoLearner {
         for epoch in 0..config.update_epochs {
             let mut order = (0..transitions.len()).collect::<Vec<_>>();
             let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(
-                config.seed ^ (iteration as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                config.seed
+                    ^ (iteration as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)
                     ^ (epoch as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
             );
             order.shuffle(&mut rng);
             let mut epoch_kl = 0.0f64;
             let mut epoch_batches = 0usize;
             for chunk in order.chunks(config.minibatch_size) {
-                let batch = chunk.iter().map(|index| &transitions[*index]).collect::<Vec<_>>();
-                let batch_advantages = chunk.iter().map(|index| advantages[*index]).collect::<Vec<_>>();
+                let batch = chunk
+                    .iter()
+                    .map(|index| &transitions[*index])
+                    .collect::<Vec<_>>();
+                let batch_advantages = chunk
+                    .iter()
+                    .map(|index| advantages[*index])
+                    .collect::<Vec<_>>();
                 stats.minibatches += 1;
                 if update_actor {
-                    let terms = actor_terms(&self.actor, &batch, &batch_advantages, config, &self.device)?;
+                    let terms =
+                        actor_terms(&self.actor, &batch, &batch_advantages, config, &self.device)?;
                     let finite = [
                         terms.policy_loss,
                         terms.entropy,
@@ -651,7 +668,8 @@ impl PpoLearner {
                     .iter()
                     .all(|value| value.is_finite());
                     if finite {
-                        let gradients = GradientsParams::from_grads(terms.loss.backward(), &self.actor);
+                        let gradients =
+                            GradientsParams::from_grads(terms.loss.backward(), &self.actor);
                         let norm = super::ppo::gradient_l2_norm(&self.actor, &gradients);
                         if norm.is_finite() {
                             self.actor = self.actor_optimizer.step(
@@ -676,7 +694,7 @@ impl PpoLearner {
                         stats.nonfinite_skips += 1;
                     }
                 }
-                match self.critic_step_with(&batch, config.critic_learning_rate) {
+                match self.critic_step(&batch, config.critic_learning_rate) {
                     Some((loss, norm)) => {
                         critic_steps += 1;
                         value_loss_sum += loss;
@@ -706,11 +724,6 @@ impl PpoLearner {
         stats.value_loss = value_loss_sum / critic_steps.max(1) as f64;
         stats.mean_critic_grad_norm = critic_grad_sum / critic_steps.max(1) as f64;
         Ok(stats)
-    }
-
-    fn critic_step_with(&mut self, batch: &[&Transition], learning_rate: f64) -> Option<(f64, f32)> {
-        self.critic_learning_rate = learning_rate;
-        self.critic_step(batch)
     }
 }
 
@@ -844,12 +857,21 @@ pub fn evaluate_critic(
     samples: &[ValueSample],
     device: &PolicyDevice,
 ) -> Result<ValueMetrics> {
-    let decisions = samples.iter().map(|sample| &sample.encoded).collect::<Vec<_>>();
+    let decisions = samples
+        .iter()
+        .map(|sample| &sample.encoded)
+        .collect::<Vec<_>>();
     let predictions = critic_value_vector(critic, &decisions, device)?;
     Ok(value_metrics(
         &predictions,
-        &samples.iter().map(|sample| sample.target).collect::<Vec<_>>(),
-        &samples.iter().map(|sample| sample.stage).collect::<Vec<_>>(),
+        &samples
+            .iter()
+            .map(|sample| sample.target)
+            .collect::<Vec<_>>(),
+        &samples
+            .iter()
+            .map(|sample| sample.stage)
+            .collect::<Vec<_>>(),
     ))
 }
 
@@ -915,10 +937,16 @@ pub fn pretrain_critic(
         let mut loss_sum = 0.0f64;
         let mut batches = 0usize;
         for chunk in order.chunks(config.batch_size) {
-            let decisions = chunk.iter().map(|index| &train[*index].encoded).collect::<Vec<_>>();
+            let decisions = chunk
+                .iter()
+                .map(|index| &train[*index].encoded)
+                .collect::<Vec<_>>();
             let targets = Tensor::<TrainBackend, 2>::from_data(
                 TensorData::new(
-                    chunk.iter().map(|index| train[*index].target).collect::<Vec<_>>(),
+                    chunk
+                        .iter()
+                        .map(|index| train[*index].target)
+                        .collect::<Vec<_>>(),
                     [chunk.len(), 1],
                 ),
                 &device,
@@ -969,7 +997,10 @@ pub fn pretrain_critic(
     Ok(metadata)
 }
 
-pub fn load_critic(run_dir: &Path, device: &PolicyDevice) -> Result<(CriticCheckpointMetadata, DeepSetsActorCritic<TrainBackend>)> {
+pub fn load_critic(
+    run_dir: &Path,
+    device: &PolicyDevice,
+) -> Result<(CriticCheckpointMetadata, DeepSetsActorCritic<TrainBackend>)> {
     let metadata: CriticCheckpointMetadata = serde_json::from_slice(
         &std::fs::read(run_dir.join("critic.json"))
             .with_context(|| format!("read {}", run_dir.join("critic.json").display()))?,
@@ -980,7 +1011,11 @@ pub fn load_critic(run_dir: &Path, device: &PolicyDevice) -> Result<(CriticCheck
     {
         bail!("{}: incompatible critic checkpoint", run_dir.display());
     }
-    let critic = load_model_file::<TrainBackend>(metadata.model_config, &run_dir.join("critic.bin"), device)?;
+    let critic = load_model_file::<TrainBackend>(
+        metadata.model_config,
+        &run_dir.join("critic.bin"),
+        device,
+    )?;
     Ok((metadata, critic))
 }
 
@@ -1089,7 +1124,12 @@ fn iteration_dir(run_dir: &Path, iteration: usize) -> PathBuf {
     run_dir.join(format!("iter-{iteration:04}"))
 }
 
-fn write_checkpoint(run_dir: &Path, iteration: usize, learner: &PpoLearner, metadata: &PpoRunMetadata) -> Result<()> {
+fn write_checkpoint(
+    run_dir: &Path,
+    iteration: usize,
+    learner: &PpoLearner,
+    metadata: &PpoRunMetadata,
+) -> Result<()> {
     let directory = iteration_dir(run_dir, iteration);
     std::fs::create_dir_all(&directory)?;
     std::fs::write(
@@ -1137,7 +1177,10 @@ pub struct PpoActorFile {
     pub iteration: usize,
 }
 
-pub fn load_ppo_actor(iteration_dir: &Path, device: &PolicyDevice) -> Result<DeepSetsActorCritic<InferenceBackend>> {
+pub fn load_ppo_actor(
+    iteration_dir: &Path,
+    device: &PolicyDevice,
+) -> Result<DeepSetsActorCritic<InferenceBackend>> {
     let file: PpoActorFile = serde_json::from_slice(
         &std::fs::read(iteration_dir.join("ppo-actor.json"))
             .with_context(|| format!("read {}", iteration_dir.join("ppo-actor.json").display()))?,
@@ -1147,16 +1190,26 @@ pub fn load_ppo_actor(iteration_dir: &Path, device: &PolicyDevice) -> Result<Dee
         || file.candidate_encoder_version != SEMANTIC_CANDIDATE_ENCODER_VERSION
         || file.game_rules_epoch != GAME_RULES_EPOCH
     {
-        bail!("{}: incompatible PPO actor checkpoint", iteration_dir.display());
+        bail!(
+            "{}: incompatible PPO actor checkpoint",
+            iteration_dir.display()
+        );
     }
     load_model_file::<InferenceBackend>(file.model_config, &iteration_dir.join("actor.bin"), device)
 }
 
-fn load_learner(run_dir: &Path, iteration: usize, config: &PpoConfig, model_config: ModelConfig) -> Result<PpoLearner> {
+fn load_learner(
+    run_dir: &Path,
+    iteration: usize,
+    config: &PpoConfig,
+    model_config: ModelConfig,
+) -> Result<PpoLearner> {
     let device = default_policy_device();
     let directory = iteration_dir(run_dir, iteration);
-    let actor = load_model_file::<TrainBackend>(model_config, &directory.join("actor.bin"), &device)?;
-    let critic = load_model_file::<TrainBackend>(model_config, &directory.join("critic.bin"), &device)?;
+    let actor =
+        load_model_file::<TrainBackend>(model_config, &directory.join("actor.bin"), &device)?;
+    let critic =
+        load_model_file::<TrainBackend>(model_config, &directory.join("critic.bin"), &device)?;
     let mut learner = PpoLearner::new(actor, critic, config);
     let recorder = BinFileRecorder::<FullPrecisionSettings>::default();
     learner.actor_optimizer = learner
@@ -1242,8 +1295,13 @@ pub fn collect_iteration(
             .iter()
             .map(|step| step.reward)
             .collect::<Vec<_>>();
-        let (advantages, returns) =
-            compute_gae(&rewards, &values, bootstrap_value, config.gamma, config.gae_lambda);
+        let (advantages, returns) = compute_gae(
+            &rewards,
+            &values,
+            bootstrap_value,
+            config.gamma,
+            config.gae_lambda,
+        );
         let raw_sum = episode
             .transitions
             .iter()
@@ -1286,13 +1344,20 @@ pub fn collect_iteration(
     } else {
         terminal[terminal.len() / 2]
     };
-    stats.mean_final_stage = episodes.iter().map(|episode| episode.final_stage as f64).sum::<f64>() / count;
+    stats.mean_final_stage = episodes
+        .iter()
+        .map(|episode| episode.final_stage as f64)
+        .sum::<f64>()
+        / count;
     stats.victories = episodes.iter().filter(|episode| episode.victory).count();
     stats.mean_decisions = transitions as f64 / count;
     let n = transitions.max(1) as f64;
     stats.mean_behavior_entropy /= n;
     for kind in TRACKED_ACTION_KINDS {
-        stats.action_kind_counts.entry(kind.to_string()).or_insert(0);
+        stats
+            .action_kind_counts
+            .entry(kind.to_string())
+            .or_insert(0);
     }
     stats.action_kind_fractions = stats
         .action_kind_counts
@@ -1301,7 +1366,11 @@ pub fn collect_iteration(
         .collect();
     stats.mean_return = returns_all.iter().map(|value| *value as f64).sum::<f64>() / n;
     stats.mean_value = values_all.iter().map(|value| *value as f64).sum::<f64>() / n;
-    stats.advantage_mean = advantages_all.iter().map(|value| *value as f64).sum::<f64>() / n;
+    stats.advantage_mean = advantages_all
+        .iter()
+        .map(|value| *value as f64)
+        .sum::<f64>()
+        / n;
     stats.advantage_std = (advantages_all
         .iter()
         .map(|value| (*value as f64 - stats.advantage_mean).powi(2))
@@ -1379,7 +1448,11 @@ pub fn development_evaluation(
         split: split.name().to_string(),
         seeds: seeds.len(),
         summaries: report.summaries,
-        comparisons: report.comparisons.iter().map(PairedComparisonSummary::from).collect(),
+        comparisons: report
+            .comparisons
+            .iter()
+            .map(PairedComparisonSummary::from)
+            .collect(),
         wall_seconds: started.elapsed().as_secs_f64(),
     })
 }
@@ -1387,14 +1460,22 @@ pub fn development_evaluation(
 /// Trains (or resumes) a PPO run. Iteration `i` checkpoints live in
 /// `iter-{i:04}`; `iter-0000` is the BC-initialized actor and the
 /// initial critic before any update.
-pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRunInput) -> Result<PpoRunMetadata> {
+pub fn train_ppo_run(
+    game_config: Arc<GameConfig>,
+    run_dir: &Path,
+    input: PpoRunInput,
+) -> Result<PpoRunMetadata> {
     let config = input.config.clone();
-    if !(config.gamma > 0.0 && config.gamma <= 1.0) || config.episodes_per_iteration == 0 || config.minibatch_size == 0 {
+    if !(config.gamma > 0.0 && config.gamma <= 1.0)
+        || config.episodes_per_iteration == 0
+        || config.minibatch_size == 0
+    {
         bail!("invalid PPO config");
     }
     std::fs::create_dir_all(run_dir)?;
     let device = default_policy_device();
-    let (bc_metadata, init_actor) = load_selected_model::<TrainBackend>(&input.init_bc_run, &device)?;
+    let (bc_metadata, init_actor) =
+        load_selected_model::<TrainBackend>(&input.init_bc_run, &device)?;
     for provenance in &bc_metadata.train_provenance {
         if provenance.game_rules_epoch != GAME_RULES_EPOCH {
             bail!("BC initialization was trained under a different game rules epoch");
@@ -1403,12 +1484,27 @@ pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRun
     let init_policy = SemanticPolicy::new(init_actor.clone().valid());
     let model_config = bc_metadata.model_config;
     let (mut metadata, mut learner) = if run_dir.join("ppo.json").exists() {
-        let metadata: PpoRunMetadata = serde_json::from_slice(&std::fs::read(run_dir.join("ppo.json"))?)?;
-        if metadata.config != config || metadata.init_bc_run != input.init_bc_run.display().to_string() {
-            bail!("{}: existing PPO run has a different configuration", run_dir.display());
+        let metadata: PpoRunMetadata =
+            serde_json::from_slice(&std::fs::read(run_dir.join("ppo.json"))?)?;
+        if metadata.config != config
+            || metadata.init_bc_run != input.init_bc_run.display().to_string()
+        {
+            bail!(
+                "{}: existing PPO run has a different configuration",
+                run_dir.display()
+            );
         }
-        let learner = load_learner(run_dir, metadata.completed_iterations, &config, model_config)?;
-        eprintln!("resuming {} after iteration {}", run_dir.display(), metadata.completed_iterations);
+        let learner = load_learner(
+            run_dir,
+            metadata.completed_iterations,
+            &config,
+            model_config,
+        )?;
+        eprintln!(
+            "resuming {} after iteration {}",
+            run_dir.display(),
+            metadata.completed_iterations
+        );
         (metadata, learner)
     } else {
         let critic = match &input.init_critic_run {
@@ -1435,7 +1531,10 @@ pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRun
             config: config.clone(),
             init_bc_run: input.init_bc_run.display().to_string(),
             init_bc_metadata: bc_metadata.clone(),
-            init_critic_run: input.init_critic_run.as_ref().map(|path| path.display().to_string()),
+            init_critic_run: input
+                .init_critic_run
+                .as_ref()
+                .map(|path| path.display().to_string()),
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
             development_seeds: input.development_seeds,
@@ -1473,16 +1572,25 @@ pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRun
     for iteration in metadata.completed_iterations + 1..=input.iterations {
         let seeds = train_seed_range(&config, iteration - 1)?;
         let rollout_started = Instant::now();
-        let (episodes, rollout_stats) =
-            collect_iteration(&learner, &config, Arc::clone(&game_config), iteration, &seeds)?;
+        let (episodes, rollout_stats) = collect_iteration(
+            &learner,
+            &config,
+            Arc::clone(&game_config),
+            iteration,
+            &seeds,
+        )?;
         let rollout_seconds = rollout_started.elapsed().as_secs_f64();
         let mut transitions = episodes
             .into_iter()
             .flat_map(|episode| episode.transitions)
             .collect::<Vec<_>>();
-        let decisions = transitions.iter().map(|step| &step.encoded).collect::<Vec<_>>();
+        let decisions = transitions
+            .iter()
+            .map(|step| &step.encoded)
+            .collect::<Vec<_>>();
         let init_log_probs = actor_log_prob_vectors(&init_inference, &decisions, &device)?;
-        let old_log_probs = actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
+        let old_log_probs =
+            actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
         for (step, init) in transitions.iter_mut().zip(&init_log_probs) {
             step.init_log_probs = init.clone();
         }
@@ -1490,12 +1598,16 @@ pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRun
         let update_actor = iteration > config.critic_warmup_iterations;
         let update = learner.update(&transitions, &config, iteration, update_actor)?;
         let update_seconds = update_started.elapsed().as_secs_f64();
-        let decisions = transitions.iter().map(|step| &step.encoded).collect::<Vec<_>>();
+        let decisions = transitions
+            .iter()
+            .map(|step| &step.encoded)
+            .collect::<Vec<_>>();
         let masks = transitions
             .iter()
             .map(|step| step.encoded.legal_mask.as_slice())
             .collect::<Vec<_>>();
-        let new_log_probs = actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
+        let new_log_probs =
+            actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
         let kl_to_init_after = mean_kl(&new_log_probs, &init_log_probs, &masks);
         let kl_old_new_after = mean_kl(&old_log_probs, &new_log_probs, &masks);
         let evaluation = if input.evaluate_every > 0 && iteration % input.evaluate_every == 0 {
@@ -1535,7 +1647,13 @@ pub fn train_ppo_run(game_config: Arc<GameConfig>, run_dir: &Path, input: PpoRun
 fn log_iteration(record: &IterationRecord) {
     let rollout = &record.rollout;
     let update = &record.update;
-    let fraction = |kind: &str| rollout.action_kind_fractions.get(kind).copied().unwrap_or(0.0);
+    let fraction = |kind: &str| {
+        rollout
+            .action_kind_fractions
+            .get(kind)
+            .copied()
+            .unwrap_or(0.0)
+    };
     eprintln!(
         "iter {}: train clear {:.2} (median {:.2}, stage {:.2}, dec {:.1}) ent {:.4} | pl {:+.4} vl {:.4} ent {:.4} kl {:.5} kl_init {:.5} clip {:.3} gn {:.3}/{:.3} ev {:.3} epochs {}{} | illegal {} mismatch {} trunc {} | reroll {:.3} build {:.3} place {:.3} remove {:.3} cont {:.3} item {:.3} shop {:.3} treas {:.3} card {:.3} | {:.1}s+{:.1}s",
         record.iteration,
@@ -1554,7 +1672,11 @@ fn log_iteration(record: &IterationRecord) {
         update.mean_critic_grad_norm,
         rollout.explained_variance,
         update.epochs_completed,
-        if update.early_stopped { " (kl stop)" } else { "" },
+        if update.early_stopped {
+            " (kl stop)"
+        } else {
+            ""
+        },
         rollout.illegal_actions,
         rollout.action_mismatches,
         rollout.truncated_episodes,

@@ -724,7 +724,13 @@ pub fn sample_masked(log_probs: &[f32], legal_mask: &[bool], u: f64) -> usize {
     let probabilities = log_probs
         .iter()
         .zip(legal_mask)
-        .map(|(log_prob, legal)| if *legal { (*log_prob as f64).exp() } else { 0.0 })
+        .map(|(log_prob, legal)| {
+            if *legal {
+                (*log_prob as f64).exp()
+            } else {
+                0.0
+            }
+        })
         .collect::<Vec<_>>();
     let total = probabilities.iter().sum::<f64>();
     let target = u * total;
@@ -741,6 +747,54 @@ pub fn sample_masked(log_probs: &[f32], legal_mask: &[bool], u: f64) -> usize {
         }
     }
     last_legal.expect("a masked distribution has at least one legal candidate")
+}
+
+/// Mean seconds per BC optimizer step (forward, backward, Adam) and per
+/// inference forward on `decisions`, for a device comparison.
+pub fn benchmark_bc_backend<B: burn::tensor::backend::AutodiffBackend>(
+    model: DeepSetsActorCritic<B>,
+    samples: &[BcSample],
+    batch_size: usize,
+    repeats: usize,
+    device: &B::Device,
+) -> Result<(f64, f64)> {
+    let batch = samples.iter().take(batch_size).collect::<Vec<_>>();
+    let decisions = batch
+        .iter()
+        .map(|sample| &sample.encoded)
+        .collect::<Vec<_>>();
+    let targets = batch.iter().map(|sample| sample.target).collect::<Vec<_>>();
+    let mut optimizer = AdamConfig::new().init::<B, DeepSetsActorCritic<B>>();
+    let mut model = model;
+    let mut train_seconds = 0.0;
+    for repeat in 0..repeats + 1 {
+        let started = Instant::now();
+        let (log_probs, groups) = batch_log_probs(&model, &decisions, device);
+        let target = groups.target_tensor::<B>(&targets, device);
+        let loss = -log_probs.gather(1, target).mean();
+        let _ = loss.clone().into_data().to_vec::<f32>()?;
+        let gradients = GradientsParams::from_grads(loss.backward(), &model);
+        model = optimizer.step(1e-4, model, gradients);
+        let (check, _) = batch_log_probs(&model.clone().valid(), &decisions[..1], device);
+        let _ = check.into_data().to_vec::<f32>()?;
+        if repeat > 0 {
+            train_seconds += started.elapsed().as_secs_f64();
+        }
+    }
+    let inference = model.valid();
+    let mut inference_seconds = 0.0;
+    for repeat in 0..repeats + 1 {
+        let started = Instant::now();
+        let (log_probs, _) = batch_log_probs(&inference, &decisions, device);
+        let _ = log_probs.into_data().to_vec::<f32>()?;
+        if repeat > 0 {
+            inference_seconds += started.elapsed().as_secs_f64();
+        }
+    }
+    Ok((
+        train_seconds / repeats as f64,
+        inference_seconds / repeats as f64,
+    ))
 }
 
 #[cfg(test)]
@@ -1009,5 +1063,53 @@ mod tests {
             right.into_data().to_vec::<f32>().unwrap()
         );
         assert_eq!(trained.num_params(), ppo.num_params());
+    }
+
+    fn compare_bc_step_with_device<G: burn::tensor::backend::AutodiffBackend>(
+        label: &str,
+        device: G::Device,
+    ) {
+        let episodes = canonical_episodes(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+        let samples = prepare_samples(&episodes, LabelSource::Chosen, 1.0);
+        let cpu_device = default_policy_device();
+        let cpu_model = new_materialized_model(ModelConfig::default(), &cpu_device).unwrap();
+        let bytes = model_to_full_precision_bytes(cpu_model.clone().valid()).unwrap();
+        let gpu_model =
+            model_from_full_precision_bytes::<G>(ModelConfig::default(), bytes, &device).unwrap();
+        eprintln!("samples {}", samples.len());
+        for batch_size in [1usize, 64, 256, 1024] {
+            let batch_size = batch_size.min(samples.len());
+            let repeats = if batch_size >= 256 { 5 } else { 20 };
+            let (cpu_train, cpu_infer) = benchmark_bc_backend(
+                cpu_model.clone(),
+                &samples,
+                batch_size,
+                repeats,
+                &cpu_device,
+            )
+            .unwrap();
+            let (gpu_train, gpu_infer) =
+                benchmark_bc_backend(gpu_model.clone(), &samples, batch_size, repeats, &device)
+                    .unwrap();
+            eprintln!(
+                "batch {batch_size}: train step cpu {:.2} ms {label} {:.2} ms ({:.2}x) | inference cpu {:.2} ms {label} {:.2} ms ({:.2}x)",
+                cpu_train * 1e3,
+                gpu_train * 1e3,
+                cpu_train / gpu_train,
+                cpu_infer * 1e3,
+                gpu_infer * 1e3,
+                cpu_infer / gpu_infer,
+            );
+        }
+    }
+
+    #[cfg(feature = "simulator-cuda")]
+    #[test]
+    #[ignore = "device benchmark; run with --release --features simulator-cuda -- --ignored --nocapture"]
+    fn cpu_vs_cuda_bc_step_benchmark() {
+        compare_bc_step_with_device::<crate::ml::model::CudaTrainBackend>(
+            "cuda",
+            crate::ml::model::CudaPolicyDevice::new(0),
+        );
     }
 }

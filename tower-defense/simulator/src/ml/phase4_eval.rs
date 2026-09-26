@@ -8,7 +8,7 @@ use crate::environment::{DecisionPoint, GameEnvironment};
 use crate::policy_runner::canonical_scripted_semantic_action;
 use anyhow::{Result, bail};
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -147,7 +147,7 @@ pub fn run_policy_episode(
     Ok(episode)
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PolicySummary {
     pub policy: String,
     pub episodes: usize,

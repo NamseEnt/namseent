@@ -24,6 +24,13 @@ pub type GpuTrainBackend = burn_autodiff::Autodiff<GpuInferenceBackend>;
 #[cfg(feature = "simulator-wgpu")]
 pub type GpuPolicyDevice = burn_wgpu::WgpuDevice;
 
+#[cfg(feature = "simulator-cuda")]
+pub type CudaInferenceBackend = burn_cuda::Cuda;
+#[cfg(feature = "simulator-cuda")]
+pub type CudaTrainBackend = burn_autodiff::Autodiff<CudaInferenceBackend>;
+#[cfg(feature = "simulator-cuda")]
+pub type CudaPolicyDevice = burn_cuda::CudaDevice;
+
 pub type InferenceBackend = CpuInferenceBackend;
 pub type TrainBackend = CpuTrainBackend;
 pub type PolicyDevice = CpuPolicyDevice;
