@@ -161,22 +161,38 @@ A random critic would have produced advantages hundreds of times larger than the
 
 The policy barely moved and was getting sharper, which is the "policy unchanged, entropy near zero" branch. The next pilot therefore changed exploration only.
 
-### Pilot B: actor Adam 3e-4, entropy coefficient 0.01
+### Pilot B / medium run: actor Adam 3e-4, entropy coefficient 0.01
 
-Everything else is unchanged (48 episodes per iteration, clip 0.2, 4 epochs, minibatch 256, target KL 0.02, KL-to-init measured only). Development evaluation on 128 `ppo_development` seeds, greedy:
+Everything else is unchanged (48 episodes per iteration, clip 0.2, 4 epochs, minibatch 256, target KL 0.02, KL-to-init measured only). 30 iterations, then resumed to 80 with the same config (80 x 48 = 3,840 training games, about 350k decisions). Development evaluation on 128 `ppo_development` seeds, greedy; SE in parentheses:
 
-| iteration | PPO mean | PPO - canonical | PPO - BC init | better/worse/tie vs BC | behavior entropy | KL(pi or pi_init) |
-|---|---|---|---|---|---|---|
-| 0 | 36.10 | -0.14 (0.13) | 0.00 (0.00) | 0/0/128 | 0.017 | 0 |
-| 5 | | +0.12 (0.18) | +0.25 (0.13) | 12/9/107 | 0.024 | 0.009 |
-| 10 | | +0.23 (0.19) | +0.37 (0.15) | 16/5/107 | 0.026 | 0.033 |
-| 15 | 36.47 | +0.24 (0.24) | +0.38 (0.20) | 26/14/88 | 0.029 | 0.089 |
-| 20 | 36.48 | +0.24 (0.22) | +0.38 (0.19) | 27/18/83 | 0.032 | 0.076 |
-| 25 | 36.69 | +0.45 (0.29) | +0.59 (0.27) | 38/21/69 | 0.070 | 0.285 |
-| 30 | 37.17 | +0.93 (0.32) | +1.07 (0.29) | 52/20/56 | 0.179 | 0.416 |
+| iteration | PPO mean | median | stage | decisions | PPO - canonical | better/worse/tie | PPO - BC init | behavior entropy | KL(pi or pi_init) |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 36.10 | 35.11 | 18.44 | 83.8 | -0.14 (0.13) | 17/12/99 | 0.00 (0.00) | 0.017 | 0 |
+| 5 | 36.35 | 35.25 | 18.57 | 85.3 | +0.12 (0.18) | 23/15/90 | +0.25 (0.13) | 0.024 | 0.009 |
+| 10 | 36.46 | 35.29 | 18.62 | 85.4 | +0.23 (0.19) | 29/12/87 | +0.37 (0.15) | 0.026 | 0.033 |
+| 20 | 36.48 | 35.19 | 18.61 | 85.3 | +0.24 (0.22) | 34/17/77 | +0.38 (0.19) | 0.032 | 0.076 |
+| 30 | 37.17 | 35.45 | 18.96 | 87.4 | +0.93 (0.32) | 57/23/48 | +1.07 (0.29) | 0.179 | 0.416 |
+| 40 | 38.03 | 36.87 | 19.38 | 95.0 | +1.79 (0.37) | 92/32/4 | +1.93 (0.34) | 0.232 | 1.123 |
+| 50 | 38.70 | 37.62 | 19.74 | 97.1 | +2.46 (0.36) | 98/27/3 | +2.60 (0.36) | 0.309 | 1.640 |
+| 60 | 38.64 | 37.73 | 19.73 | 97.5 | +2.40 (0.37) | 98/29/1 | +2.54 (0.37) | 0.348 | 1.870 |
+| 70 | 38.98 | 38.00 | 19.85 | 97.2 | +2.75 (0.43) | 99/25/4 | +2.89 (0.43) | 0.446 | 2.219 |
+| **75** | **39.07** | **38.00** | **19.93** | 99.1 | **+2.84 (0.40)** | 100/27/1 | **+2.98 (0.41)** | 0.438 | 2.156 |
+| 80 | 38.73 | 38.00 | 19.73 | 96.6 | +2.49 (0.42) | 93/33/2 | +2.63 (0.43) | 0.457 | 2.344 |
 
-(SE in parentheses. Training-episode clear_rate uses new seeds every iteration and is not comparable across iterations.)
+Canonical and BC stay at 36.23 and 36.10 on these seeds. No policy reached victory.
 
-Through iteration 30, every iteration had illegal = 0, sampled != executed = 0, truncation 0, and critic explained variance 0.97-0.99. The sampled action-kind shares stayed stable (reroll 0.065 -> 0.085, every other kind within about 0.01). Policy changes concentrate in Shop, TreasureSelection, card-service and card selection decisions; TowerPlacement and PreDefenseItem are essentially unchanged. The greedy PPO policy buys more (1,295 vs 1,208 purchases on 128 seeds), rerolls more (787 vs 717) and plays further (mean stage 18.96 vs 18.44).
+Training rollouts (stochastic policy, new seeds every iteration), 10-iteration means:
 
-Watch item: behavior entropy and KL to the BC initialization keep growing under the entropy bonus.
+| iterations | train clear_rate | behavior entropy | non-greedy share | non-canonical share | explained variance | approx KL | clip fraction | rollout s | update s |
+|---|---|---|---|---|---|---|---|---|---|
+| 1-10 | 37.31 | 0.019 | 0.009 | 0.012 | 0.975 | 0.0045 | 0.007 | 3.7 | 21.2 |
+| 21-30 | 37.69 | 0.098 | 0.031 | 0.040 | 0.979 | 0.0068 | 0.024 | 3.7 | 21.6 |
+| 41-50 | 38.54 | 0.273 | 0.081 | 0.118 | 0.979 | 0.0043 | 0.036 | 4.1 | 26.3 |
+| 61-70 | 38.66 | 0.434 | 0.126 | 0.161 | 0.979 | 0.0034 | 0.036 | 4.2 | 26.2 |
+| 71-80 | 38.38 | 0.444 | 0.128 | 0.159 | 0.980 | 0.0030 | 0.034 | 4.2 | 25.7 |
+
+Over all 80 iterations: illegal = 0, sampled != executed = 0, truncated = 0, non-finite values = 0, skipped updates = 0, maximum telescoping error 0.0.
+
+Sampled action-kind shares, iteration 1 -> 80: reroll 0.065 -> 0.119, build_tower/start_defense 0.216 -> 0.202, place_tower 0.071 -> 0.061, continue 0.144 -> 0.131, use_inventory_item 0.091 -> 0.087, purchase_shop_item 0.114 -> 0.110, select_treasure 0.025 -> 0.024, card service 0.058 -> 0.064, remove_tower and discard_treasure about 0. No kind vanished or exploded. At iteration 80 the per-decision-point entropy / share differing from BC-init greedy is CardSelection 1.19 / 0.37, Shop 0.77 / 0.26, CardServiceSelection 0.69 / 0.22, TreasureSelection 0.60 / 0.48, DamageResponseItem 0.17 / 0.11, TowerPlacement 0.001 / 0.0, PreDefenseItem 0 / 0. PPO changed the card, shop, treasure and card-service decisions and left tower placement untouched. Placement candidates are the canonical top 8 by construction, so placement cannot move far from the heuristic in this action representation.
+
+Development performance plateaued from about iteration 50 (+2.3 to +2.8 vs canonical), while the entropy bonus keeps raising behavior entropy. The longer run below therefore continues from the best development checkpoint (iteration 75) with a smaller entropy coefficient.
