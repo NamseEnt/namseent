@@ -663,23 +663,11 @@ impl SemanticPolicy {
     }
 
     pub fn choose(&self, environment: &GameEnvironment) -> Result<PolicyChoice> {
-        let candidates = policy_candidates(environment)?;
-        let legal_mask = candidates
-            .candidates
-            .iter()
-            .map(|candidate| environment.semantic_action_is_legal(&candidate.action))
-            .collect::<Vec<_>>();
-        if !legal_mask.iter().any(|legal| *legal) {
-            bail!(
-                "no legal policy candidate at state {}",
-                environment.state_hash()
-            );
-        }
-        let encoded = encode_decision(
-            &candidates.observation,
-            &candidates.candidates,
-            legal_mask.clone(),
-        );
+        let SemanticDecision {
+            candidates,
+            legal_mask,
+            encoded,
+        } = semantic_decision(environment)?;
         let started = Instant::now();
         let (index, log_probs) = self.choose_encoded(&encoded)?;
         let forward_seconds = started.elapsed().as_secs_f64();
@@ -691,6 +679,68 @@ impl SemanticPolicy {
             forward_seconds,
         })
     }
+}
+
+/// The policy input of one decision state: candidate set, legal mask and
+/// encoding. The BC evaluator and the PPO actor both build their decisions
+/// with this function, so they always see identical candidate rows, mask and
+/// action-index semantics.
+#[derive(Clone, Debug)]
+pub struct SemanticDecision {
+    pub candidates: PolicyCandidates,
+    pub legal_mask: Vec<bool>,
+    pub encoded: EncodedDecision,
+}
+
+pub fn semantic_decision(environment: &GameEnvironment) -> Result<SemanticDecision> {
+    let candidates = policy_candidates(environment)?;
+    let legal_mask = candidates
+        .candidates
+        .iter()
+        .map(|candidate| environment.semantic_action_is_legal(&candidate.action))
+        .collect::<Vec<_>>();
+    if !legal_mask.iter().any(|legal| *legal) {
+        bail!(
+            "no legal policy candidate at state {}",
+            environment.state_hash()
+        );
+    }
+    let encoded = encode_decision(
+        &candidates.observation,
+        &candidates.candidates,
+        legal_mask.clone(),
+    );
+    Ok(SemanticDecision {
+        candidates,
+        legal_mask,
+        encoded,
+    })
+}
+
+/// Inverse-CDF sample of a masked categorical distribution given its
+/// log-probabilities and a uniform `u` in `[0, 1)`. Masked candidates have
+/// probability zero and are never returned.
+pub fn sample_masked(log_probs: &[f32], legal_mask: &[bool], u: f64) -> usize {
+    let probabilities = log_probs
+        .iter()
+        .zip(legal_mask)
+        .map(|(log_prob, legal)| if *legal { (*log_prob as f64).exp() } else { 0.0 })
+        .collect::<Vec<_>>();
+    let total = probabilities.iter().sum::<f64>();
+    let target = u * total;
+    let mut cumulative = 0.0;
+    let mut last_legal = None;
+    for (index, probability) in probabilities.iter().enumerate() {
+        if !legal_mask[index] {
+            continue;
+        }
+        last_legal = Some(index);
+        cumulative += probability;
+        if target < cumulative {
+            return index;
+        }
+    }
+    last_legal.expect("a masked distribution has at least one legal candidate")
 }
 
 #[cfg(test)]
