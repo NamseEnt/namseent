@@ -196,3 +196,33 @@ Over all 80 iterations: illegal = 0, sampled != executed = 0, truncated = 0, non
 Sampled action-kind shares, iteration 1 -> 80: reroll 0.065 -> 0.119, build_tower/start_defense 0.216 -> 0.202, place_tower 0.071 -> 0.061, continue 0.144 -> 0.131, use_inventory_item 0.091 -> 0.087, purchase_shop_item 0.114 -> 0.110, select_treasure 0.025 -> 0.024, card service 0.058 -> 0.064, remove_tower and discard_treasure about 0. No kind vanished or exploded. At iteration 80 the per-decision-point entropy / share differing from BC-init greedy is CardSelection 1.19 / 0.37, Shop 0.77 / 0.26, CardServiceSelection 0.69 / 0.22, TreasureSelection 0.60 / 0.48, DamageResponseItem 0.17 / 0.11, TowerPlacement 0.001 / 0.0, PreDefenseItem 0 / 0. PPO changed the card, shop, treasure and card-service decisions and left tower placement untouched. Placement candidates are the canonical top 8 by construction, so placement cannot move far from the heuristic in this action representation.
 
 Development performance plateaued from about iteration 50 (+2.3 to +2.8 vs canonical), while the entropy bonus keeps raising behavior entropy. The longer run below therefore continues from the best development checkpoint (iteration 75) with a smaller entropy coefficient.
+
+### Longer run C: continue from pilot B iteration 75, entropy coefficient 0.003
+
+`--init-ppo-iteration ppo-pilot-b/iter-0075` (actor and critic, fresh optimizers; the KL reference stays `phase4b-init`), `--train-seed-block-offset 1000` (no training game is replayed from pilot B), actor Adam 3e-4, entropy coefficient 0.003, everything else unchanged. Iteration 0 reproduced pilot B iteration 75 exactly (39.07, +2.84 vs canonical).
+
+| run C iteration | PPO mean | median | stage | decisions | PPO - canonical | better/worse/tie | PPO - BC init | behavior entropy | KL(pi or pi_init) |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 39.07 | 38.00 | 19.93 | 99.1 | +2.84 (0.40) | 100/27/1 | +2.98 (0.41) | 0.44 | 2.16 |
+| 10 | 39.60 | 38.42 | 20.20 | 104.8 | +3.37 (0.42) | 100/27/1 | +3.51 (0.42) | 0.49 | 3.03 |
+| 20 | 39.32 | 38.00 | 20.05 | 102.5 | +3.08 (0.45) | 94/33/1 | +3.22 (0.46) | 0.46 | 3.05 |
+| 30 | 39.11 | 37.83 | 19.95 | 101.8 | +2.87 (0.40) | 94/32/2 | +3.01 (0.42) | 0.48 | 3.44 |
+| 40 | 39.79 | 39.17 | 20.26 | 105.5 | +3.55 (0.45) | 102/25/1 | +3.69 (0.46) | 0.46 | 3.75 |
+| 50 | 40.38 | 39.44 | 20.57 | 108.6 | +4.15 (0.48) | 100/27/1 | +4.29 (0.49) | 0.49 | 4.61 |
+| 60 | 40.65 | 39.27 | 20.72 | 110.3 | +4.42 (0.50) | 101/26/1 | +4.56 (0.51) | 0.45 | 4.56 |
+| 70 | 41.02 | 39.44 | 20.91 | 112.2 | +4.79 (0.56) | 109/18/1 | +4.93 (0.56) | 0.43 | 4.82 |
+| 80 | 40.78 | 39.52 | 20.79 | 112.3 | +4.54 (0.52) | 104/23/1 | +4.68 (0.53) | 0.38 | 5.01 |
+| 90 | 40.99 | 39.63 | 20.89 | 113.1 | +4.76 (0.57) | 104/24/0 | +4.90 (0.55) | 0.32 | 4.53 |
+| 100 | 41.47 | 40.00 | 21.09 | 114.5 | +5.24 (0.61) | 107/20/1 | +5.38 (0.61) | 0.27 | 4.75 |
+
+Training rollouts, 20-iteration means:
+
+| iterations | train clear_rate | behavior entropy | explained variance | approx KL | clip fraction | actor grad norm | rollout s | update s | decisions/game |
+|---|---|---|---|---|---|---|---|---|---|
+| 1-20 | 39.48 | 0.451 | 0.981 | 0.0033 | 0.034 | 0.48 | 4.5 | 27.3 | 102.6 |
+| 21-40 | 39.75 | 0.489 | 0.982 | 0.0041 | 0.039 | 0.50 | 4.5 | 27.5 | 104.2 |
+| 41-60 | 40.39 | 0.460 | 0.981 | 0.0040 | 0.038 | 0.53 | 4.7 | 28.9 | 108.1 |
+| 61-80 | 40.60 | 0.402 | 0.982 | 0.0041 | 0.039 | 0.57 | 4.7 | 29.9 | 111.0 |
+| 81-100 | 40.87 | 0.320 | 0.981 | 0.0051 | 0.040 | 0.63 | 4.8 | 30.0 | 111.5 |
+
+Over the 100 iterations: illegal = 0, sampled != executed = 0, truncated = 0, non-finite = 0, skipped updates = 0, telescoping error 0.0. With the smaller coefficient, behavior entropy stopped growing and then fell, and both greedy and stochastic performance kept rising slowly. Reroll share went 0.117 -> 0.161 and build/start_defense 0.201 -> 0.184; the other kinds moved by less than 0.01. At iteration 100 the share of decisions differing from BC-init greedy is CardSelection 0.55, TreasureSelection 0.54, Shop 0.33, CardServiceSelection 0.28, DamageResponseItem 0.18, TowerPlacement 0 and PreDefenseItem 0.
