@@ -133,7 +133,7 @@ BC - canonical: -0.14 (SE 0.13), better/worse/tie 17/12/99. The gate passes; `ar
 
 ### Critic bootstrap
 
-Canonical trajectories, first 512 training games (42,958 decisions), validation 64 games, target `0.1 * (terminal - current clear_rate)` (target mean about 1.9, standard deviation about 1.1), Adam 1e-3, batch 256, 4 epochs, 21 s per epoch.
+Canonical trajectories, first 512 training games (42,958 decisions), validation 64 games, target `0.1 * (terminal - current clear_rate)` (validation target mean 2.06, standard deviation 1.13), Adam 1e-3, batch 256, 4 epochs, 21 s per epoch.
 
 | critic | validation MSE | MAE | explained variance | correlation |
 |---|---|---|---|---|
