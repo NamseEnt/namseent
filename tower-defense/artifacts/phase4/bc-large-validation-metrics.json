@@ -1,0 +1,171 @@
+{
+  "samples": 5420,
+  "nll": 0.013636704922161428,
+  "weighted_nll": 0.013636704922161428,
+  "top1_accuracy": 0.9977859778597786,
+  "top3_accuracy": 0.9998154981549815,
+  "action_kind_accuracy": 1.0,
+  "illegal_selections": 0,
+  "masked_candidates": 0,
+  "max_masked_probability": 0.0,
+  "by_decision_point": {
+    "CardSelection": {
+      "count": 366,
+      "top1_correct": 366,
+      "kind_correct": 366,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "CardServiceSelection": {
+      "count": 275,
+      "top1_correct": 267,
+      "kind_correct": 275,
+      "top1_accuracy": 0.9709090909090909,
+      "kind_accuracy": 1.0
+    },
+    "DamageResponseItem": {
+      "count": 513,
+      "top1_correct": 513,
+      "kind_correct": 513,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "PreDefenseItem": {
+      "count": 753,
+      "top1_correct": 753,
+      "kind_correct": 753,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "Shop": {
+      "count": 1801,
+      "top1_correct": 1797,
+      "kind_correct": 1801,
+      "top1_accuracy": 0.9977790116601888,
+      "kind_accuracy": 1.0
+    },
+    "TowerPlacement": {
+      "count": 1574,
+      "top1_correct": 1574,
+      "kind_correct": 1574,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "TreasureSelection": {
+      "count": 138,
+      "top1_correct": 138,
+      "kind_correct": 138,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    }
+  },
+  "by_action_kind": {
+    "build_tower": {
+      "count": 1192,
+      "top1_correct": 1192,
+      "kind_correct": 1192,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "confirm_card_service_selection": {
+      "count": 136,
+      "top1_correct": 136,
+      "kind_correct": 136,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "continue": {
+      "count": 753,
+      "top1_correct": 753,
+      "kind_correct": 753,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "place_tower": {
+      "count": 382,
+      "top1_correct": 382,
+      "kind_correct": 382,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "purchase_shop_item": {
+      "count": 609,
+      "top1_correct": 605,
+      "kind_correct": 609,
+      "top1_accuracy": 0.993431855500821,
+      "kind_accuracy": 1.0
+    },
+    "reroll": {
+      "count": 366,
+      "top1_correct": 366,
+      "kind_correct": 366,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "select_card_service_card": {
+      "count": 139,
+      "top1_correct": 131,
+      "kind_correct": 139,
+      "top1_accuracy": 0.9424460431654677,
+      "kind_accuracy": 1.0
+    },
+    "select_treasure": {
+      "count": 138,
+      "top1_correct": 138,
+      "kind_correct": 138,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "start_defense": {
+      "count": 1192,
+      "top1_correct": 1192,
+      "kind_correct": 1192,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "use_inventory_item": {
+      "count": 513,
+      "top1_correct": 513,
+      "kind_correct": 513,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    }
+  },
+  "kind_confusion": {
+    "build_tower": {
+      "build_tower": 1192
+    },
+    "confirm_card_service_selection": {
+      "confirm_card_service_selection": 136
+    },
+    "continue": {
+      "continue": 753
+    },
+    "place_tower": {
+      "place_tower": 382
+    },
+    "purchase_shop_item": {
+      "purchase_shop_item": 609
+    },
+    "reroll": {
+      "reroll": 366
+    },
+    "select_card_service_card": {
+      "select_card_service_card": 139
+    },
+    "select_treasure": {
+      "select_treasure": 138
+    },
+    "start_defense": {
+      "start_defense": 1192
+    },
+    "use_inventory_item": {
+      "use_inventory_item": 513
+    }
+  },
+  "override_samples": 0,
+  "override_top1_accuracy": null,
+  "override_predicts_canonical": null,
+  "agreement_samples": 0,
+  "agreement_top1_accuracy": null
+}
