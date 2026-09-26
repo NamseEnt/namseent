@@ -22,9 +22,13 @@ pub mod phase4_cli;
 #[cfg(feature = "simulator")]
 pub mod phase4_dataset;
 #[cfg(feature = "simulator")]
+pub mod phase4_eval;
+#[cfg(feature = "simulator")]
 pub mod ppo;
 #[cfg(feature = "simulator")]
 pub mod rollout;
+#[cfg(feature = "simulator")]
+pub mod semantic_bc;
 #[cfg(feature = "simulator")]
 pub mod semantic_candidates;
 pub mod seed;
