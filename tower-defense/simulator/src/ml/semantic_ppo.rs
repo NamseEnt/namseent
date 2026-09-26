@@ -54,7 +54,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 pub const SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
-pub const CRITIC_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
+/// 2: critic inputs pass through `critic_squash`.
+pub const CRITIC_CHECKPOINT_SCHEMA_VERSION: u32 = 2;
 const INFERENCE_BATCH_SIZE: usize = 256;
 
 /// Action kinds whose sampled share is tracked every iteration (a kind that
@@ -125,8 +126,17 @@ impl Default for PpoConfig {
     }
 }
 
+/// Signed `ln(1 + |x|)`. Some shared features are unnormalized (card polish
+/// reaches 3,000 after `/1000` scaling), which makes the critic's fresh
+/// Adam steps swing its output wildly; the critic squashes its inputs. The
+/// actor keeps the raw features its BC initialization was trained on.
+pub fn critic_squash(value: f32) -> f32 {
+    value.signum() * value.abs().ln_1p()
+}
+
 /// Critic value `V(s)`: typed value head over the critic's own typed entity
-/// encoding plus the global-feature value head. `[decisions, 1]`.
+/// encoding plus the global-feature value head, both on squashed inputs.
+/// `[decisions, 1]`.
 pub fn critic_values<B: Backend>(
     critic: &DeepSetsActorCritic<B>,
     decisions: &[&EncodedDecision],
@@ -136,7 +146,15 @@ pub fn critic_values<B: Backend>(
         PaddedEntityBatch::from_sets(
             &decisions
                 .iter()
-                .map(|decision| decision.typed.sets[index].clone())
+                .map(|decision| {
+                    let mut set = decision.typed.sets[index].clone();
+                    for row in &mut set.rows {
+                        for value in &mut row.numeric {
+                            *value = critic_squash(*value);
+                        }
+                    }
+                    set
+                })
                 .collect::<Vec<_>>(),
         )
     });
@@ -144,7 +162,13 @@ pub fn critic_values<B: Backend>(
     let global = tensor_from_rows::<B>(
         &decisions
             .iter()
-            .map(|decision| decision.global_features.clone())
+            .map(|decision| {
+                decision
+                    .global_features
+                    .iter()
+                    .map(|value| critic_squash(*value))
+                    .collect::<Vec<_>>()
+            })
             .collect::<Vec<_>>(),
         device,
     );
@@ -446,6 +470,9 @@ pub struct UpdateStats {
     pub max_actor_grad_norm: f64,
     pub mean_critic_grad_norm: f64,
     pub max_critic_grad_norm: f64,
+    pub first_value_loss: f64,
+    pub last_value_loss: f64,
+    pub max_value_loss: f64,
 }
 
 pub struct PpoLearner {
@@ -726,6 +753,11 @@ impl PpoLearner {
                 }
                 match self.critic_step(&batch, config.critic_learning_rate) {
                     Some((loss, norm)) => {
+                        if critic_steps == 0 {
+                            stats.first_value_loss = loss;
+                        }
+                        stats.last_value_loss = loss;
+                        stats.max_value_loss = stats.max_value_loss.max(loss);
                         critic_steps += 1;
                         value_loss_sum += loss;
                         critic_grad_sum += norm as f64;
@@ -1803,6 +1835,14 @@ fn log_iteration(record: &IterationRecord) {
         fraction("select_card_service_card") + fraction("confirm_card_service_selection"),
         record.rollout_seconds,
         record.update_seconds,
+    );
+    eprintln!(
+        "  value loss first {:.4} last {:.4} max {:.4} | critic grad max {:.1} actor grad max {:.3}",
+        update.first_value_loss,
+        update.last_value_loss,
+        update.max_value_loss,
+        update.max_critic_grad_norm,
+        update.max_actor_grad_norm,
     );
     let timing = &rollout.timing;
     eprintln!(
