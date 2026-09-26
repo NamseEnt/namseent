@@ -12,12 +12,124 @@ use anyhow::{Context, Result, bail};
 use burn::optim::{AdamConfig, GradientsParams, Optimizer};
 use burn::tensor::Tensor;
 use burn::tensor::TensorData;
-use burn::tensor::activation::softmax;
+use burn::tensor::activation::log_softmax;
+use burn::tensor::backend::Backend;
+use burn::tensor::{Bool, Int};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::Path;
 
 const BC_EVALUATION_BATCH_SIZE: usize = 64;
+
+/// Candidate groups of variable size laid out as one flat logit column,
+/// padded to `[groups, max_group]` for a vectorized per-group softmax.
+/// Padding and masked-out (illegal) candidates get probability exactly zero.
+pub(crate) struct MaskedGroups {
+    groups: usize,
+    width: usize,
+    gather_index: Vec<i64>,
+    valid: Vec<bool>,
+}
+
+impl MaskedGroups {
+    pub(crate) fn new(group_sizes: &[usize], legal_masks: Option<&[&[bool]]>) -> Self {
+        let width = group_sizes.iter().copied().max().unwrap_or(0).max(1);
+        let mut gather_index = Vec::with_capacity(group_sizes.len() * width);
+        let mut valid = Vec::with_capacity(group_sizes.len() * width);
+        let mut offset = 0usize;
+        for (group, &size) in group_sizes.iter().enumerate() {
+            for column in 0..width {
+                if column < size {
+                    gather_index.push((offset + column) as i64);
+                    valid.push(legal_masks.is_none_or(|masks| masks[group][column]));
+                } else {
+                    gather_index.push(0);
+                    valid.push(false);
+                }
+            }
+            assert!(
+                valid[group * width..(group + 1) * width].iter().any(|v| *v),
+                "candidate group {group} has no legal candidate"
+            );
+            offset += size;
+        }
+        Self {
+            groups: group_sizes.len(),
+            width,
+            gather_index,
+            valid,
+        }
+    }
+
+    pub(crate) fn width(&self) -> usize {
+        self.width
+    }
+
+    pub(crate) fn is_valid(&self, group: usize, column: usize) -> bool {
+        self.valid[group * self.width + column]
+    }
+
+    /// `logits` is the flat `[rows, 1]` candidate column; returns
+    /// `[groups, width]` log-probabilities.
+    pub(crate) fn log_probs<B: Backend>(
+        &self,
+        logits: Tensor<B, 2>,
+        device: &B::Device,
+    ) -> Tensor<B, 2> {
+        let rows = logits.dims()[0];
+        let index = Tensor::<B, 1, Int>::from_data(
+            TensorData::new(self.gather_index.clone(), [self.gather_index.len()]),
+            device,
+        );
+        let invalid = Tensor::<B, 2, Bool>::from_data(
+            TensorData::new(
+                self.valid.iter().map(|valid| !valid).collect::<Vec<_>>(),
+                [self.groups, self.width],
+            ),
+            device,
+        );
+        let padded = logits
+            .reshape([rows])
+            .select(0, index)
+            .reshape([self.groups, self.width])
+            .mask_fill(invalid.clone(), -1.0e9);
+        log_softmax(padded, 1).mask_fill(invalid, -1.0e9)
+    }
+
+    pub(crate) fn target_tensor<B: Backend>(
+        &self,
+        targets: &[usize],
+        device: &B::Device,
+    ) -> Tensor<B, 2, Int> {
+        assert_eq!(targets.len(), self.groups);
+        Tensor::<B, 2, Int>::from_data(
+            TensorData::new(
+                targets
+                    .iter()
+                    .map(|target| *target as i64)
+                    .collect::<Vec<_>>(),
+                [self.groups, 1],
+            ),
+            device,
+        )
+    }
+
+    /// Highest-probability valid column of each group; never a masked one.
+    pub(crate) fn argmax(&self, log_probs: &[f32]) -> Vec<usize> {
+        (0..self.groups)
+            .map(|group| {
+                (0..self.width)
+                    .filter(|column| self.is_valid(group, *column))
+                    .max_by(|left, right| {
+                        log_probs[group * self.width + left]
+                            .total_cmp(&log_probs[group * self.width + right])
+                            .then_with(|| right.cmp(left))
+                    })
+                    .expect("every group has a valid column")
+            })
+            .collect()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BcConfig {
@@ -345,43 +457,21 @@ fn bc_loss_for_batch(
             device,
         )
         .reshape([candidate_offset, 1]);
-    let mut selected_terms = Vec::with_capacity(group_sizes.len());
-    let mut group_probabilities = Vec::with_capacity(group_sizes.len());
-    let mut offset = 0;
-    for ((group_size, target_index), sample_weight) in
-        group_sizes.iter().zip(&target_indices).zip(&sample_weights)
-    {
-        let group_logits = logits
-            .clone()
-            .slice([offset..offset + group_size, 0..1])
-            .reshape([1, *group_size]);
-        let probabilities = softmax(group_logits, 1).clamp(1e-7, 1.0);
-        let target = Tensor::from_data(
-            TensorData::new(
-                (0..*group_size)
-                    .map(|index| if index == *target_index { 1.0 } else { 0.0 })
-                    .collect::<Vec<_>>(),
-                [1, *group_size],
-            ),
-            device,
-        );
-        selected_terms.push((probabilities.clone().log() * target).sum() * *sample_weight);
-        group_probabilities.push(probabilities.into_data().to_vec::<f32>()?);
-        offset += group_size;
-    }
+    let groups = MaskedGroups::new(&group_sizes, None);
+    let log_probs = groups.log_probs(logits, device);
+    let targets = groups.target_tensor::<TrainBackend>(&target_indices, device);
+    let weights = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(sample_weights.clone(), [sample_weights.len(), 1]),
+        device,
+    );
     let total_weight = sample_weights.iter().sum::<f32>();
-    let selected = Tensor::cat(selected_terms, 0).sum() / total_weight;
+    let selected = (log_probs.clone().gather(1, targets) * weights).sum() / total_weight;
     let nll = -selected.clone().into_data().to_vec::<f32>()?[0];
-    let correct = group_sizes
+    let correct = groups
+        .argmax(&log_probs.into_data().to_vec::<f32>()?)
         .iter()
         .zip(&target_indices)
-        .zip(&group_probabilities)
-        .filter(|((group_size, target_index), probabilities)| {
-            let predicted = (0..**group_size)
-                .max_by(|left, right| probabilities[*left].total_cmp(&probabilities[*right]))
-                .expect("batch candidate group should not be empty");
-            predicted == **target_index
-        })
+        .filter(|(predicted, target)| predicted == target)
         .count();
     Ok((selected.neg(), nll, correct))
 }

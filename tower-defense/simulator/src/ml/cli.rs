@@ -334,6 +334,11 @@ pub enum Command {
         #[arg(long)]
         config: Option<PathBuf>,
     },
+    #[command(about = "Phase 4A canonical BC and teacher distillation")]
+    Phase4 {
+        #[command(subcommand)]
+        command: super::phase4_cli::Phase4Command,
+    },
     PairedBaseline {
         #[arg(short, long, default_value = "ml_policy_checkpoint.json")]
         checkpoint: PathBuf,
@@ -406,6 +411,7 @@ pub fn run() -> Result<()> {
 pub fn run_command(command: Command) -> Result<()> {
     println!("ML inference backend: {}", policy_backend_description());
     match command {
+        Command::Phase4 { command } => super::phase4_cli::run(command),
         Command::CollectTeacher {
             output,
             seed_start,
