@@ -216,9 +216,28 @@ pub struct Transition {
     pub value: f32,
     pub advantage: f32,
     pub return_value: f32,
-    /// `pi_init` log-probabilities (unpadded), filled when the KL-to-init
-    /// term is optimized.
+    /// Greedy candidate of the behavior policy at this state.
+    pub greedy_index: usize,
+    /// The canonical scripted action's candidate index.
+    pub canonical_index: Option<usize>,
+    /// `pi_init` log-probabilities (unpadded).
     pub init_log_probs: Vec<f32>,
+}
+
+impl Transition {
+    pub fn init_greedy_index(&self) -> Option<usize> {
+        greedy_index(&self.init_log_probs, &self.encoded.legal_mask)
+    }
+}
+
+pub fn greedy_index(log_probs: &[f32], legal_mask: &[bool]) -> Option<usize> {
+    (0..legal_mask.len().min(log_probs.len()))
+        .filter(|index| legal_mask[*index])
+        .max_by(|left, right| {
+            log_probs[*left]
+                .total_cmp(&log_probs[*right])
+                .then_with(|| right.cmp(left))
+        })
 }
 
 #[derive(Clone, Debug)]
@@ -236,6 +255,9 @@ pub struct EpisodeRollout {
     pub illegal_actions: usize,
     /// Decisions whose executed action differs from the sampled candidate.
     pub action_mismatches: usize,
+    pub decision_seconds: f64,
+    pub forward_seconds: f64,
+    pub environment_seconds: f64,
 }
 
 enum StepEnd {
@@ -290,32 +312,33 @@ pub fn rollout_episode(
     let mut action_mismatches = 0usize;
     let mut truncated = false;
     let mut bootstrap = None;
+    let mut decision_seconds = 0.0;
+    let mut forward_seconds = 0.0;
+    let mut environment_seconds = 0.0;
     while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
         if transitions.len() >= MAX_EPISODE_DECISIONS {
             truncated = true;
             bootstrap = Some(semantic_decision(&environment)?.encoded);
             break;
         }
+        let started = Instant::now();
         let SemanticDecision {
             candidates,
             legal_mask,
             encoded,
         } = semantic_decision(&environment)?;
+        decision_seconds += started.elapsed().as_secs_f64();
+        let started = Instant::now();
         let (log_probs, _) = batch_log_probs(actor, &[&encoded], device);
         let log_probs = log_probs.into_data().to_vec::<f32>()?[..legal_mask.len()].to_vec();
+        forward_seconds += started.elapsed().as_secs_f64();
         if log_probs.iter().any(|value| value.is_nan()) {
             bail!("seed {game_seed}: NaN actor log-probability");
         }
         let u: f64 = rng.r#gen();
+        let greedy_choice = greedy_index(&log_probs, &legal_mask).context("no legal candidate")?;
         let action_index = if greedy {
-            (0..legal_mask.len())
-                .filter(|index| legal_mask[*index])
-                .max_by(|left, right| {
-                    log_probs[*left]
-                        .total_cmp(&log_probs[*right])
-                        .then_with(|| right.cmp(left))
-                })
-                .context("no legal candidate")?
+            greedy_choice
         } else {
             sample_masked(&log_probs, &legal_mask, u)
         };
@@ -328,7 +351,9 @@ pub fn rollout_episode(
             action_mismatches += 1;
         }
         let clear_rate_before = environment.clear_rate();
+        let started = Instant::now();
         let end = advance(&mut environment, action)?;
+        environment_seconds += started.elapsed().as_secs_f64();
         let raw_delta = environment.clear_rate() - clear_rate_before;
         transitions.push(Transition {
             action_index,
@@ -343,6 +368,8 @@ pub fn rollout_episode(
             value: 0.0,
             advantage: 0.0,
             return_value: 0.0,
+            greedy_index: greedy_choice,
+            canonical_index: candidates.canonical_index(),
             init_log_probs: Vec::new(),
             encoded,
         });
@@ -373,6 +400,9 @@ pub fn rollout_episode(
         truncated,
         illegal_actions,
         action_mismatches,
+        decision_seconds,
+        forward_seconds,
+        environment_seconds,
     })
 }
 
@@ -1044,6 +1074,36 @@ pub struct RolloutStats {
     pub advantage_std: f64,
     pub explained_variance: f64,
     pub max_telescoping_error: f64,
+    /// Sampled action != the behavior policy's greedy action.
+    pub non_greedy_fraction: f64,
+    /// Sampled action != the canonical scripted action.
+    pub non_canonical_fraction: f64,
+    /// Sampled action != the BC initialization's greedy action.
+    pub non_init_greedy_fraction: f64,
+    pub by_decision_point: BTreeMap<String, DecisionPointStats>,
+    pub timing: RolloutTiming,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct DecisionPointStats {
+    pub count: usize,
+    pub mean_entropy: f64,
+    pub non_greedy_fraction: f64,
+    pub non_canonical_fraction: f64,
+    pub non_init_greedy_fraction: f64,
+}
+
+/// CPU seconds summed over episodes for the parallel rollout parts, and wall
+/// seconds for the sequential post-processing.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct RolloutTiming {
+    pub wall_seconds: f64,
+    pub candidate_encoding_cpu_seconds: f64,
+    pub actor_forward_cpu_seconds: f64,
+    pub environment_cpu_seconds: f64,
+    pub critic_value_seconds: f64,
+    pub init_forward_seconds: f64,
+    pub gae_seconds: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1252,11 +1312,13 @@ fn sample_seed(config: &PpoConfig, iteration: usize, game_seed: u64) -> u64 {
 /// Collects one iteration of rollouts, fills values/advantages/returns.
 pub fn collect_iteration(
     learner: &PpoLearner,
+    init_actor: &DeepSetsActorCritic<InferenceBackend>,
     config: &PpoConfig,
     game_config: Arc<GameConfig>,
     iteration: usize,
     seeds: &[u64],
 ) -> Result<(Vec<EpisodeRollout>, RolloutStats)> {
+    let wall_started = Instant::now();
     let actor = learner.actor_inference();
     let critic = learner.critic_inference();
     let device = learner.device;
@@ -1275,6 +1337,26 @@ pub fn collect_iteration(
         })
         .collect::<Result<Vec<_>>>()?;
     let mut stats = RolloutStats::default();
+    for episode in &episodes {
+        stats.timing.candidate_encoding_cpu_seconds += episode.decision_seconds;
+        stats.timing.actor_forward_cpu_seconds += episode.forward_seconds;
+        stats.timing.environment_cpu_seconds += episode.environment_seconds;
+    }
+    let started = Instant::now();
+    {
+        let decisions = episodes
+            .iter()
+            .flat_map(|episode| episode.transitions.iter().map(|step| &step.encoded))
+            .collect::<Vec<_>>();
+        let mut init_log_probs =
+            actor_log_prob_vectors(init_actor, &decisions, &device)?.into_iter();
+        for episode in &mut episodes {
+            for step in &mut episode.transitions {
+                step.init_log_probs = init_log_probs.next().expect("aligned init log-probs");
+            }
+        }
+    }
+    stats.timing.init_forward_seconds = started.elapsed().as_secs_f64();
     let mut returns_all = Vec::new();
     let mut values_all = Vec::new();
     let mut advantages_all = Vec::new();
@@ -1284,17 +1366,20 @@ pub fn collect_iteration(
             .iter()
             .map(|step| &step.encoded)
             .collect::<Vec<_>>();
+        let started = Instant::now();
         let values = critic_value_vector(&critic, &decisions, &device)?;
         let bootstrap_value = match &episode.bootstrap {
             Some(encoded) => critic_value_vector(&critic, &[encoded], &device)?[0],
             None => 0.0,
         };
+        stats.timing.critic_value_seconds += started.elapsed().as_secs_f64();
         stats.nonfinite_values += values.iter().filter(|value| !value.is_finite()).count();
         let rewards = episode
             .transitions
             .iter()
             .map(|step| step.reward)
             .collect::<Vec<_>>();
+        let started = Instant::now();
         let (advantages, returns) = compute_gae(
             &rewards,
             &values,
@@ -1302,6 +1387,7 @@ pub fn collect_iteration(
             config.gamma,
             config.gae_lambda,
         );
+        stats.timing.gae_seconds += started.elapsed().as_secs_f64();
         let raw_sum = episode
             .transitions
             .iter()
@@ -1319,6 +1405,21 @@ pub fn collect_iteration(
                 .entry(step.action_kind.clone())
                 .or_insert(0) += 1;
             stats.mean_behavior_entropy += step.behavior_entropy as f64;
+            let non_greedy = step.action_index != step.greedy_index;
+            let non_canonical = step.canonical_index != Some(step.action_index);
+            let non_init_greedy = step.init_greedy_index() != Some(step.action_index);
+            stats.non_greedy_fraction += non_greedy as u8 as f64;
+            stats.non_canonical_fraction += non_canonical as u8 as f64;
+            stats.non_init_greedy_fraction += non_init_greedy as u8 as f64;
+            let point = stats
+                .by_decision_point
+                .entry(step.decision_point.clone())
+                .or_default();
+            point.count += 1;
+            point.mean_entropy += step.behavior_entropy as f64;
+            point.non_greedy_fraction += non_greedy as u8 as f64;
+            point.non_canonical_fraction += non_canonical as u8 as f64;
+            point.non_init_greedy_fraction += non_init_greedy as u8 as f64;
         }
         returns_all.extend(returns);
         values_all.extend(values);
@@ -1353,6 +1454,16 @@ pub fn collect_iteration(
     stats.mean_decisions = transitions as f64 / count;
     let n = transitions.max(1) as f64;
     stats.mean_behavior_entropy /= n;
+    stats.non_greedy_fraction /= n;
+    stats.non_canonical_fraction /= n;
+    stats.non_init_greedy_fraction /= n;
+    for point in stats.by_decision_point.values_mut() {
+        let count = point.count.max(1) as f64;
+        point.mean_entropy /= count;
+        point.non_greedy_fraction /= count;
+        point.non_canonical_fraction /= count;
+        point.non_init_greedy_fraction /= count;
+    }
     for kind in TRACKED_ACTION_KINDS {
         stats
             .action_kind_counts
@@ -1392,6 +1503,7 @@ pub fn collect_iteration(
     } else {
         0.0
     };
+    stats.timing.wall_seconds = wall_started.elapsed().as_secs_f64();
     Ok((episodes, stats))
 }
 
@@ -1574,13 +1686,14 @@ pub fn train_ppo_run(
         let rollout_started = Instant::now();
         let (episodes, rollout_stats) = collect_iteration(
             &learner,
+            &init_inference,
             &config,
             Arc::clone(&game_config),
             iteration,
             &seeds,
         )?;
         let rollout_seconds = rollout_started.elapsed().as_secs_f64();
-        let mut transitions = episodes
+        let transitions = episodes
             .into_iter()
             .flat_map(|episode| episode.transitions)
             .collect::<Vec<_>>();
@@ -1588,12 +1701,12 @@ pub fn train_ppo_run(
             .iter()
             .map(|step| &step.encoded)
             .collect::<Vec<_>>();
-        let init_log_probs = actor_log_prob_vectors(&init_inference, &decisions, &device)?;
         let old_log_probs =
             actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
-        for (step, init) in transitions.iter_mut().zip(&init_log_probs) {
-            step.init_log_probs = init.clone();
-        }
+        let init_log_probs = transitions
+            .iter()
+            .map(|step| step.init_log_probs.clone())
+            .collect::<Vec<_>>();
         let update_started = Instant::now();
         let update_actor = iteration > config.critic_warmup_iterations;
         let update = learner.update(&transitions, &config, iteration, update_actor)?;
@@ -1692,6 +1805,30 @@ fn log_iteration(record: &IterationRecord) {
         record.rollout_seconds,
         record.update_seconds,
     );
+    let timing = &rollout.timing;
+    eprintln!(
+        "  explore: non-greedy {:.4} non-canonical {:.4} non-bc-init {:.4} | timing cpu-s: candidates {:.1} forward {:.1} env {:.1} | wall-s: rollout {:.1} init-forward {:.1} critic {:.1} gae {:.3}",
+        rollout.non_greedy_fraction,
+        rollout.non_canonical_fraction,
+        rollout.non_init_greedy_fraction,
+        timing.candidate_encoding_cpu_seconds,
+        timing.actor_forward_cpu_seconds,
+        timing.environment_cpu_seconds,
+        timing.wall_seconds,
+        timing.init_forward_seconds,
+        timing.critic_value_seconds,
+        timing.gae_seconds,
+    );
+    for (point, stats) in &rollout.by_decision_point {
+        eprintln!(
+            "  {point}: n {} ent {:.4} non-greedy {:.4} non-canonical {:.4} non-bc-init {:.4}",
+            stats.count,
+            stats.mean_entropy,
+            stats.non_greedy_fraction,
+            stats.non_canonical_fraction,
+            stats.non_init_greedy_fraction,
+        );
+    }
 }
 
 fn log_evaluation(evaluation: &DevEvaluation) {
@@ -1722,5 +1859,352 @@ fn log_evaluation(evaluation: &DevEvaluation) {
             comparison.worse,
             comparison.tie
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ml::phase4_dataset::{SourcePolicy, collect_canonical_episode};
+    use crate::ml::phase4_eval::run_policy_episode;
+    use crate::ml::semantic_bc::{
+        BcTrainConfig, BcTrainInput, LabelSource, SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
+        new_materialized_model, prepare_samples, train_bc_run,
+    };
+
+    fn game_config() -> Arc<GameConfig> {
+        Arc::new(GameConfig::default_config())
+    }
+
+    fn canonical_episodes(seeds: &[u64]) -> Vec<EpisodeRecord> {
+        let config = game_config();
+        let provenance = DatasetProvenance::new(
+            &config,
+            SourcePolicy::Canonical,
+            Phase4Split::Phase4bCanonicalTrain,
+            None,
+        )
+        .unwrap();
+        seeds
+            .iter()
+            .map(|seed| {
+                collect_canonical_episode(Arc::clone(&config), provenance.clone(), *seed).unwrap()
+            })
+            .collect()
+    }
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        path
+    }
+
+    fn random_actor() -> DeepSetsActorCritic<InferenceBackend> {
+        let device = default_policy_device();
+        TrainBackend::seed(&device, 7);
+        new_materialized_model(ModelConfig::default(), &device)
+            .unwrap()
+            .valid()
+    }
+
+    /// A tiny BC run directory usable as a PPO initialization.
+    fn tiny_bc_run(name: &str) -> PathBuf {
+        let episodes = canonical_episodes(&[0]);
+        let mut samples = prepare_samples(&episodes, LabelSource::Canonical, 1.0);
+        samples.truncate(64);
+        let config = BcTrainConfig {
+            epochs: 1,
+            batch_size: 32,
+            ..BcTrainConfig::default()
+        };
+        let run_dir = temp_dir(name);
+        train_bc_run(
+            &run_dir,
+            BcTrainInput {
+                train: &samples,
+                validation: &[],
+                metadata: BcCheckpointMetadata {
+                    schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
+                    policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
+                    candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
+                    git_commit: "test".to_string(),
+                    model_config: ModelConfig::default(),
+                    config,
+                    train_datasets: vec!["tiny".to_string()],
+                    train_provenance: Vec::new(),
+                    validation_dataset: None,
+                    train_samples: samples.len(),
+                    validation_samples: 0,
+                    init_checkpoint: None,
+                    completed_epochs: 0,
+                    best_epoch: None,
+                    history: Vec::new(),
+                },
+                init_model: None,
+            },
+        )
+        .unwrap();
+        run_dir
+    }
+
+    #[test]
+    fn masked_candidate_is_never_sampled() {
+        let log_probs = [-0.01f32, -5.0, -6.0, -1.0e9];
+        let mask = [false, true, true, false];
+        for step in 0..1000 {
+            let index = sample_masked(&log_probs, &mask, step as f64 / 1000.0);
+            assert!(mask[index], "sampled masked candidate {index}");
+        }
+    }
+
+    #[test]
+    fn gae_with_gamma_one_and_lambda_one_is_the_undiscounted_return() {
+        let rewards = [0.0, 0.5, 0.0, 1.5];
+        let values = [0.3, -0.2, 0.7, 0.1];
+        let (advantages, returns) = compute_gae(&rewards, &values, 0.0, 1.0, 1.0);
+        assert_eq!(returns, vec![2.0, 2.0, 1.5, 1.5]);
+        for index in 0..4 {
+            assert!((advantages[index] - (returns[index] - values[index])).abs() < 1e-6);
+        }
+        let (_, truncated) = compute_gae(&[1.0], &[0.0], 4.0, 1.0, 0.95);
+        assert_eq!(truncated, vec![5.0]);
+        let (advantages, _) = compute_gae(&[0.0, 1.0], &[0.0, 0.0], 0.0, 1.0, 0.5);
+        assert_eq!(advantages, vec![0.5, 1.0]);
+    }
+
+    #[test]
+    fn stochastic_rollout_executes_the_sampled_action_and_telescopes() {
+        let actor = random_actor();
+        let device = default_policy_device();
+        let rollout = rollout_episode(&actor, &device, game_config(), 3, 99, 0.1, false).unwrap();
+        assert!(!rollout.truncated);
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        let reward_sum = rollout
+            .transitions
+            .iter()
+            .map(|step| step.reward as f64)
+            .sum::<f64>();
+        let telescoped = 0.1 * (rollout.terminal_clear_rate - rollout.initial_clear_rate) as f64;
+        assert!(
+            (reward_sum - telescoped).abs() < 1e-3,
+            "{reward_sum} vs {telescoped}"
+        );
+        assert!(
+            rollout
+                .transitions
+                .iter()
+                .any(|step| step.action_index != step.greedy_index)
+        );
+
+        let mut environment = GameEnvironment::new(game_config(), 3);
+        for step in &rollout.transitions {
+            let decision = semantic_decision(&environment).unwrap();
+            assert_eq!(decision.encoded, step.encoded);
+            let sampled = &decision.candidates.candidates[step.action_index];
+            assert_eq!(sampled.action_id, step.action_id);
+            assert!(decision.legal_mask[step.action_index]);
+            let mut outcome = environment.semantic_step(sampled.action.clone()).unwrap();
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+            let executed = environment
+                .replay()
+                .commands
+                .iter()
+                .rev()
+                .find(|action| !matches!(action, crate::environment::AgentAction::Continue))
+                .cloned();
+            if !matches!(sampled.action, crate::environment::AgentAction::Continue) {
+                assert_eq!(executed.as_ref(), Some(&sampled.action));
+            }
+        }
+        assert!(matches!(
+            environment.decision_point(),
+            DecisionPoint::Terminal
+        ));
+        assert_eq!(environment.clear_rate(), rollout.terminal_clear_rate);
+    }
+
+    #[test]
+    fn bc_evaluator_and_ppo_rollout_see_identical_candidates_and_mask() {
+        let actor = random_actor();
+        let device = default_policy_device();
+        let policy = SemanticPolicy::new(actor.clone());
+        let rollout = rollout_episode(&actor, &device, game_config(), 5, 0, 0.1, true).unwrap();
+        let mut environment = GameEnvironment::new(game_config(), 5);
+        for step in &rollout.transitions {
+            let choice = policy.choose(&environment).unwrap();
+            let encoded = encode_decision(
+                &choice.candidates.observation,
+                &choice.candidates.candidates,
+                choice.legal_mask.clone(),
+            );
+            assert_eq!(encoded, step.encoded);
+            assert_eq!(choice.index, step.action_index);
+            let action = choice.candidates.candidates[choice.index].action.clone();
+            let mut outcome = environment.semantic_step(action).unwrap();
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+        }
+        let evaluated = run_policy_episode(
+            game_config(),
+            5,
+            &EvalPolicy::Learned {
+                name: "bc".to_string(),
+                policy,
+            },
+        )
+        .unwrap();
+        assert_eq!(evaluated.terminal_clear_rate, rollout.terminal_clear_rate);
+        assert_eq!(evaluated.decisions, rollout.transitions.len());
+        assert_eq!(evaluated.post_sampling_mutations, 0);
+    }
+
+    #[test]
+    fn ppo_actor_initialized_from_bc_reproduces_bc_logits() {
+        let bc_dir = tiny_bc_run("ppo-init-bc");
+        let device = default_policy_device();
+        let (_, bc_model) = load_selected_model::<TrainBackend>(&bc_dir, &device).unwrap();
+        let critic = new_materialized_model(ModelConfig::default(), &device).unwrap();
+        let learner = PpoLearner::new(bc_model.clone(), critic, &PpoConfig::default());
+        let bc_policy = SemanticPolicy::from_run_dir(&bc_dir).unwrap();
+        let samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
+        let decisions = samples
+            .iter()
+            .take(32)
+            .map(|sample| &sample.encoded)
+            .collect::<Vec<_>>();
+        let ppo = actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device).unwrap();
+        let bc = actor_log_prob_vectors(bc_policy.model(), &decisions, &device).unwrap();
+        assert_eq!(ppo, bc);
+        for (log_probs, decision) in ppo.iter().zip(&decisions) {
+            assert_eq!(
+                greedy_index(log_probs, &decision.legal_mask),
+                bc_policy
+                    .choose_encoded(decision)
+                    .ok()
+                    .map(|(index, _)| index)
+            );
+        }
+        std::fs::remove_dir_all(bc_dir).unwrap();
+    }
+
+    #[test]
+    fn critic_pretraining_is_finite_and_reduces_error() {
+        let train = value_samples(&canonical_episodes(&[2, 4]), 0.1);
+        let validation = value_samples(&canonical_episodes(&[6]), 0.1);
+        let run_dir = temp_dir("ppo-critic-pretrain");
+        let metadata = pretrain_critic(
+            &run_dir,
+            &train,
+            &validation,
+            CriticCheckpointMetadata {
+                schema_version: CRITIC_CHECKPOINT_SCHEMA_VERSION,
+                candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
+                policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
+                game_rules_epoch: GAME_RULES_EPOCH,
+                git_commit: "test".to_string(),
+                model_config: ModelConfig::default(),
+                config: CriticPretrainConfig {
+                    epochs: 4,
+                    batch_size: 64,
+                    ..CriticPretrainConfig::default()
+                },
+                train_dataset: "tiny".to_string(),
+                validation_dataset: "tiny".to_string(),
+                train_provenance: None,
+                train_samples: train.len(),
+                validation_samples: validation.len(),
+                initial_validation: ValueMetrics::default(),
+                history: Vec::new(),
+                selected_epoch: 0,
+            },
+        )
+        .unwrap();
+        let last = metadata.history.last().unwrap();
+        assert_eq!(last.validation.nonfinite_predictions, 0);
+        assert!(last.mean_train_batch_loss.is_finite());
+        assert!(last.validation.mse < metadata.initial_validation.mse);
+        let (_, critic) = load_critic(&run_dir, &default_policy_device()).unwrap();
+        let reloaded =
+            evaluate_critic(&critic.valid(), &validation, &default_policy_device()).unwrap();
+        let selected = &metadata.history[metadata.selected_epoch - 1].validation;
+        assert!((reloaded.mse - selected.mse).abs() < 1e-6);
+        std::fs::remove_dir_all(run_dir).unwrap();
+    }
+
+    fn tiny_ppo_config() -> PpoConfig {
+        PpoConfig {
+            episodes_per_iteration: 2,
+            update_epochs: 2,
+            minibatch_size: 64,
+            actor_learning_rate: 1e-4,
+            kl_to_init_coefficient: 0.1,
+            entropy_coefficient: 0.01,
+            ..PpoConfig::default()
+        }
+    }
+
+    #[test]
+    fn ppo_update_is_finite_and_resume_is_deterministic() {
+        let bc_dir = tiny_bc_run("ppo-resume-bc");
+        let input = |iterations| PpoRunInput {
+            config: tiny_ppo_config(),
+            init_bc_run: bc_dir.clone(),
+            init_critic_run: None,
+            iterations,
+            evaluate_every: 0,
+            development_seeds: 4,
+        };
+        let full_dir = temp_dir("ppo-full");
+        let full = train_ppo_run(game_config(), &full_dir, input(2)).unwrap();
+        assert_eq!(full.completed_iterations, 2);
+        for record in &full.history {
+            let update = &record.update;
+            for value in [
+                update.policy_loss,
+                update.value_loss,
+                update.entropy,
+                update.approx_kl,
+                update.kl_to_init_term,
+                update.mean_actor_grad_norm,
+                record.kl_to_init_after,
+            ] {
+                assert!(value.is_finite(), "non-finite update metric in {update:?}");
+            }
+            assert_eq!(update.nonfinite_skips, 0);
+            assert!(update.minibatches > 0);
+            assert_eq!(record.rollout.illegal_actions, 0);
+            assert_eq!(record.rollout.action_mismatches, 0);
+            assert_eq!(record.rollout.nonfinite_values, 0);
+            assert!(record.rollout.max_telescoping_error < 1e-3);
+        }
+        assert!(full.history[1].kl_to_init_after > 0.0);
+
+        let resumed_dir = temp_dir("ppo-resumed");
+        train_ppo_run(game_config(), &resumed_dir, input(1)).unwrap();
+        let resumed = train_ppo_run(game_config(), &resumed_dir, input(2)).unwrap();
+        assert_eq!(resumed.completed_iterations, 2);
+        for name in ["actor.bin", "critic.bin"] {
+            assert_eq!(
+                std::fs::read(iteration_dir(&full_dir, 2).join(name)).unwrap(),
+                std::fs::read(iteration_dir(&resumed_dir, 2).join(name)).unwrap(),
+                "{name} diverged after resume"
+            );
+        }
+        let actor = load_ppo_actor(&iteration_dir(&full_dir, 0), &default_policy_device()).unwrap();
+        let bc = SemanticPolicy::from_run_dir(&bc_dir).unwrap();
+        let samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
+        let decisions = samples
+            .iter()
+            .take(16)
+            .map(|sample| &sample.encoded)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            actor_log_prob_vectors(&actor, &decisions, &default_policy_device()).unwrap(),
+            actor_log_prob_vectors(bc.model(), &decisions, &default_policy_device()).unwrap(),
+            "iter-0000 actor must equal the BC initialization"
+        );
+        for directory in [bc_dir, full_dir, resumed_dir] {
+            std::fs::remove_dir_all(directory).unwrap();
+        }
     }
 }

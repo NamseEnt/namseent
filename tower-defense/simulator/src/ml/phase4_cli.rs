@@ -131,6 +131,80 @@ pub enum Phase4Command {
         #[arg(long, default_value_t = 0)]
         threads: usize,
     },
+    /// Supervised critic pretraining on canonical trajectories.
+    PretrainCritic {
+        #[arg(long)]
+        train: PathBuf,
+        #[arg(long)]
+        train_episodes: Option<usize>,
+        #[arg(long)]
+        validation: PathBuf,
+        #[arg(long)]
+        run_dir: PathBuf,
+        #[arg(long, default_value_t = 8)]
+        epochs: usize,
+        #[arg(long, default_value_t = 1e-3)]
+        learning_rate: f64,
+        #[arg(long, default_value_t = 256)]
+        batch_size: usize,
+        #[arg(long, default_value_t = 64)]
+        hidden_size: usize,
+        #[arg(long, default_value_t = 0.1)]
+        reward_scale: f32,
+        #[arg(long, default_value_t = 0)]
+        seed: u64,
+        #[arg(long, default_value_t = 0)]
+        threads: usize,
+    },
+    /// Train (or resume) semantic PPO from a BC checkpoint.
+    PpoTrain {
+        #[arg(long)]
+        init_bc_run: PathBuf,
+        #[arg(long)]
+        init_critic_run: Option<PathBuf>,
+        #[arg(long)]
+        run_dir: PathBuf,
+        #[arg(long)]
+        iterations: usize,
+        #[arg(long, default_value_t = 48)]
+        episodes_per_iteration: usize,
+        #[arg(long, default_value_t = 1.0)]
+        gamma: f32,
+        #[arg(long, default_value_t = 0.95)]
+        gae_lambda: f32,
+        #[arg(long, default_value_t = 0.1)]
+        reward_scale: f32,
+        #[arg(long, default_value_t = 1e-5)]
+        actor_learning_rate: f64,
+        #[arg(long, default_value_t = 3e-4)]
+        critic_learning_rate: f64,
+        #[arg(long, default_value_t = 4)]
+        update_epochs: usize,
+        #[arg(long, default_value_t = 256)]
+        minibatch_size: usize,
+        #[arg(long, default_value_t = 0.2)]
+        clip_epsilon: f32,
+        #[arg(long, default_value_t = 0.0)]
+        entropy_coefficient: f32,
+        #[arg(long, default_value_t = 0.0)]
+        kl_to_init_coefficient: f32,
+        /// Negative disables the early stop.
+        #[arg(long, default_value_t = 0.02)]
+        target_kl: f32,
+        #[arg(long, default_value_t = 0.5)]
+        max_grad_norm: f32,
+        #[arg(long, default_value_t = 0)]
+        critic_warmup_iterations: usize,
+        #[arg(long, default_value_t = 0)]
+        seed: u64,
+        /// Development evaluation every N iterations (0: never).
+        #[arg(long, default_value_t = 5)]
+        evaluate_every: usize,
+        #[arg(long, default_value_t = 128)]
+        development_seeds: usize,
+        #[arg(long, default_value_t = 0)]
+        threads: usize,
+    },
 }
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
@@ -484,7 +558,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     .ok_or_else(|| anyhow::anyhow!("--policy expects name=run_dir"))?;
                 eval_policies.push(EvalPolicy::Learned {
                     name: name.to_string(),
-                    policy: SemanticPolicy::from_run_dir(Path::new(directory))?,
+                    policy: SemanticPolicy::from_path(Path::new(directory))?,
                 });
             }
             let comparisons = if comparisons.is_empty() {
@@ -535,6 +609,129 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 );
             }
             write_json(Some(&output), &report)
+        }
+        Phase4Command::PretrainCritic {
+            train,
+            train_episodes,
+            validation,
+            run_dir,
+            epochs,
+            learning_rate,
+            batch_size,
+            hidden_size,
+            reward_scale,
+            seed,
+            threads,
+        } => {
+            configure_threads(threads)?;
+            let started = std::time::Instant::now();
+            let train_loaded = load_limited(&train, &config, train_episodes)?;
+            let train_provenance = train_loaded[0].provenance.clone();
+            let train_samples = super::semantic_ppo::value_samples(&train_loaded, reward_scale);
+            drop(train_loaded);
+            let validation_samples = super::semantic_ppo::value_samples(
+                &load_limited(&validation, &config, None)?,
+                reward_scale,
+            );
+            eprintln!(
+                "loaded {} train / {} validation value samples in {:.1}s",
+                train_samples.len(),
+                validation_samples.len(),
+                started.elapsed().as_secs_f64()
+            );
+            let metadata = super::semantic_ppo::CriticCheckpointMetadata {
+                schema_version: super::semantic_ppo::CRITIC_CHECKPOINT_SCHEMA_VERSION,
+                candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
+                policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
+                game_rules_epoch: super::phase4_dataset::GAME_RULES_EPOCH,
+                git_commit: current_git_revision()?,
+                model_config: ModelConfig { hidden_size },
+                config: super::semantic_ppo::CriticPretrainConfig {
+                    hidden_size,
+                    learning_rate,
+                    batch_size,
+                    epochs,
+                    reward_scale,
+                    seed,
+                },
+                train_dataset: match train_episodes {
+                    Some(limit) => format!("{} (first {limit})", train.display()),
+                    None => train.display().to_string(),
+                },
+                validation_dataset: validation.display().to_string(),
+                train_provenance: Some(train_provenance),
+                train_samples: train_samples.len(),
+                validation_samples: validation_samples.len(),
+                initial_validation: Default::default(),
+                history: Vec::new(),
+                selected_epoch: 0,
+            };
+            let result = super::semantic_ppo::pretrain_critic(
+                &run_dir,
+                &train_samples,
+                &validation_samples,
+                metadata,
+            )?;
+            eprintln!("selected critic epoch {}", result.selected_epoch);
+            Ok(())
+        }
+        Phase4Command::PpoTrain {
+            init_bc_run,
+            init_critic_run,
+            run_dir,
+            iterations,
+            episodes_per_iteration,
+            gamma,
+            gae_lambda,
+            reward_scale,
+            actor_learning_rate,
+            critic_learning_rate,
+            update_epochs,
+            minibatch_size,
+            clip_epsilon,
+            entropy_coefficient,
+            kl_to_init_coefficient,
+            target_kl,
+            max_grad_norm,
+            critic_warmup_iterations,
+            seed,
+            evaluate_every,
+            development_seeds,
+            threads,
+        } => {
+            configure_threads(threads)?;
+            let ppo_config = super::semantic_ppo::PpoConfig {
+                episodes_per_iteration,
+                gamma,
+                gae_lambda,
+                reward_scale,
+                actor_learning_rate,
+                critic_learning_rate,
+                update_epochs,
+                minibatch_size,
+                clip_epsilon,
+                entropy_coefficient,
+                kl_to_init_coefficient,
+                target_kl: (target_kl > 0.0).then_some(target_kl),
+                max_grad_norm,
+                normalize_advantages: true,
+                critic_warmup_iterations,
+                seed,
+            };
+            let metadata = super::semantic_ppo::train_ppo_run(
+                config,
+                &run_dir,
+                super::semantic_ppo::PpoRunInput {
+                    config: ppo_config,
+                    init_bc_run,
+                    init_critic_run,
+                    iterations,
+                    evaluate_every,
+                    development_seeds,
+                },
+            )?;
+            eprintln!("completed {} PPO iterations", metadata.completed_iterations);
+            Ok(())
         }
     }
 }

@@ -633,6 +633,17 @@ impl SemanticPolicy {
         }
     }
 
+    /// A BC run directory (`bc.json`) or a PPO iteration directory
+    /// (`ppo-actor.json`).
+    pub fn from_path(path: &Path) -> Result<Self> {
+        if path.join("ppo-actor.json").exists() {
+            let device = default_policy_device();
+            let model = super::semantic_ppo::load_ppo_actor(path, &device)?;
+            return Ok(Self { model, device });
+        }
+        Self::from_run_dir(path)
+    }
+
     pub fn from_run_dir(run_dir: &Path) -> Result<Self> {
         let device = default_policy_device();
         let (_, model) = load_selected_model::<InferenceBackend>(run_dir, &device)?;
