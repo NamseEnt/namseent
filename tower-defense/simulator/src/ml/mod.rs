@@ -18,9 +18,15 @@ pub mod model;
 #[cfg(feature = "simulator")]
 pub mod neural_checkpoint;
 #[cfg(feature = "simulator")]
+pub mod phase4_cli;
+#[cfg(feature = "simulator")]
+pub mod phase4_dataset;
+#[cfg(feature = "simulator")]
 pub mod ppo;
 #[cfg(feature = "simulator")]
 pub mod rollout;
+#[cfg(feature = "simulator")]
+pub mod semantic_candidates;
 pub mod seed;
 #[cfg(feature = "simulator")]
 pub mod toy_overfit;

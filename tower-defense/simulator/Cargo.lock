@@ -4865,6 +4865,7 @@ dependencies = [
  "clap",
  "crossterm",
  "ctrlc",
+ "flate2",
  "indicatif",
  "libc",
  "rand 0.8.8",

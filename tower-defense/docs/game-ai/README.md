@@ -39,6 +39,7 @@
 | [`10-human-player-models.md`](10-human-player-models.md) | 실제 인간형 실수를 포함한 실력 모델 | Deferred |
 | [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md) | Phase 1/2 결과에 따른 candidate architecture 재검토 | Proposed |
 | [`12-adaptive-teacher-budget.md`](12-adaptive-teacher-budget.md) | Adaptive teacher rollout budget design | Proposed |
+| [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md) | Phase 4A canonical BC and selective teacher distillation | In progress |
 
 상태의 의미는 다음과 같다.
 

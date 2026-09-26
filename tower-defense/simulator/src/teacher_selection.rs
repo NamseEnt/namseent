@@ -399,14 +399,26 @@ fn partition_candidates(environment: &GameEnvironment) -> Result<PartitionedCand
 /// `stage_progress_v1` rollout score (`PROPOSAL_HORIZON_SIM_TICKS`,
 /// `pools.proposal_seeds`) and returns the best one (ties by ascending
 /// action id), or `None` if there are no Reroll candidates.
+#[cfg(test)]
 fn rank_best_reroll(
     environment: &GameEnvironment,
     baseline_action: &AgentAction,
     reroll_candidates: &[LegalAction],
     pools: &TeacherSelectionPools,
 ) -> Result<Option<LegalAction>> {
+    rank_rerolls(environment, baseline_action, reroll_candidates, pools).map(|(best, _)| best)
+}
+
+/// [`rank_best_reroll`] plus every Reroll candidate's low-fidelity mean
+/// score, in evaluation order.
+fn rank_rerolls(
+    environment: &GameEnvironment,
+    baseline_action: &AgentAction,
+    reroll_candidates: &[LegalAction],
+    pools: &TeacherSelectionPools,
+) -> Result<(Option<LegalAction>, Vec<(String, f32)>)> {
     if reroll_candidates.is_empty() {
-        return Ok(None);
+        return Ok((None, Vec::new()));
     }
     let config = RolloutTeacherConfig {
         scenario_seeds: pools.proposal_seeds.clone(),
@@ -430,21 +442,40 @@ fn rank_best_reroll(
                 .then_with(|| b.action_id.cmp(&a.action_id))
         })
         .expect("reroll_candidates is non-empty and excludes the baseline id");
-    Ok(Some(LegalAction {
-        id: best.action_id.clone(),
-        action: best.action.clone(),
-    }))
+    let scores = decision
+        .candidates
+        .iter()
+        .filter(|candidate| candidate.action_id != baseline_id)
+        .map(|candidate| (candidate.action_id.clone(), candidate.mean_score))
+        .collect();
+    Ok((
+        Some(LegalAction {
+            id: best.action_id.clone(),
+            action: best.action.clone(),
+        }),
+        scores,
+    ))
 }
 
+#[cfg(any(test, feature = "diagnostics"))]
 pub(crate) fn build_s41_proposal(
     environment: &GameEnvironment,
     baseline_action: &AgentAction,
     pools: &TeacherSelectionPools,
 ) -> Result<Vec<LegalAction>> {
+    build_s41_proposal_with_reroll_scores(environment, baseline_action, pools)
+        .map(|(proposal, _)| proposal)
+}
+
+fn build_s41_proposal_with_reroll_scores(
+    environment: &GameEnvironment,
+    baseline_action: &AgentAction,
+    pools: &TeacherSelectionPools,
+) -> Result<(Vec<LegalAction>, Vec<(String, f32)>)> {
     let baseline_id = baseline_action.action_id();
     let partitioned = partition_candidates(environment)?;
-    let best_reroll =
-        rank_best_reroll(environment, baseline_action, &partitioned.reroll_all, pools)?;
+    let (best_reroll, reroll_scores) =
+        rank_rerolls(environment, baseline_action, &partitioned.reroll_all, pools)?;
 
     let mut proposal = Vec::new();
     let mut seen = std::collections::HashSet::new();
@@ -462,7 +493,7 @@ pub(crate) fn build_s41_proposal(
             proposal.push(candidate);
         }
     }
-    Ok(proposal)
+    Ok((proposal, reroll_scores))
 }
 
 /// Evaluates one decision: builds the S4/1 proposal, runs terminal discovery
@@ -472,11 +503,33 @@ pub fn select_teacher_action(
     environment: &GameEnvironment,
     pools: &TeacherSelectionPools,
 ) -> Result<(TeacherSelectionDecision, AgentAction)> {
+    select_teacher_action_with_raw_outcomes(environment, pools)
+        .map(|(decision, action, _)| (decision, action))
+}
+
+/// Raw per-scenario terminal outcomes behind one [`select_teacher_action`]
+/// decision, in the order of `pools`' seed lists. Candidate vectors follow
+/// `proposal_action_ids` (discovery) and `discovery_top3` (validation).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct TeacherRawOutcomes {
+    pub reroll_proposal_scores: Vec<(String, f32)>,
+    pub discovery_outcomes: Vec<Vec<f32>>,
+    pub validation_baseline_outcomes: Vec<f32>,
+    pub validation_candidate_outcomes: Vec<Vec<f32>>,
+}
+
+/// Same decision as [`select_teacher_action`], also returning the raw
+/// scenario outcomes the decision was computed from.
+pub fn select_teacher_action_with_raw_outcomes(
+    environment: &GameEnvironment,
+    pools: &TeacherSelectionPools,
+) -> Result<(TeacherSelectionDecision, AgentAction, TeacherRawOutcomes)> {
     pools.validate()?;
     let state_hash = environment.state_hash();
     let baseline_action = canonical_scripted_semantic_action(environment)?;
     let baseline_id = baseline_action.action_id();
-    let proposal = build_s41_proposal(environment, &baseline_action, pools)?;
+    let (proposal, reroll_proposal_scores) =
+        build_s41_proposal_with_reroll_scores(environment, &baseline_action, pools)?;
 
     if proposal.is_empty() {
         return Ok((
@@ -496,6 +549,10 @@ pub fn select_teacher_action(
                 elapsed_seconds: 0.0,
             },
             baseline_action,
+            TeacherRawOutcomes {
+                reroll_proposal_scores,
+                ..TeacherRawOutcomes::default()
+            },
         ));
     }
 
@@ -621,6 +678,18 @@ pub fn select_teacher_action(
             elapsed_seconds: 0.0,
         },
         selected_action,
+        TeacherRawOutcomes {
+            reroll_proposal_scores,
+            discovery_outcomes: discovery_outcomes
+                .chunks(pools.discovery_seeds.len())
+                .map(<[f32]>::to_vec)
+                .collect(),
+            validation_baseline_outcomes: baseline_outcomes,
+            validation_candidate_outcomes: candidate_outcomes
+                .chunks(pools.validation_seeds.len())
+                .map(<[f32]>::to_vec)
+                .collect(),
+        },
     ))
 }
 
