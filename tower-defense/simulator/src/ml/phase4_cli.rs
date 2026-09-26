@@ -162,6 +162,12 @@ pub enum Phase4Command {
         init_bc_run: PathBuf,
         #[arg(long)]
         init_critic_run: Option<PathBuf>,
+        /// Continue from a PPO iteration directory (actor and critic).
+        #[arg(long)]
+        init_ppo_iteration: Option<PathBuf>,
+        /// Offset into the `ppo_train` seed blocks.
+        #[arg(long, default_value_t = 0)]
+        train_seed_block_offset: usize,
         #[arg(long)]
         run_dir: PathBuf,
         #[arg(long)]
@@ -678,6 +684,8 @@ pub fn run(command: Phase4Command) -> Result<()> {
         Phase4Command::PpoTrain {
             init_bc_run,
             init_critic_run,
+            init_ppo_iteration,
+            train_seed_block_offset,
             run_dir,
             iterations,
             episodes_per_iteration,
@@ -717,6 +725,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 normalize_advantages: true,
                 critic_warmup_iterations,
                 seed,
+                train_seed_block_offset,
             };
             let metadata = super::semantic_ppo::train_ppo_run(
                 config,
@@ -725,6 +734,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     config: ppo_config,
                     init_bc_run,
                     init_critic_run,
+                    init_ppo_iteration,
                     iterations,
                     evaluate_every,
                     development_seeds,

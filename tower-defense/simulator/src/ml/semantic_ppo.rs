@@ -101,6 +101,10 @@ pub struct PpoConfig {
     /// Actor updates start after this many critic-only iterations.
     pub critic_warmup_iterations: usize,
     pub seed: u64,
+    /// Iteration `i` plays `ppo_train` seed block `i + offset`, so a
+    /// continuation run never replays another run's training games.
+    #[serde(default)]
+    pub train_seed_block_offset: usize,
 }
 
 impl Default for PpoConfig {
@@ -122,6 +126,7 @@ impl Default for PpoConfig {
             normalize_advantages: true,
             critic_warmup_iterations: 0,
             seed: 0,
+            train_seed_block_offset: 0,
         }
     }
 }
@@ -1204,6 +1209,8 @@ pub struct PpoRunMetadata {
     pub init_bc_run: String,
     pub init_bc_metadata: BcCheckpointMetadata,
     pub init_critic_run: Option<String>,
+    #[serde(default)]
+    pub init_ppo_iteration: Option<String>,
     pub train_split: Phase4Split,
     pub development_split: Phase4Split,
     pub development_seeds: usize,
@@ -1317,6 +1324,9 @@ pub struct PpoRunInput {
     pub config: PpoConfig,
     pub init_bc_run: PathBuf,
     pub init_critic_run: Option<PathBuf>,
+    /// Continue from a PPO iteration directory's actor and critic (fresh
+    /// optimizers). The KL reference stays the BC initialization.
+    pub init_ppo_iteration: Option<PathBuf>,
     pub iterations: usize,
     pub evaluate_every: usize,
     pub development_seeds: usize,
@@ -1324,7 +1334,8 @@ pub struct PpoRunInput {
 
 fn train_seed_range(config: &PpoConfig, iteration: usize) -> Result<Vec<u64>> {
     let range = Phase4Split::PpoTrain.range();
-    let start = *range.start() + (iteration as u64) * config.episodes_per_iteration as u64;
+    let block = (iteration + config.train_seed_block_offset) as u64;
+    let start = *range.start() + block * config.episodes_per_iteration as u64;
     let end = start + config.episodes_per_iteration as u64 - 1;
     if end > *range.end() {
         bail!("PPO training seeds exhausted at iteration {iteration}");
@@ -1651,19 +1662,35 @@ pub fn train_ppo_run(
         );
         (metadata, learner)
     } else {
-        let critic = match &input.init_critic_run {
-            Some(path) => {
+        let (actor, critic) = match &input.init_ppo_iteration {
+            Some(directory) => (
+                load_model_file::<TrainBackend>(
+                    model_config,
+                    &directory.join("actor.bin"),
+                    &device,
+                )?,
+                Some(load_model_file::<TrainBackend>(
+                    model_config,
+                    &directory.join("critic.bin"),
+                    &device,
+                )?),
+            ),
+            None => (init_actor.clone(), None),
+        };
+        let critic = match (critic, &input.init_critic_run) {
+            (Some(critic), _) => critic,
+            (None, Some(path)) => {
                 let (critic_metadata, critic) = load_critic(path, &device)?;
                 if critic_metadata.model_config != model_config {
                     bail!("critic model config differs from the actor's");
                 }
                 critic
             }
-            None => {
+            (None, None) => {
                 super::semantic_bc::seeded_materialized_model(model_config, config.seed, &device)?
             }
         };
-        let learner = PpoLearner::new(init_actor.clone(), critic, &config);
+        let learner = PpoLearner::new(actor, critic, &config);
         let mut metadata = PpoRunMetadata {
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
@@ -1676,6 +1703,10 @@ pub fn train_ppo_run(
             init_bc_metadata: bc_metadata.clone(),
             init_critic_run: input
                 .init_critic_run
+                .as_ref()
+                .map(|path| path.display().to_string()),
+            init_ppo_iteration: input
+                .init_ppo_iteration
                 .as_ref()
                 .map(|path| path.display().to_string()),
             train_split: Phase4Split::PpoTrain,
@@ -2181,6 +2212,7 @@ mod tests {
             iterations,
             evaluate_every: 0,
             development_seeds: 4,
+            init_ppo_iteration: None,
         };
         let full_dir = temp_dir("ppo-full");
         let full = train_ppo_run(game_config(), &full_dir, input(2)).unwrap();
