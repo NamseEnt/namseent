@@ -68,6 +68,7 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 | [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md) | Phase 1/2 결과에 따른 candidate architecture 재검토 | Proposed |
 | [`12-adaptive-teacher-budget.md`](12-adaptive-teacher-budget.md) | Adaptive teacher rollout budget design | Proposed |
 | [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md) | Phase 4A canonical BC and selective teacher distillation | Verified (Gate A); Gate B negligible |
+| [`14-phase4b-ppo.md`](14-phase4b-ppo.md) | Phase 4B PPO on the semantic action stack (latest gameplay rules) | In progress |
 
 상태의 의미는 다음과 같다.
 
