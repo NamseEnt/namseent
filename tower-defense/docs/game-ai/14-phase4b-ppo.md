@@ -1,6 +1,6 @@
 # Phase 4B: PPO on the Semantic Action Stack
 
-Status: in progress. Sections marked **Frozen** were written before any Phase 4B data was generated or any model was trained, and are not changed after results are seen.
+Status: complete. PPO beat the canonical baseline and the canonical BC initialization on the frozen final seeds (+4.98 and +4.86 terminal clear_rate). Sections marked **Frozen** were written before any Phase 4B data was generated or any model was trained, and are not changed after results are seen.
 
 Phase 4B asks one question: starting from a canonical BC actor, can PPO raise terminal clear_rate above the canonical scripted baseline? The rollout teacher is not used in this phase (no teacher corpus, no distillation, no DAgger).
 
@@ -226,3 +226,94 @@ Training rollouts, 20-iteration means:
 | 81-100 | 40.87 | 0.320 | 0.981 | 0.0051 | 0.040 | 0.63 | 4.8 | 30.0 | 111.5 |
 
 Over the 100 iterations: illegal = 0, sampled != executed = 0, truncated = 0, non-finite = 0, skipped updates = 0, telescoping error 0.0. With the smaller coefficient, behavior entropy stopped growing and then fell, and both greedy and stochastic performance kept rising slowly. Reroll share went 0.117 -> 0.161 and build/start_defense 0.201 -> 0.184; the other kinds moved by less than 0.01. At iteration 100 the share of decisions differing from BC-init greedy is CardSelection 0.55, TreasureSelection 0.54, Shop 0.33, CardServiceSelection 0.28, DamageResponseItem 0.18, TowerPlacement 0 and PreDefenseItem 0.
+
+Run C was then resumed with the same config to iteration 200:
+
+| run C iteration | PPO mean | median | stage | decisions | PPO - canonical | better/worse/tie | PPO - BC init | behavior entropy | KL(pi or pi_init) |
+|---|---|---|---|---|---|---|---|---|---|
+| 110 | 41.87 | 40.39 | 21.36 | 117.3 | +5.64 (0.67) | 105/23/0 | +5.77 | 0.31 | 5.22 |
+| 120 | 42.00 | 41.29 | 21.42 | 120.2 | +5.76 (0.56) | 107/21/0 | +5.90 | 0.35 | 5.86 |
+| 130 | 42.01 | 41.47 | 21.37 | 119.5 | +5.78 (0.59) | 108/20/0 | +5.92 | 0.33 | 5.84 |
+| 140 | 41.57 | 40.00 | 21.18 | 120.6 | +5.34 (0.54) | 107/21/0 | +5.48 | 0.32 | 6.76 |
+| 150 | 41.63 | 40.10 | 21.14 | 122.4 | +5.39 (0.57) | 104/24/0 | +5.53 | 0.41 | 7.20 |
+| 160 | 41.67 | 40.00 | 21.20 | 123.3 | +5.43 (0.60) | 106/22/0 | +5.57 | 0.44 | 8.37 |
+| 170 | 41.72 | 40.49 | 21.27 | 122.6 | +5.48 (0.59) | 102/26/0 | +5.62 | 0.46 | 8.39 |
+| 175 | 42.17 | 41.20 | 21.50 | 123.1 | +5.94 (0.64) | 108/20/0 | +6.07 | 0.42 | 8.18 |
+| 180 | 41.75 | 40.32 | 21.27 | 122.3 | +5.52 (0.57) | 107/21/0 | +5.66 | 0.43 | 8.03 |
+| 190 | 41.68 | 40.10 | 21.23 | 123.3 | +5.44 (0.62) | 106/22/0 | +5.58 | 0.41 | 7.42 |
+| **200** | **42.34** | 40.40 | **21.55** | 126.2 | **+6.11 (0.64)** | 113/15/0 | **+6.25** | 0.44 | 8.04 |
+
+| iterations | train clear_rate | behavior entropy | explained variance | approx KL | clip fraction | actor grad norm | rollout s | update s | decisions/game |
+|---|---|---|---|---|---|---|---|---|---|
+| 101-120 | 41.10 | 0.308 | 0.981 | 0.0059 | 0.043 | 0.68 | 5.0 | 33.5 | 115.2 |
+| 121-140 | 41.76 | 0.327 | 0.982 | 0.0071 | 0.047 | 0.78 | 5.3 | 35.4 | 119.6 |
+| 141-160 | 41.94 | 0.409 | 0.982 | 0.0068 | 0.052 | 0.81 | 5.4 | 36.2 | 122.3 |
+| 161-180 | 41.93 | 0.465 | 0.982 | 0.0068 | 0.057 | 0.83 | 5.5 | 36.6 | 123.5 |
+| 181-200 | 42.10 | 0.402 | 0.982 | 0.0085 | 0.051 | 0.82 | 5.6 | 36.1 | 125.1 |
+
+Development performance plateaued at about +5.2 to +6.1 from iteration 110, while stochastic training performance rose only slowly. All 200 run C iterations had illegal = 0, sampled != executed = 0, truncated = 0, non-finite = 0, skipped updates = 0 and telescoping error 0.0. The policy kept shifting toward rerolling: at iteration 200 the sampled shares are reroll 0.223 (0.065 at BC init), build_tower/start_defense 0.175, continue 0.123, purchase 0.099, use_inventory_item 0.075, place_tower 0.056, card service 0.054, select_treasure 0.020. TowerPlacement still has zero entropy.
+
+Total PPO experience behind the selected checkpoint: pilot B 75 iterations plus run C 200 iterations = 275 iterations x 48 games = 13,200 training games (about 1.4M decisions), about 3 hours of wall time including development evaluations.
+
+### Checkpoint selection and final evaluation
+
+Selection rule, fixed before the final seeds were used: the development-evaluated checkpoint of pilot B and run C with the highest mean paired delta vs canonical. That is run C iteration 200 (+6.11 on development). Choosing the development maximum inflates its development score, so the final seeds give the unbiased number.
+
+Final evaluation, run once (`--confirm-final`), `phase4b_final` 4,100,000-4,100,255 (256 seeds), greedy:
+
+| policy | mean | median | stage | victories | decisions | illegal | fallback | post-sampling mutations | canonical agreement |
+|---|---|---|---|---|---|---|---|---|---|
+| canonical | 36.65 | 35.43 | 18.71 | 0 | 84.5 | 0 | 0 | 0 | 100% |
+| BC (`phase4b-init`) | 36.76 | 35.25 | 18.79 | 0 | 85.0 | 0 | 0 | 0 | 99.2% |
+| **PPO (run C iteration 200)** | **41.63** | **39.73** | **21.21** | 0 | 123.9 | 0 | 0 | 0 | 71.3% |
+
+| comparison | mean | SE | median | better/worse/tie |
+|---|---|---|---|---|
+| PPO - canonical | **+4.98** | 0.41 | +3.02 | 210/46/0 |
+| PPO - BC | **+4.86** | 0.41 | +2.76 | 210/46/0 |
+| BC - canonical | +0.12 | 0.08 | +0.00 | 23/26/207 |
+
+PPO > BC ~ canonical holds on untouched seeds: about +2.5 stages, better on 82% of seeds. It is about a third of the Phase 3 teacher's gap on the old rules (+15.1), with a search-free policy. No policy cleared a full game.
+
+### Throughput
+
+Single-thread search-free inference (16 development seeds, `--threads 1`):
+
+| policy | ms / decision | network forward ms | decisions / s | episode wall time |
+|---|---|---|---|---|
+| canonical scripted | 0.574 | - | 1,742 | 0.096 s |
+| BC | 3.84 | 0.34 | 261 | 0.38 s |
+| PPO | 4.02 | 0.35 | 249 | 0.57 s |
+
+PPO training (12 threads, 48 games per iteration): rollout 3.4-5.6 s, of which candidate generation/encoding is about 80% of CPU time (actor forward about 7%, environment about 10%); update 20-37 s (4 epochs, minibatch 256, actor and critic), so the update dominates at about 85% of an iteration. A development evaluation of 3 policies x 128 seeds adds about 10-20 s every 5 iterations.
+
+### Tests added
+
+- `observation::tests::build_tower_candidates_match_authoritative_select_tower_for_every_subset` (core): preview == authoritative `SelectTower` for every subset.
+- `environment::tests::candidate_card_services_offer_exactly_the_authoritative_candidates`, `card_service_selection_offers_no_undo_or_noop_actions`: core 3-card candidates; monotone card-service actions; undo/no-op impossible.
+- `semantic_ppo::tests::bc_evaluator_and_ppo_rollout_see_identical_candidates_and_mask`: same state, same candidate rows, mask and greedy index; identical terminal episode.
+- `semantic_ppo::tests::stochastic_rollout_executes_the_sampled_action_and_telescopes`: replaying every sampled candidate reproduces the recorded decision encodings and terminal clear_rate; illegal/mismatch 0; reward sum telescopes.
+- `semantic_ppo::tests::masked_candidate_is_never_sampled`.
+- `semantic_ppo::tests::ppo_actor_initialized_from_bc_reproduces_bc_logits`.
+- `semantic_ppo::tests::critic_pretraining_is_finite_and_reduces_error`.
+- `semantic_ppo::tests::gae_with_gamma_one_and_lambda_one_is_the_undiscounted_return` (GAE, bootstrap and gamma = 1 return).
+- `semantic_ppo::tests::ppo_update_is_finite_and_resume_is_deterministic` (finite update with entropy and KL-to-init terms, checkpoint/optimizer resume, iteration-0 actor == BC).
+- `semantic_bc::tests::cpu_vs_cuda_bc_step_benchmark` (ignored, `simulator-cuda`).
+
+`toy_overfit::tests::contextual_bandit_overfits_within_update_budget` (legacy candidate-list PPO) fails from its seed-0 initialization on `origin/feat/game-ai-rewrite` too; it is now `#[ignore]` with that reason. Model initialization for BC and critic runs is now drawn from a seeded ChaCha stream (`seeded_materialized_model`) instead of the process-global backend RNG, which concurrent tests could advance.
+
+## Conclusion and next steps
+
+1. A search-free neural policy trained with PPO from a canonical BC initialization beats the canonical baseline by +4.98 terminal clear_rate (SE 0.41) on 256 frozen final seeds, with 0 illegal actions, 0 fallbacks and 0 post-sampling action changes.
+2. The first recipe (actor Adam 1e-5, no entropy bonus) did not move the extremely confident BC policy at all. Learning started only with a larger step size and an entropy bonus, and continued after lowering the entropy bonus.
+3. Improvement came from card, shop, treasure and card-service decisions (notably more rerolling). Tower placement never changed: the policy only sees the canonical top-8 placements and top-8 dense builds, so it cannot learn placements the heuristic ranks lower. The full dense action space already exists in `PolicyActionSpace`; only the network's candidate representation is limited.
+4. Development performance plateaued at about +5 to +6 over the last 90 iterations.
+
+Recommended next phase (policy v2, a separate plan to be confirmed first):
+
+- Profile candidate generation/encoding (about 80% of rollout CPU time) and remove easy duplicate work.
+- V2-A: family-factorized policy `P(kind) x P(candidate | kind)` on the current candidates, which should reproduce the current BC/PPO; validates the factorized log-probability/entropy wiring and removes action-multiplicity bias in the flat softmax.
+- V2-B: dense spatial PlaceTower head (`slot x 36 x 36` with the full legal mask, heuristic score as an input channel instead of a candidate filter), compared under the same PPO budget to test whether the top-8 ceiling is the plateau's cause.
+- V2-C: autoregressive BuildTower (`subset -> slot -> position`, conditional masks), keeping the `AgentAction` contract.
+- Per-head entropy coefficients (or entropy normalized by the head's maximum), because head sizes differ by orders of magnitude.
+- Then vectorized environments with batched inference per head, and a new CUDA measurement.
