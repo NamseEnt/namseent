@@ -1585,11 +1585,11 @@ pub fn development_evaluation(
         EvalPolicy::Canonical,
         EvalPolicy::Learned {
             name: "bc_init".to_string(),
-            policy: init.clone(),
+            policy: Box::new(init.clone()),
         },
         EvalPolicy::Learned {
             name: "ppo".to_string(),
-            policy: SemanticPolicy::new(current),
+            policy: Box::new(SemanticPolicy::new(current)),
         },
     ];
     let comparisons = vec![
@@ -2108,7 +2108,7 @@ mod tests {
             5,
             &EvalPolicy::Learned {
                 name: "bc".to_string(),
-                policy,
+                policy: Box::new(policy),
             },
         )
         .unwrap();

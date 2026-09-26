@@ -564,7 +564,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     .ok_or_else(|| anyhow::anyhow!("--policy expects name=run_dir"))?;
                 eval_policies.push(EvalPolicy::Learned {
                     name: name.to_string(),
-                    policy: SemanticPolicy::from_path(Path::new(directory))?,
+                    policy: Box::new(SemanticPolicy::from_path(Path::new(directory))?),
                 });
             }
             let comparisons = if comparisons.is_empty() {

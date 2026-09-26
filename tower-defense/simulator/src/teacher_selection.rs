@@ -446,6 +446,9 @@ fn rank_best_reroll(
     rank_rerolls(environment, baseline_action, reroll_candidates, pools).map(|(best, _)| best)
 }
 
+/// `(reroll action id, low-fidelity proposal score)` in evaluation order.
+type RerollProposalScores = Vec<(String, f32)>;
+
 /// [`rank_best_reroll`] plus every Reroll candidate's low-fidelity mean
 /// score, in evaluation order.
 fn rank_rerolls(
@@ -453,7 +456,7 @@ fn rank_rerolls(
     baseline_action: &AgentAction,
     reroll_candidates: &[LegalAction],
     pools: &TeacherSelectionPools,
-) -> Result<(Option<LegalAction>, Vec<(String, f32)>)> {
+) -> Result<(Option<LegalAction>, RerollProposalScores)> {
     if reroll_candidates.is_empty() {
         return Ok((None, Vec::new()));
     }
@@ -508,7 +511,7 @@ fn build_s41_proposal_with_reroll_scores(
     environment: &GameEnvironment,
     baseline_action: &AgentAction,
     pools: &TeacherSelectionPools,
-) -> Result<(Vec<LegalAction>, Vec<(String, f32)>)> {
+) -> Result<(Vec<LegalAction>, RerollProposalScores)> {
     let baseline_id = baseline_action.action_id();
     let partitioned = partition_candidates(environment)?;
     let (best_reroll, reroll_scores) =

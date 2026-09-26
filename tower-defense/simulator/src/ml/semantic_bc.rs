@@ -534,7 +534,11 @@ fn epoch_dir(run_dir: &Path, epoch: usize) -> PathBuf {
 /// completed epoch with the same deterministic data order.
 pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpointMetadata> {
     let config = input.metadata.config.clone();
-    if config.epochs == 0 || config.batch_size == 0 || !(config.learning_rate > 0.0) {
+    if config.epochs == 0
+        || config.batch_size == 0
+        || config.learning_rate.is_nan()
+        || config.learning_rate <= 0.0
+    {
         bail!("invalid BC training config");
     }
     if input.train.is_empty() {
