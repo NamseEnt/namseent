@@ -1,0 +1,173 @@
+{
+  "samples": 5420,
+  "nll": 0.4024118837069712,
+  "weighted_nll": 0.4024118837069712,
+  "top1_accuracy": 0.9638376383763838,
+  "top3_accuracy": 0.9990774907749077,
+  "action_kind_accuracy": 0.9898523985239852,
+  "illegal_selections": 0,
+  "masked_candidates": 0,
+  "max_masked_probability": 0.0,
+  "by_decision_point": {
+    "CardSelection": {
+      "count": 366,
+      "top1_correct": 366,
+      "kind_correct": 366,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "CardServiceSelection": {
+      "count": 275,
+      "top1_correct": 266,
+      "kind_correct": 275,
+      "top1_accuracy": 0.9672727272727273,
+      "kind_accuracy": 1.0
+    },
+    "DamageResponseItem": {
+      "count": 513,
+      "top1_correct": 403,
+      "kind_correct": 487,
+      "top1_accuracy": 0.7855750487329435,
+      "kind_accuracy": 0.949317738791423
+    },
+    "PreDefenseItem": {
+      "count": 753,
+      "top1_correct": 753,
+      "kind_correct": 753,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "Shop": {
+      "count": 1801,
+      "top1_correct": 1739,
+      "kind_correct": 1772,
+      "top1_accuracy": 0.9655746807329262,
+      "kind_accuracy": 0.9838978345363687
+    },
+    "TowerPlacement": {
+      "count": 1574,
+      "top1_correct": 1574,
+      "kind_correct": 1574,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "TreasureSelection": {
+      "count": 138,
+      "top1_correct": 123,
+      "kind_correct": 138,
+      "top1_accuracy": 0.8913043478260869,
+      "kind_accuracy": 1.0
+    }
+  },
+  "by_action_kind": {
+    "build_tower": {
+      "count": 1192,
+      "top1_correct": 1163,
+      "kind_correct": 1163,
+      "top1_accuracy": 0.9756711409395973,
+      "kind_accuracy": 0.9756711409395973
+    },
+    "confirm_card_service_selection": {
+      "count": 136,
+      "top1_correct": 136,
+      "kind_correct": 136,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "continue": {
+      "count": 753,
+      "top1_correct": 753,
+      "kind_correct": 753,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "place_tower": {
+      "count": 382,
+      "top1_correct": 382,
+      "kind_correct": 382,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "purchase_shop_item": {
+      "count": 609,
+      "top1_correct": 576,
+      "kind_correct": 609,
+      "top1_accuracy": 0.9458128078817734,
+      "kind_accuracy": 1.0
+    },
+    "reroll": {
+      "count": 366,
+      "top1_correct": 366,
+      "kind_correct": 366,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "select_card_service_card": {
+      "count": 139,
+      "top1_correct": 130,
+      "kind_correct": 139,
+      "top1_accuracy": 0.935251798561151,
+      "kind_accuracy": 1.0
+    },
+    "select_treasure": {
+      "count": 138,
+      "top1_correct": 123,
+      "kind_correct": 138,
+      "top1_accuracy": 0.8913043478260869,
+      "kind_accuracy": 1.0
+    },
+    "start_defense": {
+      "count": 1192,
+      "top1_correct": 1192,
+      "kind_correct": 1192,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "use_inventory_item": {
+      "count": 513,
+      "top1_correct": 403,
+      "kind_correct": 487,
+      "top1_accuracy": 0.7855750487329435,
+      "kind_accuracy": 0.949317738791423
+    }
+  },
+  "kind_confusion": {
+    "build_tower": {
+      "build_tower": 1163,
+      "discard_treasure": 29
+    },
+    "confirm_card_service_selection": {
+      "confirm_card_service_selection": 136
+    },
+    "continue": {
+      "continue": 753
+    },
+    "place_tower": {
+      "place_tower": 382
+    },
+    "purchase_shop_item": {
+      "purchase_shop_item": 609
+    },
+    "reroll": {
+      "reroll": 366
+    },
+    "select_card_service_card": {
+      "select_card_service_card": 139
+    },
+    "select_treasure": {
+      "select_treasure": 138
+    },
+    "start_defense": {
+      "start_defense": 1192
+    },
+    "use_inventory_item": {
+      "continue": 26,
+      "use_inventory_item": 487
+    }
+  },
+  "override_samples": 0,
+  "override_top1_accuracy": null,
+  "override_predicts_canonical": null,
+  "agreement_samples": 0,
+  "agreement_top1_accuracy": null
+}

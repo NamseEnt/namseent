@@ -1,0 +1,315 @@
+{
+  "episodes": 16,
+  "decisions": 2291,
+  "seeds": [
+    2200000,
+    2200015
+  ],
+  "mean_decisions_per_episode": 143.1875,
+  "mean_terminal_clear_rate": 52.200125217437744,
+  "victories": 0,
+  "action_kind_counts": {
+    "build_tower": 422,
+    "confirm_card_service_selection": 56,
+    "continue": 379,
+    "discard_treasure": 3,
+    "place_tower": 95,
+    "purchase_shop_item": 249,
+    "remove_tower": 82,
+    "reroll": 275,
+    "select_card_service_card": 56,
+    "select_treasure": 51,
+    "start_defense": 422,
+    "use_inventory_item": 201
+  },
+  "decision_point_counts": {
+    "CardSelection": 278,
+    "CardServiceSelection": 112,
+    "DamageResponseItem": 249,
+    "PreDefenseItem": 307,
+    "Shop": 688,
+    "TowerPlacement": 606,
+    "TreasureSelection": 51
+  },
+  "aliased_chosen_by_kind": {
+    "select_card_service_card": 1,
+    "use_inventory_item": 5
+  },
+  "mean_candidates_per_decision": 26.91837625491052,
+  "max_candidates_per_decision": 53,
+  "reward_invariant": {
+    "episodes": 16,
+    "decisions": 2291,
+    "max_telescoping_error": 0.0,
+    "max_boundary_error": 0.0,
+    "negative_delta_decisions": 0,
+    "by_transition": {
+      "CardSelection -> CardSelection": {
+        "count": 80,
+        "negative_count": 0,
+        "zero_count": 80,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "CardSelection -> TowerPlacement": {
+        "count": 198,
+        "negative_count": 0,
+        "zero_count": 198,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "CardServiceSelection -> CardServiceSelection": {
+        "count": 56,
+        "negative_count": 0,
+        "zero_count": 56,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "CardServiceSelection -> Shop": {
+        "count": 56,
+        "negative_count": 0,
+        "zero_count": 56,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "DamageResponseItem -> DamageResponseItem": {
+        "count": 112,
+        "negative_count": 0,
+        "zero_count": 54,
+        "min": 0.0,
+        "max": 0.2132988,
+        "sum": 8.231409072875977
+      },
+      "DamageResponseItem -> Shop": {
+        "count": 124,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.0039000511,
+        "max": 1.8307991,
+        "sum": 144.30097770690918
+      },
+      "DamageResponseItem -> Terminal": {
+        "count": 5,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.9906006,
+        "max": 1.8324013,
+        "sum": 6.4770050048828125
+      },
+      "DamageResponseItem -> TreasureSelection": {
+        "count": 8,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.14220047,
+        "max": 1.7775002,
+        "sum": 9.000801086425781
+      },
+      "PreDefenseItem -> DamageResponseItem": {
+        "count": 137,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.16759872,
+        "max": 1.9961,
+        "sum": 103.4590072631836
+      },
+      "PreDefenseItem -> Shop": {
+        "count": 154,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 2.0,
+        "max": 2.0,
+        "sum": 308.0
+      },
+      "PreDefenseItem -> TreasureSelection": {
+        "count": 16,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 2.0,
+        "max": 2.0,
+        "sum": 32.0
+      },
+      "Shop -> CardSelection": {
+        "count": 198,
+        "negative_count": 0,
+        "zero_count": 198,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "Shop -> CardServiceSelection": {
+        "count": 56,
+        "negative_count": 0,
+        "zero_count": 56,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "Shop -> Shop": {
+        "count": 210,
+        "negative_count": 0,
+        "zero_count": 210,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "Shop -> TowerPlacement": {
+        "count": 224,
+        "negative_count": 0,
+        "zero_count": 224,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "TowerPlacement -> PreDefenseItem": {
+        "count": 307,
+        "negative_count": 0,
+        "zero_count": 307,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "TowerPlacement -> Shop": {
+        "count": 93,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 2.0,
+        "max": 2.0,
+        "sum": 186.0
+      },
+      "TowerPlacement -> Terminal": {
+        "count": 11,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.7078018,
+        "max": 2.0,
+        "sum": 15.732803344726562
+      },
+      "TowerPlacement -> TowerPlacement": {
+        "count": 184,
+        "negative_count": 0,
+        "zero_count": 184,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "TowerPlacement -> TreasureSelection": {
+        "count": 11,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 2.0,
+        "max": 2.0,
+        "sum": 22.0
+      },
+      "TreasureSelection -> Shop": {
+        "count": 51,
+        "negative_count": 0,
+        "zero_count": 51,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      }
+    },
+    "by_action_kind": {
+      "build_tower": {
+        "count": 422,
+        "negative_count": 0,
+        "zero_count": 422,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "confirm_card_service_selection": {
+        "count": 56,
+        "negative_count": 0,
+        "zero_count": 56,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "continue": {
+        "count": 379,
+        "negative_count": 0,
+        "zero_count": 0,
+        "min": 0.07960129,
+        "max": 2.0,
+        "sum": 457.65321350097656
+      },
+      "discard_treasure": {
+        "count": 3,
+        "negative_count": 0,
+        "zero_count": 3,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "place_tower": {
+        "count": 95,
+        "negative_count": 0,
+        "zero_count": 95,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "purchase_shop_item": {
+        "count": 249,
+        "negative_count": 0,
+        "zero_count": 249,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "remove_tower": {
+        "count": 82,
+        "negative_count": 0,
+        "zero_count": 82,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "reroll": {
+        "count": 275,
+        "negative_count": 0,
+        "zero_count": 275,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "select_card_service_card": {
+        "count": 56,
+        "negative_count": 0,
+        "zero_count": 56,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "select_treasure": {
+        "count": 51,
+        "negative_count": 0,
+        "zero_count": 51,
+        "min": 0.0,
+        "max": 0.0,
+        "sum": 0.0
+      },
+      "start_defense": {
+        "count": 422,
+        "negative_count": 0,
+        "zero_count": 307,
+        "min": 0.0,
+        "max": 2.0,
+        "sum": 223.73280334472656
+      },
+      "use_inventory_item": {
+        "count": 201,
+        "negative_count": 0,
+        "zero_count": 78,
+        "min": 0.0,
+        "max": 1.8324013,
+        "sum": 153.81598663330078
+      }
+    }
+  }
+}

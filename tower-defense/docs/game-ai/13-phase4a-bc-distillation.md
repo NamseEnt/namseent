@@ -1,6 +1,6 @@
 # Phase 4A: Canonical BC and Selective Teacher Distillation
 
-Status: in progress. Sections marked **Frozen** were written before any Phase 4A data was generated or any model was trained, and are not changed after results are seen.
+Status: complete. Gate A passed; Gate B positive by its frozen definition, but the effect is negligible (see Conclusion). Sections marked **Frozen** were written before any Phase 4A data was generated or any model was trained, and are not changed after results are seen.
 
 Phase 4A answers two questions:
 
@@ -205,4 +205,224 @@ No victories in any arm.
 
 The selected canonical BC is **large** (highest development mean). A first run of the evaluation stopped at the 512-decision guard: BC small repeatedly toggled the same card-service card (`select_card_service_card` on an already selected card deselects it). The learned-policy runner now never deselects a card-service card, and every decision where this rule changed the greedy choice is counted as a guard intervention. It is not a canonical fallback. Canonical play never deselects.
 
-(Teacher corpus, distillation and final results below.)
+### Teacher corpus
+
+Collection: 16 teacher-controlled terminal games on `teacher_train` (seeds 2,200,000-2,200,015), frozen v2 rule, production pools, 12 threads.
+
+- 2,291 teacher decisions, 0 forced (empty-proposal) decisions, 449 overrides (19.6%).
+- 1,405,184 terminal rollouts (613 per decision), 12,389 s wall-clock (774 s per game, 5.4 s per decision), 9.3 MB of data including every raw scenario outcome.
+- Real-environment steps skip the policy trace, so each rollout fork no longer copies a growing trace. This made collection about 1.5x faster than the Phase 3 gate (8,776 s for 8 games) without changing any selection. The teacher's baseline equals the canonical action at every decision; the collector checks this.
+- Paired terminal clear_rate on the same seeds (teacher - canonical): mean +14.78, SE 1.99, median +12.75, 16 / 0 / 0. Canonical mean 37.42, teacher mean 52.20. This agrees with the Phase 3 gate (+15.07).
+- Per-seed deltas: +8.18, +13.83, +10.19, +26.00, +11.10, +15.28, +25.55, +10.51, +4.00, +11.68, +22.24, +2.37, +23.36, +22.39, +23.34, +6.49. No victories.
+- Teacher trajectories: 143 decisions per game on average (canonical 85). The progress-reward invariant holds (telescoping error 0, no negative deltas).
+- Bug fixed while reading the corpus: a zero-variance validation sample has an infinite t statistic, which JSON writes as `null`. `CandidateValidationStat` now restores it from the sign of the mean delta, as `paired_one_sided_t_test` defines it. Writing and the teacher rule are unchanged.
+
+### Teacher override and disagreement analysis
+
+`ml phase4 teacher-analysis` (`artifacts/phase4/teacher-analysis.json`). The validation delta is the selected finalist's mean paired terminal delta on the 64 validation scenarios.
+
+By the canonical action's kind (how often the teacher replaced it):
+
+| canonical kind | opportunities | overrides | override rate | mean override validation delta |
+|---|---|---|---|---|
+| build_tower | 538 | 172 | 32.0% | +0.50 |
+| start_defense | 505 | 86 | 17.0% | +0.15 |
+| use_inventory_item | 249 | 72 | 28.9% | +0.19 |
+| purchase_shop_item | 309 | 71 | 23.0% | +1.22 |
+| reroll | 119 | 20 | 16.8% | +0.92 |
+| select_treasure | 51 | 18 | 35.3% | +2.00 |
+| place_tower | 101 | 9 | 8.9% | +0.15 |
+| select_card_service_card | 56 | 1 | 1.8% | +0.07 |
+| continue | 307 | 0 | 0% | - |
+| confirm_card_service_selection | 56 | 0 | 0% | - |
+
+By the teacher's selected kind (opportunities = decisions whose S4/1 proposal contained the kind):
+
+| selected kind | opportunities | overrides | rate | mean validation delta |
+|---|---|---|---|---|
+| reroll | 943 | 176 | 18.7% | +0.69 |
+| remove_tower | 606 | 82 | 13.5% | +0.12 |
+| continue | 249 | 72 | 28.9% | +0.19 |
+| build_tower | 966 | 56 | 5.8% | +0.74 |
+| use_inventory_item | 1,825 | 24 | 1.3% | +0.61 |
+| select_treasure | 51 | 18 | 35.3% | +2.00 |
+| purchase_shop_item | 108 | 11 | 10.2% | +1.31 |
+| discard_treasure | 1,607 | 3 | 0.2% | +0.24 |
+| place_tower | 101 | 3 | 3.0% | +0.38 |
+| start_defense | 101 | 3 | 3.0% | +0.08 |
+| select_card_service_card | 112 | 1 | 0.9% | +0.07 |
+
+Top override pairs (canonical -> teacher):
+
+| pair | overrides |
+|---|---|
+| build_tower -> reroll | 130 |
+| start_defense -> remove_tower | 79 |
+| use_inventory_item -> continue | 72 |
+| purchase_shop_item -> reroll | 35 |
+| build_tower -> build_tower (different pair) | 30 |
+| purchase_shop_item -> build_tower | 20 |
+| select_treasure -> select_treasure | 18 |
+| purchase_shop_item -> purchase_shop_item | 11 |
+| reroll -> reroll | 11 |
+| build_tower -> use_inventory_item | 10 |
+
+By decision point:
+
+| decision point | decisions | overrides | override rate |
+|---|---|---|---|
+| Shop | 688 | 165 | 24.0% |
+| CardSelection | 278 | 98 | 35.3% |
+| TowerPlacement | 606 | 95 | 15.7% |
+| DamageResponseItem | 249 | 72 | 28.9% |
+| TreasureSelection | 51 | 18 | 35.3% |
+| CardServiceSelection | 112 | 1 | 0.9% |
+| PreDefenseItem | 307 | 0 | 0% |
+
+By stage (the clear_rate buckets are the same partition, because clear_rate before a decision is 2 x (stage - 1)):
+
+| stages | 1-5 | 6-10 | 11-15 | 16-20 | 21-25 | 26-30 | 31-35 |
+|---|---|---|---|---|---|---|---|
+| override rate | 13.4% | 13.6% | 24.1% | 20.9% | 26.5% | 17.0% | 24.5% |
+| mean override delta | +1.09 | +0.78 | +0.62 | +0.37 | +0.34 | +0.20 | +0.32 |
+
+Validation strength:
+
+- 283 of 449 overrides have a selected-candidate validation delta in [0, 0.5); 85 in [0.5, 1); 52 in [1, 2); 24 in [2, 4); 5 in [4, 8).
+- 366 overrides have Holm-adjusted p < 0.001.
+- Where the teacher kept canonical, the best finalist's delta was below 0 in 406 decisions, in [0, 0.5) in 1,368, in [0.5, 1) in 63, and in [1, 2) in 5.
+
+Most teacher value comes from many small per-decision gains, concentrated in reroll (instead of building or buying), removing towers before a defense, skipping inventory use in damage-response windows, and treasure choice. Per-override deltas shrink in later stages.
+
+Canonical BC (large) on the same 2,291 teacher states:
+
+- it differs from canonical in only 7 decisions (0.3%)
+- on the 449 override states it picks the canonical action 449 times and the teacher action 0 times
+- the BC/canonical disagreements are purchase_shop_item (6) and select_card_service_card (1)
+
+The BC policy has no teacher behaviour to begin with.
+
+### Distillation
+
+Both variants start from canonical BC large and fine-tune on the 2,291 teacher-labelled decisions with target = teacher action (Adam 3e-4, batch 64, 10 epochs, final epoch; about 21 s each). Variant A uses weight 1 for every sample. Variant B uses weight 4 for override samples.
+
+Offline:
+
+| model | teacher-corpus top-1 | NLL | override samples: predicts teacher / predicts canonical | agreeing samples top-1 | canonical-validation top-1 |
+|---|---|---|---|---|---|
+| canonical BC large | 80.0% | 19.45 | 0.0% / 100% | 99.5% | 99.8% |
+| distilled A (1x) | 78.9% | 1.12 | 3.8% / 88.2% | 97.2% | 96.4% |
+| distilled B (4x) | 73.1% | 1.34 | 15.6% / 73.3% | 87.1% | 85.3% |
+
+The canonical BC is extremely confident on override states (NLL 19.4). Under the frozen budget of 10 epochs at 3e-4, the fine-tuning loss plateaus near 1.14 (A) and 2.14 (B, weighted). Neither variant fits most overrides, and B trades agreement accuracy for them.
+
+Development evaluation (128 seeds), paired delta vs canonical BC:
+
+- A: +0.11, SE 0.18, 48 / 31 / 49
+- B: -3.22, SE 0.34, 23 / 105 / 0; decisions per game rose to 127.6
+
+**Variant A was selected** for Gate B.
+
+### Final paired terminal evaluation (final seeds 2,400,000-2,400,255, run once)
+
+`artifacts/phase4/final-eval.json`, 256 seeds, every episode to the actual terminal state, 44.5 s on 12 threads.
+
+| policy | mean clear_rate | median | mean stage | victories | decisions | illegal | fallback | no-undo guard | canonical agreement |
+|---|---|---|---|---|---|---|---|---|---|
+| canonical scripted | 36.59 | 35.24 | 18.71 | 0 | 85.4 | 0 | 0 | 0 | 100% |
+| canonical BC (large) | 36.60 | 35.18 | 18.72 | 0 | 85.5 | 0 | 0 | 5 | 99.8% |
+| distilled A (selected) | 36.71 | 35.25 | 18.76 | 0 | 88.8 | 0 | 0 | 8 | 94.6% |
+| distilled B (descriptive) | 33.78 | 33.27 | 17.29 | 0 | 131.1 | 0 | 0 | 12 | 57.4% |
+
+| comparison | mean | SE | 95% CI (normal) | median | better / worse / tie |
+|---|---|---|---|---|---|
+| BC - canonical | +0.01 | 0.04 | [-0.06, +0.09] | 0.00 | 7 / 6 / 243 |
+| distilled A - BC | +0.11 | 0.14 | [-0.16, +0.39] | 0.00 | 88 / 55 / 113 |
+| distilled A - canonical | +0.13 | 0.13 | [-0.14, +0.39] | 0.00 | 87 / 57 / 112 |
+| distilled B - BC | -2.82 | 0.32 | [-3.44, -2.20] | -2.27 | 62 / 193 / 1 |
+| distilled B - canonical | -2.81 | 0.31 | [-3.42, -2.19] | -2.27 | 61 / 194 / 1 |
+
+- **Gate A: PASSED.** 0 illegal and 0 fallback actions, and a mean paired delta of +0.01 against a threshold of -2.0.
+- **Gate B: POSITIVE by the frozen definition** (mean +0.11 > 0). The effect is negligible: its interval includes 0, and it is under 1% of the teacher's own +14.8.
+- Distilled A's behavior changes are mostly `use_inventory_item -> continue` in damage-response windows (continue 3,810 vs 3,067 for BC) and some treasure discards. It adopted almost none of the teacher's reroll overrides (1,506 vs 1,500 rerolls) and none of its tower removals.
+- Distilled B is clearly worse. It learned to skip inventory items broadly (759 uses vs 2,027), which leaves it in long runs of damage-response windows (16,551 continues) and loses about 1.4 stages.
+
+### Search-free inference latency (1 CPU thread)
+
+`artifacts/phase4/latency-1thread.json`, 16 development seeds, `--threads 1` (Rayon and burn-flex on one thread):
+
+| policy | ms / decision | network forward ms | decisions / s | episode wall time |
+|---|---|---|---|---|
+| canonical scripted | 0.565 | - | 1,771 | 0.087 s |
+| canonical BC | 3.62 | 0.34 | 276 | 0.34 s |
+| distilled A | 3.66 | 0.33 | 273 | 0.35 s |
+| Phase 3 teacher (12 threads) | about 5,400 | - | about 0.19 | about 774 s |
+
+The learned policy is about 1,500 times faster per decision than the teacher on 12 threads and needs no rollouts. About 90% of its per-decision time is outside the network: candidate generation (which includes the dense build table the canonical policy also computes), the per-candidate legality check, and encoding. This has not been profiled or optimized yet.
+
+### PPO compatibility (checked, not trained)
+
+- The BC network is the unchanged `DeepSetsActorCritic`. `semantic_bc::tests::bc_actor_weights_load_into_ppo_model_with_separate_value_head` checks that its full-precision record loads into a fresh PPO-trainable (autodiff) model with identical actor outputs and parameter count.
+- BC only trains the actor path. The critic head (`typed_critic_hidden/output`) keeps its initialization and can be trained or re-initialized separately.
+- Before the BC checkpoint can be used, `ml/rollout.rs` must change to use the Phase 4 candidate set (`semantic_candidates::policy_candidates`), the new candidate encoder and the masked group log-probabilities. Today it scores `semantic_legal_actions_with_position_limit(64)` with the legacy candidate rows, which is a different action set and encoding.
+- The learned-policy runner's no-undo card-service rule must be kept.
+- Parameters must be materialized at creation (`new_materialized_model`), or save/resume is not reproducible.
+
+## Tests
+
+New tests (all pass in debug):
+
+- `phase4_dataset`:
+  - frozen splits are disjoint and exclude the Phase 3 seeds
+  - canonical episodes match the terminal-gate baseline (hash, clear_rate, decisions) and telescope
+  - episode serialization and provenance roundtrip
+  - stored candidates' `PolicyActionSpace` indices roundtrip and are legal
+  - corrupted episodes (illegal chosen action, broken delta, reserved seed) are rejected
+  - teacher raw-outcome roundtrip, including an infinite t statistic
+- `semantic_candidates`:
+  - the canonical action is always in the candidate set, and every candidate is legal and validly encoded along canonical episodes
+  - Reroll candidates encode card identity
+- `semantic_bc`:
+  - BC tiny-overfit
+  - a masked candidate is never selected and gets probability exactly 0
+  - checkpoint save/load output equality, and resume equals an uninterrupted run
+  - deterministic inference on a fixed state
+  - BC weights load into the PPO model
+- `phase4_eval`:
+  - the canonical runner matches the terminal-gate baseline
+  - learned-policy terminal evaluation is reproducible, with 0 illegal and 0 fallback actions
+
+Full `cargo test --lib` (debug): 377 passed, 6 failed, 16 ignored. The failures are unrelated to Phase 4A:
+
+- `config::tests::embedded_config_converts_to_core_state_and_back`
+- `core::tests::{direct_core_commands_preserve_flow_and_replay_progression, raw_base_damage_syncs_escape_state_when_damage_is_reduced_to_zero, raw_damage_updates_defense_progress_by_applied_hp, step_resolves_base_damage_from_raw_monster_escape}`
+- the known `ml::toy_overfit::tests::contextual_bandit_overfits_within_update_budget`: it fails when run alone at the pre-Phase-4 commit `ac27e2a1` too, and it passed in one earlier full-suite run, so it depends on test order
+
+## Known limitations
+
+- Full-clear feasibility is still unknown. No policy won an episode, and the teacher reaches about 52 clear_rate.
+- The distilled policy captures almost none of the teacher's advantage. Likely causes:
+  - 2,291 labels, with 449 overrides spread across many kinds
+  - a canonical-BC starting point that is extremely confident on exactly those states
+  - a frozen, short fine-tuning budget
+  - a candidate encoding that may not expose what makes a teacher override good (for example the long-term value of a reroll, or which tower to remove)
+  None of these was tuned after seeing results, as the protocol requires.
+- The teacher labels its own trajectory states (143 decisions per game). A learned policy that does not follow the teacher visits different states, and the labels do not cover them.
+- Candidate features include the dense heuristic rank of build/placement candidates, so imitating canonical builds is easy by construction.
+- The no-undo card-service rule is a runner-level mask (5-12 interventions per 256 games).
+- Learned-policy latency is dominated by non-network work that has not been profiled.
+- One seed split and one training seed; no repeated training runs.
+
+## Conclusion and Phase 4B recommendation
+
+1. A search-free neural policy imitates the canonical baseline essentially exactly: 99.8% validation top-1, and +0.01 terminal clear_rate on 256 untouched seeds with 0 illegal actions.
+2. Plain supervised fine-tuning on 16 teacher games did not transfer the teacher's +14.8 improvement. The selected variant gained +0.11 (not distinguishable from 0), and override-weighted fine-tuning hurt (-2.8).
+
+Recommended Phase 4B starting configuration:
+
+- Initialize the PPO actor from `simulator/artifacts/phase4/runs/bc-large` (`selected-model.bin`, hidden size 64). Initialize the critic separately and pretrain it on canonical-trajectory returns before any policy update.
+- Port `ml/rollout.rs`/`ml/ppo.rs` to the Phase 4 candidate set, candidate encoder, masked log-probabilities and no-undo rule. Verify that greedy PPO rollouts at iteration 0 reproduce the BC terminal clear_rate on the development seeds.
+- Reward: exactly `r_t = clear_rate(s_{t+1}) - clear_rate(s_t)` with gamma 1 (or close to 1) and GAE. Reward only arrives on defense-advancing decisions, so build/reroll/remove decisions depend on the value function for credit.
+- Keep a KL penalty or trust region toward the BC policy at the start to avoid distill-B-style collapse. Track the per-kind action distribution (continue vs use_inventory_item, reroll, remove_tower) each iteration.
+- Train on `canonical_train` seeds beyond 2,048, model selection on `development_evaluation`, and a new untouched final split for Phase 4B. The Phase 4A final seeds have now been used once.
+- Keep the teacher as an optional selective labeler for states where the PPO policy and teacher disagree (DAgger-style), using the stored raw outcomes for adaptive-budget replay.

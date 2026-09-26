@@ -1,0 +1,206 @@
+{
+  "samples": 2291,
+  "nll": 1.1241636262763477,
+  "weighted_nll": 1.1241636262763477,
+  "top1_accuracy": 0.7891750327367961,
+  "top3_accuracy": 0.8642514185945002,
+  "action_kind_accuracy": 0.8380619816673941,
+  "illegal_selections": 0,
+  "masked_candidates": 0,
+  "max_masked_probability": 0.0,
+  "by_decision_point": {
+    "CardSelection": {
+      "count": 278,
+      "top1_correct": 180,
+      "kind_correct": 198,
+      "top1_accuracy": 0.6474820143884892,
+      "kind_accuracy": 0.7122302158273381
+    },
+    "CardServiceSelection": {
+      "count": 112,
+      "top1_correct": 108,
+      "kind_correct": 112,
+      "top1_accuracy": 0.9642857142857143,
+      "kind_accuracy": 1.0
+    },
+    "DamageResponseItem": {
+      "count": 249,
+      "top1_correct": 163,
+      "kind_correct": 182,
+      "top1_accuracy": 0.6546184738955824,
+      "kind_accuracy": 0.7309236947791165
+    },
+    "PreDefenseItem": {
+      "count": 307,
+      "top1_correct": 307,
+      "kind_correct": 307,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "Shop": {
+      "count": 688,
+      "top1_correct": 508,
+      "kind_correct": 556,
+      "top1_accuracy": 0.7383720930232558,
+      "kind_accuracy": 0.8081395348837209
+    },
+    "TowerPlacement": {
+      "count": 606,
+      "top1_correct": 511,
+      "kind_correct": 514,
+      "top1_accuracy": 0.8432343234323433,
+      "kind_accuracy": 0.8481848184818482
+    },
+    "TreasureSelection": {
+      "count": 51,
+      "top1_correct": 31,
+      "kind_correct": 51,
+      "top1_accuracy": 0.6078431372549019,
+      "kind_accuracy": 1.0
+    }
+  },
+  "by_action_kind": {
+    "build_tower": {
+      "count": 422,
+      "top1_correct": 365,
+      "kind_correct": 395,
+      "top1_accuracy": 0.8649289099526066,
+      "kind_accuracy": 0.9360189573459715
+    },
+    "confirm_card_service_selection": {
+      "count": 56,
+      "top1_correct": 56,
+      "kind_correct": 56,
+      "top1_accuracy": 1.0,
+      "kind_accuracy": 1.0
+    },
+    "continue": {
+      "count": 379,
+      "top1_correct": 323,
+      "kind_correct": 323,
+      "top1_accuracy": 0.8522427440633246,
+      "kind_accuracy": 0.8522427440633246
+    },
+    "discard_treasure": {
+      "count": 3,
+      "top1_correct": 0,
+      "kind_correct": 0,
+      "top1_accuracy": 0.0,
+      "kind_accuracy": 0.0
+    },
+    "place_tower": {
+      "count": 95,
+      "top1_correct": 92,
+      "kind_correct": 95,
+      "top1_accuracy": 0.968421052631579,
+      "kind_accuracy": 1.0
+    },
+    "purchase_shop_item": {
+      "count": 249,
+      "top1_correct": 224,
+      "kind_correct": 249,
+      "top1_accuracy": 0.8995983935742972,
+      "kind_accuracy": 1.0
+    },
+    "remove_tower": {
+      "count": 82,
+      "top1_correct": 0,
+      "kind_correct": 0,
+      "top1_accuracy": 0.0,
+      "kind_accuracy": 0.0
+    },
+    "reroll": {
+      "count": 275,
+      "top1_correct": 99,
+      "kind_correct": 110,
+      "top1_accuracy": 0.36,
+      "kind_accuracy": 0.4
+    },
+    "select_card_service_card": {
+      "count": 56,
+      "top1_correct": 52,
+      "kind_correct": 56,
+      "top1_accuracy": 0.9285714285714286,
+      "kind_accuracy": 1.0
+    },
+    "select_treasure": {
+      "count": 51,
+      "top1_correct": 31,
+      "kind_correct": 51,
+      "top1_accuracy": 0.6078431372549019,
+      "kind_accuracy": 1.0
+    },
+    "start_defense": {
+      "count": 422,
+      "top1_correct": 419,
+      "kind_correct": 419,
+      "top1_accuracy": 0.9928909952606635,
+      "kind_accuracy": 0.9928909952606635
+    },
+    "use_inventory_item": {
+      "count": 201,
+      "top1_correct": 147,
+      "kind_correct": 166,
+      "top1_accuracy": 0.7313432835820896,
+      "kind_accuracy": 0.8258706467661692
+    }
+  },
+  "kind_confusion": {
+    "build_tower": {
+      "build_tower": 395,
+      "discard_treasure": 1,
+      "purchase_shop_item": 20,
+      "reroll": 6
+    },
+    "confirm_card_service_selection": {
+      "confirm_card_service_selection": 56
+    },
+    "continue": {
+      "continue": 323,
+      "use_inventory_item": 56
+    },
+    "discard_treasure": {
+      "build_tower": 2,
+      "start_defense": 1
+    },
+    "place_tower": {
+      "place_tower": 95
+    },
+    "purchase_shop_item": {
+      "purchase_shop_item": 249
+    },
+    "remove_tower": {
+      "place_tower": 3,
+      "start_defense": 79
+    },
+    "reroll": {
+      "build_tower": 129,
+      "discard_treasure": 1,
+      "purchase_shop_item": 35,
+      "reroll": 110
+    },
+    "select_card_service_card": {
+      "select_card_service_card": 56
+    },
+    "select_treasure": {
+      "select_treasure": 51
+    },
+    "start_defense": {
+      "place_tower": 3,
+      "start_defense": 419
+    },
+    "use_inventory_item": {
+      "build_tower": 10,
+      "continue": 11,
+      "purchase_shop_item": 5,
+      "reroll": 3,
+      "start_defense": 6,
+      "use_inventory_item": 166
+    }
+  },
+  "override_samples": 449,
+  "override_top1_accuracy": 0.0378619153674833,
+  "override_predicts_canonical": 0.8819599109131403,
+  "agreement_samples": 1842,
+  "agreement_top1_accuracy": 0.9723127035830619
+}

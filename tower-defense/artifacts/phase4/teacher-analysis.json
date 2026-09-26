@@ -1,0 +1,645 @@
+{
+  "episodes": 16,
+  "decisions": 2291,
+  "forced_decisions": 0,
+  "overrides": 449,
+  "override_rate": 0.19598428633784373,
+  "terminal_rollouts": 1405184,
+  "rollouts_per_decision": 613.3496289829768,
+  "teacher_seconds": 12360.331424338,
+  "per_seed": [
+    {
+      "seed": 2200000,
+      "teacher_terminal_clear_rate": 53.4593,
+      "canonical_terminal_clear_rate": 45.2794,
+      "paired_delta": 8.179901,
+      "teacher_decisions": 133,
+      "overrides": 24,
+      "teacher_seconds": 596.412723718
+    },
+    {
+      "seed": 2200001,
+      "teacher_terminal_clear_rate": 53.8265,
+      "canonical_terminal_clear_rate": 39.9997,
+      "paired_delta": 13.826801,
+      "teacher_decisions": 140,
+      "overrides": 30,
+      "teacher_seconds": 970.596196406
+    },
+    {
+      "seed": 2200002,
+      "teacher_terminal_clear_rate": 44.0,
+      "canonical_terminal_clear_rate": 33.8126,
+      "paired_delta": 10.187401,
+      "teacher_decisions": 146,
+      "overrides": 34,
+      "teacher_seconds": 711.4998330239997
+    },
+    {
+      "seed": 2200003,
+      "teacher_terminal_clear_rate": 60.0,
+      "canonical_terminal_clear_rate": 34.0,
+      "paired_delta": 26.0,
+      "teacher_decisions": 153,
+      "overrides": 36,
+      "teacher_seconds": 902.7988533350001
+    },
+    {
+      "seed": 2200004,
+      "teacher_terminal_clear_rate": 44.7384,
+      "canonical_terminal_clear_rate": 33.6424,
+      "paired_delta": 11.096001,
+      "teacher_decisions": 115,
+      "overrides": 29,
+      "teacher_seconds": 463.12679633199997
+    },
+    {
+      "seed": 2200005,
+      "teacher_terminal_clear_rate": 47.105,
+      "canonical_terminal_clear_rate": 31.8243,
+      "paired_delta": 15.280699,
+      "teacher_decisions": 123,
+      "overrides": 35,
+      "teacher_seconds": 548.560637002
+    },
+    {
+      "seed": 2200006,
+      "teacher_terminal_clear_rate": 63.1763,
+      "canonical_terminal_clear_rate": 37.6257,
+      "paired_delta": 25.550598,
+      "teacher_decisions": 199,
+      "overrides": 37,
+      "teacher_seconds": 1321.4523661959993
+    },
+    {
+      "seed": 2200007,
+      "teacher_terminal_clear_rate": 49.2774,
+      "canonical_terminal_clear_rate": 38.7698,
+      "paired_delta": 10.507603,
+      "teacher_decisions": 111,
+      "overrides": 17,
+      "teacher_seconds": 455.11444025499986
+    },
+    {
+      "seed": 2200008,
+      "teacher_terminal_clear_rate": 39.816,
+      "canonical_terminal_clear_rate": 35.8142,
+      "paired_delta": 4.0018005,
+      "teacher_decisions": 104,
+      "overrides": 24,
+      "teacher_seconds": 479.8082161789998
+    },
+    {
+      "seed": 2200009,
+      "teacher_terminal_clear_rate": 48.7078,
+      "canonical_terminal_clear_rate": 37.0288,
+      "paired_delta": 11.679001,
+      "teacher_decisions": 115,
+      "overrides": 15,
+      "teacher_seconds": 576.1953068390003
+    },
+    {
+      "seed": 2200010,
+      "teacher_terminal_clear_rate": 53.2826,
+      "canonical_terminal_clear_rate": 31.0462,
+      "paired_delta": 22.2364,
+      "teacher_decisions": 170,
+      "overrides": 29,
+      "teacher_seconds": 978.5199180759997
+    },
+    {
+      "seed": 2200011,
+      "teacher_terminal_clear_rate": 43.6577,
+      "canonical_terminal_clear_rate": 41.285,
+      "paired_delta": 2.3726997,
+      "teacher_decisions": 115,
+      "overrides": 24,
+      "teacher_seconds": 441.790342131
+    },
+    {
+      "seed": 2200012,
+      "teacher_terminal_clear_rate": 63.1759,
+      "canonical_terminal_clear_rate": 39.816,
+      "paired_delta": 23.359898,
+      "teacher_decisions": 181,
+      "overrides": 29,
+      "teacher_seconds": 1241.3225025180009
+    },
+    {
+      "seed": 2200013,
+      "teacher_terminal_clear_rate": 62.0,
+      "canonical_terminal_clear_rate": 39.6138,
+      "paired_delta": 22.3862,
+      "teacher_decisions": 179,
+      "overrides": 17,
+      "teacher_seconds": 1069.4528192159999
+    },
+    {
+      "seed": 2200014,
+      "teacher_terminal_clear_rate": 66.0,
+      "canonical_terminal_clear_rate": 42.6588,
+      "paired_delta": 23.341202,
+      "teacher_decisions": 179,
+      "overrides": 25,
+      "teacher_seconds": 1061.4419995399996
+    },
+    {
+      "seed": 2200015,
+      "teacher_terminal_clear_rate": 42.9791,
+      "canonical_terminal_clear_rate": 36.4915,
+      "paired_delta": 6.4875984,
+      "teacher_decisions": 128,
+      "overrides": 44,
+      "teacher_seconds": 542.2384735710003
+    }
+  ],
+  "by_canonical_kind": {
+    "build_tower": {
+      "opportunities": 538,
+      "overrides": 172,
+      "override_rate": 0.31970260223048325,
+      "mean_override_validation_delta": 0.49599036002574964,
+      "delta_sum": 85.31034192442894
+    },
+    "confirm_card_service_selection": {
+      "opportunities": 56,
+      "overrides": 0,
+      "override_rate": 0.0,
+      "mean_override_validation_delta": null,
+      "delta_sum": 0.0
+    },
+    "continue": {
+      "opportunities": 307,
+      "overrides": 0,
+      "override_rate": 0.0,
+      "mean_override_validation_delta": null,
+      "delta_sum": 0.0
+    },
+    "place_tower": {
+      "opportunities": 101,
+      "overrides": 9,
+      "override_rate": 0.0891089108910891,
+      "mean_override_validation_delta": 0.15223228931427002,
+      "delta_sum": 1.3700906038284302
+    },
+    "purchase_shop_item": {
+      "opportunities": 309,
+      "overrides": 71,
+      "override_rate": 0.2297734627831715,
+      "mean_override_validation_delta": 1.219678180318483,
+      "delta_sum": 86.5971508026123
+    },
+    "reroll": {
+      "opportunities": 119,
+      "overrides": 20,
+      "override_rate": 0.16806722689075632,
+      "mean_override_validation_delta": 0.9212967485189438,
+      "delta_sum": 18.425934970378876
+    },
+    "select_card_service_card": {
+      "opportunities": 56,
+      "overrides": 1,
+      "override_rate": 0.017857142857142856,
+      "mean_override_validation_delta": 0.06697189807891846,
+      "delta_sum": 0.06697189807891846
+    },
+    "select_treasure": {
+      "opportunities": 51,
+      "overrides": 18,
+      "override_rate": 0.35294117647058826,
+      "mean_override_validation_delta": 2.002825000219875,
+      "delta_sum": 36.05085000395775
+    },
+    "start_defense": {
+      "opportunities": 505,
+      "overrides": 86,
+      "override_rate": 0.1702970297029703,
+      "mean_override_validation_delta": 0.147621336024861,
+      "delta_sum": 12.695434898138046
+    },
+    "use_inventory_item": {
+      "opportunities": 249,
+      "overrides": 72,
+      "override_rate": 0.2891566265060241,
+      "mean_override_validation_delta": 0.1850518137216568,
+      "delta_sum": 13.32373058795929
+    }
+  },
+  "by_selected_kind": {
+    "build_tower": {
+      "opportunities": 966,
+      "overrides": 56,
+      "override_rate": 0.057971014492753624,
+      "mean_override_validation_delta": 0.7447856260197503,
+      "delta_sum": 41.70799505710602
+    },
+    "continue": {
+      "opportunities": 249,
+      "overrides": 72,
+      "override_rate": 0.2891566265060241,
+      "mean_override_validation_delta": 0.1850518137216568,
+      "delta_sum": 13.32373058795929
+    },
+    "discard_treasure": {
+      "opportunities": 1607,
+      "overrides": 3,
+      "override_rate": 0.001866832607342875,
+      "mean_override_validation_delta": 0.2443691889444987,
+      "delta_sum": 0.7331075668334961
+    },
+    "place_tower": {
+      "opportunities": 101,
+      "overrides": 3,
+      "override_rate": 0.0297029702970297,
+      "mean_override_validation_delta": 0.37921146551767987,
+      "delta_sum": 1.1376343965530396
+    },
+    "purchase_shop_item": {
+      "opportunities": 108,
+      "overrides": 11,
+      "override_rate": 0.10185185185185185,
+      "mean_override_validation_delta": 1.3078910247846083,
+      "delta_sum": 14.386801272630692
+    },
+    "remove_tower": {
+      "opportunities": 606,
+      "overrides": 82,
+      "override_rate": 0.1353135313531353,
+      "mean_override_validation_delta": 0.12457096976477926,
+      "delta_sum": 10.214819520711899
+    },
+    "reroll": {
+      "opportunities": 943,
+      "overrides": 176,
+      "override_rate": 0.18663838812301167,
+      "mean_override_validation_delta": 0.6900987994264473,
+      "delta_sum": 121.45738869905472
+    },
+    "select_card_service_card": {
+      "opportunities": 112,
+      "overrides": 1,
+      "override_rate": 0.008928571428571428,
+      "mean_override_validation_delta": 0.06697189807891846,
+      "delta_sum": 0.06697189807891846
+    },
+    "select_treasure": {
+      "opportunities": 51,
+      "overrides": 18,
+      "override_rate": 0.35294117647058826,
+      "mean_override_validation_delta": 2.002825000219875,
+      "delta_sum": 36.05085000395775
+    },
+    "start_defense": {
+      "opportunities": 101,
+      "overrides": 3,
+      "override_rate": 0.0297029702970297,
+      "mean_override_validation_delta": 0.07654492060343425,
+      "delta_sum": 0.22963476181030273
+    },
+    "use_inventory_item": {
+      "opportunities": 1825,
+      "overrides": 24,
+      "override_rate": 0.01315068493150685,
+      "mean_override_validation_delta": 0.6054821635286013,
+      "delta_sum": 14.531571924686432
+    }
+  },
+  "override_pairs": {
+    "build_tower -> build_tower": 30,
+    "build_tower -> discard_treasure": 2,
+    "build_tower -> reroll": 130,
+    "build_tower -> use_inventory_item": 10,
+    "place_tower -> place_tower": 3,
+    "place_tower -> remove_tower": 3,
+    "place_tower -> start_defense": 3,
+    "purchase_shop_item -> build_tower": 20,
+    "purchase_shop_item -> purchase_shop_item": 11,
+    "purchase_shop_item -> reroll": 35,
+    "purchase_shop_item -> use_inventory_item": 5,
+    "reroll -> build_tower": 6,
+    "reroll -> reroll": 11,
+    "reroll -> use_inventory_item": 3,
+    "select_card_service_card -> select_card_service_card": 1,
+    "select_treasure -> select_treasure": 18,
+    "start_defense -> discard_treasure": 1,
+    "start_defense -> remove_tower": 79,
+    "start_defense -> use_inventory_item": 6,
+    "use_inventory_item -> continue": 72
+  },
+  "by_decision_point": {
+    "CardSelection": {
+      "opportunities": 278,
+      "overrides": 98,
+      "override_rate": 0.35251798561151076,
+      "mean_override_validation_delta": 0.582763596456878,
+      "delta_sum": 57.11083245277405
+    },
+    "CardServiceSelection": {
+      "opportunities": 112,
+      "overrides": 1,
+      "override_rate": 0.008928571428571428,
+      "mean_override_validation_delta": 0.06697189807891846,
+      "delta_sum": 0.06697189807891846
+    },
+    "DamageResponseItem": {
+      "opportunities": 249,
+      "overrides": 72,
+      "override_rate": 0.2891566265060241,
+      "mean_override_validation_delta": 0.1850518137216568,
+      "delta_sum": 13.32373058795929
+    },
+    "PreDefenseItem": {
+      "opportunities": 307,
+      "overrides": 0,
+      "override_rate": 0.0,
+      "mean_override_validation_delta": null,
+      "delta_sum": 0.0
+    },
+    "Shop": {
+      "opportunities": 688,
+      "overrides": 165,
+      "override_rate": 0.23982558139534885,
+      "mean_override_validation_delta": 0.8074096681493701,
+      "delta_sum": 133.22259524464607
+    },
+    "TowerPlacement": {
+      "opportunities": 606,
+      "overrides": 95,
+      "override_rate": 0.15676567656765678,
+      "mean_override_validation_delta": 0.1480581631785945,
+      "delta_sum": 14.065525501966476
+    },
+    "TreasureSelection": {
+      "opportunities": 51,
+      "overrides": 18,
+      "override_rate": 0.35294117647058826,
+      "mean_override_validation_delta": 2.002825000219875,
+      "delta_sum": 36.05085000395775
+    }
+  },
+  "by_stage_bucket": {
+    "stage 01-05": {
+      "opportunities": 470,
+      "overrides": 63,
+      "override_rate": 0.13404255319148936,
+      "mean_override_validation_delta": 1.0883043195520128,
+      "delta_sum": 68.56317213177681
+    },
+    "stage 06-10": {
+      "opportunities": 360,
+      "overrides": 49,
+      "override_rate": 0.1361111111111111,
+      "mean_override_validation_delta": 0.7818609171984147,
+      "delta_sum": 38.31118494272232
+    },
+    "stage 11-15": {
+      "opportunities": 503,
+      "overrides": 121,
+      "override_rate": 0.24055666003976142,
+      "mean_override_validation_delta": 0.615706787129079,
+      "delta_sum": 74.50052124261856
+    },
+    "stage 16-20": {
+      "opportunities": 430,
+      "overrides": 90,
+      "override_rate": 0.20930232558139536,
+      "mean_override_validation_delta": 0.3663932555251651,
+      "delta_sum": 32.97539299726486
+    },
+    "stage 21-25": {
+      "opportunities": 340,
+      "overrides": 90,
+      "override_rate": 0.2647058823529412,
+      "mean_override_validation_delta": 0.341370870007409,
+      "delta_sum": 30.72337830066681
+    },
+    "stage 26-30": {
+      "opportunities": 135,
+      "overrides": 23,
+      "override_rate": 0.17037037037037037,
+      "mean_override_validation_delta": 0.1978269426719002,
+      "delta_sum": 4.550019681453705
+    },
+    "stage 31-35": {
+      "opportunities": 53,
+      "overrides": 13,
+      "override_rate": 0.24528301886792453,
+      "mean_override_validation_delta": 0.3243720302214989,
+      "delta_sum": 4.216836392879486
+    }
+  },
+  "by_clear_rate_bucket": {
+    "clear_rate 000-010": {
+      "opportunities": 470,
+      "overrides": 63,
+      "override_rate": 0.13404255319148936,
+      "mean_override_validation_delta": 1.0883043195520128,
+      "delta_sum": 68.56317213177681
+    },
+    "clear_rate 010-020": {
+      "opportunities": 360,
+      "overrides": 49,
+      "override_rate": 0.1361111111111111,
+      "mean_override_validation_delta": 0.7818609171984147,
+      "delta_sum": 38.31118494272232
+    },
+    "clear_rate 020-030": {
+      "opportunities": 503,
+      "overrides": 121,
+      "override_rate": 0.24055666003976142,
+      "mean_override_validation_delta": 0.615706787129079,
+      "delta_sum": 74.50052124261856
+    },
+    "clear_rate 030-040": {
+      "opportunities": 430,
+      "overrides": 90,
+      "override_rate": 0.20930232558139536,
+      "mean_override_validation_delta": 0.3663932555251651,
+      "delta_sum": 32.97539299726486
+    },
+    "clear_rate 040-050": {
+      "opportunities": 340,
+      "overrides": 90,
+      "override_rate": 0.2647058823529412,
+      "mean_override_validation_delta": 0.341370870007409,
+      "delta_sum": 30.72337830066681
+    },
+    "clear_rate 050-060": {
+      "opportunities": 135,
+      "overrides": 23,
+      "override_rate": 0.17037037037037037,
+      "mean_override_validation_delta": 0.1978269426719002,
+      "delta_sum": 4.550019681453705
+    },
+    "clear_rate 060-070": {
+      "opportunities": 53,
+      "overrides": 13,
+      "override_rate": 0.24528301886792453,
+      "mean_override_validation_delta": 0.3243720302214989,
+      "delta_sum": 4.216836392879486
+    }
+  },
+  "override_delta_histogram": {
+    "[+0.0, +0.5)": 283,
+    "[+0.5, +1.0)": 85,
+    "[+1.0, +2.0)": 52,
+    "[+2.0, +4.0)": 24,
+    "[+4.0, +8.0)": 5
+  },
+  "override_p_holm_histogram": {
+    "[+0.0, +0.0)": 366,
+    "[+0.0, +0.1)": 83
+  },
+  "rejected_best_delta_histogram": {
+    "[+0.0, +0.5)": 1368,
+    "[+0.5, +1.0)": 63,
+    "[+1.0, +2.0)": 5,
+    "[-100.0, +0.0)": 406
+  },
+  "bc_disagreement": {
+    "all": {
+      "decisions": 2291,
+      "bc_differs_from_canonical": 7,
+      "bc_differs_rate": 0.0030554343081623746,
+      "teacher_overrides": 449,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 449
+    },
+    "canonical build_tower": {
+      "decisions": 538,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 172,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 172
+    },
+    "canonical confirm_card_service_selection": {
+      "decisions": 56,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 0,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 0
+    },
+    "canonical continue": {
+      "decisions": 307,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 0,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 0
+    },
+    "canonical place_tower": {
+      "decisions": 101,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 9,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 9
+    },
+    "canonical purchase_shop_item": {
+      "decisions": 309,
+      "bc_differs_from_canonical": 6,
+      "bc_differs_rate": 0.019417475728155338,
+      "teacher_overrides": 71,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 71
+    },
+    "canonical reroll": {
+      "decisions": 119,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 20,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 20
+    },
+    "canonical select_card_service_card": {
+      "decisions": 56,
+      "bc_differs_from_canonical": 1,
+      "bc_differs_rate": 0.017857142857142856,
+      "teacher_overrides": 1,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 1
+    },
+    "canonical select_treasure": {
+      "decisions": 51,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 18,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 18
+    },
+    "canonical start_defense": {
+      "decisions": 505,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 86,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 86
+    },
+    "canonical use_inventory_item": {
+      "decisions": 249,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 72,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 72
+    },
+    "point CardSelection": {
+      "decisions": 278,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 98,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 98
+    },
+    "point CardServiceSelection": {
+      "decisions": 112,
+      "bc_differs_from_canonical": 1,
+      "bc_differs_rate": 0.008928571428571428,
+      "teacher_overrides": 1,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 1
+    },
+    "point DamageResponseItem": {
+      "decisions": 249,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 72,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 72
+    },
+    "point PreDefenseItem": {
+      "decisions": 307,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 0,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 0
+    },
+    "point Shop": {
+      "decisions": 688,
+      "bc_differs_from_canonical": 6,
+      "bc_differs_rate": 0.00872093023255814,
+      "teacher_overrides": 165,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 165
+    },
+    "point TowerPlacement": {
+      "decisions": 606,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 95,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 95
+    },
+    "point TreasureSelection": {
+      "decisions": 51,
+      "bc_differs_from_canonical": 0,
+      "bc_differs_rate": 0.0,
+      "teacher_overrides": 18,
+      "bc_matches_teacher_on_overrides": 0,
+      "bc_matches_canonical_on_overrides": 18
+    }
+  }
+}
