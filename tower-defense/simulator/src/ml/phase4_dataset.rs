@@ -1120,5 +1120,12 @@ mod tests {
         let json = serde_json::to_string(&label).expect("serialize");
         let back: TeacherLabel = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(back, label);
+        let mut infinite = label.clone();
+        infinite.validation[0].t_statistic = f64::INFINITY;
+        infinite.validation[0].sd_delta = 0.0;
+        let json = serde_json::to_string(&infinite).expect("serialize");
+        assert!(json.contains("\"t_statistic\":null"));
+        let back: TeacherLabel = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back, infinite);
     }
 }

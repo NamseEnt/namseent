@@ -120,6 +120,7 @@ fn action_kind(action_id: &str) -> &str {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(from = "CandidateValidationStatWire")]
 pub struct CandidateValidationStat {
     pub action_id: String,
     pub mean_delta: f64,
@@ -129,6 +130,43 @@ pub struct CandidateValidationStat {
     pub p_value: f64,
     pub p_holm: f64,
     pub passed: bool,
+}
+
+/// JSON writes the infinite t statistic of a zero-variance sample as
+/// `null`; it is restored from the sign of the mean delta, exactly as
+/// `paired_one_sided_t_test` defines it.
+#[derive(Deserialize)]
+struct CandidateValidationStatWire {
+    action_id: String,
+    mean_delta: f64,
+    sd_delta: f64,
+    se_delta: f64,
+    t_statistic: Option<f64>,
+    p_value: f64,
+    p_holm: f64,
+    passed: bool,
+}
+
+impl From<CandidateValidationStatWire> for CandidateValidationStat {
+    fn from(wire: CandidateValidationStatWire) -> Self {
+        let t_statistic = wire.t_statistic.unwrap_or(if wire.mean_delta > 0.0 {
+            f64::INFINITY
+        } else if wire.mean_delta < 0.0 {
+            f64::NEG_INFINITY
+        } else {
+            0.0
+        });
+        Self {
+            action_id: wire.action_id,
+            mean_delta: wire.mean_delta,
+            sd_delta: wire.sd_delta,
+            se_delta: wire.se_delta,
+            t_statistic,
+            p_value: wire.p_value,
+            p_holm: wire.p_holm,
+            passed: wire.passed,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
