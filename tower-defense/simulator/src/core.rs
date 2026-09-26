@@ -132,6 +132,11 @@ impl GameCore {
 
     #[cfg(all(feature = "simulator", test))]
     pub(crate) fn add_card_service_shop_slot_for_test(&mut self) -> usize {
+        self.add_card_service_shop_slot_of_kind_for_test(7)
+    }
+
+    #[cfg(all(feature = "simulator", test))]
+    pub(crate) fn add_card_service_shop_slot_of_kind_for_test(&mut self, kind: u8) -> usize {
         let mut slot_count = None;
         self.session
             .edit_snapshot(|parts| {
@@ -141,7 +146,7 @@ impl GameCore {
                 let slot_id = shop.slots.iter().map(|slot| slot.id).max().unwrap_or(0) + 1;
                 shop.slots.push(td_core::ShopSlotDataState {
                     id: slot_id,
-                    slot: td_core::ShopSlotState::CardService { kind: 7, cost: 0 },
+                    slot: td_core::ShopSlotState::CardService { kind, cost: 0 },
                     purchased: false,
                 });
                 slot_count = Some(shop.slots.len() - 1);
@@ -1183,10 +1188,9 @@ mod tests {
         core.apply(PlayerCommand::StartSelectingTower)
             .expect("start selecting tower should be accepted");
         mutate_raw_state(&mut core, |state| {
-            state
-                .upgrades
-                .entries_mut()
-                .push(td_core::generated_upgrade_raw(34).expect("catalog upgrade"));
+            let mut broken_pottery = td_core::generated_upgrade_raw(34).expect("catalog upgrade");
+            assert!(broken_pottery.set_scalar_value(0, 3));
+            state.upgrades.entries_mut().push(broken_pottery);
         });
         core.session
             .edit_snapshot(|parts| {

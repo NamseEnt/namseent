@@ -157,4 +157,3 @@ pub fn scope_delta(
         })
         .collect()
 }
-

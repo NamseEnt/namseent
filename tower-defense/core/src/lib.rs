@@ -1341,8 +1341,8 @@ mod tests {
                     id: 1,
                     item: HandItemState::Card(CardState {
                         id: 40,
-                        suit: 0,
-                        rank: 0,
+                        suit: crate::Suit::Spades,
+                        rank: crate::Rank::Two,
                         polish_pct_raw: 0,
                         engraving: None,
                     }),
@@ -1352,8 +1352,8 @@ mod tests {
                     id: 2,
                     item: HandItemState::Card(CardState {
                         id: 41,
-                        suit: 1,
-                        rank: 1,
+                        suit: crate::Suit::Hearts,
+                        rank: crate::Rank::Three,
                         polish_pct_raw: 0,
                         engraving: None,
                     }),

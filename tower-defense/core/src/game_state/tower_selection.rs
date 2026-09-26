@@ -195,6 +195,19 @@ pub(crate) fn select_tower_from_core(
     if !matches!(state.flow, crate::GameFlowState::SelectingTower) {
         return Err(crate::CommandError::InvalidFlow);
     }
+    let selected_template = tower_template_for_selection(state, selected_slot_indices)?;
+    start_placing_tower_from_template(state, selected_template);
+    Ok(())
+}
+
+/// Resolves a `SelectTower` slot selection to the tower template the command
+/// would build, without mutating state. Shared by `select_tower_from_core`
+/// and the observation's `build_tower_candidates` preview so both follow the
+/// same rules.
+pub(crate) fn tower_template_for_selection(
+    state: &CoreState,
+    selected_slot_indices: &[usize],
+) -> Result<TowerTemplateState, crate::CommandError> {
     let indices: Vec<usize> = if selected_slot_indices.is_empty() {
         (0..state.hand.slots.len()).collect()
     } else {
@@ -212,15 +225,13 @@ pub(crate) fn select_tower_from_core(
         };
         cards.push(card.clone());
     }
-    let selected_template = get_highest_tower_template(
+    get_highest_tower_template(
         &cards,
         state.upgrades(),
         &state.config,
         state.progress.rerolled_count,
     )
-    .ok_or(crate::CommandError::InvalidSelection)?;
-    start_placing_tower_from_template(state, selected_template);
-    Ok(())
+    .ok_or(crate::CommandError::InvalidSelection)
 }
 
 pub(crate) fn start_placing_tower_from_template(

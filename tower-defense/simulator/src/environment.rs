@@ -580,9 +580,26 @@ impl GameEnvironment {
                 .expect("derived seed must contain eight bytes"),
         );
         let game_seed = self.seed;
+        // A candidate-restricted card-service selection (Brush/FountainPen/
+        // Tricycle) derives its already-revealed candidate list from
+        // `rng.seed`; reseeding mid-selection would silently change the
+        // public candidates and reject the pending selection.
+        let keeps_revealed_candidates =
+            self.card_service_selection
+                .as_ref()
+                .is_some_and(|selection| {
+                    selection
+                        .candidate_card_ids(
+                            self.game_state.raw_state().deck(),
+                            self.game_state.raw_state().rng(),
+                        )
+                        .is_some()
+                });
         snapshot
             .edit_snapshot(|parts| {
-                parts.rng.seed = scenario_master_seed;
+                if !keeps_revealed_candidates {
+                    parts.rng.seed = scenario_master_seed;
+                }
                 resample_hidden_order(parts, game_seed, scenario_seed);
             })
             .map_err(|_| "rollout scenario seed produced an invalid snapshot".to_string())?;
@@ -1919,15 +1936,11 @@ impl GameEnvironment {
         let Some(selection) = self.card_service_selection() else {
             return Vec::new();
         };
-        let cards = &self.game_state.raw_state().deck().all_cards;
-        let mut actions = cards
-            .iter()
-            .enumerate()
-            .filter(|(_, card)| {
-                raw_card_matches_filter(&selection.steps[selection.current_step].filter, card)
-            })
-            .map(|(card_index, _)| AgentAction::SelectCardServiceCard { card_index })
-            .collect::<Vec<_>>();
+        let mut actions =
+            card_service_selectable_card_indices(self.game_state.raw_state(), selection)
+                .into_iter()
+                .map(|card_index| AgentAction::SelectCardServiceCard { card_index })
+                .collect::<Vec<_>>();
         if selection.selected_card_ids[selection.current_step].len()
             == selection.steps[selection.current_step].count
         {
@@ -1972,16 +1985,23 @@ impl GameEnvironment {
                     .ok_or_else(|| EnvironmentError::CardServiceRejected {
                         action_id: action.action_id(),
                     })?;
+                let selectable = self
+                    .card_service_selection
+                    .as_ref()
+                    .is_some_and(|selection| {
+                        card_service_selectable_card_indices(self.game_state.raw_state(), selection)
+                            .contains(card_index)
+                    });
+                if !selectable {
+                    return Err(EnvironmentError::CardServiceRejected {
+                        action_id: action.action_id(),
+                    });
+                }
                 let selection = self.card_service_selection.as_mut().ok_or_else(|| {
                     EnvironmentError::CardServiceRejected {
                         action_id: action.action_id(),
                     }
                 })?;
-                if !raw_card_matches_filter(&selection.steps[selection.current_step].filter, card) {
-                    return Err(EnvironmentError::CardServiceRejected {
-                        action_id: action.action_id(),
-                    });
-                }
                 let selected = &mut selection.selected_card_ids[selection.current_step];
                 if let Some(index) = selected.iter().position(|id| *id == card.id) {
                     selected.remove(index);
@@ -2112,14 +2132,7 @@ fn card_service_observation_raw(
         .iter()
         .filter_map(|card_id| cards.iter().position(|card| card.id == *card_id))
         .collect();
-    let candidate_card_indices = cards
-        .iter()
-        .enumerate()
-        .filter(|(_, card)| {
-            raw_card_matches_filter(&selection.steps[selection.current_step].filter, card)
-        })
-        .map(|(index, _)| index)
-        .collect();
+    let candidate_card_indices = card_service_selectable_card_indices(game_state, selection);
     Some(CardServiceObservation {
         key: selection.service_kind()?.key().to_string(),
         current_step: selection.current_step,
@@ -2130,24 +2143,30 @@ fn card_service_observation_raw(
     })
 }
 
-fn raw_card_matches_filter(
-    filter: &td_core::CardSelectionFilterState,
-    card: &td_core::CardState,
-) -> bool {
-    match filter {
-        td_core::CardSelectionFilterState::Any => true,
-        td_core::CardSelectionFilterState::Face => card.rank.is_face(),
-        td_core::CardSelectionFilterState::Number => card.rank.is_number_card(),
-        td_core::CardSelectionFilterState::Rank(rank) => card.rank == *rank,
-        td_core::CardSelectionFilterState::Engraved => card.engraving.is_some(),
-        td_core::CardSelectionFilterState::NotEngraved => card.engraving.is_none(),
-        td_core::CardSelectionFilterState::And(filters) => filters
-            .iter()
-            .all(|filter| raw_card_matches_filter(filter, card)),
-        td_core::CardSelectionFilterState::Or(filters) => filters
-            .iter()
-            .any(|filter| raw_card_matches_filter(filter, card)),
-    }
+/// Deck indices the current card-service step may select, taken from the
+/// authoritative core rules: the service's seeded candidate list when it has
+/// one (e.g. Brush/FountainPen/Tricycle offer 3 random matching cards),
+/// otherwise every card matching the step filter.
+fn card_service_selectable_card_indices(
+    game_state: &td_core::CoreState,
+    selection: &td_core::CardServiceSelectionState,
+) -> Vec<usize> {
+    let cards = &game_state.deck().all_cards;
+    let filter = &selection.steps[selection.current_step].filter;
+    let candidate_card_ids = (selection.current_step == 0)
+        .then(|| selection.candidate_card_ids(game_state.deck(), game_state.rng()))
+        .flatten();
+    cards
+        .iter()
+        .enumerate()
+        .filter(|(_, card)| {
+            filter.matches(card)
+                && candidate_card_ids
+                    .as_ref()
+                    .is_none_or(|candidates| candidates.contains(&card.id))
+        })
+        .map(|(index, _)| index)
+        .collect()
 }
 
 #[cfg(test)]
@@ -3804,6 +3823,68 @@ mod tests {
                 .iter()
                 .any(|action| { matches!(action, AgentAction::ConfirmCardServiceSelection) })
         );
+    }
+
+    #[test]
+    fn candidate_card_services_offer_exactly_the_authoritative_candidates() {
+        for kind in [
+            td_core::CardServiceKind::Brush,
+            td_core::CardServiceKind::FountainPen,
+            td_core::CardServiceKind::Tricycle,
+        ] {
+            let mut environment = environment();
+            let slot_index = environment
+                .game_state
+                .add_card_service_shop_slot_of_kind_for_test(kind.raw());
+            let outcome = environment
+                .step(AgentAction::PurchaseShopItem { slot_index })
+                .expect("card service purchase should be legal");
+            let state = environment.game_state.raw_state();
+            let selection = td_core::CardServiceSelectionState::new(kind).unwrap();
+            let candidate_ids = selection
+                .candidate_card_ids(state.deck(), state.rng())
+                .expect("service should restrict to seeded candidates");
+            let expected = state
+                .deck()
+                .all_cards
+                .iter()
+                .enumerate()
+                .filter(|(_, card)| candidate_ids.contains(&card.id))
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            let offered = environment
+                .legal_actions()
+                .into_iter()
+                .filter_map(|legal| match legal.action {
+                    AgentAction::SelectCardServiceCard { card_index } => Some(card_index),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(offered, expected, "{kind:?}");
+            assert!(!offered.is_empty() && offered.len() <= 3, "{kind:?}");
+            assert_eq!(
+                outcome
+                    .observation
+                    .card_service
+                    .unwrap()
+                    .candidate_card_indices,
+                expected,
+                "{kind:?}"
+            );
+            environment
+                .step(AgentAction::SelectCardServiceCard {
+                    card_index: offered[offered.len() - 1],
+                })
+                .expect("candidate selection should be legal");
+            environment
+                .step(AgentAction::ConfirmCardServiceSelection)
+                .expect("candidate confirmation should be accepted by core");
+            assert_eq!(
+                environment.decision_point(),
+                DecisionPoint::Shop,
+                "{kind:?}"
+            );
+        }
     }
 
     #[test]

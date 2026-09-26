@@ -579,25 +579,13 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         } else {
             selected_slots.iter().map(|(_, card_id)| *card_id).collect()
         };
-        let source_slots = if canonical_card_ids.is_empty() {
-            card_slots.clone()
-        } else {
-            selected_slots.clone()
-        };
-        let cards = source_slots
+        let selected_slot_indices = selected_slots
             .iter()
-            .filter_map(
-                |(slot_index, _)| match &state.hand.slots[*slot_index].item {
-                    crate::HandItemState::Card(card) => Some(card.clone()),
-                    crate::HandItemState::Tower(_) => None,
-                },
-            )
+            .map(|(slot_index, _)| *slot_index)
             .collect::<Vec<_>>();
-        let Some(template) = crate::game_state::tower_selection::select_tower_build_template(
-            &cards,
-            state.upgrades(),
-            state.config(),
-            state.progress.rerolled_count,
+        let Ok(template) = crate::game_state::tower_selection::tower_template_for_selection(
+            state,
+            &selected_slot_indices,
         ) else {
             continue;
         };
@@ -1300,8 +1288,8 @@ mod tests {
     fn card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
             id,
-            suit,
-            rank,
+            suit: crate::Suit::from_raw(suit).unwrap(),
+            rank: crate::Rank::from_raw(rank).unwrap(),
             polish_pct_raw: 0,
             engraving: None,
         }
@@ -1461,8 +1449,8 @@ mod tests {
     fn cactus_card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
             id,
-            suit,
-            rank,
+            suit: crate::Suit::from_raw(suit).unwrap(),
+            rank: crate::Rank::from_raw(rank).unwrap(),
             polish_pct_raw: 0,
             engraving: Some(2),
         }
@@ -1721,6 +1709,240 @@ mod tests {
         assert_eq!(
             observation_a.towers[0].status_effects,
             observation_b.towers[0].status_effects
+        );
+    }
+
+    struct TestRng(u64);
+
+    impl TestRng {
+        fn next(&mut self) -> u64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            self.0 >> 33
+        }
+
+        fn below(&mut self, n: u64) -> u64 {
+            self.next() % n
+        }
+    }
+
+    fn random_hand(rng: &mut TestRng, len: usize) -> Vec<crate::CardState> {
+        let suit_pool = 1 + rng.below(4) as u8;
+        let rank_base = rng.below(13) as u8;
+        let rank_span = 3 + rng.below(11) as u8;
+        (0..len)
+            .map(|index| crate::CardState {
+                id: 100 + index,
+                suit: crate::Suit::from_raw(rng.below(u64::from(suit_pool)) as u8).unwrap(),
+                rank: crate::Rank::from_raw(
+                    (rank_base + rng.below(u64::from(rank_span)) as u8) % 13,
+                )
+                .unwrap(),
+                polish_pct_raw: if rng.below(3) == 0 {
+                    (rng.below(5) as i64) * 100_000
+                } else {
+                    0
+                },
+                engraving: match rng.below(6) {
+                    0 => Some(1),
+                    1 => Some(2),
+                    _ => None,
+                },
+            })
+            .collect()
+    }
+
+    const SELECTION_UPGRADE_SETS: &[&[crate::UpgradeKind]] = &[
+        &[],
+        &[crate::UpgradeKind::FourLeafClover],
+        &[crate::UpgradeKind::Rabbit],
+        &[crate::UpgradeKind::BlackWhite],
+        &[
+            crate::UpgradeKind::FourLeafClover,
+            crate::UpgradeKind::Rabbit,
+            crate::UpgradeKind::BlackWhite,
+        ],
+        &[
+            crate::UpgradeKind::Resolution,
+            crate::UpgradeKind::Crock,
+            crate::UpgradeKind::Popcorn,
+            crate::UpgradeKind::PerfectPottery,
+            crate::UpgradeKind::IceCream,
+        ],
+        &[
+            crate::UpgradeKind::FourLeafClover,
+            crate::UpgradeKind::Rabbit,
+            crate::UpgradeKind::Resolution,
+            crate::UpgradeKind::Crock,
+            crate::UpgradeKind::BrokenPottery,
+        ],
+    ];
+
+    fn selection_state(
+        rng: &mut TestRng,
+        upgrade_kinds: &[crate::UpgradeKind],
+        shopping: bool,
+    ) -> crate::CoreState {
+        let mut state = crate::CoreState::new_initial(distinct_tower_config(), rng.next());
+        let hand_len = 5 + rng.below(3) as usize;
+        state.hand.slots.clear();
+        for card in random_hand(rng, hand_len) {
+            let id = state.hand.allocate_slot_id();
+            state.hand.slots.push(crate::HandSlotState {
+                id,
+                item: crate::HandItemState::Card(card),
+                selected: false,
+            });
+        }
+        state.upgrades = crate::UpgradeCollection::from_entries(
+            upgrade_kinds
+                .iter()
+                .enumerate()
+                .map(|(index, kind)| crate::generated_upgrade(*kind).with_id((index + 1) as u64))
+                .collect(),
+            0,
+        );
+        state.progress.rerolled_count = rng.below(4) as usize;
+        state.flow = if shopping {
+            crate::GameFlowState::Shopping(crate::game_state::flow::ShopState { slots: Vec::new() })
+        } else {
+            crate::GameFlowState::SelectingTower
+        };
+        state
+    }
+
+    fn hand_card_ids(state: &crate::CoreState) -> Vec<(usize, usize)> {
+        state
+            .hand
+            .slots
+            .iter()
+            .enumerate()
+            .filter_map(|(index, slot)| match &slot.item {
+                crate::HandItemState::Card(card) => Some((index, card.id)),
+                crate::HandItemState::Tower(_) => None,
+            })
+            .collect()
+    }
+
+    /// Executes `card_ids` through the same authoritative command path the
+    /// simulator uses for `BuildTower` (`StartSelectingTower` when shopping,
+    /// then `SelectTower`) and returns the selected tower template plus its
+    /// observation.
+    fn built_template_via_command(
+        state: &crate::CoreState,
+        card_ids: &[usize],
+    ) -> Option<(crate::TowerTemplateState, super::TowerTemplateObservation)> {
+        let mut next = state.clone();
+        if matches!(next.flow, crate::GameFlowState::Shopping(_)) {
+            crate::CoreSession::apply_to(&mut next, crate::PlayerCommand::StartSelectingTower)
+                .ok()?;
+        }
+        let command = crate::AgentAction::SelectTower {
+            card_ids: card_ids.to_vec(),
+        }
+        .to_player_command(&hand_card_ids(&next))
+        .ok()??;
+        crate::CoreSession::apply_to(&mut next, command).ok()?;
+        let crate::HandItemState::Tower(template) = &next.hand.slots.first()?.item else {
+            return None;
+        };
+        let observation = next.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+        let crate::HandItemObservation::Tower(template_observation) =
+            observation.hand.first()?.item.clone()
+        else {
+            return None;
+        };
+        Some((template.clone(), template_observation))
+    }
+
+    #[test]
+    fn build_tower_candidates_match_authoritative_select_tower_for_every_subset() {
+        let mut rng = TestRng(0x005e_ed4b);
+        let mut compared = 0usize;
+        let mut kinds_seen = std::collections::BTreeSet::new();
+        for upgrade_kinds in SELECTION_UPGRADE_SETS {
+            for trial in 0..24 {
+                let state = selection_state(&mut rng, upgrade_kinds, trial % 3 == 0);
+                let observation = state.observation(1, 1, crate::MAP_SIZE[0], crate::MAP_SIZE[1]);
+                let card_ids = hand_card_ids(&state)
+                    .into_iter()
+                    .map(|(_, id)| id)
+                    .collect::<Vec<_>>();
+                let subset_count = 1usize << card_ids.len();
+                for subset_mask in 1..subset_count {
+                    let subset = if subset_mask + 1 == subset_count {
+                        Vec::new()
+                    } else {
+                        card_ids
+                            .iter()
+                            .enumerate()
+                            .filter(|(offset, _)| subset_mask & (1 << offset) != 0)
+                            .map(|(_, id)| *id)
+                            .collect()
+                    };
+                    let candidate = observation
+                        .build_tower_candidates
+                        .iter()
+                        .find(|candidate| candidate.card_ids == subset);
+                    let built = built_template_via_command(&state, &subset);
+                    let (Some(candidate), Some((template, built_observation))) = (candidate, built)
+                    else {
+                        panic!("candidate and command disagree on existence for subset {subset:?}");
+                    };
+                    assert_eq!(
+                        candidate.template, built_observation,
+                        "subset {subset:?} upgrades {upgrade_kinds:?}"
+                    );
+                    let bonus = state
+                        .upgrades()
+                        .tower_upgrade_bonus_raw_for_template(&template);
+                    assert_eq!(
+                        candidate.template.kind_id,
+                        super::tower_kind(template.kind).1
+                    );
+                    assert_eq!(candidate.template.damage_raw, template.default_damage_raw);
+                    assert_eq!(
+                        candidate.template.effective_damage_raw,
+                        template.effective_damage_raw(bonus)
+                    );
+                    assert_eq!(
+                        candidate.template.range_raw,
+                        template.default_attack_range_radius_raw
+                    );
+                    assert_eq!(
+                        candidate.template.shoot_interval_ticks,
+                        template.shoot_interval
+                    );
+                    assert_eq!(candidate.template.rerolled_count, template.rerolled_count);
+                    assert_eq!(
+                        candidate
+                            .template
+                            .used_cards
+                            .iter()
+                            .map(|card| card.id)
+                            .collect::<Vec<_>>(),
+                        template
+                            .used_cards
+                            .iter()
+                            .map(|card| card.id)
+                            .collect::<Vec<_>>()
+                    );
+                    kinds_seen.insert(template.kind);
+                    compared += 1;
+                }
+                assert_eq!(
+                    observation.build_tower_candidates.len(),
+                    subset_count - 1,
+                    "every non-empty card subset should have exactly one candidate"
+                );
+            }
+        }
+        assert!(compared > 5_000, "compared only {compared} subsets");
+        assert!(
+            kinds_seen.len() >= 8,
+            "subset generator should reach most tower kinds, saw {kinds_seen:?}"
         );
     }
 }
