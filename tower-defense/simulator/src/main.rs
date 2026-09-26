@@ -5,6 +5,7 @@ use rayon::ThreadPoolBuilder;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use td_simulator::benchmark;
 use td_simulator::config::{self, GameConfig};
 use td_simulator::environment::{AgentAction, LegalAction, Observation};
 use td_simulator::hp_balance::{self, BalanceOptions};
@@ -23,6 +24,11 @@ use td_simulator::ml::validation::{
 use td_simulator::policy_runner::{BatchResult, PolicyRunnerConfig, run_batch};
 use td_simulator::recording::{SimRecorder, SimulationProvenance};
 use td_simulator::stats::Database;
+use td_simulator::teacher::{RolloutTeacherConfig, run_semantic_teacher_episode};
+use td_simulator::teacher_eval::{
+    LARGE_REGRET_THRESHOLD, StabilityGridConfig, run_paired_full_game_evaluation,
+    run_stability_grid,
+};
 
 mod stats_cli;
 
@@ -36,8 +42,32 @@ struct Cli {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Play one full game with an AI policy and print every decision")]
+    Play(PlayOptions),
     Simulate(SimulateOptions),
     Baseline(BaselineOptions),
+    Benchmark(BenchmarkOptions),
+    Teacher(TeacherOptions),
+    TeacherSelectionHeldout(TeacherSelectionHeldoutOptions),
+    TeacherSelectionTerminalGate(TeacherSelectionTerminalGateOptions),
+    TeacherTerminalExtension(TeacherTerminalExtensionOptions),
+    #[cfg(feature = "diagnostics")]
+    PlacementDiag(PlacementDiagOptions),
+    #[cfg(feature = "diagnostics")]
+    TrajectoryFingerprint(TrajectoryFingerprintOptions),
+    #[cfg(feature = "diagnostics")]
+    RolloutBench(RolloutBenchOptions),
+    TeacherEval(TeacherEvalOptions),
+    TeacherOverrideDiag(TeacherOverrideDiagOptions),
+    TeacherStateSensitivity(TeacherStateSensitivityOptions),
+    TeacherSelectionValidation(TeacherSelectionValidationOptions),
+    TeacherFrozenHorizonSweep(TeacherFrozenHorizonSweepOptions),
+    TeacherMultifidelityTopk(TeacherMultifidelityTopkOptions),
+    TeacherExhaustiveTerminal(TeacherExhaustiveTerminalOptions),
+    TeacherCandidateOrder(TeacherCandidateOrderOptions),
+    TeacherSelectFreshStates(TeacherSelectFreshStatesOptions),
+    TeacherExhaustivePrereg(TeacherExhaustivePreregOptions),
+    TeacherFrozenCandidateValidation(TeacherFrozenCandidateValidationOptions),
     Balance(BalanceOptions),
     #[command(about = "Interactive SQLite statistics explorer for td-simulator")]
     Stats(stats_cli::StatsOptions),
@@ -45,6 +75,47 @@ enum Command {
         #[command(subcommand)]
         command: MlCommand,
     },
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum PlayPolicyArg {
+    Scripted,
+    Teacher,
+}
+
+#[derive(Args)]
+struct PlayOptions {
+    #[arg(long, value_enum, default_value_t = PlayPolicyArg::Scripted)]
+    policy: PlayPolicyArg,
+    #[arg(long, default_value_t = 0)]
+    seed: u64,
+}
+
+fn run_play(options: PlayOptions) -> Result<()> {
+    use td_simulator::play::{PlayPolicy, play_episode};
+
+    let policy = match options.policy {
+        PlayPolicyArg::Scripted => PlayPolicy::Scripted,
+        PlayPolicyArg::Teacher => PlayPolicy::Teacher,
+    };
+    let summary = play_episode(Arc::new(GameConfig::default_config()), options.seed, policy)?;
+    println!();
+    println!("seed:        {}", summary.seed);
+    println!(
+        "result:      {}",
+        if summary.victory { "victory" } else { "defeat" }
+    );
+    println!(
+        "final stage: {}/{}",
+        summary.final_stage, summary.max_stages
+    );
+    println!("clear rate:  {:.2}%", summary.clear_rate);
+    println!("decisions:   {}", summary.decision_count);
+    if policy == PlayPolicy::Teacher {
+        println!("overrides:   {}", summary.override_count);
+    }
+    println!("elapsed:     {:.1}s", summary.elapsed_seconds);
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -71,6 +142,488 @@ struct BaselineOptions {
     output: Option<PathBuf>,
     #[arg(long)]
     pair_with: Option<BaselinePolicyArg>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum BenchmarkPolicyArg {
+    RandomLegal,
+    Scripted,
+    Checkpoint,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum BenchmarkActionModeArg {
+    Legacy,
+    Semantic,
+}
+
+#[derive(Args)]
+struct BenchmarkOptions {
+    #[arg(long, value_enum, default_value_t = BenchmarkPolicyArg::RandomLegal)]
+    policy: BenchmarkPolicyArg,
+    #[arg(long, value_enum, default_value_t = BenchmarkActionModeArg::Legacy)]
+    action_mode: BenchmarkActionModeArg,
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
+    #[arg(long, default_value_t = 3)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 10_000)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 0)]
+    threads: usize,
+    #[arg(long, default_value = "ml_policy_checkpoint.json")]
+    checkpoint: PathBuf,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherOptions {
+    #[arg(long, default_value_t = 0)]
+    seed: u64,
+    #[arg(long, default_value_t = 8)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 4)]
+    scenario_count: usize,
+    #[arg(long, default_value_t = 0)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value_t = 3_600)]
+    horizon_sim_ticks: u64,
+    #[arg(long)]
+    build_tower_rollout_limit: Option<usize>,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
+}
+
+#[derive(Args)]
+struct TeacherSelectFreshStatesOptions {
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_select_fresh_states(options: TeacherSelectFreshStatesOptions) -> Result<()> {
+    let selections = td_simulator::teacher_reroll_diag::select_fresh_states(
+        Arc::new(GameConfig::default_config()),
+        &[
+            (4, "Shop"),
+            (5, "CardSelection"),
+            (6, "Shop"),
+            (7, "CardSelection"),
+        ],
+        16,
+        40,
+        16,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&selections)?)?;
+    println!(
+        "Fresh state selection saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherFrozenCandidateValidationOptions {
+    #[arg(long)]
+    game_seed: u64,
+    #[arg(long)]
+    decision_index: usize,
+    #[arg(long)]
+    state_hash: String,
+    #[arg(long)]
+    baseline_action_id: String,
+    #[arg(long)]
+    candidate_ids: String,
+    #[arg(long, default_value_t = 9000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 64)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_frozen_candidate_validation(
+    options: TeacherFrozenCandidateValidationOptions,
+) -> Result<()> {
+    let candidate_ids = options
+        .candidate_ids
+        .split('|')
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    let result = td_simulator::teacher_reroll_diag::run_frozen_candidate_validation(
+        Arc::new(GameConfig::default_config()),
+        options.game_seed,
+        options.decision_index,
+        &options.state_hash,
+        &options.baseline_action_id,
+        &candidate_ids,
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!(
+        "Frozen candidate validation saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherExhaustivePreregOptions {
+    #[arg(long)]
+    selection_artifact: PathBuf,
+    #[arg(long)]
+    game_seed: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_exhaustive_prereg(options: TeacherExhaustivePreregOptions) -> Result<()> {
+    let result = td_simulator::teacher_reroll_diag::run_exhaustive_prereg(
+        Arc::new(GameConfig::default_config()),
+        &options.selection_artifact,
+        options.game_seed,
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(7000..7032).collect::<Vec<u64>>(),
+        &(8000..8064).collect::<Vec<u64>>(),
+        4,
+        3266,
+        16,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!(
+        "Prereg exhaustive diagnostic saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherCandidateOrderOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value = "0/6,1/5,2/1,3/1")]
+    states: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_candidate_order(options: TeacherCandidateOrderOptions) -> Result<()> {
+    let states = options
+        .states
+        .split(',')
+        .map(|pair| {
+            let (seed, index) = pair.split_once('/').context("state must be seed/index")?;
+            Ok((seed.trim().parse::<u64>()?, index.trim().parse::<usize>()?))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let orders = td_simulator::teacher_reroll_diag::candidate_orders(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &states,
+        16,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&orders)?)?;
+    println!("Candidate orders saved to: {}", options.output.display());
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherExhaustiveTerminalOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value_t = 1)]
+    game_seed: u64,
+    #[arg(long, default_value_t = 5)]
+    decision_index: usize,
+    #[arg(long, default_value_t = 32)]
+    discovery_count: u64,
+    #[arg(long, default_value_t = 64)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 4)]
+    validation_top: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_exhaustive_terminal(options: TeacherExhaustiveTerminalOptions) -> Result<()> {
+    let result = td_simulator::teacher_reroll_diag::run_exhaustive_terminal(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        (options.game_seed, options.decision_index),
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(5000..5000 + options.discovery_count).collect::<Vec<u64>>(),
+        &(6000..6000 + options.validation_count).collect::<Vec<u64>>(),
+        options.validation_top,
+        3266,
+        16,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&result)?)?;
+    println!(
+        "Exhaustive terminal diagnostic saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherMultifidelityTopkOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    /// Comma-separated `seed/decision_index` pairs, e.g. 0/6,1/5.
+    #[arg(long, default_value = "0/6,1/5,2/1,3/1")]
+    states: String,
+    #[arg(long, default_value = "1,2,4,8")]
+    ks: String,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_multifidelity_topk(options: TeacherMultifidelityTopkOptions) -> Result<()> {
+    let states = options
+        .states
+        .split(',')
+        .map(|pair| {
+            let (seed, index) = pair.split_once('/').context("state must be seed/index")?;
+            Ok((seed.trim().parse::<u64>()?, index.trim().parse::<usize>()?))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let results = td_simulator::teacher_reroll_diag::run_multifidelity_topk(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &states,
+        &(1000..1008).collect::<Vec<u64>>(),
+        &(3000..3008).collect::<Vec<u64>>(),
+        &(4000..4016).collect::<Vec<u64>>(),
+        &parse_usize_list(&options.ks)?,
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!(
+        "Multi-fidelity diagnostic saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherFrozenHorizonSweepOptions {
+    #[arg(long)]
+    frozen_artifact: PathBuf,
+    #[arg(long, default_value_t = 2000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    validation_count: u64,
+    #[arg(long, default_value = "3266,6532,9798,13064")]
+    horizons: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_frozen_horizon_sweep(options: TeacherFrozenHorizonSweepOptions) -> Result<()> {
+    let horizons = parse_u64_list(&options.horizons)?;
+    let results = td_simulator::teacher_reroll_diag::run_frozen_horizon_sweep(
+        Arc::new(GameConfig::default_config()),
+        &options.frozen_artifact,
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
+        &horizons,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!(
+        "Frozen horizon sweep saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherSelectionValidationOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long)]
+    expected_artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 1000)]
+    selection_seed_start: u64,
+    #[arg(long, default_value_t = 8)]
+    selection_count: u64,
+    #[arg(long, default_value_t = 2000)]
+    validation_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    validation_count: u64,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_selection_validation(options: TeacherSelectionValidationOptions) -> Result<()> {
+    let results = td_simulator::teacher_reroll_diag::run_selection_validation(
+        Arc::new(GameConfig::default_config()),
+        &options.artifact,
+        &options.expected_artifact,
+        &options.action_kind,
+        &(options.selection_seed_start..options.selection_seed_start + options.selection_count)
+            .collect::<Vec<_>>(),
+        &(options.validation_seed_start..options.validation_seed_start + options.validation_count)
+            .collect::<Vec<_>>(),
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!(
+        "Selection validation saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherStateSensitivityOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 1000)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value = "2,4,8")]
+    scenario_counts: String,
+    #[arg(long, default_value_t = 3266)]
+    horizon_sim_ticks: u64,
+    #[arg(long, default_value_t = 16)]
+    build_tower_rollout_limit: usize,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_state_sensitivity(options: TeacherStateSensitivityOptions) -> Result<()> {
+    let counts = parse_usize_list(&options.scenario_counts)?;
+    let results = td_simulator::teacher_reroll_diag::run_state_scenario_sensitivity(
+        Arc::new(GameConfig::default_config()),
+        &options.artifact,
+        &options.action_kind,
+        options.scenario_seed_start,
+        &counts,
+        options.horizon_sim_ticks,
+        options.build_tower_rollout_limit,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!(
+        "State sensitivity saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherOverrideDiagOptions {
+    #[arg(long)]
+    artifact: PathBuf,
+    #[arg(long, default_value = "reroll")]
+    action_kind: String,
+    #[arg(long, default_value_t = 2000)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value_t = 16)]
+    scenario_count: u64,
+    #[arg(long, default_value_t = 512)]
+    max_continuation_decisions: usize,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_override_diag(options: TeacherOverrideDiagOptions) -> Result<()> {
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let scenario_seeds = (options.scenario_seed_start
+        ..options.scenario_seed_start + options.scenario_count)
+        .collect::<Vec<_>>();
+    let results = td_simulator::teacher_reroll_diag::run_override_intervention(
+        config,
+        &options.artifact,
+        &options.action_kind,
+        &scenario_seeds,
+        options.max_continuation_decisions,
+    )?;
+    std::fs::write(&options.output, serde_json::to_string_pretty(&results)?)?;
+    println!(
+        "Override diagnostic saved to: {} ({} states)",
+        options.output.display(),
+        results.len()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherEvalOptions {
+    #[arg(long, default_value_t = 0)]
+    seed_start: u64,
+    #[arg(long, default_value_t = 3)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 64)]
+    max_decisions: usize,
+    #[arg(long, default_value_t = 8)]
+    state_limit_per_seed: usize,
+    #[arg(long, default_value_t = 0)]
+    scenario_seed_start: u64,
+    #[arg(long, default_value = "2,4")]
+    scenario_counts: String,
+    #[arg(long, default_value = "1800,3600")]
+    horizon_sim_ticks: String,
+    /// Free-form note recorded in the report explaining how the horizon
+    /// values were chosen (e.g. measured baseline stage-duration statistics).
+    #[arg(long)]
+    horizon_selection_note: Option<String>,
+    #[arg(long, default_value = "8,16")]
+    build_tower_rollout_limits: String,
+    #[arg(long)]
+    run_paired_full_game: bool,
+    #[arg(long)]
+    paired_seed_start: Option<u64>,
+    #[arg(long)]
+    paired_seed_end: Option<u64>,
+    #[arg(long)]
+    paired_max_decisions: Option<usize>,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: Option<PathBuf>,
 }
 
 #[derive(Args)]
@@ -105,12 +658,772 @@ struct SimulateOptions {
 
 fn main() -> Result<()> {
     match Cli::parse().command {
+        Command::Play(options) => run_play(options),
         Command::Simulate(options) => run_simulate(options),
         Command::Baseline(options) => run_baseline(options),
+        Command::Benchmark(options) => run_benchmark(options),
+        Command::Teacher(options) => run_teacher(options),
+        Command::TeacherSelectionHeldout(options) => run_teacher_selection_heldout(options),
+        Command::TeacherSelectionTerminalGate(options) => {
+            run_teacher_selection_terminal_gate(options)
+        }
+        Command::TeacherTerminalExtension(options) => run_teacher_terminal_extension(options),
+        #[cfg(feature = "diagnostics")]
+        Command::PlacementDiag(options) => run_placement_diag(options),
+        #[cfg(feature = "diagnostics")]
+        Command::TrajectoryFingerprint(options) => run_trajectory_fingerprint(options),
+        #[cfg(feature = "diagnostics")]
+        Command::RolloutBench(options) => run_rollout_bench(options),
+        Command::TeacherEval(options) => run_teacher_eval(options),
+        Command::TeacherOverrideDiag(options) => run_teacher_override_diag(options),
+        Command::TeacherStateSensitivity(options) => run_teacher_state_sensitivity(options),
+        Command::TeacherSelectionValidation(options) => run_teacher_selection_validation(options),
+        Command::TeacherFrozenHorizonSweep(options) => run_teacher_frozen_horizon_sweep(options),
+        Command::TeacherMultifidelityTopk(options) => run_teacher_multifidelity_topk(options),
+        Command::TeacherExhaustiveTerminal(options) => run_teacher_exhaustive_terminal(options),
+        Command::TeacherCandidateOrder(options) => run_teacher_candidate_order(options),
+        Command::TeacherSelectFreshStates(options) => run_teacher_select_fresh_states(options),
+        Command::TeacherExhaustivePrereg(options) => run_teacher_exhaustive_prereg(options),
+        Command::TeacherFrozenCandidateValidation(options) => {
+            run_teacher_frozen_candidate_validation(options)
+        }
         Command::Balance(options) => hp_balance::run(options),
         Command::Stats(options) => stats_cli::run(options),
         Command::Ml { command } => cli::run_command(command),
     }
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct PlacementDiagOptions {
+    #[arg(long)]
+    seed: u64,
+    #[arg(long)]
+    prefix_decisions: usize,
+    #[arg(long, value_delimiter = ',')]
+    scenario_seeds: Vec<u64>,
+    #[arg(long)]
+    baseline_only: bool,
+    #[arg(long, default_value_t = 900.0)]
+    branch_time_limit_seconds: f64,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_placement_diag(options: PlacementDiagOptions) -> Result<()> {
+    let report = td_simulator::placement_diag::run_placement_diag(
+        Arc::new(GameConfig::default_config()),
+        options.seed,
+        options.prefix_decisions,
+        &options.scenario_seeds,
+        options.baseline_only,
+        options.branch_time_limit_seconds,
+    )?;
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+    Ok(())
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct TrajectoryFingerprintOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 512)]
+    max_decisions: usize,
+    #[arg(long)]
+    with_proposals: bool,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_trajectory_fingerprint(options: TrajectoryFingerprintOptions) -> Result<()> {
+    use rayon::prelude::*;
+    let config = Arc::new(GameConfig::default_config());
+    let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
+    let fingerprints = seeds
+        .par_iter()
+        .map(|&seed| {
+            td_simulator::placement_diag::trajectory_fingerprint(
+                Arc::clone(&config),
+                seed,
+                options.max_decisions,
+                options.with_proposals,
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(
+        &options.output,
+        serde_json::to_string_pretty(&fingerprints)?,
+    )?;
+    Ok(())
+}
+
+#[cfg(feature = "diagnostics")]
+#[derive(Args)]
+struct RolloutBenchOptions {
+    #[arg(long, value_delimiter = ',')]
+    game_seeds: Vec<u64>,
+    #[arg(long, value_delimiter = ',')]
+    prefix_decisions: Vec<usize>,
+    #[arg(long, value_delimiter = ',')]
+    scenario_seeds: Vec<u64>,
+    #[arg(long)]
+    throughput: bool,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+#[cfg(feature = "diagnostics")]
+fn run_rollout_bench(options: RolloutBenchOptions) -> Result<()> {
+    if options.throughput {
+        let report = td_simulator::placement_diag::rollout_throughput(
+            Arc::new(GameConfig::default_config()),
+            &options.game_seeds,
+            &options.prefix_decisions,
+            &options.scenario_seeds,
+        )?;
+        eprintln!(
+            "threads={} rollouts={} seconds={:.2} rollouts/sec={:.2}",
+            report.threads, report.rollouts, report.total_seconds, report.rollouts_per_second
+        );
+        std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+        return Ok(());
+    }
+    let report = td_simulator::placement_diag::rollout_bench(
+        Arc::new(GameConfig::default_config()),
+        &options.game_seeds,
+        &options.prefix_decisions,
+        &options.scenario_seeds,
+    )?;
+    eprintln!(
+        "rollouts={} sec/rollout={:.4} decisions/rollout={:.1} ticks/rollout={:.0}",
+        report.rollouts,
+        report.seconds_per_rollout,
+        report.decisions_per_rollout,
+        report.ticks_per_rollout
+    );
+    if let Some(parent) = options.output.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&options.output, serde_json::to_string_pretty(&report)?)?;
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherSelectionHeldoutOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long, default_value_t = 64)]
+    max_decisions: usize,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_selection_heldout(options: TeacherSelectionHeldoutOptions) -> Result<()> {
+    use td_simulator::environment::GameEnvironment;
+    use td_simulator::teacher_eval::run_canonical_scripted_semantic_episode;
+    use td_simulator::teacher_selection::{TeacherSelectionPools, run_teacher_selection_episode};
+
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let pools = TeacherSelectionPools::production();
+    let config_digest = config::config_digest(config.as_ref());
+    let provenance = serde_json::json!({
+        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config_digest,
+        "seed_start": options.seed_start,
+        "seed_end": options.seed_end,
+        "max_decisions": options.max_decisions,
+        "pools": pools,
+    });
+
+    // Resumable: each already-completed seed's result is checkpointed to
+    // `options.output` immediately, so an interrupted run (including a
+    // handoff to a different machine) can continue from the same file
+    // instead of restarting seed_start. A provenance mismatch (schema
+    // version, config, pool, or seed-range change) refuses to resume rather
+    // than silently mixing incompatible partial results.
+    let mut per_seed: Vec<serde_json::Value> = Vec::new();
+    if options.output.exists() {
+        let existing: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(
+            &options.output,
+        )?)
+        .with_context(|| {
+            format!(
+                "existing output {} is not valid JSON",
+                options.output.display()
+            )
+        })?;
+        let mut existing_provenance = existing.clone();
+        if let Some(map) = existing_provenance.as_object_mut() {
+            map.remove("results");
+        }
+        if existing_provenance != provenance {
+            anyhow::bail!(
+                "refusing to resume {}: provenance differs from this run's config/pools/schema/seed \
+                 range (existing: {existing_provenance}, this run: {provenance}) - use a fresh --output \
+                 path if this is an intentional change",
+                options.output.display()
+            );
+        }
+        per_seed = existing["results"]
+            .as_array()
+            .cloned()
+            .context("existing output missing results array")?;
+        println!(
+            "Resuming {}: {} seed(s) already completed",
+            options.output.display(),
+            per_seed.len()
+        );
+    }
+    let already_done: std::collections::HashSet<u64> = per_seed
+        .iter()
+        .filter_map(|entry| entry["game_seed"].as_u64())
+        .collect();
+
+    let write_checkpoint = |per_seed: &[serde_json::Value]| -> Result<()> {
+        let mut report = provenance.clone();
+        report["results"] = serde_json::Value::Array(per_seed.to_vec());
+        let json = serde_json::to_string_pretty(&report)?;
+        if let Some(parent) = options.output.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        let tmp_path = options.output.with_extension("json.tmp");
+        std::fs::write(&tmp_path, format!("{json}\n"))?;
+        std::fs::rename(&tmp_path, &options.output)?;
+        Ok(())
+    };
+
+    for seed in options.seed_start..=options.seed_end {
+        if already_done.contains(&seed) {
+            println!("seed {seed}: already completed, skipping");
+            continue;
+        }
+        let started = std::time::Instant::now();
+        let baseline = run_canonical_scripted_semantic_episode(
+            Arc::clone(&config),
+            seed,
+            options.max_decisions,
+        )?;
+        let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+        let teacher =
+            run_teacher_selection_episode(&mut environment, &pools, options.max_decisions)?;
+        let elapsed_seconds = started.elapsed().as_secs_f64();
+        eprintln!(
+            "seed {seed}: baseline clear_rate={:.2} teacher clear_rate={:.2} decisions={} elapsed={:.1}s",
+            baseline.clear_rate, teacher.clear_rate, teacher.decision_count, elapsed_seconds
+        );
+        per_seed.push(serde_json::json!({
+            "game_seed": seed,
+            "elapsed_seconds": elapsed_seconds,
+            "baseline": baseline,
+            "teacher": teacher,
+            "paired_clear_rate_delta": teacher.clear_rate - baseline.clear_rate,
+        }));
+        write_checkpoint(&per_seed)?;
+    }
+    println!(
+        "Teacher selection held-out report saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherSelectionTerminalGateOptions {
+    #[arg(long)]
+    seed_start: u64,
+    #[arg(long)]
+    seed_end: u64,
+    #[arg(long)]
+    teacher_frozen_commit: String,
+    #[arg(long)]
+    simulator_optimized_commit: String,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn write_json_atomically(path: &std::path::Path, value: &serde_json::Value) -> Result<()> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp_path = path.with_extension("json.tmp");
+    std::fs::write(
+        &tmp_path,
+        format!("{}\n", serde_json::to_string_pretty(value)?),
+    )?;
+    std::fs::rename(&tmp_path, path)?;
+    Ok(())
+}
+
+fn run_teacher_selection_terminal_gate(options: TeacherSelectionTerminalGateOptions) -> Result<()> {
+    use td_simulator::teacher_selection::{
+        BUILD_TOWER_PROPOSAL_LIMIT, PLACE_TOWER_PROPOSAL_LIMIT, TeacherSelectionPools,
+    };
+    use td_simulator::teacher_terminal_gate::{MAX_EPISODE_DECISIONS, run_terminal_gate_seed};
+
+    let config = Arc::new(GameConfig::default_config());
+    let pools = TeacherSelectionPools::production();
+    let provenance = serde_json::json!({
+        "gate": "phase3_terminal_heldout",
+        "game_seed_start": options.seed_start,
+        "game_seed_end": options.seed_end,
+        "teacher_selection_schema_version": td_simulator::teacher_selection::TEACHER_SELECTION_SCHEMA_VERSION,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "teacher_frozen_commit": options.teacher_frozen_commit,
+        "simulator_optimized_commit": options.simulator_optimized_commit,
+        "pools": pools,
+        "build_tower_proposal_limit": BUILD_TOWER_PROPOSAL_LIMIT,
+        "place_tower_proposal_limit": PLACE_TOWER_PROPOSAL_LIMIT,
+        "reroll_proposal_limit": 1,
+        "discovery_scenarios": pools.discovery_seeds.len(),
+        "validation_scenarios": pools.validation_seeds.len(),
+        "validation_rule": "paired one-sided t-test per finalist + Holm FWER 0.05",
+        "episode_evaluation": "terminal",
+        "episode_safety_cap": MAX_EPISODE_DECISIONS,
+        "episode_safety_cap_behavior": "error on hit",
+        "primary_metric": "mean over seeds of teacher_terminal_clear_rate - baseline_terminal_clear_rate",
+        "gate_rule": "mean > 0 positive, = 0 tie, < 0 negative",
+    });
+
+    let mut results: Vec<serde_json::Value> = Vec::new();
+    if options.output.exists() {
+        let existing: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&options.output)?)?;
+        let mut existing_provenance = existing.clone();
+        if let Some(map) = existing_provenance.as_object_mut() {
+            map.remove("results");
+            map.remove("performance");
+        }
+        if existing_provenance != provenance {
+            anyhow::bail!(
+                "refusing to resume {}: provenance differs - use a fresh --output path",
+                options.output.display()
+            );
+        }
+        results = existing["results"]
+            .as_array()
+            .cloned()
+            .context("existing output missing results array")?;
+    }
+    let done: std::collections::HashSet<u64> = results
+        .iter()
+        .filter_map(|entry| entry["game_seed"].as_u64())
+        .collect();
+    let performance = serde_json::json!({
+        "rayon_threads": rayon::current_num_threads(),
+    });
+    for seed in options.seed_start..=options.seed_end {
+        if done.contains(&seed) {
+            println!("seed {seed}: already completed, skipping");
+            continue;
+        }
+        let result = run_terminal_gate_seed(Arc::clone(&config), seed, &pools)?;
+        eprintln!(
+            "seed {seed}: baseline terminal clear_rate={:.4} (decisions {}) teacher terminal clear_rate={:.4} (decisions {}, overrides {}) delta={:+.4} teacher_seconds={:.1}",
+            result.baseline.clear_rate,
+            result.baseline.decision_count,
+            result.teacher.clear_rate,
+            result.teacher.decision_count,
+            result.teacher_cost.override_count,
+            result.paired_terminal_clear_rate_delta,
+            result.teacher_seconds
+        );
+        results.push(serde_json::to_value(&result)?);
+        let mut report = provenance.clone();
+        report["performance"] = performance.clone();
+        report["results"] = serde_json::Value::Array(results.clone());
+        write_json_atomically(&options.output, &report)?;
+    }
+    println!(
+        "Terminal gate report saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+#[derive(Args)]
+struct TeacherTerminalExtensionOptions {
+    #[arg(long)]
+    input: PathBuf,
+    #[arg(long)]
+    output: PathBuf,
+}
+
+fn run_teacher_terminal_extension(options: TeacherTerminalExtensionOptions) -> Result<()> {
+    let config = Arc::new(GameConfig::default_config());
+    let input: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&options.input)?)?;
+    let records = input["results"]
+        .as_array()
+        .context("input missing results array")?;
+    let mut seeds = Vec::new();
+    for record in records {
+        let extended = td_simulator::teacher_terminal_gate::extend_truncated_seed(
+            Arc::clone(&config),
+            record,
+        )?;
+        eprintln!(
+            "seed {}: delta@truncation={:+.4} terminalized delta={:+.4}",
+            extended.game_seed, extended.delta_at_truncation, extended.terminalized_delta
+        );
+        seeds.push(serde_json::to_value(&extended)?);
+    }
+    let report = serde_json::json!({
+        "analysis": "post-hoc diagnostic, not a gate",
+        "input": options.input,
+        "continuation_policy": "canonical_scripted_semantic_action from the recorded truncation state to terminal",
+        "episode_safety_cap": td_simulator::teacher_terminal_gate::MAX_EPISODE_DECISIONS,
+        "results": seeds,
+    });
+    write_json_atomically(&options.output, &report)?;
+    println!(
+        "Terminal extension report saved to: {}",
+        options.output.display()
+    );
+    Ok(())
+}
+
+fn run_teacher(options: TeacherOptions) -> Result<()> {
+    if options.scenario_count == 0 {
+        anyhow::bail!("--scenario-count must be positive");
+    }
+    if options.build_tower_rollout_limit == Some(0) {
+        anyhow::bail!("--build-tower-rollout-limit must be positive when provided");
+    }
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let mut environment =
+        td_simulator::environment::GameEnvironment::new(Arc::clone(&config), options.seed);
+    let teacher_config = RolloutTeacherConfig {
+        scenario_seeds: (options.scenario_seed_start
+            ..options
+                .scenario_seed_start
+                .saturating_add(options.scenario_count as u64))
+            .collect(),
+        horizon_sim_ticks: options.horizon_sim_ticks,
+        build_tower_rollout_limit: options.build_tower_rollout_limit,
+    };
+    let report =
+        run_semantic_teacher_episode(&mut environment, &teacher_config, options.max_decisions)?;
+    let json = serde_json::to_string_pretty(&serde_json::json!({
+        "teacher_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "scenario_seed_start": options.scenario_seed_start,
+        "scenario_count": options.scenario_count,
+        "horizon_sim_ticks": options.horizon_sim_ticks,
+        "build_tower_rollout_limit": options.build_tower_rollout_limit,
+        "episode": report,
+    }))?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Teacher report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
+}
+
+fn parse_usize_list(raw: &str) -> Result<Vec<usize>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            part.parse::<usize>()
+                .with_context(|| format!("invalid integer in list: {part}"))
+        })
+        .collect()
+}
+
+fn parse_u64_list(raw: &str) -> Result<Vec<u64>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            part.parse::<u64>()
+                .with_context(|| format!("invalid integer in list: {part}"))
+        })
+        .collect()
+}
+
+fn parse_optional_usize_list(raw: &str) -> Result<Vec<Option<usize>>> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            if part.eq_ignore_ascii_case("none") || part.eq_ignore_ascii_case("unlimited") {
+                Ok(None)
+            } else {
+                Ok(Some(part.parse::<usize>().with_context(|| {
+                    format!("invalid integer (or 'none') in list: {part}")
+                })?))
+            }
+        })
+        .collect()
+}
+
+fn run_teacher_eval(options: TeacherEvalOptions) -> Result<()> {
+    let scenario_counts = parse_usize_list(&options.scenario_counts)?;
+    let horizon_sim_ticks = parse_u64_list(&options.horizon_sim_ticks)?;
+    let build_tower_rollout_limits =
+        parse_optional_usize_list(&options.build_tower_rollout_limits)?;
+
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+
+    let grid = StabilityGridConfig {
+        seed_start: options.seed_start,
+        seed_end: options.seed_end,
+        max_decisions: options.max_decisions,
+        state_limit_per_seed: options.state_limit_per_seed,
+        scenario_seed_start: options.scenario_seed_start,
+        scenario_counts,
+        horizon_sim_ticks,
+        build_tower_rollout_limits,
+    };
+    let stability_report = run_stability_grid(Arc::clone(&config), &grid)?;
+
+    let paired_report = if options.run_paired_full_game {
+        let (reference_scenario_count, reference_horizon, reference_build_tower_rollout_limit) = (
+            stability_report.reference_scenario_count,
+            stability_report.reference_horizon_sim_ticks,
+            stability_report.reference_build_tower_rollout_limit,
+        );
+        let paired_seed_start = options.paired_seed_start.unwrap_or(options.seed_start);
+        let paired_seed_end = options.paired_seed_end.unwrap_or(options.seed_end);
+        let paired_max_decisions = options
+            .paired_max_decisions
+            .unwrap_or(options.max_decisions);
+        let paired_seeds = (paired_seed_start..=paired_seed_end).collect::<Vec<_>>();
+        let teacher_config = RolloutTeacherConfig {
+            scenario_seeds: (options.scenario_seed_start
+                ..options
+                    .scenario_seed_start
+                    .saturating_add(reference_scenario_count as u64))
+                .collect(),
+            horizon_sim_ticks: reference_horizon,
+            build_tower_rollout_limit: reference_build_tower_rollout_limit,
+        };
+        Some(run_paired_full_game_evaluation(
+            Arc::clone(&config),
+            &paired_seeds,
+            paired_max_decisions,
+            &teacher_config,
+        )?)
+    } else {
+        None
+    };
+
+    let seed_digest = {
+        use sha2::{Digest, Sha256};
+        let mut digest = Sha256::new();
+        digest.update(b"tower-defense-teacher-eval-seed-range-v1");
+        digest.update(options.seed_start.to_be_bytes());
+        digest.update(options.seed_end.to_be_bytes());
+        format!("{:x}", digest.finalize())
+    };
+
+    let report = serde_json::json!({
+        "teacher_eval_schema_version": 4,
+        "teacher_score_schema_version": td_simulator::teacher::TEACHER_SCORE_SCHEMA_VERSION,
+        "observation_schema_version": td_simulator::ml::contract::OBSERVATION_SCHEMA_VERSION,
+        "environment_version": td_simulator::environment::ENVIRONMENT_VERSION,
+        "action_schema_version": td_simulator::environment::ACTION_SCHEMA_VERSION,
+        "rng_algorithm_version": td_core::RNG_ALGORITHM_VERSION,
+        "config_digest": config::config_digest(config.as_ref()),
+        "seed_range_digest": seed_digest,
+        "large_regret_threshold": LARGE_REGRET_THRESHOLD,
+        "horizon_selection_note": options.horizon_selection_note,
+        "grid": stability_report.grid,
+        "stability": stability_report,
+        "paired_full_game": paired_report,
+    });
+    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Teacher-eval report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
+}
+
+fn run_benchmark(options: BenchmarkOptions) -> Result<()> {
+    let config = Arc::new(match options.config {
+        Some(ref path) => config::load_jsonc(path)
+            .with_context(|| format!("failed to load config {}", path.display()))?,
+        None => GameConfig::default_config(),
+    });
+    let seeds = (options.seed_start..=options.seed_end).collect::<Vec<_>>();
+    let pool = {
+        let builder = ThreadPoolBuilder::new().thread_name(|index| format!("benchmark-{index}"));
+        let builder = if options.threads == 0 {
+            builder
+        } else {
+            builder.num_threads(options.threads)
+        };
+        builder.build()?
+    };
+    let threads = pool.install(rayon::current_num_threads);
+    let semantic_actions = matches!(options.action_mode, BenchmarkActionModeArg::Semantic);
+    let report = match options.policy {
+        BenchmarkPolicyArg::RandomLegal if semantic_actions => pool.install(|| {
+            benchmark::run_semantic_policy(
+                config,
+                &seeds,
+                "random_legal",
+                options.max_decisions,
+                threads,
+                benchmark::random_legal_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::RandomLegal => pool.install(|| {
+            benchmark::run_policy(
+                config,
+                &seeds,
+                "random_legal",
+                options.max_decisions,
+                threads,
+                benchmark::random_legal_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Scripted if semantic_actions => pool.install(|| {
+            benchmark::run_semantic_policy(
+                config,
+                &seeds,
+                "scripted_expert",
+                options.max_decisions,
+                threads,
+                |_| benchmark::scripted_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Scripted => pool.install(|| {
+            benchmark::run_policy(
+                config,
+                &seeds,
+                "scripted_expert",
+                options.max_decisions,
+                threads,
+                |_| benchmark::scripted_policy,
+            )
+        })?,
+        BenchmarkPolicyArg::Checkpoint => {
+            let contract = MlContract::from_config(config.as_ref());
+            let (_checkpoint, model) =
+                NeuralCheckpoint::load_with_inference_model_with_config_change(
+                    &options.checkpoint,
+                    &contract,
+                    false,
+                )?;
+            let model = Arc::new(model);
+            let device = Arc::new(default_policy_device());
+            if semantic_actions {
+                pool.install(|| {
+                    benchmark::run_semantic_policy(
+                        config,
+                        &seeds,
+                        format!("checkpoint:{}", options.checkpoint.display()),
+                        options.max_decisions,
+                        threads,
+                        move |_| {
+                            let model = Arc::clone(&model);
+                            let device = Arc::clone(&device);
+                            move |observation: &Observation, legal_actions: &[LegalAction]| {
+                                choose_model_action(
+                                    model.as_ref(),
+                                    device.as_ref(),
+                                    observation,
+                                    legal_actions,
+                                )
+                            }
+                        },
+                    )
+                })?
+            } else {
+                pool.install(|| {
+                    benchmark::run_policy(
+                        config,
+                        &seeds,
+                        format!("checkpoint:{}", options.checkpoint.display()),
+                        options.max_decisions,
+                        threads,
+                        move |_| {
+                            let model = Arc::clone(&model);
+                            let device = Arc::clone(&device);
+                            move |observation: &Observation, legal_actions: &[LegalAction]| {
+                                choose_model_action(
+                                    model.as_ref(),
+                                    device.as_ref(),
+                                    observation,
+                                    legal_actions,
+                                )
+                            }
+                        },
+                    )
+                })?
+            }
+        }
+    };
+    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(path) = options.output {
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, format!("{json}\n"))?;
+        println!("Benchmark report saved to: {}", path.display());
+    } else {
+        println!("{json}");
+    }
+    Ok(())
 }
 
 fn run_baseline(options: BaselineOptions) -> Result<()> {

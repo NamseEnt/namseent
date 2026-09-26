@@ -35,7 +35,7 @@ mod tests {
                 .find(|entry| entry.kind == 0)
                 .expect("Mob01 config")
                 .base_hp_raw,
-            67_657
+            35_520
         );
         assert_eq!(config.towers.entries.len(), td_core::TOWER_KIND_KEYS.len());
 

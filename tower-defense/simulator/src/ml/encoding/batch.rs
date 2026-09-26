@@ -77,7 +77,7 @@ impl PaddedEntityBatch {
             .map(EntitySet::numeric_width)
             .max()
             .unwrap_or(0)
-            .max(5);
+            .max(super::entity::ENTITY_NUMERIC_WIDTH);
         let mut categorical = vec![0; batch_size * max_entities * CATEGORICAL_FIELDS];
         let mut numeric = vec![0.0; batch_size * max_entities * numeric_width];
         let mut mask = vec![0.0; batch_size * max_entities];
@@ -146,6 +146,15 @@ pub fn candidate_rows_for_legal_actions(
         .collect()
 }
 
+fn hand_slot_index_for_card_id(observation: &Observation, card_id: usize) -> Option<usize> {
+    observation.hand.iter().find_map(|item| match &item.item {
+        crate::environment::HandItemObservation::Card(card) if card.id == card_id => {
+            Some(item.index)
+        }
+        _ => None,
+    })
+}
+
 pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) -> Vec<EntityRow> {
     let kind = action.kind().index() as u32 + 1;
     let (first, second, third) = match action {
@@ -177,19 +186,30 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
             *left as u32 + 1,
             *top as u32 + 1,
         ),
-        AgentAction::Reroll {
-            selected_slot_indices,
-        }
-        | AgentAction::SelectTower {
-            selected_slot_indices,
-        } => (
-            selected_slot_indices.len() as u32,
-            selected_slot_indices.iter().copied().sum::<usize>() as u32,
-            selected_slot_indices
+        AgentAction::Reroll { card_ids } | AgentAction::SelectTower { card_ids } => {
+            let slot_indices = card_ids
                 .iter()
-                .copied()
-                .max()
-                .map_or(0, |index| index as u32 + 1),
+                .filter_map(|card_id| hand_slot_index_for_card_id(observation, *card_id))
+                .collect::<Vec<_>>();
+            (
+                slot_indices.len() as u32,
+                slot_indices.iter().copied().sum::<usize>() as u32,
+                slot_indices
+                    .iter()
+                    .copied()
+                    .max()
+                    .map_or(0, |index| index as u32 + 1),
+            )
+        }
+        AgentAction::BuildTower {
+            card_ids,
+            hand_slot_index,
+            left,
+            top,
+        } => (
+            *hand_slot_index as u32 + 1,
+            *left as u32 + 1,
+            card_ids.len() as u32 + *top as u32 + 1,
         ),
         AgentAction::RemoveTower { tower_id } => (*tower_id as u32, (*tower_id >> 32) as u32, 0),
         AgentAction::StartSelectingTower
@@ -223,8 +243,42 @@ pub fn candidate_entity_rows(observation: &Observation, action: &AgentAction) ->
                 numeric[1] = stats[0];
                 numeric[2] = stats[1];
                 numeric[3] = placement_route_features(observation, *left, *top).0;
-                numeric[4] =
-                    crate::ml::features::placement_coverage(observation, *left, *top, &tower.kind);
+                numeric[4] = crate::ml::features::placement_coverage(
+                    observation,
+                    *left,
+                    *top,
+                    tower.range_raw,
+                );
+            }
+        }
+        AgentAction::BuildTower {
+            card_ids,
+            hand_slot_index,
+            left,
+            top,
+        } => {
+            categorical[1] = card_ids.len() as u32;
+            categorical[2] = *left as u32 + 1;
+            categorical[3] = *top as u32 + 1;
+            numeric[1] = card_ids.len() as f32 / 10.0;
+            numeric[2] = card_ids.len() as f32 / 10.0;
+            numeric[3] = *left as f32 / observation.map_width.max(1) as f32;
+            numeric[4] = *top as f32 / observation.map_height.max(1) as f32;
+            numeric[0] = *hand_slot_index as f32 / 10.0;
+            if let Some(candidate) = observation
+                .build_tower_candidates
+                .iter()
+                .find(|candidate| &candidate.card_ids == card_ids)
+            {
+                numeric[1] = candidate.template.kind_id as f32 / 32.0;
+                numeric[2] = candidate.template.damage_raw as f32 / 10_000.0;
+                numeric[3] = candidate.template.used_cards.len() as f32 / 5.0;
+                numeric[4] = crate::ml::features::placement_coverage(
+                    observation,
+                    *left,
+                    *top,
+                    candidate.template.range_raw,
+                );
             }
         }
         AgentAction::SelectHandCard { hand_slot_index }
@@ -295,7 +349,10 @@ mod tests {
     fn empty_set_has_masked_padding() {
         let batch = PaddedEntityBatch::from_sets(&[EntitySet::default()]);
         assert_eq!(batch.max_entities, 1);
-        assert_eq!(batch.numeric_width, 5);
+        assert_eq!(
+            batch.numeric_width,
+            crate::ml::encoding::ENTITY_NUMERIC_WIDTH
+        );
         assert_eq!(batch.mask, vec![0.0]);
     }
 
@@ -404,23 +461,28 @@ mod tests {
             rank: None,
             rerolled_count: 0,
             damage_raw: 1_000,
+            effective_damage_raw: 1_000,
+            range_raw: 3_000_000,
+            shoot_interval_ticks: 30,
             used_cards: Vec::new(),
+            on_hit_splashes: Vec::new(),
+            on_attack_splashes: Vec::new(),
         };
         observation.hand.push(crate::environment::HandObservation {
             index: 0,
             selected: false,
             item: crate::environment::HandItemObservation::Tower(tower.clone()),
         });
-        let tower_kind = tower.kind.clone();
+        let range_raw = tower.range_raw;
         let (low_position, high_position) = (0..observation.map_height)
             .flat_map(|top| (0..observation.map_width).map(move |left| (left, top)))
             .min_by(|left, right| {
-                crate::ml::features::placement_coverage(&observation, left.0, left.1, &tower_kind)
+                crate::ml::features::placement_coverage(&observation, left.0, left.1, range_raw)
                     .total_cmp(&crate::ml::features::placement_coverage(
                         &observation,
                         right.0,
                         right.1,
-                        &tower_kind,
+                        range_raw,
                     ))
             })
             .zip(
@@ -431,14 +493,14 @@ mod tests {
                             &observation,
                             left.0,
                             left.1,
-                            &tower_kind,
+                            range_raw,
                         )
                         .total_cmp(
                             &crate::ml::features::placement_coverage(
                                 &observation,
                                 right.0,
                                 right.1,
-                                &tower_kind,
+                                range_raw,
                             ),
                         )
                     }),
@@ -474,6 +536,6 @@ mod tests {
         let last = candidate_entity_rows(&observation, &AgentAction::Continue);
 
         assert_eq!(first[0].numeric[0], 2.0 / ActionKind::COUNT as f32);
-        assert_eq!(last[0].numeric[0], 19.0 / ActionKind::COUNT as f32);
+        assert_eq!(last[0].numeric[0], 20.0 / ActionKind::COUNT as f32);
     }
 }

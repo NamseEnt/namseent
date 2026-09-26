@@ -969,7 +969,10 @@ impl crate::CoreState {
 
     pub(crate) fn refresh_upgrade_damage_multipliers(&mut self) {
         for tower in &mut self.towers {
-            let bonus_raw = self.upgrades.tower_damage_bonus_raw(tower);
+            // See `CoreState::refresh_tower_damage_multipliers`: this must
+            // stay upgrade-only, or card polish double-counts through
+            // `attack_damage_raw`.
+            let bonus_raw = self.upgrades.tower_upgrade_bonus_raw(tower);
             tower.damage_multiplier_raw = crate::RATIO_SCALE.saturating_add(bonus_raw).max(0);
         }
     }
@@ -1187,6 +1190,175 @@ mod tests {
         .expect("test upgrade state must be valid");
     }
 
+    /// +10% flat damage bonus via `PerfectPottery` (raw kind 7): applies
+    /// identically through `tower_bonus`/`tower_bonus_for_template` as long
+    /// as `rerolled_count == 0`, so it's usable for both runtime and
+    /// template-preview comparisons.
+    fn perfect_pottery_10_pct() -> UpgradeWireEntry {
+        UpgradeWireEntry {
+            id: 1,
+            kind: 7,
+            scalar_values: Vec::new(),
+            ratio_values_raw: vec![100_000],
+            bool_values: Vec::new(),
+            optional_ids: Vec::new(),
+        }
+    }
+
+    fn tower_template_with_polish(
+        default_damage_raw: i64,
+        polish_pct_raw: i64,
+    ) -> crate::TowerTemplateState {
+        crate::TowerTemplateState {
+            kind: 1,
+            rerolled_count: 0,
+            shoot_interval: 60,
+            default_attack_range_radius_raw: 1,
+            default_damage_raw,
+            suit: Some(0),
+            rank: Some(11),
+            skill_templates: Vec::new(),
+            default_status_effects: Vec::new(),
+            used_cards: if polish_pct_raw == 0 {
+                Vec::new()
+            } else {
+                vec![crate::CardState {
+                    id: 1,
+                    suit: 0,
+                    rank: 11,
+                    polish_pct_raw,
+                    engraving: None,
+                }]
+            },
+        }
+    }
+
+    fn place_tower_with_polish(
+        core: &mut crate::CoreState,
+        default_damage_raw: i64,
+        polish_pct_raw: i64,
+    ) -> u64 {
+        let template = tower_template_with_polish(default_damage_raw, polish_pct_raw);
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+        tower_id
+    }
+
+    fn placed_tower(core: &crate::CoreState, tower_id: u64) -> &crate::TowerState {
+        core.towers()
+            .iter()
+            .find(|tower| tower.id == Some(tower_id))
+            .expect("placed tower must exist")
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_applies_polish_exactly_once() {
+        let mut core = test_core();
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 110_000);
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_applies_upgrade_bonus_exactly_once() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 0);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 110_000);
+    }
+
+    #[test]
+    fn refresh_tower_damage_multipliers_combines_polish_and_upgrade_bonus_exactly_once() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 120_000);
+    }
+
+    #[test]
+    fn refresh_upgrade_damage_multipliers_matches_refresh_tower_damage_multipliers() {
+        // `UpgradeCollection::refresh_upgrade_damage_multipliers` (used from
+        // shop/reroll/etc triggers) and `CoreState::refresh_tower_damage_multipliers`
+        // (used from `PlaceTower`) must agree exactly, including the
+        // polish/upgrade split - both went through the same historical bug.
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let tower_id = place_tower_with_polish(&mut core, 100_000, 100_000);
+        let via_place_tower = placed_tower(&core, tower_id).damage_multiplier_raw;
+
+        core.refresh_upgrade_damage_multipliers();
+        let via_upgrade_refresh = placed_tower(&core, tower_id).damage_multiplier_raw;
+
+        assert_eq!(via_place_tower, via_upgrade_refresh);
+        assert_eq!(placed_tower(&core, tower_id).attack_damage_raw(), 120_000);
+    }
+
+    #[test]
+    fn template_effective_damage_matches_placed_tower_for_previewable_upgrade() {
+        let mut core = test_core();
+        with_upgrades(&mut core, vec![perfect_pottery_10_pct()]);
+        let template = tower_template_with_polish(100_000, 100_000);
+
+        let preview_upgrade_bonus_raw = core
+            .upgrades()
+            .tower_upgrade_bonus_raw_for_template(&template);
+        let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
+
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+
+        let actual_damage_raw = placed_tower(&core, tower_id).attack_damage_raw();
+
+        assert_eq!(preview_damage_raw, 120_000);
+        assert_eq!(preview_damage_raw, actual_damage_raw);
+    }
+
+    #[test]
+    fn template_effective_damage_diverges_from_actual_for_name_tag_placement_trigger() {
+        // NameTag only assigns its bonus to a `tower_id` once `tower_placed`
+        // fires during `PlaceTower`, so `tower_bonus_for_template` (used by
+        // the pre-placement preview) always returns 0 for it - unlike
+        // `tower_bonus` on the resulting placed tower. Preview and actual
+        // damage are expected to differ in this specific case.
+        let mut core = test_core();
+        core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::NameTag))
+            .expect("name tag acquisition must succeed");
+        let template = tower_template_with_polish(100_000, 0);
+
+        let preview_upgrade_bonus_raw = core
+            .upgrades()
+            .tower_upgrade_bonus_raw_for_template(&template);
+        let preview_damage_raw = template.effective_damage_raw(preview_upgrade_bonus_raw);
+        assert_eq!(
+            preview_damage_raw, 100_000,
+            "NameTag must not leak into the template preview"
+        );
+
+        let output = core
+            .place_tower_with_template(template.clone(), None, 0, 0)
+            .expect("test tower placement must succeed");
+        let tower_id = output.tower.id.expect("placed tower must have an id");
+        core.trigger_tower_placed_upgrades(tower_id, crate::rank_is_face(template.rank), &template);
+        core.refresh_tower_damage_multipliers();
+
+        let actual_damage_raw = placed_tower(&core, tower_id).attack_damage_raw();
+        assert_eq!(
+            actual_damage_raw, 300_000,
+            "NameTag's +200% applies once the tower is actually placed"
+        );
+        assert_ne!(preview_damage_raw, actual_damage_raw);
+    }
+
     #[test]
     fn item_and_treasure_grants_respect_the_default_capacity() {
         let mut core = test_core();
@@ -1214,6 +1386,172 @@ mod tests {
         assert_eq!(
             core.acquire_upgrade(crate::generated_upgrade(crate::UpgradeKind::Apple)),
             Err(crate::CommandError::TreasureCapacityReached)
+        );
+    }
+
+    // --- Shop purchase legality/execution contract --------------------
+    //
+    // `CoreState::can_purchase_shop_slot` and the real
+    // `PlayerCommand::PurchaseShopItem` execution both go through
+    // `CoreState::try_purchase_shop_slot` (see `game_state::mod`), so a
+    // slot that fails only once its payload is applied (item/treasure
+    // capacity) can no longer be exposed as legal while the real command
+    // rejects it - the legality-contract violation this suite guards
+    // against.
+
+    fn shopping_session_with(
+        item_count: usize,
+        treasure_count: usize,
+        slots: Vec<crate::ShopSlotDataState>,
+    ) -> crate::CoreSession {
+        let mut session = crate::CoreSession::from_state(test_core())
+            .expect("test core must be a valid snapshot");
+        session
+            .edit_snapshot(|parts| {
+                parts.items = crate::ItemCollection::from_entries(
+                    (0..item_count)
+                        .map(|_| crate::generated_item(crate::ItemKind::Bread).expect("bread"))
+                        .collect(),
+                );
+                parts.upgrades = crate::UpgradeCollection::from_entries(
+                    (0..treasure_count)
+                        .map(|_| crate::generated_upgrade(crate::UpgradeKind::Apple))
+                        .collect(),
+                    0,
+                );
+                parts.progress.gold = 1_000;
+                parts.flow = crate::GameFlowState::Shopping(crate::ShopState { slots });
+            })
+            .expect("shopping fixture must be a valid snapshot");
+        session
+    }
+
+    fn item_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::Item {
+                item: crate::generated_item(crate::ItemKind::Bread).expect("bread"),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    fn upgrade_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::Upgrade {
+                upgrade: crate::generated_upgrade(crate::UpgradeKind::Apple),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    fn card_service_slot(id: usize) -> crate::ShopSlotDataState {
+        crate::ShopSlotDataState {
+            id,
+            slot: crate::ShopSlotState::CardService {
+                kind: crate::CardServiceKind::LongSword.raw(),
+                cost: 0,
+            },
+            purchased: false,
+        }
+    }
+
+    /// A: with item inventory already at capacity, the `Item` shop slot is
+    /// not legal (`can_purchase_shop_slot` is false) - it must not be
+    /// exposed as a legal `PurchaseShopItem` action.
+    #[test]
+    fn item_slot_is_illegal_once_item_capacity_is_reached() {
+        let session = shopping_session_with(5, 0, vec![item_slot(0)]);
+        assert_eq!(session.items().entries().len(), session.item_capacity());
+        assert!(!session.can_purchase_shop_slot(0));
+    }
+
+    /// B: executing `PurchaseShopItem` directly against that same state is
+    /// rejected, and the state (hash and full content) is unchanged - no
+    /// partial gold/purchased-flag/inventory mutation.
+    #[test]
+    fn purchase_command_rejects_item_slot_at_capacity_without_mutating_state() {
+        let mut session = shopping_session_with(5, 0, vec![item_slot(0)]);
+        let before_hash = session.authoritative_hash();
+        let before_state = session.raw_state().clone();
+
+        let result = session.apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 });
+
+        assert_eq!(result, Err(crate::CommandError::ItemCapacityReached));
+        assert_eq!(session.authoritative_hash(), before_hash);
+        assert_eq!(session.raw_state(), &before_state);
+    }
+
+    /// C: the same holds for an `Upgrade` slot once treasure capacity is
+    /// reached.
+    #[test]
+    fn upgrade_slot_is_illegal_once_treasure_capacity_is_reached() {
+        let session = shopping_session_with(0, 5, vec![upgrade_slot(0)]);
+        assert_eq!(session.upgrades().len(), session.treasure_capacity());
+        assert!(!session.can_purchase_shop_slot(0));
+
+        let mut session = session;
+        let before_hash = session.authoritative_hash();
+        let before_state = session.raw_state().clone();
+        let result = session.apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 });
+        assert_eq!(result, Err(crate::CommandError::TreasureCapacityReached));
+        assert_eq!(session.authoritative_hash(), before_hash);
+        assert_eq!(session.raw_state(), &before_state);
+    }
+
+    /// `can_discard_treasure` must agree exactly with the real
+    /// `discard_treasure` for every id (present or not).
+    #[test]
+    fn can_discard_treasure_matches_discard_treasure_for_every_id() {
+        let mut core = test_core();
+        for _ in 0..core.treasure_capacity() {
+            core.acquire_upgrade(generated_upgrade(crate::UpgradeKind::Apple))
+                .expect("treasures up to capacity fit");
+        }
+        let mut ids = core
+            .upgrades()
+            .entries()
+            .iter()
+            .map(|upgrade| upgrade.id())
+            .collect::<Vec<_>>();
+        assert!(!ids.is_empty());
+        ids.push(9_999);
+        for id in ids {
+            let predicted = core.can_discard_treasure(id);
+            let mut trial = core.clone();
+            assert_eq!(predicted, trial.discard_treasure(id).is_ok(), "id {id}");
+        }
+    }
+
+    /// D: purchasable Item/Upgrade/CardService slots remain legal and their
+    /// commands succeed, applying the expected payload effect.
+    #[test]
+    fn purchasable_item_upgrade_and_card_service_slots_stay_legal_and_succeed() {
+        let mut session =
+            shopping_session_with(0, 0, vec![item_slot(0), upgrade_slot(1), card_service_slot(2)]);
+        assert!(session.can_purchase_shop_slot(0));
+        assert!(session.can_purchase_shop_slot(1));
+        assert!(session.can_purchase_shop_slot(2));
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 0 })
+            .expect("item purchase should succeed");
+        assert_eq!(session.items().entries().len(), 1);
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 1 })
+            .expect("upgrade purchase should succeed");
+        assert_eq!(session.upgrades().len(), 1);
+
+        session
+            .apply(crate::PlayerCommand::PurchaseShopItem { slot_index: 2 })
+            .expect("card service purchase should succeed");
+        assert_eq!(
+            session.pending_card_service_kind(),
+            Some(crate::CardServiceKind::LongSword.raw())
         );
     }
 

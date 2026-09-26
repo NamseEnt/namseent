@@ -175,6 +175,8 @@ pub fn find_shortest_route(
         return None;
     }
 
+    #[cfg(feature = "diagnostics")]
+    crate::diagnostics::record(|counters| counters.shortest_route_bfs_calls += 1);
     let mut map = RouteMap::new(wh, blockers);
 
     let mut queue = VecDeque::new();
@@ -244,6 +246,148 @@ pub fn calculate_routes(
     })
 }
 
+const WITNESS_ROUTES_PER_SEGMENT: usize = 3;
+
+/// For each consecutive `travel_points` pair, finds up to
+/// `WITNESS_ROUTES_PER_SEGMENT` witness routes and, for each, marks every
+/// cell whose blocking could invalidate it: the route cells plus, for every
+/// diagonal step, both orthogonal side cells, because a diagonal step is
+/// only rejected when both of those are blockers. Each later witness avoids
+/// the cells marked for the earlier ones (other than the pair itself), so a
+/// footprint rarely touches all of them. Any extra blocker set that avoids
+/// every cell marked for one witness leaves that witness valid, so the pair
+/// stays connected without another search. `None` if a pair is already
+/// disconnected.
+pub(crate) fn route_dependency_grids(
+    blockers: &[[usize; 2]],
+    travel_points: &[[usize; 2]],
+    map_wh: [usize; 2],
+) -> Option<Vec<Vec<Vec<bool>>>> {
+    travel_points
+        .windows(2)
+        .map(|points| {
+            let mut witnesses = Vec::new();
+            let mut avoided = blockers.to_vec();
+            while witnesses.len() < WITNESS_ROUTES_PER_SEGMENT {
+                let Some(route) = find_shortest_route(map_wh, points[0], points[1], &avoided)
+                else {
+                    break;
+                };
+                let mut grid = vec![false; map_wh[0].saturating_mul(map_wh[1])];
+                let mut mark = |xy: [usize; 2]| {
+                    if xy[0] < map_wh[0] && xy[1] < map_wh[1] {
+                        grid[xy[1] * map_wh[0] + xy[0]] = true;
+                    }
+                };
+                for &xy in &route {
+                    mark(xy);
+                }
+                for step in route.windows(2) {
+                    let [from_xy, to_xy] = [step[0], step[1]];
+                    if !is_orthogonal(from_xy, to_xy) {
+                        mark([from_xy[0], to_xy[1]]);
+                        mark([to_xy[0], from_xy[1]]);
+                    }
+                }
+                for y in 0..map_wh[1] {
+                    for x in 0..map_wh[0] {
+                        if grid[y * map_wh[0] + x] && [x, y] != points[0] && [x, y] != points[1] {
+                            avoided.push([x, y]);
+                        }
+                    }
+                }
+                witnesses.push(grid);
+            }
+            (!witnesses.is_empty()).then_some(witnesses)
+        })
+        .collect()
+}
+
+pub(crate) const MAP_CELL_COUNT: usize = crate::MAP_SIZE[0] * crate::MAP_SIZE[1];
+
+pub(crate) fn map_cell_index(xy: [usize; 2]) -> Option<usize> {
+    (xy[0] < crate::MAP_SIZE[0] && xy[1] < crate::MAP_SIZE[1])
+        .then(|| xy[1] * crate::MAP_SIZE[0] + xy[0])
+}
+
+/// Same reachability as [`path_exists_with_extra_blockers`] on the fixed
+/// `MAP_SIZE` grid, with every blocker already marked in `blocked`, using
+/// stack buffers instead of a freshly allocated route map.
+pub(crate) fn grid_path_exists(
+    blocked: &[bool; MAP_CELL_COUNT],
+    start_xy: [usize; 2],
+    end_xy: [usize; 2],
+) -> bool {
+    if end_xy == start_xy {
+        return true;
+    }
+    let (Some(start), Some(end)) = (map_cell_index(start_xy), map_cell_index(end_xy)) else {
+        return false;
+    };
+    if blocked[start] || blocked[end] {
+        return false;
+    }
+    #[cfg(feature = "diagnostics")]
+    crate::diagnostics::record(|counters| counters.placement_bfs_calls += 1);
+    const WIDTH: isize = crate::MAP_SIZE[0] as isize;
+    const HEIGHT: isize = crate::MAP_SIZE[1] as isize;
+    const DX_DY: [(isize, isize); 8] = [
+        (0, -1),
+        (-1, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
+    ];
+    let mut visited = [false; MAP_CELL_COUNT];
+    let mut queue = [0u16; MAP_CELL_COUNT];
+    let (mut head, mut tail) = (0usize, 1usize);
+    visited[start] = true;
+    queue[0] = start as u16;
+    while head < tail {
+        let cell = queue[head] as isize;
+        head += 1;
+        let (x, y) = (cell % WIDTH, cell / WIDTH);
+        for (dx, dy) in DX_DY {
+            let (nx, ny) = (x + dx, y + dy);
+            if nx < 0 || ny < 0 || nx >= WIDTH || ny >= HEIGHT {
+                continue;
+            }
+            let next = (ny * WIDTH + nx) as usize;
+            if blocked[next] || visited[next] {
+                continue;
+            }
+            if dx != 0
+                && dy != 0
+                && blocked[(ny * WIDTH + x) as usize]
+                && blocked[(y * WIDTH + nx) as usize]
+            {
+                continue;
+            }
+            if next == end {
+                return true;
+            }
+            visited[next] = true;
+            queue[tail] = next as u16;
+            tail += 1;
+        }
+    }
+    false
+}
+
+pub(crate) fn routes_exist_with_extra_blockers(
+    blockers: &[[usize; 2]],
+    extra_blockers: &[[usize; 2]],
+    travel_points: &[[usize; 2]],
+    map_wh: [usize; 2],
+) -> bool {
+    travel_points.windows(2).all(|points| {
+        path_exists_with_extra_blockers(map_wh, points[0], points[1], blockers, extra_blockers)
+    })
+}
+
 fn neighbor_route(last_xy: [usize; 2]) -> impl Iterator<Item = [usize; 2]> {
     const DX_DY: [(isize, isize); 8] = [
         (0, -1),
@@ -264,6 +408,53 @@ fn neighbor_route(last_xy: [usize; 2]) -> impl Iterator<Item = [usize; 2]> {
             None
         }
     })
+}
+
+pub(crate) fn path_exists_with_extra_blockers(
+    wh: [usize; 2],
+    start_xy: [usize; 2],
+    end_xy: [usize; 2],
+    blockers: &[[usize; 2]],
+    extra_blockers: &[[usize; 2]],
+) -> bool {
+    if end_xy == start_xy {
+        return true;
+    }
+    if blockers.contains(&start_xy)
+        || blockers.contains(&end_xy)
+        || extra_blockers.contains(&start_xy)
+        || extra_blockers.contains(&end_xy)
+    {
+        return false;
+    }
+
+    #[cfg(feature = "diagnostics")]
+    crate::diagnostics::record(|counters| counters.placement_bfs_calls += 1);
+    let mut map = RouteMap::new(wh, blockers);
+    for &blocker in extra_blockers {
+        if !map.is_outside(blocker) {
+            *map.block_mut(blocker) = RouteBlock::Blocker;
+        }
+    }
+
+    let mut queue = VecDeque::new();
+    queue.push_back(start_xy);
+    map.set_visit(start_xy, start_xy);
+
+    while let Some(from_xy) = queue.pop_front() {
+        for xy in neighbor_route(from_xy) {
+            if map.cannot_visit(xy, from_xy) {
+                continue;
+            }
+            if xy == end_xy {
+                return true;
+            }
+            queue.push_back(xy);
+            map.set_visit(xy, from_xy);
+        }
+    }
+
+    false
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -351,6 +542,38 @@ mod tests {
     use super::*;
 
     #[test]
+    fn grid_path_exists_matches_route_map_search_on_random_blockers() {
+        use rand::{Rng, SeedableRng};
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(0x9a7d);
+        let mut connected = 0usize;
+        let mut disconnected = 0usize;
+        for _ in 0..40000 {
+            let density = rng.gen_range(0.0..0.55);
+            let mut blocked = [false; MAP_CELL_COUNT];
+            let mut blockers = Vec::new();
+            for y in 0..crate::MAP_SIZE[1] {
+                for x in 0..crate::MAP_SIZE[0] {
+                    if rng.gen_bool(density) {
+                        blocked[y * crate::MAP_SIZE[0] + x] = true;
+                        blockers.push([x, y]);
+                    }
+                }
+            }
+            let start = [rng.gen_range(0..crate::MAP_SIZE[0]), rng.gen_range(0..crate::MAP_SIZE[1])];
+            let end = [rng.gen_range(0..crate::MAP_SIZE[0]), rng.gen_range(0..crate::MAP_SIZE[1])];
+            let expected =
+                path_exists_with_extra_blockers(crate::MAP_SIZE, start, end, &blockers, &[]);
+            assert_eq!(grid_path_exists(&blocked, start, end), expected);
+            if expected {
+                connected += 1;
+            } else {
+                disconnected += 1;
+            }
+        }
+        assert!(connected > 500 && disconnected > 500);
+    }
+
+    #[test]
     fn route_matches_root_bfs_reference() {
         let wh = [5, 5];
         let start = [2, 2];
@@ -372,6 +595,26 @@ mod tests {
         assert_eq!(
             routes.cumulative_lengths,
             vec![0, crate::WORLD_UNITS_PER_TILE]
+        );
+    }
+
+    #[test]
+    fn route_existence_with_extra_blockers_matches_route_calculation() {
+        let travel_points = [[0, 0], [4, 4]];
+        let blockers = [[3, 3]];
+        let extra_blockers = [[1, 1], [1, 2], [2, 1]];
+        let mut combined = blockers.to_vec();
+        combined.extend(extra_blockers);
+
+        assert_eq!(
+            routes_exist_with_extra_blockers(&blockers, &extra_blockers, &travel_points, [5, 5]),
+            calculate_routes(&combined, &travel_points, [5, 5]).is_some()
+        );
+
+        let sealed_blockers = [[1, 0], [0, 1]];
+        assert_eq!(
+            routes_exist_with_extra_blockers(&sealed_blockers, &[], &[[0, 0], [4, 4]], [5, 5]),
+            calculate_routes(&sealed_blockers, &[[0, 0], [4, 4]], [5, 5]).is_some()
         );
     }
 }

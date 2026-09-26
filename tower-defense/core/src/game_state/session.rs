@@ -333,19 +333,10 @@ impl CoreSession {
         }
 
         if let PlayerCommand::PurchaseShopItem { slot_index } = &command {
-            let mut next = state.clone();
-            let purchase = next.purchase_shop_item(*slot_index)?;
-            if let crate::ShopSlotState::Item { item, .. } = &purchase.slot {
-                next.grant_inventory_item(item.clone())?;
-            }
-            if let crate::ShopSlotState::Upgrade { upgrade, .. } = &purchase.slot {
-                let acquire = next.acquire_upgrade(upgrade.clone())?;
-                next.apply_upgrade_recovery(acquire.recovery);
-            }
-            if let crate::ShopSlotState::CardService { kind, .. } = &purchase.slot {
-                next.begin_card_service_selection_raw(*kind)?;
-            }
-            *state = next;
+            // Shares its transaction with `CoreState::can_purchase_shop_slot`
+            // via `try_purchase_shop_slot` - legality and execution can never
+            // disagree about what "purchasable" means.
+            *state = state.try_purchase_shop_slot(*slot_index)?;
             return Ok(state.record_accepted_command(command));
         }
 

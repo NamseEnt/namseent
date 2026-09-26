@@ -95,6 +95,69 @@ const fn default_damage_multiplier_raw() -> i64 {
     crate::RATIO_SCALE
 }
 
+/// Combines card polish and an upgrade-only damage bonus into the single
+/// ratio factor `attack_damage_raw`/`TowerTemplateState::effective_damage_raw`
+/// apply to base damage. `upgrade_bonus_raw` must exclude card polish -
+/// callers that already have a combined "upgrade + polish" bonus (e.g.
+/// `UpgradeCollection::tower_damage_bonus_raw`) must not pass it here, or
+/// polish gets applied twice.
+fn combine_damage_factor_raw(card_polish_raw: i64, upgrade_bonus_raw: i64) -> i64 {
+    let multiplier_raw = crate::RATIO_SCALE.saturating_add(upgrade_bonus_raw).max(0);
+    let normalized_upgrade_bonus_raw = multiplier_raw.saturating_sub(crate::RATIO_SCALE);
+    crate::RATIO_SCALE
+        .saturating_add(card_polish_raw)
+        .saturating_add(normalized_upgrade_bonus_raw)
+}
+
+impl TowerTemplateState {
+    /// Authoritative on-attack splash effects derived from this template's
+    /// `used_cards` engravings (e.g. Cactus). Shared by placement
+    /// (`place_tower_with_template`) and observation
+    /// (`tower_template_observation`) so both compute splash semantics from
+    /// the same source of truth.
+    pub fn derived_on_attack_splashes(&self) -> Vec<crate::DamageSplash> {
+        if self
+            .used_cards
+            .iter()
+            .any(|card| card.engraving == Some(2))
+        {
+            vec![crate::DamageSplash {
+                radius_raw: 2 * crate::WORLD_UNITS_PER_TILE,
+                damage_pct_raw: 300_000,
+            }]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Authoritative on-hit splash effects derived from this template. No
+    /// current engraving derives an on-hit splash, so this is empty.
+    pub fn derived_on_hit_splashes(&self) -> Vec<crate::DamageSplash> {
+        Vec::new()
+    }
+
+    pub fn card_polish_raw(&self) -> i64 {
+        self.used_cards
+            .iter()
+            .map(|card| card.polish_pct_raw)
+            .fold(0_i64, i64::saturating_add)
+    }
+
+    /// Authoritative deterministic effective attack damage for this
+    /// template, given an explicit upgrade-only bonus (card polish is read
+    /// from `used_cards` and applied internally - do not fold polish into
+    /// `upgrade_bonus_raw`). This mirrors `TowerState::attack_damage_raw`
+    /// minus runtime-only status effects, which do not exist before
+    /// placement.
+    pub fn effective_damage_raw(&self, upgrade_bonus_raw: i64) -> i64 {
+        if self.default_damage_raw <= 0 {
+            return 0;
+        }
+        let factor = combine_damage_factor_raw(self.card_polish_raw(), upgrade_bonus_raw);
+        crate::apply_ratio_product_raw(self.default_damage_raw, &[factor])
+    }
+}
+
 impl TowerState {
     pub fn attack_range_raw(&self) -> i64 {
         if self.attack_range_radius_raw == 0 && self.template.kind != 0 {
@@ -126,21 +189,12 @@ impl TowerState {
         if damage <= 0 {
             return 0;
         }
-        let card_polish_raw = self
-            .template
-            .used_cards
-            .iter()
-            .map(|card| card.polish_pct_raw)
-            .fold(0_i64, i64::saturating_add);
+        let card_polish_raw = self.template.card_polish_raw();
         let upgrade_bonus_raw = self
             .damage_multiplier_raw
             .max(0)
             .saturating_sub(crate::RATIO_SCALE);
-        multipliers.push(
-            crate::RATIO_SCALE
-                .saturating_add(card_polish_raw)
-                .saturating_add(upgrade_bonus_raw),
-        );
+        multipliers.push(combine_damage_factor_raw(card_polish_raw, upgrade_bonus_raw));
         crate::apply_ratio_product_raw(damage, &multipliers)
     }
 }

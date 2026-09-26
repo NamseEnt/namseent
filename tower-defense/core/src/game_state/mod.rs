@@ -87,6 +87,182 @@ pub struct CoreState {
     events: crate::CoreEventQueue,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PlacementCheck {
+    Invalid,
+    RouteCertified,
+    Connected,
+    Disconnected,
+}
+
+impl PlacementCheck {
+    pub fn is_legal(self) -> bool {
+        matches!(self, Self::RouteCertified | Self::Connected)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TowerPlacementContext {
+    occupied: Vec<[usize; 2]>,
+    occupied_grid: Box<[bool; crate::route::MAP_CELL_COUNT]>,
+    route_dependencies: std::sync::OnceLock<Option<Vec<Vec<Vec<bool>>>>>,
+}
+
+impl PartialEq for TowerPlacementContext {
+    fn eq(&self, other: &Self) -> bool {
+        self.occupied == other.occupied
+    }
+}
+
+impl Eq for TowerPlacementContext {}
+
+impl TowerPlacementContext {
+    fn new(occupied: Vec<[usize; 2]>) -> Self {
+        let mut occupied_grid = Box::new([false; crate::route::MAP_CELL_COUNT]);
+        for &xy in &occupied {
+            if let Some(index) = crate::route::map_cell_index(xy) {
+                occupied_grid[index] = true;
+            }
+        }
+        Self {
+            occupied,
+            occupied_grid,
+            route_dependencies: std::sync::OnceLock::new(),
+        }
+    }
+
+    pub fn can_place_at(&self, left: usize, top: usize) -> bool {
+        self.check_placement(left, top).is_legal()
+    }
+
+    pub fn occupied(&self) -> &[[usize; 2]] {
+        &self.occupied
+    }
+
+    pub fn check_placement(&self, left: usize, top: usize) -> PlacementCheck {
+        #[cfg(feature = "diagnostics")]
+        let started = std::time::Instant::now();
+        let result = self.check_placement_unrecorded(left, top);
+        #[cfg(feature = "diagnostics")]
+        crate::diagnostics::record(|counters| {
+            counters.can_place_at_calls += 1;
+            counters.can_place_at_nanos += started.elapsed().as_nanos() as u64;
+        });
+        result
+    }
+
+    fn check_placement_unrecorded(&self, left: usize, top: usize) -> PlacementCheck {
+        let Ok(new_coords) = self.placement_coords(left, top) else {
+            return PlacementCheck::Invalid;
+        };
+        let Some(dependencies) = self.route_dependencies() else {
+            return if crate::route::routes_exist_with_extra_blockers(
+                &self.occupied,
+                &new_coords,
+                &crate::TRAVEL_POINTS,
+                crate::MAP_SIZE,
+            ) {
+                PlacementCheck::Connected
+            } else {
+                PlacementCheck::Disconnected
+            };
+        };
+        let mut searched = false;
+        let mut blocked = None;
+        for (witnesses, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+            if witnesses.iter().any(|witness| {
+                new_coords
+                    .iter()
+                    .all(|&[x, y]| !witness[y * crate::MAP_SIZE[0] + x])
+            }) {
+                continue;
+            }
+            searched = true;
+            let blocked = blocked.get_or_insert_with(|| {
+                let mut blocked = *self.occupied_grid;
+                for &[x, y] in &new_coords {
+                    blocked[y * crate::MAP_SIZE[0] + x] = true;
+                }
+                blocked
+            });
+            if !crate::route::grid_path_exists(blocked, points[0], points[1]) {
+                return PlacementCheck::Disconnected;
+            }
+        }
+        if searched {
+            PlacementCheck::Connected
+        } else {
+            PlacementCheck::RouteCertified
+        }
+    }
+
+    fn route_dependencies(&self) -> Option<&[Vec<Vec<bool>>]> {
+        self.route_dependencies
+            .get_or_init(|| {
+                crate::route::route_dependency_grids(
+                    &self.occupied,
+                    &crate::TRAVEL_POINTS,
+                    crate::MAP_SIZE,
+                )
+            })
+            .as_deref()
+    }
+
+    pub fn can_place_tower(
+        &self,
+        state: &CoreState,
+        hand_slot_index: usize,
+        left: usize,
+        top: usize,
+    ) -> bool {
+        if !matches!(state.flow, crate::GameFlowState::PlacingTower) {
+            return false;
+        }
+        let Some(slot) = state.hand.slots.get(hand_slot_index) else {
+            return false;
+        };
+        if !matches!(slot.item, crate::HandItemState::Tower(_)) {
+            return false;
+        }
+        self.can_place_at(left, top)
+    }
+
+    fn placement_route(
+        &self,
+        left: usize,
+        top: usize,
+    ) -> Result<crate::RouteState, crate::CommandError> {
+        let new_coords = self.placement_coords(left, top)?;
+        let mut blockers = self.occupied.clone();
+        blockers.extend(new_coords);
+        crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+            .ok_or(crate::CommandError::InvalidPlacement)
+    }
+
+    fn placement_coords(
+        &self,
+        left: usize,
+        top: usize,
+    ) -> Result<[[usize; 2]; 4], crate::CommandError> {
+        let right = left
+            .checked_add(1)
+            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let bottom = top
+            .checked_add(1)
+            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let new_coords = [[left, top], [right, top], [left, bottom], [right, bottom]];
+        if new_coords.iter().any(|coord| {
+            coord[0] >= crate::MAP_SIZE[0]
+                || coord[1] >= crate::MAP_SIZE[1]
+                || crate::TRAVEL_POINTS.contains(coord)
+                || self.occupied_grid[coord[1] * crate::MAP_SIZE[0] + coord[0]]
+        }) {
+            return Err(crate::CommandError::InvalidPlacement);
+        }
+        Ok(new_coords)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PreCombatOutput {
     pub monster_spawned: bool,
@@ -637,26 +813,7 @@ impl CoreState {
                 return Err(crate::CommandError::InvalidSelection);
             }
         }
-        let right = left
-            .checked_add(1)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
-        let bottom = top
-            .checked_add(1)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
-        let occupied = crate::game_state::tower::tower_blockers(&self.towers);
-        let new_coords = [[left, top], [right, top], [left, bottom], [right, bottom]];
-        if new_coords.iter().any(|coord| {
-            coord[0] >= crate::MAP_SIZE[0]
-                || coord[1] >= crate::MAP_SIZE[1]
-                || crate::TRAVEL_POINTS.contains(coord)
-                || occupied.contains(coord)
-        }) {
-            return Err(crate::CommandError::InvalidPlacement);
-        }
-        let mut blockers = occupied;
-        blockers.extend(new_coords);
-        let route = crate::calculate_routes(&blockers, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
-            .ok_or(crate::CommandError::InvalidPlacement)?;
+        let route = self.tower_placement_context().placement_route(left, top)?;
         let tower_id = self.next_entity_id.allocate_raw();
         let tower = crate::TowerState {
             id: Some(tower_id),
@@ -676,19 +833,8 @@ impl CoreState {
             damage_multiplier_raw: crate::RATIO_SCALE,
             attack_range_radius_raw: template.default_attack_range_radius_raw,
             effective_shoot_interval: template.shoot_interval,
-            on_hit_splashes: Vec::new(),
-            on_attack_splashes: if template
-                .used_cards
-                .iter()
-                .any(|card| card.engraving == Some(2))
-            {
-                vec![crate::DamageSplash {
-                    radius_raw: 2 * crate::WORLD_UNITS_PER_TILE,
-                    damage_pct_raw: 300_000,
-                }]
-            } else {
-                Vec::new()
-            },
+            on_hit_splashes: template.derived_on_hit_splashes(),
+            on_attack_splashes: template.derived_on_attack_splashes(),
         };
         self.towers.push(tower.clone());
         if let Some(hand_slot_index) = hand_slot_index {
@@ -703,15 +849,23 @@ impl CoreState {
     }
 
     pub fn can_place_tower(&self, hand_slot_index: usize, left: usize, top: usize) -> bool {
-        let mut candidate = self.clone();
-        candidate.place_tower(hand_slot_index, left, top).is_ok()
+        self.tower_placement_context()
+            .can_place_tower(self, hand_slot_index, left, top)
+    }
+
+    pub fn tower_placement_context(&self) -> TowerPlacementContext {
+        TowerPlacementContext::new(crate::game_state::tower::tower_blockers(&self.towers))
     }
 
     pub fn refresh_tower_damage_multipliers(&mut self) {
         let upgrades = self.upgrades.clone();
         for tower in &mut self.towers {
+            // `damage_multiplier_raw` must hold the upgrade-only bonus:
+            // `attack_damage_raw` separately re-applies card polish from
+            // `template.used_cards`, so folding polish in here (as
+            // `tower_damage_bonus_raw` does) would double-count it.
             tower.damage_multiplier_raw = crate::RATIO_SCALE
-                .saturating_add(upgrades.tower_damage_bonus_raw(tower))
+                .saturating_add(upgrades.tower_upgrade_bonus_raw(tower))
                 .max(0);
         }
     }
@@ -787,7 +941,18 @@ impl CoreState {
             .clamp(0, i128::from(crate::RATIO_SCALE)) as i64
     }
 
-    pub fn can_purchase_shop_slot(&self, slot_index: usize) -> bool {
+    /// Slot-level purchase precondition: purchased flag, the
+    /// purchase-disable stage modifier, gold, and (for `CardService`) deck
+    /// availability. Deliberately excludes anything that can only fail once
+    /// the purchase's payload is actually applied (item/treasure capacity,
+    /// card-service selection legality) - those are only knowable by running
+    /// the real transaction, which `try_purchase_shop_slot` does. Kept
+    /// private: `purchase_shop_item` uses it directly (to avoid the
+    /// recursion `can_purchase_shop_slot` -> `try_purchase_shop_slot` ->
+    /// `purchase_shop_item` -> `can_purchase_shop_slot` would otherwise
+    /// create), and `can_purchase_shop_slot` reflects the full transaction
+    /// via `try_purchase_shop_slot` instead.
+    fn shop_slot_purchase_precondition(&self, slot_index: usize) -> bool {
         let crate::GameFlowState::Shopping(shop) = &self.flow else {
             return false;
         };
@@ -818,6 +983,55 @@ impl CoreState {
             }
     }
 
+    /// Whether `slot_index` is purchasable *and* its full purchase
+    /// transaction (`try_purchase_shop_slot`) succeeds - the same
+    /// authoritative check the real `PlayerCommand::PurchaseShopItem`
+    /// executes, run here on a discarded clone so this never mutates `self`
+    /// (no RNG/domain-counter/event/metric side effects). This is the only
+    /// legality source for shop purchases: it cannot disagree with actual
+    /// command execution, because both call `try_purchase_shop_slot`.
+    pub fn can_purchase_shop_slot(&self, slot_index: usize) -> bool {
+        self.try_purchase_shop_slot(slot_index).is_ok()
+    }
+
+    /// The authoritative purchase transaction for `slot_index`: the shop
+    /// purchase itself, plus its payload effect (item grant / upgrade
+    /// acquisition / card-service selection start). Returns the resulting
+    /// state without mutating `self` - `can_purchase_shop_slot` (legality)
+    /// and `PlayerCommand::PurchaseShopItem` (execution, via
+    /// `GameSession::apply_to`) both call this, so they can never disagree
+    /// about what "purchasable" means (see docs/game-ai/05-rollout-teacher.md's
+    /// legality-contract note, and `CommandError::ItemCapacityReached` /
+    /// `TreasureCapacityReached`, which only `grant_inventory_item` /
+    /// `acquire_upgrade` can determine).
+    pub(crate) fn try_purchase_shop_slot(
+        &self,
+        slot_index: usize,
+    ) -> Result<Self, crate::CommandError> {
+        let mut next = self.clone();
+        let purchase = next.purchase_shop_item(slot_index)?;
+        if let crate::ShopSlotState::Item { item, .. } = &purchase.slot {
+            next.grant_inventory_item(item.clone())?;
+        }
+        if let crate::ShopSlotState::Upgrade { upgrade, .. } = &purchase.slot {
+            let acquire = next.acquire_upgrade(upgrade.clone())?;
+            next.apply_upgrade_recovery(acquire.recovery);
+        }
+        if let crate::ShopSlotState::CardService { kind, .. } = &purchase.slot {
+            next.begin_card_service_selection_raw(*kind)?;
+        }
+        Ok(next)
+    }
+
+    /// Applies the shop-slot purchase itself: marks the slot purchased,
+    /// deducts gold, records spend metrics, and triggers
+    /// purchase-upgrade hooks. Does not apply the slot's payload effect
+    /// (item grant / upgrade acquisition / card-service selection) - see
+    /// `try_purchase_shop_slot`, which composes this with the payload step
+    /// and is the only legality/execution-shared entry point. Kept `pub`
+    /// for existing direct callers/tests that only need the slot-purchase
+    /// half; `can_purchase_shop_slot` reflects the *full* transaction, not
+    /// just this step.
     pub fn purchase_shop_item(
         &mut self,
         slot_index: usize,
@@ -834,7 +1048,7 @@ impl CoreState {
             }
             _ => return Err(crate::CommandError::InvalidFlow),
         }
-        if !self.can_purchase_shop_slot(slot_index) {
+        if !self.shop_slot_purchase_precondition(slot_index) {
             return Err(crate::CommandError::Rejected);
         }
 
@@ -892,40 +1106,66 @@ impl CoreState {
             .saturating_add(self.upgrades.cache_state().treasure_capacity_bonus)
     }
 
-    pub fn discard_treasure(
-        &mut self,
-        upgrade_id: u64,
-    ) -> Result<crate::UpgradeEntry, crate::CommandError> {
+    /// Single source of truth for whether discarding `upgrade_id` is allowed:
+    /// both [`Self::discard_treasure`] and [`Self::can_discard_treasure`] go
+    /// through it, so legality and execution cannot drift. Only the upgrade
+    /// collection (capacity bonuses) and the inventory size matter, so the
+    /// trial removal runs on a clone of just the collection.
+    fn discard_treasure_error(&self, upgrade_id: u64) -> Result<(), crate::CommandError> {
         if matches!(
             self.flow,
             crate::GameFlowState::Initializing | crate::GameFlowState::Result { .. }
         ) {
             return Err(crate::CommandError::InvalidFlow);
         }
+        let mut remaining = self.upgrades.clone();
+        remaining
+            .remove_by_id(upgrade_id)
+            .ok_or(crate::CommandError::InvalidIndex)?;
+        let bonuses = remaining.cache_state();
+        let item_capacity =
+            crate::game_state::item::BASE_ITEM_CAPACITY.saturating_add(bonuses.item_capacity_bonus);
+        if self.items.len() > item_capacity {
+            return Err(crate::CommandError::TreasureDiscardWouldOverflowInventory);
+        }
+        let treasure_capacity = crate::game_state::upgrade::BASE_TREASURE_CAPACITY
+            .saturating_add(bonuses.treasure_capacity_bonus);
+        if remaining.len() > treasure_capacity {
+            return Err(crate::CommandError::TreasureCapacityReached);
+        }
+        Ok(())
+    }
 
-        let mut next = self.clone();
-        let removed = next
+    pub fn discard_treasure(
+        &mut self,
+        upgrade_id: u64,
+    ) -> Result<crate::UpgradeEntry, crate::CommandError> {
+        self.discard_treasure_error(upgrade_id)?;
+        let removed = self
             .upgrades
             .remove_by_id(upgrade_id)
             .ok_or(crate::CommandError::InvalidIndex)?;
-        if next.items.len() > next.item_capacity() {
-            return Err(crate::CommandError::TreasureDiscardWouldOverflowInventory);
-        }
-        if next.upgrades.len() > next.treasure_capacity() {
-            return Err(crate::CommandError::TreasureCapacityReached);
-        }
-        next.refresh_upgrade_damage_multipliers();
-        next.hp_raw = next.hp_raw.min(next.max_hp_raw());
-        next.push_event(crate::CoreEvent::TreasureDiscarded {
+        self.refresh_upgrade_damage_multipliers();
+        self.hp_raw = self.hp_raw.min(self.max_hp_raw());
+        self.push_event(crate::CoreEvent::TreasureDiscarded {
             upgrade: removed.clone(),
         });
-        *self = next;
         Ok(removed)
     }
 
     pub fn can_discard_treasure(&self, upgrade_id: u64) -> bool {
-        let mut next = self.clone();
-        next.discard_treasure(upgrade_id).is_ok()
+        self.discard_treasure_error(upgrade_id).is_ok()
+    }
+
+    /// Whether `select_treasure(option_index)` would succeed right now
+    /// (trial run on a discarded clone, so it can never disagree with the
+    /// real command).
+    pub fn can_select_treasure(&self, option_index: usize) -> bool {
+        if !matches!(self.flow, crate::GameFlowState::TreasureSelection { .. }) {
+            return false;
+        }
+        let mut trial = self.clone();
+        trial.select_treasure(option_index).is_ok()
     }
 
     pub fn earn_gold(&mut self, amount: usize) {
@@ -1868,3 +2108,128 @@ pub use crate::{
     MonsterSpawnState, MonsterState, ShopPurchaseOutput, ShopSlotDataState, ShopSlotState,
     ShopState, TowerState, TowerTemplateState, UpgradeCacheState, UpgradeEntryIdentityState,
 };
+
+#[cfg(test)]
+mod placement_certificate_tests {
+    use super::*;
+    use rand::{Rng, SeedableRng};
+
+    fn search_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
+        let new_coords = [[left, top], [left + 1, top], [left, top + 1], [left + 1, top + 1]];
+        if new_coords.iter().any(|coord| {
+            coord[0] >= crate::MAP_SIZE[0]
+                || coord[1] >= crate::MAP_SIZE[1]
+                || crate::TRAVEL_POINTS.contains(coord)
+                || context.occupied.contains(coord)
+        }) {
+            return false;
+        }
+        crate::route::routes_exist_with_extra_blockers(
+            &context.occupied,
+            &new_coords,
+            &crate::TRAVEL_POINTS,
+            crate::MAP_SIZE,
+        )
+    }
+
+    fn context_with(occupied: Vec<[usize; 2]>) -> TowerPlacementContext {
+        TowerPlacementContext::new(occupied)
+    }
+
+    fn random_connected_context(seed: u64) -> TowerPlacementContext {
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let target_towers = rng.gen_range(0..=160usize);
+        let mut context = context_with(Vec::new());
+        for _ in 0..target_towers * 8 {
+            if context.occupied.len() / 4 >= target_towers {
+                break;
+            }
+            let left = rng.gen_range(0..crate::MAP_SIZE[0] - 1);
+            let top = rng.gen_range(0..crate::MAP_SIZE[1] - 1);
+            if search_only(&context, left, top) {
+                let mut occupied = context.occupied.clone();
+                occupied.extend(context.placement_coords(left, top).unwrap());
+                context = context_with(occupied);
+            }
+        }
+        context
+    }
+
+    fn route_vertex_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
+        let Ok(new_coords) = context.placement_coords(left, top) else {
+            return false;
+        };
+        let Some(route) =
+            crate::calculate_routes(&context.occupied, &crate::TRAVEL_POINTS, crate::MAP_SIZE)
+        else {
+            return search_only(context, left, top);
+        };
+        if new_coords
+            .iter()
+            .all(|coord| !route.map_coords.contains(coord))
+        {
+            return true;
+        }
+        search_only(context, left, top)
+    }
+
+    #[test]
+    fn route_certificate_matches_search_for_every_position_on_random_maps() {
+        let mut certified = 0usize;
+        let mut vertex_only_mismatches = 0usize;
+        for seed in 0..48u64 {
+            let context = random_connected_context(seed);
+            for top in 0..crate::MAP_SIZE[1] {
+                for left in 0..crate::MAP_SIZE[0] {
+                    let expected = search_only(&context, left, top);
+                    let check = context.check_placement(left, top);
+                    assert_eq!(
+                        check.is_legal(),
+                        expected,
+                        "seed {seed} ({left}, {top}): {check:?} disagreed with search"
+                    );
+                    if check == PlacementCheck::RouteCertified {
+                        certified += 1;
+                    }
+                    if route_vertex_only(&context, left, top) != expected {
+                        vertex_only_mismatches += 1;
+                    }
+                }
+            }
+        }
+        assert!(certified > 0);
+        assert!(
+            vertex_only_mismatches > 0,
+            "generated maps should include diagonal side-cell cases"
+        );
+    }
+
+    #[test]
+    fn route_certificate_respects_diagonal_side_cells() {
+        let mut diagonal_steps = 0usize;
+        for seed in 0..16u64 {
+            let context = random_connected_context(seed);
+            let dependencies = context.route_dependencies().unwrap();
+            for (witnesses, points) in dependencies.iter().zip(crate::TRAVEL_POINTS.windows(2)) {
+                let segment = &witnesses[0];
+                let route = crate::route::find_shortest_route(
+                    crate::MAP_SIZE,
+                    points[0],
+                    points[1],
+                    &context.occupied,
+                )
+                .unwrap();
+                for step in route.windows(2) {
+                    let [from_xy, to_xy] = [step[0], step[1]];
+                    if from_xy[0] != to_xy[0] && from_xy[1] != to_xy[1] {
+                        diagonal_steps += 1;
+                        for side in [[from_xy[0], to_xy[1]], [to_xy[0], from_xy[1]]] {
+                            assert!(segment[side[1] * crate::MAP_SIZE[0] + side[0]]);
+                        }
+                    }
+                }
+            }
+        }
+        assert!(diagonal_steps > 0);
+    }
+}

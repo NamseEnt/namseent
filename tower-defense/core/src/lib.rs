@@ -2,6 +2,18 @@ pub mod card;
 pub mod catalog;
 pub mod combat_number;
 pub mod deterministic_rng;
+#[cfg(feature = "diagnostics")]
+pub mod diagnostics;
+
+#[macro_export]
+macro_rules! diag_scope {
+    ($scope:ident) => {
+        #[cfg(feature = "diagnostics")]
+        let _diag_scope_guard =
+            $crate::diagnostics::ScopeGuard::new($crate::diagnostics::Scope::$scope);
+    };
+}
+
 mod events;
 pub use catalog::*;
 pub mod game_state;
@@ -19,7 +31,6 @@ pub use deterministic_rng::{
     RNG_ALGORITHM_VERSION, derive_seed, domain, rng_for, shuffle, stable_key_hash, uniform_index,
 };
 pub use events::{CoreEvent, CoreEventQueue};
-pub use game_state::CoreState;
 pub use game_state::EntitySnapshots;
 pub use game_state::card_service::{
     CardSelectionFilterState, CardServicePurchaseBlockReason, CardServiceSelectionState,
@@ -69,9 +80,12 @@ pub(crate) use game_state::monster::{
 };
 pub use game_state::monster_spawn::MonsterSpawnState;
 pub use game_state::observation::{
-    CardObservation, CardServiceObservation, DeckObservation, HandItemObservation, HandObservation,
+    BuildTowerCandidateObservation, CardObservation, CardServiceObservation,
+    DamageSplashObservation, DeckObservation, HandItemObservation, HandObservation,
     InventoryObservation, MonsterObservation, Observation, OwnedUpgradeObservation,
-    RouteCoordObservation, ShopSlotObservation, TowerObservation, TowerTemplateObservation,
+    QueuedMonsterGroupObservation, RouteCoordObservation, ShopSlotObservation, TowerObservation,
+    TowerStatusEffectObservation, TowerStatusEffectObservationKind, TowerTemplateObservation,
+    WaveGroupObservation,
 };
 pub use game_state::replay::{
     AUTHORITATIVE_HASH_VERSION, CORE_CONFIG_DIGEST_VERSION, CORE_CONFIG_SCHEMA_VERSION,
@@ -125,6 +139,7 @@ pub use game_state::{
     RecordedTickOutput, RenderMonsterSnapshot, RenderSnapshot, RenderSpatialAttackSnapshot,
     RenderTowerSnapshot, TickEventsOutput, TickOutput, TickTransition, TowerDamageStats,
 };
+pub use game_state::{CoreState, PlacementCheck, TowerPlacementContext};
 use route::multiply_ratio_raw;
 pub use route::{
     MoveOnRouteState, RouteState, advance_move_on_route, apply_ratio_product_raw, calculate_routes,
@@ -137,7 +152,7 @@ pub use time::{RATIO_SCALE, RatioRaw, SIM_TICKS_PER_SECOND, SimTick, SimTickSpan
 pub use rarity::Rarity;
 pub use world::{WorldAcceleration, WorldCoord, WorldDistance, WorldSpeed, WorldVec, integer_sqrt};
 
-pub const OBSERVATION_SCHEMA_VERSION: u32 = 2;
+pub const OBSERVATION_SCHEMA_VERSION: u32 = 9;
 
 pub const WORLD_UNITS_PER_TILE: i64 = world::WORLD_UNITS_PER_TILE;
 
@@ -391,7 +406,7 @@ pub fn expand_area_damage_events(
 }
 
 impl ActionKind {
-    pub const COUNT: usize = 19;
+    pub const COUNT: usize = 20;
 
     pub const fn index(self) -> usize {
         match self {
@@ -405,15 +420,16 @@ impl ActionKind {
             Self::CancelCardSelection => 7,
             Self::Reroll => 8,
             Self::SelectTower => 9,
-            Self::PlaceTower => 10,
-            Self::RemoveTower => 11,
-            Self::StartDefense => 12,
-            Self::SelectTreasure => 13,
-            Self::SelectCardServiceCard => 14,
-            Self::ConfirmCardServiceSelection => 15,
-            Self::UseInventoryItem => 16,
-            Self::DiscardTreasure => 17,
-            Self::Continue => 18,
+            Self::BuildTower => 10,
+            Self::PlaceTower => 11,
+            Self::RemoveTower => 12,
+            Self::StartDefense => 13,
+            Self::SelectTreasure => 14,
+            Self::SelectCardServiceCard => 15,
+            Self::ConfirmCardServiceSelection => 16,
+            Self::UseInventoryItem => 17,
+            Self::DiscardTreasure => 18,
+            Self::Continue => 19,
         }
     }
 
@@ -429,6 +445,7 @@ impl ActionKind {
             Self::CancelCardSelection => "cancel_card_selection",
             Self::Reroll => "reroll",
             Self::SelectTower => "select_tower",
+            Self::BuildTower => "build_tower",
             Self::PlaceTower => "place_tower",
             Self::RemoveTower => "remove_tower",
             Self::StartDefense => "start_defense",
@@ -455,6 +472,7 @@ impl AgentAction {
             Self::CancelCardSelection => ActionKind::CancelCardSelection,
             Self::Reroll { .. } => ActionKind::Reroll,
             Self::SelectTower { .. } => ActionKind::SelectTower,
+            Self::BuildTower { .. } => ActionKind::BuildTower,
             Self::PlaceTower { .. } => ActionKind::PlaceTower,
             Self::RemoveTower { .. } => ActionKind::RemoveTower,
             Self::StartDefense => ActionKind::StartDefense,
@@ -481,12 +499,17 @@ impl AgentAction {
             }
             Self::ConfirmCardSelection => "confirm_card_selection".to_string(),
             Self::CancelCardSelection => "cancel_card_selection".to_string(),
-            Self::Reroll {
-                selected_slot_indices,
-            } => format!("reroll:{}", indices_key(selected_slot_indices)),
-            Self::SelectTower {
-                selected_slot_indices,
-            } => format!("select_tower:{}", indices_key(selected_slot_indices)),
+            Self::Reroll { card_ids } => format!("reroll:{}", indices_key(card_ids)),
+            Self::SelectTower { card_ids } => format!("select_tower:{}", indices_key(card_ids)),
+            Self::BuildTower {
+                card_ids,
+                hand_slot_index,
+                left,
+                top,
+            } => format!(
+                "build_tower:{}:{hand_slot_index}:{left}:{top}",
+                indices_key(card_ids),
+            ),
             Self::PlaceTower {
                 hand_slot_index,
                 left,
@@ -505,55 +528,88 @@ impl AgentAction {
         }
     }
 
-    pub fn to_player_command(&self) -> Option<PlayerCommand> {
+    pub fn to_player_command(
+        &self,
+        hand_card_ids: &[(usize, usize)],
+    ) -> Result<Option<PlayerCommand>, CommandError> {
         match self {
-            Self::PurchaseShopItem { slot_index } => Some(PlayerCommand::PurchaseShopItem {
+            Self::PurchaseShopItem { slot_index } => Ok(Some(PlayerCommand::PurchaseShopItem {
                 slot_index: *slot_index,
-            }),
-            Self::StartSelectingTower => Some(PlayerCommand::StartSelectingTower),
+            })),
+            Self::StartSelectingTower => Ok(Some(PlayerCommand::StartSelectingTower)),
             Self::BeginRerollSelection
             | Self::BeginTowerSelection
             | Self::SelectHandCard { .. }
             | Self::DeselectHandCard { .. }
             | Self::ConfirmCardSelection
-            | Self::CancelCardSelection => None,
-            Self::Reroll {
-                selected_slot_indices,
-            } => Some(PlayerCommand::Reroll {
-                selected_slot_indices: selected_slot_indices.clone(),
-            }),
-            Self::SelectTower {
-                selected_slot_indices,
-            } => Some(PlayerCommand::SelectTower {
-                selected_slot_indices: selected_slot_indices.clone(),
-            }),
+            | Self::CancelCardSelection => Ok(None),
+            Self::Reroll { card_ids } => Ok(Some(PlayerCommand::Reroll {
+                selected_slot_indices: resolve_card_ids_to_slot_indices(card_ids, hand_card_ids)?,
+            })),
+            Self::SelectTower { card_ids } => Ok(Some(PlayerCommand::SelectTower {
+                selected_slot_indices: resolve_card_ids_to_slot_indices(card_ids, hand_card_ids)?,
+            })),
+            Self::BuildTower { .. } => Ok(None),
             Self::PlaceTower {
                 hand_slot_index,
                 left,
                 top,
-            } => Some(PlayerCommand::PlaceTower {
+            } => Ok(Some(PlayerCommand::PlaceTower {
                 hand_slot_index: *hand_slot_index,
                 left: *left,
                 top: *top,
-            }),
-            Self::RemoveTower { tower_id } => Some(PlayerCommand::RemoveTower {
+            })),
+            Self::RemoveTower { tower_id } => Ok(Some(PlayerCommand::RemoveTower {
                 tower_id: *tower_id,
-            }),
-            Self::StartDefense => Some(PlayerCommand::StartDefense),
-            Self::SelectTreasure { option_index } => Some(PlayerCommand::SelectTreasure {
+            })),
+            Self::StartDefense => Ok(Some(PlayerCommand::StartDefense)),
+            Self::SelectTreasure { option_index } => Ok(Some(PlayerCommand::SelectTreasure {
                 option_index: *option_index,
-            }),
+            })),
             Self::SelectCardServiceCard { .. }
             | Self::ConfirmCardServiceSelection
-            | Self::Continue => None,
-            Self::UseInventoryItem { item_index } => Some(PlayerCommand::UseInventoryItem {
+            | Self::Continue => Ok(None),
+            Self::UseInventoryItem { item_index } => Ok(Some(PlayerCommand::UseInventoryItem {
                 item_index: *item_index,
-            }),
-            Self::DiscardTreasure { upgrade_id } => Some(PlayerCommand::DiscardTreasure {
+            })),
+            Self::DiscardTreasure { upgrade_id } => Ok(Some(PlayerCommand::DiscardTreasure {
                 upgrade_id: *upgrade_id,
-            }),
+            })),
         }
     }
+}
+
+fn resolve_card_ids_to_slot_indices(
+    card_ids: &[usize],
+    hand_card_ids: &[(usize, usize)],
+) -> Result<Vec<usize>, CommandError> {
+    if card_ids.is_empty() {
+        return Ok(hand_card_ids
+            .iter()
+            .map(|(slot_index, _)| *slot_index)
+            .collect());
+    }
+    card_ids
+        .iter()
+        .map(|card_id| {
+            hand_card_ids
+                .iter()
+                .find(|(_, id)| id == card_id)
+                .map(|(slot_index, _)| *slot_index)
+                .ok_or(CommandError::InvalidSelection)
+        })
+        .collect()
+}
+
+pub fn hand_card_id_slots(hand: &HandState) -> Vec<(usize, usize)> {
+    hand.slots
+        .iter()
+        .enumerate()
+        .filter_map(|(slot_index, slot)| match &slot.item {
+            HandItemState::Card(card) => Some((slot_index, card.id)),
+            HandItemState::Tower(_) => None,
+        })
+        .collect()
 }
 
 fn indices_key(indices: &[usize]) -> String {
@@ -640,10 +696,11 @@ mod tests {
     use super::game_state::monster::{apply_damage_hits, prepare_monster_death};
     use super::game_state::tick::{advance_in_flight_attacks_with_events, timed_attack_is_due};
     use super::{
-        ActionKind, AgentAction, AreaDamageEvent, AttackSourceState, CommandError, CoreEvent,
-        CoreEventQueue, DamageHit, DamageSplash, EntitySnapshots, GameConfigState, GameMetrics,
-        HomingProjectileParams, InFlightAttackKindState, InFlightAttackState, LaserAttackState,
-        MonsterSkill, MonsterSkillKind, MonsterSkillTarget, MonsterSkillTemplate, MonsterState,
+        ActionKind, AgentAction, AreaDamageEvent, AttackSourceState, CardState, CommandError,
+        CoreEvent, CoreEventQueue, DamageHit, DamageSplash, EntitySnapshots, GameConfigState,
+        GameMetrics, HandItemState, HandSlotState, HandState, HomingProjectileParams,
+        InFlightAttackKindState, InFlightAttackState, LaserAttackState, MonsterSkill,
+        MonsterSkillKind, MonsterSkillTarget, MonsterSkillTemplate, MonsterState,
         MonsterStatusEffect, MonsterStatusEffectKind, MoveOnRouteState, PlayerCommand, RngState,
         RouteState, SimTick, SimTickSpan, SpatialAttackBehaviorState, SpatialAttackState,
         TimedAttackState, TowerSkill, TowerSkillKind, TowerSkillTemplate, TowerState,
@@ -653,7 +710,7 @@ mod tests {
         advance_homing_projectile, advance_monster_states, advance_move_on_route,
         advance_tower_cooldowns, apply_monster_damage, apply_monster_skill_activations,
         apply_ratio_product_raw, apply_tower_skill_activations, damage_hit_sort_key,
-        expand_area_damage_events, expand_on_hit_splashes, remove_dead_monster,
+        expand_area_damage_events, expand_on_hit_splashes, hand_card_id_slots, remove_dead_monster,
         remove_expired_monster_statuses, remove_expired_tower_statuses,
         remove_expired_user_status_effects, resolve_monster_escapes, segment_hits_point,
     };
@@ -1230,10 +1287,14 @@ mod tests {
             AgentAction::ConfirmCardSelection,
             AgentAction::CancelCardSelection,
             AgentAction::Reroll {
-                selected_slot_indices: vec![0, 2],
+                card_ids: vec![0, 2],
             },
-            AgentAction::SelectTower {
-                selected_slot_indices: vec![1],
+            AgentAction::SelectTower { card_ids: vec![1] },
+            AgentAction::BuildTower {
+                card_ids: vec![1],
+                hand_slot_index: 0,
+                left: 3,
+                top: 4,
             },
             AgentAction::PlaceTower {
                 hand_slot_index: 0,
@@ -1261,14 +1322,67 @@ mod tests {
         assert_eq!(actions[0].action_id(), "purchase_shop_item:2");
         assert_eq!(actions[8].action_id(), "reroll:0,2");
         assert_eq!(
-            actions[10].to_player_command(),
-            Some(PlayerCommand::PlaceTower {
+            actions[11].to_player_command(&[]),
+            Ok(Some(PlayerCommand::PlaceTower {
                 hand_slot_index: 0,
                 left: 3,
                 top: 4,
-            })
+            }))
         );
-        assert_eq!(actions[2].to_player_command(), None);
+        assert_eq!(actions[10].action_id(), "build_tower:1:0:3:4");
+        assert_eq!(actions[2].to_player_command(&[]), Ok(None));
+    }
+
+    #[test]
+    fn agent_action_resolves_stable_card_ids_against_current_hand_slots() {
+        let hand = HandState {
+            slots: vec![
+                HandSlotState {
+                    id: 1,
+                    item: HandItemState::Card(CardState {
+                        id: 40,
+                        suit: 0,
+                        rank: 0,
+                        polish_pct_raw: 0,
+                        engraving: None,
+                    }),
+                    selected: false,
+                },
+                HandSlotState {
+                    id: 2,
+                    item: HandItemState::Card(CardState {
+                        id: 41,
+                        suit: 1,
+                        rank: 1,
+                        polish_pct_raw: 0,
+                        engraving: None,
+                    }),
+                    selected: false,
+                },
+            ],
+            next_hand_slot_id: 3,
+        };
+        let hand_card_ids = hand_card_id_slots(&hand);
+
+        assert_eq!(
+            AgentAction::Reroll { card_ids: vec![41] }.to_player_command(&hand_card_ids),
+            Ok(Some(PlayerCommand::Reroll {
+                selected_slot_indices: vec![1]
+            }))
+        );
+        assert_eq!(
+            AgentAction::SelectTower { card_ids: vec![] }.to_player_command(&hand_card_ids),
+            Ok(Some(PlayerCommand::SelectTower {
+                selected_slot_indices: vec![0, 1]
+            }))
+        );
+        assert_eq!(
+            AgentAction::Reroll {
+                card_ids: vec![999]
+            }
+            .to_player_command(&hand_card_ids),
+            Err(CommandError::InvalidSelection)
+        );
     }
 
     #[test]

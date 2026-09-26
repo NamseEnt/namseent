@@ -249,9 +249,21 @@ impl GameCore {
         self.session.authoritative_hash()
     }
 
-    #[cfg(test)]
     pub(crate) fn core_state_snapshot(&self) -> td_core::CoreState {
         self.session.raw_state().clone_without_events()
+    }
+
+    pub(crate) fn from_core_state_snapshot(snapshot: td_core::CoreState) -> Result<Self, String> {
+        let session = td_core::CoreSession::from_state(snapshot)
+            .map_err(|_| "invalid core state snapshot".to_string())?;
+        let deferred_card_service_selection = session
+            .raw_state()
+            .pending_card_service_kind_typed()
+            .and_then(Self::build_deferred_card_service_selection);
+        Ok(Self {
+            session,
+            deferred_card_service_selection,
+        })
     }
 
     pub(crate) fn raw_state(&self) -> &td_core::CoreState {
@@ -424,6 +436,7 @@ impl GameCore {
     /// or computing replay metadata. Use this for explicit bulk statistics;
     /// use [`Self::advance_tick`] for replayable or policy-traced execution.
     pub fn advance_tick_unrecorded(&mut self) -> TickTransition {
+        td_core::diag_scope!(CoreTick);
         let output = self.session.advance_tick_unrecorded();
         TickTransition {
             sim_tick: SimTick::from_ticks(output.sim_tick.ticks()),
@@ -841,14 +854,14 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: 0,
                 took_damage: false,
             })
         );
         assert_eq!(
             core.session.monster_spawn().monster_queue[0].max_hp_raw,
-            67_657
+            35_520
         );
         assert_eq!(
             core.session.monster_spawn().monster_queue[0]
@@ -1025,7 +1038,7 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: 1_000,
                 took_damage: false,
             })
@@ -1050,7 +1063,7 @@ mod tests {
         assert_eq!(
             core.session.flow(),
             &td_core::GameFlowState::Defense(td_core::DefenseFlowState {
-                start_total_hp_raw: 338_285,
+                start_total_hp_raw: 177_600,
                 processed_hp_raw: hp_before,
                 took_damage: false,
             })
@@ -1084,7 +1097,7 @@ mod tests {
         core.advance_tick();
 
         assert_eq!(core.session.hp_raw(), 59_000);
-        assert_eq!(core.session.metrics().total_escaped_hp_raw, 67_657);
+        assert_eq!(core.session.metrics().total_escaped_hp_raw, 35_520);
         assert_eq!(core.session.metrics().total_player_damage_raw, 1_000);
         assert_eq!(core.session.monsters().len(), 0);
         assert!(matches!(core.flow(), td_core::GameFlowState::Defense(_)));
@@ -1158,7 +1171,7 @@ mod tests {
         core.advance_tick();
 
         assert_eq!(core.session.monsters().len(), 0);
-        assert_eq!(core.session.metrics().total_escaped_hp_raw, 67_657);
+        assert_eq!(core.session.metrics().total_escaped_hp_raw, 35_520);
         assert_eq!(core.session.hp_raw(), 60_000);
     }
 
@@ -2087,6 +2100,39 @@ mod tests {
             Err(CommandError::InvalidPlacement)
         );
         assert_eq!(core.authoritative_hash(), hash);
+    }
+
+    #[test]
+    fn can_place_tower_matches_mutating_placement_validation() {
+        let mut core = GameCore::new(GameConfig::default_config(), 7);
+        core.apply(PlayerCommand::StartSelectingTower)
+            .expect("tower selection should start");
+        core.apply(PlayerCommand::SelectTower {
+            selected_slot_indices: vec![],
+        })
+        .expect("tower selection should succeed");
+        let comparisons = inspect_raw_state(&core, |state| {
+            let hand_slot_count = state.hand().slots.len();
+            (0..hand_slot_count)
+                .flat_map(|hand_slot_index| {
+                    (0..td_core::MAP_SIZE[1]).flat_map(move |top| {
+                        (0..td_core::MAP_SIZE[0]).map(move |left| {
+                            let predicted = state.can_place_tower(hand_slot_index, left, top);
+                            let mut candidate = state.clone();
+                            let actual = candidate.place_tower(hand_slot_index, left, top).is_ok();
+                            (predicted, actual)
+                        })
+                    })
+                })
+                .collect::<Vec<_>>()
+        });
+
+        assert!(!comparisons.is_empty());
+        assert!(
+            comparisons
+                .iter()
+                .all(|(predicted, actual)| predicted == actual)
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use super::encoding::observation::ENTITY_SET_COUNT;
 use super::encoding::{
-    PaddedEntityBatch,
+    ENTITY_NUMERIC_WIDTH, PaddedEntityBatch,
     tensor::{EntityBatchTensors, to_tensors},
 };
 use super::features::{ACTION_FEATURE_COUNT, GLOBAL_FEATURE_COUNT};
@@ -99,7 +99,7 @@ impl<B: Backend> DeepSetsActorCritic<B> {
                 .init(device),
             candidate_fusion: LinearConfig::new(hidden_size * 2 + 1, hidden_size).init(device),
             entity_embedding: EmbeddingConfig::new(4096, 8).init(device),
-            entity_input: LinearConfig::new(8 * 4 + 5, hidden_size).init(device),
+            entity_input: LinearConfig::new(8 * 4 + ENTITY_NUMERIC_WIDTH, hidden_size).init(device),
             entity_hidden: LinearConfig::new(hidden_size, hidden_size).init(device),
             entity_output: LinearConfig::new(hidden_size, hidden_size).init(device),
             activation: Relu::new(),
@@ -118,8 +118,8 @@ impl<B: Backend> DeepSetsActorCritic<B> {
             self.entity_embedding
                 .forward(categorical)
                 .reshape([batch, entities, 8 * 4]);
-        let input =
-            Tensor::cat(vec![categorical, numeric], 2).reshape([batch * entities, 8 * 4 + 5]);
+        let input = Tensor::cat(vec![categorical, numeric], 2)
+            .reshape([batch * entities, 8 * 4 + ENTITY_NUMERIC_WIDTH]);
         let encoded = self
             .entity_output
             .forward(
