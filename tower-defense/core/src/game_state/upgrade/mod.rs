@@ -95,11 +95,11 @@ impl UpgradeEntry {
                 .copied(),
             UpgradeRuntimeState::Resolution(state) => [state.saved_rerolls].get(index).copied(),
             UpgradeRuntimeState::IceCream(state) => [state.waves_remaining].get(index).copied(),
+            UpgradeRuntimeState::BrokenPottery(state) => [state.rerolled_count].get(index).copied(),
             UpgradeRuntimeState::Apple(_)
             | UpgradeRuntimeState::Banana(_)
             | UpgradeRuntimeState::Carrot(_)
             | UpgradeRuntimeState::BlackWhite(_)
-            | UpgradeRuntimeState::BrokenPottery(_)
             | UpgradeRuntimeState::Camera(_)
             | UpgradeRuntimeState::CupNoodles(_)
             | UpgradeRuntimeState::DemolitionHammer(_)
@@ -173,6 +173,7 @@ impl UpgradeEntry {
             },
             UpgradeRuntimeState::Resolution(state) if index == 0 => state.saved_rerolls = value,
             UpgradeRuntimeState::IceCream(state) if index == 0 => state.waves_remaining = value,
+            UpgradeRuntimeState::BrokenPottery(state) if index == 0 => state.rerolled_count = value,
             _ => return false,
         }
         true
@@ -1018,8 +1019,8 @@ mod tests {
                 default_status_effects: Vec::new(),
                 used_cards: vec![crate::CardState {
                     id: 1,
-                    suit: 0,
-                    rank: 11,
+                    suit: crate::Suit::Spades,
+                    rank: crate::Rank::King,
                     polish_pct_raw,
                     engraving: None,
                 }],
@@ -1689,7 +1690,7 @@ mod tests {
                 crate::UpgradeWireEntry {
                     id: 2,
                     kind: 34,
-                    scalar_values: vec![],
+                    scalar_values: vec![3],
                     ratio_values_raw: vec![],
                     bool_values: vec![],
                     optional_ids: vec![],
@@ -1708,7 +1709,40 @@ mod tests {
             core.upgrades().entries()[0].to_wire().scalar_values,
             vec![3]
         );
+        assert_eq!(
+            core.upgrades().entries()[1].to_wire().scalar_values,
+            vec![0]
+        );
         assert_eq!(core.progress().left_dice, 4);
+    }
+
+    #[test]
+    fn broken_pottery_counters_are_independent() {
+        let mut core = test_core();
+        core.edit_snapshot(|parts| parts.progress.left_dice = 0)
+            .expect("test dice state must be valid");
+        core.acquire_upgrade(generated_upgrade(crate::UpgradeKind::BrokenPottery))
+            .expect("first broken pottery must be acquired");
+
+        for _ in 0..2 {
+            core.trigger_card_reroll_upgrades();
+        }
+        core.acquire_upgrade(generated_upgrade(crate::UpgradeKind::BrokenPottery))
+            .expect("second broken pottery must be acquired");
+
+        for _ in 0..2 {
+            core.trigger_card_reroll_upgrades();
+        }
+        assert_eq!(core.progress().left_dice, 1);
+        assert_eq!(core.upgrades().entries()[0].scalar_value(0), Some(0));
+        assert_eq!(core.upgrades().entries()[1].scalar_value(0), Some(2));
+
+        for _ in 0..2 {
+            core.trigger_card_reroll_upgrades();
+        }
+        assert_eq!(core.progress().left_dice, 2);
+        assert_eq!(core.upgrades().entries()[0].scalar_value(0), Some(2));
+        assert_eq!(core.upgrades().entries()[1].scalar_value(0), Some(0));
     }
 
     #[test]

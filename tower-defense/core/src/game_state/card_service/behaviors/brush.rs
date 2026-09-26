@@ -14,6 +14,10 @@ impl CardServiceBehavior for Behavior {
         selection_face()
     }
 
+    fn candidate_count(&self) -> Option<usize> {
+        Some(3)
+    }
+
     fn purchase_block_reasons(
         &self,
         deck: &crate::DeckState,
@@ -35,6 +39,11 @@ impl CardServiceBehavior for Behavior {
         state: &mut crate::CoreState,
         selected_card_ids: &[Vec<usize>],
     ) -> Result<(), crate::CommandError> {
-        apply_enhancement_service(state, selected_card_ids, Some(1), 3_000_000)
+        apply_enhancement_service(
+            state,
+            selected_card_ids,
+            Some(crate::Suit::Hearts),
+            3_000_000,
+        )
     }
 }

@@ -17,27 +17,30 @@ pub enum Suit {
     Diamonds,
     Clubs,
 }
+
 impl Display for Suit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Suit::Spades => "♠",
-            Suit::Hearts => "♥",
-            Suit::Diamonds => "◆",
-            Suit::Clubs => "♣",
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let symbol = match self {
+            Self::Spades => "♠",
+            Self::Hearts => "♥",
+            Self::Diamonds => "◆",
+            Self::Clubs => "♣",
         };
-        write!(f, "{s}")
+        write!(formatter, "{symbol}")
     }
 }
+
 impl Suit {
     pub fn hand_drawn_image(self) -> Image {
         match self {
-            Suit::Spades => crate::asset::image::tower::suit_rank::SUIT_SPADE,
-            Suit::Hearts => crate::asset::image::tower::suit_rank::SUIT_HEART,
-            Suit::Diamonds => crate::asset::image::tower::suit_rank::SUIT_DIAMOND,
-            Suit::Clubs => crate::asset::image::tower::suit_rank::SUIT_CLUB,
+            Self::Spades => crate::asset::image::tower::suit_rank::SUIT_SPADE,
+            Self::Hearts => crate::asset::image::tower::suit_rank::SUIT_HEART,
+            Self::Diamonds => crate::asset::image::tower::suit_rank::SUIT_DIAMOND,
+            Self::Clubs => crate::asset::image::tower::suit_rank::SUIT_CLUB,
         }
     }
 }
+
 pub const SUITS: [Suit; 4] = [Suit::Spades, Suit::Hearts, Suit::Diamonds, Suit::Clubs];
 
 #[derive(
@@ -68,99 +71,94 @@ pub enum Rank {
     King,
     Ace,
 }
+
 impl Rank {
     pub fn is_even(&self) -> bool {
         matches!(
             self,
-            Rank::Two | Rank::Four | Rank::Six | Rank::Eight | Rank::Ten | Rank::Queen
+            Self::Two | Self::Four | Self::Six | Self::Eight | Self::Ten | Self::Queen
         )
     }
+
     pub fn is_face(&self) -> bool {
-        matches!(self, Rank::Jack | Rank::Queen | Rank::King)
+        matches!(self, Self::Jack | Self::Queen | Self::King)
     }
+
     pub fn is_number_card(&self) -> bool {
         matches!(
             self,
-            Rank::Two
-                | Rank::Three
-                | Rank::Four
-                | Rank::Five
-                | Rank::Six
-                | Rank::Seven
-                | Rank::Eight
-                | Rank::Nine
-                | Rank::Ten
+            Self::Two
+                | Self::Three
+                | Self::Four
+                | Self::Five
+                | Self::Six
+                | Self::Seven
+                | Self::Eight
+                | Self::Nine
+                | Self::Ten
         )
     }
+
     pub fn ordinal(&self) -> usize {
-        match self {
-            Rank::Two => 0,
-            Rank::Three => 1,
-            Rank::Four => 2,
-            Rank::Five => 3,
-            Rank::Six => 4,
-            Rank::Seven => 5,
-            Rank::Eight => 6,
-            Rank::Nine => 7,
-            Rank::Ten => 8,
-            Rank::Jack => 9,
-            Rank::Queen => 10,
-            Rank::King => 11,
-            Rank::Ace => 12,
-        }
+        *self as usize
     }
+
     pub fn ace_low_value(&self) -> usize {
-        if matches!(self, Rank::Ace) {
+        if matches!(self, Self::Ace) {
             0
         } else {
             self.ordinal() + 1
         }
     }
+
     pub fn ace_high_value(&self) -> usize {
-        if matches!(self, Rank::Ace) {
+        if matches!(self, Self::Ace) {
             13
         } else {
             self.ordinal() + 1
         }
     }
+
     pub fn hand_drawn_image(&self) -> Image {
         match self {
-            Rank::Two => crate::asset::image::tower::suit_rank::RANK_2,
-            Rank::Three => crate::asset::image::tower::suit_rank::RANK_3,
-            Rank::Four => crate::asset::image::tower::suit_rank::RANK_4,
-            Rank::Five => crate::asset::image::tower::suit_rank::RANK_5,
-            Rank::Six => crate::asset::image::tower::suit_rank::RANK_6,
-            Rank::Seven => crate::asset::image::tower::suit_rank::RANK_7,
-            Rank::Eight => crate::asset::image::tower::suit_rank::RANK_8,
-            Rank::Nine => crate::asset::image::tower::suit_rank::RANK_9,
-            Rank::Ten => crate::asset::image::tower::suit_rank::RANK_10,
-            Rank::Jack => crate::asset::image::tower::suit_rank::RANK_J,
-            Rank::Queen => crate::asset::image::tower::suit_rank::RANK_Q,
-            Rank::King => crate::asset::image::tower::suit_rank::RANK_K,
-            Rank::Ace => crate::asset::image::tower::suit_rank::RANK_A,
+            Self::Two => crate::asset::image::tower::suit_rank::RANK_2,
+            Self::Three => crate::asset::image::tower::suit_rank::RANK_3,
+            Self::Four => crate::asset::image::tower::suit_rank::RANK_4,
+            Self::Five => crate::asset::image::tower::suit_rank::RANK_5,
+            Self::Six => crate::asset::image::tower::suit_rank::RANK_6,
+            Self::Seven => crate::asset::image::tower::suit_rank::RANK_7,
+            Self::Eight => crate::asset::image::tower::suit_rank::RANK_8,
+            Self::Nine => crate::asset::image::tower::suit_rank::RANK_9,
+            Self::Ten => crate::asset::image::tower::suit_rank::RANK_10,
+            Self::Jack => crate::asset::image::tower::suit_rank::RANK_J,
+            Self::Queen => crate::asset::image::tower::suit_rank::RANK_Q,
+            Self::King => crate::asset::image::tower::suit_rank::RANK_K,
+            Self::Ace => crate::asset::image::tower::suit_rank::RANK_A,
         }
     }
 }
+
 impl Display for Rank {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Rank::Two => "2",
-            Rank::Three => "3",
-            Rank::Four => "4",
-            Rank::Five => "5",
-            Rank::Six => "6",
-            Rank::Seven => "7",
-            Rank::Eight => "8",
-            Rank::Nine => "9",
-            Rank::Ten => "10",
-            Rank::Jack => "J",
-            Rank::Queen => "Q",
-            Rank::King => "K",
-            Rank::Ace => "A",
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let symbol = match self {
+            Self::Two => "2",
+            Self::Three => "3",
+            Self::Four => "4",
+            Self::Five => "5",
+            Self::Six => "6",
+            Self::Seven => "7",
+            Self::Eight => "8",
+            Self::Nine => "9",
+            Self::Ten => "10",
+            Self::Jack => "J",
+            Self::Queen => "Q",
+            Self::King => "K",
+            Self::Ace => "A",
         };
-        write!(f, "{s}")
+        write!(formatter, "{symbol}")
     }
 }
+
 pub const RANKS: [Rank; 13] = [
     Rank::Two,
     Rank::Three,
@@ -240,8 +238,10 @@ impl Card {
     pub(crate) fn to_core_state(self) -> td_core::CardState {
         td_core::CardState {
             id: self.id.raw(),
-            suit: suit_to_core_raw(self.suit),
-            rank: self.rank as u8,
+            suit: td_core::Suit::from_raw(suit_to_core_raw(self.suit))
+                .expect("app suit must map to core suit"),
+            rank: td_core::Rank::from_raw(rank_to_core_raw(self.rank))
+                .expect("app rank must map to core rank"),
             polish_pct_raw: self.effects.polish_pct.raw(),
             engraving: self.effects.engraving.map(engraving_to_core_raw),
         }
@@ -250,8 +250,8 @@ impl Card {
     pub(crate) fn from_core_state(state: td_core::CardState) -> Option<Self> {
         Some(Self {
             id: CardId(state.id),
-            suit: suit_from_core_raw(state.suit)?,
-            rank: rank_from_core_raw(state.rank)?,
+            suit: suit_from_core_raw(state.suit.raw())?,
+            rank: rank_from_core_raw(state.rank.raw())?,
             effects: CardEffects {
                 polish_pct: FixedRatio::from_raw(state.polish_pct_raw),
                 engraving: match state.engraving {
@@ -280,6 +280,10 @@ pub(crate) fn suit_from_core_raw(value: u8) -> Option<Suit> {
         3 => Suit::Clubs,
         _ => return None,
     })
+}
+
+pub(crate) fn rank_to_core_raw(rank: Rank) -> u8 {
+    rank.ordinal() as u8
 }
 
 pub(crate) fn rank_from_core_raw(value: u8) -> Option<Rank> {

@@ -28,9 +28,9 @@ pub(super) fn selection_low_ranks() -> Vec<CardServiceSelectionStepState> {
     vec![CardServiceSelectionStepState {
         count: 1,
         filter: CardSelectionFilterState::Or(vec![
-            CardSelectionFilterState::Rank(12),
-            CardSelectionFilterState::Rank(0),
-            CardSelectionFilterState::Rank(1),
+            CardSelectionFilterState::Rank(crate::Rank::Ace),
+            CardSelectionFilterState::Rank(crate::Rank::Two),
+            CardSelectionFilterState::Rank(crate::Rank::Three),
         ]),
     }]
 }
@@ -136,7 +136,7 @@ fn card_counts(deck: &DeckState) -> (usize, usize) {
 pub(super) fn apply_enhancement(
     deck: &mut DeckState,
     selected_card_ids: &[Vec<usize>],
-    suit: Option<u8>,
+    suit: Option<crate::Suit>,
     polish_pct_raw: i64,
 ) {
     for card_ids in selected_card_ids {
@@ -154,7 +154,7 @@ pub(super) fn apply_enhancement(
 pub(super) fn apply_enhancement_service(
     state: &mut crate::CoreState,
     selected_card_ids: &[Vec<usize>],
-    suit: Option<u8>,
+    suit: Option<crate::Suit>,
     polish_pct_raw: i64,
 ) -> Result<(), crate::CommandError> {
     apply_enhancement(&mut state.deck, selected_card_ids, suit, polish_pct_raw);

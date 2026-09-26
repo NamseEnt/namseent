@@ -38,7 +38,8 @@ impl CardServiceBehavior for Behavior {
         for card_ids in selected_card_ids {
             for card_id in card_ids {
                 state.deck.modify_card(*card_id, |card| {
-                    card.rank = (card.rank + 1) % 13;
+                    card.rank =
+                        crate::Rank::ALL[(card.rank.ordinal() + 1) % crate::Rank::ALL.len()];
                 });
             }
         }

@@ -56,11 +56,10 @@ impl CardServiceBehavior for FountainPenCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Select one number card and give it +300% damage.")
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Choose one of up to three number cards and give it +300% damage."),
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("숫자 카드 1장을 선택해 데미지 +300%를 부여합니다.")
+                builder.static_text("숫자 카드 최대 3장 중 1장을 선택해 데미지 +300%를 부여합니다.")
             }
         };
     }
@@ -70,7 +69,7 @@ impl CardServiceBehavior for FountainPenCardService {
         // FountainPen: damage bonus to high rank/potential cards.
         let mut cards = headed_cards_from_raw_core(game_state.raw_core_state());
         cards.sort_by_key(|c| std::cmp::Reverse(c.rank as u8)); // highest rank first
-        cards.iter().rev().take(3).map(|c| vec![c.id]).collect()
+        cards.iter().rev().take(1).map(|c| vec![c.id]).collect()
     }
 
     fn tooltip_sections(

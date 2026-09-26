@@ -14,8 +14,8 @@ use crate::{
 use namui::*;
 pub use render_card::RenderCard;
 pub(crate) use render_engraving::render_engraving_overlay;
-pub use render_polish::polish_halo_config;
 pub(crate) use render_polish::render_polish_overlay;
+pub use render_polish::{polish_halo_config, polish_rarity_config};
 pub use render_tower_card::RenderTowerCard;
 
 /// suit에 따른 색상을 반환하는 헬퍼 함수

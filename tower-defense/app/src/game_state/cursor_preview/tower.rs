@@ -1,6 +1,6 @@
 use crate::game_state::tower::render::{TowerAttackRange, TowerImage, TowerSpriteWithOverlay};
 use crate::{
-    MapCoordF32,
+    MapCoord, MapCoordF32,
     game_state::{
         MAP_SIZE, PlayerCommand, TILE_PX_SIZE, TRAVEL_POINTS,
         can_place_tower::can_place_tower,
@@ -40,7 +40,10 @@ impl Component for TowerCursorPreview<'_> {
                 .raw_render_snapshot()
                 .towers
                 .iter()
-                .map(|tower| Xy::new(tower.left_top[0], tower.left_top[1]))
+                .flat_map(|tower| {
+                    let left_top = MapCoord::new(tower.left_top[0], tower.left_top[1]);
+                    (0..2).flat_map(move |x| (0..2).map(move |y| left_top + MapCoord::new(x, y)))
+                })
                 .collect::<Vec<_>>(),
         );
         let route = game_state.state().presentation_route_snapshot();

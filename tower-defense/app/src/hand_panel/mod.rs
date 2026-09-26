@@ -8,7 +8,6 @@ mod tower_preview;
 
 use crate::{
     card::Card,
-    game_state::tower_selection::get_highest_tower_template,
     game_state::use_game_state,
     hand::xy_with_spring,
     theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant},
@@ -62,8 +61,6 @@ impl Component for HandPanel {
         };
         let tower_template = {
             let rerolled_count = raw_core.progress().rerolled_count;
-            let config = crate::config::GameConfig::from_core_state(raw_core.config().clone())
-                .expect("raw game config must be restorable for hand presentation");
             let selected_slot_ids = selected_slot_ids.clone_inner();
             if let Some(tower_template) = hand
                 .get_items(&selected_slot_ids)
@@ -73,12 +70,12 @@ impl Component for HandPanel {
             } else if using_cards.is_empty() {
                 None
             } else {
-                Some(get_highest_tower_template(
+                crate::game_state::tower::TowerTemplate::from_cards(
                     &using_cards,
                     &upgrade_state,
                     rerolled_count,
-                    &config,
-                ))
+                    raw_core.config(),
+                )
             }
         };
 

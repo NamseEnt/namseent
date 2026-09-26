@@ -1315,6 +1315,7 @@ mod tests {
             CoreEvent::CardServiceSelectionRequested {
                 service_kind: "eraser".to_string(),
                 step_counts: vec![1],
+                candidate_card_ids: None,
             },
         ];
 
@@ -1599,7 +1600,10 @@ mod tests {
                 CoreEvent::CardServiceSelectionRequested {
                     service_kind,
                     step_counts,
-                } if service_kind == "eraser" && step_counts == &vec![1]
+                    candidate_card_ids,
+                } if service_kind == "eraser"
+                    && step_counts == &vec![1]
+                    && candidate_card_ids.is_none()
             ))
             ));
         assert!(!core.can_purchase_shop_slot(slot_id));

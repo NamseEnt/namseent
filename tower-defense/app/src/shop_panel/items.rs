@@ -1,10 +1,12 @@
 use super::constants::PADDING;
+use crate::PresentationInstant;
 use crate::game_state::shop_purchase::ShopPurchaseStatus;
 use crate::icon::IconKind;
 use crate::palette;
 use crate::shop::{ShopSlot, ShopSlotData};
 use crate::theme::card_halo_fx::CardHaloFx;
 use crate::theme::paper_container::{PaperContainerBackground, PaperTexture, PaperVariant};
+use crate::theme::rarity_particle::{RarityParticleEffect, strength_for_rarity};
 use crate::theme::typography::{FontSize, memoized_text};
 use crate::thumbnail::{ThumbnailRenderOptions, render_thumbnail as render_thumbnail_source};
 use namui::*;
@@ -18,6 +20,7 @@ pub struct ShopItem<'a> {
     pub wh: Wh<Px>,
     pub slot_data: &'a ShopSlotData,
     pub purchase_status: ShopPurchaseStatus,
+    pub presentation_instant: PresentationInstant,
 }
 
 impl Component for ShopItem<'_> {
@@ -26,6 +29,7 @@ impl Component for ShopItem<'_> {
             wh,
             slot_data,
             purchase_status,
+            presentation_instant,
         } = self;
 
         let available = !slot_data.purchased && purchase_status.is_available();
@@ -33,7 +37,7 @@ impl Component for ShopItem<'_> {
         ctx.compose(|ctx| {
             table::padding_no_clip(PADDING, |wh, ctx| {
                 ctx.compose(|ctx| {
-                    render_thumbnail(wh, ctx, slot_data, &purchase_status);
+                    render_thumbnail(wh, ctx, slot_data, &purchase_status, presentation_instant);
                 });
                 render_price(
                     wh,
@@ -52,6 +56,7 @@ fn render_thumbnail(
     ctx: ComposeCtx,
     slot_data: &ShopSlotData,
     purchase_status: &ShopPurchaseStatus,
+    presentation_instant: PresentationInstant,
 ) {
     let thumbnail_size = (wh.width - PADDING * 2.0).min(wh.height - PRICE_HEIGHT - PADDING * 2.0);
     let thumbnail_wh = Wh::single(thumbnail_size);
@@ -80,6 +85,16 @@ fn render_thumbnail(
                 thumbnail_opacity,
             ),
         ));
+
+        let rarity = slot_data.slot.rarity();
+        ctx.add(RarityParticleEffect {
+            xy: thumbnail_wh.to_xy() * 0.5,
+            radius: thumbnail_size,
+            rarity,
+            strength: strength_for_rarity(rarity),
+            enabled: true,
+            presentation_instant,
+        });
 
         if let Some((color, strength)) = rarity_halo_config(slot_data.slot.rarity()) {
             ctx.add(CardHaloFx {

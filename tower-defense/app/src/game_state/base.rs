@@ -65,21 +65,23 @@ impl BaseSpringAnimation {
     }
 
     fn trigger(&mut self, force: f32, sim_tick: SimTick) {
+        let animation_tick = self.tick_at.max(sim_tick);
         self.transit_force = Some(TransitForce {
             force,
-            end_at: sim_tick + BASE_TRANSIT_FORCE_DURATION,
+            end_at: animation_tick + BASE_TRANSIT_FORCE_DURATION,
         });
-        self.tick_at = sim_tick;
+        self.tick_at = animation_tick;
     }
 
     fn update(&mut self, sim_tick: SimTick) {
         const DELTA_TIME_SECONDS: f32 = 1.0 / 60.0;
         let delta_time = DELTA_TIME_SECONDS;
-        self.tick_at = sim_tick;
+        let animation_tick = sim_tick.max(self.tick_at + SimTickSpan::ONE);
+        self.tick_at = animation_tick;
 
         let transit_force_expired = self
             .transit_force
-            .is_some_and(|transit_force| transit_force.end_at < sim_tick);
+            .is_some_and(|transit_force| transit_force.end_at < animation_tick);
         let transit_force = self
             .transit_force
             .map(|transit_force| transit_force.force)
@@ -207,10 +209,7 @@ impl GameState {
 }
 
 pub(crate) fn render_bases(ctx: &RenderCtx, game_state: &crate::headed_game::HeadedGame) {
-    let scales = game_state
-        .render_frame()
-        .and_then(|frame| frame.base_scales(true))
-        .unwrap_or_else(|| game_state.render_base_scales());
+    let scales = game_state.render_base_scales();
     render_enemy_base(ctx, scales.0);
     render_player_base(ctx, scales.1);
 }
@@ -260,4 +259,22 @@ fn coord_center_px(coord: MapCoord) -> Xy<Px> {
         (coord.y.as_f32() + 0.5) * TILE_PX_SIZE.height.as_f32(),
     )
     .map(px)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn app_animation_advances_when_sim_tick_is_unchanged() {
+        let mut state = BaseAnimationState::new(SimTick::ZERO);
+        state.trigger_player_damage(SimTick::ZERO, 1.0);
+
+        state.update(SimTick::ZERO);
+        let first_offset = state.player_base_animation.y_ratio_offset;
+        state.update(SimTick::ZERO);
+
+        assert_ne!(first_offset, 0.0);
+        assert_ne!(state.player_base_animation.y_ratio_offset, first_offset);
+    }
 }

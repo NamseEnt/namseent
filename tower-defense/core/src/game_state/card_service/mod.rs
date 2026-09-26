@@ -12,7 +12,7 @@ pub enum CardSelectionFilterState {
     Any,
     Face,
     Number,
-    Rank(u8),
+    Rank(crate::Rank),
     Engraved,
     NotEngraved,
     And(Vec<CardSelectionFilterState>),
@@ -23,8 +23,8 @@ impl CardSelectionFilterState {
     pub fn matches(&self, card: &CardState) -> bool {
         match self {
             Self::Any => true,
-            Self::Face => (9..=11).contains(&card.rank),
-            Self::Number => card.rank <= 8,
+            Self::Face => card.rank.is_face(),
+            Self::Number => card.rank.is_number_card(),
             Self::Rank(rank) => card.rank == *rank,
             Self::Engraved => card.engraving.is_some(),
             Self::NotEngraved => card.engraving.is_none(),
@@ -94,6 +94,7 @@ impl CardServiceSelectionState {
         &self,
         service_kind: crate::CardServiceKind,
         deck: &DeckState,
+        rng: &crate::RngState,
         selected_card_ids: &[Vec<usize>],
     ) -> Result<(), crate::CommandError> {
         if self.service_kind != service_kind.raw() {
@@ -101,7 +102,46 @@ impl CardServiceSelectionState {
         }
         let behavior =
             card_service_behavior(service_kind).ok_or(crate::CommandError::InvalidSelection)?;
+        if let Some(candidate_card_ids) = self.candidate_card_ids(deck, rng) {
+            let Some(selected_card_id) = selected_card_ids
+                .first()
+                .and_then(|card_ids| card_ids.first())
+                .copied()
+            else {
+                return Err(crate::CommandError::InvalidSelection);
+            };
+            if selected_card_ids.len() != 1
+                || selected_card_ids[0].len() != 1
+                || !candidate_card_ids.contains(&selected_card_id)
+            {
+                return Err(crate::CommandError::InvalidSelection);
+            }
+        }
         behavior.validate(self, deck, selected_card_ids)
+    }
+
+    pub fn candidate_card_ids(
+        &self,
+        deck: &DeckState,
+        rng: &crate::RngState,
+    ) -> Option<Vec<usize>> {
+        let service_kind = self.service_kind()?;
+        let candidate_count = card_service_behavior(service_kind)?.candidate_count()?;
+        let step = self.steps.first()?;
+        let mut candidate_card_ids = deck
+            .all_cards
+            .iter()
+            .filter(|card| step.filter.matches(card))
+            .map(|card| card.id)
+            .collect::<Vec<_>>();
+        candidate_card_ids.sort_unstable();
+        let mut candidate_rng = rng.rng_for(
+            crate::deterministic_rng::domain::CARD_SERVICE_CANDIDATES,
+            &[u64::from(self.service_kind), deck.revision as u64],
+        );
+        crate::deterministic_rng::shuffle(&mut candidate_card_ids, &mut candidate_rng);
+        candidate_card_ids.truncate(candidate_count);
+        Some(candidate_card_ids)
     }
 }
 
@@ -117,7 +157,7 @@ impl crate::CoreState {
             .ok_or(crate::CommandError::InvalidCardServiceKind { raw: service_kind })?;
         let selection =
             CardServiceSelectionState::new(service_kind).ok_or(crate::CommandError::InvalidFlow)?;
-        selection.validate(service_kind, &self.deck, selected_card_ids)?;
+        selection.validate(service_kind, &self.deck, &self.rng, selected_card_ids)?;
         let behavior = card_service_behavior(service_kind).ok_or(crate::CommandError::Rejected)?;
         behavior.apply(self, selected_card_ids)?;
         self.clear_card_service_selection();
@@ -128,8 +168,8 @@ impl crate::CoreState {
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CardState {
     pub id: usize,
-    pub suit: u8,
-    pub rank: u8,
+    pub suit: crate::Suit,
+    pub rank: crate::Rank,
     pub polish_pct_raw: i64,
     pub engraving: Option<u8>,
 }
@@ -299,8 +339,8 @@ mod purchase_tests {
         let all_cards = (0..engraved_card_count)
             .map(|id| CardState {
                 id,
-                suit: 0,
-                rank: 0,
+                suit: crate::Suit::Spades,
+                rank: crate::Rank::Two,
                 polish_pct_raw: 0,
                 engraving: Some(0),
             })
@@ -308,8 +348,8 @@ mod purchase_tests {
                 (engraved_card_count..engraved_card_count + unengraved_card_count).map(|id| {
                     CardState {
                         id,
-                        suit: 0,
-                        rank: 0,
+                        suit: crate::Suit::Spades,
+                        rank: crate::Rank::Two,
                         polish_pct_raw: 0,
                         engraving: None,
                     }
@@ -409,19 +449,103 @@ mod purchase_tests {
         for rank in [12, 0, 1] {
             assert!(filter.matches(&CardState {
                 id: 0,
-                suit: 0,
-                rank,
+                suit: crate::Suit::Spades,
+                rank: crate::Rank::from_raw(rank).unwrap(),
                 polish_pct_raw: 0,
                 engraving: None,
             }));
         }
         assert!(!filter.matches(&CardState {
             id: 0,
-            suit: 0,
-            rank: 2,
+            suit: crate::Suit::Spades,
+            rank: crate::Rank::Four,
             polish_pct_raw: 0,
             engraving: None,
         }));
+    }
+
+    #[test]
+    fn tricycle_candidates_are_seed_deterministic_and_limited_to_three() {
+        let first = core_state();
+        let second = core_state();
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+
+        let first_candidates = selection.candidate_card_ids(&first.deck, &first.rng);
+        let second_candidates = selection.candidate_card_ids(&second.deck, &second.rng);
+
+        assert_eq!(first_candidates, second_candidates);
+        let candidates = first_candidates.expect("tricycle uses candidate selection");
+        assert_eq!(candidates.len(), 3);
+        assert!(candidates.iter().all(|card_id| {
+            first
+                .deck
+                .get_card(*card_id)
+                .is_some_and(|card| selection.steps[0].filter.matches(&card))
+        }));
+    }
+
+    #[test]
+    fn brush_and_fountain_pen_use_candidate_selection() {
+        let state = core_state();
+
+        for kind in [
+            crate::CardServiceKind::Brush,
+            crate::CardServiceKind::FountainPen,
+        ] {
+            let selection =
+                CardServiceSelectionState::new(kind).expect("selection must be registered");
+            let candidates = selection
+                .candidate_card_ids(&state.deck, &state.rng)
+                .expect("enhancement service uses candidate selection");
+
+            assert_eq!(candidates.len(), 3, "service kind {kind:?}");
+        }
+    }
+
+    #[test]
+    fn tricycle_candidates_use_all_matching_cards_when_fewer_than_three_exist() {
+        let mut state = core_state();
+        state
+            .edit_snapshot(|parts| {
+                parts.deck.all_cards.truncate(2);
+                parts.deck.draw_pile.truncate(2);
+                parts.deck.discard_pile.clear();
+            })
+            .expect("small deck fixture must be valid");
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+
+        let candidates = selection
+            .candidate_card_ids(&state.deck, &state.rng)
+            .expect("tricycle uses candidate selection");
+
+        assert_eq!(candidates.len(), 2);
+    }
+
+    #[test]
+    fn tricycle_rejects_a_matching_card_outside_the_candidate_list() {
+        let mut state = core_state();
+        state
+            .begin_card_service_selection(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection should begin");
+        let selection = CardServiceSelectionState::new(crate::CardServiceKind::Tricycle)
+            .expect("tricycle selection must be registered");
+        let candidates = selection
+            .candidate_card_ids(&state.deck, &state.rng)
+            .expect("tricycle uses candidate selection");
+        let card_id = state
+            .deck
+            .all_cards
+            .iter()
+            .find(|card| selection.steps[0].filter.matches(card) && !candidates.contains(&card.id))
+            .expect("the default deck has a fourth low-rank card")
+            .id;
+
+        assert_eq!(
+            state.apply_card_service_selection_mutation(&[vec![card_id]]),
+            Err(crate::CommandError::InvalidSelection)
+        );
     }
 
     #[test]
@@ -498,6 +622,7 @@ mod purchase_tests {
         ];
 
         for (kind, selected) in cases {
+            let mut selected = selected;
             let mut state = core_state();
             state
                 .edit_snapshot(|parts| {
@@ -517,6 +642,11 @@ mod purchase_tests {
             state
                 .begin_card_service_selection(kind)
                 .expect("service should begin");
+            let selection = CardServiceSelectionState::new(kind).expect("selection must exist");
+            if let Some(candidate_card_ids) = selection.candidate_card_ids(&state.deck, &state.rng)
+            {
+                selected = vec![vec![candidate_card_ids[0]]];
+            }
             let before = state.deck().all_cards.clone();
             state
                 .apply_card_service_selection_mutation(&selected)
@@ -530,11 +660,11 @@ mod purchase_tests {
                         .expect("selected card");
                     if kind == crate::CardServiceKind::LongSword {
                         assert_eq!(card.id, 0);
-                        assert_eq!(card.suit, 0);
+                        assert_eq!(card.suit, crate::Suit::Spades);
                         assert_eq!(card.polish_pct_raw, 2_000_000);
                     } else {
-                        assert_eq!(card.id, 36);
-                        assert_eq!(card.suit, 1);
+                        assert_eq!(card.id, selected[0][0]);
+                        assert_eq!(card.suit, crate::Suit::Hearts);
                         assert_eq!(card.polish_pct_raw, 3_000_000);
                     }
                 }
@@ -544,7 +674,7 @@ mod purchase_tests {
                     assert_eq!(state.deck().get_card(1).unwrap().engraving, Some(1));
                 }
                 crate::CardServiceKind::Screwdriver => {
-                    assert_eq!(state.deck().get_card(0).unwrap().rank, 1)
+                    assert_eq!(state.deck().get_card(0).unwrap().rank, crate::Rank::Three)
                 }
                 crate::CardServiceKind::Magnet => {
                     assert_eq!(state.deck().get_card(0).unwrap().engraving, Some(0));

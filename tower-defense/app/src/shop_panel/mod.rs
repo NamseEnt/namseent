@@ -6,6 +6,7 @@ mod slot_layout_calculator;
 mod slot_renderer;
 mod slot_rendering_data;
 
+use crate::PresentationInstant;
 use crate::animation::with_spring;
 use crate::game_state::use_game_state;
 use crate::hand::xy_with_spring;
@@ -19,7 +20,9 @@ use namui_prebuilt::simple_rect;
 use paper_content::ShopPaperContent;
 // use voyager::Voyager;
 
-pub struct ShopPanel;
+pub struct ShopPanel {
+    pub presentation_instant: PresentationInstant,
+}
 
 struct ShopPanelLayout {
     pub panel_wh: Wh<Px>,
@@ -50,6 +53,7 @@ impl ShopPanelLayout {
 
 impl Component for ShopPanel {
     fn render(self, ctx: &RenderCtx) {
+        let presentation_instant = self.presentation_instant;
         let game_state = use_game_state(ctx);
         let screen_wh = screen::size().into_type::<Px>();
         let panel_open = game_state.can_open_shop_panel();
@@ -72,6 +76,7 @@ impl Component for ShopPanel {
         ctx.absolute(animated_xy).compose(|ctx| {
             ctx.translate((0.px(), layout.bg_y)).add(ShopPaperContent {
                 wh: Wh::new(layout.panel_wh.width, SHOP_PANEL_HEIGHT),
+                presentation_instant,
             });
 
             ctx.translate((0.px(), layout.bg_y))

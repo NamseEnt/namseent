@@ -56,11 +56,10 @@ impl CardServiceBehavior for BrushCardService {
         locale: &crate::l10n::Locale,
     ) {
         match locale.language {
-            crate::l10n::locale::Language::English => {
-                builder.static_text("Select one face card and give it +300% damage.")
-            }
+            crate::l10n::locale::Language::English => builder
+                .static_text("Choose one of up to three face cards and give it +300% damage."),
             crate::l10n::locale::Language::Korean => {
-                builder.static_text("그림 카드 1장을 선택해 데미지 +300%를 부여합니다.")
+                builder.static_text("그림 카드 최대 3장 중 1장을 선택해 데미지 +300%를 부여합니다.")
             }
         };
     }
@@ -69,7 +68,7 @@ impl CardServiceBehavior for BrushCardService {
     fn heuristic_best_selection(&self, game_state: &GameState) -> Vec<Vec<crate::card::CardId>> {
         let mut cards = headed_cards_from_raw_core(game_state.raw_core_state());
         cards.sort_by_key(|c| std::cmp::Reverse((c.rank as i32, c.suit as i32))); // high rank/suit 우선
-        cards.iter().take(3).map(|c| vec![c.id]).collect()
+        cards.iter().take(1).map(|c| vec![c.id]).collect()
     }
 
     fn tooltip_sections(

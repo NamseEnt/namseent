@@ -490,8 +490,8 @@ impl CoreState {
                 .flat_map(|rank| {
                     (0..4).map(move |suit| CardState {
                         id: rank * 4 + suit,
-                        suit: suit as u8,
-                        rank: rank as u8,
+                        suit: crate::Suit::ALL[suit],
+                        rank: crate::Rank::ALL[rank],
                         polish_pct_raw: 0,
                         engraving: None,
                     })
@@ -574,7 +574,7 @@ impl CoreState {
                 stage_damage: Vec::new(),
             },
             flow: crate::GameFlowState::Initializing,
-            hp_raw: config.player.starting_hp_raw,
+            hp_raw: config.player.starting_hp_raw.min(config.player.max_hp_raw),
             shield_raw: 0,
             monsters: Vec::new(),
             towers: Vec::new(),
@@ -880,6 +880,7 @@ impl CoreState {
         self.push_event(crate::CoreEvent::CardServiceSelectionRequested {
             service_kind: crate::CardServiceSelectionState::service_key(service_kind).to_string(),
             step_counts: selection.steps.iter().map(|step| step.count).collect(),
+            candidate_card_ids: selection.candidate_card_ids(&self.deck, &self.rng),
         });
         self.card_service_selection = None;
         Ok(())
@@ -907,7 +908,7 @@ impl CoreState {
             .ok_or(crate::CommandError::InvalidCardServiceKind { raw: service_kind })?;
         let selection = crate::CardServiceSelectionState::new(service_kind)
             .ok_or(crate::CommandError::InvalidFlow)?;
-        selection.validate(service_kind, &self.deck, selected_card_ids)
+        selection.validate(service_kind, &self.deck, &self.rng, selected_card_ids)
     }
 
     pub fn clear_rate_raw(&self) -> i64 {

@@ -747,8 +747,16 @@ fn tower_template_observation(
     TowerTemplateObservation {
         kind: kind.to_string(),
         kind_id,
-        suit: template.suit.map(suit_key).map(str::to_string),
-        rank: template.rank.map(rank_key).map(str::to_string),
+        suit: template
+            .suit
+            .and_then(crate::Suit::from_raw)
+            .map(suit_key)
+            .map(str::to_string),
+        rank: template
+            .rank
+            .and_then(crate::Rank::from_raw)
+            .map(rank_key)
+            .map(str::to_string),
         rerolled_count: template.rerolled_count,
         damage_raw: template.default_damage_raw,
         effective_damage_raw: template.effective_damage_raw(upgrade_bonus_raw),
@@ -880,32 +888,30 @@ fn stage_modifiers_observation(
     }
 }
 
-fn suit_key(value: u8) -> &'static str {
+fn suit_key(value: crate::Suit) -> &'static str {
     match value {
-        0 => "spades",
-        1 => "hearts",
-        2 => "diamonds",
-        3 => "clubs",
-        _ => "unknown",
+        crate::Suit::Spades => "spades",
+        crate::Suit::Hearts => "hearts",
+        crate::Suit::Diamonds => "diamonds",
+        crate::Suit::Clubs => "clubs",
     }
 }
 
-fn rank_key(value: u8) -> &'static str {
+fn rank_key(value: crate::Rank) -> &'static str {
     match value {
-        0 => "two",
-        1 => "three",
-        2 => "four",
-        3 => "five",
-        4 => "six",
-        5 => "seven",
-        6 => "eight",
-        7 => "nine",
-        8 => "ten",
-        9 => "jack",
-        10 => "queen",
-        11 => "king",
-        12 => "ace",
-        _ => "unknown",
+        crate::Rank::Two => "two",
+        crate::Rank::Three => "three",
+        crate::Rank::Four => "four",
+        crate::Rank::Five => "five",
+        crate::Rank::Six => "six",
+        crate::Rank::Seven => "seven",
+        crate::Rank::Eight => "eight",
+        crate::Rank::Nine => "nine",
+        crate::Rank::Ten => "ten",
+        crate::Rank::Jack => "jack",
+        crate::Rank::Queen => "queen",
+        crate::Rank::King => "king",
+        crate::Rank::Ace => "ace",
     }
 }
 
