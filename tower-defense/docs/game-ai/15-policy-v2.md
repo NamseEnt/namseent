@@ -85,7 +85,7 @@ Development delta vs canonical at matched cumulative semantic decisions (paired,
 | 1.10 | +5.34 (0.54) | +4.62 (0.51) |
 | 1.33 | +5.52 (0.57) | +5.87 (0.66) |
 
-End of schedule: v1 +6.11 at 1.45M decisions (2.95 h), A0b +5.34 at 1.36M decisions (2.63 h; best +5.87 at iteration 195). The learned family head neither helps nor hurts clearly: A0b trails v1 by about one standard error for most of the curve and matches it at the end. The learned family entropy stays near 0.001 throughout, so the family choice is almost deterministic and PPO changes the policy inside families. Action-multiplicity bias of the flat softmax was not a major limit of v1.
+End of schedule: v1 +6.11 at 1.45M decisions (2.95 h), A0b +5.34 at 1.36M decisions (2.63 h; best +5.87 at iteration 195). The learned family head neither helps nor hurts clearly: A0b trails v1 by about one standard error for most of the curve and matches it at the end. The sampled family entropy rises slowly (0.002 at phase-1 iteration 25, 0.02 at iteration 75, about 0.15 late in phase 2). Action-multiplicity bias of the flat softmax was not a major limit of v1.
 
 ## Frozen stage A1 specification
 
@@ -149,6 +149,30 @@ Written after the A1 PPO failure and before any A1' PPO run. A1' isolates the in
 - Everything else as A0b: 75 + 200 iterations, actor Adam 3e-4, the same seed blocks (phase-2 offset 1000).
 
 Interpretation, fixed in advance: A1' above A0b means the normalization helps, A1' about A0b means no clear effect, A1' below A0b means it hurts. If A1' reproduces A0b-level performance, the entropy objective is not tuned further and stage B follows. Stage B then uses the joint entropy too; how the position head enters the entropy term is frozen in the stage B specification before any stage-B PPO run.
+
+### A1' results
+
+PPO from `v2a1-bc` and `critic-512-contract`, joint entropy 0.01 / 0.003, the A0b schedule. Development delta vs canonical at matched cumulative semantic decisions:
+
+| decisions (M) | v1 | A0b | A1' |
+|---|---|---|---|
+| 0.08 | +0.24 (0.22) | +0.23 (0.22) | +1.44 (0.39) |
+| 0.26 | +2.40 (0.37) | +1.62 (0.39) | +4.19 (0.55) |
+| 0.45 | +3.08 (0.45) | +2.94 (0.47) | +0.21 (0.54) |
+| 0.66 | +4.42 (0.50) | +3.42 (0.48) | +4.55 (0.56) |
+| 0.87 | +5.24 (0.61) | +4.17 (0.50) | +6.64 (0.67) |
+| 1.10 | +5.34 (0.54) | +4.62 (0.51) | +7.19 (0.69) |
+| 1.33 | +5.52 (0.57) | +5.87 (0.66) | +6.13 (0.71) |
+| 1.45 | +6.11 (0.64) | | +8.15 (0.77) |
+
+End of schedule: A1' +10.85 (SE 0.80, better/worse 119/9) at 1.93M decisions (3.60 h), best +10.94 at phase-2 iteration 170. The development mean terminal clear_rate is 47.09 (canonical 36.23, A0b 41.58).
+
+- The curve is much noisier than A0b. Phase 1 reached +4.19 at iteration 55, fell to -2.76 at iteration 70 and phase 2 reached -3.18 at iteration 10 before recovering; from phase-2 iteration 100 on every evaluation is between +5.4 and +10.9.
+- The policy moves much further from its initialization: KL to init 13 at phase-1 iteration 65 (A0b 1.6) and 27 at the end (A0b 16); joint entropy 0.91 at the end (A0b 0.76).
+- It found a different game plan. Development games take 233 decisions (A0b 119, canonical 84). At phase-2 iteration 200 the training rollouts spend 31% of decisions on rerolls (A0b 21%), 25% on continue (12%) and none on card service selections (A0b 4%); `DamageResponseItem` decisions quadruple (1,900 vs 456 per iteration) and 79% of them differ from canonical.
+- Compared on matched decisions A1' is ahead of v1 and A0b from about 0.8M decisions on; per training game it is further ahead because its games are longer.
+
+Interpretation (the rule fixed above): A1' is above A0b, so the input normalization contract helps. This is one training seed and the curve is noisy, so the size of the gain is uncertain; the direction is consistent over the last 100 iterations. The entropy objective is not tuned further; stage B follows.
 
 ## Frozen stage B specification (full-position policy)
 
