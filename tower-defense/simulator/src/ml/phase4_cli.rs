@@ -84,6 +84,9 @@ pub enum Phase4Command {
         /// Family probability: flat-equivalent log-sum-exp or a learned head.
         #[arg(long, value_enum, default_value_t = super::policy_v2::KindMode::LogSumExp)]
         kind_mode: super::policy_v2::KindMode,
+        /// Input normalization contract.
+        #[arg(long, value_enum, default_value_t = super::feature_contract::InputContract::Raw)]
+        input_contract: super::feature_contract::InputContract,
         #[arg(long, default_value_t = 0)]
         seed: u64,
         #[arg(long, default_value_t = 0)]
@@ -154,6 +157,9 @@ pub enum Phase4Command {
         hidden_size: usize,
         #[arg(long, default_value_t = 0.1)]
         reward_scale: f32,
+        /// Critic input transform.
+        #[arg(long, value_enum, default_value_t = super::semantic_ppo::CriticInputs::SquashAll)]
+        inputs: super::semantic_ppo::CriticInputs,
         #[arg(long, default_value_t = 0)]
         seed: u64,
         #[arg(long, default_value_t = 0)]
@@ -195,6 +201,12 @@ pub enum Phase4Command {
         clip_epsilon: f32,
         #[arg(long, default_value_t = 0.0)]
         entropy_coefficient: f32,
+        /// `joint` or `normalized-per-head` (then `entropy_coefficient` is
+        /// the family-head coefficient).
+        #[arg(long, value_enum, default_value_t = super::semantic_ppo::EntropyScheme::Joint)]
+        entropy_scheme: super::semantic_ppo::EntropyScheme,
+        #[arg(long, default_value_t = 0.0)]
+        candidate_entropy_coefficient: f32,
         #[arg(long, default_value_t = 0.0)]
         kl_to_init_coefficient: f32,
         /// Negative disables the early stop.
@@ -417,6 +429,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             batch_size,
             hidden_size,
             kind_mode,
+            input_contract,
             seed,
             threads,
         } => {
@@ -462,6 +475,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 label,
                 override_weight,
                 kind_mode,
+                input_contract,
             };
             let metadata = BcCheckpointMetadata {
                 schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
@@ -632,6 +646,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             batch_size,
             hidden_size,
             reward_scale,
+            inputs,
             seed,
             threads,
         } => {
@@ -665,6 +680,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     epochs,
                     reward_scale,
                     seed,
+                    inputs,
                 },
                 train_dataset: match train_episodes {
                     Some(limit) => format!("{} (first {limit})", train.display()),
@@ -704,6 +720,8 @@ pub fn run(command: Phase4Command) -> Result<()> {
             minibatch_size,
             clip_epsilon,
             entropy_coefficient,
+            entropy_scheme,
+            candidate_entropy_coefficient,
             kl_to_init_coefficient,
             target_kl,
             max_grad_norm,
@@ -730,6 +748,8 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 max_grad_norm,
                 normalize_advantages: true,
                 critic_warmup_iterations,
+                entropy_scheme,
+                candidate_entropy_coefficient,
                 seed,
                 train_seed_block_offset,
             };

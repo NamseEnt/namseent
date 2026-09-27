@@ -13,6 +13,7 @@
 
 use super::bc::MaskedGroups;
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
+use super::feature_contract::{InputContract, apply_contract};
 use super::model::{DeepSetsActorCritic, ModelConfig, tensor_from_rows};
 use super::semantic_candidates::{EncodedDecision, candidate_batch};
 use anyhow::Result;
@@ -47,6 +48,8 @@ pub struct PolicyNet<B: Backend> {
     activation: Relu,
     #[module(skip)]
     pub mode: KindMode,
+    #[module(skip)]
+    pub inputs: InputContract,
 }
 
 impl<B: Backend> PolicyNet<B> {
@@ -73,11 +76,17 @@ impl<B: Backend> PolicyNet<B> {
             kind_output: LinearConfig::new(hidden_size, 1).init(device),
             activation: Relu::new(),
             mode,
+            inputs: InputContract::Raw,
         }
     }
 
     pub fn with_mode(mut self, mode: KindMode) -> Self {
         self.mode = mode;
+        self
+    }
+
+    pub fn with_inputs(mut self, inputs: InputContract) -> Self {
+        self.inputs = inputs;
         self
     }
 }
@@ -112,6 +121,10 @@ pub(crate) struct FactorizedLogProbs<B: Backend> {
     pub groups: MaskedGroups,
     /// `[groups, FAMILY_COUNT]` whether the family has a legal candidate.
     pub present: Vec<bool>,
+    /// `[groups, width, FAMILY_COUNT]` legal-candidate family membership.
+    pub membership: Tensor<B, 3>,
+    /// `[groups, FAMILY_COUNT]` legal candidates per family.
+    pub family_counts: Vec<usize>,
 }
 
 pub(crate) fn factorized_log_probs<B: Backend>(
@@ -119,6 +132,17 @@ pub(crate) fn factorized_log_probs<B: Backend>(
     decisions: &[&EncodedDecision],
     device: &B::Device,
 ) -> FactorizedLogProbs<B> {
+    let contracted;
+    let decisions = if model.inputs == InputContract::Raw {
+        decisions.to_vec()
+    } else {
+        contracted = decisions
+            .iter()
+            .map(|decision| apply_contract(decision, model.inputs))
+            .collect::<Vec<_>>();
+        contracted.iter().collect::<Vec<_>>()
+    };
+    let decisions = decisions.as_slice();
     let group_sizes = decisions
         .iter()
         .map(|decision| decision.candidates.len())
@@ -173,6 +197,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
     let mut family_index = vec![0i64; group_count * width];
     let mut one_hot = vec![0.0f32; group_count * width * FAMILY_COUNT];
     let mut present = vec![false; group_count * FAMILY_COUNT];
+    let mut family_counts = vec![0usize; group_count * FAMILY_COUNT];
     for (group, decision) in decisions.iter().enumerate() {
         for (column, family) in decision.families.iter().enumerate() {
             if !groups.is_valid(group, column) {
@@ -182,6 +207,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
             family_index[group * width + column] = family as i64;
             one_hot[(group * width + column) * FAMILY_COUNT + family] = 1.0;
             present[group * FAMILY_COUNT + family] = true;
+            family_counts[group * FAMILY_COUNT + family] += 1;
         }
     }
     let family_index =
@@ -214,7 +240,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
             // one MLP shared across families.
             let hidden = encoded_candidates.dims()[1];
             let candidates = groups.padded_rows(encoded_candidates, device);
-            let membership = one_hot.swap_dims(1, 2);
+            let membership = one_hot.clone().swap_dims(1, 2);
             let counts = membership.clone().sum_dim(2);
             let mean = membership.matmul(candidates) / counts.clone().clamp_min(1.0);
             let state = Tensor::cat(vec![model.scorer.encode_state(global), typed_state], 1)
@@ -244,6 +270,8 @@ pub(crate) fn factorized_log_probs<B: Backend>(
         conditional,
         groups,
         present,
+        membership: one_hot,
+        family_counts,
     }
 }
 

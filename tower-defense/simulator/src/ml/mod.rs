@@ -12,6 +12,8 @@ pub mod diagnostics;
 #[cfg(feature = "simulator")]
 pub mod encoding;
 #[cfg(feature = "simulator")]
+pub mod feature_contract;
+#[cfg(feature = "simulator")]
 pub mod features;
 #[cfg(feature = "simulator")]
 pub mod model;

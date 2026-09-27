@@ -4,6 +4,7 @@
 
 use super::bc::MaskedGroups;
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
+use super::feature_contract::InputContract;
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
     default_policy_device, initialize_model, model_from_full_precision_bytes,
@@ -377,6 +378,8 @@ pub struct BcTrainConfig {
     pub override_weight: f32,
     #[serde(default)]
     pub kind_mode: KindMode,
+    #[serde(default)]
+    pub input_contract: InputContract,
 }
 
 impl Default for BcTrainConfig {
@@ -390,6 +393,7 @@ impl Default for BcTrainConfig {
             label: LabelSource::Chosen,
             override_weight: 1.0,
             kind_mode: KindMode::LogSumExp,
+            input_contract: InputContract::Raw,
         }
     }
 }
@@ -503,7 +507,8 @@ pub fn load_selected_model<B: Backend>(
         metadata.config.kind_mode,
         &run_dir.join("selected-model.bin"),
         device,
-    )?;
+    )?
+    .with_inputs(metadata.config.input_contract);
     Ok((metadata, model))
 }
 
@@ -641,7 +646,8 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
             kind_mode,
             &directory.join("model.bin"),
             &device,
-        )?;
+        )?
+        .with_inputs(config.input_contract);
         let record = BinFileRecorder::<FullPrecisionSettings>::default()
             .load(directory.join("optimizer.bin"), &device)
             .context("load optimizer state")?;
@@ -661,7 +667,8 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
                 input.metadata.config.seed,
                 &device,
             )?,
-        };
+        }
+        .with_inputs(config.input_contract);
         let metadata = input.metadata;
         let directory = epoch_dir(run_dir, 0);
         std::fs::create_dir_all(&directory)?;

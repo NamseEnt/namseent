@@ -17,6 +17,7 @@
 //! `reward_scale * (terminal - current clear_rate)`.
 
 use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
+use super::feature_contract::{InputContract, apply_contract};
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
     default_policy_device, model_to_full_precision_bytes, tensor_from_rows,
@@ -81,6 +82,14 @@ pub const TRACKED_ACTION_KINDS: [&str; 12] = [
 type ActorCriticOptimizer = OptimizerAdaptor<Adam, DeepSetsActorCritic<TrainBackend>, TrainBackend>;
 type PolicyOptimizer = OptimizerAdaptor<Adam, PolicyNet<TrainBackend>, TrainBackend>;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum EntropyScheme {
+    #[default]
+    Joint,
+    NormalizedPerHead,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoConfig {
     pub episodes_per_iteration: usize,
@@ -104,6 +113,14 @@ pub struct PpoConfig {
     pub normalize_advantages: bool,
     /// Actor updates start after this many critic-only iterations.
     pub critic_warmup_iterations: usize,
+    /// `Joint`: `entropy_coefficient` times the joint entropy.
+    /// `NormalizedPerHead`: `entropy_coefficient` on the normalized family
+    /// entropy plus `candidate_entropy_coefficient` on the normalized
+    /// candidate entropy.
+    #[serde(default)]
+    pub entropy_scheme: EntropyScheme,
+    #[serde(default)]
+    pub candidate_entropy_coefficient: f32,
     pub seed: u64,
     /// Iteration `i` plays `ppo_train` seed block `i + offset`, so a
     /// continuation run never replays another run's training games.
@@ -129,6 +146,8 @@ impl Default for PpoConfig {
             max_grad_norm: 0.5,
             normalize_advantages: true,
             critic_warmup_iterations: 0,
+            entropy_scheme: EntropyScheme::Joint,
+            candidate_entropy_coefficient: 0.0,
             seed: 0,
             train_seed_block_offset: 0,
         }
@@ -143,10 +162,55 @@ pub fn critic_squash(value: f32) -> f32 {
     value.signum() * value.abs().ln_1p()
 }
 
+/// Input transform of a critic.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum CriticInputs {
+    /// Every numeric slot squashed (Phase 4B critic).
+    #[default]
+    SquashAll,
+    /// The policy v2 input normalization contract, shared with the actor.
+    Contract,
+}
+
 /// Critic value `V(s)`: typed value head over the critic's own typed entity
-/// encoding plus the global-feature value head, both on squashed inputs.
-/// `[decisions, 1]`.
+/// encoding plus the global-feature value head. `[decisions, 1]`.
 pub fn critic_values<B: Backend>(
+    critic: &DeepSetsActorCritic<B>,
+    decisions: &[&EncodedDecision],
+    inputs: CriticInputs,
+    device: &B::Device,
+) -> Tensor<B, 2> {
+    if inputs == CriticInputs::Contract {
+        let contracted = decisions
+            .iter()
+            .map(|decision| apply_contract(decision, InputContract::Normalized))
+            .collect::<Vec<_>>();
+        let refs = contracted.iter().collect::<Vec<_>>();
+        return critic_forward(critic, &refs, device);
+    }
+    let squashed = decisions
+        .iter()
+        .map(|decision| {
+            let mut decision = (*decision).clone();
+            for set in &mut decision.typed.sets {
+                for row in &mut set.rows {
+                    for value in &mut row.numeric {
+                        *value = critic_squash(*value);
+                    }
+                }
+            }
+            for value in &mut decision.global_features {
+                *value = critic_squash(*value);
+            }
+            decision
+        })
+        .collect::<Vec<_>>();
+    let refs = squashed.iter().collect::<Vec<_>>();
+    critic_forward(critic, &refs, device)
+}
+
+fn critic_forward<B: Backend>(
     critic: &DeepSetsActorCritic<B>,
     decisions: &[&EncodedDecision],
     device: &B::Device,
@@ -155,15 +219,7 @@ pub fn critic_values<B: Backend>(
         PaddedEntityBatch::from_sets(
             &decisions
                 .iter()
-                .map(|decision| {
-                    let mut set = decision.typed.sets[index].clone();
-                    for row in &mut set.rows {
-                        for value in &mut row.numeric {
-                            *value = critic_squash(*value);
-                        }
-                    }
-                    set
-                })
+                .map(|decision| decision.typed.sets[index].clone())
                 .collect::<Vec<_>>(),
         )
     });
@@ -171,13 +227,7 @@ pub fn critic_values<B: Backend>(
     let global = tensor_from_rows::<B>(
         &decisions
             .iter()
-            .map(|decision| {
-                decision
-                    .global_features
-                    .iter()
-                    .map(|value| critic_squash(*value))
-                    .collect::<Vec<_>>()
-            })
+            .map(|decision| decision.global_features.clone())
             .collect::<Vec<_>>(),
         device,
     );
@@ -187,12 +237,13 @@ pub fn critic_values<B: Backend>(
 pub fn critic_value_vector(
     critic: &DeepSetsActorCritic<InferenceBackend>,
     decisions: &[&EncodedDecision],
+    inputs: CriticInputs,
     device: &PolicyDevice,
 ) -> Result<Vec<f32>> {
     let mut values = Vec::with_capacity(decisions.len());
     for chunk in decisions.chunks(INFERENCE_BATCH_SIZE) {
         values.extend(
-            critic_values(critic, chunk, device)
+            critic_values(critic, chunk, inputs, device)
                 .into_data()
                 .to_vec::<f32>()?,
         );
@@ -487,6 +538,10 @@ pub struct UpdateStats {
     pub approx_kl: f64,
     pub clip_fraction: f64,
     pub kl_to_init_term: f64,
+    #[serde(default)]
+    pub normalized_family_entropy: f64,
+    #[serde(default)]
+    pub normalized_candidate_entropy: f64,
     pub mean_actor_grad_norm: f64,
     pub max_actor_grad_norm: f64,
     pub mean_critic_grad_norm: f64,
@@ -501,6 +556,7 @@ pub struct PpoLearner {
     pub critic: DeepSetsActorCritic<TrainBackend>,
     pub actor_optimizer: PolicyOptimizer,
     pub critic_optimizer: ActorCriticOptimizer,
+    pub critic_inputs: CriticInputs,
     pub device: PolicyDevice,
 }
 
@@ -516,6 +572,7 @@ impl PpoLearner {
     pub fn new(
         actor: PolicyNet<TrainBackend>,
         critic: DeepSetsActorCritic<TrainBackend>,
+        critic_inputs: CriticInputs,
         config: &PpoConfig,
     ) -> Self {
         Self {
@@ -523,6 +580,7 @@ impl PpoLearner {
             critic,
             actor_optimizer: new_optimizer(config.max_grad_norm),
             critic_optimizer: new_optimizer(config.max_grad_norm),
+            critic_inputs,
             device: default_policy_device(),
         }
     }
@@ -537,7 +595,7 @@ impl PpoLearner {
 
     fn critic_step(&mut self, batch: &[&Transition], learning_rate: f64) -> Option<(f64, f32)> {
         let decisions = batch.iter().map(|step| &step.encoded).collect::<Vec<_>>();
-        let values = critic_values(&self.critic, &decisions, &self.device);
+        let values = critic_values(&self.critic, &decisions, self.critic_inputs, &self.device);
         let returns = Tensor::<TrainBackend, 2>::from_data(
             TensorData::new(
                 batch
@@ -570,9 +628,78 @@ struct ActorTerms {
     loss: Tensor<TrainBackend, 1>,
     policy_loss: f32,
     entropy: f32,
+    normalized_family_entropy: f32,
+    normalized_candidate_entropy: f32,
     kl_to_init: f32,
     approx_kl: f32,
     clip_fraction: f32,
+}
+
+/// Per-decision normalized head entropies `[groups, 1]`: the family head's
+/// entropy over `ln(families with a legal candidate)`, and the expected
+/// candidate-head entropy `sum_f P(f) H(candidate | f) / ln(n_f)`. A head with
+/// at most one legal choice contributes 0.
+fn normalized_head_entropies(
+    factorized: &super::policy_v2::FactorizedLogProbs<TrainBackend>,
+    valid: Tensor<TrainBackend, 2>,
+    device: &PolicyDevice,
+) -> (Tensor<TrainBackend, 2>, Tensor<TrainBackend, 2>) {
+    use super::policy_v2::FAMILY_COUNT;
+    let groups = factorized.present.len() / FAMILY_COUNT;
+    let present = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            factorized
+                .present
+                .iter()
+                .map(|present| *present as u8 as f32)
+                .collect::<Vec<_>>(),
+            [groups, FAMILY_COUNT],
+        ),
+        device,
+    );
+    let inverse_log = |count: usize| {
+        if count > 1 {
+            1.0 / (count as f32).ln()
+        } else {
+            0.0
+        }
+    };
+    let family_scale = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            factorized
+                .present
+                .chunks(FAMILY_COUNT)
+                .map(|row| inverse_log(row.iter().filter(|present| **present).count()))
+                .collect::<Vec<_>>(),
+            [groups, 1],
+        ),
+        device,
+    );
+    let candidate_scale = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            factorized
+                .family_counts
+                .iter()
+                .map(|count| inverse_log(*count))
+                .collect::<Vec<_>>(),
+            [groups, FAMILY_COUNT],
+        ),
+        device,
+    );
+    let family_probability = factorized.kind.clone().exp() * present.clone();
+    let family_entropy =
+        -(family_probability.clone() * factorized.kind.clone() * present).sum_dim(1) * family_scale;
+    let conditional_probability = factorized.conditional.clone().exp() * valid.clone();
+    let candidate_terms = -(conditional_probability * factorized.conditional.clone() * valid);
+    let width = candidate_terms.dims()[1];
+    let per_family = factorized
+        .membership
+        .clone()
+        .swap_dims(1, 2)
+        .matmul(candidate_terms.reshape([groups, width, 1]))
+        .reshape([groups, FAMILY_COUNT]);
+    let candidate_entropy = (family_probability * per_family * candidate_scale).sum_dim(1);
+    (family_entropy, candidate_entropy)
 }
 
 fn actor_terms(
@@ -583,7 +710,9 @@ fn actor_terms(
     device: &PolicyDevice,
 ) -> Result<ActorTerms> {
     let decisions = batch.iter().map(|step| &step.encoded).collect::<Vec<_>>();
-    let (log_probs, groups) = batch_log_probs(actor, &decisions, device);
+    let factorized = factorized_log_probs(actor, &decisions, device);
+    let log_probs = factorized.joint.clone();
+    let groups = &factorized.groups;
     let rows = batch.len();
     let width = groups.width();
     let actions = groups.target_tensor::<TrainBackend>(
@@ -619,7 +748,6 @@ fn actor_terms(
         TensorData::new(
             (0..rows)
                 .flat_map(|row| {
-                    let groups = &groups;
                     (0..width).map(move |column| groups.is_valid(row, column) as u8 as f32)
                 })
                 .collect::<Vec<_>>(),
@@ -631,7 +759,18 @@ fn actor_terms(
     let entropy = -(probabilities.clone() * log_probs.clone() * valid.clone())
         .sum_dim(1)
         .mean();
-    let mut loss = policy_loss.clone() - entropy.clone() * config.entropy_coefficient;
+    let (normalized_family, normalized_candidate) =
+        normalized_head_entropies(&factorized, valid.clone(), device);
+    let entropy_bonus = match config.entropy_scheme {
+        EntropyScheme::Joint => entropy.clone() * config.entropy_coefficient,
+        EntropyScheme::NormalizedPerHead => {
+            normalized_family.clone().mean() * config.entropy_coefficient
+                + normalized_candidate.clone().mean() * config.candidate_entropy_coefficient
+        }
+    };
+    let normalized_family_entropy = normalized_family.mean().into_data().to_vec::<f32>()?[0];
+    let normalized_candidate_entropy = normalized_candidate.mean().into_data().to_vec::<f32>()?[0];
+    let mut loss = policy_loss.clone() - entropy_bonus;
     let mut kl_to_init_value = 0.0;
     if config.kl_to_init_coefficient > 0.0 {
         let init = Tensor::<TrainBackend, 2>::from_data(
@@ -674,6 +813,8 @@ fn actor_terms(
     Ok(ActorTerms {
         policy_loss: policy_loss.into_data().to_vec::<f32>()?[0],
         entropy: entropy.into_data().to_vec::<f32>()?[0],
+        normalized_family_entropy,
+        normalized_candidate_entropy,
         kl_to_init: kl_to_init_value,
         approx_kl,
         clip_fraction,
@@ -710,7 +851,7 @@ impl PpoLearner {
                 *value = (*value - mean) / std;
             }
         }
-        let mut sums = [0.0f64; 6];
+        let mut sums = [0.0f64; 7];
         let mut actor_steps = 0usize;
         let mut critic_steps = 0usize;
         let mut critic_grad_sum = 0.0f64;
@@ -765,6 +906,8 @@ impl PpoLearner {
                             sums[2] += terms.approx_kl as f64;
                             sums[3] += terms.clip_fraction as f64;
                             sums[4] += terms.kl_to_init as f64;
+                            sums[5] += terms.normalized_family_entropy as f64;
+                            sums[6] += terms.normalized_candidate_entropy as f64;
                             epoch_kl += terms.approx_kl as f64;
                             epoch_batches += 1;
                         } else {
@@ -805,6 +948,8 @@ impl PpoLearner {
         stats.approx_kl = sums[2] / actor_steps_f;
         stats.clip_fraction = sums[3] / actor_steps_f;
         stats.kl_to_init_term = sums[4] / actor_steps_f;
+        stats.normalized_family_entropy = sums[5] / actor_steps_f;
+        stats.normalized_candidate_entropy = sums[6] / actor_steps_f;
         stats.mean_actor_grad_norm = actor_grad_sum / actor_steps_f;
         stats.value_loss = value_loss_sum / critic_steps.max(1) as f64;
         stats.mean_critic_grad_norm = critic_grad_sum / critic_steps.max(1) as f64;
@@ -822,6 +967,8 @@ pub struct CriticPretrainConfig {
     pub epochs: usize,
     pub reward_scale: f32,
     pub seed: u64,
+    #[serde(default)]
+    pub inputs: CriticInputs,
 }
 
 impl Default for CriticPretrainConfig {
@@ -833,6 +980,7 @@ impl Default for CriticPretrainConfig {
             epochs: 8,
             reward_scale: 0.1,
             seed: 0,
+            inputs: CriticInputs::SquashAll,
         }
     }
 }
@@ -940,13 +1088,14 @@ pub fn value_samples(episodes: &[EpisodeRecord], reward_scale: f32) -> Vec<Value
 pub fn evaluate_critic(
     critic: &DeepSetsActorCritic<InferenceBackend>,
     samples: &[ValueSample],
+    inputs: CriticInputs,
     device: &PolicyDevice,
 ) -> Result<ValueMetrics> {
     let decisions = samples
         .iter()
         .map(|sample| &sample.encoded)
         .collect::<Vec<_>>();
-    let predictions = critic_value_vector(critic, &decisions, device)?;
+    let predictions = critic_value_vector(critic, &decisions, inputs, device)?;
     Ok(value_metrics(
         &predictions,
         &samples
@@ -1004,7 +1153,8 @@ pub fn pretrain_critic(
     let mut critic =
         super::semantic_bc::seeded_materialized_model(metadata.model_config, config.seed, &device)?;
     let mut optimizer: ActorCriticOptimizer = AdamConfig::new().init();
-    metadata.initial_validation = evaluate_critic(&critic.clone().valid(), validation, &device)?;
+    metadata.initial_validation =
+        evaluate_critic(&critic.clone().valid(), validation, config.inputs, &device)?;
     eprintln!(
         "critic epoch 0: validation mse {:.4} mae {:.4} ev {:.4}",
         metadata.initial_validation.mse,
@@ -1036,7 +1186,7 @@ pub fn pretrain_critic(
                 ),
                 &device,
             );
-            let loss = (critic_values(&critic, &decisions, &device) - targets)
+            let loss = (critic_values(&critic, &decisions, config.inputs, &device) - targets)
                 .powf_scalar(2.0)
                 .mean();
             let value = loss.clone().into_data().to_vec::<f32>()?[0];
@@ -1049,7 +1199,7 @@ pub fn pretrain_critic(
             critic = optimizer.step(config.learning_rate, critic, gradients);
         }
         let inference = critic.clone().valid();
-        let validation_metrics = evaluate_critic(&inference, validation, &device)?;
+        let validation_metrics = evaluate_critic(&inference, validation, config.inputs, &device)?;
         let record = CriticEpochRecord {
             epoch,
             mean_train_batch_loss: loss_sum / batches.max(1) as f64,
@@ -1293,6 +1443,8 @@ pub struct PpoRunMetadata {
     pub init_critic_run: Option<String>,
     #[serde(default)]
     pub init_ppo_iteration: Option<String>,
+    #[serde(default)]
+    pub critic_inputs: CriticInputs,
     pub train_split: Phase4Split,
     pub development_split: Phase4Split,
     pub development_seeds: usize,
@@ -1336,6 +1488,7 @@ fn write_checkpoint(
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_representation_version: POLICY_REPRESENTATION_VERSION,
             kind_mode: learner.actor.mode,
+            input_contract: learner.actor.inputs,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
             game_rules_epoch: GAME_RULES_EPOCH,
@@ -1358,6 +1511,8 @@ pub struct PpoActorFile {
     pub policy_representation_version: u32,
     #[serde(default)]
     pub kind_mode: KindMode,
+    #[serde(default)]
+    pub input_contract: InputContract,
     pub policy_candidate_set_version: u32,
     pub candidate_encoder_version: u32,
     pub game_rules_epoch: u32,
@@ -1401,6 +1556,7 @@ pub fn load_ppo_actor_as<B: Backend>(
         &iteration_dir.join("actor.bin"),
         device,
     )
+    .map(|policy| policy.with_inputs(file.input_contract))
 }
 
 fn load_learner(
@@ -1408,13 +1564,14 @@ fn load_learner(
     iteration: usize,
     config: &PpoConfig,
     model_config: ModelConfig,
+    critic_inputs: CriticInputs,
 ) -> Result<PpoLearner> {
     let device = default_policy_device();
     let directory = iteration_dir(run_dir, iteration);
     let actor = load_ppo_actor_as::<TrainBackend>(&directory, &device)?;
     let critic =
         load_model_file::<TrainBackend>(model_config, &directory.join("critic.bin"), &device)?;
-    let mut learner = PpoLearner::new(actor, critic, config);
+    let mut learner = PpoLearner::new(actor, critic, critic_inputs, config);
     let recorder = BinFileRecorder::<FullPrecisionSettings>::default();
     learner.actor_optimizer = learner
         .actor_optimizer
@@ -1515,9 +1672,11 @@ pub fn collect_iteration(
             .map(|step| &step.encoded)
             .collect::<Vec<_>>();
         let started = Instant::now();
-        let values = critic_value_vector(&critic, &decisions, &device)?;
+        let values = critic_value_vector(&critic, &decisions, learner.critic_inputs, &device)?;
         let bootstrap_value = match &episode.bootstrap {
-            Some(encoded) => critic_value_vector(&critic, &[encoded], &device)?[0],
+            Some(encoded) => {
+                critic_value_vector(&critic, &[encoded], learner.critic_inputs, &device)?[0]
+            }
             None => 0.0,
         };
         stats.timing.critic_value_seconds += started.elapsed().as_secs_f64();
@@ -1767,6 +1926,7 @@ pub fn train_ppo_run(
             metadata.completed_iterations,
             &config,
             model_config,
+            metadata.critic_inputs,
         )?;
         eprintln!(
             "resuming {} after iteration {}",
@@ -1786,20 +1946,33 @@ pub fn train_ppo_run(
             ),
             None => (init_actor.clone(), None),
         };
-        let critic = match (critic, &input.init_critic_run) {
-            (Some(critic), _) => critic,
+        let (critic, critic_inputs) = match (critic, &input.init_critic_run) {
+            (Some(critic), _) => {
+                let parent = input
+                    .init_ppo_iteration
+                    .as_ref()
+                    .and_then(|directory| directory.parent())
+                    .and_then(|run| std::fs::read(run.join("ppo.json")).ok())
+                    .map(|bytes| serde_json::from_slice::<PpoRunMetadata>(&bytes))
+                    .transpose()?;
+                (
+                    critic,
+                    parent.map_or(CriticInputs::SquashAll, |parent| parent.critic_inputs),
+                )
+            }
             (None, Some(path)) => {
                 let (critic_metadata, critic) = load_critic(path, &device)?;
                 if critic_metadata.model_config != model_config {
                     bail!("critic model config differs from the actor's");
                 }
-                critic
+                (critic, critic_metadata.config.inputs)
             }
-            (None, None) => {
-                super::semantic_bc::seeded_materialized_model(model_config, config.seed, &device)?
-            }
+            (None, None) => (
+                super::semantic_bc::seeded_materialized_model(model_config, config.seed, &device)?,
+                CriticInputs::SquashAll,
+            ),
         };
-        let learner = PpoLearner::new(actor, critic, &config);
+        let learner = PpoLearner::new(actor, critic, critic_inputs, &config);
         let mut metadata = PpoRunMetadata {
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
@@ -1818,6 +1991,7 @@ pub fn train_ppo_run(
                 .init_ppo_iteration
                 .as_ref()
                 .map(|path| path.display().to_string()),
+            critic_inputs,
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
             development_seeds: input.development_seeds,
@@ -2107,12 +2281,18 @@ mod tests {
 
     /// A tiny BC run directory usable as a PPO initialization.
     fn tiny_bc_run(name: &str) -> PathBuf {
+        tiny_bc_run_with(name, KindMode::LogSumExp, InputContract::Raw)
+    }
+
+    fn tiny_bc_run_with(name: &str, kind_mode: KindMode, input_contract: InputContract) -> PathBuf {
         let episodes = canonical_episodes(&[0]);
         let mut samples = prepare_samples(&episodes, LabelSource::Canonical, 1.0);
         samples.truncate(64);
         let config = BcTrainConfig {
             epochs: 1,
             batch_size: 32,
+            kind_mode,
+            input_contract,
             ..BcTrainConfig::default()
         };
         let run_dir = temp_dir(name);
@@ -2253,7 +2433,12 @@ mod tests {
         let device = default_policy_device();
         let (_, bc_model) = load_selected_model::<TrainBackend>(&bc_dir, &device).unwrap();
         let critic = new_materialized_model(ModelConfig::default(), &device).unwrap();
-        let learner = PpoLearner::new(bc_model.clone(), critic, &PpoConfig::default());
+        let learner = PpoLearner::new(
+            bc_model.clone(),
+            critic,
+            CriticInputs::SquashAll,
+            &PpoConfig::default(),
+        );
         let bc_policy = SemanticPolicy::from_run_dir(&bc_dir).unwrap();
         let samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
         let decisions = samples
@@ -2313,11 +2498,142 @@ mod tests {
         assert!(last.mean_train_batch_loss.is_finite());
         assert!(last.validation.mse < metadata.initial_validation.mse);
         let (_, critic) = load_critic(&run_dir, &default_policy_device()).unwrap();
-        let reloaded =
-            evaluate_critic(&critic.valid(), &validation, &default_policy_device()).unwrap();
+        let reloaded = evaluate_critic(
+            &critic.valid(),
+            &validation,
+            CriticInputs::SquashAll,
+            &default_policy_device(),
+        )
+        .unwrap();
         let selected = &metadata.history[metadata.selected_epoch - 1].validation;
         assert!((reloaded.mse - selected.mse).abs() < 1e-6);
         std::fs::remove_dir_all(run_dir).unwrap();
+    }
+
+    #[test]
+    fn normalized_head_entropies_are_bounded_and_zero_without_choice() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            5,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let samples = prepare_samples(&canonical_episodes(&[1]), LabelSource::Canonical, 1.0);
+        let decisions = samples
+            .iter()
+            .take(64)
+            .map(|sample| &sample.encoded)
+            .collect::<Vec<_>>();
+        let factorized = factorized_log_probs(&actor, &decisions, &device);
+        let width = factorized.groups.width();
+        let valid = Tensor::<TrainBackend, 2>::from_data(
+            TensorData::new(
+                (0..decisions.len())
+                    .flat_map(|row| {
+                        let groups = &factorized.groups;
+                        (0..width).map(move |column| groups.is_valid(row, column) as u8 as f32)
+                    })
+                    .collect::<Vec<_>>(),
+                [decisions.len(), width],
+            ),
+            &device,
+        );
+        let (family, candidate) = normalized_head_entropies(&factorized, valid, &device);
+        let family = family.into_data().to_vec::<f32>().unwrap();
+        let candidate = candidate.into_data().to_vec::<f32>().unwrap();
+        let mut single = 0;
+        for (index, decision) in decisions.iter().enumerate() {
+            for value in [family[index], candidate[index]] {
+                assert!(
+                    value.is_finite() && (-1e-5..=1.0 + 1e-4).contains(&value),
+                    "{value}"
+                );
+            }
+            if decision.legal_mask.iter().filter(|legal| **legal).count() == 1 {
+                assert!(family[index].abs() < 1e-6 && candidate[index].abs() < 1e-6);
+                single += 1;
+            }
+        }
+        assert!(
+            single > 0,
+            "fixture should contain forced single-candidate decisions"
+        );
+        assert!(family.iter().any(|value| *value > 0.01));
+    }
+
+    #[test]
+    fn ppo_update_with_policy_v2_options_is_finite() {
+        let bc_dir = tiny_bc_run_with("ppo-v2-bc", KindMode::Learned, InputContract::Normalized);
+        let critic_samples = value_samples(&canonical_episodes(&[2]), 0.1);
+        let critic_dir = temp_dir("ppo-v2-critic");
+        pretrain_critic(
+            &critic_dir,
+            &critic_samples,
+            &critic_samples[..64],
+            CriticCheckpointMetadata {
+                schema_version: CRITIC_CHECKPOINT_SCHEMA_VERSION,
+                candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
+                policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
+                game_rules_epoch: GAME_RULES_EPOCH,
+                git_commit: "test".to_string(),
+                model_config: ModelConfig::default(),
+                config: CriticPretrainConfig {
+                    epochs: 1,
+                    batch_size: 64,
+                    inputs: CriticInputs::Contract,
+                    ..CriticPretrainConfig::default()
+                },
+                train_dataset: "tiny".to_string(),
+                validation_dataset: "tiny".to_string(),
+                train_provenance: None,
+                train_samples: critic_samples.len(),
+                validation_samples: 64,
+                initial_validation: ValueMetrics::default(),
+                history: Vec::new(),
+                selected_epoch: 0,
+            },
+        )
+        .unwrap();
+        let run_dir = temp_dir("ppo-v2-run");
+        let metadata = train_ppo_run(
+            game_config(),
+            &run_dir,
+            PpoRunInput {
+                config: PpoConfig {
+                    entropy_scheme: EntropyScheme::NormalizedPerHead,
+                    entropy_coefficient: 0.02,
+                    candidate_entropy_coefficient: 0.02,
+                    ..tiny_ppo_config()
+                },
+                init_bc_run: bc_dir.clone(),
+                init_critic_run: Some(critic_dir.clone()),
+                init_ppo_iteration: None,
+                iterations: 1,
+                evaluate_every: 0,
+                development_seeds: 4,
+            },
+        )
+        .unwrap();
+        assert_eq!(metadata.critic_inputs, CriticInputs::Contract);
+        let update = &metadata.history.last().unwrap().update;
+        for value in [
+            update.policy_loss,
+            update.value_loss,
+            update.normalized_family_entropy,
+            update.normalized_candidate_entropy,
+        ] {
+            assert!(value.is_finite(), "{update:?}");
+        }
+        assert!(update.normalized_candidate_entropy > 0.0);
+        let actor = load_ppo_actor(&iteration_dir(&run_dir, 1), &default_policy_device()).unwrap();
+        assert_eq!(actor.mode, KindMode::Learned);
+        assert_eq!(actor.inputs, InputContract::Normalized);
+        for directory in [bc_dir, critic_dir, run_dir] {
+            std::fs::remove_dir_all(directory).unwrap();
+        }
     }
 
     fn tiny_ppo_config() -> PpoConfig {
@@ -2388,7 +2704,7 @@ mod tests {
             .unwrap();
             (
                 actor_log_prob_vectors(&actor, &probe, &device).unwrap(),
-                critic_value_vector(&critic, &probe, &device).unwrap(),
+                critic_value_vector(&critic, &probe, CriticInputs::SquashAll, &device).unwrap(),
             )
         };
         // Bit-identical when run alone; under parallel test load the CPU
