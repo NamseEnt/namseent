@@ -65,6 +65,22 @@ impl MaskedGroups {
         self.width
     }
 
+    /// Per-candidate rows `[rows, features]` -> `[groups, width, features]`.
+    /// Padding slots repeat row 0; callers mask them.
+    pub(crate) fn padded_rows<B: Backend>(
+        &self,
+        rows: Tensor<B, 2>,
+        device: &B::Device,
+    ) -> Tensor<B, 3> {
+        let features = rows.dims()[1];
+        let index = Tensor::<B, 1, Int>::from_data(
+            TensorData::new(self.gather_index.clone(), [self.gather_index.len()]),
+            device,
+        );
+        rows.select(0, index)
+            .reshape([self.groups, self.width, features])
+    }
+
     /// Flat candidate column `[rows, 1]` -> `[groups, width]`, with padding
     /// and masked candidates set to -1e9, plus the invalid mask.
     pub(crate) fn padded_logits<B: Backend>(

@@ -60,10 +60,11 @@ pub enum Phase4Split {
     PpoTrain,
     PpoDevelopment,
     Phase4bFinal,
+    V2Final,
 }
 
 impl Phase4Split {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::CanonicalTrain,
         Self::CanonicalValidation,
         Self::TeacherTrain,
@@ -74,6 +75,7 @@ impl Phase4Split {
         Self::PpoTrain,
         Self::PpoDevelopment,
         Self::Phase4bFinal,
+        Self::V2Final,
     ];
 
     /// Frozen before any Phase 4A data was generated (see
@@ -92,6 +94,9 @@ impl Phase4Split {
             Self::PpoTrain => 3_200_000..=3_999_999,
             Self::PpoDevelopment => 4_000_000..=4_000_127,
             Self::Phase4bFinal => 4_100_000..=4_100_255,
+            // Policy v2, frozen before any v2 model was trained (see
+            // docs/game-ai/15-policy-v2.md).
+            Self::V2Final => 4_200_000..=4_200_255,
         }
     }
 
@@ -112,11 +117,15 @@ impl Phase4Split {
                 | Self::FinalEvaluation
                 | Self::PpoDevelopment
                 | Self::Phase4bFinal
+                | Self::V2Final
         )
     }
 
     pub fn is_final_split(self) -> bool {
-        matches!(self, Self::FinalEvaluation | Self::Phase4bFinal)
+        matches!(
+            self,
+            Self::FinalEvaluation | Self::Phase4bFinal | Self::V2Final
+        )
     }
 
     pub fn name(self) -> &'static str {
@@ -131,6 +140,7 @@ impl Phase4Split {
             Self::PpoTrain => "ppo_train",
             Self::PpoDevelopment => "ppo_development",
             Self::Phase4bFinal => "phase4b_final",
+            Self::V2Final => "v2_final",
         }
     }
 

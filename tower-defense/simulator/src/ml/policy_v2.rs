@@ -68,8 +68,9 @@ impl<B: Backend> PolicyNet<B> {
         let hidden_size = config.hidden_size.max(8);
         Self {
             scorer,
-            kind_hidden: LinearConfig::new(hidden_size * 2, hidden_size).init(device),
-            kind_output: LinearConfig::new(hidden_size, FAMILY_COUNT).init(device),
+            kind_hidden: LinearConfig::new(hidden_size * 3 + 1 + FAMILY_COUNT, hidden_size)
+                .init(device),
+            kind_output: LinearConfig::new(hidden_size, 1).init(device),
             activation: Relu::new(),
             mode,
         }
@@ -156,12 +157,16 @@ pub(crate) fn factorized_log_probs<B: Backend>(
             .collect::<Vec<_>>(),
         device,
     );
-    let logits = model.scorer.forward_typed_logits_with_candidate_groups(
-        global.clone().select(0, group_of_row.clone()),
-        &candidate_batch(decisions),
+    let encoded_candidates = model
+        .scorer
+        .encode_candidates(&candidate_batch(decisions), device);
+    let logits = model.scorer.forward_typed_logits_with_encoded_candidates(
+        model
+            .scorer
+            .encode_state(global.clone().select(0, group_of_row.clone())),
+        encoded_candidates.clone(),
         typed_state.clone().select(0, group_of_row),
         &group_sizes,
-        device,
     );
     let (padded, invalid) = groups.padded_logits(logits, device);
 
@@ -195,7 +200,7 @@ pub(crate) fn factorized_log_probs<B: Backend>(
 
     let max = padded.clone().max_dim(1);
     let shifted = (padded.clone() - max.clone()).exp();
-    let family_sum = (shifted.unsqueeze_dim::<3>(2) * one_hot)
+    let family_sum = (shifted.unsqueeze_dim::<3>(2) * one_hot.clone())
         .sum_dim(1)
         .reshape([group_count, FAMILY_COUNT]);
     let family_lse = family_sum.clamp_min(1.0e-30).log() + max;
@@ -204,10 +209,29 @@ pub(crate) fn factorized_log_probs<B: Backend>(
     let kind_logits = match model.mode {
         KindMode::LogSumExp => family_lse,
         KindMode::Learned => {
-            let state = Tensor::cat(vec![model.scorer.encode_state(global), typed_state], 1);
+            // Each family is scored from the state and a summary of its own
+            // candidates (mean embedding, log count, family identity), with
+            // one MLP shared across families.
+            let hidden = encoded_candidates.dims()[1];
+            let candidates = groups.padded_rows(encoded_candidates, device);
+            let membership = one_hot.swap_dims(1, 2);
+            let counts = membership.clone().sum_dim(2);
+            let mean = membership.matmul(candidates) / counts.clone().clamp_min(1.0);
+            let state = Tensor::cat(vec![model.scorer.encode_state(global), typed_state], 1)
+                .unsqueeze_dim::<3>(1)
+                .repeat_dim(1, FAMILY_COUNT);
+            let identity = Tensor::<B, 2>::eye(FAMILY_COUNT, device)
+                .unsqueeze_dim::<3>(0)
+                .repeat_dim(0, group_count);
+            let input = Tensor::cat(
+                vec![state, mean, counts.log1p().div_scalar(8.0), identity],
+                2,
+            )
+            .reshape([group_count * FAMILY_COUNT, hidden * 3 + 1 + FAMILY_COUNT]);
             model
                 .kind_output
-                .forward(model.activation.forward(model.kind_hidden.forward(state)))
+                .forward(model.activation.forward(model.kind_hidden.forward(input)))
+                .reshape([group_count, FAMILY_COUNT])
         }
     };
     let kind =
