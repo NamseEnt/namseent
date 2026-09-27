@@ -2115,7 +2115,12 @@ mod placement_certificate_tests {
     use rand::{Rng, SeedableRng};
 
     fn search_only(context: &TowerPlacementContext, left: usize, top: usize) -> bool {
-        let new_coords = [[left, top], [left + 1, top], [left, top + 1], [left + 1, top + 1]];
+        let new_coords = [
+            [left, top],
+            [left + 1, top],
+            [left, top + 1],
+            [left + 1, top + 1],
+        ];
         if new_coords.iter().any(|coord| {
             coord[0] >= crate::MAP_SIZE[0]
                 || coord[1] >= crate::MAP_SIZE[1]

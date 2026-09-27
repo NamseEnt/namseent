@@ -438,7 +438,7 @@ impl DenseBuildTowerScoreTable {
             // Every non-empty card subset is a legal `SelectTower` choice
             // (a poker-hand pattern always resolves, worst case to a
             // high-card template - see `tower_selection::
-            // select_tower_build_template`'s final fallback), so unlike
+            // get_highest_tower_template`'s final fallback), so unlike
             // slot 0 above, extra slots are never gated on this subset
             // having its own scored template.
             for (extra_offset, extra) in extra_templates.iter().enumerate() {

@@ -1224,8 +1224,8 @@ mod tests {
             } else {
                 vec![crate::CardState {
                     id: 1,
-                    suit: 0,
-                    rank: 11,
+                    suit: crate::Suit::Spades,
+                    rank: crate::Rank::King,
                     polish_pct_raw,
                     engraving: None,
                 }]
@@ -1530,8 +1530,11 @@ mod tests {
     /// commands succeed, applying the expected payload effect.
     #[test]
     fn purchasable_item_upgrade_and_card_service_slots_stay_legal_and_succeed() {
-        let mut session =
-            shopping_session_with(0, 0, vec![item_slot(0), upgrade_slot(1), card_service_slot(2)]);
+        let mut session = shopping_session_with(
+            0,
+            0,
+            vec![item_slot(0), upgrade_slot(1), card_service_slot(2)],
+        );
         assert!(session.can_purchase_shop_slot(0));
         assert!(session.can_purchase_shop_slot(1));
         assert!(session.can_purchase_shop_slot(2));

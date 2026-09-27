@@ -559,8 +559,14 @@ mod tests {
                     }
                 }
             }
-            let start = [rng.gen_range(0..crate::MAP_SIZE[0]), rng.gen_range(0..crate::MAP_SIZE[1])];
-            let end = [rng.gen_range(0..crate::MAP_SIZE[0]), rng.gen_range(0..crate::MAP_SIZE[1])];
+            let start = [
+                rng.gen_range(0..crate::MAP_SIZE[0]),
+                rng.gen_range(0..crate::MAP_SIZE[1]),
+            ];
+            let end = [
+                rng.gen_range(0..crate::MAP_SIZE[0]),
+                rng.gen_range(0..crate::MAP_SIZE[1]),
+            ];
             let expected =
                 path_exists_with_extra_blockers(crate::MAP_SIZE, start, end, &blockers, &[]);
             assert_eq!(grid_path_exists(&blocked, start, end), expected);

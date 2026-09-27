@@ -116,11 +116,7 @@ impl TowerTemplateState {
     /// (`tower_template_observation`) so both compute splash semantics from
     /// the same source of truth.
     pub fn derived_on_attack_splashes(&self) -> Vec<crate::DamageSplash> {
-        if self
-            .used_cards
-            .iter()
-            .any(|card| card.engraving == Some(2))
-        {
+        if self.used_cards.iter().any(|card| card.engraving == Some(2)) {
             vec![crate::DamageSplash {
                 radius_raw: 2 * crate::WORLD_UNITS_PER_TILE,
                 damage_pct_raw: 300_000,
@@ -194,7 +190,10 @@ impl TowerState {
             .damage_multiplier_raw
             .max(0)
             .saturating_sub(crate::RATIO_SCALE);
-        multipliers.push(combine_damage_factor_raw(card_polish_raw, upgrade_bonus_raw));
+        multipliers.push(combine_damage_factor_raw(
+            card_polish_raw,
+            upgrade_bonus_raw,
+        ));
         crate::apply_ratio_product_raw(damage, &multipliers)
     }
 }

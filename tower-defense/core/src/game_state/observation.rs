@@ -593,7 +593,7 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
                 },
             )
             .collect::<Vec<_>>();
-        let Some(template) = crate::game_state::tower_selection::select_tower_build_template(
+        let Some(template) = crate::game_state::tower_selection::get_highest_tower_template(
             &cards,
             state.upgrades(),
             state.config(),
@@ -1300,8 +1300,8 @@ mod tests {
     fn card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
             id,
-            suit,
-            rank,
+            suit: crate::Suit::from_raw(suit).unwrap(),
+            rank: crate::Rank::from_raw(rank).unwrap(),
             polish_pct_raw: 0,
             engraving: None,
         }
@@ -1461,8 +1461,8 @@ mod tests {
     fn cactus_card(id: usize, suit: u8, rank: u8) -> crate::CardState {
         crate::CardState {
             id,
-            suit,
-            rank,
+            suit: crate::Suit::from_raw(suit).unwrap(),
+            rank: crate::Rank::from_raw(rank).unwrap(),
             polish_pct_raw: 0,
             engraving: Some(2),
         }
