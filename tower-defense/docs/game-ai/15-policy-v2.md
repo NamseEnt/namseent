@@ -207,6 +207,12 @@ The option set is exactly what v1 could reach, so stage B changes only the posit
 - Critic: the A1 contract critic.
 - PPO: the A1 schedule, entropy scheme and coefficients, same seed blocks.
 
+### B BC results
+
+- Warm start from `v2a1-bc`, `--candidate-mode full-position`, 173,945 replayed training samples (every replayed state matched its recorded hash), about 21 GB resident during training.
+- Epoch 5 selected: validation NLL 0.0107, top-1 99.54%, family accuracy 100%; the cell head reproduces the heuristic-best cell on all 1,604 validation placements (cell NLL 2e-5).
+- Gate on `ppo_development`: -0.03 (SE 0.07) vs canonical, better/worse/tie 12/10/106, illegal 0, fallback 0, post-sampling mutations 0. All 3,087 greedy placements (2,366 BuildTower, 721 PlaceTower) are the option's heuristic-best cell, so no position leaves the v1 top 8 yet.
+
 ### Recorded, per training iteration and per development evaluation
 
 - `BuildTower` and `PlaceTower` separately:
