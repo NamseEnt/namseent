@@ -8,7 +8,7 @@ use crate::config::GameConfig;
 use crate::environment::{
     ActionKind, AgentAction, LegalAction, Observation, RewardConfig, StepReason,
 };
-use crate::policy_runner::{PolicyRunnerConfig, run_episode_with_step_callback};
+use crate::policy_runner::{PolicyRunnerConfig, run_episode_with_step_callback_mode};
 use crate::trajectory::Trajectory;
 use anyhow::{Result, bail};
 use burn::tensor::activation::softmax;
@@ -39,6 +39,7 @@ pub struct RolloutConfig {
     pub exploration_iteration: u64,
     pub adaptive_exploration: bool,
     pub greedy: bool,
+    pub semantic_actions: bool,
     pub max_stage: Option<usize>,
     pub reward_config: RewardConfig,
 }
@@ -53,6 +54,7 @@ impl Default for RolloutConfig {
             exploration_iteration: 0,
             adaptive_exploration: false,
             greedy: false,
+            semantic_actions: false,
             max_stage: None,
             reward_config: RewardConfig::default(),
         }
@@ -719,7 +721,7 @@ fn collect_episode<B: Backend>(
     let mut steps = Vec::new();
     let mut reward_component_sums = BTreeMap::<String, f64>::new();
     let mut decision_point_counts = BTreeMap::<String, usize>::new();
-    let episode = run_episode_with_step_callback(
+    let episode = run_episode_with_step_callback_mode(
         config,
         seed,
         &PolicyRunnerConfig {
@@ -840,6 +842,7 @@ fn collect_episode<B: Backend>(
                 return_value: 0.0,
             });
         },
+        rollout_config.semantic_actions,
     )?;
     if let Some(error) = nonfinite_error.borrow_mut().take() {
         bail!("{error}");

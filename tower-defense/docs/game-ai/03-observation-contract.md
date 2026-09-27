@@ -1,0 +1,183 @@
+# AI 관측 계약
+
+## 목표
+
+AI가 현재 상태에서 합법적으로 알 수 있는 전략 정보를 명시적으로 표현한다. teacher가 어떤 현재 정보를 사용해 행동을 선택했다면 distilled policy도 그 의미를 입력으로 받을 수 있어야 한다.
+
+관측은 게임 실행 semantics를 복제하는 범용 DSL이 아니다. 정책이 결정을 구분하는 데 필요한 의미만 제공한다.
+
+## 정보 경계
+
+포함한다.
+
+- 현재까지 공개된 game state
+- 플레이어가 알 수 있는 deck 구성 정보
+- 현재 카드의 강화 및 engraving
+- 보유 유물과 발동에 필요한 현재 파라미터
+- 선택한 카드로 생성되는 tower의 확정 가능한 속성
+- 현재 map, route, tower, monster, wave, 자원 상태
+- 현재 configuration에서 이미 플레이어에게 알려진 규칙
+
+포함하지 않는다.
+
+- 아직 뽑히지 않은 다음 카드의 실제 순서
+- 미래 random event 결과
+- 다른 후보를 선택했을 때만 소비될 실제 RNG 값
+- simulator 내부 cache와 검색용 private state
+- 사람 플레이어에게 공개되지 않는 미래 정보
+
+## Card entity
+
+각 카드는 최소한 다음 의미를 가진다.
+
+- stable card ID
+- suit와 rank
+- polish 또는 영구 강화 수치
+- engraving 종류와 관련 수치
+- 현재 위치 구분: hand, draw, discard
+
+정책 action은 card ID를 사용하며 observation encoder가 필요에 따라 categorical ID와 numeric parameter로 분리한다.
+
+## Resulting tower context
+
+각 build subset 후보에 대해 placement scorer가 다음 context를 받을 수 있어야 한다.
+
+- 사용한 card ID 집합
+- 결과 족보/tower kind
+- suit/rank 관련 속성
+- base damage(`damage_raw`), range, cooldown
+- card polish와 template에서 확정 가능한 upgrade bonus를 적용한 `effective_damage_raw`
+- engraving에서 파생된 공격 효과
+- 현재 유물이 적용된 뒤 확정할 수 있는 modifier
+- reroll count처럼 tower 결과에 영향을 주는 run state
+
+이 값은 policy가 독자적으로 포커 규칙을 추측해서 만들지 않는다. authoritative rule이 candidate context를 계산한다.
+
+`effective_damage_raw`는 `damage_raw`에 card polish와 `UpgradeCollection::tower_upgrade_bonus_raw_for_template`이 돌려주는, 해당 template만으로 확정 가능한 upgrade bonus를 적용한 값이다. `TowerState::attack_damage_raw`와 같은 authoritative 계산을 공유하며 simulator에서 재구현하지 않는다. 단, `NameTag`처럼 실제 `PlaceTower` 실행 중 배정되는 tower ID에 의존하는 placement-trigger 효과는 template 시점에 알 수 없으므로 포함하지 않는다 - 그런 upgrade가 있으면 `effective_damage_raw`는 실제 배치 이후의 `attack_damage_raw`보다 작을 수 있다. `damage_raw`와 `effective_damage_raw`가 이 두 값을 구분해서 노출하므로, policy는 `owned_upgrades`의 runtime parameter(예: `NameTag`의 미배정 상태)로 그 gap을 추론할 수 있다. placement를 실제 실행해서 얻은 값이 아니다.
+
+현재 구현에서는 `Observation.build_tower_candidates`가 이 context를 제공한다. 각 항목은 canonical card slot subset과 authoritative tower template을 함께 가진다. 전체 hand을 사용하는 subset은 빈 slot 목록으로 표현하며, 관측은 `Shopping`과 `SelectingTower` 상태에서 생성된다. 따라서 `BuildTower` candidate encoder는 card subset을 다시 계산하지 않고 해당 resulting tower를 직접 참조한다.
+
+semantic macro-action이 shop에서 바로 선택될 수 있으므로 정책은 `StartSelectingTower`를 먼저 고른 뒤 resulting tower를 추론할 필요가 없다. historically 이 변경으로 observation schema는 4, feature schema는 8로 올랐다.
+
+`TowerTemplateObservation`에 `effective_damage_raw`를 추가하면서(card polish/upgrade damage bonus double-count correctness fix 포함) observation schema를 다시 올렸다.
+
+현재 값은 `simulator/src/ml/contract.rs`가 유일한 출처다: `OBSERVATION_SCHEMA_VERSION` 9, `FEATURE_SCHEMA_VERSION` 12, `DATASET_SCHEMA_VERSION` 5, `ML_CONTRACT_SCHEMA_VERSION` 2. 이전 checkpoint와 dataset은 자동으로 혼용하지 않는다. `stage_wave`/`queued_wave`/`spawn_interval_ticks`/`next_spawn_in_ticks` 추가로 `OBSERVATION_SCHEMA_VERSION`이 8에서 9로 올랐다 - 아래 "웨이브와 장기 상태" 참고.
+
+이 목록은 placement 결과를 미리 실행한 값이 아니다. 위치별 route, occupancy, coverage feature는 candidate template과 별도로 현재 map에서 계산한다. 미래 RNG나 search 전용 값도 포함하지 않는다.
+
+### Resulting tower context - engraving에서 파생된 공격 효과
+
+`TowerTemplateObservation`은 `damage_raw`/`effective_damage_raw`/authoritative `range_raw`/`shoot_interval_ticks`에 더해 `on_hit_splashes`/`on_attack_splashes`(`Vec<DamageSplashObservation>`, `{ radius_raw, damage_pct_raw }`)를 노출한다. 이 값은 `TowerTemplateState::derived_on_hit_splashes`/`derived_on_attack_splashes`가 유일한 authoritative 출처이며, `place_tower_with_template`의 실제 배치 로직과 observation preview가 이 helper 하나를 공유한다 - Cactus engraving 판정을 observation이나 시뮬레이터 쪽에서 다시 구현하지 않는다. 예를 들어 Cactus engraving을 가진 카드로 만든 template은 `on_attack_splashes`에 `radius_raw = 2 * WORLD_UNITS_PER_TILE`, `damage_pct_raw = 300_000`인 항목 하나를 갖는다. 이 값은 `PlaceTower`가 실제 발동시키는 트리거 전용 효과가 아니라 template만으로 확정 가능한 preview이므로, `NameTag`류 placement-trigger-only 효과와 같은 층위에 포함하지 않는다.
+
+### Placed tower runtime context
+
+배치된 tower의 `TowerObservation`은 template preview와 구분되는 현재 runtime combat state를 제공한다.
+
+- `attack_damage_raw`: observation 생성 시점의 `TowerState::attack_damage_raw()` 그 자체. `template.effective_damage_raw`(placement 전 preview)와 의미가 다르며, 활성 status effect까지 반영한다.
+- `range_raw`/`cooldown_ticks`: 기존과 동일하게 authoritative runtime 값.
+- `status_effects: Vec<TowerStatusEffectObservation>`: 현재 활성화된 `DamageMul`/`DamageAdd` status effect 전체를 variable-cardinality로 노출한다. 절대 tick인 `end_at` 대신, 현재 decision 기준 상대값인 `remaining_ticks`(`Time { end_at }`는 `Some(end_at - sim_tick)`, `NeverEnd`는 `None`)를 제공해 policy가 `sim_tick`을 따로 참조하지 않아도 되게 한다. 순서는 `(kind, value_raw, has-expiry, remaining_ticks)` 기준의 deterministic total order이며 runtime `Vec` 순서에 의존하지 않는다. 여러 effect를 하나의 scalar로 합치거나 개수를 자르지 않는다.
+- `on_hit_splashes`/`on_attack_splashes`: 현재 tower가 실제로 보유한 runtime splash effect(`TowerState.on_hit_splashes`/`on_attack_splashes`)를 그대로 노출한다. 현재 gameplay에서는 대응하는 template preview와 값이 같지만, 의미상 별개다 - template 쪽은 placement 이전 확정 가능한 preview이고 placed 쪽은 실제 보유 상태다.
+
+`ml::encoding::observation::TypedObservation`의 `PLACED_TOWERS` legacy numeric row는 `[x, y, base_damage, cooldown, range, current_attack_damage]` 6개 필드로 구성된다. 여섯 번째 필드는 `TowerObservation.attack_damage_raw`를 `normalize_damage_raw`로 정규화한 값이며 `template.effective_damage_raw`를 사용하지 않는다. `status_effects`처럼 variable-cardinality인 정보는 이 고정폭 row에 억지로 압축하지 않는다 - `ml::encoding::combat::TowerCombatFeatureBundle`이 future structured policy를 위한 tower/status/splash row 기반 표현을 별도로 제공하며, 기존 PPO/BC 모델에는 연결하지 않는다. 같은 원칙으로 dense `BuildTower`/`PlaceTower` bundle(`ml::encoding::dense_build`)도 template splash effect를 `TemplateSplashFeatureRow`(`template_index`로 template row와 연결) 목록으로 노출하며, "Cactus 여부" 같은 단일 bool로 압축하지 않는다.
+
+## 유물과 upgrade
+
+단순 `relic_id`만 제공하지 않는다. 현재 observation은 upgrade key와 key ID에 더해 실행 중인 수치 상태를 제한된 semantic representation으로 제공한다.
+
+```text
+behavior_id
+relevant_tags
+numeric_parameters
+stack_count
+```
+
+구체적으로 `OwnedUpgradeObservation`은 `scalar_values`, `ratio_values`, `bool_values`를 제공한다. encoder는 이를 고정 폭 numeric row로 정규화한다. 이 값들은 게임 실행 semantics 전체를 복제하지 않고 현재 판단에 필요한 upgrade runtime parameter만 노출한다.
+
+예를 들어 특정 suit damage bonus라면 behavior, suit tag, multiplier가 구분되어야 한다. 복잡하고 고유한 유물은 behavior ID와 정책 판단에 필요한 핵심 파라미터만 제공할 수 있다.
+
+게임 실행 로직 전체를 trigger/condition/operation 언어로 다시 표현하지 않는다. effect의 논리 구조가 바뀌어 기존 representation이 거짓이 되면 observation schema를 증가시키고 재학습한다.
+
+## 보드와 topology
+
+초기 구현은 엔진이 정확히 계산 가능한 구조화 정보를 유지한다.
+
+- map 크기와 blocked tile
+- 현재 route 좌표와 progress
+- tower 위치, 범위, cooldown, damage, 종류
+- monster 위치, route progress, HP, 속도, 피해량
+- 후보 위치의 coverage와 route 관련 engineered feature
+
+전체 grid image용 CNN은 우선 도입하지 않는다. handcrafted feature로 부족한 topology 관계가 계측된 경우 path/navigation graph encoder 또는 GNN을 후속 비교한다.
+
+## 웨이브와 장기 상태
+
+- 현재 stage와 wave 상태
+- active/queued monster 수와 종류
+- 공개된 wave composition
+- player HP, shield, gold, dice/reroll 자원
+- shop, inventory, treasure capacity
+- 이미 설치된 tower와 철거 가능 대상
+
+장기 판단에 필요한 공개 정보가 configuration에만 있고 observation에 없다면 명시적으로 추가한다.
+
+`Observation`은 wave composition과 spawn timing을 다음 두 가지 의미로 명시적으로 분리해서 노출한다. 둘 다 authoritative `monster_spawn::monster_spawn_profile()`(`start_spawn()`이 실제 spawn 시점에 사용하는 것과 동일한 helper)로 stat을 계산하므로, observation과 runtime spawn logic이 계산식을 따로 복제하지 않는다. 현재 gameplay가 실제로 적용하는 modifier만 반영한다 - 예를 들어 `enemy_health_multipliers_raw`는 `max_hp_raw`에 적용되지만, `enemy_speed_multipliers_raw`는 `start_spawn()`이 실제 spawn velocity에 적용하지 않으므로 이 helper도 적용하지 않는다.
+
+- `stage_wave: Vec<WaveGroupObservation>` - 현재 stage의 `config.monsters.stage_waves` entry 전체를, config에 정의된 순서 그대로 보존해서 노출한다. 이미 spawn된 group도 포함하는 "이번 stage 전체 계획"이며, kind별로 aggregate하지 않는다 - 예를 들어 `A×3, B×2, A×1` 순서의 wave는 정확히 3개의 group으로 남는다(`A×4, B×2`로 합치지 않는다). deterministic public configuration이므로 Shopping/CardSelection/TowerPlacement를 포함한 모든 decision point에서 사용 가능하다.
+- `queued_wave: Vec<QueuedMonsterGroupObservation>` - defense 진행 중 실제 `MonsterSpawnState.monster_queue`에 남아있는, 아직 spawn되지 않은 monster를 실제 queue 순서 그대로 run-length encoding한다. 연속된 동일 kind/동일 stat 구간만 하나의 group으로 압축하며, 서로 다른 kind로 끊긴 non-contiguous same-kind 구간은 합치지 않는다. per-monster entity ID는 포함하지 않는다. defense 시작 전이거나 queue가 소진되면 비어 있다. `queued_monster_count`는 항상 `queued_wave.iter().map(|group| group.count).sum()`과 같다(회귀 테스트로 검증).
+- `spawn_interval_ticks: u64`/`next_spawn_in_ticks: Option<u64>` - 현재 defense의 spawn 간격과, 다음 spawn까지 남은 상대 tick(`next_spawn_tick - sim_tick`)이다. 절대 tick(`next_spawn_tick`)은 노출하지 않는다. defense가 시작되지 않았거나 향후 예정된 spawn이 없으면 `next_spawn_in_ticks`는 `None`이다.
+
+이 값들은 미래 RNG나 hidden order가 아니다 - 현재 `start_spawn()`은 config wave를 순서대로 큐에 채울 뿐 별도 RNG를 사용하지 않으므로, `stage_wave`와 현재 `queued_wave`는 이미 player/teacher 모두가 알 수 있는 deterministic 정보다. 반대로 다음 항목은 절대 포함하지 않는다: RNG state, domain sequence counter, future random draw, deck hidden order, future shop RNG, future random upgrade 선택, 아직 spawn되지 않은 monster의 entity ID.
+
+future model-facing structured 표현으로 `ml::encoding::wave::WaveFeatureBundle`을 별도로 제공한다. `stage_groups`/`queued_groups`(각각 `WaveFeatureRow` - `order_index`/`kind_id`/`count`/`max_hp_raw`/`velocity_raw`/`damage_raw`/`reward`)와 `spawn_interval_ticks`/`next_spawn_in_ticks`를 `&Observation`만으로 계산하며, `GameEnvironment`나 private `CoreState`를 입력받지 않는다. 기존 PPO/BC 모델, `TypedObservation::ENTITY_SET_COUNT`, dataset/trajectory 경로에는 연결하지 않는다.
+
+이 wave 관련 field 추가로 observation schema를 9로 올렸다(`FEATURE_SCHEMA_VERSION`은 12로 유지 - `WaveFeatureBundle`은 아직 기존 encoded feature vector에 연결되지 않는다).
+
+## Balance configuration
+
+Phase 1 정책은 현재 balance configuration에 고정한다. 모든 balance parameter를 처음부터 입력으로 넣지 않는다.
+
+확장 순서는 다음과 같다.
+
+1. fixed configuration에서 강한 policy
+2. 좁은 parameter range randomization
+3. 선택한 parameter만 포함한 balance-conditioned policy
+
+configuration을 바꾼 뒤 fixed policy 결과를 그대로 새 밸런스의 강한 플레이 결과로 간주하지 않는다. 변경 범위가 policy의 검증 범위를 벗어나면 재학습하거나 conditioned policy를 사용한다.
+
+이 구분은 checkpoint metadata에도 명시된다. `simulator/src/ml/contract.rs`의 `MlContract::balance_scope`(타입 `PolicyBalanceScope`)는 `Fixed` 또는 `Conditioned { parameters: Vec<ConditionedBalanceParameter> }` 중 하나다. `Fixed`는 해당 policy가 `config_digest` 하나로 식별되는 정확히 하나의 balance configuration에서만 학습·검증되었음을 뜻하며, 어떤 balance parameter도 policy 입력으로 randomize되거나 노출되지 않는다. `Conditioned`는 아직 구현하지 않은 미래 balance-conditioned policy를 위한 자리로, `parameters`는 policy가 학습 시 실제로 관측한 각 parameter의 이름과 raw range(`min_raw`/`max_raw`)를 기록한다. Phase 2에서 생성하는 모든 contract/checkpoint의 `balance_scope`는 반드시 `Fixed`이며, 실제로 지원하지 않는 conditioned range를 가짜로 채우지 않는다. 필드가 없는 legacy contract는 `#[serde(default)]`로 `Fixed`로 역직렬화된다. 이 필드 추가로 `ML_CONTRACT_SCHEMA_VERSION`을 2로 올렸다.
+
+## 정규화와 누락값
+
+- 모든 numeric feature는 단위, scale, clipping 범위를 계약에 기록한다.
+- categorical vocabulary는 안정적인 key와 schema version을 사용한다.
+- 누락과 값 0을 같은 표현으로 합치지 않는다.
+- variable-cardinality entity set의 multiplicity를 보존한다.
+- typed entity numeric row는 upgrade runtime parameter를 포함할 수 있도록 6폭으로 zero-padding한다. 모델의 entity input도 같은 폭을 사용한다.
+- feature를 제거하거나 의미를 변경하면 `FEATURE_SCHEMA_VERSION`을 증가시킨다. historically upgrade parameter row 폭 변경으로 feature schema를 7로 올린 적이 있고, `effective_damage_raw` 추가로 11로, placed tower legacy row에 `attack_damage_raw`를 6번째 필드로 추가하면서 다시 올라 현재 `FEATURE_SCHEMA_VERSION`은 12이다(`simulator/src/ml/contract.rs`가 유일한 출처). 이전 checkpoint와 섞지 않는다.
+- damage/effective damage/tower range/cooldown·shoot interval/card polish/route progress/rerolled count/upgrade scalar·ratio·bool처럼 고정 scale을 쓰는 feature family는 `simulator/src/ml/encoding/normalize.rs`의 공유 `normalize_*`/`denormalize_*` 헬퍼로 나눗셈 상수를 한 곳에 고정하고, 각 family의 raw -> normalized -> raw round-trip을 `normalize.rs`의 단위 테스트로 검증한다. position x/y, route coord index처럼 가변 extent(map 크기, route 길이)로 나누는 family는 같은 파일의 `normalize_axis_ratio`/`denormalize_axis_ratio`로 검증한다. categorical vocabulary(수트/랭크/engraving/upgrade key 등)와 hp 비율처럼 두 raw 값의 비율인 feature는 decoder가 의미 없는 lossy/비-scale 값이므로 round-trip 대상에서 제외한다.
+
+## 승인 기준
+
+- teacher decision에 사용된 현재 정보가 observation에서 표현 가능하다 (`Observation`/`TypedObservation`/`DenseBuildFeatureBundle`가 card identity, resulting tower context, 유물 runtime parameter, map/route/wave/자원 상태를 모두 노출한다).
+- 미래 RNG 또는 hidden order가 포함되지 않는다 (`build_tower_candidates`/`extra_tower_card_templates`는 authoritative core가 계산한 template이며 실제 배치를 실행하지 않는다; `docs/game-ai/03-observation-contract.md` 정보 경계 참고).
+- 동일 의미의 entity가 hand reorder 후에도 stable identity를 유지한다 (`ml::encoding::dense_build::tests::subset_identity_is_stable_across_hand_reorder`).
+- resulting tower context가 card subset마다 정확히 계산된다 (`ml::encoding::dense_build::tests::template_row_matches_observation_for_every_subset_and_slot`).
+- 유물 parameter 변경이 observation 값 변화로 나타난다 (`ml::encoding::observation::tests::upgrade_scalar_runtime_change_is_reflected_in_encoding`, `..._ratio_...`, `..._bool_...`; scalar/ratio/bool 표현 방식을 각각 한 번씩 검증).
+- feature 단위와 normalization의 round-trip test가 있다 (`ml::encoding::normalize::tests::*`).
+- fixed configuration 범위와 conditioned configuration 범위가 checkpoint metadata에 구분된다 (`MlContract::balance_scope: PolicyBalanceScope`; `ml::contract::tests::contract_from_config_is_fixed_balance_scope`, `legacy_contract_without_balance_scope_field_defaults_to_fixed`, `conditioned_balance_scope_round_trips_through_json`).
+- placed tower의 engraving에서 파생된 공격 효과가 template preview와 실제 배치 사이에서 authoritative helper 하나로 단일화된다 (`TowerTemplateState::derived_on_attack_splashes`/`derived_on_hit_splashes`; `game_state::observation::tests::cactus_template_preview_exposes_derived_on_attack_splash`, `cactus_preview_and_placed_splash_match`).
+- placed tower의 현재 실제 combat state(공격력, active status effect, remaining duration, 실제 splash)가 observation에서 손실 없이 표현된다 (`game_state::observation::tests::placed_tower_attack_damage_matches_authoritative_calculation_with_no_status`, `active_damage_add_status_is_reflected_in_observation`, `active_damage_mul_status_is_reflected_in_observation`, `status_remaining_ticks_decreases_with_sim_tick`, `multiple_status_effects_are_all_preserved`, `status_effect_observation_order_is_deterministic`).
+- `TypedObservation`의 placed tower legacy row가 base damage와 별개로 current attack damage를 노출한다 (`ml::encoding::observation::tests::placed_tower_encodes_position_damage_cooldown_range`).
+- future model-facing structured tower combat/status/splash bundle이 `&Observation`만 입력으로 받아 deterministic하게 계산된다 (`ml::encoding::combat::tests::*`, `ml::encoding::dense_build::tests::dense_build_and_place_tower_bundles_expose_template_splash_rows`).
+- 현재 stage의 configured wave composition이 config entry 순서를 그대로 보존하고 kind별로 aggregate되지 않는다 (`game_state::observation::tests::stage_wave_preserves_order_sensitive_composition_without_kind_aggregation`).
+- Shopping 등 defense 시작 전 decision point에서도 `stage_wave`가 노출된다 (`game_state::observation::tests::stage_wave_is_visible_during_shopping`).
+- `stage_wave`/`queued_wave`의 effective stat이 `start_spawn()`이 실제로 spawn시키는 monster의 stat과 authoritative `monster_spawn_profile()` helper 하나를 공유해 정확히 일치한다 (`game_state::observation::tests::stage_wave_stats_match_authoritative_spawn_profile_with_health_modifier`).
+- defense 시작 직후 `queued_wave`가 실제 `MonsterSpawnState.monster_queue` 순서를 의미상 정확히 보존하고, non-contiguous 동일 kind 구간을 합치지 않는다 (`game_state::observation::tests::queued_wave_matches_actual_spawn_queue_right_after_defense_starts`).
+- 한 마리 spawn된 뒤 `queued_wave`의 run-length encoding과 `queued_monster_count`가 정확히 갱신된다 (`game_state::observation::tests::queue_progress_decrements_count_and_drops_spawned_monster`).
+- `spawn_interval_ticks`/`next_spawn_in_ticks`가 authoritative `MonsterSpawnState`의 값과 일치하고, tick이 지날수록 감소하며, 미래 spawn이 없으면 `None`이다 (`game_state::observation::tests::spawn_timing_reflects_authoritative_next_spawn_tick_and_decreases`).
+- 동일 상태에서 두 번 생성한 wave observation과 `WaveFeatureBundle`이 exact equality를 만족한다 (`game_state::observation::tests::wave_observations_are_deterministic_for_the_same_state`, `ml::encoding::wave::tests::compute_is_deterministic_for_same_observation`).
+- 직렬화된 `queued_wave`가 monster entity ID를 노출하지 않는다 (`game_state::observation::tests::queued_wave_serialization_never_leaks_a_monster_entity_id_field`).
+
+## Phase 2 종료 (Verified)
+
+위 승인 기준 항목은 모두 현재 코드의 observation/schema/normalization/wave 관련 테스트로 커버되며(각 항목에 test 경로를 함께 기록), Phase 2 시작 이후 추가 코드 변경 없이 존재하는 테스트 스위트로 통과가 재확인되었다. 이에 따라 이 문서의 상태를 `Implemented`에서 `Verified`로 올린다. 이 승인은 관측 계약 자체(무엇을 노출하는지, 어떻게 정규화하는지, schema version이 의미 변화와 함께 오르는지)에 대한 것이며, Phase 3 이후 rollout teacher나 최종 held-out full-clear 성능 승인과는 별개다.

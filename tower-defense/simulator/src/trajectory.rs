@@ -17,7 +17,7 @@ use td_core::{
     CORE_RNG_ALGORITHM_VERSION as RNG_ALGORITHM_VERSION,
 };
 
-pub const TRAJECTORY_SCHEMA_VERSION: u32 = 5;
+pub const TRAJECTORY_SCHEMA_VERSION: u32 = 6;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TrajectoryOutcome {
@@ -93,7 +93,15 @@ impl TrajectoryStep {
         action: AgentAction,
         outcome: StepOutcome,
     ) -> Self {
-        let player_command = action.to_player_command();
+        let hand_card_ids = pre_observation
+            .hand
+            .iter()
+            .filter_map(|item| match &item.item {
+                crate::environment::HandItemObservation::Card(card) => Some((item.index, card.id)),
+                crate::environment::HandItemObservation::Tower(_) => None,
+            })
+            .collect::<Vec<_>>();
+        let player_command = action.to_player_command(&hand_card_ids).unwrap_or(None);
         Self {
             pre_observation,
             legal_actions,

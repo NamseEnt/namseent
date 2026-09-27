@@ -33,5 +33,5 @@ pub mod validation;
 #[cfg(feature = "simulator")]
 pub mod vocabulary;
 
-pub use contract::{MlContract, MlContractError};
+pub use contract::{ConditionedBalanceParameter, MlContract, MlContractError, PolicyBalanceScope};
 pub use seed::{SeedRange, SeedRangeError, TrainingSeedSchedule};

@@ -1,0 +1,207 @@
+# 시뮬레이터 성능 계획
+
+## 목적
+
+학습 알고리즘과 teacher가 충분한 경험을 생성할 수 있도록 authoritative headless simulation의 처리량을 높인다. 모델 구조를 고도화하기 전에 환경 transition 비용을 줄인다.
+
+macro-action 변경과 성능 최적화는 함께 진행한다. UI micro-action 제거 자체가 observation 생성, legal action 생성, inference 횟수를 줄이므로 기존 action contract에서만 측정한 최적화 결과는 최종 처리량을 대표하지 않는다.
+
+GPU는 simulation 자체를 대체하지 않는다. pathfinding, legal action 생성, mutable state transition처럼 분기와 작은 메모리 접근이 많은 작업은 CPU에서 최적화한다. GPU는 큰 tensor batch를 처리하는 학습과 batch inference에 집중한다.
+
+## 기준 지표
+
+판당 시간만 사용하지 않는다. 강한 정책은 더 오래 생존하므로 episode/sec가 오히려 감소할 수 있다.
+
+필수 지표는 다음과 같다.
+
+- simulation ticks/sec
+- policy decisions/sec
+- completed episodes/sec
+- stage 또는 wave당 wall time
+- path query count/sec
+- path query당 latency
+- legal candidate 생성 latency
+- candidate validation latency
+- observation encoding latency
+- policy inference latency
+- state clone 횟수와 clone bytes 추정치
+- peak resident memory
+
+현재 benchmark report에는 `placement_position_checks`와 초당 값이 포함되어 coordinate별 topology 검사량을 별도로 비교할 수 있다. 실제 low-level path query latency와 clone byte 계측은 별도 계측 단계로 남겨 둔다.
+
+모든 report에는 다음 metadata를 포함한다.
+
+- Git revision
+- configuration digest
+- environment/action/RNG schema version
+- build profile
+- 머신과 thread 수
+- policy 종류
+- seed 집합
+- max tick과 max decision
+
+## 확인된 초기 병목
+
+초기 placement legal action 생성은 coordinate discovery와 tower별 action 생성에서 `can_place_tower`를 반복 호출했다. 현재 구현은 공통 `TowerPlacementContext`를 만들고 coordinate당 topology 검사를 한 번만 수행한다. `can_place_tower`의 전체 state clone도 제거했으며, 후보 적법성에서는 경로 벡터를 만들지 않고 연결 가능성만 확인한다. 실제 설치 command는 여전히 완전한 route를 계산해 authoritative 결과를 만든다.
+
+우선순위는 다음과 같다.
+
+1. 같은 `(tower, coordinate, state revision)` validation 중복 제거 — 반영
+2. coordinate-level topology legality와 tower-specific legality 분리 — 반영
+3. 전체 state clone 없이 placement delta 검증 — 반영
+4. blocker 변화가 없는 후보 사이의 route 결과 재사용
+5. board revision 기반 cache invalidation
+6. 필요할 경우 incremental path update 또는 더 적합한 path algorithm 검토
+
+cache는 state mutation 이후 stale route를 반환해서는 안 된다. cache hit보다 correctness가 우선이며 state hash/replay test로 검증한다.
+
+## 작업 단계
+
+### P0: benchmark harness
+
+- fixed seed와 fixed decision budget benchmark
+- no-policy simulation과 policy 포함 simulation 분리
+- path, candidate generation, observation, inference timing 분해
+- 결과를 machine-readable report로 저장
+
+### P1: macro-action overhead 제거
+
+- 카드 선택당 반복 decision 제거
+- build와 placement 사이의 추가 observation/inference 제거
+- macro action 하나당 authoritative state transition 횟수 측정
+
+### P2: placement validation 중복 제거
+
+- legal coordinate 계산을 한 번 수행
+- 같은 후보에 대한 중복 `can_place_tower` 호출 제거
+- tower 특성이 topology legality에 영향을 주지 않는 부분을 공유
+
+현재 브랜치에서 coordinate-level route existence 결과를 tower hand 전체가 공유하도록 구현했다.
+
+### P3: clone과 path recalculation 축소
+
+- placement가 변경하는 blocker delta만 계산
+- path query input을 compact representation으로 분리
+- 동일 blocker set 결과를 state revision 범위에서 재사용
+- 실제 commit과 dry-run validation 결과가 동일한지 property test
+
+현재 브랜치에서 state clone 제거와 existence-only path query를 구현했다. blocker-set cache와 board revision invalidation은 아직 남아 있다.
+
+### P4: 병렬 rollout
+
+- episode별 독립 RNG와 deterministic result 유지
+- worker당 mutable environment 소유
+- shared immutable configuration 사용
+- memory pressure와 scheduling overhead를 thread 수별로 측정
+
+### P5: CPU-GPU pipeline
+
+- 여러 CPU worker가 observation과 legal candidate를 생성
+- inference 요청을 크기 또는 짧은 latency window로 batching
+- GPU가 batched policy/value inference 수행
+- 결과를 원래 environment와 decision sequence에 정확히 반환
+- CPU simulation과 GPU inference를 겹쳐 실행
+- queue 대기 시간, batch 크기, GPU utilization, end-to-end decisions/sec 측정
+
+단건 GPU dispatch는 작은 모델에서 CPU보다 느릴 수 있다. GPU 경로의 채택 기준은 kernel 시간만이 아니라 queue와 tensor transfer를 포함한 전체 처리량이다. M1의 unified memory도 논리적 tensor 변환과 dispatch 비용을 제거하지는 않는다.
+
+### P6: teacher batch evaluation
+
+- candidate별 continuation을 독립 environment 전체 clone으로 시작하지 않도록 snapshot 비용 측정
+- copy-on-write, compact snapshot, state delta 중 가장 단순하고 빠른 방식을 benchmark로 선택
+- 같은 scenario seed를 candidate batch에 효율적으로 배포
+
+현재 구현은 `GameEnvironment::fork_for_rollout_seed`로 authoritative core snapshot을 복제하고, 현재 관찰값과 합법 행동을 유지한 채 teacher 전용 RNG domain seed만 교체한다. 이 fork는 먼저 correctness 기준으로 사용하며, candidate batch에서의 snapshot 비용은 별도 benchmark로 측정한다.
+
+### Placement legality route certificate (measured)
+
+At commit `c63a8e37`, `TowerPlacementContext::can_place_at` took 96% of a canonical terminal rollout, because every position ran up to six fresh BFS searches. Now `TowerPlacementContext` builds one witness route per travel segment, lazily and once per context. That covers the route cells plus both orthogonal side cells of every diagonal step, since a diagonal step is only blocked when both side cells are blockers. A footprint only needs a BFS for the segments whose certificate it touches. The old route-vertex-only fast path in `legality.rs` ignored diagonal side cells and could report an illegal footprint as legal; it now uses the same primitive.
+
+- Correctness: `route_certificate_matches_search_for_every_position_on_random_maps` (48 random maps x every position) agrees with the full search, while the old vertex-only rule disagreed on 17 positions. Trajectory fingerprints for seeds 0-11 (1,179 decisions, 23.5M legal action ids) are identical before and after.
+- Speed (release, 1 thread, seed 109 decision 12 baseline branch, 6 scenarios): 6.91s -> 0.58s per terminal rollout; placement BFS calls 4.66M -> 0.18M. Placement is now 44% of the rollout.
+
+### Teacher terminal rollout latency (measured, branch `feat/rollout-latency`)
+
+Official numbers were measured on an idle machine: release build with the `diagnostics` feature, 160 identical terminal rollouts (seeds 0/1/2/3/109 x prefix decisions 0/12/30/50 x scenarios 20000-20007). Every stage gives identical clear rates and source state hashes.
+
+| stage | change | sec / rollout | placement BFS / rollout |
+|---|---|---|---|
+| 0 | fast-path baseline (`d510e092` + profiling) | 0.493 | 23,620 |
+| 1 | trusted minimal rollout step: no legality re-check, observation, state hash, reward or trace | 0.177 | 8,517 |
+| 2 | prepared placement legality reused while occupied cells are unchanged | 0.131 | 3,900 |
+| 3 | fixed-grid allocation-free BFS + three witness routes per travel segment | 0.094 | 288 |
+| 4 | route scoring grids cached per route; legal actions sorted by precomputed ids | 0.070 | 288 |
+
+Throughput on 320 rollouts: 1 thread 2.00 -> 14.09 rollouts/s; 12 threads 13.15 -> 103.9 rollouts/s.
+
+At stage 4 the remaining time splits into:
+
+- core defense ticks: 38.5% (23.7k ticks per rollout)
+- canonical policy: 47% in total, of which the dense BuildTower table is 12.8%, legal-action generation 11.9% and placement scans 9.4%
+- action application: 11%
+
+#### Provenance and correctness evidence
+
+- Reference (pre-optimization) commit: `d510e092`.
+- Final optimized code commit: `efbbc119` (branch `feat/rollout-latency`; later commits there change only docs).
+- 1 thread: 0.493 -> 0.070 sec per terminal rollout. 12 threads: 13.15 -> 103.9 rollouts per second.
+- Trajectory fingerprints (`trajectory-fingerprint`, diagnostics feature) for seeds 0-11 are identical to the reference after every stage: 1,179 decisions and 23.5M legal action ids. At every decision the fingerprint compares:
+  - decision point
+  - authoritative state hash (the full core state, including RNG)
+  - legal and semantic legal action ids and their order
+  - canonical selected action
+  - clear_rate
+  - final state hash and clear_rate
+- `rollout-bench` terminal clear_rates and source state hashes are identical across all five stages (160 rollouts), and the 12-thread clear_rates are identical between stage 0 and stage 4 (320 rollouts).
+- `trusted_rollout_step_matches_semantic_step_at_every_decision` steps the public `semantic_step` and the teacher-only trusted step in lockstep (3 seeds x 3 prefixes x 2 scenarios, over 1,000 decisions). At every decision it requires identical progress fingerprint, legal action ids, canonical action, metrics and termination.
+- The legality and route caches are checked against fresh computation at every decision of 6 canonical trajectories.
+- Core placement differential tests:
+  - every position on 48 random tower maps against the original BFS
+  - 40,000 random blocker grids for the fixed-grid BFS
+  - an assertion that the generated maps include cases where the old route-vertex-only rule is wrong
+- Teacher end-to-end: `teacher-selection-heldout` on seed 7 (6 decisions) gives identical proposals, discovery means, top-3, validation statistics, selections and clear_rate for reference and optimized binaries (all fields except `elapsed_seconds`).
+
+## 장치별 책임
+
+| 작업 | 기본 장치 | 이유 |
+| --- | --- | --- |
+| Game state transition | CPU | 분기와 mutable state가 많음 |
+| Legal action 생성 | CPU | authoritative rule과 작은 불규칙 작업 |
+| Pathfinding과 placement validation | CPU | graph 탐색과 cache 중심 |
+| Episode 병렬 실행 | CPU | environment 간 독립성이 높음 |
+| BC/distillation 학습 | GPU | 큰 tensor batch 연산 |
+| PPO 또는 후속 RL update | GPU | forward/backward batch 연산 |
+| 단일 environment inference | CPU baseline | GPU dispatch 비용과 비교 필요 |
+| 다수 environment/candidate inference | Batched GPU 후보 | batch가 충분할 때 높은 처리량 가능 |
+
+Apple M1에서는 WGPU Metal backend를 사용 후보로 둔다. 원격 머신은 GPU vendor, driver, memory를 확인하기 전까지 backend를 확정하지 않는다.
+
+## 초기 성능 목표
+
+2026-09-17 임시 smoke benchmark의 약 60초 결과를 기준으로 다음을 초기 engineering target으로 둔다.
+
+- 1차: 같은 benchmark 조건에서 5초 미만
+- 확장: 가능한 경우 1초 미만
+
+이 시간 목표는 normalized throughput을 대체하지 않는다. action contract가 바뀌면 decision 수가 달라지므로 ticks/sec, path query count, candidate latency 개선을 함께 통과해야 한다.
+
+## correctness 불변 조건
+
+- 한 simulation step은 정확히 한 `SimTick`을 전진한다.
+- fast-forward는 step 수만 바꾸며 tick duration을 바꾸지 않는다.
+- rendered와 headless 실행은 같은 authoritative simulation-step 함수를 사용한다.
+- 동일 seed, config, macro action sequence는 동일 state hash를 만든다.
+- cache 유무가 legal action과 전투 결과를 바꾸지 않는다.
+- 최적화 때문에 불법 placement가 허용되거나 합법 placement가 누락되지 않는다.
+
+## 승인 기준
+
+- benchmark report가 재현 가능하다.
+- placement candidate 생성에서 같은 validation이 중복 실행되지 않는다.
+- path query 수와 latency가 단계별로 보고된다.
+- 새 macro-action 기준 normalized throughput이 baseline보다 개선된다.
+- 목표 시간 또는 그에 준하는 병목 제거 근거가 있다.
+- deterministic replay와 legal-set equivalence test가 통과한다.
+- CPU-only와 CPU-GPU pipeline을 같은 workload로 비교한다.
+- GPU 경로는 end-to-end decisions/sec 또는 training wall time을 실제로 개선할 때만 기본값으로 채택한다.
+- M1 16GB에서 queue, rollout state, tensor와 optimizer를 포함한 peak memory가 한도를 넘지 않는다.
