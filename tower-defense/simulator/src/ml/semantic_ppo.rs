@@ -26,9 +26,12 @@ use super::phase4_dataset::{
     DatasetProvenance, EpisodeRecord, GAME_RULES_EPOCH, MAX_EPISODE_DECISIONS, Phase4Split,
 };
 use super::phase4_eval::{EvalPolicy, PairedComparison, PolicySummary, evaluate_policies};
+use super::policy_v2::{
+    KindMode, POLICY_REPRESENTATION_VERSION, PolicyNet, factorized_log_probs, module_to_bytes,
+};
 use super::semantic_bc::{
     BcCheckpointMetadata, SemanticDecision, SemanticPolicy, batch_log_probs, load_model_file,
-    load_selected_model, sample_masked, semantic_decision,
+    load_policy_file, load_selected_model, sample_masked, semantic_decision,
 };
 use super::semantic_candidates::{
     EncodedDecision, POLICY_CANDIDATE_SET_VERSION, SEMANTIC_CANDIDATE_ENCODER_VERSION,
@@ -76,6 +79,7 @@ pub const TRACKED_ACTION_KINDS: [&str; 12] = [
 ];
 
 type ActorCriticOptimizer = OptimizerAdaptor<Adam, DeepSetsActorCritic<TrainBackend>, TrainBackend>;
+type PolicyOptimizer = OptimizerAdaptor<Adam, PolicyNet<TrainBackend>, TrainBackend>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoConfig {
@@ -198,7 +202,7 @@ pub fn critic_value_vector(
 
 /// Per-decision log-probabilities (unpadded, one vector per decision).
 pub fn actor_log_prob_vectors(
-    actor: &DeepSetsActorCritic<InferenceBackend>,
+    actor: &PolicyNet<InferenceBackend>,
     decisions: &[&EncodedDecision],
     device: &PolicyDevice,
 ) -> Result<Vec<Vec<f32>>> {
@@ -239,6 +243,8 @@ pub struct Transition {
     pub decision_point: String,
     pub old_log_prob: f32,
     pub behavior_entropy: f32,
+    /// Entropy of the family (action kind) distribution.
+    pub family_entropy: f32,
     pub clear_rate_before: f32,
     pub raw_delta: f32,
     pub reward: f32,
@@ -325,7 +331,7 @@ fn advance(
 /// distribution (or taking the greedy action when `greedy`), and records the
 /// transitions. Values are filled in later in one batched critic pass.
 pub fn rollout_episode(
-    actor: &DeepSetsActorCritic<InferenceBackend>,
+    actor: &PolicyNet<InferenceBackend>,
     device: &PolicyDevice,
     config: Arc<GameConfig>,
     game_seed: u64,
@@ -358,8 +364,17 @@ pub fn rollout_episode(
         } = semantic_decision(&environment)?;
         decision_seconds += started.elapsed().as_secs_f64();
         let started = Instant::now();
-        let (log_probs, _) = batch_log_probs(actor, &[&encoded], device);
-        let log_probs = log_probs.into_data().to_vec::<f32>()?[..legal_mask.len()].to_vec();
+        let factorized = factorized_log_probs(actor, &[&encoded], device);
+        let log_probs = factorized.joint.into_data().to_vec::<f32>()?[..legal_mask.len()].to_vec();
+        let family_entropy = factorized
+            .kind
+            .into_data()
+            .to_vec::<f32>()?
+            .iter()
+            .zip(&factorized.present)
+            .filter(|(_, present)| **present)
+            .map(|(log_prob, _)| -log_prob.exp() * log_prob)
+            .sum::<f32>();
         forward_seconds += started.elapsed().as_secs_f64();
         if log_probs.iter().any(|value| value.is_nan()) {
             bail!("seed {game_seed}: NaN actor log-probability");
@@ -391,6 +406,7 @@ pub fn rollout_episode(
             decision_point: format!("{:?}", candidates.observation.decision_point),
             old_log_prob: log_probs[action_index],
             behavior_entropy: entropy_of(&log_probs, &legal_mask),
+            family_entropy,
             clear_rate_before,
             raw_delta,
             reward: raw_delta * reward_scale,
@@ -481,14 +497,16 @@ pub struct UpdateStats {
 }
 
 pub struct PpoLearner {
-    pub actor: DeepSetsActorCritic<TrainBackend>,
+    pub actor: PolicyNet<TrainBackend>,
     pub critic: DeepSetsActorCritic<TrainBackend>,
-    pub actor_optimizer: ActorCriticOptimizer,
+    pub actor_optimizer: PolicyOptimizer,
     pub critic_optimizer: ActorCriticOptimizer,
     pub device: PolicyDevice,
 }
 
-fn new_optimizer(max_grad_norm: f32) -> ActorCriticOptimizer {
+fn new_optimizer<M: burn::module::AutodiffModule<TrainBackend>>(
+    max_grad_norm: f32,
+) -> OptimizerAdaptor<Adam, M, TrainBackend> {
     AdamConfig::new()
         .with_grad_clipping(Some(GradientClippingConfig::Norm(max_grad_norm)))
         .init()
@@ -496,7 +514,7 @@ fn new_optimizer(max_grad_norm: f32) -> ActorCriticOptimizer {
 
 impl PpoLearner {
     pub fn new(
-        actor: DeepSetsActorCritic<TrainBackend>,
+        actor: PolicyNet<TrainBackend>,
         critic: DeepSetsActorCritic<TrainBackend>,
         config: &PpoConfig,
     ) -> Self {
@@ -509,7 +527,7 @@ impl PpoLearner {
         }
     }
 
-    pub fn actor_inference(&self) -> DeepSetsActorCritic<InferenceBackend> {
+    pub fn actor_inference(&self) -> PolicyNet<InferenceBackend> {
         self.actor.clone().valid()
     }
 
@@ -558,7 +576,7 @@ struct ActorTerms {
 }
 
 fn actor_terms(
-    actor: &DeepSetsActorCritic<TrainBackend>,
+    actor: &PolicyNet<TrainBackend>,
     batch: &[&Transition],
     advantages: &[f32],
     config: &PpoConfig,
@@ -1103,6 +1121,8 @@ pub struct RolloutStats {
     pub fallback_actions: usize,
     pub nonfinite_values: usize,
     pub mean_behavior_entropy: f64,
+    #[serde(default)]
+    pub mean_family_entropy: f64,
     pub action_kind_counts: BTreeMap<String, usize>,
     pub action_kind_fractions: BTreeMap<String, f64>,
     pub mean_return: f64,
@@ -1125,6 +1145,8 @@ pub struct RolloutStats {
 pub struct DecisionPointStats {
     pub count: usize,
     pub mean_entropy: f64,
+    #[serde(default)]
+    pub mean_family_entropy: f64,
     pub non_greedy_fraction: f64,
     pub non_canonical_fraction: f64,
     pub non_init_greedy_fraction: f64,
@@ -1195,6 +1217,66 @@ pub struct IterationRecord {
     pub rollout_seconds: f64,
     pub update_seconds: f64,
     pub evaluation: Option<DevEvaluation>,
+    /// Training budget consumed up to and including this iteration,
+    /// including the parent run when continued from a PPO checkpoint.
+    #[serde(default)]
+    pub cumulative: TrainingBudget,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct TrainingBudget {
+    pub episodes: usize,
+    /// Semantic decisions (policy samples) - the primary sample-budget axis.
+    pub decisions: usize,
+    /// Rollout, update and development-evaluation wall time.
+    pub seconds: f64,
+}
+
+impl TrainingBudget {
+    fn after(self, record: &IterationRecord) -> Self {
+        Self {
+            episodes: self.episodes + record.rollout.episodes,
+            decisions: self.decisions + record.rollout.transitions,
+            seconds: self.seconds
+                + record.rollout_seconds
+                + record.update_seconds
+                + record
+                    .evaluation
+                    .as_ref()
+                    .map_or(0.0, |evaluation| evaluation.wall_seconds),
+        }
+    }
+}
+
+/// Budget consumed by a run up to `iteration` (inclusive).
+fn budget_until(history: &[IterationRecord], iteration: usize) -> TrainingBudget {
+    let mut budget = TrainingBudget::default();
+    for record in history
+        .iter()
+        .filter(|record| record.iteration <= iteration)
+    {
+        if record.cumulative != TrainingBudget::default() {
+            budget = record.cumulative;
+        } else {
+            budget = budget.after(record);
+        }
+    }
+    budget
+}
+
+/// Budget of the run a PPO iteration directory belongs to, up to that
+/// iteration; zero when the parent run's metadata is unavailable.
+fn parent_budget(iteration_dir: &Path) -> Result<TrainingBudget> {
+    let actor: PpoActorFile =
+        serde_json::from_slice(&std::fs::read(iteration_dir.join("ppo-actor.json"))?)?;
+    let Some(run_dir) = iteration_dir.parent() else {
+        return Ok(TrainingBudget::default());
+    };
+    let Ok(bytes) = std::fs::read(run_dir.join("ppo.json")) else {
+        return Ok(TrainingBudget::default());
+    };
+    let parent: PpoRunMetadata = serde_json::from_slice(&bytes)?;
+    Ok(budget_until(&parent.history, actor.iteration))
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1233,7 +1315,7 @@ fn write_checkpoint(
     std::fs::create_dir_all(&directory)?;
     std::fs::write(
         directory.join("actor.bin"),
-        model_to_full_precision_bytes(learner.actor_inference())?,
+        module_to_bytes(learner.actor_inference())?,
     )?;
     std::fs::write(
         directory.join("critic.bin"),
@@ -1252,6 +1334,8 @@ fn write_checkpoint(
         directory.join("ppo-actor.json"),
         serde_json::to_vec_pretty(&PpoActorFile {
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
+            policy_representation_version: POLICY_REPRESENTATION_VERSION,
+            kind_mode: learner.actor.mode,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
             game_rules_epoch: GAME_RULES_EPOCH,
@@ -1269,6 +1353,11 @@ fn write_checkpoint(
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PpoActorFile {
     pub schema_version: u32,
+    /// Absent (1, flat) in checkpoints written before policy v2.
+    #[serde(default = "flat_policy_representation")]
+    pub policy_representation_version: u32,
+    #[serde(default)]
+    pub kind_mode: KindMode,
     pub policy_candidate_set_version: u32,
     pub candidate_encoder_version: u32,
     pub game_rules_epoch: u32,
@@ -1276,10 +1365,21 @@ pub struct PpoActorFile {
     pub iteration: usize,
 }
 
+fn flat_policy_representation() -> u32 {
+    1
+}
+
 pub fn load_ppo_actor(
     iteration_dir: &Path,
     device: &PolicyDevice,
-) -> Result<DeepSetsActorCritic<InferenceBackend>> {
+) -> Result<PolicyNet<InferenceBackend>> {
+    load_ppo_actor_as::<InferenceBackend>(iteration_dir, device)
+}
+
+pub fn load_ppo_actor_as<B: Backend>(
+    iteration_dir: &Path,
+    device: &B::Device,
+) -> Result<PolicyNet<B>> {
     let file: PpoActorFile = serde_json::from_slice(
         &std::fs::read(iteration_dir.join("ppo-actor.json"))
             .with_context(|| format!("read {}", iteration_dir.join("ppo-actor.json").display()))?,
@@ -1294,7 +1394,13 @@ pub fn load_ppo_actor(
             iteration_dir.display()
         );
     }
-    load_model_file::<InferenceBackend>(file.model_config, &iteration_dir.join("actor.bin"), device)
+    load_policy_file::<B>(
+        file.policy_representation_version,
+        file.model_config,
+        file.kind_mode,
+        &iteration_dir.join("actor.bin"),
+        device,
+    )
 }
 
 fn load_learner(
@@ -1305,8 +1411,7 @@ fn load_learner(
 ) -> Result<PpoLearner> {
     let device = default_policy_device();
     let directory = iteration_dir(run_dir, iteration);
-    let actor =
-        load_model_file::<TrainBackend>(model_config, &directory.join("actor.bin"), &device)?;
+    let actor = load_ppo_actor_as::<TrainBackend>(&directory, &device)?;
     let critic =
         load_model_file::<TrainBackend>(model_config, &directory.join("critic.bin"), &device)?;
     let mut learner = PpoLearner::new(actor, critic, config);
@@ -1355,7 +1460,7 @@ fn sample_seed(config: &PpoConfig, iteration: usize, game_seed: u64) -> u64 {
 /// Collects one iteration of rollouts, fills values/advantages/returns.
 pub fn collect_iteration(
     learner: &PpoLearner,
-    init_actor: &DeepSetsActorCritic<InferenceBackend>,
+    init_actor: &PolicyNet<InferenceBackend>,
     config: &PpoConfig,
     game_config: Arc<GameConfig>,
     iteration: usize,
@@ -1448,6 +1553,7 @@ pub fn collect_iteration(
                 .entry(step.action_kind.clone())
                 .or_insert(0) += 1;
             stats.mean_behavior_entropy += step.behavior_entropy as f64;
+            stats.mean_family_entropy += step.family_entropy as f64;
             let non_greedy = step.action_index != step.greedy_index;
             let non_canonical = step.canonical_index != Some(step.action_index);
             let non_init_greedy = step.init_greedy_index() != Some(step.action_index);
@@ -1460,6 +1566,7 @@ pub fn collect_iteration(
                 .or_default();
             point.count += 1;
             point.mean_entropy += step.behavior_entropy as f64;
+            point.mean_family_entropy += step.family_entropy as f64;
             point.non_greedy_fraction += non_greedy as u8 as f64;
             point.non_canonical_fraction += non_canonical as u8 as f64;
             point.non_init_greedy_fraction += non_init_greedy as u8 as f64;
@@ -1497,12 +1604,14 @@ pub fn collect_iteration(
     stats.mean_decisions = transitions as f64 / count;
     let n = transitions.max(1) as f64;
     stats.mean_behavior_entropy /= n;
+    stats.mean_family_entropy /= n;
     stats.non_greedy_fraction /= n;
     stats.non_canonical_fraction /= n;
     stats.non_init_greedy_fraction /= n;
     for point in stats.by_decision_point.values_mut() {
         let count = point.count.max(1) as f64;
         point.mean_entropy /= count;
+        point.mean_family_entropy /= count;
         point.non_greedy_fraction /= count;
         point.non_canonical_fraction /= count;
         point.non_init_greedy_fraction /= count;
@@ -1577,7 +1686,7 @@ pub fn development_evaluation(
     seed_count: usize,
     iteration: usize,
     init: &SemanticPolicy,
-    current: DeepSetsActorCritic<InferenceBackend>,
+    current: PolicyNet<InferenceBackend>,
 ) -> Result<DevEvaluation> {
     let started = Instant::now();
     let seeds = split.seeds(Some(seed_count))?;
@@ -1637,6 +1746,10 @@ pub fn train_ppo_run(
         }
     }
     let init_policy = SemanticPolicy::new(init_actor.clone().valid());
+    let prior_budget = match &input.init_ppo_iteration {
+        Some(directory) => parent_budget(directory)?,
+        None => TrainingBudget::default(),
+    };
     let model_config = bc_metadata.model_config;
     let (mut metadata, mut learner) = if run_dir.join("ppo.json").exists() {
         let metadata: PpoRunMetadata =
@@ -1664,11 +1777,7 @@ pub fn train_ppo_run(
     } else {
         let (actor, critic) = match &input.init_ppo_iteration {
             Some(directory) => (
-                load_model_file::<TrainBackend>(
-                    model_config,
-                    &directory.join("actor.bin"),
-                    &device,
-                )?,
+                load_ppo_actor_as::<TrainBackend>(directory, &device)?,
                 Some(load_model_file::<TrainBackend>(
                     model_config,
                     &directory.join("critic.bin"),
@@ -1737,6 +1846,7 @@ pub fn train_ppo_run(
                 rollout_seconds: 0.0,
                 update_seconds: 0.0,
                 evaluation: Some(evaluation),
+                cumulative: prior_budget,
             });
         }
         write_checkpoint(run_dir, 0, &learner, &metadata)?;
@@ -1799,7 +1909,7 @@ pub fn train_ppo_run(
         } else {
             None
         };
-        let record = IterationRecord {
+        let mut record = IterationRecord {
             iteration,
             train_seeds: (seeds[0], *seeds.last().expect("non-empty seeds")),
             actor_updated: update_actor,
@@ -1810,7 +1920,16 @@ pub fn train_ppo_run(
             rollout_seconds,
             update_seconds,
             evaluation,
+            cumulative: TrainingBudget::default(),
         };
+        let previous = metadata.history.last().map_or(prior_budget, |last| {
+            if last.cumulative == TrainingBudget::default() {
+                budget_until(&metadata.history, last.iteration)
+            } else {
+                last.cumulative
+            }
+        });
+        record.cumulative = previous.after(&record);
         log_iteration(&record);
         metadata.history.push(record);
         metadata.completed_iterations = iteration;
@@ -1874,6 +1993,13 @@ fn log_iteration(record: &IterationRecord) {
         update.max_value_loss,
         update.max_critic_grad_norm,
         update.max_actor_grad_norm,
+    );
+    eprintln!(
+        "  budget: episodes {} decisions {} hours {:.2} | family entropy {:.4}",
+        record.cumulative.episodes,
+        record.cumulative.decisions,
+        record.cumulative.seconds / 3600.0,
+        rollout.mean_family_entropy,
     );
     let timing = &rollout.timing;
     eprintln!(
@@ -1969,11 +2095,14 @@ mod tests {
         path
     }
 
-    fn random_actor() -> DeepSetsActorCritic<InferenceBackend> {
-        let device = default_policy_device();
-        crate::ml::semantic_bc::seeded_materialized_model(ModelConfig::default(), 7, &device)
-            .unwrap()
-            .valid()
+    fn random_actor() -> PolicyNet<InferenceBackend> {
+        crate::ml::semantic_bc::seeded_policy_net::<InferenceBackend>(
+            ModelConfig::default(),
+            KindMode::LogSumExp,
+            7,
+            &default_policy_device(),
+        )
+        .unwrap()
     }
 
     /// A tiny BC run directory usable as a PPO initialization.
@@ -1994,6 +2123,7 @@ mod tests {
                 validation: &[],
                 metadata: BcCheckpointMetadata {
                     schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
+                    policy_representation_version: POLICY_REPRESENTATION_VERSION,
                     policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
                     candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
                     git_commit: "test".to_string(),

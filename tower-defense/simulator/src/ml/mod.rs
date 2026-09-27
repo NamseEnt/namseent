@@ -26,6 +26,8 @@ pub mod phase4_dataset;
 #[cfg(feature = "simulator")]
 pub mod phase4_eval;
 #[cfg(feature = "simulator")]
+pub mod policy_v2;
+#[cfg(feature = "simulator")]
 pub mod ppo;
 #[cfg(feature = "simulator")]
 pub mod rollout;

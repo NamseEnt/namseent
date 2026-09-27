@@ -369,9 +369,7 @@ pub fn evaluate_policies(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ml::model::{
-        DeepSetsActorCritic, InferenceBackend, ModelConfig, default_policy_device,
-    };
+    use crate::ml::model::{InferenceBackend, ModelConfig, default_policy_device};
     use crate::teacher_terminal_gate::run_canonical_terminal_episode;
 
     #[test]
@@ -388,7 +386,11 @@ mod tests {
     fn learned_policy_terminal_evaluation_is_reproducible_and_legal() {
         let config = Arc::new(GameConfig::default_config());
         let device = default_policy_device();
-        let model = DeepSetsActorCritic::<InferenceBackend>::new(ModelConfig::default(), &device);
+        let model = crate::ml::policy_v2::PolicyNet::<InferenceBackend>::new(
+            ModelConfig::default(),
+            crate::ml::policy_v2::KindMode::LogSumExp,
+            &device,
+        );
         let policy = EvalPolicy::Learned {
             name: "untrained".to_string(),
             policy: Box::new(SemanticPolicy::new(model)),

@@ -65,6 +65,33 @@ impl MaskedGroups {
         self.width
     }
 
+    /// Flat candidate column `[rows, 1]` -> `[groups, width]`, with padding
+    /// and masked candidates set to -1e9, plus the invalid mask.
+    pub(crate) fn padded_logits<B: Backend>(
+        &self,
+        logits: Tensor<B, 2>,
+        device: &B::Device,
+    ) -> (Tensor<B, 2>, Tensor<B, 2, Bool>) {
+        let rows = logits.dims()[0];
+        let index = Tensor::<B, 1, Int>::from_data(
+            TensorData::new(self.gather_index.clone(), [self.gather_index.len()]),
+            device,
+        );
+        let invalid = Tensor::<B, 2, Bool>::from_data(
+            TensorData::new(
+                self.valid.iter().map(|valid| !valid).collect::<Vec<_>>(),
+                [self.groups, self.width],
+            ),
+            device,
+        );
+        let padded = logits
+            .reshape([rows])
+            .select(0, index)
+            .reshape([self.groups, self.width])
+            .mask_fill(invalid.clone(), -1.0e9);
+        (padded, invalid)
+    }
+
     pub(crate) fn is_valid(&self, group: usize, column: usize) -> bool {
         self.valid[group * self.width + column]
     }

@@ -10,6 +10,10 @@ use super::model::{
     model_to_full_precision_bytes, tensor_from_rows,
 };
 use super::phase4_dataset::{DatasetProvenance, DecisionSample, EpisodeRecord};
+use super::policy_v2::{
+    KindMode, POLICY_REPRESENTATION_VERSION, PolicyNet, factorized_log_probs, module_to_bytes,
+    policy_from_bytes,
+};
 use super::semantic_candidates::{
     EncodedDecision, POLICY_CANDIDATE_SET_VERSION, PolicyCandidates,
     SEMANTIC_CANDIDATE_ENCODER_VERSION, candidate_batch, encode_decision, policy_candidates,
@@ -106,6 +110,16 @@ pub fn prepare_sample(
 /// Forward pass over a batch of decisions: `[groups, width]` masked
 /// log-probabilities and the group layout.
 pub(crate) fn batch_log_probs<B: Backend>(
+    model: &PolicyNet<B>,
+    decisions: &[&EncodedDecision],
+    device: &B::Device,
+) -> (Tensor<B, 2>, MaskedGroups) {
+    let factorized = factorized_log_probs(model, decisions, device);
+    (factorized.joint, factorized.groups)
+}
+
+/// Flat (v1) candidate softmax of a bare `DeepSetsActorCritic`.
+pub(crate) fn batch_log_probs_flat<B: Backend>(
     model: &DeepSetsActorCritic<B>,
     decisions: &[&EncodedDecision],
     device: &B::Device,
@@ -160,7 +174,7 @@ pub(crate) fn batch_log_probs<B: Backend>(
 }
 
 fn batch_loss(
-    model: &DeepSetsActorCritic<TrainBackend>,
+    model: &PolicyNet<TrainBackend>,
     samples: &[&BcSample],
     device: &PolicyDevice,
 ) -> Tensor<TrainBackend, 1> {
@@ -235,7 +249,7 @@ pub struct BcMetrics {
 }
 
 pub fn evaluate_samples<B: Backend>(
-    model: &DeepSetsActorCritic<B>,
+    model: &PolicyNet<B>,
     samples: &[BcSample],
     device: &B::Device,
 ) -> Result<BcMetrics> {
@@ -361,6 +375,8 @@ pub struct BcTrainConfig {
     pub seed: u64,
     pub label: LabelSource,
     pub override_weight: f32,
+    #[serde(default)]
+    pub kind_mode: KindMode,
 }
 
 impl Default for BcTrainConfig {
@@ -373,6 +389,7 @@ impl Default for BcTrainConfig {
             seed: 0,
             label: LabelSource::Chosen,
             override_weight: 1.0,
+            kind_mode: KindMode::LogSumExp,
         }
     }
 }
@@ -388,6 +405,10 @@ pub struct EpochRecord {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BcCheckpointMetadata {
     pub schema_version: u32,
+    /// `policy_v2::POLICY_REPRESENTATION_VERSION`; absent (1, flat) in
+    /// checkpoints written before policy v2.
+    #[serde(default = "flat_policy_representation")]
+    pub policy_representation_version: u32,
     pub policy_candidate_set_version: u32,
     pub candidate_encoder_version: u32,
     pub git_commit: String,
@@ -408,12 +429,43 @@ pub struct BcTrainInput<'a> {
     pub train: &'a [BcSample],
     pub validation: &'a [BcSample],
     pub metadata: BcCheckpointMetadata,
-    pub init_model: Option<DeepSetsActorCritic<TrainBackend>>,
+    pub init_model: Option<PolicyNet<TrainBackend>>,
 }
 
-fn write_model_file<B: Backend>(model: DeepSetsActorCritic<B>, path: &Path) -> Result<()> {
-    let bytes = model_to_full_precision_bytes(model)?;
+fn flat_policy_representation() -> u32 {
+    1
+}
+
+/// Seed of the (unused in `LogSumExp` mode) family head attached when a flat
+/// v1 checkpoint is wrapped into a `PolicyNet`.
+const WRAPPED_FAMILY_HEAD_SEED: u64 = 0x0f1a_7000;
+
+fn write_model_file<B: Backend>(model: PolicyNet<B>, path: &Path) -> Result<()> {
+    let bytes = module_to_bytes(model)?;
     std::fs::write(path, bytes).with_context(|| format!("write {}", path.display()))
+}
+
+/// Loads an actor checkpoint file: a flat v1 `DeepSetsActorCritic`
+/// (`representation_version` 1, wrapped with `mode`) or a v2 `PolicyNet`.
+pub fn load_policy_file<B: Backend>(
+    representation_version: u32,
+    config: ModelConfig,
+    mode: KindMode,
+    path: &Path,
+    device: &B::Device,
+) -> Result<PolicyNet<B>> {
+    let bytes = std::fs::read(path).with_context(|| format!("read {}", path.display()))?;
+    match representation_version {
+        1 => {
+            let scorer = model_from_full_precision_bytes::<B>(config, bytes, device)?;
+            let mut policy =
+                seeded_policy_net::<B>(config, mode, WRAPPED_FAMILY_HEAD_SEED, device)?;
+            policy.scorer = scorer;
+            Ok(policy)
+        }
+        POLICY_REPRESENTATION_VERSION => policy_from_bytes::<B>(config, mode, bytes, device),
+        other => bail!("{}: unknown policy representation {other}", path.display()),
+    }
 }
 
 pub fn load_model_file<B: Backend>(
@@ -443,10 +495,12 @@ pub fn load_checkpoint_metadata(run_dir: &Path) -> Result<BcCheckpointMetadata> 
 pub fn load_selected_model<B: Backend>(
     run_dir: &Path,
     device: &B::Device,
-) -> Result<(BcCheckpointMetadata, DeepSetsActorCritic<B>)> {
+) -> Result<(BcCheckpointMetadata, PolicyNet<B>)> {
     let metadata = load_checkpoint_metadata(run_dir)?;
-    let model = load_model_file(
+    let model = load_policy_file(
+        metadata.policy_representation_version,
         metadata.model_config,
+        metadata.config.kind_mode,
         &run_dir.join("selected-model.bin"),
         device,
     )?;
@@ -525,6 +579,21 @@ pub fn seeded_materialized_model(
     model_from_full_precision_bytes::<TrainBackend>(config, bytes, device)
 }
 
+/// A `PolicyNet` whose parameters depend only on `seed`.
+pub fn seeded_policy_net<B: Backend>(
+    config: ModelConfig,
+    mode: KindMode,
+    seed: u64,
+    device: &B::Device,
+) -> Result<PolicyNet<B>> {
+    use burn::module::Module;
+    let policy = PolicyNet::<B>::new(config, mode, device).map(&mut SeededInitializer {
+        rng: rand_chacha::ChaCha8Rng::seed_from_u64(seed),
+        last_fan_in: 1,
+    });
+    policy_from_bytes::<B>(config, mode, module_to_bytes(policy)?, device)
+}
+
 fn epoch_dir(run_dir: &Path, epoch: usize) -> PathBuf {
     run_dir.join(format!("epoch-{epoch:03}"))
 }
@@ -544,10 +613,14 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
     if input.train.is_empty() {
         bail!("BC training set is empty");
     }
+    if input.metadata.policy_representation_version != POLICY_REPRESENTATION_VERSION {
+        bail!("BC training writes policy representation {POLICY_REPRESENTATION_VERSION} only");
+    }
     std::fs::create_dir_all(run_dir)?;
     let device = default_policy_device();
     let model_config = input.metadata.model_config;
-    let mut optimizer = AdamConfig::new().init::<TrainBackend, DeepSetsActorCritic<TrainBackend>>();
+    let kind_mode = config.kind_mode;
+    let mut optimizer = AdamConfig::new().init::<TrainBackend, PolicyNet<TrainBackend>>();
     let (mut metadata, mut model) = if run_dir.join("bc.json").exists() {
         let metadata = load_checkpoint_metadata(run_dir)?;
         if metadata.config != config
@@ -562,8 +635,13 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
             );
         }
         let directory = epoch_dir(run_dir, metadata.completed_epochs);
-        let model =
-            load_model_file::<TrainBackend>(model_config, &directory.join("model.bin"), &device)?;
+        let model = load_policy_file::<TrainBackend>(
+            POLICY_REPRESENTATION_VERSION,
+            model_config,
+            kind_mode,
+            &directory.join("model.bin"),
+            &device,
+        )?;
         let record = BinFileRecorder::<FullPrecisionSettings>::default()
             .load(directory.join("optimizer.bin"), &device)
             .context("load optimizer state")?;
@@ -576,8 +654,13 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
         (metadata, model)
     } else {
         let model = match input.init_model {
-            Some(model) => model,
-            None => seeded_materialized_model(model_config, input.metadata.config.seed, &device)?,
+            Some(model) => model.with_mode(kind_mode),
+            None => seeded_policy_net::<TrainBackend>(
+                model_config,
+                kind_mode,
+                input.metadata.config.seed,
+                &device,
+            )?,
         };
         let metadata = input.metadata;
         let directory = epoch_dir(run_dir, 0);
@@ -673,7 +756,7 @@ fn select_epoch(history: &[EpochRecord]) -> Option<usize> {
 /// network forward per decision.
 #[derive(Clone)]
 pub struct SemanticPolicy {
-    model: DeepSetsActorCritic<InferenceBackend>,
+    model: PolicyNet<InferenceBackend>,
     device: PolicyDevice,
 }
 
@@ -687,7 +770,7 @@ pub struct PolicyChoice {
 }
 
 impl SemanticPolicy {
-    pub fn new(model: DeepSetsActorCritic<InferenceBackend>) -> Self {
+    pub fn new(model: PolicyNet<InferenceBackend>) -> Self {
         Self {
             model,
             device: default_policy_device(),
@@ -711,7 +794,7 @@ impl SemanticPolicy {
         Ok(Self { model, device })
     }
 
-    pub fn model(&self) -> &DeepSetsActorCritic<InferenceBackend> {
+    pub fn model(&self) -> &PolicyNet<InferenceBackend> {
         &self.model
     }
 
@@ -843,13 +926,13 @@ pub fn benchmark_bc_backend<B: burn::tensor::backend::AutodiffBackend>(
     let mut train_seconds = 0.0;
     for repeat in 0..repeats + 1 {
         let started = Instant::now();
-        let (log_probs, groups) = batch_log_probs(&model, &decisions, device);
+        let (log_probs, groups) = batch_log_probs_flat(&model, &decisions, device);
         let target = groups.target_tensor::<B>(&targets, device);
         let loss = -log_probs.gather(1, target).mean();
         let _ = loss.clone().into_data().to_vec::<f32>()?;
         let gradients = GradientsParams::from_grads(loss.backward(), &model);
         model = optimizer.step(1e-4, model, gradients);
-        let (check, _) = batch_log_probs(&model.clone().valid(), &decisions[..1], device);
+        let (check, _) = batch_log_probs_flat(&model.clone().valid(), &decisions[..1], device);
         let _ = check.into_data().to_vec::<f32>()?;
         if repeat > 0 {
             train_seconds += started.elapsed().as_secs_f64();
@@ -859,7 +942,7 @@ pub fn benchmark_bc_backend<B: burn::tensor::backend::AutodiffBackend>(
     let mut inference_seconds = 0.0;
     for repeat in 0..repeats + 1 {
         let started = Instant::now();
-        let (log_probs, _) = batch_log_probs(&inference, &decisions, device);
+        let (log_probs, _) = batch_log_probs_flat(&inference, &decisions, device);
         let _ = log_probs.into_data().to_vec::<f32>()?;
         if repeat > 0 {
             inference_seconds += started.elapsed().as_secs_f64();
@@ -902,6 +985,7 @@ mod tests {
     fn metadata(config: BcTrainConfig, samples: usize) -> BcCheckpointMetadata {
         BcCheckpointMetadata {
             schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
+            policy_representation_version: crate::ml::policy_v2::POLICY_REPRESENTATION_VERSION,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
             git_commit: "test".to_string(),
@@ -981,7 +1065,11 @@ mod tests {
     fn masked_candidate_is_never_selected_and_has_zero_probability() {
         let samples = tiny_samples();
         let device = default_policy_device();
-        let model = DeepSetsActorCritic::<InferenceBackend>::new(ModelConfig::default(), &device);
+        let model = PolicyNet::<InferenceBackend>::new(
+            ModelConfig::default(),
+            KindMode::LogSumExp,
+            &device,
+        );
         let policy = SemanticPolicy::new(model);
         let mut checked = 0;
         for sample in samples.iter().take(16) {
@@ -1059,14 +1147,18 @@ mod tests {
         )
         .expect("resume");
         let device = default_policy_device();
-        let full = load_model_file::<InferenceBackend>(
+        let full = load_policy_file::<InferenceBackend>(
+            POLICY_REPRESENTATION_VERSION,
             ModelConfig::default(),
+            KindMode::LogSumExp,
             &epoch_dir(&full_dir, 2).join("model.bin"),
             &device,
         )
         .unwrap();
-        let resumed = load_model_file::<InferenceBackend>(
+        let resumed = load_policy_file::<InferenceBackend>(
+            POLICY_REPRESENTATION_VERSION,
             ModelConfig::default(),
+            KindMode::LogSumExp,
             &epoch_dir(&resumed_dir, 2).join("model.bin"),
             &device,
         )
@@ -1092,8 +1184,14 @@ mod tests {
         }
         let path = full_dir.join("roundtrip.bin");
         write_model_file(full.clone(), &path).unwrap();
-        let reloaded =
-            load_model_file::<InferenceBackend>(ModelConfig::default(), &path, &device).unwrap();
+        let reloaded = load_policy_file::<InferenceBackend>(
+            POLICY_REPRESENTATION_VERSION,
+            ModelConfig::default(),
+            KindMode::LogSumExp,
+            &path,
+            &device,
+        )
+        .unwrap();
         for sample in samples.iter().take(8) {
             assert_eq!(
                 SemanticPolicy::new(full.clone())
@@ -1113,7 +1211,11 @@ mod tests {
         let config = Arc::new(GameConfig::default_config());
         let environment = GameEnvironment::new(config, 11);
         let device = default_policy_device();
-        let model = DeepSetsActorCritic::<InferenceBackend>::new(ModelConfig::default(), &device);
+        let model = PolicyNet::<InferenceBackend>::new(
+            ModelConfig::default(),
+            KindMode::LogSumExp,
+            &device,
+        );
         let policy = SemanticPolicy::new(model);
         let first = policy.choose(&environment).expect("choose");
         for _ in 0..3 {
@@ -1137,8 +1239,8 @@ mod tests {
             .take(4)
             .map(|s| &s.encoded)
             .collect::<Vec<_>>();
-        let (left, _) = batch_log_probs(&trained.clone().valid(), &decisions, &device);
-        let (right, _) = batch_log_probs(&ppo.clone().valid(), &decisions, &device);
+        let (left, _) = batch_log_probs_flat(&trained.clone().valid(), &decisions, &device);
+        let (right, _) = batch_log_probs_flat(&ppo.clone().valid(), &decisions, &device);
         assert_eq!(
             left.into_data().to_vec::<f32>().unwrap(),
             right.into_data().to_vec::<f32>().unwrap()

@@ -81,6 +81,9 @@ pub enum Phase4Command {
         batch_size: usize,
         #[arg(long, default_value_t = 64)]
         hidden_size: usize,
+        /// Family probability: flat-equivalent log-sum-exp or a learned head.
+        #[arg(long, value_enum, default_value_t = super::policy_v2::KindMode::LogSumExp)]
+        kind_mode: super::policy_v2::KindMode,
         #[arg(long, default_value_t = 0)]
         seed: u64,
         #[arg(long, default_value_t = 0)]
@@ -413,6 +416,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             learning_rate,
             batch_size,
             hidden_size,
+            kind_mode,
             seed,
             threads,
         } => {
@@ -457,9 +461,11 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 seed,
                 label,
                 override_weight,
+                kind_mode,
             };
             let metadata = BcCheckpointMetadata {
                 schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,
+                policy_representation_version: super::policy_v2::POLICY_REPRESENTATION_VERSION,
                 policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
                 candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
                 git_commit: current_git_revision()?,

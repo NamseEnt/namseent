@@ -519,6 +519,9 @@ pub struct EncodedDecision {
     pub typed: TypedObservation,
     pub candidates: Vec<EntitySet>,
     pub legal_mask: Vec<bool>,
+    /// `ActionKind::index()` of each candidate: the family a factorized
+    /// policy chooses first.
+    pub families: Vec<u8>,
 }
 
 pub fn encode_decision(
@@ -535,6 +538,10 @@ pub fn encode_decision(
             .map(|candidate| encode_candidate(observation, candidate))
             .collect(),
         legal_mask,
+        families: candidates
+            .iter()
+            .map(|candidate| candidate.action.kind().index() as u8)
+            .collect(),
     }
 }
 
