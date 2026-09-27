@@ -1,7 +1,7 @@
 use crate::CoreEvent;
 
 /// Version of the stable action kind wire names used by policy datasets.
-pub const ACTION_WIRE_SCHEMA_VERSION: u32 = 2;
+pub const ACTION_WIRE_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DecisionPoint {
@@ -33,10 +33,16 @@ pub enum AgentAction {
     ConfirmCardSelection,
     CancelCardSelection,
     Reroll {
-        selected_slot_indices: Vec<usize>,
+        card_ids: Vec<usize>,
     },
     SelectTower {
-        selected_slot_indices: Vec<usize>,
+        card_ids: Vec<usize>,
+    },
+    BuildTower {
+        card_ids: Vec<usize>,
+        hand_slot_index: usize,
+        left: usize,
+        top: usize,
     },
     PlaceTower {
         hand_slot_index: usize,
@@ -75,6 +81,7 @@ pub enum ActionKind {
     CancelCardSelection,
     Reroll,
     SelectTower,
+    BuildTower,
     PlaceTower,
     RemoveTower,
     StartDefense,

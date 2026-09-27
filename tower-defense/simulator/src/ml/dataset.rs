@@ -1,12 +1,17 @@
 use super::contract::{DATASET_SCHEMA_VERSION, MlContract};
 use super::seed::SeedRange;
 use crate::config::GameConfig;
-use crate::environment::ActionKind;
+use crate::environment::{ActionKind, GameEnvironment};
 use crate::policy_runner::{
     run_item_expert_trajectory, run_monte_carlo_expert_trajectory, run_scripted_expert_trajectory,
-    run_scripted_oracle_trajectory, run_spiral_expert_trajectory,
+    run_scripted_oracle_trajectory, run_semantic_scripted_expert_trajectory,
+    run_spiral_expert_trajectory,
 };
-use crate::trajectory::Trajectory;
+use crate::teacher::{
+    RolloutTeacherConfig, TEACHER_SCORE_SCHEMA_VERSION, run_semantic_teacher_episode,
+    scenario_seed_digest,
+};
+use crate::trajectory::{Trajectory, TrajectoryMetadata, TrajectoryStep};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -32,6 +37,17 @@ pub struct ExpertDatasetMetadata {
     pub action_kind_counts: BTreeMap<String, usize>,
     pub includes_truncated: bool,
     pub git_revision: String,
+    #[serde(default)]
+    pub teacher: Option<TeacherDatasetMetadata>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TeacherDatasetMetadata {
+    pub score_schema_version: u32,
+    pub scenario_seed_digest: String,
+    pub scenario_count: usize,
+    pub horizon_sim_ticks: u64,
+    pub build_tower_rollout_limit: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,6 +98,128 @@ pub fn collect_scripted_expert_behavior_dataset(
         run_scripted_expert_trajectory,
         "scripted_expert_behavior",
     )
+}
+
+pub fn collect_semantic_scripted_expert_behavior_dataset(
+    config: Arc<GameConfig>,
+    seed_range: SeedRange,
+    max_decisions_per_episode: usize,
+) -> Result<ExpertDataset> {
+    collect_behavior_dataset_with_runner(
+        config,
+        seed_range,
+        max_decisions_per_episode,
+        true,
+        run_semantic_scripted_expert_trajectory,
+        "semantic_scripted_expert_behavior",
+    )
+}
+
+pub fn collect_semantic_rollout_teacher_behavior_dataset(
+    config: Arc<GameConfig>,
+    seed_range: SeedRange,
+    max_decisions_per_episode: usize,
+    teacher_config: RolloutTeacherConfig,
+) -> Result<ExpertDataset> {
+    let teacher_metadata = TeacherDatasetMetadata {
+        score_schema_version: TEACHER_SCORE_SCHEMA_VERSION,
+        scenario_seed_digest: scenario_seed_digest(&teacher_config.scenario_seeds),
+        scenario_count: teacher_config.scenario_seeds.len(),
+        horizon_sim_ticks: teacher_config.horizon_sim_ticks,
+        build_tower_rollout_limit: teacher_config.build_tower_rollout_limit,
+    };
+    let mut dataset = collect_behavior_dataset_with_runner(
+        config,
+        seed_range,
+        max_decisions_per_episode,
+        true,
+        move |config, seed, max_decisions| {
+            collect_semantic_rollout_teacher_trajectory(
+                config,
+                seed,
+                max_decisions,
+                &teacher_config,
+            )
+        },
+        "semantic_rollout_teacher_behavior",
+    )?;
+    dataset.metadata.teacher = Some(teacher_metadata);
+    Ok(dataset)
+}
+
+fn collect_semantic_rollout_teacher_trajectory(
+    config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions: usize,
+    teacher_config: &RolloutTeacherConfig,
+) -> Result<Trajectory> {
+    let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+    let teacher_episode =
+        run_semantic_teacher_episode(&mut environment, teacher_config, max_decisions)?;
+    let full_trace = environment.policy_trace().clone();
+    let mut selected_trace = full_trace.clone();
+    let mut decision_index = 0;
+    selected_trace.steps = full_trace
+        .steps
+        .into_iter()
+        .filter_map(|step| {
+            let decision = teacher_episode.decisions.get(decision_index)?;
+            if step.pre_state_hash == decision.state_hash
+                && step.agent_action.action_id() == decision.selected_action_id
+            {
+                decision_index += 1;
+                Some(step)
+            } else {
+                None
+            }
+        })
+        .collect();
+    if decision_index != teacher_episode.decisions.len() {
+        bail!("teacher policy trace did not contain all selected decisions for seed {seed}");
+    }
+    let mut trajectory = Trajectory::new(TrajectoryMetadata::new(config.as_ref(), seed));
+    for step in &selected_trace.steps {
+        trajectory.push(TrajectoryStep {
+            pre_observation: step.pre_observation.clone(),
+            legal_actions: step
+                .legal_actions
+                .iter()
+                .cloned()
+                .map(|action| crate::environment::LegalAction {
+                    id: action.action_id(),
+                    action,
+                })
+                .collect(),
+            action_mask: step.action_mask.clone(),
+            action: step.agent_action.clone(),
+            player_command: step.player_command.clone(),
+            post_observation: step.post_observation.clone(),
+            reward: step.reward.clone(),
+            terminated: step.terminated,
+            truncated: step.truncated,
+            info: step.info.clone(),
+            pre_state_hash: step.pre_state_hash.clone(),
+            state_hash: step.post_state_hash.clone(),
+        });
+    }
+    trajectory.set_outcome(crate::trajectory::TrajectoryOutcome {
+        victory: teacher_episode.victory,
+        clear_rate: environment.clear_rate(),
+        terminated: teacher_episode.terminated,
+        truncated: teacher_episode.truncated,
+        termination_reason: if teacher_episode.terminated {
+            crate::environment::StepReason::Terminal
+        } else {
+            crate::environment::StepReason::MaxDecisions
+        },
+        final_stage: environment.snapshot().stage,
+        episode_return: trajectory
+            .steps
+            .iter()
+            .map(|step| step.reward.total())
+            .sum(),
+    });
+    Ok(trajectory)
 }
 
 pub fn collect_spiral_expert_behavior_dataset(
@@ -200,6 +338,7 @@ pub fn collect_all_expert_behavior_dataset(
                 .iter()
                 .any(|episode| episode.steps.iter().any(|step| step.truncated)),
             git_revision: super::neural_checkpoint::current_git_revision()?,
+            teacher: None,
         },
         episodes,
     };
@@ -253,30 +392,8 @@ fn collect_behavior_dataset_with_runner(
         }
     }
     for kind in 0..ActionKind::COUNT {
-        let name = match kind {
-            0 => ActionKind::PurchaseShopItem,
-            1 => ActionKind::StartSelectingTower,
-            2 => ActionKind::BeginRerollSelection,
-            3 => ActionKind::BeginTowerSelection,
-            4 => ActionKind::SelectHandCard,
-            5 => ActionKind::DeselectHandCard,
-            6 => ActionKind::ConfirmCardSelection,
-            7 => ActionKind::CancelCardSelection,
-            8 => ActionKind::Reroll,
-            9 => ActionKind::SelectTower,
-            10 => ActionKind::PlaceTower,
-            11 => ActionKind::RemoveTower,
-            12 => ActionKind::StartDefense,
-            13 => ActionKind::SelectTreasure,
-            14 => ActionKind::SelectCardServiceCard,
-            15 => ActionKind::ConfirmCardServiceSelection,
-            16 => ActionKind::UseInventoryItem,
-            17 => ActionKind::DiscardTreasure,
-            18 => ActionKind::Continue,
-            _ => unreachable!(),
-        };
         action_kind_counts
-            .entry(name.wire_name().to_string())
+            .entry(action_kind_name(kind))
             .or_insert(0);
     }
     let metadata = ExpertDatasetMetadata {
@@ -294,6 +411,7 @@ fn collect_behavior_dataset_with_runner(
         action_kind_counts,
         includes_truncated,
         git_revision: super::neural_checkpoint::current_git_revision()?,
+        teacher: None,
     };
     let dataset = ExpertDataset { metadata, episodes };
     validate_dataset(&dataset, &config)?;
@@ -409,6 +527,7 @@ pub fn collect_strict_expert_dataset(
                     .is_some_and(|outcome| outcome.truncated)
             }),
             git_revision: super::neural_checkpoint::current_git_revision()?,
+            teacher: None,
         },
         episodes,
     };
@@ -534,6 +653,7 @@ fn action_kind_name(index: usize) -> String {
         "cancel_card_selection",
         "reroll",
         "select_tower",
+        "build_tower",
         "place_tower",
         "remove_tower",
         "start_defense",
@@ -615,6 +735,7 @@ mod tests {
                     .collect(),
                 includes_truncated: false,
                 git_revision: "test-revision".to_string(),
+                teacher: None,
             },
             episodes: Vec::new(),
         }

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const CATEGORICAL_FIELDS: usize = 4;
+pub const ENTITY_NUMERIC_WIDTH: usize = 6;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EntityRow {

@@ -140,6 +140,19 @@ fn scripted_reroll_indices(observation: &Observation) -> Vec<usize> {
     }
 }
 
+fn scripted_reroll_card_ids(observation: &Observation) -> Vec<usize> {
+    let slot_indices = scripted_reroll_indices(observation);
+    observation
+        .hand
+        .iter()
+        .filter(|item| slot_indices.contains(&item.index))
+        .filter_map(|item| match &item.item {
+            super::environment::HandItemObservation::Card(card) => Some(card.id),
+            super::environment::HandItemObservation::Tower(_) => None,
+        })
+        .collect()
+}
+
 impl<F> EnvironmentPolicy for F
 where
     F: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
@@ -320,6 +333,20 @@ pub fn run_scripted_expert_trajectory(
     )
 }
 
+pub fn run_semantic_scripted_expert_trajectory(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions_per_episode: usize,
+) -> Result<crate::trajectory::Trajectory> {
+    run_expert_trajectory_with_mode(
+        game_config,
+        seed,
+        max_decisions_per_episode,
+        scripted_expert_action,
+        true,
+    )
+}
+
 fn run_expert_trajectory<P>(
     game_config: Arc<GameConfig>,
     seed: u64,
@@ -329,17 +356,44 @@ fn run_expert_trajectory<P>(
 where
     P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
 {
-    let episode = run_episode(
-        Arc::clone(&game_config),
-        seed,
-        &PolicyRunnerConfig {
-            max_decisions_per_episode,
-            record_steps: true,
-            max_stage: None,
-            reward_config: RewardConfig::default(),
-        },
-        policy,
-    )?;
+    run_expert_trajectory_with_mode(game_config, seed, max_decisions_per_episode, policy, false)
+}
+
+fn run_expert_trajectory_with_mode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    max_decisions_per_episode: usize,
+    policy: P,
+    semantic_actions: bool,
+) -> Result<crate::trajectory::Trajectory>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction> + Send,
+{
+    let episode = if semantic_actions {
+        run_semantic_episode(
+            Arc::clone(&game_config),
+            seed,
+            &PolicyRunnerConfig {
+                max_decisions_per_episode,
+                record_steps: true,
+                max_stage: None,
+                reward_config: RewardConfig::default(),
+            },
+            policy,
+        )?
+    } else {
+        run_episode(
+            Arc::clone(&game_config),
+            seed,
+            &PolicyRunnerConfig {
+                max_decisions_per_episode,
+                record_steps: true,
+                max_stage: None,
+                reward_config: RewardConfig::default(),
+            },
+            policy,
+        )?
+    };
     let steps = episode
         .steps
         .as_ref()
@@ -579,7 +633,8 @@ fn monte_carlo_expert_action(
         else {
             continue;
         };
-        let coverage = crate::ml::features::placement_coverage(observation, left, top, &tower.kind);
+        let coverage =
+            crate::ml::features::placement_coverage(observation, left, top, tower.range_raw);
         let score = coverage * 1_000.0 + tower.damage_raw as f32 / 10_000.0;
         if best
             .as_ref()
@@ -736,7 +791,271 @@ fn rank_value(rank: &str) -> usize {
     }
 }
 
-fn scripted_expert_action(
+/// Picks a reroll or the best semantic `BuildTower` candidate, preferring
+/// reroll on the first look at a poor hand. Returns `None` when
+/// `legal_actions` contains neither, e.g. under the legacy micro-action set.
+fn semantic_card_decision_action(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Option<AgentAction> {
+    if observation.rerolled_count == 0
+        && should_scripted_reroll(observation)
+        && let Some(action) = legal_actions.iter().find_map(|legal| {
+            let AgentAction::Reroll { card_ids } = &legal.action else {
+                return None;
+            };
+            (card_ids == &scripted_reroll_card_ids(observation)).then(|| legal.action.clone())
+        })
+    {
+        return Some(action);
+    }
+    best_build_tower_action_by_heuristic(observation, legal_actions)
+}
+
+/// One `BuildTower` candidate's deterministic, rollout-free quality score:
+/// route coverage (primary), then closeness to the route, then damage.
+#[derive(Clone, Debug)]
+pub(crate) struct BuildTowerHeuristicScore {
+    pub action: AgentAction,
+    pub covered_route: usize,
+    pub nearest_route: usize,
+    pub damage_raw: i64,
+}
+
+impl BuildTowerHeuristicScore {
+    fn sort_key(&self) -> (usize, std::cmp::Reverse<usize>, i64, String) {
+        (
+            self.covered_route,
+            std::cmp::Reverse(self.nearest_route),
+            self.damage_raw,
+            self.action.action_id(),
+        )
+    }
+}
+
+/// Scores and ranks every `BuildTower` candidate in `legal_actions` by
+/// [`BuildTowerHeuristicScore`], best first. This is the same deterministic
+/// scoring the scripted expert uses to build a tower; it is also used as a
+/// cheap oracle-quality proxy when measuring candidate-proposal recall,
+/// since it is fast enough to run over every legal candidate (unlike a real
+/// rollout evaluation).
+pub(crate) fn rank_build_tower_actions_by_heuristic(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Vec<BuildTowerHeuristicScore> {
+    let route = &observation.route_coords;
+    let mut scores = legal_actions
+        .iter()
+        .filter_map(|legal| {
+            let AgentAction::BuildTower {
+                card_ids,
+                hand_slot_index,
+                left,
+                top,
+            } = &legal.action
+            else {
+                return None;
+            };
+            // Hand slot 0 is the selected card subset's own template; slots
+            // 1.. are `stage_modifiers.extra_tower_cards`, a fixed template
+            // per slot independent of which subset was selected (see
+            // `joint_action::extra_slot_templates`) - `card_ids` still
+            // names the subset in that case (it still determines the
+            // still-queued primary-slot tower), but scoring *this* action
+            // must use the extra slot's own template, not the subset's.
+            let template = if *hand_slot_index == 0 {
+                // Match by card *set* (sorted), not raw `Vec` order: a legal
+                // `BuildTower` action's card_ids order only has to be a
+                // selectable subset (`card_ids_are_selectable` is
+                // membership-only), so a caller-provided legal_actions list
+                // whose card_ids come pre-sorted (e.g. the dense
+                // joint-action table's `CardSubsetTable`, see
+                // `joint_action`'s module docs) must still resolve to the
+                // same template as the hand-slot generation-order
+                // equivalent.
+                let mut sorted_card_ids = card_ids.clone();
+                sorted_card_ids.sort_unstable();
+                observation
+                    .build_tower_candidates
+                    .iter()
+                    .find(|candidate| {
+                        let mut candidate_ids = candidate.card_ids.clone();
+                        candidate_ids.sort_unstable();
+                        candidate_ids == sorted_card_ids
+                    })
+                    .map(|candidate| &candidate.template)?
+            } else {
+                observation
+                    .extra_tower_card_templates
+                    .get(hand_slot_index - 1)?
+            };
+            let range_raw = template.range_raw;
+            let covered_route = route
+                .iter()
+                .filter(|coord| {
+                    let dx = (coord.x as i64 - *left as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    let dy = (coord.y as i64 - *top as i64)
+                        .saturating_mul(1_000_000)
+                        .saturating_sub(500_000);
+                    dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                        <= range_raw.saturating_mul(range_raw)
+                })
+                .count();
+            let nearest_route = route
+                .iter()
+                .map(|coord| coord.x.abs_diff(*left) + coord.y.abs_diff(*top))
+                .min()
+                .unwrap_or(usize::MAX);
+            Some(BuildTowerHeuristicScore {
+                action: legal.action.clone(),
+                covered_route,
+                nearest_route,
+                damage_raw: template.damage_raw,
+            })
+        })
+        .collect::<Vec<_>>();
+    scores.sort_by_cached_key(|score| std::cmp::Reverse(score.sort_key()));
+    scores
+}
+
+/// Returns the single best `BuildTower` candidate by
+/// [`rank_build_tower_actions_by_heuristic`], if any.
+pub(crate) fn best_build_tower_action_by_heuristic(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Option<AgentAction> {
+    rank_build_tower_actions_by_heuristic(observation, legal_actions)
+        .into_iter()
+        .next()
+        .map(|score| score.action)
+}
+
+/// The canonical, non-cheating scripted heuristic action for `environment`'s
+/// current decision state - the single production heuristic baseline used
+/// for both the rollout teacher's baseline/regret contract and its
+/// fixed-horizon continuation policy (see docs/game-ai/05-rollout-teacher.md).
+///
+/// Does not use the legacy `semantic_legal_actions_with_position_limit`
+/// proposal. When a semantic card decision is possible, the `BuildTower`
+/// portion of the decision uses `DenseBuildTowerScoreTable`'s full legal-map
+/// ranking, but only materializes its single global-best action (via
+/// `DenseBuildTowerScoreTable::best_action`) rather than the whole dense
+/// space - `scripted_expert_action`'s heuristic never needs more than the
+/// top-1 to reproduce its selection. Non-`BuildTower` semantic actions
+/// (`Reroll`, shop/inventory/treasure) come from
+/// `GameEnvironment::semantic_non_build_actions`, which is exhaustive (never
+/// pruned) - this candidate set's only bound is a single `BuildTower`
+/// action, not a position- or count-limited proposal.
+///
+/// When no semantic card decision is available (e.g. `TowerPlacement`,
+/// mid-defense), `semantic_non_build_actions` already falls back to the full
+/// legal action set, so this reduces to
+/// `scripted_expert_action(&environment.snapshot(), &environment.legal_actions())`.
+pub fn canonical_scripted_semantic_action(environment: &GameEnvironment) -> Result<AgentAction> {
+    td_core::diag_scope!(CanonicalPolicy);
+    let observation = environment.snapshot();
+    if environment.semantic_card_decision_available() {
+        let table =
+            crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
+        return canonical_scripted_semantic_action_from_table(environment, &observation, &table);
+    }
+    scripted_expert_action(&observation, &environment.semantic_non_build_actions())
+}
+
+/// Same semantics as [`canonical_scripted_semantic_action`], for a caller
+/// that already computed `table` (a `DenseBuildTowerScoreTable`) for this
+/// exact `environment`/`observation` state and wants to avoid a second,
+/// redundant `DenseBuildTowerScoreTable::compute` (e.g. the production
+/// teacher's top-K ranking and canonical baseline are the same state - see
+/// `teacher::evaluate_semantic_candidates`). Only valid to call when
+/// `environment.semantic_card_decision_available()` is true; callers that
+/// already branched on that (as `canonical_scripted_semantic_action` does)
+/// can call this directly instead of recomputing the table.
+pub(crate) fn canonical_scripted_semantic_action_from_table(
+    environment: &GameEnvironment,
+    observation: &Observation,
+    table: &crate::joint_action::DenseBuildTowerScoreTable,
+) -> Result<AgentAction> {
+    let mut legal_actions = environment.semantic_non_build_actions();
+    if let Some(best) = table.best_action() {
+        legal_actions.push(LegalAction {
+            id: best.action_id(),
+            action: best,
+        });
+    }
+    scripted_expert_action(observation, &legal_actions)
+}
+
+type PlaceTowerRankKey = (usize, std::cmp::Reverse<usize>, i64, String);
+
+/// Canonical `TowerPlacement` ordering for a `PlaceTower` action: most
+/// route cells in range, then nearest to the route, then highest tower
+/// damage, then action id. `None` for any other action.
+fn place_tower_rank_key(
+    observation: &Observation,
+    action: &AgentAction,
+) -> Option<PlaceTowerRankKey> {
+    let AgentAction::PlaceTower {
+        hand_slot_index,
+        left,
+        top,
+    } = *action
+    else {
+        return None;
+    };
+    let tower = observation.hand.iter().find_map(|item| {
+        (item.index == hand_slot_index).then_some(match &item.item {
+            super::environment::HandItemObservation::Tower(tower) => tower,
+            super::environment::HandItemObservation::Card(_) => return None,
+        })
+    })?;
+    let route = &observation.route_coords;
+    let range_raw = tower.range_raw;
+    let covered_route = route
+        .iter()
+        .filter(|coord| {
+            let dx = (coord.x as i64 - left as i64)
+                .saturating_mul(1_000_000)
+                .saturating_sub(500_000);
+            let dy = (coord.y as i64 - top as i64)
+                .saturating_mul(1_000_000)
+                .saturating_sub(500_000);
+            dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
+                <= range_raw.saturating_mul(range_raw)
+        })
+        .count();
+    let nearest_route = route
+        .iter()
+        .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
+        .min()
+        .unwrap_or(usize::MAX);
+    Some((
+        covered_route,
+        std::cmp::Reverse(nearest_route),
+        tower.damage_raw,
+        action.action_id(),
+    ))
+}
+
+/// `PlaceTower` actions in `legal_actions`, best first under the same
+/// ordering `scripted_expert_action` uses to pick its placement.
+pub(crate) fn rank_place_tower_actions(
+    observation: &Observation,
+    legal_actions: &[LegalAction],
+) -> Vec<LegalAction> {
+    let mut ranked = legal_actions
+        .iter()
+        .filter_map(|legal| {
+            place_tower_rank_key(observation, &legal.action).map(|key| (key, legal))
+        })
+        .collect::<Vec<_>>();
+    ranked.sort_by(|(left, _), (right, _)| right.cmp(left));
+    ranked.into_iter().map(|(_, legal)| legal.clone()).collect()
+}
+
+pub fn scripted_expert_action(
     observation: &Observation,
     legal_actions: &[LegalAction],
 ) -> Result<AgentAction> {
@@ -767,6 +1086,7 @@ fn scripted_expert_action(
             })
             .min_by_key(|(priority, cost, action)| (*priority, *cost, action.action_id()))
             .map(|(_, _, action)| action)
+            .or_else(|| semantic_card_decision_action(observation, legal_actions))
             .or_else(|| {
                 legal_actions
                     .iter()
@@ -775,6 +1095,13 @@ fn scripted_expert_action(
             })
             .ok_or_else(|| anyhow::anyhow!("scripted expert found no shop action")),
         DecisionPoint::CardSelection => {
+            if legal_actions
+                .iter()
+                .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+            {
+                return semantic_card_decision_action(observation, legal_actions)
+                    .ok_or_else(|| anyhow::anyhow!("scripted expert found no semantic build"));
+            }
             if observation.card_selection_purpose.is_none() {
                 if observation.rerolled_count == 0
                     && should_scripted_reroll(observation)
@@ -824,68 +1151,20 @@ fn scripted_expert_action(
                 .or_else(|| legal_actions.first().map(|legal| legal.action.clone()))
                 .ok_or_else(|| anyhow::anyhow!("scripted expert found no card action"))
         }
-        DecisionPoint::TowerPlacement => {
-            let route = &observation.route_coords;
-            legal_actions
-                .iter()
-                .filter_map(|legal| {
-                    let AgentAction::PlaceTower {
-                        hand_slot_index,
-                        left,
-                        top,
-                    } = legal.action
-                    else {
-                        return None;
-                    };
-                    let tower = observation.hand.iter().find_map(|item| {
-                        (item.index == hand_slot_index).then_some(match &item.item {
-                            super::environment::HandItemObservation::Tower(tower) => tower,
-                            super::environment::HandItemObservation::Card(_) => return None,
-                        })
-                    })?;
-                    let range_raw = tower_range_raw(&tower.kind);
-                    let covered_route = route
-                        .iter()
-                        .filter(|coord| {
-                            let dx = (coord.x as i64 - left as i64)
-                                .saturating_mul(1_000_000)
-                                .saturating_sub(500_000);
-                            let dy = (coord.y as i64 - top as i64)
-                                .saturating_mul(1_000_000)
-                                .saturating_sub(500_000);
-                            dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy))
-                                <= range_raw.saturating_mul(range_raw)
-                        })
-                        .count();
-                    let nearest_route = route
-                        .iter()
-                        .map(|coord| coord.x.abs_diff(left) + coord.y.abs_diff(top))
-                        .min()
-                        .unwrap_or(usize::MAX);
-                    Some((
-                        covered_route,
-                        nearest_route,
-                        tower.damage_raw,
-                        legal.action.clone(),
-                    ))
-                })
-                .max_by_key(|(covered_route, nearest_route, damage, action)| {
-                    (
-                        *covered_route,
-                        std::cmp::Reverse(*nearest_route),
-                        *damage,
-                        action.action_id(),
-                    )
-                })
-                .map(|(_, _, _, action)| action)
-                .or_else(|| {
-                    legal_actions
-                        .iter()
-                        .find(|legal| matches!(legal.action, AgentAction::StartDefense))
-                        .map(|legal| legal.action.clone())
-                })
-                .ok_or_else(|| anyhow::anyhow!("scripted expert found no placement"))
-        }
+        DecisionPoint::TowerPlacement => legal_actions
+            .iter()
+            .filter_map(|legal| {
+                place_tower_rank_key(observation, &legal.action).map(|key| (key, &legal.action))
+            })
+            .max_by(|(left, _), (right, _)| left.cmp(right))
+            .map(|(_, action)| action.clone())
+            .or_else(|| {
+                legal_actions
+                    .iter()
+                    .find(|legal| matches!(legal.action, AgentAction::StartDefense))
+                    .map(|legal| legal.action.clone())
+            })
+            .ok_or_else(|| anyhow::anyhow!("scripted expert found no placement")),
         DecisionPoint::CardServiceSelection => {
             let selected = observation
                 .card_service
@@ -967,20 +1246,6 @@ fn scripted_expert_action(
     }
 }
 
-fn tower_range_raw(kind: &str) -> i64 {
-    match kind {
-        "rubber_cone" | "high" => 4_000_000,
-        "one_pair" => 5_000_000,
-        "two_pair" => 6_000_000,
-        "three_of_a_kind" => 7_000_000,
-        "straight" | "flush" => 9_000_000,
-        "full_house" | "four_of_a_kind" => 11_000_000,
-        "straight_flush" => 14_000_000,
-        "royal_flush" => 15_000_000,
-        _ => 4_000_000,
-    }
-}
-
 fn scripted_oracle_action(
     observation: &Observation,
     legal_actions: &[LegalAction],
@@ -1028,6 +1293,9 @@ fn scripted_oracle_action(
 pub struct EpisodeResult {
     pub seed: u64,
     pub decision_count: usize,
+    pub ticks_advanced: u64,
+    pub candidate_evaluations: usize,
+    pub placement_position_checks: usize,
     pub forced_actions: ForcedActionStats,
     pub terminated: bool,
     pub truncated: bool,
@@ -1075,11 +1343,64 @@ where
     })
 }
 
+pub fn run_semantic_batch<P, F>(
+    game_config: Arc<GameConfig>,
+    seeds: &[u64],
+    runner_config: &PolicyRunnerConfig,
+    policy_factory: F,
+) -> Result<BatchResult>
+where
+    P: EnvironmentPolicy,
+    F: Fn(u64) -> P + Sync,
+{
+    let mut episodes = seeds
+        .par_iter()
+        .map(|&seed| {
+            run_semantic_episode(
+                Arc::clone(&game_config),
+                seed,
+                runner_config,
+                policy_factory(seed),
+            )
+        })
+        .collect::<Result<Vec<_>>>()?;
+    episodes.sort_by_key(|episode| episode.seed);
+    Ok(BatchResult {
+        seeds: seeds.to_vec(),
+        episodes,
+    })
+}
+
 pub fn run_episode<P>(
     game_config: Arc<GameConfig>,
     seed: u64,
     runner_config: &PolicyRunnerConfig,
+    policy: P,
+) -> Result<EpisodeResult>
+where
+    P: EnvironmentPolicy,
+{
+    run_episode_with_mode(game_config, seed, runner_config, policy, false)
+}
+
+pub fn run_semantic_episode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+) -> Result<EpisodeResult>
+where
+    P: EnvironmentPolicy,
+{
+    run_episode_with_mode(game_config, seed, runner_config, policy, true)
+}
+
+fn run_episode_with_mode<P>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
     mut policy: P,
+    semantic_actions: bool,
 ) -> Result<EpisodeResult>
 where
     P: EnvironmentPolicy,
@@ -1113,6 +1434,9 @@ where
     let mut terminated = false;
     let mut truncated = false;
     let mut decision_count = 0;
+    let mut ticks_advanced = 0;
+    let mut candidate_evaluations = 0;
+    let mut placement_position_checks = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1128,7 +1452,17 @@ where
 
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let canonical_legal_actions = environment.legal_actions();
+        let (canonical_legal_actions, placement_checks) = if semantic_actions {
+            (
+                environment.semantic_legal_actions_with_position_limit(Some(
+                    super::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                )),
+                0,
+            )
+        } else {
+            let (actions, metrics) = environment.legal_actions_with_metrics();
+            (actions, metrics.placement_position_checks)
+        };
         if canonical_legal_actions.is_empty() {
             bail!(
                 "environment reached a non-terminal state without legal actions at seed {} (state {})",
@@ -1138,11 +1472,16 @@ where
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
+        candidate_evaluations += legal_actions.len();
+        placement_position_checks += placement_checks;
         let action = policy.choose_action(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint.clone(), action.clone());
-        let mut outcome = environment
-            .step(action.clone())
-            .map_err(|error| runner_environment_error(seed, error))?;
+        let mut outcome = if semantic_actions {
+            environment.semantic_step(action.clone())
+        } else {
+            environment.step(action.clone())
+        }
+        .map_err(|error| runner_environment_error(seed, error))?;
         while !outcome.terminated && !outcome.truncated {
             let Some(forced_action) = environment.forced_action() else {
                 break;
@@ -1168,6 +1507,7 @@ where
             outcome.state_hash = forced_outcome.state_hash;
         }
         let post_progress_fingerprint = environment.progress_fingerprint();
+        ticks_advanced += outcome.info.ticks_advanced;
         let is_cycle =
             !outcome.terminated && progress_tracker.observe(environment.progress_fingerprint());
         finish_cycle_outcome(&mut outcome, is_cycle, &runner_config.reward_config);
@@ -1209,6 +1549,9 @@ where
     Ok(EpisodeResult {
         seed,
         decision_count,
+        ticks_advanced,
+        candidate_evaluations,
+        placement_position_checks,
         forced_actions,
         terminated,
         truncated,
@@ -1223,12 +1566,43 @@ where
     })
 }
 
+#[allow(dead_code)]
 pub(crate) fn run_episode_with_step_callback<P, F>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+    on_step: F,
+) -> Result<EpisodeResult>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
+    F: FnMut(&Observation, &[LegalAction], &AgentAction, &StepOutcome),
+{
+    run_episode_with_step_callback_mode(game_config, seed, runner_config, policy, on_step, false)
+}
+
+#[allow(dead_code)]
+pub(crate) fn run_semantic_episode_with_step_callback<P, F>(
+    game_config: Arc<GameConfig>,
+    seed: u64,
+    runner_config: &PolicyRunnerConfig,
+    policy: P,
+    on_step: F,
+) -> Result<EpisodeResult>
+where
+    P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
+    F: FnMut(&Observation, &[LegalAction], &AgentAction, &StepOutcome),
+{
+    run_episode_with_step_callback_mode(game_config, seed, runner_config, policy, on_step, true)
+}
+
+pub(crate) fn run_episode_with_step_callback_mode<P, F>(
     game_config: Arc<GameConfig>,
     seed: u64,
     runner_config: &PolicyRunnerConfig,
     mut policy: P,
     mut on_step: F,
+    semantic_actions: bool,
 ) -> Result<EpisodeResult>
 where
     P: FnMut(&Observation, &[LegalAction]) -> Result<AgentAction>,
@@ -1262,6 +1636,9 @@ where
     let mut terminated = false;
     let mut truncated = false;
     let mut decision_count = 0;
+    let mut ticks_advanced = 0;
+    let mut candidate_evaluations = 0;
+    let mut placement_position_checks = 0;
     let mut episode_return = 0.0;
     let mut termination_reason = super::environment::StepReason::Terminal;
     let mut progress_tracker = ProgressTracker::default();
@@ -1276,17 +1653,32 @@ where
         }
         let observation = environment.snapshot();
         let pre_progress_fingerprint = environment.progress_fingerprint();
-        let canonical_legal_actions = environment.legal_actions();
+        let (canonical_legal_actions, placement_checks) = if semantic_actions {
+            (
+                environment.semantic_legal_actions_with_position_limit(Some(
+                    super::environment::DEFAULT_SEMANTIC_POSITION_CANDIDATE_LIMIT,
+                )),
+                0,
+            )
+        } else {
+            let (actions, metrics) = environment.legal_actions_with_metrics();
+            (actions, metrics.placement_position_checks)
+        };
         if canonical_legal_actions.is_empty() {
             bail!("environment reached a non-terminal state without legal actions at seed {seed}");
         }
         let legal_actions = action_history_guard
             .effective_actions(&pre_progress_fingerprint, &canonical_legal_actions);
+        candidate_evaluations += legal_actions.len();
+        placement_position_checks += placement_checks;
         let action = policy(&observation, &legal_actions)?;
         action_history_guard.observe(pre_progress_fingerprint, action.clone());
-        let mut outcome = environment
-            .step(action.clone())
-            .map_err(|error| runner_environment_error(seed, error))?;
+        let mut outcome = if semantic_actions {
+            environment.semantic_step(action.clone())
+        } else {
+            environment.step(action.clone())
+        }
+        .map_err(|error| runner_environment_error(seed, error))?;
         while !outcome.terminated && !outcome.truncated {
             let Some(forced_action) = environment.forced_action() else {
                 break;
@@ -1313,6 +1705,7 @@ where
         }
         let is_cycle =
             !outcome.terminated && progress_tracker.observe(environment.progress_fingerprint());
+        ticks_advanced += outcome.info.ticks_advanced;
         finish_cycle_outcome(&mut outcome, is_cycle, &runner_config.reward_config);
         if is_cycle {
             progress_tracker = ProgressTracker::default();
@@ -1342,6 +1735,9 @@ where
     Ok(EpisodeResult {
         seed,
         decision_count,
+        ticks_advanced,
+        candidate_evaluations,
+        placement_position_checks,
         forced_actions,
         terminated,
         truncated,
@@ -1610,6 +2006,40 @@ mod tests {
     }
 
     #[test]
+    fn semantic_callback_exposes_macro_actions() {
+        let config = Arc::new(GameConfig::default_config());
+        let observed_actions = std::cell::RefCell::new(Vec::new());
+        let runner_config = PolicyRunnerConfig {
+            max_decisions_per_episode: 2,
+            record_steps: false,
+            ..PolicyRunnerConfig::default()
+        };
+        run_semantic_episode_with_step_callback(
+            config,
+            17,
+            &runner_config,
+            first_legal_action,
+            |_, legal_actions, action, _| {
+                assert!(legal_actions.iter().any(|legal| legal.action == *action));
+                observed_actions.borrow_mut().push(action.clone());
+            },
+        )
+        .expect("semantic callback episode should run");
+        assert!(observed_actions.borrow().iter().all(|action| {
+            !matches!(
+                action,
+                AgentAction::StartSelectingTower
+                    | AgentAction::BeginRerollSelection
+                    | AgentAction::BeginTowerSelection
+                    | AgentAction::SelectHandCard { .. }
+                    | AgentAction::DeselectHandCard { .. }
+                    | AgentAction::ConfirmCardSelection
+                    | AgentAction::CancelCardSelection
+            )
+        }));
+    }
+
+    #[test]
     fn scripted_oracle_is_repeatable_and_reaches_placement_and_defense() {
         let config = Arc::new(GameConfig::default_config());
         let first =
@@ -1650,5 +2080,170 @@ mod tests {
             unrestricted.steps[0].selected_action_id,
             "start_selecting_tower"
         );
+    }
+
+    // --- canonical_scripted_semantic_action differential tests -------
+
+    /// The exhaustive, non-production oracle this differential suite checks
+    /// `canonical_scripted_semantic_action` against: `scripted_expert_action`
+    /// over `GameEnvironment::semantic_legal_actions()` (position-limit
+    /// `None`, i.e. every legal semantic action, fully materialized). Full
+    /// materialization is only ever done here, in the test oracle - never in
+    /// production code.
+    fn oracle_action_for(environment: &GameEnvironment) -> AgentAction {
+        let observation = environment.snapshot();
+        let legal_actions = environment.semantic_legal_actions();
+        scripted_expert_action(&observation, &legal_actions).expect("oracle action should exist")
+    }
+
+    /// Asserts `canonical_scripted_semantic_action` agrees with
+    /// `oracle_action_for`. For a `BuildTower` decision, ties at the top
+    /// heuristic score are routine (see
+    /// `teacher::dense_candidate_migration_benchmark`'s methodology note),
+    /// so the two sides are compared by `DenseBuildTowerScoreTable` score
+    /// equality (`canonical` must literally equal the dense table's own
+    /// `best_action()`, and the oracle's pick must score identically) rather
+    /// than by exact `AgentAction` identity. Every other decision kind
+    /// (`Reroll`, shop, `TowerPlacement`, ...) has no such tie-break
+    /// ambiguity between the canonical and oracle candidate sets, so those
+    /// are compared by exact equality.
+    fn assert_canonical_matches_oracle(environment: &GameEnvironment, label: &str) {
+        let canonical = canonical_scripted_semantic_action(environment)
+            .unwrap_or_else(|error| panic!("{label}: canonical action failed: {error}"));
+        let oracle = oracle_action_for(environment);
+        let either_is_build_tower = matches!(canonical, AgentAction::BuildTower { .. })
+            || matches!(oracle, AgentAction::BuildTower { .. });
+        if either_is_build_tower {
+            let observation = environment.snapshot();
+            let table =
+                crate::joint_action::DenseBuildTowerScoreTable::compute(environment, &observation);
+            assert_eq!(
+                Some(canonical.clone()),
+                table.best_action(),
+                "{label}: canonical BuildTower action must be the dense table's global best"
+            );
+            let score_of = |action: &AgentAction| {
+                crate::joint_action::joint_index_for_action(&table.subsets, action).and_then(
+                    |(subset, hand_slot, position)| table.score(subset, hand_slot, position),
+                )
+            };
+            let canonical_score = score_of(&canonical)
+                .unwrap_or_else(|| panic!("{label}: canonical BuildTower action must be scored"));
+            let oracle_score = score_of(&oracle)
+                .unwrap_or_else(|| panic!("{label}: oracle BuildTower action must be scored"));
+            assert_eq!(
+                canonical_score, oracle_score,
+                "{label}: canonical and oracle BuildTower choice must have identical heuristic score"
+            );
+        } else {
+            assert_eq!(
+                canonical, oracle,
+                "{label}: canonical and oracle actions must match exactly for non-BuildTower decisions"
+            );
+        }
+    }
+
+    fn card_decision_environment(seed: u64) -> GameEnvironment {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+        environment
+            .step(AgentAction::StartSelectingTower)
+            .expect("start selecting tower should be legal");
+        environment
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_ordinary_build_tower_states() {
+        for seed in 0..8u64 {
+            let environment = card_decision_environment(seed);
+            if environment
+                .semantic_legal_actions()
+                .iter()
+                .any(|legal| matches!(legal.action, AgentAction::BuildTower { .. }))
+            {
+                assert_canonical_matches_oracle(&environment, &format!("build_tower seed {seed}"));
+            }
+        }
+    }
+
+    #[test]
+    fn canonical_matches_oracle_when_reroll_is_chosen() {
+        let mut found = false;
+        for seed in 0..64u64 {
+            let environment = card_decision_environment(seed);
+            let observation = environment.snapshot();
+            if should_scripted_reroll(&observation) && observation.rerolled_count == 0 {
+                assert_canonical_matches_oracle(&environment, &format!("reroll seed {seed}"));
+                found = true;
+                break;
+            }
+        }
+        assert!(
+            found,
+            "expected at least one seed to trigger the scripted reroll heuristic"
+        );
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_shop_state() {
+        for seed in 0..4u64 {
+            let environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+            assert_eq!(environment.decision_point(), DecisionPoint::Shop);
+            assert_canonical_matches_oracle(&environment, &format!("shop seed {seed}"));
+        }
+    }
+
+    /// Walks a fresh environment with the plain (non-semantic/micro-action)
+    /// `legal_actions`/`step` flow until it reaches `TowerPlacement` - this
+    /// naturally passes through `BeginTowerSelection` -> `SelectHandCard`(s)
+    /// -> `ConfirmCardSelection` -> `SelectTower`, each a legal micro-action
+    /// only in that specific sequence (unlike `semantic_step`'s `BuildTower`,
+    /// which folds the whole sequence into one macro step and never leaves a
+    /// residual `TowerPlacement` decision open).
+    fn residual_tower_placement_environment(seed: u64) -> Option<GameEnvironment> {
+        let mut environment = GameEnvironment::new(Arc::new(GameConfig::default_config()), seed);
+        for _ in 0..64 {
+            if environment.decision_point() == DecisionPoint::TowerPlacement {
+                return Some(environment);
+            }
+            let observation = environment.snapshot();
+            let legal_actions = environment.legal_actions();
+            let action = scripted_expert_action(&observation, &legal_actions).ok()?;
+            let outcome = environment.step(action).ok()?;
+            if outcome.terminated || outcome.truncated {
+                return None;
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_residual_tower_placement_state() {
+        let mut found = false;
+        for seed in 0..8u64 {
+            let Some(environment) = residual_tower_placement_environment(seed) else {
+                continue;
+            };
+            assert_canonical_matches_oracle(
+                &environment,
+                &format!("residual tower placement seed {seed}"),
+            );
+            found = true;
+        }
+        assert!(found, "expected at least one seed to reach TowerPlacement");
+    }
+
+    #[test]
+    fn canonical_matches_oracle_for_extra_tower_card_states() {
+        for extra_count in [1usize, 2usize] {
+            let mut environment = card_decision_environment(0);
+            environment
+                .test_only_seed_extra_tower_cards(extra_count)
+                .expect("extra tower card fixture should be a valid snapshot");
+            assert_eq!(environment.build_tower_slot_count(), extra_count + 1);
+            assert_canonical_matches_oracle(
+                &environment,
+                &format!("extra tower cards={extra_count}"),
+            );
+        }
     }
 }

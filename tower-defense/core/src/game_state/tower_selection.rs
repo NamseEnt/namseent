@@ -251,7 +251,7 @@ pub(crate) fn start_placing_tower_from_template(
     state.flow = crate::GameFlowState::PlacingTower;
 }
 
-fn build_template(
+pub(crate) fn build_template(
     kind: u8,
     suit: Option<u8>,
     rank: Option<u8>,
