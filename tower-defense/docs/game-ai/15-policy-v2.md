@@ -11,8 +11,8 @@ Phase 4B ([`14-phase4b-ppo.md`](14-phase4b-ppo.md)) showed that PPO from a canon
 | 0 | profile candidate generation, remove obvious duplicate work (30-minute cap) | cheaper rollouts; results must not change |
 | A0 | family-factorized probability `P(family) x P(candidate given family)` with v1 features and the v1 candidate set | validate the factorization; A0a: flat-equivalent log-sum-exp family logits must reproduce v1 exactly; A0b: learned family head removes action-multiplicity bias |
 | A1 | feature normalization contract for actor and critic, entropy scheme per head | fixed before B and C |
-| B | PlaceTower as a dense `slot x 36 x 36` head with the full legal mask; heuristic score is an input channel, not a filter | removes the top-8 placement ceiling |
-| C | BuildTower as `subset -> slot -> position` with conditional masks | full dense build space |
+| B | full-position policy (redefined below: PlaceTower and BuildTower positions) | removes the top-8 position ceiling only |
+| C | full-build-selection policy: every legal card subset and hand slot, then every legal position | removes the top-8 (subset, slot) proposal |
 | D | vectorized environments with batched inference per head, CUDA re-measurement | throughput |
 
 Rules for every stage:
@@ -102,3 +102,52 @@ Coefficients: phase 1 `c_family = c_candidate = 0.02`, phase 2 `0.006`. The norm
 - BC from scratch (seeded initialization), family head as in A0b, normalized inputs, the same data, optimizer and 6-epoch budget; gate as above.
 - Critic pretrained with the contract (512 games, 4 epochs, as in Phase 4B).
 - PPO on the v1 schedule (phase 1: 75 iterations; phase 2: 200 iterations from phase-1 iteration 75), same seed blocks.
+
+## Frozen stage B specification (full-position policy)
+
+Written before any stage-B model was trained. The stage was redefined after checking the game structure: the main tower of every build is placed inside the `BuildTower` macro (about 17 per game), and `PlaceTower` decisions only place extra towers (about 5 per game), so a PlaceTower-only stage would leave most placements capped.
+
+### Candidate set (`CandidateMode::FullPosition`)
+
+- Card decisions: the v1 top-8 `BuildTower` joint actions `(subset, hand slot, position)` are projected to `(subset, hand slot)` pairs, deduplicated in v1 order. Each pair is one option and allows every legal position.
+- Tower placement decisions: the v1 top-8 `PlaceTower` actions are projected to their hand slots the same way.
+- Every other candidate is identical to v1. `full_position_options_are_the_projection_of_the_v1_top8` pins this.
+
+The option set is exactly what v1 could reach, so stage B changes only the position. Stage C widens the options.
+
+### Policy
+
+`P(a) = P(family) x P(option | family) x P(position | option)`.
+
+- The option is scored like any candidate, with the v1 encoding of its heuristic-best position.
+- The position head scores every legal cell of the chosen option: `MLP([encoded state, typed state, option embedding, cell features])`.
+- Cell features: heuristic rank percentile within the option, heuristic top-1 and top-8 flags, route coverage for the tower's range, distance to the route, neighboring occupancy, x, y. All are in [0, 1].
+- The heuristic order is an input, never a filter.
+- `POLICY_REPRESENTATION_VERSION = 3`. Stage-A checkpoints load with a seeded, untrained cell head.
+- PPO stores and clips the joint log-probability. The position head's normalized entropy `H / ln(cells)` uses `c_candidate`. The KL-to-init monitor and penalty include the position head.
+
+### Training
+
+- BC:
+  - warm-started from the A1 BC (scorer and family head; the cell head starts untrained), normalized inputs;
+  - samples are rebuilt by replaying the canonical dataset games from their seeds (cell legality needs the environment); every replayed state must match its recorded hash;
+  - the target cell of a canonical placement is the option's heuristic-best cell;
+  - same optimizer and 6-epoch budget; same BC gate.
+- Critic: the A1 contract critic.
+- PPO: the A1 schedule, entropy scheme and coefficients, same seed blocks.
+
+### Recorded, per training iteration and per development evaluation
+
+- `BuildTower` and `PlaceTower` separately:
+  - share of executed positions outside the state's v1 top-8 actions;
+  - share differing from the canonical action;
+  - mean heuristic rank percentile of the chosen cell within its option;
+  - mean Manhattan distance from the option's heuristic-best cell;
+  - cell-head entropy.
+- Mean terminal clear_rate of development episodes with at least one position outside the v1 top 8, and of episodes with none.
+- Development performance vs v1 PPO and vs stage A at matched cumulative decisions.
+
+Interpretation, fixed in advance:
+
+- B beats A and a substantial share of placements leave the v1 top 8: evidence that the position ceiling limited PPO.
+- B chooses almost only v1 top-8 positions and performs like A: the position-ceiling hypothesis is weakened, and stage C (the (subset, slot) proposal) becomes the main suspect.
