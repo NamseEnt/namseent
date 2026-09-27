@@ -22,6 +22,7 @@ use super::encoding::{
     ENTITY_NUMERIC_WIDTH, EntityRow, EntitySet, PaddedEntityBatch, TypedObservation,
 };
 use super::features::{nearby_tower_occupancy, observation_features, placement_coverage};
+use super::spatial::{CellSet, SpatialAction, option_cells};
 use super::vocabulary::{engraving_key_id, rank_id, suit_id, upgrade_key_id};
 use crate::environment::{
     ActionKind, AgentAction, CardObservation, DecisionPoint, GameEnvironment, HandItemObservation,
@@ -54,11 +55,15 @@ const MAX_CATEGORICAL_ID: u32 = 4095;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PolicyCandidate {
+    /// For a spatial option, the heuristic-best action of that option.
     pub action: AgentAction,
     pub action_id: String,
     /// Position in the dense-build or canonical placement order, for the
     /// ranked `BuildTower`/`PlaceTower` families only.
     pub family_rank: Option<usize>,
+    /// Set for a spatial option (stage B): the chosen cell completes it.
+    #[serde(default)]
+    pub spatial: Option<SpatialAction>,
 }
 
 #[derive(Clone, Debug)]
@@ -66,6 +71,23 @@ pub struct PolicyCandidates {
     pub observation: Observation,
     pub candidates: Vec<PolicyCandidate>,
     pub canonical_action: AgentAction,
+    /// The dense build table of a card decision (build option cells).
+    pub table: Option<std::sync::Arc<DenseBuildTowerScoreTable>>,
+}
+
+/// Which candidate set a policy uses.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum CandidateMode {
+    /// v1: heuristic top-8 `PlaceTower` and top-8 `BuildTower` triples.
+    #[default]
+    Top8,
+    /// `PlaceTower` as spatial options (one per tower hand slot) over every
+    /// legal cell; `BuildTower` stays top-8 triples.
+    SpatialPlace,
+    /// `PlaceTower` and `BuildTower` as spatial options; build options are the
+    /// top-8 `(subset, hand slot)` pairs, each over every legal cell.
+    SpatialPlaceBuild,
 }
 
 impl PolicyCandidates {
@@ -75,8 +97,60 @@ impl PolicyCandidates {
             .position(|candidate| candidate.action_id == action_id)
     }
 
+    /// Candidate index of the canonical action. For a spatial canonical
+    /// action this is its option (whose representative is the heuristic-best
+    /// cell, i.e. the canonical action itself).
     pub fn canonical_index(&self) -> Option<usize> {
         self.index_of_action_id(&self.canonical_action.action_id())
+    }
+
+    /// The candidate index and, for a spatial option, the cell set and cell
+    /// index representing `action`.
+    pub fn locate(
+        &self,
+        environment: &GameEnvironment,
+        action: &AgentAction,
+    ) -> Option<(usize, Option<(CellSet, usize)>)> {
+        if let Some(index) = self
+            .candidates
+            .iter()
+            .position(|candidate| candidate.spatial.is_none() && candidate.action == *action)
+        {
+            return Some((index, None));
+        }
+        let (option, left, top) = SpatialAction::of(action)?;
+        let index = self
+            .candidates
+            .iter()
+            .position(|candidate| candidate.spatial.as_ref() == Some(&option))?;
+        let cells = self.cells(environment, index)?;
+        let cell = cells.index_of(left, top)?;
+        Some((index, Some((cells, cell))))
+    }
+
+    /// Cells of spatial option `index` (`None` for a flat candidate).
+    pub fn cells(&self, environment: &GameEnvironment, index: usize) -> Option<CellSet> {
+        let option = self.candidates.get(index)?.spatial.as_ref()?;
+        option_cells(
+            environment,
+            &self.observation,
+            self.table.as_deref(),
+            option,
+        )
+    }
+
+    /// The environment action of candidate `index`, completed with `cell` for
+    /// a spatial option.
+    pub fn action(&self, index: usize, cells: Option<&(CellSet, usize)>) -> Option<AgentAction> {
+        let candidate = self.candidates.get(index)?;
+        match (&candidate.spatial, cells) {
+            (None, _) => Some(candidate.action.clone()),
+            (Some(option), Some((cells, cell))) => {
+                let (left, top) = *cells.positions.get(*cell)?;
+                Some(option.at(left as usize, top as usize))
+            }
+            (Some(_), None) => None,
+        }
     }
 }
 
@@ -128,7 +202,109 @@ pub fn policy_candidates(environment: &GameEnvironment) -> Result<PolicyCandidat
         observation,
         candidates,
         canonical_action,
+        table: None,
     })
+}
+
+/// [`policy_candidates`] under `mode`.
+pub fn policy_candidates_with(
+    environment: &GameEnvironment,
+    mode: CandidateMode,
+) -> Result<PolicyCandidates> {
+    if mode == CandidateMode::Top8 {
+        return policy_candidates(environment);
+    }
+    let observation = environment.snapshot();
+    let mut candidates = Vec::new();
+    let mut table_arc = None;
+    let canonical_action = if environment.semantic_card_decision_available() {
+        let table = DenseBuildTowerScoreTable::compute(environment, &observation);
+        for legal in environment.semantic_non_build_actions() {
+            push_unique(&mut candidates, legal.action, None);
+        }
+        if mode == CandidateMode::SpatialPlaceBuild {
+            for (rank, (subset_index, hand_slot_index, position_index)) in table
+                .top_k_pairs(BUILD_TOWER_CANDIDATE_LIMIT)
+                .into_iter()
+                .enumerate()
+            {
+                let Some(action) = crate::joint_action::build_tower_action(
+                    &table.subsets,
+                    subset_index,
+                    hand_slot_index,
+                    position_index,
+                ) else {
+                    continue;
+                };
+                let (option, _, _) = SpatialAction::of(&action).expect("build action");
+                push_spatial(&mut candidates, action, rank, option);
+            }
+        } else {
+            for (rank, action) in table
+                .top_k_actions(BUILD_TOWER_CANDIDATE_LIMIT)
+                .into_iter()
+                .enumerate()
+            {
+                push_unique(&mut candidates, action, Some(rank));
+            }
+        }
+        let canonical =
+            canonical_scripted_semantic_action_from_table(environment, &observation, &table)?;
+        table_arc = Some(std::sync::Arc::new(table));
+        canonical
+    } else {
+        let legal = environment.semantic_non_build_actions();
+        let mut place = Vec::new();
+        for legal_action in legal {
+            if matches!(legal_action.action, AgentAction::PlaceTower { .. }) {
+                place.push(legal_action);
+            } else {
+                push_unique(&mut candidates, legal_action.action, None);
+            }
+        }
+        let ranked = rank_place_tower_actions(&observation, &place);
+        let mut slots = Vec::new();
+        for legal_action in &ranked {
+            if let Some((option, _, _)) = SpatialAction::of(&legal_action.action)
+                && !slots.contains(&option)
+            {
+                slots.push(option.clone());
+                push_spatial(
+                    &mut candidates,
+                    legal_action.action.clone(),
+                    slots.len() - 1,
+                    option,
+                );
+            }
+        }
+        canonical_scripted_semantic_action(environment)?
+    };
+    if candidates.is_empty() {
+        bail!(
+            "policy candidate set is empty at a non-terminal decision (state {})",
+            environment.state_hash()
+        );
+    }
+    Ok(PolicyCandidates {
+        observation,
+        candidates,
+        canonical_action,
+        table: table_arc,
+    })
+}
+
+fn push_spatial(
+    candidates: &mut Vec<PolicyCandidate>,
+    action: AgentAction,
+    rank: usize,
+    option: SpatialAction,
+) {
+    candidates.push(PolicyCandidate {
+        action_id: action.action_id(),
+        action,
+        family_rank: Some(rank),
+        spatial: Some(option),
+    });
 }
 
 fn push_unique(candidates: &mut Vec<PolicyCandidate>, action: AgentAction, rank: Option<usize>) {
@@ -143,6 +319,7 @@ fn push_unique(candidates: &mut Vec<PolicyCandidate>, action: AgentAction, rank:
         action,
         action_id,
         family_rank: rank,
+        spatial: None,
     });
 }
 
@@ -607,6 +784,58 @@ mod tests {
             }
         }
         assert!(checked > 20);
+    }
+
+    #[test]
+    fn spatial_candidates_cover_every_legal_cell_and_represent_the_canonical_action() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut spatial_decisions = 0usize;
+        let mut cells_checked = 0usize;
+        for seed in [0u64, 1] {
+            let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+            let mut decisions = 0;
+            while !matches!(environment.decision_point(), DecisionPoint::Terminal) && decisions < 60
+            {
+                let set = policy_candidates_with(&environment, CandidateMode::SpatialPlaceBuild)
+                    .expect("candidates");
+                let canonical = canonical_scripted_semantic_action(&environment).unwrap();
+                assert_eq!(set.canonical_action, canonical);
+                let (index, cell) = set
+                    .locate(&environment, &canonical)
+                    .expect("canonical located");
+                assert_eq!(set.action(index, cell.as_ref()), Some(canonical.clone()));
+                let space = crate::policy_action::PolicyActionSpace::compute(&environment);
+                for (index, candidate) in set.candidates.iter().enumerate() {
+                    assert!(environment.semantic_action_is_legal(&candidate.action));
+                    let Some(_) = candidate.spatial else {
+                        continue;
+                    };
+                    spatial_decisions += 1;
+                    let cells = set.cells(&environment, index).expect("option cells");
+                    assert!(!cells.is_empty());
+                    let best = set.action(index, Some(&(cells.clone(), 0))).unwrap();
+                    assert_eq!(
+                        best, candidate.action,
+                        "heuristic-best cell is the representative"
+                    );
+                    for cell in (0..cells.len()).step_by(37).chain([cells.len() - 1]) {
+                        let action = set.action(index, Some(&(cells.clone(), cell))).unwrap();
+                        assert!(environment.semantic_action_is_legal(&action), "{action:?}");
+                        let policy_index = space.action_to_index(&action).expect("indexed");
+                        assert!(space.legal_mask()[policy_index]);
+                        cells_checked += 1;
+                    }
+                }
+                let mut outcome = environment.semantic_step(canonical).expect("step");
+                settle_forced_actions(&mut environment, &mut outcome).expect("settle");
+                decisions += 1;
+                if outcome.terminated {
+                    break;
+                }
+            }
+        }
+        assert!(spatial_decisions > 20, "{spatial_decisions}");
+        assert!(cells_checked > 200, "{cells_checked}");
     }
 
     #[test]

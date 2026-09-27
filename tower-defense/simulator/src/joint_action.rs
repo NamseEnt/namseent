@@ -367,7 +367,7 @@ impl JointBuildTowerScore {
     /// tie-break (no `AgentAction` exists yet at this point). Ties are
     /// broken by `(subset_index, position_index)` ascending instead - see
     /// [`DenseBuildTowerScoreTable::best`].
-    fn ordering_key(&self) -> (usize, std::cmp::Reverse<usize>, i64) {
+    pub(crate) fn ordering_key(&self) -> (usize, std::cmp::Reverse<usize>, i64) {
         (
             self.covered_route,
             std::cmp::Reverse(self.nearest_route),
@@ -388,6 +388,7 @@ impl JointBuildTowerScore {
 /// uses, just evaluated over every position instead of a proposal-limited
 /// subset, and only once (subset- and slot-independent) rather than once
 /// per subset.
+#[derive(Debug)]
 pub struct DenseBuildTowerScoreTable {
     pub subsets: CardSubsetTable,
     pub position_count: usize,
@@ -571,6 +572,57 @@ impl DenseBuildTowerScoreTable {
         scored.sort_unstable_by(compare);
         scored
             .into_iter()
+            .map(|(subset_index, hand_slot_index, position_index, _)| {
+                (subset_index, hand_slot_index, position_index)
+            })
+            .collect()
+    }
+
+    /// Every legal position of one `(subset, hand slot)` pair with its score,
+    /// in position-index order.
+    pub fn position_scores(
+        &self,
+        subset_index: usize,
+        hand_slot_index: usize,
+    ) -> Vec<(usize, JointBuildTowerScore)> {
+        (0..self.position_count)
+            .filter_map(|position_index| {
+                self.score(subset_index, hand_slot_index, position_index)
+                    .map(|score| (position_index, score))
+            })
+            .collect()
+    }
+
+    /// The `k` best `(subset, hand slot)` pairs, ordered by each pair's best
+    /// position under the same total order as [`Self::top_k_indices`].
+    pub fn top_k_pairs(&self, k: usize) -> Vec<(usize, usize, usize)> {
+        let mut best: Vec<(usize, usize, usize, JointBuildTowerScore)> = Vec::new();
+        for subset_index in 0..self.subsets.subset_count() {
+            for hand_slot_index in 0..self.build_slot_count {
+                let pair_best = self
+                    .position_scores(subset_index, hand_slot_index)
+                    .into_iter()
+                    .max_by(|(left_position, left), (right_position, right)| {
+                        left.ordering_key()
+                            .cmp(&right.ordering_key())
+                            .then_with(|| right_position.cmp(left_position))
+                    });
+                if let Some((position_index, score)) = pair_best {
+                    best.push((subset_index, hand_slot_index, position_index, score));
+                }
+            }
+        }
+        best.sort_by(|left, right| {
+            right
+                .3
+                .ordering_key()
+                .cmp(&left.3.ordering_key())
+                .then_with(|| left.0.cmp(&right.0))
+                .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
+        });
+        best.truncate(k);
+        best.into_iter()
             .map(|(subset_index, hand_slot_index, position_index, _)| {
                 (subset_index, hand_slot_index, position_index)
             })

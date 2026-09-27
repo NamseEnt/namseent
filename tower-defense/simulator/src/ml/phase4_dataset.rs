@@ -315,6 +315,7 @@ impl CandidateRecord {
             action: self.action.clone(),
             action_id: self.action_id.clone(),
             family_rank: self.family_rank,
+            spatial: None,
         }
     }
 }

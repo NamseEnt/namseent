@@ -41,6 +41,8 @@ pub mod semantic_candidates;
 #[cfg(feature = "simulator")]
 pub mod semantic_ppo;
 #[cfg(feature = "simulator")]
+pub mod spatial;
+#[cfg(feature = "simulator")]
 pub mod toy_overfit;
 #[cfg(feature = "simulator")]
 pub mod trainer_checkpoint;
