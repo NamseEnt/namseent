@@ -31,6 +31,15 @@ impl EvalPolicy {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SpatialEpisodeKind {
+    pub decisions: usize,
+    /// Executed positions outside the state's v1 top-8 actions.
+    pub outside_v1_top8: usize,
+    pub non_canonical: usize,
+    pub distance_from_best_sum: usize,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PolicyEpisode {
     pub seed: u64,
@@ -43,6 +52,15 @@ pub struct PolicyEpisode {
     pub fallback_actions: usize,
     pub post_sampling_mutations: usize,
     pub canonical_agreement: usize,
+    /// Decisions resolved through a spatial option's cell head.
+    #[serde(default)]
+    pub spatial_decisions: usize,
+    /// Of those, cells outside the heuristic top 8 of their option.
+    #[serde(default)]
+    pub spatial_outside_heuristic_top_k: usize,
+    /// Spatial decisions per action kind.
+    #[serde(default)]
+    pub spatial_by_kind: BTreeMap<String, SpatialEpisodeKind>,
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub decision_seconds: f64,
     pub forward_seconds: f64,
@@ -68,6 +86,9 @@ pub fn run_policy_episode(
         fallback_actions: 0,
         post_sampling_mutations: 0,
         canonical_agreement: 0,
+        spatial_decisions: 0,
+        spatial_outside_heuristic_top_k: 0,
+        spatial_by_kind: BTreeMap::new(),
         chosen_kind_counts: BTreeMap::new(),
         decision_seconds: 0.0,
         forward_seconds: 0.0,
@@ -96,19 +117,33 @@ pub fn run_policy_episode(
             EvalPolicy::Learned { policy, .. } => match policy.choose(&environment) {
                 Ok(choice) => {
                     episode.forward_seconds += choice.forward_seconds;
-                    let candidate = &choice.candidates.candidates[choice.index];
-                    sampled_action_id = Some(candidate.action_id.clone());
+                    sampled_action_id = Some(choice.action.action_id());
+                    if let Some((cells, cell)) = &choice.cell {
+                        episode.spatial_decisions += 1;
+                        episode.spatial_outside_heuristic_top_k +=
+                            cells.outside_heuristic_top_k(*cell) as usize;
+                        let outside = !choice.candidates.v1_top8.contains(&choice.action);
+                        let family = episode
+                            .spatial_by_kind
+                            .entry(choice.action.kind().wire_name().to_string())
+                            .or_default();
+                        family.decisions += 1;
+                        family.outside_v1_top8 += outside as usize;
+                        family.non_canonical +=
+                            (choice.action != choice.candidates.canonical_action) as usize;
+                        family.distance_from_best_sum += cells.distance_from_best(*cell);
+                    }
                     if !choice.legal_mask[choice.index]
-                        || !environment.semantic_action_is_legal(&candidate.action)
+                        || !environment.semantic_action_is_legal(&choice.action)
                     {
                         episode.illegal_actions += 1;
                         episode.fallback_actions += 1;
                         canonical_scripted_semantic_action(&environment)?
                     } else {
-                        if choice.candidates.canonical_index() == Some(choice.index) {
+                        if choice.action == choice.candidates.canonical_action {
                             episode.canonical_agreement += 1;
                         }
-                        candidate.action.clone()
+                        choice.action.clone()
                     }
                 }
                 Err(error) => {
@@ -160,6 +195,20 @@ pub struct PolicySummary {
     pub fallback_actions: usize,
     pub post_sampling_mutations: usize,
     pub canonical_agreement_rate: f64,
+    #[serde(default)]
+    pub spatial_decisions: usize,
+    /// Share of spatial decisions whose cell is outside the heuristic top 8.
+    #[serde(default)]
+    pub spatial_outside_heuristic_top_k_rate: f64,
+    /// Spatial decisions per action kind, summed over episodes.
+    #[serde(default)]
+    pub spatial_by_kind: BTreeMap<String, SpatialEpisodeKind>,
+    /// Mean terminal clear_rate of episodes with at least one position
+    /// outside the v1 top 8, and of the other episodes (count, mean).
+    #[serde(default)]
+    pub terminal_with_outside_v1_top8: (usize, f64),
+    #[serde(default)]
+    pub terminal_without_outside_v1_top8: (usize, f64),
     pub chosen_kind_counts: BTreeMap<String, usize>,
     pub mean_decision_ms: f64,
     pub mean_forward_ms: f64,
@@ -192,6 +241,24 @@ fn median(values: &mut [f64]) -> f64 {
     } else {
         values[middle]
     }
+}
+
+fn split_mean(episodes: &[&PolicyEpisode], outside: bool) -> (usize, f64) {
+    let selected = episodes
+        .iter()
+        .filter(|episode| {
+            episode
+                .spatial_by_kind
+                .values()
+                .any(|family| family.outside_v1_top8 > 0)
+                == outside
+        })
+        .map(|episode| episode.terminal_clear_rate as f64)
+        .collect::<Vec<_>>();
+    (
+        selected.len(),
+        selected.iter().sum::<f64>() / selected.len().max(1) as f64,
+    )
 }
 
 pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySummary {
@@ -246,6 +313,34 @@ pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySumm
             .sum::<usize>() as f64
             / decisions.max(1) as f64,
         chosen_kind_counts,
+        spatial_decisions: episodes
+            .iter()
+            .map(|episode| episode.spatial_decisions)
+            .sum(),
+        spatial_outside_heuristic_top_k_rate: episodes
+            .iter()
+            .map(|episode| episode.spatial_outside_heuristic_top_k)
+            .sum::<usize>() as f64
+            / episodes
+                .iter()
+                .map(|episode| episode.spatial_decisions)
+                .sum::<usize>()
+                .max(1) as f64,
+        spatial_by_kind: {
+            let mut merged: BTreeMap<String, SpatialEpisodeKind> = BTreeMap::new();
+            for episode in episodes {
+                for (kind, family) in &episode.spatial_by_kind {
+                    let entry = merged.entry(kind.clone()).or_default();
+                    entry.decisions += family.decisions;
+                    entry.outside_v1_top8 += family.outside_v1_top8;
+                    entry.non_canonical += family.non_canonical;
+                    entry.distance_from_best_sum += family.distance_from_best_sum;
+                }
+            }
+            merged
+        },
+        terminal_with_outside_v1_top8: split_mean(episodes, true),
+        terminal_without_outside_v1_top8: split_mean(episodes, false),
         mean_decision_ms: decision_seconds * 1_000.0 / decisions.max(1) as f64,
         mean_forward_ms: episodes
             .iter()

@@ -114,6 +114,18 @@ impl CellSet {
         self.features[index * CELL_FEATURE_COUNT + 2] == 0.0
     }
 
+    /// Heuristic rank percentile of cell `index` (0 = best cell).
+    pub fn rank_percentile(&self, index: usize) -> f32 {
+        1.0 - self.features[index * CELL_FEATURE_COUNT]
+    }
+
+    /// Manhattan distance from the heuristic-best cell.
+    pub fn distance_from_best(&self, index: usize) -> usize {
+        let (best_x, best_y) = self.positions[0];
+        let (x, y) = self.positions[index];
+        (best_x.abs_diff(x) + best_y.abs_diff(y)) as usize
+    }
+
     /// `ranked` = `(left, top, coverage, nearest_route_norm)` best first.
     fn from_ranked(observation: &Observation, ranked: &[(usize, usize, f32, f32)]) -> Self {
         let count = ranked.len();

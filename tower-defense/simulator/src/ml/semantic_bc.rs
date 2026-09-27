@@ -16,9 +16,10 @@ use super::policy_v2::{
     policy_from_bytes,
 };
 use super::semantic_candidates::{
-    EncodedDecision, POLICY_CANDIDATE_SET_VERSION, PolicyCandidates,
-    SEMANTIC_CANDIDATE_ENCODER_VERSION, candidate_batch, encode_decision, policy_candidates,
+    CandidateMode, EncodedDecision, POLICY_CANDIDATE_SET_VERSION, PolicyCandidates,
+    SEMANTIC_CANDIDATE_ENCODER_VERSION, candidate_batch, encode_decision, policy_candidates_with,
 };
+use super::spatial::CellSet;
 use crate::environment::GameEnvironment;
 use anyhow::{Context, Result, bail};
 use burn::module::AutodiffModule;
@@ -57,6 +58,8 @@ pub struct BcSample {
     pub candidate_kinds: Vec<String>,
     pub decision_point: String,
     pub teacher_override: Option<bool>,
+    /// For a spatial target: the target option's cells and the target cell.
+    pub target_cell: Option<(CellSet, usize)>,
 }
 
 pub fn prepare_samples(
@@ -105,7 +108,121 @@ pub fn prepare_sample(
             .collect(),
         decision_point: format!("{:?}", sample.decision_point),
         teacher_override,
+        target_cell: None,
     }
+}
+
+/// Samples of a spatial candidate mode, rebuilt by replaying each recorded
+/// game from its seed with the recorded chosen actions (cell legality needs
+/// the live environment). Every replayed state must match the recorded state
+/// hash.
+pub fn prepare_replayed_samples(
+    config: std::sync::Arc<crate::config::GameConfig>,
+    episodes: &[EpisodeRecord],
+    mode: CandidateMode,
+) -> Result<Vec<BcSample>> {
+    let per_episode = episodes
+        .par_iter()
+        .map(|episode| replay_episode_samples(std::sync::Arc::clone(&config), episode, mode))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(per_episode.into_iter().flatten().collect())
+}
+
+fn replay_episode_samples(
+    config: std::sync::Arc<crate::config::GameConfig>,
+    episode: &EpisodeRecord,
+    mode: CandidateMode,
+) -> Result<Vec<BcSample>> {
+    let mut environment = GameEnvironment::new(config, episode.game_seed);
+    let mut samples = Vec::with_capacity(episode.samples.len());
+    for recorded in &episode.samples {
+        if environment.state_hash() != recorded.state_hash {
+            bail!(
+                "seed {} decision {}: replay diverged from the recorded state",
+                episode.game_seed,
+                recorded.decision_index
+            );
+        }
+        let decision = semantic_decision_with(&environment, mode)?;
+        let action = recorded.candidates[recorded.chosen_index].action.clone();
+        let (target, target_cell) = decision
+            .candidates
+            .locate(&environment, &action)
+            .with_context(|| {
+                format!(
+                    "seed {} decision {}: chosen action {} is not representable",
+                    episode.game_seed,
+                    recorded.decision_index,
+                    action.action_id()
+                )
+            })?;
+        let canonical_index = decision
+            .candidates
+            .canonical_index()
+            .context("canonical action missing from the spatial candidate set")?;
+        let candidate_kinds = decision
+            .candidates
+            .candidates
+            .iter()
+            .map(|candidate| candidate.action.kind().wire_name().to_string())
+            .collect::<Vec<_>>();
+        samples.push(BcSample {
+            target_kind: candidate_kinds[target].clone(),
+            candidate_kinds,
+            encoded: decision.encoded,
+            target,
+            canonical_index,
+            weight: 1.0,
+            decision_point: format!("{:?}", recorded.decision_point),
+            teacher_override: None,
+            target_cell,
+        });
+        super::phase4_dataset::step_to_next_decision(&mut environment, action)?;
+    }
+    Ok(samples)
+}
+
+/// `log P(target cell | target option)` of each spatial sample, `[n, 1]`,
+/// with the positions of those samples in `samples`.
+fn target_cell_log_probs<B: Backend>(
+    model: &PolicyNet<B>,
+    samples: &[&BcSample],
+    device: &B::Device,
+) -> Option<(Tensor<B, 2>, Vec<usize>, Tensor<B, 2>)> {
+    let spatial = samples
+        .iter()
+        .enumerate()
+        .filter(|(_, sample)| sample.target_cell.is_some())
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    if spatial.is_empty() {
+        return None;
+    }
+    let decisions = spatial
+        .iter()
+        .map(|index| &samples[*index].encoded)
+        .collect::<Vec<_>>();
+    let options = spatial
+        .iter()
+        .map(|index| samples[*index].target)
+        .collect::<Vec<_>>();
+    let cells = spatial
+        .iter()
+        .map(|index| &samples[*index].target_cell.as_ref().expect("spatial").0)
+        .collect::<Vec<_>>();
+    let (log_probs, _) =
+        super::policy_v2::cell_log_probs(model, &decisions, &options, &cells, device);
+    let target = Tensor::<B, 2, Int>::from_data(
+        TensorData::new(
+            spatial
+                .iter()
+                .map(|index| samples[*index].target_cell.as_ref().expect("spatial").1 as i64)
+                .collect::<Vec<_>>(),
+            [spatial.len(), 1],
+        ),
+        device,
+    );
+    Some((log_probs.clone().gather(1, target), spatial, log_probs))
 }
 
 /// Forward pass over a batch of decisions: `[groups, width]` masked
@@ -196,9 +313,25 @@ fn batch_loss(
         .map(|sample| sample.weight)
         .collect::<Vec<_>>();
     let total_weight = weights.iter().sum::<f32>();
-    let weights =
-        Tensor::<TrainBackend, 2>::from_data(TensorData::new(weights, [samples.len(), 1]), device);
-    -(log_probs.gather(1, targets) * weights).sum() / total_weight
+    let weights_tensor = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(weights.clone(), [samples.len(), 1]),
+        device,
+    );
+    let mut log_likelihood = (log_probs.gather(1, targets) * weights_tensor).sum();
+    if let Some((cell_log_probs, spatial, _)) = target_cell_log_probs(model, samples, device) {
+        let cell_weights = Tensor::<TrainBackend, 2>::from_data(
+            TensorData::new(
+                spatial
+                    .iter()
+                    .map(|index| weights[*index])
+                    .collect::<Vec<_>>(),
+                [spatial.len(), 1],
+            ),
+            device,
+        );
+        log_likelihood = log_likelihood + (cell_log_probs * cell_weights).sum();
+    }
+    -log_likelihood / total_weight
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -247,6 +380,13 @@ pub struct BcMetrics {
     pub override_predicts_canonical: Option<f64>,
     pub agreement_samples: usize,
     pub agreement_top1_accuracy: Option<f64>,
+    /// Samples whose target is a spatial option's cell.
+    #[serde(default)]
+    pub spatial_samples: usize,
+    #[serde(default)]
+    pub cell_nll: Option<f64>,
+    #[serde(default)]
+    pub cell_top1_accuracy: Option<f64>,
 }
 
 pub fn evaluate_samples<B: Backend>(
@@ -270,6 +410,8 @@ pub fn evaluate_samples<B: Backend>(
     let mut override_correct = 0usize;
     let mut override_canonical = 0usize;
     let mut agreement_correct = 0usize;
+    let mut cell_nll_sum = 0.0f64;
+    let mut cell_correct = 0usize;
     for chunk in samples.chunks(EVALUATION_BATCH_SIZE) {
         let decisions = chunk
             .iter()
@@ -279,9 +421,37 @@ pub fn evaluate_samples<B: Backend>(
         let values = log_probs.into_data().to_vec::<f32>()?;
         let predicted = groups.argmax(&values);
         let width = groups.width();
+        let chunk_refs = chunk.iter().collect::<Vec<_>>();
+        let mut cell_outcome = vec![None; chunk.len()];
+        if let Some((target_cell, spatial, cell_log_probs)) =
+            target_cell_log_probs(model, &chunk_refs, device)
+        {
+            let target_cell = target_cell.into_data().to_vec::<f32>()?;
+            let cell_width = cell_log_probs.dims()[1];
+            let cell_values = cell_log_probs.into_data().to_vec::<f32>()?;
+            for (offset, index) in spatial.iter().enumerate() {
+                let row = &cell_values[offset * cell_width..(offset + 1) * cell_width];
+                let best = row
+                    .iter()
+                    .enumerate()
+                    .max_by(|left, right| {
+                        left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0))
+                    })
+                    .map(|(cell, _)| cell)
+                    .unwrap_or(0);
+                let target = chunk[*index].target_cell.as_ref().expect("spatial").1;
+                cell_outcome[*index] = Some((target_cell[offset] as f64, best == target));
+            }
+        }
         for (row, sample) in chunk.iter().enumerate() {
             let row_values = &values[row * width..(row + 1) * width];
-            let target_log_prob = row_values[sample.target] as f64;
+            let cell_log_prob = cell_outcome[row].map_or(0.0, |(log_prob, _)| log_prob);
+            if let Some((log_prob, correct)) = cell_outcome[row] {
+                metrics.spatial_samples += 1;
+                cell_nll_sum -= log_prob;
+                cell_correct += correct as usize;
+            }
+            let target_log_prob = row_values[sample.target] as f64 + cell_log_prob;
             nll_sum -= target_log_prob;
             weighted_sum -= target_log_prob * sample.weight as f64;
             weight_total += sample.weight as f64;
@@ -307,7 +477,8 @@ pub fn evaluate_samples<B: Backend>(
                             || (**value == target_value && *column < sample.target))
                 })
                 .count();
-            let is_top1 = prediction == sample.target;
+            let is_top1 =
+                prediction == sample.target && cell_outcome[row].is_none_or(|(_, correct)| correct);
             let is_kind = sample.candidate_kinds[prediction] == sample.target_kind;
             top1 += is_top1 as usize;
             top3 += (rank < 3) as usize;
@@ -341,6 +512,10 @@ pub fn evaluate_samples<B: Backend>(
                 None => {}
             }
         }
+    }
+    if metrics.spatial_samples > 0 {
+        metrics.cell_nll = Some(cell_nll_sum / metrics.spatial_samples as f64);
+        metrics.cell_top1_accuracy = Some(cell_correct as f64 / metrics.spatial_samples as f64);
     }
     let count = samples.len() as f64;
     metrics.nll = nll_sum / count;
@@ -380,6 +555,8 @@ pub struct BcTrainConfig {
     pub kind_mode: KindMode,
     #[serde(default)]
     pub input_contract: InputContract,
+    #[serde(default)]
+    pub candidate_mode: CandidateMode,
 }
 
 impl Default for BcTrainConfig {
@@ -394,6 +571,7 @@ impl Default for BcTrainConfig {
             override_weight: 1.0,
             kind_mode: KindMode::LogSumExp,
             input_contract: InputContract::Raw,
+            candidate_mode: CandidateMode::Top8,
         }
     }
 }
@@ -466,6 +644,13 @@ pub fn load_policy_file<B: Backend>(
                 seeded_policy_net::<B>(config, mode, WRAPPED_FAMILY_HEAD_SEED, device)?;
             policy.scorer = scorer;
             Ok(policy)
+        }
+        2 => {
+            let family_only = super::policy_v2::family_only_from_bytes::<B>(config, bytes, device)?;
+            Ok(
+                seeded_policy_net::<B>(config, mode, WRAPPED_FAMILY_HEAD_SEED, device)?
+                    .with_family_only(family_only),
+            )
         }
         POLICY_REPRESENTATION_VERSION => policy_from_bytes::<B>(config, mode, bytes, device),
         other => bail!("{}: unknown policy representation {other}", path.display()),
@@ -765,6 +950,7 @@ fn select_epoch(history: &[EpochRecord]) -> Option<usize> {
 pub struct SemanticPolicy {
     model: PolicyNet<InferenceBackend>,
     device: PolicyDevice,
+    candidate_mode: CandidateMode,
 }
 
 #[derive(Clone, Debug)]
@@ -773,6 +959,10 @@ pub struct PolicyChoice {
     pub legal_mask: Vec<bool>,
     pub index: usize,
     pub log_probs: Vec<f32>,
+    /// For a spatial option: its cells and the chosen cell.
+    pub cell: Option<(CellSet, usize)>,
+    /// The environment action (the candidate completed with its cell).
+    pub action: crate::environment::AgentAction,
     pub forward_seconds: f64,
 }
 
@@ -781,7 +971,17 @@ impl SemanticPolicy {
         Self {
             model,
             device: default_policy_device(),
+            candidate_mode: CandidateMode::Top8,
         }
+    }
+
+    pub fn with_candidate_mode(mut self, candidate_mode: CandidateMode) -> Self {
+        self.candidate_mode = candidate_mode;
+        self
+    }
+
+    pub fn candidate_mode(&self) -> CandidateMode {
+        self.candidate_mode
     }
 
     /// A BC run directory (`bc.json`) or a PPO iteration directory
@@ -789,16 +989,24 @@ impl SemanticPolicy {
     pub fn from_path(path: &Path) -> Result<Self> {
         if path.join("ppo-actor.json").exists() {
             let device = default_policy_device();
-            let model = super::semantic_ppo::load_ppo_actor(path, &device)?;
-            return Ok(Self { model, device });
+            let (model, candidate_mode) = super::semantic_ppo::load_ppo_policy(path, &device)?;
+            return Ok(Self {
+                model,
+                device,
+                candidate_mode,
+            });
         }
         Self::from_run_dir(path)
     }
 
     pub fn from_run_dir(run_dir: &Path) -> Result<Self> {
         let device = default_policy_device();
-        let (_, model) = load_selected_model::<InferenceBackend>(run_dir, &device)?;
-        Ok(Self { model, device })
+        let (metadata, model) = load_selected_model::<InferenceBackend>(run_dir, &device)?;
+        Ok(Self {
+            model,
+            device,
+            candidate_mode: metadata.config.candidate_mode,
+        })
     }
 
     pub fn model(&self) -> &PolicyNet<InferenceBackend> {
@@ -824,20 +1032,56 @@ impl SemanticPolicy {
         Ok((index, log_probs))
     }
 
+    /// Greedy cell of spatial option `index`.
+    pub fn choose_cell(
+        &self,
+        encoded: &EncodedDecision,
+        index: usize,
+        cells: &CellSet,
+    ) -> Result<(usize, Vec<f32>)> {
+        let (log_probs, _) = super::policy_v2::cell_log_probs(
+            &self.model,
+            &[encoded],
+            &[index],
+            &[cells],
+            &self.device,
+        );
+        let log_probs = log_probs.into_data().to_vec::<f32>()?[..cells.len()].to_vec();
+        let cell = log_probs
+            .iter()
+            .enumerate()
+            .max_by(|left, right| left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0)))
+            .map(|(cell, _)| cell)
+            .context("option without cells")?;
+        Ok((cell, log_probs))
+    }
+
     pub fn choose(&self, environment: &GameEnvironment) -> Result<PolicyChoice> {
         let SemanticDecision {
             candidates,
             legal_mask,
             encoded,
-        } = semantic_decision(environment)?;
+        } = semantic_decision_with(environment, self.candidate_mode)?;
         let started = Instant::now();
         let (index, log_probs) = self.choose_encoded(&encoded)?;
+        let cell = match candidates.cells(environment, index) {
+            Some(cells) => {
+                let (cell, _) = self.choose_cell(&encoded, index, &cells)?;
+                Some((cells, cell))
+            }
+            None => None,
+        };
         let forward_seconds = started.elapsed().as_secs_f64();
+        let action = candidates
+            .action(index, cell.as_ref())
+            .context("chosen candidate has no action")?;
         Ok(PolicyChoice {
             candidates,
             legal_mask,
             index,
             log_probs,
+            cell,
+            action,
             forward_seconds,
         })
     }
@@ -855,7 +1099,14 @@ pub struct SemanticDecision {
 }
 
 pub fn semantic_decision(environment: &GameEnvironment) -> Result<SemanticDecision> {
-    let candidates = policy_candidates(environment)?;
+    semantic_decision_with(environment, CandidateMode::Top8)
+}
+
+pub fn semantic_decision_with(
+    environment: &GameEnvironment,
+    mode: CandidateMode,
+) -> Result<SemanticDecision> {
+    let candidates = policy_candidates_with(environment, mode)?;
     let legal_mask = environment.semantic_actions_are_legal(
         &candidates
             .candidates

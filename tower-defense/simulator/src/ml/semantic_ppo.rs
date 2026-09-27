@@ -32,12 +32,13 @@ use super::policy_v2::{
 };
 use super::semantic_bc::{
     BcCheckpointMetadata, SemanticDecision, SemanticPolicy, batch_log_probs, load_model_file,
-    load_policy_file, load_selected_model, sample_masked, semantic_decision,
+    load_policy_file, load_selected_model, sample_masked, semantic_decision_with,
 };
 use super::semantic_candidates::{
-    EncodedDecision, POLICY_CANDIDATE_SET_VERSION, SEMANTIC_CANDIDATE_ENCODER_VERSION,
-    encode_decision,
+    CandidateMode, EncodedDecision, POLICY_CANDIDATE_SET_VERSION,
+    SEMANTIC_CANDIDATE_ENCODER_VERSION, encode_decision,
 };
+use super::spatial::CellSet;
 use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use anyhow::{Context, Result, bail};
@@ -47,7 +48,7 @@ use burn::optim::grad_clipping::GradientClippingConfig;
 use burn::optim::{Adam, AdamConfig, GradientsParams, Optimizer};
 use burn::record::{BinFileRecorder, FullPrecisionSettings, Recorder};
 use burn::tensor::backend::Backend;
-use burn::tensor::{Tensor, TensorData};
+use burn::tensor::{Int, Tensor, TensorData};
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
@@ -251,6 +252,36 @@ pub fn critic_value_vector(
     Ok(values)
 }
 
+/// `log P(cell | option)` over each spatial step's cells (unpadded).
+pub fn spatial_cell_log_probs<'a>(
+    actor: &PolicyNet<InferenceBackend>,
+    steps: impl Iterator<Item = &'a Transition>,
+    device: &PolicyDevice,
+) -> Result<Vec<Vec<f32>>> {
+    let steps = steps.collect::<Vec<_>>();
+    if steps.is_empty() {
+        return Ok(Vec::new());
+    }
+    let decisions = steps.iter().map(|step| &step.encoded).collect::<Vec<_>>();
+    let options = steps
+        .iter()
+        .map(|step| step.action_index)
+        .collect::<Vec<_>>();
+    let cells = steps
+        .iter()
+        .map(|step| &step.spatial.as_ref().expect("spatial step").cells)
+        .collect::<Vec<_>>();
+    let (log_probs, lengths) =
+        super::policy_v2::cell_log_probs(actor, &decisions, &options, &cells, device);
+    let width = log_probs.dims()[1];
+    let values = log_probs.into_data().to_vec::<f32>()?;
+    Ok(lengths
+        .iter()
+        .enumerate()
+        .map(|(row, length)| values[row * width..row * width + length].to_vec())
+        .collect())
+}
+
 /// Per-decision log-probabilities (unpadded, one vector per decision).
 pub fn actor_log_prob_vectors(
     actor: &PolicyNet<InferenceBackend>,
@@ -308,11 +339,45 @@ pub struct Transition {
     pub canonical_index: Option<usize>,
     /// `pi_init` log-probabilities (unpadded).
     pub init_log_probs: Vec<f32>,
+    /// The executed action equals the canonical scripted action.
+    pub matches_canonical: bool,
+    /// Set when the chosen candidate is a spatial option.
+    pub spatial: Option<SpatialStep>,
+}
+
+/// The cell step below a spatial option.
+#[derive(Clone, Debug)]
+pub struct SpatialStep {
+    pub cells: CellSet,
+    pub cell: usize,
+    pub greedy_cell: usize,
+    /// Behavior policy `log P(cell | option)` over `cells`.
+    pub behavior_log_probs: Vec<f32>,
+    /// `pi_init` `log P(cell | option)` over `cells`.
+    pub init_log_probs: Vec<f32>,
+    /// The executed action is not one of the state's v1 top-8 actions.
+    pub outside_v1_top8: bool,
 }
 
 impl Transition {
     pub fn init_greedy_index(&self) -> Option<usize> {
         greedy_index(&self.init_log_probs, &self.encoded.legal_mask)
+    }
+
+    pub fn is_greedy(&self) -> bool {
+        self.action_index == self.greedy_index
+            && self
+                .spatial
+                .as_ref()
+                .is_none_or(|step| step.cell == step.greedy_cell)
+    }
+
+    pub fn matches_init_greedy(&self) -> bool {
+        self.init_greedy_index() == Some(self.action_index)
+            && self.spatial.as_ref().is_none_or(|step| {
+                greedy_index(&step.init_log_probs, &vec![true; step.init_log_probs.len()])
+                    == Some(step.cell)
+            })
     }
 }
 
@@ -381,6 +446,7 @@ fn advance(
 /// Plays one episode with the actor, sampling every decision from its masked
 /// distribution (or taking the greedy action when `greedy`), and records the
 /// transitions. Values are filled in later in one batched critic pass.
+#[allow(clippy::too_many_arguments)]
 pub fn rollout_episode(
     actor: &PolicyNet<InferenceBackend>,
     device: &PolicyDevice,
@@ -389,6 +455,7 @@ pub fn rollout_episode(
     sample_seed: u64,
     reward_scale: f32,
     greedy: bool,
+    mode: CandidateMode,
 ) -> Result<EpisodeRollout> {
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(sample_seed);
     let mut environment = GameEnvironment::new(config, game_seed);
@@ -404,7 +471,7 @@ pub fn rollout_episode(
     while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
         if transitions.len() >= MAX_EPISODE_DECISIONS {
             truncated = true;
-            bootstrap = Some(semantic_decision(&environment)?.encoded);
+            bootstrap = Some(semantic_decision_with(&environment, mode)?.encoded);
             break;
         }
         let started = Instant::now();
@@ -412,7 +479,7 @@ pub fn rollout_episode(
             candidates,
             legal_mask,
             encoded,
-        } = semantic_decision(&environment)?;
+        } = semantic_decision_with(&environment, mode)?;
         decision_seconds += started.elapsed().as_secs_f64();
         let started = Instant::now();
         let factorized = factorized_log_probs(actor, &[&encoded], device);
@@ -438,13 +505,63 @@ pub fn rollout_episode(
             sample_masked(&log_probs, &legal_mask, u)
         };
         let candidate = &candidates.candidates[action_index];
-        let action = candidate.action.clone();
+        let mut old_log_prob = log_probs[action_index];
+        let mut behavior_entropy = entropy_of(&log_probs, &legal_mask);
+        let spatial = match candidates.cells(&environment, action_index) {
+            Some(cells) => {
+                let started = Instant::now();
+                let (cell_log_probs, _) = super::policy_v2::cell_log_probs(
+                    actor,
+                    &[&encoded],
+                    &[action_index],
+                    &[&cells],
+                    device,
+                );
+                let cell_log_probs =
+                    cell_log_probs.into_data().to_vec::<f32>()?[..cells.len()].to_vec();
+                forward_seconds += started.elapsed().as_secs_f64();
+                let all = vec![true; cells.len()];
+                let greedy_cell =
+                    greedy_index(&cell_log_probs, &all).context("option without cells")?;
+                let cell = if greedy {
+                    greedy_cell
+                } else {
+                    sample_masked(&cell_log_probs, &all, rng.r#gen())
+                };
+                old_log_prob += cell_log_probs[cell];
+                behavior_entropy += entropy_of(&cell_log_probs, &all);
+                Some(SpatialStep {
+                    cells,
+                    cell,
+                    greedy_cell,
+                    behavior_log_probs: cell_log_probs,
+                    init_log_probs: Vec::new(),
+                    outside_v1_top8: false,
+                })
+            }
+            None => None,
+        };
+        let action = candidates
+            .action(
+                action_index,
+                spatial
+                    .as_ref()
+                    .map(|step| (step.cells.clone(), step.cell))
+                    .as_ref(),
+            )
+            .context("sampled candidate has no action")?;
         if !legal_mask[action_index] || !environment.semantic_action_is_legal(&action) {
             illegal_actions += 1;
         }
-        if action.action_id() != candidate.action_id {
+        if spatial.is_none() && action.action_id() != candidate.action_id {
             action_mismatches += 1;
         }
+        let matches_canonical = action == candidates.canonical_action;
+        let mut spatial = spatial;
+        if let Some(step) = spatial.as_mut() {
+            step.outside_v1_top8 = !candidates.v1_top8.contains(&action);
+        }
+        let executed_id = action.action_id();
         let clear_rate_before = environment.clear_rate();
         let started = Instant::now();
         let end = advance(&mut environment, action)?;
@@ -452,11 +569,11 @@ pub fn rollout_episode(
         let raw_delta = environment.clear_rate() - clear_rate_before;
         transitions.push(Transition {
             action_index,
-            action_id: candidate.action_id.clone(),
+            action_id: executed_id,
             action_kind: candidate.action.kind().wire_name().to_string(),
             decision_point: format!("{:?}", candidates.observation.decision_point),
-            old_log_prob: log_probs[action_index],
-            behavior_entropy: entropy_of(&log_probs, &legal_mask),
+            old_log_prob,
+            behavior_entropy,
             family_entropy,
             clear_rate_before,
             raw_delta,
@@ -467,6 +584,8 @@ pub fn rollout_episode(
             greedy_index: greedy_choice,
             canonical_index: candidates.canonical_index(),
             init_log_probs: Vec::new(),
+            matches_canonical,
+            spatial,
             encoded,
         });
         match end {
@@ -476,7 +595,8 @@ pub fn rollout_episode(
                 truncated = true;
                 if !matches!(environment.decision_point(), DecisionPoint::Terminal) {
                     let observation = environment.snapshot();
-                    let candidates = super::semantic_candidates::policy_candidates(&environment)?;
+                    let candidates =
+                        super::semantic_candidates::policy_candidates_with(&environment, mode)?;
                     let mask = vec![true; candidates.candidates.len()];
                     bootstrap = Some(encode_decision(&observation, &candidates.candidates, mask));
                 }
@@ -542,6 +662,8 @@ pub struct UpdateStats {
     pub normalized_family_entropy: f64,
     #[serde(default)]
     pub normalized_candidate_entropy: f64,
+    #[serde(default)]
+    pub normalized_cell_entropy: f64,
     pub mean_actor_grad_norm: f64,
     pub max_actor_grad_norm: f64,
     pub mean_critic_grad_norm: f64,
@@ -630,6 +752,7 @@ struct ActorTerms {
     entropy: f32,
     normalized_family_entropy: f32,
     normalized_candidate_entropy: f32,
+    normalized_cell_entropy: f32,
     kl_to_init: f32,
     approx_kl: f32,
     clip_fraction: f32,
@@ -702,6 +825,119 @@ fn normalized_head_entropies(
     (family_entropy, candidate_entropy)
 }
 
+/// Cell-head terms of the spatial samples of a minibatch.
+struct SpatialCellTerms {
+    /// Row of each spatial sample in the minibatch.
+    rows: Tensor<TrainBackend, 1, Int>,
+    /// `[spatial, 1]` `log P(chosen cell | option)`.
+    chosen: Tensor<TrainBackend, 2>,
+    /// `[spatial, 1]` cell-head entropy.
+    entropy: Tensor<TrainBackend, 2>,
+    /// `[spatial, 1]` entropy over `ln(cells)` (0 with one cell).
+    normalized_entropy: Tensor<TrainBackend, 2>,
+    /// `[spatial, 1]` `KL(pi || pi_init)` of the cell head.
+    kl_to_init: Tensor<TrainBackend, 2>,
+}
+
+fn spatial_cell_terms(
+    actor: &PolicyNet<TrainBackend>,
+    batch: &[&Transition],
+    device: &PolicyDevice,
+) -> Result<Option<SpatialCellTerms>> {
+    let spatial = batch
+        .iter()
+        .enumerate()
+        .filter_map(|(row, step)| step.spatial.as_ref().map(|spatial| (row, *step, spatial)))
+        .collect::<Vec<_>>();
+    if spatial.is_empty() {
+        return Ok(None);
+    }
+    let decisions = spatial
+        .iter()
+        .map(|(_, step, _)| &step.encoded)
+        .collect::<Vec<_>>();
+    let options = spatial
+        .iter()
+        .map(|(_, step, _)| step.action_index)
+        .collect::<Vec<_>>();
+    let cell_sets = spatial
+        .iter()
+        .map(|(_, _, spatial)| &spatial.cells)
+        .collect::<Vec<_>>();
+    let (log_probs, lengths) =
+        super::policy_v2::cell_log_probs(actor, &decisions, &options, &cell_sets, device);
+    let count = spatial.len();
+    let width = log_probs.dims()[1];
+    let valid = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            lengths
+                .iter()
+                .flat_map(|length| (0..width).map(move |column| (column < *length) as u8 as f32))
+                .collect::<Vec<_>>(),
+            [count, width],
+        ),
+        device,
+    );
+    let chosen_index = Tensor::<TrainBackend, 2, Int>::from_data(
+        TensorData::new(
+            spatial
+                .iter()
+                .map(|(_, _, spatial)| spatial.cell as i64)
+                .collect::<Vec<_>>(),
+            [count, 1],
+        ),
+        device,
+    );
+    let probabilities = log_probs.clone().exp() * valid.clone();
+    let entropy = -(probabilities.clone() * log_probs.clone() * valid.clone()).sum_dim(1);
+    let scale = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            lengths
+                .iter()
+                .map(|length| {
+                    if *length > 1 {
+                        1.0 / (*length as f32).ln()
+                    } else {
+                        0.0
+                    }
+                })
+                .collect::<Vec<_>>(),
+            [count, 1],
+        ),
+        device,
+    );
+    let init = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            spatial
+                .iter()
+                .flat_map(|(_, _, spatial)| {
+                    (0..width)
+                        .map(|column| spatial.init_log_probs.get(column).copied().unwrap_or(0.0))
+                })
+                .collect::<Vec<_>>(),
+            [count, width],
+        ),
+        device,
+    );
+    let kl_to_init = (probabilities * (log_probs.clone() - init) * valid).sum_dim(1);
+    Ok(Some(SpatialCellTerms {
+        rows: Tensor::<TrainBackend, 1, Int>::from_data(
+            TensorData::new(
+                spatial
+                    .iter()
+                    .map(|(row, _, _)| *row as i64)
+                    .collect::<Vec<_>>(),
+                [count],
+            ),
+            device,
+        ),
+        chosen: log_probs.gather(1, chosen_index),
+        normalized_entropy: entropy.clone() * scale,
+        entropy,
+        kl_to_init,
+    }))
+}
+
 fn actor_terms(
     actor: &PolicyNet<TrainBackend>,
     batch: &[&Transition],
@@ -722,7 +958,16 @@ fn actor_terms(
             .collect::<Vec<_>>(),
         device,
     );
-    let new_log_prob = log_probs.clone().gather(1, actions);
+    let mut new_log_prob = log_probs.clone().gather(1, actions);
+    let cells = spatial_cell_terms(actor, batch, device)?;
+    if let Some(cells) = &cells {
+        new_log_prob = new_log_prob.select_assign(
+            0,
+            cells.rows.clone(),
+            cells.chosen.clone(),
+            burn::tensor::IndexingUpdateOp::Add,
+        );
+    }
     let old_log_prob = Tensor::<TrainBackend, 2>::from_data(
         TensorData::new(
             batch
@@ -761,13 +1006,23 @@ fn actor_terms(
         .mean();
     let (normalized_family, normalized_candidate) =
         normalized_head_entropies(&factorized, valid.clone(), device);
+    let rows_f = rows as f32;
+    let (entropy, normalized_cell) = match &cells {
+        Some(cells) => (
+            entropy + cells.entropy.clone().sum() / rows_f,
+            cells.normalized_entropy.clone().sum() / rows_f,
+        ),
+        None => (entropy, Tensor::<TrainBackend, 1>::zeros([1], device)),
+    };
     let entropy_bonus = match config.entropy_scheme {
         EntropyScheme::Joint => entropy.clone() * config.entropy_coefficient,
         EntropyScheme::NormalizedPerHead => {
             normalized_family.clone().mean() * config.entropy_coefficient
-                + normalized_candidate.clone().mean() * config.candidate_entropy_coefficient
+                + (normalized_candidate.clone().mean() + normalized_cell.clone())
+                    * config.candidate_entropy_coefficient
         }
     };
+    let normalized_cell_entropy = normalized_cell.into_data().to_vec::<f32>()?[0];
     let normalized_family_entropy = normalized_family.mean().into_data().to_vec::<f32>()?[0];
     let normalized_candidate_entropy = normalized_candidate.mean().into_data().to_vec::<f32>()?[0];
     let mut loss = policy_loss.clone() - entropy_bonus;
@@ -791,9 +1046,12 @@ fn actor_terms(
             ),
             device,
         );
-        let kl = (probabilities * (log_probs - init) * valid)
+        let mut kl = (probabilities * (log_probs - init) * valid)
             .sum_dim(1)
             .mean();
+        if let Some(cells) = &cells {
+            kl = kl + cells.kl_to_init.clone().sum() / rows_f;
+        }
         kl_to_init_value = kl.clone().into_data().to_vec::<f32>()?[0];
         loss = loss + kl * config.kl_to_init_coefficient;
     }
@@ -815,6 +1073,7 @@ fn actor_terms(
         entropy: entropy.into_data().to_vec::<f32>()?[0],
         normalized_family_entropy,
         normalized_candidate_entropy,
+        normalized_cell_entropy,
         kl_to_init: kl_to_init_value,
         approx_kl,
         clip_fraction,
@@ -851,7 +1110,7 @@ impl PpoLearner {
                 *value = (*value - mean) / std;
             }
         }
-        let mut sums = [0.0f64; 7];
+        let mut sums = [0.0f64; 8];
         let mut actor_steps = 0usize;
         let mut critic_steps = 0usize;
         let mut critic_grad_sum = 0.0f64;
@@ -908,6 +1167,7 @@ impl PpoLearner {
                             sums[4] += terms.kl_to_init as f64;
                             sums[5] += terms.normalized_family_entropy as f64;
                             sums[6] += terms.normalized_candidate_entropy as f64;
+                            sums[7] += terms.normalized_cell_entropy as f64;
                             epoch_kl += terms.approx_kl as f64;
                             epoch_batches += 1;
                         } else {
@@ -950,6 +1210,7 @@ impl PpoLearner {
         stats.kl_to_init_term = sums[4] / actor_steps_f;
         stats.normalized_family_entropy = sums[5] / actor_steps_f;
         stats.normalized_candidate_entropy = sums[6] / actor_steps_f;
+        stats.normalized_cell_entropy = sums[7] / actor_steps_f;
         stats.mean_actor_grad_norm = actor_grad_sum / actor_steps_f;
         stats.value_loss = value_loss_sum / critic_steps.max(1) as f64;
         stats.mean_critic_grad_norm = critic_grad_sum / critic_steps.max(1) as f64;
@@ -1273,6 +1534,18 @@ pub struct RolloutStats {
     pub mean_behavior_entropy: f64,
     #[serde(default)]
     pub mean_family_entropy: f64,
+    /// Decisions resolved through a spatial option's cell head.
+    #[serde(default)]
+    pub spatial_decisions: usize,
+    /// Of those, cells outside the heuristic top 8 of their option.
+    #[serde(default)]
+    pub spatial_outside_heuristic_top_k: usize,
+    /// Of those, actions differing from the canonical action.
+    #[serde(default)]
+    pub spatial_non_canonical: usize,
+    /// Spatial statistics per action kind (`build_tower`, `place_tower`).
+    #[serde(default)]
+    pub spatial_by_kind: BTreeMap<String, SpatialKindStats>,
     pub action_kind_counts: BTreeMap<String, usize>,
     pub action_kind_fractions: BTreeMap<String, f64>,
     pub mean_return: f64,
@@ -1289,6 +1562,19 @@ pub struct RolloutStats {
     pub non_init_greedy_fraction: f64,
     pub by_decision_point: BTreeMap<String, DecisionPointStats>,
     pub timing: RolloutTiming,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SpatialKindStats {
+    pub decisions: usize,
+    /// Executed positions outside the state's v1 top-8 actions.
+    pub outside_v1_top8: usize,
+    pub non_canonical: usize,
+    /// Mean heuristic rank percentile of the chosen cell within its option.
+    pub mean_rank_percentile: f64,
+    /// Mean Manhattan distance from the option's heuristic-best cell.
+    pub mean_distance_from_best: f64,
+    pub mean_cell_entropy: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -1445,6 +1731,8 @@ pub struct PpoRunMetadata {
     pub init_ppo_iteration: Option<String>,
     #[serde(default)]
     pub critic_inputs: CriticInputs,
+    #[serde(default)]
+    pub candidate_mode: CandidateMode,
     pub train_split: Phase4Split,
     pub development_split: Phase4Split,
     pub development_seeds: usize,
@@ -1489,6 +1777,7 @@ fn write_checkpoint(
             policy_representation_version: POLICY_REPRESENTATION_VERSION,
             kind_mode: learner.actor.mode,
             input_contract: learner.actor.inputs,
+            candidate_mode: metadata.candidate_mode,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
             candidate_encoder_version: SEMANTIC_CANDIDATE_ENCODER_VERSION,
             game_rules_epoch: GAME_RULES_EPOCH,
@@ -1513,6 +1802,8 @@ pub struct PpoActorFile {
     pub kind_mode: KindMode,
     #[serde(default)]
     pub input_contract: InputContract,
+    #[serde(default)]
+    pub candidate_mode: CandidateMode,
     pub policy_candidate_set_version: u32,
     pub candidate_encoder_version: u32,
     pub game_rules_epoch: u32,
@@ -1529,6 +1820,18 @@ pub fn load_ppo_actor(
     device: &PolicyDevice,
 ) -> Result<PolicyNet<InferenceBackend>> {
     load_ppo_actor_as::<InferenceBackend>(iteration_dir, device)
+}
+
+/// The actor of a PPO iteration directory and the candidate mode it plays.
+pub fn load_ppo_policy(
+    iteration_dir: &Path,
+    device: &PolicyDevice,
+) -> Result<(PolicyNet<InferenceBackend>, CandidateMode)> {
+    let file: PpoActorFile = serde_json::from_slice(
+        &std::fs::read(iteration_dir.join("ppo-actor.json"))
+            .with_context(|| format!("read {}", iteration_dir.join("ppo-actor.json").display()))?,
+    )?;
+    Ok((load_ppo_actor(iteration_dir, device)?, file.candidate_mode))
 }
 
 pub fn load_ppo_actor_as<B: Backend>(
@@ -1615,6 +1918,7 @@ fn sample_seed(config: &PpoConfig, iteration: usize, game_seed: u64) -> u64 {
 }
 
 /// Collects one iteration of rollouts, fills values/advantages/returns.
+#[allow(clippy::too_many_arguments)]
 pub fn collect_iteration(
     learner: &PpoLearner,
     init_actor: &PolicyNet<InferenceBackend>,
@@ -1622,6 +1926,7 @@ pub fn collect_iteration(
     game_config: Arc<GameConfig>,
     iteration: usize,
     seeds: &[u64],
+    mode: CandidateMode,
 ) -> Result<(Vec<EpisodeRollout>, RolloutStats)> {
     let wall_started = Instant::now();
     let actor = learner.actor_inference();
@@ -1638,6 +1943,7 @@ pub fn collect_iteration(
                 sample_seed(config, iteration, *seed),
                 config.reward_scale,
                 false,
+                mode,
             )
         })
         .collect::<Result<Vec<_>>>()?;
@@ -1658,6 +1964,18 @@ pub fn collect_iteration(
         for episode in &mut episodes {
             for step in &mut episode.transitions {
                 step.init_log_probs = init_log_probs.next().expect("aligned init log-probs");
+            }
+        }
+        let mut spatial_steps = episodes
+            .iter_mut()
+            .flat_map(|episode| episode.transitions.iter_mut())
+            .filter(|step| step.spatial.is_some())
+            .collect::<Vec<_>>();
+        for chunk in spatial_steps.chunks_mut(64) {
+            let init =
+                spatial_cell_log_probs(init_actor, chunk.iter().map(|step| &**step), &device)?;
+            for (step, init) in chunk.iter_mut().zip(init) {
+                step.spatial.as_mut().expect("spatial step").init_log_probs = init;
             }
         }
     }
@@ -1713,9 +2031,29 @@ pub fn collect_iteration(
                 .or_insert(0) += 1;
             stats.mean_behavior_entropy += step.behavior_entropy as f64;
             stats.mean_family_entropy += step.family_entropy as f64;
-            let non_greedy = step.action_index != step.greedy_index;
-            let non_canonical = step.canonical_index != Some(step.action_index);
-            let non_init_greedy = step.init_greedy_index() != Some(step.action_index);
+            let non_greedy = !step.is_greedy();
+            let non_canonical = !step.matches_canonical;
+            let non_init_greedy = !step.matches_init_greedy();
+            if let Some(spatial) = &step.spatial {
+                stats.spatial_decisions += 1;
+                stats.spatial_outside_heuristic_top_k +=
+                    spatial.cells.outside_heuristic_top_k(spatial.cell) as usize;
+                stats.spatial_non_canonical += non_canonical as usize;
+                let family = stats
+                    .spatial_by_kind
+                    .entry(step.action_kind.clone())
+                    .or_default();
+                family.decisions += 1;
+                family.outside_v1_top8 += spatial.outside_v1_top8 as usize;
+                family.non_canonical += non_canonical as usize;
+                family.mean_rank_percentile += spatial.cells.rank_percentile(spatial.cell) as f64;
+                family.mean_distance_from_best +=
+                    spatial.cells.distance_from_best(spatial.cell) as f64;
+                family.mean_cell_entropy += entropy_of(
+                    &spatial.behavior_log_probs,
+                    &vec![true; spatial.behavior_log_probs.len()],
+                ) as f64;
+            }
             stats.non_greedy_fraction += non_greedy as u8 as f64;
             stats.non_canonical_fraction += non_canonical as u8 as f64;
             stats.non_init_greedy_fraction += non_init_greedy as u8 as f64;
@@ -1767,6 +2105,12 @@ pub fn collect_iteration(
     stats.non_greedy_fraction /= n;
     stats.non_canonical_fraction /= n;
     stats.non_init_greedy_fraction /= n;
+    for family in stats.spatial_by_kind.values_mut() {
+        let count = family.decisions.max(1) as f64;
+        family.mean_rank_percentile /= count;
+        family.mean_distance_from_best /= count;
+        family.mean_cell_entropy /= count;
+    }
     for point in stats.by_decision_point.values_mut() {
         let count = point.count.max(1) as f64;
         point.mean_entropy /= count;
@@ -1857,7 +2201,9 @@ pub fn development_evaluation(
         },
         EvalPolicy::Learned {
             name: "ppo".to_string(),
-            policy: Box::new(SemanticPolicy::new(current)),
+            policy: Box::new(
+                SemanticPolicy::new(current).with_candidate_mode(init.candidate_mode()),
+            ),
         },
     ];
     let comparisons = vec![
@@ -1904,7 +2250,8 @@ pub fn train_ppo_run(
             bail!("BC initialization was trained under a different game rules epoch");
         }
     }
-    let init_policy = SemanticPolicy::new(init_actor.clone().valid());
+    let init_policy = SemanticPolicy::new(init_actor.clone().valid())
+        .with_candidate_mode(bc_metadata.config.candidate_mode);
     let prior_budget = match &input.init_ppo_iteration {
         Some(directory) => parent_budget(directory)?,
         None => TrainingBudget::default(),
@@ -1992,6 +2339,7 @@ pub fn train_ppo_run(
                 .as_ref()
                 .map(|path| path.display().to_string()),
             critic_inputs,
+            candidate_mode: bc_metadata.config.candidate_mode,
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
             development_seeds: input.development_seeds,
@@ -2037,6 +2385,7 @@ pub fn train_ppo_run(
             Arc::clone(&game_config),
             iteration,
             &seeds,
+            metadata.candidate_mode,
         )?;
         let rollout_seconds = rollout_started.elapsed().as_secs_f64();
         let transitions = episodes
@@ -2067,8 +2416,35 @@ pub fn train_ppo_run(
             .collect::<Vec<_>>();
         let new_log_probs =
             actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
-        let kl_to_init_after = mean_kl(&new_log_probs, &init_log_probs, &masks);
-        let kl_old_new_after = mean_kl(&old_log_probs, &new_log_probs, &masks);
+        let mut kl_to_init_after = mean_kl(&new_log_probs, &init_log_probs, &masks);
+        let mut kl_old_new_after = mean_kl(&old_log_probs, &new_log_probs, &masks);
+        let spatial_steps = transitions
+            .iter()
+            .filter(|step| step.spatial.is_some())
+            .collect::<Vec<_>>();
+        if !spatial_steps.is_empty() {
+            let new_cells = spatial_cell_log_probs(
+                &learner.actor_inference(),
+                spatial_steps.iter().copied(),
+                &device,
+            )?;
+            let count = transitions.len().max(1) as f64;
+            for (step, new) in spatial_steps.iter().zip(&new_cells) {
+                let spatial = step.spatial.as_ref().expect("spatial step");
+                let all = vec![true; new.len()];
+                let masks = [all.as_slice()];
+                kl_to_init_after += mean_kl(
+                    std::slice::from_ref(new),
+                    std::slice::from_ref(&spatial.init_log_probs),
+                    &masks,
+                ) / count;
+                kl_old_new_after += mean_kl(
+                    std::slice::from_ref(&spatial.behavior_log_probs),
+                    std::slice::from_ref(new),
+                    &masks,
+                ) / count;
+            }
+        }
         let evaluation = if input.evaluate_every > 0 && iteration % input.evaluate_every == 0 {
             let evaluation = development_evaluation(
                 Arc::clone(&game_config),
@@ -2169,11 +2545,17 @@ fn log_iteration(record: &IterationRecord) {
         update.max_actor_grad_norm,
     );
     eprintln!(
-        "  budget: episodes {} decisions {} hours {:.2} | family entropy {:.4}",
+        "  budget: episodes {} decisions {} hours {:.2} | family entropy {:.4} | normalized entropy family {:.4} candidate {:.4} cell {:.4} | spatial {} outside-top8 {:.4} non-canonical {:.4}",
         record.cumulative.episodes,
         record.cumulative.decisions,
         record.cumulative.seconds / 3600.0,
         rollout.mean_family_entropy,
+        update.normalized_family_entropy,
+        update.normalized_candidate_entropy,
+        update.normalized_cell_entropy,
+        rollout.spatial_decisions,
+        rollout.spatial_outside_heuristic_top_k as f64 / rollout.spatial_decisions.max(1) as f64,
+        rollout.spatial_non_canonical as f64 / rollout.spatial_decisions.max(1) as f64,
     );
     let timing = &rollout.timing;
     eprintln!(
@@ -2189,6 +2571,17 @@ fn log_iteration(record: &IterationRecord) {
         timing.critic_value_seconds,
         timing.gae_seconds,
     );
+    for (kind, family) in &rollout.spatial_by_kind {
+        eprintln!(
+            "  spatial {kind}: n {} outside-v1-top8 {:.4} non-canonical {:.4} rank-pct {:.4} distance {:.2} cell-entropy {:.4}",
+            family.decisions,
+            family.outside_v1_top8 as f64 / family.decisions.max(1) as f64,
+            family.non_canonical as f64 / family.decisions.max(1) as f64,
+            family.mean_rank_percentile,
+            family.mean_distance_from_best,
+            family.mean_cell_entropy,
+        );
+    }
     for (point, stats) in &rollout.by_decision_point {
         eprintln!(
             "  {point}: n {} ent {:.4} non-greedy {:.4} non-canonical {:.4} non-bc-init {:.4}",
@@ -2285,14 +2678,33 @@ mod tests {
     }
 
     fn tiny_bc_run_with(name: &str, kind_mode: KindMode, input_contract: InputContract) -> PathBuf {
+        tiny_bc_run_spatial(name, kind_mode, input_contract, CandidateMode::Top8)
+    }
+
+    fn tiny_bc_run_spatial(
+        name: &str,
+        kind_mode: KindMode,
+        input_contract: InputContract,
+        candidate_mode: CandidateMode,
+    ) -> PathBuf {
         let episodes = canonical_episodes(&[0]);
-        let mut samples = prepare_samples(&episodes, LabelSource::Canonical, 1.0);
+        let mut samples = if candidate_mode == CandidateMode::Top8 {
+            prepare_samples(&episodes, LabelSource::Canonical, 1.0)
+        } else {
+            crate::ml::semantic_bc::prepare_replayed_samples(
+                game_config(),
+                &episodes,
+                candidate_mode,
+            )
+            .unwrap()
+        };
         samples.truncate(64);
         let config = BcTrainConfig {
             epochs: 1,
             batch_size: 32,
             kind_mode,
             input_contract,
+            candidate_mode,
             ..BcTrainConfig::default()
         };
         let run_dir = temp_dir(name);
@@ -2355,7 +2767,17 @@ mod tests {
     fn stochastic_rollout_executes_the_sampled_action_and_telescopes() {
         let actor = random_actor();
         let device = default_policy_device();
-        let rollout = rollout_episode(&actor, &device, game_config(), 3, 99, 0.1, false).unwrap();
+        let rollout = rollout_episode(
+            &actor,
+            &device,
+            game_config(),
+            3,
+            99,
+            0.1,
+            false,
+            CandidateMode::Top8,
+        )
+        .unwrap();
         assert!(!rollout.truncated);
         assert_eq!(rollout.illegal_actions, 0);
         assert_eq!(rollout.action_mismatches, 0);
@@ -2378,7 +2800,7 @@ mod tests {
 
         let mut environment = GameEnvironment::new(game_config(), 3);
         for step in &rollout.transitions {
-            let decision = semantic_decision(&environment).unwrap();
+            let decision = crate::ml::semantic_bc::semantic_decision(&environment).unwrap();
             assert_eq!(decision.encoded, step.encoded);
             let sampled = &decision.candidates.candidates[step.action_index];
             assert_eq!(sampled.action_id, step.action_id);
@@ -2398,7 +2820,17 @@ mod tests {
         let actor = random_actor();
         let device = default_policy_device();
         let policy = SemanticPolicy::new(actor.clone());
-        let rollout = rollout_episode(&actor, &device, game_config(), 5, 0, 0.1, true).unwrap();
+        let rollout = rollout_episode(
+            &actor,
+            &device,
+            game_config(),
+            5,
+            0,
+            0.1,
+            true,
+            CandidateMode::Top8,
+        )
+        .unwrap();
         let mut environment = GameEnvironment::new(game_config(), 5);
         for step in &rollout.transitions {
             let choice = policy.choose(&environment).unwrap();
@@ -2632,6 +3064,157 @@ mod tests {
         assert_eq!(actor.mode, KindMode::Learned);
         assert_eq!(actor.inputs, InputContract::Normalized);
         for directory in [bc_dir, critic_dir, run_dir] {
+            std::fs::remove_dir_all(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn spatial_rollout_executes_sampled_cells_and_decomposes_log_probs() {
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<InferenceBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            11,
+            &default_policy_device(),
+        )
+        .unwrap();
+        let device = default_policy_device();
+        let mode = CandidateMode::FullPosition;
+        let rollout =
+            rollout_episode(&actor, &device, game_config(), 7, 3, 0.1, false, mode).unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        let reward_sum = rollout
+            .transitions
+            .iter()
+            .map(|step| step.reward as f64)
+            .sum::<f64>();
+        let telescoped = 0.1 * (rollout.terminal_clear_rate - rollout.initial_clear_rate) as f64;
+        assert!((reward_sum - telescoped).abs() < 1e-3);
+        let spatial = rollout
+            .transitions
+            .iter()
+            .filter(|step| step.spatial.is_some())
+            .count();
+        assert!(spatial > 5, "{spatial}");
+        assert!(
+            rollout
+                .transitions
+                .iter()
+                .filter_map(|step| step.spatial.as_ref())
+                .any(|step| step.cells.outside_heuristic_top_k(step.cell))
+        );
+
+        let mut environment = GameEnvironment::new(game_config(), 7);
+        for step in &rollout.transitions {
+            let decision = semantic_decision_with(&environment, mode).unwrap();
+            assert_eq!(decision.encoded, step.encoded);
+            let cells = decision.candidates.cells(&environment, step.action_index);
+            let spatial = cells
+                .as_ref()
+                .map(|cells| (cells.clone(), step.spatial.as_ref().unwrap().cell));
+            let action = decision
+                .candidates
+                .action(step.action_index, spatial.as_ref())
+                .unwrap();
+            assert_eq!(action.action_id(), step.action_id);
+            assert!(environment.semantic_action_is_legal(&action));
+            if let Some(recorded) = &step.spatial {
+                assert_eq!(cells.as_ref(), Some(&recorded.cells));
+                let space = crate::policy_action::PolicyActionSpace::compute(&environment);
+                let index = space.action_to_index(&action).expect("indexed");
+                assert!(space.legal_mask()[index]);
+                let joint = actor_log_prob_vectors(&actor, &[&step.encoded], &device).unwrap();
+                let (cell_log_probs, _) = crate::ml::policy_v2::cell_log_probs(
+                    &actor,
+                    &[&step.encoded],
+                    &[step.action_index],
+                    &[&recorded.cells],
+                    &device,
+                );
+                let cell_log_probs = cell_log_probs.into_data().to_vec::<f32>().unwrap();
+                let expected = joint[0][step.action_index] + cell_log_probs[recorded.cell];
+                assert!(
+                    (expected - step.old_log_prob).abs() < 1e-4,
+                    "{expected} vs {}",
+                    step.old_log_prob
+                );
+            }
+            let mut outcome = environment.semantic_step(action).unwrap();
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+        }
+        assert_eq!(environment.clear_rate(), rollout.terminal_clear_rate);
+    }
+
+    #[test]
+    fn replayed_spatial_bc_samples_target_the_canonical_cell() {
+        let episodes = canonical_episodes(&[0]);
+        let samples = crate::ml::semantic_bc::prepare_replayed_samples(
+            game_config(),
+            &episodes,
+            CandidateMode::FullPosition,
+        )
+        .unwrap();
+        assert_eq!(samples.len(), episodes[0].samples.len());
+        let spatial = samples
+            .iter()
+            .filter_map(|sample| sample.target_cell.as_ref())
+            .collect::<Vec<_>>();
+        assert!(spatial.len() > 5);
+        for (cells, cell) in spatial {
+            assert_eq!(*cell, 0, "canonical placements are the heuristic-best cell");
+            assert!(cells.len() > 8);
+        }
+        for sample in &samples {
+            assert_eq!(sample.target, sample.canonical_index);
+        }
+    }
+
+    #[test]
+    fn spatial_ppo_update_is_finite() {
+        let bc_dir = tiny_bc_run_spatial(
+            "ppo-spatial-bc",
+            KindMode::Learned,
+            InputContract::Normalized,
+            CandidateMode::FullPosition,
+        );
+        let run_dir = temp_dir("ppo-spatial-run");
+        let metadata = train_ppo_run(
+            game_config(),
+            &run_dir,
+            PpoRunInput {
+                config: PpoConfig {
+                    entropy_scheme: EntropyScheme::NormalizedPerHead,
+                    entropy_coefficient: 0.02,
+                    candidate_entropy_coefficient: 0.02,
+                    ..tiny_ppo_config()
+                },
+                init_bc_run: bc_dir.clone(),
+                init_critic_run: None,
+                init_ppo_iteration: None,
+                iterations: 1,
+                evaluate_every: 0,
+                development_seeds: 4,
+            },
+        )
+        .unwrap();
+        assert_eq!(metadata.candidate_mode, CandidateMode::FullPosition);
+        let record = metadata.history.last().unwrap();
+        assert!(record.rollout.spatial_decisions > 0);
+        assert_eq!(record.rollout.illegal_actions, 0);
+        for value in [
+            record.update.policy_loss,
+            record.update.normalized_cell_entropy,
+            record.update.kl_to_init_term,
+            record.kl_to_init_after,
+            record.kl_old_new_after,
+        ] {
+            assert!(value.is_finite(), "{record:?}");
+        }
+        assert!(record.update.normalized_cell_entropy > 0.0);
+        let (_, mode) =
+            load_ppo_policy(&iteration_dir(&run_dir, 1), &default_policy_device()).unwrap();
+        assert_eq!(mode, CandidateMode::FullPosition);
+        for directory in [bc_dir, run_dir] {
             std::fs::remove_dir_all(directory).unwrap();
         }
     }

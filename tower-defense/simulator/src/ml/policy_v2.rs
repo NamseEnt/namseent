@@ -16,6 +16,7 @@ use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::feature_contract::{InputContract, apply_contract};
 use super::model::{DeepSetsActorCritic, ModelConfig, tensor_from_rows};
 use super::semantic_candidates::{EncodedDecision, candidate_batch};
+use super::spatial::{CELL_FEATURE_COUNT, CellSet};
 use anyhow::Result;
 use burn::module::Module;
 use burn::nn::{Linear, LinearConfig, Relu};
@@ -26,8 +27,9 @@ use burn::tensor::{Bool, Int, Tensor, TensorData};
 use serde::{Deserialize, Serialize};
 
 /// 1: flat softmax over candidates (`DeepSetsActorCritic` checkpoint).
-/// 2: family-factorized `PolicyNet` checkpoint.
-pub const POLICY_REPRESENTATION_VERSION: u32 = 2;
+/// 2: family-factorized `PolicyNet` without a cell head (stage A).
+/// 3: family-factorized `PolicyNet` with the spatial cell head (stage B).
+pub const POLICY_REPRESENTATION_VERSION: u32 = 3;
 pub const FAMILY_COUNT: usize = crate::environment::ActionKind::COUNT;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
@@ -45,11 +47,36 @@ pub struct PolicyNet<B: Backend> {
     pub scorer: DeepSetsActorCritic<B>,
     kind_hidden: Linear<B>,
     kind_output: Linear<B>,
+    cell_input: Linear<B>,
+    cell_hidden: Linear<B>,
+    cell_output: Linear<B>,
     activation: Relu,
     #[module(skip)]
     pub mode: KindMode,
     #[module(skip)]
     pub inputs: InputContract,
+}
+
+/// Stage-A (`representation_version` 2) layout, kept for loading.
+#[derive(Module, Debug)]
+pub struct FamilyOnlyPolicyNet<B: Backend> {
+    pub scorer: DeepSetsActorCritic<B>,
+    kind_hidden: Linear<B>,
+    kind_output: Linear<B>,
+    activation: Relu,
+}
+
+impl<B: Backend> FamilyOnlyPolicyNet<B> {
+    pub fn new(config: ModelConfig, device: &B::Device) -> Self {
+        let hidden_size = config.hidden_size.max(8);
+        Self {
+            scorer: DeepSetsActorCritic::new(config, device),
+            kind_hidden: LinearConfig::new(hidden_size * 3 + 1 + FAMILY_COUNT, hidden_size)
+                .init(device),
+            kind_output: LinearConfig::new(hidden_size, 1).init(device),
+            activation: Relu::new(),
+        }
+    }
 }
 
 impl<B: Backend> PolicyNet<B> {
@@ -74,10 +101,22 @@ impl<B: Backend> PolicyNet<B> {
             kind_hidden: LinearConfig::new(hidden_size * 3 + 1 + FAMILY_COUNT, hidden_size)
                 .init(device),
             kind_output: LinearConfig::new(hidden_size, 1).init(device),
+            cell_input: LinearConfig::new(hidden_size * 3 + CELL_FEATURE_COUNT, hidden_size)
+                .init(device),
+            cell_hidden: LinearConfig::new(hidden_size, hidden_size).init(device),
+            cell_output: LinearConfig::new(hidden_size, 1).init(device),
             activation: Relu::new(),
             mode,
             inputs: InputContract::Raw,
         }
+    }
+
+    /// This net with the scorer and family head of a stage-A checkpoint.
+    pub fn with_family_only(mut self, family_only: FamilyOnlyPolicyNet<B>) -> Self {
+        self.scorer = family_only.scorer;
+        self.kind_hidden = family_only.kind_hidden;
+        self.kind_output = family_only.kind_output;
+        self
     }
 
     pub fn with_mode(mut self, mode: KindMode) -> Self {
@@ -94,6 +133,16 @@ impl<B: Backend> PolicyNet<B> {
 pub fn module_to_bytes<B: Backend, M: Module<B>>(module: M) -> Result<Vec<u8>> {
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::default();
     Ok(recorder.record(module.into_record(), ())?)
+}
+
+pub fn family_only_from_bytes<B: Backend>(
+    config: ModelConfig,
+    bytes: Vec<u8>,
+    device: &B::Device,
+) -> Result<FamilyOnlyPolicyNet<B>> {
+    let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::default();
+    let record = recorder.load(bytes, device)?;
+    Ok(FamilyOnlyPolicyNet::new(config, device).load_record(record))
 }
 
 pub fn policy_from_bytes<B: Backend>(
@@ -273,6 +322,88 @@ pub(crate) fn factorized_log_probs<B: Backend>(
         membership: one_hot,
         family_counts,
     }
+}
+
+/// `log P(cell | option)` over the legal cells of the chosen option of each
+/// decision: `[decisions, max cells]`, padding -1e9, plus the cell counts.
+/// `options[i]` is the candidate index of decision `i`'s spatial option and
+/// `cells[i]` that option's cell set.
+pub(crate) fn cell_log_probs<B: Backend>(
+    model: &PolicyNet<B>,
+    decisions: &[&EncodedDecision],
+    options: &[usize],
+    cells: &[&CellSet],
+    device: &B::Device,
+) -> (Tensor<B, 2>, Vec<usize>) {
+    assert_eq!(decisions.len(), options.len());
+    assert_eq!(decisions.len(), cells.len());
+    let contracted = decisions
+        .iter()
+        .map(|decision| apply_contract(decision, model.inputs))
+        .collect::<Vec<_>>();
+    let count = contracted.len();
+    let typed_batches: [PaddedEntityBatch; ENTITY_SET_COUNT] = std::array::from_fn(|index| {
+        PaddedEntityBatch::from_sets(
+            &contracted
+                .iter()
+                .map(|decision| decision.typed.sets[index].clone())
+                .collect::<Vec<_>>(),
+        )
+    });
+    let typed_state = model.scorer.encode_typed_sets(&typed_batches, device);
+    let global = tensor_from_rows::<B>(
+        &contracted
+            .iter()
+            .map(|decision| decision.global_features.clone())
+            .collect::<Vec<_>>(),
+        device,
+    );
+    let option_sets = contracted
+        .iter()
+        .zip(options)
+        .map(|(decision, option)| decision.candidates[*option].clone())
+        .collect::<Vec<_>>();
+    let option_embedding = model
+        .scorer
+        .encode_candidates(&PaddedEntityBatch::from_sets(&option_sets), device);
+    let context = Tensor::cat(
+        vec![
+            model.scorer.encode_state(global),
+            typed_state,
+            option_embedding,
+        ],
+        1,
+    );
+    let context_width = context.dims()[1];
+    let lengths = cells.iter().map(|cells| cells.len()).collect::<Vec<_>>();
+    let width = lengths.iter().copied().max().unwrap_or(1).max(1);
+    let mut features = vec![0.0f32; count * width * CELL_FEATURE_COUNT];
+    let mut invalid = vec![true; count * width];
+    for (row, cells) in cells.iter().enumerate() {
+        let start = row * width * CELL_FEATURE_COUNT;
+        features[start..start + cells.features.len()].copy_from_slice(&cells.features);
+        for column in 0..cells.len() {
+            invalid[row * width + column] = false;
+        }
+    }
+    let features = Tensor::<B, 3>::from_data(
+        TensorData::new(features, [count, width, CELL_FEATURE_COUNT]),
+        device,
+    );
+    let invalid = Tensor::<B, 2, Bool>::from_data(TensorData::new(invalid, [count, width]), device);
+    let input = Tensor::cat(
+        vec![context.unsqueeze_dim::<3>(1).repeat_dim(1, width), features],
+        2,
+    )
+    .reshape([count * width, context_width + CELL_FEATURE_COUNT]);
+    let hidden = model.activation.forward(model.cell_input.forward(input));
+    let hidden = model.activation.forward(model.cell_hidden.forward(hidden));
+    let logits = model
+        .cell_output
+        .forward(hidden)
+        .reshape([count, width])
+        .mask_fill(invalid.clone(), -1.0e9);
+    (log_softmax(logits, 1).mask_fill(invalid, -1.0e9), lengths)
 }
 
 #[cfg(test)]

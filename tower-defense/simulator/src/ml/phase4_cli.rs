@@ -87,6 +87,9 @@ pub enum Phase4Command {
         /// Input normalization contract.
         #[arg(long, value_enum, default_value_t = super::feature_contract::InputContract::Raw)]
         input_contract: super::feature_contract::InputContract,
+        /// Candidate set (stage B spatial modes replay the dataset games).
+        #[arg(long, value_enum, default_value_t = super::semantic_candidates::CandidateMode::Top8)]
+        candidate_mode: super::semantic_candidates::CandidateMode,
         #[arg(long, default_value_t = 0)]
         seed: u64,
         #[arg(long, default_value_t = 0)]
@@ -430,6 +433,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             hidden_size,
             kind_mode,
             input_contract,
+            candidate_mode,
             seed,
             threads,
         } => {
@@ -443,12 +447,24 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 train_episodes_loaded.extend(episodes);
             }
             let label = label_source(label);
-            let train_samples = prepare_samples(&train_episodes_loaded, label, override_weight);
+            let prepare = |episodes: &[super::phase4_dataset::EpisodeRecord], weight: f32| {
+                if candidate_mode == super::semantic_candidates::CandidateMode::Top8 {
+                    Ok(prepare_samples(episodes, label, weight))
+                } else {
+                    if label != LabelSource::Chosen {
+                        bail!("spatial candidate modes replay the chosen actions");
+                    }
+                    super::semantic_bc::prepare_replayed_samples(
+                        Arc::clone(&config),
+                        episodes,
+                        candidate_mode,
+                    )
+                }
+            };
+            let train_samples = prepare(&train_episodes_loaded, override_weight)?;
             drop(train_episodes_loaded);
             let validation_samples = match &validation {
-                Some(directory) => {
-                    prepare_samples(&load_limited(directory, &config, None)?, label, 1.0)
-                }
+                Some(directory) => prepare(&load_limited(directory, &config, None)?, 1.0)?,
                 None => Vec::new(),
             };
             eprintln!(
@@ -476,6 +492,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 override_weight,
                 kind_mode,
                 input_contract,
+                candidate_mode,
             };
             let metadata = BcCheckpointMetadata {
                 schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,

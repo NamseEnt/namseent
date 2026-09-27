@@ -73,21 +73,24 @@ pub struct PolicyCandidates {
     pub canonical_action: AgentAction,
     /// The dense build table of a card decision (build option cells).
     pub table: Option<std::sync::Arc<DenseBuildTowerScoreTable>>,
+    /// The v1 top-8 `PlaceTower`/`BuildTower` actions of this state
+    /// (`FullPosition` mode), to tell whether a chosen position leaves them.
+    pub v1_top8: Vec<AgentAction>,
 }
 
 /// Which candidate set a policy uses.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum CandidateMode {
-    /// v1: heuristic top-8 `PlaceTower` and top-8 `BuildTower` triples.
+    /// v1: heuristic top-8 `PlaceTower` and top-8 `BuildTower` actions.
     #[default]
     Top8,
-    /// `PlaceTower` as spatial options (one per tower hand slot) over every
-    /// legal cell; `BuildTower` stays top-8 triples.
-    SpatialPlace,
-    /// `PlaceTower` and `BuildTower` as spatial options; build options are the
-    /// top-8 `(subset, hand slot)` pairs, each over every legal cell.
-    SpatialPlaceBuild,
+    /// Policy v2 stage B (full-position): the v1 top-8 `PlaceTower` and
+    /// `BuildTower` actions are projected to their options (tower hand slot,
+    /// or `(card subset, hand slot)` pair, deduplicated in v1 order), and each
+    /// option allows every legal position. The option set is exactly the one
+    /// v1 could reach; only the position is widened.
+    FullPosition,
 }
 
 impl PolicyCandidates {
@@ -203,6 +206,7 @@ pub fn policy_candidates(environment: &GameEnvironment) -> Result<PolicyCandidat
         candidates,
         canonical_action,
         table: None,
+        v1_top8: Vec::new(),
     })
 }
 
@@ -217,37 +221,13 @@ pub fn policy_candidates_with(
     let observation = environment.snapshot();
     let mut candidates = Vec::new();
     let mut table_arc = None;
+    let v1_top8;
     let canonical_action = if environment.semantic_card_decision_available() {
         let table = DenseBuildTowerScoreTable::compute(environment, &observation);
         for legal in environment.semantic_non_build_actions() {
             push_unique(&mut candidates, legal.action, None);
         }
-        if mode == CandidateMode::SpatialPlaceBuild {
-            for (rank, (subset_index, hand_slot_index, position_index)) in table
-                .top_k_pairs(BUILD_TOWER_CANDIDATE_LIMIT)
-                .into_iter()
-                .enumerate()
-            {
-                let Some(action) = crate::joint_action::build_tower_action(
-                    &table.subsets,
-                    subset_index,
-                    hand_slot_index,
-                    position_index,
-                ) else {
-                    continue;
-                };
-                let (option, _, _) = SpatialAction::of(&action).expect("build action");
-                push_spatial(&mut candidates, action, rank, option);
-            }
-        } else {
-            for (rank, action) in table
-                .top_k_actions(BUILD_TOWER_CANDIDATE_LIMIT)
-                .into_iter()
-                .enumerate()
-            {
-                push_unique(&mut candidates, action, Some(rank));
-            }
-        }
+        v1_top8 = table.top_k_actions(BUILD_TOWER_CANDIDATE_LIMIT);
         let canonical =
             canonical_scripted_semantic_action_from_table(environment, &observation, &table)?;
         table_arc = Some(std::sync::Arc::new(table));
@@ -262,23 +242,24 @@ pub fn policy_candidates_with(
                 push_unique(&mut candidates, legal_action.action, None);
             }
         }
-        let ranked = rank_place_tower_actions(&observation, &place);
-        let mut slots = Vec::new();
-        for legal_action in &ranked {
-            if let Some((option, _, _)) = SpatialAction::of(&legal_action.action)
-                && !slots.contains(&option)
-            {
-                slots.push(option.clone());
-                push_spatial(
-                    &mut candidates,
-                    legal_action.action.clone(),
-                    slots.len() - 1,
-                    option,
-                );
-            }
-        }
+        v1_top8 = rank_place_tower_actions(&observation, &place)
+            .into_iter()
+            .take(PLACE_TOWER_CANDIDATE_LIMIT)
+            .map(|legal| legal.action)
+            .collect();
         canonical_scripted_semantic_action(environment)?
     };
+    // Project the v1 top-8 actions to their options in v1 order; an option's
+    // first appearance is its heuristic-best position.
+    let mut options: Vec<SpatialAction> = Vec::new();
+    for action in &v1_top8 {
+        if let Some((option, _, _)) = SpatialAction::of(action)
+            && !options.contains(&option)
+        {
+            options.push(option.clone());
+            push_spatial(&mut candidates, action.clone(), options.len() - 1, option);
+        }
+    }
     if candidates.is_empty() {
         bail!(
             "policy candidate set is empty at a non-terminal decision (state {})",
@@ -290,6 +271,7 @@ pub fn policy_candidates_with(
         candidates,
         canonical_action,
         table: table_arc,
+        v1_top8,
     })
 }
 
@@ -796,7 +778,7 @@ mod tests {
             let mut decisions = 0;
             while !matches!(environment.decision_point(), DecisionPoint::Terminal) && decisions < 60
             {
-                let set = policy_candidates_with(&environment, CandidateMode::SpatialPlaceBuild)
+                let set = policy_candidates_with(&environment, CandidateMode::FullPosition)
                     .expect("candidates");
                 let canonical = canonical_scripted_semantic_action(&environment).unwrap();
                 assert_eq!(set.canonical_action, canonical);
@@ -836,6 +818,60 @@ mod tests {
         }
         assert!(spatial_decisions > 20, "{spatial_decisions}");
         assert!(cells_checked > 200, "{cells_checked}");
+    }
+
+    #[test]
+    fn full_position_options_are_the_projection_of_the_v1_top8() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut compared = 0usize;
+        for seed in [2u64, 3] {
+            let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+            let mut decisions = 0;
+            while !matches!(environment.decision_point(), DecisionPoint::Terminal) && decisions < 60
+            {
+                let v1 = policy_candidates(&environment).unwrap();
+                let full =
+                    policy_candidates_with(&environment, CandidateMode::FullPosition).unwrap();
+                let mut expected_options = Vec::new();
+                for candidate in &v1.candidates {
+                    if let Some((option, _, _)) = SpatialAction::of(&candidate.action)
+                        && !expected_options.contains(&option)
+                    {
+                        expected_options.push(option);
+                    }
+                }
+                let options = full
+                    .candidates
+                    .iter()
+                    .filter_map(|candidate| candidate.spatial.clone())
+                    .collect::<Vec<_>>();
+                assert_eq!(options, expected_options);
+                let flat = |set: &PolicyCandidates| {
+                    set.candidates
+                        .iter()
+                        .filter(|candidate| SpatialAction::of(&candidate.action).is_none())
+                        .map(|candidate| candidate.action_id.clone())
+                        .collect::<Vec<_>>()
+                };
+                assert_eq!(flat(&full), flat(&v1));
+                let v1_spatial = v1
+                    .candidates
+                    .iter()
+                    .filter(|candidate| SpatialAction::of(&candidate.action).is_some())
+                    .map(|candidate| candidate.action.clone())
+                    .collect::<Vec<_>>();
+                assert_eq!(full.v1_top8, v1_spatial);
+                compared += options.len();
+                let canonical = full.canonical_action.clone();
+                let mut outcome = environment.semantic_step(canonical).unwrap();
+                settle_forced_actions(&mut environment, &mut outcome).unwrap();
+                decisions += 1;
+                if outcome.terminated {
+                    break;
+                }
+            }
+        }
+        assert!(compared > 20);
     }
 
     #[test]
