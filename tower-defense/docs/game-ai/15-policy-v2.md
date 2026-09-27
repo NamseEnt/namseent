@@ -66,7 +66,26 @@ A0a passes.
 
 ### A0b: learned family head
 
-BC: `phase4b-init`'s scorer plus a new family head (`--kind-mode learned`), the same 2,048-game canonical dataset, Adam 1e-3, batch 64, budget 6 epochs, lowest validation NLL selected. Results below.
+BC: `phase4b-init`'s scorer plus a new family head (`--kind-mode learned`), the same 2,048-game canonical dataset, Adam 1e-3, batch 64, budget 6 epochs, lowest validation NLL selected.
+
+The family head reads the encoded state plus, per family, the mean candidate embedding and `log1p(count) / 8` of that family and a family one-hot. A first head that read only the state plateaued at 93.9% family accuracy (validation NLL 0.139 after one epoch) and was aborted.
+
+- BC: validation NLL 0.0121, top-1 99.46%, family accuracy 100%. Gate on `ppo_development`: -0.15 (SE 0.13) vs canonical, illegal 0, fallback 0, post-sampling mutations 0.
+- PPO: the v1 schedule (phase 1: 75 iterations, joint entropy 0.01; phase 2: 200 iterations from phase-1 iteration 75, joint entropy 0.003, `ppo_train` seed block offset 1000), the Phase 4B squash-all critic.
+
+Development delta vs canonical at matched cumulative semantic decisions (paired, 128 seeds, SE in parentheses):
+
+| decisions (M) | v1 | A0b |
+|---|---|---|
+| 0.08 | +0.24 (0.22) | +0.23 (0.22) |
+| 0.26 | +2.40 (0.37) | +1.62 (0.39) |
+| 0.45 | +3.08 (0.45) | +2.94 (0.47) |
+| 0.66 | +4.42 (0.50) | +3.42 (0.48) |
+| 0.87 | +5.24 (0.61) | +4.17 (0.50) |
+| 1.10 | +5.34 (0.54) | +4.62 (0.51) |
+| 1.33 | +5.52 (0.57) | +5.87 (0.66) |
+
+End of schedule: v1 +6.11 at 1.45M decisions (2.95 h), A0b +5.34 at 1.36M decisions (2.63 h; best +5.87 at iteration 195). The learned family head neither helps nor hurts clearly: A0b trails v1 by about one standard error for most of the curve and matches it at the end. The learned family entropy stays near 0.001 throughout, so the family choice is almost deterministic and PPO changes the policy inside families. Action-multiplicity bias of the flat softmax was not a major limit of v1.
 
 ## Frozen stage A1 specification
 
@@ -102,6 +121,34 @@ Coefficients: phase 1 `c_family = c_candidate = 0.02`, phase 2 `0.006`. The norm
 - BC from scratch (seeded initialization), family head as in A0b, normalized inputs, the same data, optimizer and 6-epoch budget; gate as above.
 - Critic pretrained with the contract (512 games, 4 epochs, as in Phase 4B).
 - PPO on the v1 schedule (phase 1: 75 iterations; phase 2: 200 iterations from phase-1 iteration 75), same seed blocks.
+
+### A1 results
+
+- BC (from scratch, learned family head, normalized inputs): epoch 4 selected, validation NLL 0.0107, top-1 99.61%, family accuracy 100%. Gate: -0.18 (SE 0.12) vs canonical, illegal 0, fallback 0, post-sampling mutations 0.
+- Contract critic: validation MSE 0.147, explained variance 0.884 (squash-all critic: 0.156 / 0.877).
+- PPO phase 1 with the normalized per-head entropy (0.02 / 0.02): **stopped post hoc at iteration 24 after severe policy drift; not used for model comparison.**
+
+| iteration | vs canonical | KL to init | normalized family entropy |
+|---|---|---|---|
+| 5 | +0.06 (0.25) | 0.27 | 0.03 |
+| 10 | -0.85 (0.36) | 0.55 | 0.05 |
+| 15 | -1.08 (0.39) | 1.13 | 0.11 |
+| 20 | -3.67 (0.42), better/worse 17/111 | 3.90 | 0.22 |
+
+At iteration 20, 70% of `DamageResponseItem` decisions differed from canonical and development games took 123 decisions (canonical 84): the policy started using items it used to skip. Illegal and mismatch counts stayed 0, the update KL stayed below the target and the critic explained variance stayed about 0.98, so this was not numerical instability. A0b at the same budget had KL to init 0.02 and family entropy about 0.001.
+
+Interpretation: with one coefficient on normalized entropies, the relative regularization strength on a small head (2-3 legal families, `ln n` about 0.7-1.1) is much larger than under the v1 joint entropy, and it randomizes the family choice. The assumption above that doubled coefficients keep a comparable push was wrong for the family head.
+
+## Frozen stage A1' specification
+
+Written after the A1 PPO failure and before any A1' PPO run. A1' isolates the input normalization contract; A1' vs A0b differs only in the normalized inputs (actor and critic).
+
+- Actor: the A1 BC (`v2a1-bc`, normalized inputs, learned family head), unchanged.
+- Critic: the A1 contract critic (`critic-512-contract`), unchanged.
+- Entropy: the v1/A0b joint entropy (`--entropy-scheme joint`), 0.01 in phase 1 and 0.003 in phase 2.
+- Everything else as A0b: 75 + 200 iterations, actor Adam 3e-4, the same seed blocks (phase-2 offset 1000).
+
+Interpretation, fixed in advance: A1' above A0b means the normalization helps, A1' about A0b means no clear effect, A1' below A0b means it hurts. If A1' reproduces A0b-level performance, the entropy objective is not tuned further and stage B follows. Stage B then uses the joint entropy too; how the position head enters the entropy term is frozen in the stage B specification before any stage-B PPO run.
 
 ## Frozen stage B specification (full-position policy)
 
