@@ -624,3 +624,108 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod profile {
+    use super::*;
+    use crate::config::GameConfig;
+    use std::sync::Arc;
+    use std::time::Instant;
+
+    #[test]
+    #[ignore = "timing profile; run with --release -- --ignored --nocapture"]
+    fn candidate_pipeline_profile() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut totals = std::collections::BTreeMap::<&str, f64>::new();
+        let mut decisions = 0usize;
+        for seed in 4_000_000u64..4_000_008 {
+            let mut environment = GameEnvironment::new(Arc::clone(&config), seed);
+            while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+                let card = environment.semantic_card_decision_available();
+                let started = Instant::now();
+                let observation = environment.snapshot();
+                *totals.entry("snapshot").or_default() += started.elapsed().as_secs_f64();
+                if card {
+                    let started = Instant::now();
+                    let table = DenseBuildTowerScoreTable::compute(&environment, &observation);
+                    *totals.entry("card: dense build table").or_default() +=
+                        started.elapsed().as_secs_f64();
+                    let started = Instant::now();
+                    let _ = environment.semantic_non_build_actions();
+                    *totals.entry("card: non-build actions").or_default() +=
+                        started.elapsed().as_secs_f64();
+                    let started = Instant::now();
+                    let _ = table.top_k_actions(BUILD_TOWER_CANDIDATE_LIMIT);
+                    *totals.entry("card: top-k builds").or_default() +=
+                        started.elapsed().as_secs_f64();
+                    let started = Instant::now();
+                    let _ = canonical_scripted_semantic_action_from_table(
+                        &environment,
+                        &observation,
+                        &table,
+                    );
+                    *totals.entry("card: canonical from table").or_default() +=
+                        started.elapsed().as_secs_f64();
+                } else {
+                    let started = Instant::now();
+                    let legal = environment.semantic_non_build_actions();
+                    *totals.entry("other: legal actions").or_default() +=
+                        started.elapsed().as_secs_f64();
+                    let place = legal
+                        .iter()
+                        .filter(|action| matches!(action.action, AgentAction::PlaceTower { .. }))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let started = Instant::now();
+                    let _ = rank_place_tower_actions(&observation, &place);
+                    *totals.entry("other: rank placements").or_default() +=
+                        started.elapsed().as_secs_f64();
+                    let started = Instant::now();
+                    let _ = canonical_scripted_semantic_action(&environment);
+                    *totals.entry("other: canonical").or_default() +=
+                        started.elapsed().as_secs_f64();
+                }
+                let started = Instant::now();
+                let set = policy_candidates(&environment).unwrap();
+                *totals
+                    .entry(if card {
+                        "card: policy_candidates total"
+                    } else {
+                        "other: policy_candidates total"
+                    })
+                    .or_default() += started.elapsed().as_secs_f64();
+                let started = Instant::now();
+                let mask = environment.semantic_actions_are_legal(
+                    &set.candidates
+                        .iter()
+                        .map(|candidate| &candidate.action)
+                        .collect::<Vec<_>>(),
+                );
+                *totals
+                    .entry(if card {
+                        "card: legality mask"
+                    } else {
+                        "other: legality mask"
+                    })
+                    .or_default() += started.elapsed().as_secs_f64();
+                let started = Instant::now();
+                let _ = encode_decision(&set.observation, &set.candidates, mask);
+                *totals.entry("encode").or_default() += started.elapsed().as_secs_f64();
+                decisions += 1;
+                let action = set.canonical_action.clone();
+                let mut outcome = environment.semantic_step(action).unwrap();
+                crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+                if outcome.terminated {
+                    break;
+                }
+            }
+        }
+        eprintln!("decisions {decisions}");
+        for (name, seconds) in totals {
+            eprintln!(
+                "{name:32} {:8.3} ms/decision",
+                seconds * 1e3 / decisions as f64
+            );
+        }
+    }
+}

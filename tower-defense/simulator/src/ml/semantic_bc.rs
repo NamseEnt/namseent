@@ -766,11 +766,13 @@ pub struct SemanticDecision {
 
 pub fn semantic_decision(environment: &GameEnvironment) -> Result<SemanticDecision> {
     let candidates = policy_candidates(environment)?;
-    let legal_mask = candidates
-        .candidates
-        .iter()
-        .map(|candidate| environment.semantic_action_is_legal(&candidate.action))
-        .collect::<Vec<_>>();
+    let legal_mask = environment.semantic_actions_are_legal(
+        &candidates
+            .candidates
+            .iter()
+            .map(|candidate| &candidate.action)
+            .collect::<Vec<_>>(),
+    );
     if !legal_mask.iter().any(|legal| *legal) {
         bail!(
             "no legal policy candidate at state {}",

@@ -1515,11 +1515,25 @@ impl GameEnvironment {
         actions
     }
 
+    /// [`Self::semantic_action_is_legal`] for many actions of one state,
+    /// building the legal action list at most once.
+    pub fn semantic_actions_are_legal(&self, actions: &[&AgentAction]) -> Vec<bool> {
+        let cache = LegalityCache::default();
+        actions
+            .iter()
+            .map(|action| self.semantic_action_is_legal_cached(action, &cache))
+            .collect()
+    }
+
     pub fn semantic_action_is_legal(&self, action: &AgentAction) -> bool {
+        self.semantic_action_is_legal_cached(action, &LegalityCache::default())
+    }
+
+    fn semantic_action_is_legal_cached(&self, action: &AgentAction, cache: &LegalityCache) -> bool {
         td_core::diag_scope!(SemanticActionIsLegal);
+        let legal_actions = || cache.legal_actions.get_or_init(|| self.legal_actions());
         if !self.semantic_card_decision_available() {
-            return self
-                .legal_actions()
+            return legal_actions()
                 .iter()
                 .any(|legal_action| legal_action.action == *action);
         }
@@ -1549,14 +1563,12 @@ impl GameEnvironment {
                 td_core::diagnostics::record(|counters| counters.build_tower_legality_checks += 1);
                 card_ids_are_selectable(card_ids)
                     && *hand_slot_index < self.build_tower_slot_count()
-                    && self
-                        .game_state
-                        .raw_state()
-                        .tower_placement_context()
+                    && cache
+                        .placement
+                        .get_or_init(|| self.game_state.raw_state().tower_placement_context())
                         .can_place_at(*left, *top)
             }
-            _ => self
-                .legal_actions()
+            _ => legal_actions()
                 .iter()
                 .any(|legal_action| legal_action.action == *action),
         }
@@ -2096,6 +2108,14 @@ impl GameEnvironment {
             })
             .collect()
     }
+}
+
+/// Per-state values shared by legality checks of several actions of the
+/// same decision state.
+#[derive(Default)]
+struct LegalityCache {
+    legal_actions: std::cell::OnceCell<Vec<LegalAction>>,
+    placement: std::cell::OnceCell<td_core::TowerPlacementContext>,
 }
 
 pub(crate) struct RolloutStepOutcome {
