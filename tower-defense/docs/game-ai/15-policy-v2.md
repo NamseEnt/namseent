@@ -67,3 +67,38 @@ A0a passes.
 ### A0b: learned family head
 
 BC: `phase4b-init`'s scorer plus a new family head (`--kind-mode learned`), the same 2,048-game canonical dataset, Adam 1e-3, batch 64, budget 6 epochs, lowest validation NLL selected. Results below.
+
+## Frozen stage A1 specification
+
+Written before any A1 model was trained.
+
+### Input normalization contract
+
+Every numeric input slot of the actor and the critic is kept or passed through `sign(x) * ln(1 + |x|)`. The table was derived once from 21,436 canonical decisions (`phase4b_canonical_train`, first 256 games, `feature_contract::tests::canonical_feature_scale_survey`) and is frozen in `simulator/src/ml/feature_contract.rs`: binary slots and slots with max |x| <= 2 (ratios, coordinates, bounded counts, already log-scaled values) are kept; unbounded slots are squashed.
+
+| input | squashed slots (max abs value on the survey) |
+|---|---|
+| global features | 21 (1,466), 29 (1,333), 30 (2.1), 56 (6.5), 59 (119,875), 60 (1,333), 77-82 (1,000 each) |
+| typed entity numerics | set 0 col 0 (8,000), set 1 col 0 (6,000), set 2 col 1 (2.1), set 3 col 0 (8,000), set 4 col 0 (6,000), set 5 cols 2/4/5 (17.5 / 110 / 50), set 6 col 1 (131,500) and col 3 (62.5), set 9 cols 3/4 (5 / 4) |
+| candidate numerics | col 0 (6,000), col 2 (5) |
+
+All other slots are kept. The v1 actor read these values raw (card polish enters as `polish_pct_raw / 1000`), which is what broke the raw-input critic in Phase 4B.
+
+The A1 critic uses this contract too (instead of squashing every slot), so actor and critic share one input definition.
+
+### Entropy scheme
+
+The entropy bonus is computed per head and normalized by the head's maximum entropy:
+
+- family head: `H(P(family)) / ln(number of families with a legal candidate)`;
+- candidate head: `sum_f P(f) * H(P(candidate | f)) / ln(number of legal candidates in f)`;
+- a head with at most one legal choice contributes 0;
+- loss term: `-(c_family * mean normalized family entropy + c_candidate * mean normalized candidate entropy)`.
+
+Coefficients: phase 1 `c_family = c_candidate = 0.02`, phase 2 `0.006`. The normalization divides the gradient by `ln n` (about 2-3.5 for typical head sizes), so doubling the v1 coefficients (0.01 / 0.003 on the joint entropy) keeps a comparable push; in stage B the placement head (`ln 1296 = 7.2`) will not dominate. This scheme and these coefficients stay fixed for stages B and C.
+
+### A1 training
+
+- BC from scratch (seeded initialization), family head as in A0b, normalized inputs, the same data, optimizer and 6-epoch budget; gate as above.
+- Critic pretrained with the contract (512 games, 4 epochs, as in Phase 4B).
+- PPO on the v1 schedule (phase 1: 75 iterations; phase 2: 200 iterations from phase-1 iteration 75), same seed blocks.
