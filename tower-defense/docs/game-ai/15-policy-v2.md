@@ -195,7 +195,7 @@ The option set is exactly what v1 could reach, so stage B changes only the posit
 - Cell features: heuristic rank percentile within the option, heuristic top-1 and top-8 flags, route coverage for the tower's range, distance to the route, neighboring occupancy, x, y. All are in [0, 1].
 - The heuristic order is an input, never a filter.
 - `POLICY_REPRESENTATION_VERSION = 3`. Stage-A checkpoints load with a seeded, untrained cell head.
-- PPO stores and clips the joint log-probability. The position head's normalized entropy `H / ln(cells)` uses `c_candidate`. The KL-to-init monitor and penalty include the position head.
+- PPO stores and clips the joint log-probability. The KL-to-init monitor and penalty include the position head.
 
 ### Training
 
@@ -205,7 +205,15 @@ The option set is exactly what v1 could reach, so stage B changes only the posit
   - the target cell of a canonical placement is the option's heuristic-best cell;
   - same optimizer and 6-epoch budget; same BC gate.
 - Critic: the A1 contract critic.
-- PPO: the A1 schedule, entropy scheme and coefficients, same seed blocks.
+- PPO: the A1' recipe with the same seed blocks: 75 iterations, then 200 iterations from phase-1 iteration 75 (`ppo_train` offset 1000), actor Adam 3e-4, 48 games per iteration.
+
+### Entropy rule (frozen before any stage-B PPO run)
+
+Written after the A1' result and the B BC gate, before any stage-B PPO run; it replaces the normalized per-head entropy written above.
+
+- The entropy bonus is the exact joint entropy of `P(family) x P(option | family) x P(position | option)`: the candidate-level joint entropy (as in A0b and A1') plus, for a spatial step, the raw entropy of the position conditional of the chosen option, `H(position | option)` in nats. By the chain rule this is a single-sample estimate of the full joint entropy.
+- Coefficients: 0.01 in phase 1, 0.003 in phase 2, the same as A1'. There is no separate position coefficient and no normalization by `ln(cells)`.
+- Rationale: the BC position head is almost deterministic (all 1,604 validation placements on the heuristic-best cell), so without a position term PPO would barely explore positions and a "stays in the v1 top 8" result could not be interpreted. The position conditional can reach `ln(cells)` (up to about 7 nats), so the recorded metrics below are also the drift monitor.
 
 ### B BC results
 
@@ -215,6 +223,8 @@ The option set is exactly what v1 could reach, so stage B changes only the posit
 
 ### Recorded, per training iteration and per development evaluation
 
+Primary B metric: the share of executed BuildTower and PlaceTower positions outside the state's v1 top-8 actions, together with the terminal clear_rate of episodes with and without such positions. Monitored for drift: KL to init (including the position head), joint entropy, position-head entropy per kind, decisions per game, clip fraction, explained variance.
+
 - `BuildTower` and `PlaceTower` separately:
   - share of executed positions outside the state's v1 top-8 actions;
   - share differing from the canonical action;
@@ -222,7 +232,7 @@ The option set is exactly what v1 could reach, so stage B changes only the posit
   - mean Manhattan distance from the option's heuristic-best cell;
   - cell-head entropy.
 - Mean terminal clear_rate of development episodes with at least one position outside the v1 top 8, and of episodes with none.
-- Development performance vs v1 PPO and vs stage A at matched cumulative decisions.
+- Development performance vs v1 PPO and vs stage A at matched cumulative decisions. The stage-A reference is A1', which shares B's BC lineage, input contract, critic and entropy objective.
 
 Interpretation, fixed in advance:
 
