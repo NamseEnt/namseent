@@ -90,6 +90,9 @@ pub enum Phase4Command {
         /// Candidate set (stage B spatial modes replay the dataset games).
         #[arg(long, value_enum, default_value_t = super::semantic_candidates::CandidateMode::Top8)]
         candidate_mode: super::semantic_candidates::CandidateMode,
+        /// Label smoothing of the BC cell target over the option's legal cells.
+        #[arg(long, default_value_t = 0.0)]
+        cell_label_smoothing: f32,
         #[arg(long, default_value_t = 0)]
         seed: u64,
         #[arg(long, default_value_t = 0)]
@@ -434,6 +437,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             kind_mode,
             input_contract,
             candidate_mode,
+            cell_label_smoothing,
             seed,
             threads,
         } => {
@@ -493,6 +497,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 kind_mode,
                 input_contract,
                 candidate_mode,
+                cell_label_smoothing,
             };
             let metadata = BcCheckpointMetadata {
                 schema_version: SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION,

@@ -3170,6 +3170,54 @@ mod tests {
     }
 
     #[test]
+    fn cell_label_smoothing_mixes_the_target_and_the_uniform_cell_cross_entropy() {
+        let episodes = canonical_episodes(&[0]);
+        let samples = crate::ml::semantic_bc::prepare_replayed_samples(
+            game_config(),
+            &episodes,
+            CandidateMode::FullPosition,
+        )
+        .unwrap();
+        let batch = samples.iter().take(64).collect::<Vec<_>>();
+        let device = PolicyDevice::default();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig { hidden_size: 16 },
+            KindMode::Learned,
+            3,
+            &device,
+        )
+        .unwrap();
+        let loss = |smoothing: f32| {
+            crate::ml::semantic_bc::batch_loss(&actor, &batch, smoothing, &device)
+                .into_data()
+                .to_vec::<f32>()
+                .unwrap()[0]
+        };
+        let (target, spatial, all) =
+            crate::ml::semantic_bc::target_cell_log_probs(&actor, &batch, &device).unwrap();
+        let target = target.into_data().to_vec::<f32>().unwrap();
+        let all = all.into_data().to_vec::<f32>().unwrap();
+        let width = all.len() / spatial.len();
+        let gap = spatial
+            .iter()
+            .enumerate()
+            .map(|(row, index)| {
+                let count = batch[*index].target_cell.as_ref().unwrap().0.len();
+                let mean = all[row * width..row * width + count].iter().sum::<f32>() / count as f32;
+                target[row] - mean
+            })
+            .sum::<f32>()
+            / batch.len() as f32;
+        assert!(!spatial.is_empty());
+        let expected = loss(0.0) + 0.02 * gap;
+        assert!(
+            (loss(0.02) - expected).abs() < 1e-4,
+            "{} vs {expected}",
+            loss(0.02)
+        );
+    }
+
+    #[test]
     fn spatial_ppo_update_is_finite() {
         let bc_dir = tiny_bc_run_spatial(
             "ppo-spatial-bc",

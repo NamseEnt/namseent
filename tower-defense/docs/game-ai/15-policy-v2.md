@@ -221,6 +221,21 @@ Written after the A1' result and the B BC gate, before any stage-B PPO run; it r
 - Epoch 5 selected: validation NLL 0.0107, top-1 99.54%, family accuracy 100%; the cell head reproduces the heuristic-best cell on all 1,604 validation placements (cell NLL 2e-5).
 - Gate on `ppo_development`: -0.03 (SE 0.07) vs canonical, better/worse/tie 12/10/106, illegal 0, fallback 0, post-sampling mutations 0. All 3,087 greedy placements (2,366 BuildTower, 721 PlaceTower) are the option's heuristic-best cell, so no position leaves the v1 top 8 yet.
 
+### B PPO (stopped)
+
+**Stopped post hoc at phase-1 iteration 58: the position hypothesis could not be tested because the position head was saturated; not used for model comparison.**
+
+- Over all 58 iterations the position-head entropy was 0.0000 for both kinds, and every executed BuildTower (about 950 per iteration) and PlaceTower (about 250) position was the option's heuristic-best cell: 0% outside the v1 top 8, mean distance 0.
+- The rest of the policy did learn: KL to init 2.18 at iteration 58, 34% of BuildTower actions differed from canonical (all through the (subset, slot) option), development +0.58 (SE 0.21) at iteration 20, +1.31 (0.32) at 40, +1.64 (0.39) at 55.
+- Cause: BC trained the position head on a one-hot target (cell NLL 2e-5), so `P(best cell)` is 1 to float precision. Both the entropy gradient and the PPO surrogate gradient of a saturated softmax vanish, so rollouts never sampled another cell.
+
+## Frozen stage B' specification
+
+Written after the stopped B run and before any B' model was trained. B' differs from B in one setting.
+
+- BC cell target with label smoothing `e = 0.02`: `(1 - e)` on the option's heuristic-best cell plus `e` spread uniformly over all of the option's legal cells (`--cell-label-smoothing 0.02`). The loss is `-((1 - e) log P(best cell) + e * mean over legal cells of log P(cell))`. Only the cell term is smoothed; family and option targets are unchanged.
+- Everything else is B: warm start from `v2a1-bc`, normalized inputs, learned family head, full-position candidates, replayed samples, 6-epoch budget, same BC gate; the A1 contract critic; the B entropy rule (exact joint entropy including the position conditional, 0.01 then 0.003, no position coefficient); the A1' schedule and seed blocks; the metrics and interpretation below.
+
 ### Recorded, per training iteration and per development evaluation
 
 Primary B metric: the share of executed BuildTower and PlaceTower positions outside the state's v1 top-8 actions, together with the terminal clear_rate of episodes with and without such positions. Monitored for drift: KL to init (including the position head), joint entropy, position-head entropy per kind, decisions per game, clip fraction, explained variance.

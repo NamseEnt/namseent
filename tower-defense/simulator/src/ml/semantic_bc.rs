@@ -184,7 +184,7 @@ fn replay_episode_samples(
 
 /// `log P(target cell | target option)` of each spatial sample, `[n, 1]`,
 /// with the positions of those samples in `samples`.
-fn target_cell_log_probs<B: Backend>(
+pub(crate) fn target_cell_log_probs<B: Backend>(
     model: &PolicyNet<B>,
     samples: &[&BcSample],
     device: &B::Device,
@@ -291,9 +291,10 @@ pub(crate) fn batch_log_probs_flat<B: Backend>(
     (groups.log_probs(logits, device), groups)
 }
 
-fn batch_loss(
+pub(crate) fn batch_loss(
     model: &PolicyNet<TrainBackend>,
     samples: &[&BcSample],
+    cell_label_smoothing: f32,
     device: &PolicyDevice,
 ) -> Tensor<TrainBackend, 1> {
     let decisions = samples
@@ -318,7 +319,44 @@ fn batch_loss(
         device,
     );
     let mut log_likelihood = (log_probs.gather(1, targets) * weights_tensor).sum();
-    if let Some((cell_log_probs, spatial, _)) = target_cell_log_probs(model, samples, device) {
+    if let Some((mut cell_log_probs, spatial, all_cells)) =
+        target_cell_log_probs(model, samples, device)
+    {
+        if cell_label_smoothing > 0.0 {
+            let width = all_cells.dims()[1];
+            let lengths = spatial
+                .iter()
+                .map(|index| {
+                    samples[*index]
+                        .target_cell
+                        .as_ref()
+                        .expect("spatial")
+                        .0
+                        .len()
+                })
+                .collect::<Vec<_>>();
+            let uniform = Tensor::<TrainBackend, 2>::from_data(
+                TensorData::new(
+                    lengths
+                        .iter()
+                        .flat_map(|length| {
+                            (0..width).map(move |column| {
+                                if column < *length {
+                                    1.0 / *length as f32
+                                } else {
+                                    0.0
+                                }
+                            })
+                        })
+                        .collect::<Vec<_>>(),
+                    [spatial.len(), width],
+                ),
+                device,
+            );
+            let mean_log_prob = (all_cells * uniform).sum_dim(1);
+            cell_log_probs = cell_log_probs * (1.0 - cell_label_smoothing)
+                + mean_log_prob * cell_label_smoothing;
+        }
         let cell_weights = Tensor::<TrainBackend, 2>::from_data(
             TensorData::new(
                 spatial
@@ -557,6 +595,10 @@ pub struct BcTrainConfig {
     pub input_contract: InputContract,
     #[serde(default)]
     pub candidate_mode: CandidateMode,
+    /// Cell target `(1 - e) * one-hot + e * uniform over the option's legal
+    /// cells`.
+    #[serde(default)]
+    pub cell_label_smoothing: f32,
 }
 
 impl Default for BcTrainConfig {
@@ -572,6 +614,7 @@ impl Default for BcTrainConfig {
             kind_mode: KindMode::LogSumExp,
             input_contract: InputContract::Raw,
             candidate_mode: CandidateMode::Top8,
+            cell_label_smoothing: 0.0,
         }
     }
 }
@@ -874,7 +917,7 @@ pub fn train_bc_run(run_dir: &Path, input: BcTrainInput<'_>) -> Result<BcCheckpo
         let mut batches = 0usize;
         for chunk in order.chunks(config.batch_size) {
             let batch = chunk.iter().map(|index| train[*index]).collect::<Vec<_>>();
-            let loss = batch_loss(&model, &batch, &device);
+            let loss = batch_loss(&model, &batch, config.cell_label_smoothing, &device);
             loss_sum += loss.clone().into_data().to_vec::<f32>()?[0] as f64;
             batches += 1;
             let gradients = GradientsParams::from_grads(loss.backward(), &model);
