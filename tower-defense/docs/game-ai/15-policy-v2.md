@@ -317,6 +317,7 @@ Question: with the A1′ non-position strategy fixed, does learning only BuildTo
 - Keep the B′/A1′ recipe: 48 episodes/iteration, γ=1, GAE λ=0.95, reward scale 0.1, actor cell-head Adam 3e-4, critic Adam 3e-4, 4 epochs, minibatch 256, clip 0.2, max grad norm 0.5, target KL 0.02, no KL penalty, seed 0. Entropy coefficient is fixed at 0.01 for phase 1 and 0.003 for phase 2.
 - Run phase 1 for 75 iterations on the existing `ppo_train` blocks (offset 0), with a mandatory pilot review at iteration 50. If pilot gates pass, continue to 75, then run phase 2 for 200 iterations from phase-1 iteration 75 on offset 1000. Evaluate greedily every 5 iterations on the existing 128 `ppo_development` seeds. Never use `phase4b_final` seeds.
 - At iteration 50, stop only for the preregistered experiment-validity failures below; a temporary development-performance decline is not a stopping condition. Do not tune coefficients or other hyperparameters mid-run.
+- Before training, the initialization audit compares greedy family/projected-option choices on A1′-driven trajectories for all 128 existing `ppo_development` seeds (4,000,000–4,000,127). The separate sampled-action smoke uses seeds 8,900,000–8,900,047; these are smoke-only and are not reused in `ppo_train` or evaluation.
 
 ### Required records and stop rules
 
