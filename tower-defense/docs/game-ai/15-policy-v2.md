@@ -293,3 +293,39 @@ This check uses only the persisted PPO training records and scheduled `ppo_devel
 - Position-specific outcome quality cannot be calculated from the saved training records: each iteration stores aggregate clear_rate and aggregate spatial counts, but not each episode's clear_rate grouped by whether it used an outside-top-8 position. In the scheduled greedy development evaluations, all 57 checkpoints (phase 1 and phase 2) had 0% outside-top-8 positions. No intermediate greedy checkpoint adopted such a position.
 
 Attribution classification: **C — conclusion withheld.** The observed decline coincides more closely with RemoveTower and broader action-family changes than with an increase in outside-top-8 sampling, and the iteration-level outside-position rate has no relationship with training clear_rate. However, because the greedy policy never adopted outside-top-8 positions and the per-episode spatial outcome split was not persisted, this run cannot tell whether sampled outside positions were useful, neutral, or harmful. B' is therefore contaminated for a causal claim about the position ceiling; it does not show that opening the full position set caused the collapse, nor does it rule out a position ceiling.
+
+
+## Frozen V2-B position-only PPO preregistration
+
+Name: `V2-B-position-only` (artifacts: `v2b-position-only-p1`, `v2b-position-only-p2`). Written before implementation, smoke tests, development evaluations, or training for this ablation.
+
+### Question and initialization
+
+Question: with the A1′ non-position strategy fixed, does learning only BuildTower/PlaceTower cell choices over all legal positions improve paired `ppo_development` terminal clear_rate over the A1′ frozen policy?
+
+- The A1′ actor is `v2a1p-ppo-p2/iter-0170` (best recorded A1′ development checkpoint); its scorer, shared/state encoder, family/kind head, and every other actor parameter are immutable.
+- Initialize only `cell_input`, `cell_hidden`, and `cell_output` from the selected `v2bp-bc` model (epoch 5; `CandidateMode::FullPosition`; cell smoothing ε=0.02). Do not copy any other B′ parameters.
+- Both sources declare representation v3, hidden size 64, learned family mode, normalized inputs, and the same policy/candidate/encoder/game-rules versions. Smoke tests must verify tensor shapes and source digests before composing them.
+- To preserve A1′'s non-position policy exactly, evaluate its original Top8 candidate distribution and marginalize it onto the projected BuildTower `(subset, slot)` and PlaceTower `slot` options by summing probability mass over Top8 positions belonging to each option. Non-spatial actions map one-to-one. The full joint action probability is this frozen family/option marginal multiplied by the trainable `P(cell | option)`. Do not substitute representative-option logits for the marginal.
+- At initialization, A1′ non-position greedy choices (family and projected option) must match under this marginalization; the greedy cell must be heuristic-best; sampled rollouts must have outside-top-8 BuildTower and PlaceTower actions; illegal/mismatch must be zero. If these checks fail, stop without training and report the failed correspondence.
+
+### Frozen actor, objective, and PPO budget
+
+- Only the three cell MLP layers listed above receive actor optimizer updates. The critic may update. All other actor parameters and optimizer state remain fixed.
+- For each transition, old/new joint log-probability includes the frozen family/option marginal and the cell conditional. Since the frozen term is identical, the PPO ratio must equal `exp(new_cell_log_prob - old_cell_log_prob)` for spatial transitions and 1 for non-spatial transitions. Tests compare both forms numerically.
+- Optimize the PPO clipped objective on the joint action log-probability. The only actor entropy bonus is `coefficient * sum(H(cell | option) for spatial decisions) / semantic transition count`, matching the scale of B′'s position term. Frozen family/option entropy is logged separately and has no actor-loss contribution.
+- Keep the B′/A1′ recipe: 48 episodes/iteration, γ=1, GAE λ=0.95, reward scale 0.1, actor cell-head Adam 3e-4, critic Adam 3e-4, 4 epochs, minibatch 256, clip 0.2, max grad norm 0.5, target KL 0.02, no KL penalty, seed 0. Entropy coefficient is fixed at 0.01 for phase 1 and 0.003 for phase 2.
+- Run phase 1 for 75 iterations on the existing `ppo_train` blocks (offset 0), with a mandatory pilot review at iteration 50. If pilot gates pass, continue to 75, then run phase 2 for 200 iterations from phase-1 iteration 75 on offset 1000. Evaluate greedily every 5 iterations on the existing 128 `ppo_development` seeds. Never use `phase4b_final` seeds.
+- At iteration 50, stop only for the preregistered experiment-validity failures below; a temporary development-performance decline is not a stopping condition. Do not tune coefficients or other hyperparameters mid-run.
+
+### Required records and stop rules
+
+Persist every training episode's seed, terminal clear_rate, BuildTower/PlaceTower position decision counts, outside-top-8 counts by kind, non-heuristic-best count, whether any outside-top-8 cell was used, and each selected cell with its heuristic rank. Each iteration records per-kind sampled and greedy outside-top-8 rates, position entropy and KL-to-init, joint KL, dev clear_rate, critic EV, clip fraction, illegal/mismatch, and frozen-actor invariant result. Development reports pair canonical, frozen A1′, and position-only on exactly the same seeds. Analyze episode-level clear_rate with/without outside cells descriptively, and paired position-only minus A1′ deltas; do not treat either observational split as causal.
+
+Stop immediately and invalidate the run if any frozen non-position actor tensor changes beyond 1e-7 absolute tolerance, a sampled action is illegal or differs from execution, any non-finite value occurs, or saved joint/cell ratio checks fail. At the iteration-50 pilot, also stop if cumulative sampled outside-top-8 rate is below 1% for either BuildTower or PlaceTower; do not proceed by changing hyperparameters. A brief dev decline alone never invalidates the experiment.
+
+### Interpretation fixed before results
+
+- **A — position ceiling was a bottleneck:** the greedy policy adopts outside-top-8 positions and paired development clear_rate improves over frozen A1′ with the gain appearing alongside position-policy change.
+- **B — position ceiling is unlikely to be a major bottleneck here:** sampled exploration is adequate, the learned greedy position policy returns to heuristic-best, and paired performance does not improve over A1′.
+- **C — inconclusive:** exploration/credit assignment fails or a technical invariant is violated. Do not proceed to V2-C on the basis of an invalid run.
