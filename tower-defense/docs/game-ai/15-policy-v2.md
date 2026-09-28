@@ -253,3 +253,43 @@ Interpretation, fixed in advance:
 
 - B beats A and a substantial share of placements leave the v1 top 8: evidence that the position ceiling limited PPO.
 - B chooses almost only v1 top-8 positions and performs like A: the position-ceiling hypothesis is weakened, and stage C (the (subset, slot) proposal) becomes the main suspect.
+
+### B' BC and PPO results
+
+- BC selected epoch 5: validation NLL 0.0165, top-1 99.54%, family accuracy 100%, cell top-1 100% (cell NLL 0.0198). Gate: +0.04 (SE 0.06) vs canonical, better/worse/tie 14/9/105, illegal 0, fallback 0, post-sampling mutations 0.
+- PPO completed the frozen 75 + 200 schedule. The phase-1 iteration-75 development delta was +0.44 (SE 0.15), 48/34/46 better/worse/tie. The best development delta was +0.65 (SE 0.23) at phase-2 iteration 15 (0.358M cumulative training decisions). It turned negative by phase-2 iteration 25 and ended at -19.07 (SE 0.40), 0/128/0 better/worse/tie, at 0.972M decisions. Final mean terminal clear_rate was 17.16 vs canonical 36.23; mean decisions were 67.1 vs 84.0. Illegal actions and action mismatches were 0.
+- Spatial smoothing removed the saturation: sampled training rollouts had 54.5% outside-v1-top-8 positions at phase-1 iteration 75 (605/1,111; cell entropy 4.34 BuildTower, 4.13 PlaceTower) and 24.4% at phase-2 iteration 200 (223/914; entropy 2.19, 2.23). The greedy final development policy made no outside-top-8 placements, so exploration did not become a greedy preference for those positions.
+- The final development policy also collapsed in other choices: across 128 games it chose RemoveTower 1,684 times and Reroll 3,348 times, and its mean terminal clear_rate fell to 17.16. This is a severe performance regression, not a useful B' checkpoint.
+
+Development deltas vs canonical at approximately matched cumulative semantic decisions (nearest recorded evaluation; paired 128-seed reports):
+
+| decisions (M) | B' decisions (M) | B' | A1' decisions (M) | A1' |
+|---:|---:|---:|---:|---:|
+| 0.08 | 0.083 | +0.50 (0.15) | 0.085 | +1.63 (0.35) |
+| 0.26 | 0.260 | +0.51 (0.26) | 0.252 | +4.19 (0.55) |
+| 0.45 | 0.444 | -0.71 (0.31) | 0.450 | +0.21 (0.54) |
+| 0.66 | 0.645 | -5.07 (0.42) | 0.665 | +4.55 (0.56) |
+| 0.87 | 0.872 | -17.79 (0.42) | 0.867 | +6.64 (0.67) |
+| 0.97 | 0.972 | -19.07 (0.40) | 0.977 | +3.92 (0.62) |
+
+Interpretation: label smoothing made position exploration possible, but B' did not learn a greedy preference for off-top-8 placements and sharply underperformed both canonical and A1'. This run does not support the position-ceiling hypothesis, but it does not establish that top-8 is not a bottleneck.
+
+### B' attribution check
+
+This check uses only the persisted PPO training records and scheduled `ppo_development` evaluations (128 seeds); it does not use final seeds or run new evaluations. Development performance first turned negative at phase-2 iteration 25 and remained below canonical through iteration 40. Training-rollout clear_rate did not fall monotonically over the same window.
+
+| phase-2 iter | dev delta vs canonical | sampled outside top-8, Build / Place | RemoveTower | Reroll | KL to init | joint H | family H | clip | critic EV |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 20 | +0.44 (0.24) | 27.4% / 19.8% | 0.14% | 9.6% | 0.226 | 0.679 | 0.0035 | 0.687 | 0.972 |
+| 25 | -1.79 (0.45) | 22.0% / 16.8% | 0.91% | 10.4% | 0.139 | 0.525 | 0.0047 | 0.687 | 0.965 |
+| 26 | — | 25.8% / 19.7% | 8.38% | 11.2% | 0.102 | 0.564 | 0.0014 | 0.720 | 0.917 |
+| 30 | -0.50 (0.31) | 19.8% / 14.7% | 4.16% | 13.5% | 0.172 | 0.423 | 0.0039 | 0.742 | 0.968 |
+| 35 | -0.71 (0.31) | 28.4% / 22.5% | 7.75% | 15.2% | 0.134 | 0.584 | 0.0123 | 0.759 | 0.954 |
+| 40 | -0.94 (0.38) | 21.5% / 14.8% | 7.40% | 15.7% | 0.105 | 0.447 | 0.0003 | 0.767 | 0.960 |
+
+- The first sustained development drop does not line up with a rise in sampled outside-top-8 placements: that share was lower at iterations 25–30 than around the positive iteration-15 to -20 evaluations. Across phase-2 iterations 1–40, the descriptive iteration-level correlation between outside-top-8 share and training clear_rate is +0.04; this is not a per-episode or causal comparison.
+- Other action choices shifted in the same period. RemoveTower was near zero through iteration 20, rose to 8.38% at iteration 26, and stayed around 4–8% through iteration 40. Reroll rose from 9.6% at iteration 20 to 15.7% at iteration 40. Continue fell from 13.4% to 10.5%; BuildTower fell from 21.1% to 18.4%; use-inventory-item fell from 9.9% to 8.6%. DamageResponseItem's share also fell (about 9.5% at iteration 20 to 6.8% at iteration 40). The RemoveTower rate has a descriptive iteration-level correlation of -0.67 with training clear_rate over iterations 1–40, but seed-block differences prevent causal interpretation.
+- No abrupt KL-to-init jump or entropy spike marks the first development drop: KL-to-init declined from 0.226 at iteration 20 to 0.139 at 25 and 0.102 at 26. Joint entropy also fell from 0.679 to 0.525; family entropy stayed below 0.013. Clip fraction was already high and rose gradually. Critic explained variance dipped to 0.917 at iteration 26, then recovered above 0.95. This points to a broad action-distribution shift rather than a sudden KL explosion; the RemoveTower increase begins at the same time as the first rollout clear_rate dip (iteration 26).
+- Position-specific outcome quality cannot be calculated from the saved training records: each iteration stores aggregate clear_rate and aggregate spatial counts, but not each episode's clear_rate grouped by whether it used an outside-top-8 position. In the scheduled greedy development evaluations, all 57 checkpoints (phase 1 and phase 2) had 0% outside-top-8 positions. No intermediate greedy checkpoint adopted such a position.
+
+Attribution classification: **C — conclusion withheld.** The observed decline coincides more closely with RemoveTower and broader action-family changes than with an increase in outside-top-8 sampling, and the iteration-level outside-position rate has no relationship with training clear_rate. However, because the greedy policy never adopted outside-top-8 positions and the per-episode spatial outcome split was not persisted, this run cannot tell whether sampled outside positions were useful, neutral, or harmful. B' is therefore contaminated for a causal claim about the position ceiling; it does not show that opening the full position set caused the collapse, nor does it rule out a position ceiling.
