@@ -344,3 +344,35 @@ Stop immediately and invalidate the run if any frozen non-position actor tensor 
 - Before the change, position-only PPO still built autodiff graphs through the frozen scorer, state encoder, family and candidate heads, then discarded their gradients because only the cell head was passed to its optimizer. It also recomputed the frozen scorer context for spatial decisions in every minibatch and PPO epoch. The cell logits were already limited to one selected option per spatial decision, shaped `[spatial decisions in minibatch, max legal cells in that minibatch]` (width at most 1,296); the code did not materialize `option × 1,296` for every transition.
 - The update now computes frozen actor metrics and scorer contexts once per rollout batch on the inference backend, then uses those fixed values with the trainable cell head. This removes frozen-path autograd and repeated frozen encoding without changing the cell distribution or joint PPO ratio. The deterministic distribution-equivalence and position-only freeze/ratio tests passed.
 - On the same resumed release run, mean update time fell from 63.58 seconds at iterations 41–50 to 27.74 seconds at iterations 51–75; mean rollout time was 8.02 and 8.27 seconds respectively. The 51–75 update time is close to the prior A1′ update baseline of about 28.28 seconds. The 50 checkpoint, including actor, critic and optimizer state, was resumed; no completed iteration was replayed.
+
+## Frozen V2-C BuildTower option-only PPO preregistration
+
+Name: `V2-C-option-only` (artifacts: `v2c-option-only-p1`, `v2c-option-only-p2`). This isolates BuildTower `(card subset, tower slot)` proposal learning before any full V2-C run.
+
+### Question and policy decomposition
+
+Question: with position selection and every non-option strategy held at A1′, does learning over all legal BuildTower subset/slot options improve paired `ppo_development` terminal clear_rate over frozen A1′?
+
+- The frozen actor is `v2a1p-ppo-p2/iter-0170`. Its shared/state and candidate encoders, family/kind head, PlaceTower and non-BuildTower candidate probabilities, and all other actor parameters remain unchanged. Only a dedicated BuildTower option scoring head is trainable; the critic may update.
+- Card-decision BuildTower options are the unique `(subset_index, hand_slot_index)` pairs with at least one legal position in `PolicyActionSpace`'s dense BuildTower region. `PolicyActionSpace::legal_mask` and `index_to_action` are authoritative for legality and indexing. The selected action uses that pair's highest-ranked legal position from `DenseBuildTowerScoreTable`; no position is sampled or learned. PlaceTower and all other action families retain their A1′ behavior.
+- `outside-v1-top8 option` means the pair is absent from the unique `(subset, slot)` projection of the state's eight `DenseBuildTowerScoreTable::top_k_actions`. Store the pair's dense heuristic option rank and the selected position rank for audit.
+- The PPO probability is `P_A1′(family) × P_option(subset, slot | BuildTower)` for BuildTower and the original A1′ joint probability for every other action. Thus the BuildTower family probability and every non-BuildTower probability stay fixed. Greedy selection first follows A1′'s greedy family/action; when it chooses BuildTower, only the conditional option is selected by the trainable head. This preserves non-BuildTower greedy decisions.
+
+### Initialization and fixed training conditions
+
+- Initialize the dedicated option head by copying the typed candidate scorer layers from the existing A1′ BC selected model (`v2a1-bc`); do not run another BC fit or create a teacher. Keep the A1′ selected PPO actor as the frozen behavior and family reference. Before PPO, verify that this BC initialization preserves A1′'s greedy BuildTower `(subset, slot)` and all non-BuildTower greedy decisions on the 128 development-seed audit, and that sampled outside-top-8 options occur. No additional label smoothing or other initialization tuning is used; if the fixed BC head fails the sampled exploration preflight, do not start PPO.
+- PPO recipe is fixed: 48 episodes/iteration, γ=1, GAE λ=0.95, reward scale 0.1, option-head Adam 3e-4, critic Adam 3e-4, four epochs, minibatch 256, clip 0.2, max grad norm 0.5, target KL 0.02, no KL penalty, seed 0. Optimize only the conditional option entropy, coefficient 0.01 in phase 1 and 0.003 in phase 2. Do not tune after seeing results.
+- Run phase 1 for 75 iterations on `ppo_train` offset 0, with a 50-iteration pilot gate. If valid, continue phase 2 for 200 iterations from phase-1 iteration 75 on offset 1000. Evaluate greedily every five iterations on the existing 128 `ppo_development` seeds. Never use final seeds.
+
+### Required invariants and records
+
+- Before PPO: frozen actor tensors remain unchanged; non-BuildTower greedy actions match A1′ on the development trajectories; BuildTower init greedy option matches A1′; each BuildTower action uses the dense heuristic-best legal position; sampled outside-top-8 option rate is nonzero; each sample is legal in `PolicyActionSpace` and equals the executed action; old/new joint log-probabilities agree; PPO ratio equals the option conditional ratio for BuildTower and 1 for frozen decisions; illegal, mismatch and non-finite counts are zero.
+- Every episode records seed, terminal clear_rate, BuildTower decision count, outside-top-8 count/boolean, dense heuristic option rank, selected subset and slot/template. Each iteration records sampled and greedy outside-option rates, option entropy and KL-to-init, dev clear_rate, paired option-only minus A1′ delta, clip fraction, critic EV, cumulative semantic decisions, frozen invariant, position invariant and execution mismatch counts.
+- At iteration 50, continue only if sampled outside-top-8 option exploration is at least 1% cumulatively, all invariants hold, and the option head changed. A transient dev decline is not a stop condition. Stop and invalidate on effectively absent outside exploration, any frozen actor or position change, illegal/mismatched execution, or numerical failure.
+
+### Interpretation fixed before results
+
+- **A — option ceiling is a bottleneck:** greedy outside-top-8 `(subset, slot)` options appear and paired development clear_rate improves over A1′ as option choices change.
+- **B — option ceiling is unlikely to be a major bottleneck here:** sampled exploration and option-head learning are sufficient, greedy choices return to the existing candidate set, and paired development does not improve over A1′.
+- **C — inconclusive:** option exploration/credit assignment fails or any unrelated policy component or technical invariant contaminates the run.
+- A/B/C apply only to this isolated proposal experiment. Decide whether full V2-C is justified from its result; the position-only result alone neither proves nor rules out a subset/slot ceiling.
