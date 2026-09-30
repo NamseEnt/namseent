@@ -140,6 +140,12 @@ pub struct PpoConfig {
     /// continuation run never replays another run's training games.
     #[serde(default)]
     pub train_seed_block_offset: usize,
+    /// Absolute first game seed for an independently preregistered PPO
+    /// training block. When set, iteration `i` uses contiguous seeds starting
+    /// at `train_seed_start + i * episodes_per_iteration`; the legacy split
+    /// offset must remain zero.
+    #[serde(default)]
+    pub train_seed_start: Option<u64>,
     #[serde(default)]
     pub actor_update_mode: ActorUpdateMode,
 }
@@ -166,6 +172,7 @@ impl Default for PpoConfig {
             candidate_entropy_coefficient: 0.0,
             seed: 0,
             train_seed_block_offset: 0,
+            train_seed_start: None,
             actor_update_mode: ActorUpdateMode::Full,
         }
     }
@@ -2636,11 +2643,18 @@ pub struct PpoRunInput {
 }
 
 fn train_seed_range(config: &PpoConfig, iteration: usize) -> Result<Vec<u64>> {
-    let range = Phase4Split::PpoTrain.range();
-    let block = (iteration + config.train_seed_block_offset) as u64;
-    let start = *range.start() + block * config.episodes_per_iteration as u64;
+    let start = if let Some(seed_start) = config.train_seed_start {
+        if config.train_seed_block_offset != 0 {
+            bail!("--train-seed-start cannot be combined with a nonzero --train-seed-block-offset");
+        }
+        seed_start + iteration as u64 * config.episodes_per_iteration as u64
+    } else {
+        let range = Phase4Split::PpoTrain.range();
+        let block = (iteration + config.train_seed_block_offset) as u64;
+        *range.start() + block * config.episodes_per_iteration as u64
+    };
     let end = start + config.episodes_per_iteration as u64 - 1;
-    if end > *range.end() {
+    if config.train_seed_start.is_none() && end > *Phase4Split::PpoTrain.range().end() {
         bail!("PPO training seeds exhausted at iteration {iteration}");
     }
     Ok((start..=end).collect())
@@ -3864,6 +3878,40 @@ mod tests {
         let path = std::env::temp_dir().join(format!("{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         path
+    }
+
+    #[test]
+    fn custom_training_seed_blocks_are_contiguous_and_phaseable() {
+        let config = PpoConfig {
+            episodes_per_iteration: 48,
+            train_seed_start: Some(4_300_000),
+            ..PpoConfig::default()
+        };
+        assert_eq!(
+            train_seed_range(&config, 0).unwrap(),
+            (4_300_000..=4_300_047).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            train_seed_range(&config, 74).unwrap(),
+            (4_303_552..=4_303_599).collect::<Vec<_>>()
+        );
+        let phase_two = PpoConfig {
+            train_seed_start: Some(4_303_600),
+            ..config.clone()
+        };
+        assert_eq!(
+            train_seed_range(&phase_two, 0).unwrap(),
+            (4_303_600..=4_303_647).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            train_seed_range(&phase_two, 199).unwrap(),
+            (4_313_152..=4_313_199).collect::<Vec<_>>()
+        );
+        let invalid = PpoConfig {
+            train_seed_block_offset: 1,
+            ..config
+        };
+        assert!(train_seed_range(&invalid, 0).is_err());
     }
 
     fn random_actor() -> PolicyNet<InferenceBackend> {

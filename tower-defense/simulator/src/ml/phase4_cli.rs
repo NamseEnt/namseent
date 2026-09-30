@@ -205,6 +205,10 @@ pub enum Phase4Command {
         /// Offset into the `ppo_train` seed blocks.
         #[arg(long, default_value_t = 0)]
         train_seed_block_offset: usize,
+        /// Absolute first game seed for a fresh contiguous PPO training block.
+        /// Mutually exclusive with a nonzero --train-seed-block-offset.
+        #[arg(long)]
+        train_seed_start: Option<u64>,
         #[arg(long)]
         run_dir: PathBuf,
         #[arg(long)]
@@ -1017,6 +1021,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             init_ppo_iteration,
             position_reference_actor,
             train_seed_block_offset,
+            train_seed_start,
             run_dir,
             iterations,
             episodes_per_iteration,
@@ -1062,6 +1067,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 candidate_entropy_coefficient,
                 seed,
                 train_seed_block_offset,
+                train_seed_start,
                 actor_update_mode,
             };
             let metadata = super::semantic_ppo::train_ppo_run(

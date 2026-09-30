@@ -1,6 +1,6 @@
 # Policy v2: Factorized Policy and Full Action Space
 
-Status: in progress. Sections marked **Frozen** were written before the corresponding v2 models were trained and are not changed after results are seen.
+Status: V2 selected policy frozen; Phase R/C research preregistered below. Sections marked **Frozen** were written before the corresponding models were trained and are not changed after results are seen.
 
 Phase 4B ([`14-phase4b-ppo.md`](14-phase4b-ppo.md)) showed that PPO from a canonical BC initialization beats the canonical baseline (+4.98 terminal clear_rate on the frozen final seeds), but tower placement never changed. The v1 network only scores the heuristic's top-8 placements and top-8 dense builds, although `PolicyActionSpace` already represents the full `subset x hand_slot x position` space. Policy v2 changes the policy representation, not the `AgentAction` contract or the game rules.
 
@@ -389,3 +389,112 @@ Run completed as preregistered: phase 1 reached iteration 75, including its 50-i
 **Conclusion: C — performance effect inconclusive, with the ablation technically valid.** Exploration, greedy adoption of new options, and freeze/execution invariants all worked; the unresolved part is whether those new choices improve performance beyond A1′. This C classification reflects the paired development uncertainty, not a technical failure. The observed point estimate alone is insufficient to say the option ceiling was a bottleneck.
 
 **Full V2-C is not recommended yet.** Position-only showed no clear gain, while option-only produced new greedy choices but no conclusive paired improvement. Combining both now would add complexity without resolving whether the BuildTower proposal expansion helps. The next useful evidence would be an independent confirmatory option-only result before mixing position learning back in.
+
+## V2 final policy selection and evaluation preregistration
+
+### Selected policy (frozen before final evaluation)
+
+**Selected V2 policy: A1′** — `simulator/artifacts/phase4b/v2a1p-ppo-p2/iter-0170` (phase-2 iteration 170, best recorded A1′ `ppo_development` checkpoint). The selected `actor.bin` SHA-256 is `a1e0fc22794cfaea3184b5ffb4f413d52d4a02657f49bc14b6674e2a1b338c29`; its run provenance is recorded in `v2a1p-ppo-p2/ppo.json` (`git_commit d50659cee04238ef857a570ba468083072a2cab9`). This checkpoint is frozen now and will not be replaced after viewing final results.
+
+Selection rationale:
+
+- A0/A0b showed no clear improvement from family factorization alone; A1′ is the strongest policy so far on the existing development seeds.
+- A1′ uses normalized actor inputs with the established joint-entropy PPO recipe. The separate A1 per-head entropy attempt drifted excessively and was not selected.
+- Position-only and option-only both explored and changed greedy choices, but neither established a reliable paired improvement over A1′. Full V2-C is not proceeding.
+- The working hypothesis for this final check is that the main observed gain came from the input/optimization contract, rather than wider action-space proposals. The final result may support or weaken that hypothesis but will not trigger another checkpoint choice.
+
+### One-time V2 final comparison
+
+Before launching, the existing frozen split definition and records were checked: `V2Final` is `4,200,000..=4,200,255`; no V2 final-evaluation artifact or execution log exists, while `final-eval.json` records only the already-consumed `phase4b_final` range `4,100,000..=4,100,255`. The V2 final output path `simulator/artifacts/phase4b/v2-final-eval.json` is absent. The V2 final range is therefore reserved for this single run.
+
+Run one greedy terminal evaluation on all 256 `v2_final` seeds with the existing terminal evaluator semantics (same game config, every policy on every seed, actual terminal state). Compare exactly these four policies:
+
+| name | frozen policy source | artifact SHA-256 |
+|---|---|---|
+| `canonical` | built-in canonical scripted policy | n/a |
+| `bc` | `simulator/artifacts/phase4b/phase4b-init` selected model | `selected-model.bin`: `46c6f9f473b31062526e840ba193f1012b2f36d2ae21d7697989a004a1f57933` |
+| `v1_ppo` | Phase 4B run C iteration 200, `simulator/artifacts/phase4b/ppo-long-c/iter-0200` | `actor.bin`: `6710e5106da25cfd00a52422396620c7b152149558c4bd7d2be3d32cf28f37d1` |
+| `a1_prime` | the selected A1′ checkpoint above | `actor.bin`: `a1e0fc22794cfaea3184b5ffb4f413d52d4a02657f49bc14b6674e2a1b338c29` |
+
+Primary comparison: `a1_prime - v1_ppo`. Secondary comparisons: `a1_prime - canonical` and `a1_prime - bc`. Position-only and option-only are excluded. Record each policy's mean/SE/median terminal clear_rate, mean stage, full clears, mean decisions/game, terminal completion and safety-cap events, illegal/fallback/post-sampling mutation counts, and action-kind counts. Record paired mean delta, SE, 95% confidence interval, and better/worse/tie counts. The existing evaluator's 512-decision safety cap is a hard failure rather than truncation; report any such failure explicitly and never rerun this seed range.
+
+This selection and seed use are frozen before the final output is generated. No final-seed result will be used to choose another policy, resume training, or tune hyperparameters.
+
+### V2 final results
+
+The one-time evaluation completed on all 256 `v2_final` seeds (4,200,000–4,200,255), using the same greedy terminal runner for all four policies. Every game reached the actual terminal state; the hard 512-decision safety cap was not hit (maximum observed: 357 decisions). There were 0 full clears, illegal actions, fallbacks, or post-sampling mutations for every policy. Per-seed outcomes, final state hashes, and the complete action-kind counts are in `simulator/artifacts/phase4b/v2-final-eval.json`.
+
+| policy | mean clear_rate (SE) | median | mean stage | full clears | mean decisions/game | completed / cap events | illegal / fallback / mutation |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| canonical | 36.63 (0.29) | 35.23 | 18.72 | 0/256 | 85.0 | 256 / 0 | 0 / 0 / 0 |
+| Phase 4B BC | 36.63 (0.29) | 35.24 | 18.70 | 0/256 | 85.0 | 256 / 0 | 0 / 0 / 0 |
+| Phase 4B selected PPO (v1) | 41.83 (0.44) | 40.11 | 21.30 | 0/256 | 124.8 | 256 / 0 | 0 / 0 / 0 |
+| **A1′ (selected V2)** | **48.06 (0.50)** | **46.84** | **24.37** | **0/256** | **212.4** | **256 / 0** | **0 / 0 / 0** |
+
+Paired deltas use the same 256 seeds. The 95% confidence intervals use the paired standard error and a two-sided Student-t critical value with 255 degrees of freedom.
+
+| comparison | mean delta | SE | 95% CI | median delta | better / worse / tie |
+|---|---:|---:|---:|---:|---:|
+| **A1′ − Phase 4B PPO (primary)** | **+6.22** | **0.55** | **[+5.15, +7.30]** | **+6.17** | **207 / 49 / 0** |
+| A1′ − canonical | +11.43 | 0.52 | [+10.41, +12.44] | +10.45 | 241 / 15 / 0 |
+| A1′ − BC | +11.43 | 0.52 | [+10.41, +12.45] | +10.45 | 240 / 16 / 0 |
+
+The A1′ development gain of +10.85 versus canonical was reproduced: the fresh final paired gain is +11.43, 0.58 points higher. The best recorded A1′ development checkpoint was +10.94; the fresh final gain is 0.49 points higher. A1′ beat the v1 PPO in all four consecutive 64-seed blocks, with mean paired deltas +5.17, +7.11, +5.95, and +6.67, so the improvement is not concentrated in one seed block.
+
+The expanded decision behavior also carried over. A1′ averaged 212.4 decisions/game, compared with 124.8 for v1 PPO and 85.0 for canonical. Its development checkpoint at iteration 170 averaged 203.7 decisions/game. Its major action counts remained similar between selected development and fresh final evaluation: rerolls 50.5 to 51.6 per game, continues 75.5 to 80.8, inventory-item uses 11.3 to 11.9, and builds 24.0 to 24.4. This longer decision path coincided with the clear-rate gain on the fresh seeds.
+
+Mean action-kind decisions per game (complete counts and less frequent kinds remain in the JSON artifact):
+
+| action kind | canonical | BC | v1 PPO | A1′ |
+|---|---:|---:|---:|---:|
+| StartDefense | 18.72 | 18.70 | 21.30 | 24.37 |
+| BuildTower | 18.72 | 18.70 | 21.30 | 24.37 |
+| PlaceTower | 6.08 | 6.18 | 6.52 | 4.52 |
+| Reroll | 5.59 | 5.62 | 26.41 | 51.63 |
+| Continue | 11.82 | 11.78 | 15.52 | 80.83 |
+| PurchaseShopItem | 9.49 | 9.47 | 13.19 | 11.47 |
+| UseInventoryItem | 7.95 | 7.94 | 9.57 | 11.91 |
+| SelectTreasure | 2.18 | 2.16 | 2.51 | 2.87 |
+| DiscardTreasure | 0.00 | 0.00 | 0.20 | 0.10 |
+| SelectCardServiceCard | 2.25 | 2.24 | 4.16 | 0.07 |
+| ConfirmCardServiceSelection | 2.22 | 2.21 | 4.09 | 0.06 |
+| RemoveTower | 0.00 | 0.00 | 0.00 | 0.25 |
+
+### V2 research conclusion
+
+- V2-A0/A0b: family factorization by itself produced no large, reliable gain over v1.
+- A1 per-head entropy caused excessive policy drift and was not selected.
+- A1′ combined the normalized actor input contract with the established joint-entropy PPO recipe and was the strongest development policy. Its +10.85 development gain was reproduced as +11.43 on the untouched V2 final seeds, and it beat Phase 4B PPO by +6.22 paired points.
+- B/B′ enabled full-position exploration but did not show a reliable gain. The isolated position-only result also did not improve over A1′ beyond uncertainty.
+- Option-only PPO did learn to choose outside-top-8 BuildTower options greedily, but its paired development gain remained uncertain.
+- **Full V2-C will not be run. Selected V2 policy is A1′.** In the evidence collected here, action-space expansion did not explain the large improvement; the results are more consistent with the input and optimization contract being the main gain. This is evidence from one PPO training seed and one frozen final evaluation, not a causal separation of every A1′ change.
+
+No further experiment was started. Candidate next studies only: (1) hidden-size 64 versus 128/256 capacity sensitivity, (2) independent PPO training seeds to estimate training variance, (3) representation improvements, and (4) a fresh CUDA crossover measurement at larger capacity.
+
+## Phase R and Phase C preregistration
+
+This section is frozen before any Phase R replicate or new-capacity BC/PPO run. The selected policy remains A1′, and `phase4b_final` and `v2_final` are never used again. No new final seeds are used in this research.
+
+### Phase R — independent A1′ PPO training seeds
+
+Question: does the selected A1′ hidden-64 result reproduce across PPO training randomness when its initialization and recipe are held fixed?
+
+- R0 is the existing A1′ run: phase 1 `v2a1p-ppo-p1`, then phase 2 `v2a1p-ppo-p2`; both started from selected `v2a1-bc` actor SHA-256 `0f1f3dc52e1475c8b78220f5bd52e4f121581c63d1bca256f3f395835703e868` and `critic-512-contract/critic.bin` SHA-256 `84ea7b52a613dccea9f5a68f2e5401bdfaab83ff73d68ef8dd7f57a30bef60a8`. Their actor/critic initialization sources and all hyperparameters remain the reference.
+- R1 and R2 each start from those same frozen selected BC actor and pretrained critic files, with fresh PPO optimizers. No run starts from the trained A1′ policy checkpoint. Only PPO random seed and fresh game-seed block vary: R1 seed 1, R2 seed 2.
+- New, disjoint training seed ranges: R1 `4,300,000..=4,313,199`; R2 `4,400,000..=4,413,199`. Each range contains exactly 13,200 episode seeds for 275 x 48 rollouts. Phase 1 consumes the first 3,600 seeds (75 iterations); phase 2 consumes the remaining 9,600. The ranges do not overlap any registered dataset, training, development, or final split through `v2_final`, nor each other. An explicit absolute `--train-seed-start` input is used; the existing `ppo_train` range is not reused.
+- Keep hidden size 64, A1′ normalized actor/critic input contract, learned family policy representation, top-8 candidates, gamma 1, GAE lambda 0.95, reward scale 0.1, actor/critic LR 3e-4, four epochs, minibatch 256, clip 0.2, joint entropy 0.01 in phase 1 and 0.003 in phase 2, KL-to-init coefficient 0 with measurement enabled, target KL 0.02, max grad norm 0.5, advantage normalization, 48 episodes/iteration, and no critic warmup. Use the existing CPU backend for all quality runs.
+- Each replicate runs the full schedule: phase 1 75 iterations, then phase 2 200 iterations resumed from phase-1 iteration 75. It is evaluated greedily every five iterations on the same 128 `ppo_development` seeds. Report checkpoints at cumulative iterations 50, 100, 200, and 275 (phase 2 local iterations 25, 125, and 200 where applicable). Low interim performance is not a stop condition; stop only for a technical failure that invalidates training.
+- Compare each replicate to canonical and the frozen R0 A1′ policy on identical development seeds. Report mean and SE paired clear-rate deltas, decisions/game, cumulative semantic decisions, KL-to-init, joint entropy, action-kind counts, critic EV, and learning curves. Compare the final 50-iteration mean (cumulative iterations 226–275) as the predeclared plateau summary; do not select a replicate or checkpoint from a single best score.
+- R is technically normal if it completes the schedule with finite updates, legal/executed action agreement, and intact saved checkpoints. Performance variance, including a lower score, is an outcome and does not trigger early termination or recipe changes. If technically normal, proceed to Phase C as preregistered.
+
+### Phase C — hidden-size capacity comparison
+
+Question: at matched A1′ experience and PPO recipe, do hidden sizes 128 or 256 reach a higher development plateau than 64?
+
+- Use the same two paired PPO training seed IDs and game-seed blocks as Phase R: hidden-64 R1/R2 are the Phase R runs; hidden-128 and hidden-256 each run seeds 1 and 2 on the corresponding R1/R2 blocks. Reuse across model sizes is intentional pairing; no seed block overlaps any pre-existing split. Keep all quality runs on the same CPU backend.
+- Train one new BC model for each size 128 and 256 from scratch on the existing immutable `canonical-train-2048` dataset, validated on `canonical-validation`, without teachers. Use the A1′ BC recipe unchanged: chosen labels, learned family head, normalized inputs, top-8 candidates, Adam LR 0.001, batch 64, six epochs, seed 0, override weight 1. Select the validation-NLL checkpoint under the existing rule. Record validation NLL, top-1, action-kind accuracy, and the greedy paired development gate. Each size must pass the existing gate (canonical delta >= -2, illegal/fallback/post-sampling mutation = 0) before PPO.
+- Pretrain a fresh critic per size using the same first 512 episodes of `canonical-train-2048`, the `canonical-validation` set, contract inputs, reward scale 0.1, seed 0, Adam LR 0.001, batch 256, four epochs, and the corresponding hidden size. No critic tuning.
+- Use the Phase R PPO recipe, 75 + 200 iterations, checkpoints every five iterations, 128 unchanged development seeds, and identical per-replicate PPO/game seed IDs across sizes. All models start from their own size-matched BC/critic initialization. Do not change the backend during the quality comparison.
+- Primary alignment is cumulative semantic decisions; also report episodes and wall time. At each size and replicate record development clear-rate/deltas to canonical and frozen A1′ hidden-64 R0, decisions/game, learning slope, KL-to-init, entropy, critic EV, update/rollout time, and batch-1 inference latency. Plateau is the predeclared mean over cumulative iterations 226–275; the full learning curve remains primary context.
+- Run both R1/R2 for each larger size (no result-dependent screening). Do not use a new final split. CUDA measurement, if warranted after the CPU comparison, is an isolated benchmark only and cannot alter/retrain the capacity policies.
+- Classify capacity as A only if 128 or 256 improves the plateau and matched-decision curve over hidden-64 across both paired training seeds by more than the Phase R seed variation; B if both larger sizes have similar plateau and no stable improvement despite added compute; C if replicate variation remains too large to separate size effects. In C, recommend whether more PPO replicates would resolve the uncertainty, but do not run them within this preregistration.
