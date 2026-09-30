@@ -104,6 +104,11 @@ pub fn apply_contract(decision: &EncodedDecision, contract: InputContract) -> En
     for set in &mut decision.candidates {
         squash_set(set, |column| SQUASHED_CANDIDATE_COLUMNS.contains(&column));
     }
+    if let Some(projection) = &mut decision.projection {
+        for set in &mut projection.source_candidates {
+            squash_set(set, |column| SQUASHED_CANDIDATE_COLUMNS.contains(&column));
+        }
+    }
     decision
 }
 

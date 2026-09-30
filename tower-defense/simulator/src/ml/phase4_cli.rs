@@ -18,6 +18,7 @@ use crate::teacher_selection::TeacherSelectionPools;
 use anyhow::{Result, bail};
 use clap::Subcommand;
 use serde::Serialize;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -172,6 +173,24 @@ pub enum Phase4Command {
         threads: usize,
     },
     /// Train (or resume) semantic PPO from a BC checkpoint.
+    ComposePositionOnlyInit {
+        #[arg(long)]
+        a1_actor: PathBuf,
+        #[arg(long)]
+        position_bc_run: PathBuf,
+        #[arg(long)]
+        output_run_dir: PathBuf,
+    },
+    /// Validate the composed initialization and sampled full-position rollout before PPO.
+    AuditPositionOnlyInit {
+        #[arg(long)]
+        init_run_dir: PathBuf,
+        #[arg(long)]
+        a1_actor: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Train (or resume) semantic PPO from a BC checkpoint.
     PpoTrain {
         #[arg(long)]
         init_bc_run: PathBuf,
@@ -180,6 +199,9 @@ pub enum Phase4Command {
         /// Continue from a PPO iteration directory (actor and critic).
         #[arg(long)]
         init_ppo_iteration: Option<PathBuf>,
+        /// Frozen Top8 actor used as the position-only paired reference.
+        #[arg(long)]
+        position_reference_actor: Option<PathBuf>,
         /// Offset into the `ppo_train` seed blocks.
         #[arg(long, default_value_t = 0)]
         train_seed_block_offset: usize,
@@ -224,6 +246,8 @@ pub enum Phase4Command {
         critic_warmup_iterations: usize,
         #[arg(long, default_value_t = 0)]
         seed: u64,
+        #[arg(long, value_enum, default_value_t = super::semantic_ppo::ActorUpdateMode::Full)]
+        actor_update_mode: super::semantic_ppo::ActorUpdateMode,
         /// Development evaluation every N iterations (0: never).
         #[arg(long, default_value_t = 5)]
         evaluate_every: usize,
@@ -725,10 +749,273 @@ pub fn run(command: Phase4Command) -> Result<()> {
             eprintln!("selected critic epoch {}", result.selected_epoch);
             Ok(())
         }
+        Phase4Command::ComposePositionOnlyInit {
+            a1_actor,
+            position_bc_run,
+            output_run_dir,
+        } => {
+            if output_run_dir.exists() {
+                bail!("{} already exists", output_run_dir.display());
+            }
+            let device = default_policy_device();
+            let (mut position_metadata, position_model) =
+                load_selected_model::<TrainBackend>(&position_bc_run, &device)?;
+            let actor_file: super::semantic_ppo::PpoActorFile =
+                serde_json::from_slice(&std::fs::read(a1_actor.join("ppo-actor.json"))?)?;
+            if actor_file.candidate_mode != super::semantic_candidates::CandidateMode::Top8
+                || actor_file.policy_representation_version
+                    != super::policy_v2::POLICY_REPRESENTATION_VERSION
+                || actor_file.model_config != position_metadata.model_config
+                || actor_file.kind_mode != position_metadata.config.kind_mode
+                || actor_file.input_contract != position_metadata.config.input_contract
+                || position_metadata.policy_representation_version
+                    != super::policy_v2::POLICY_REPRESENTATION_VERSION
+                || position_metadata.config.candidate_mode
+                    != super::semantic_candidates::CandidateMode::FullPosition
+                || (position_metadata.config.cell_label_smoothing - 0.02).abs() > f32::EPSILON
+                || position_metadata.best_epoch != Some(5)
+            {
+                bail!(
+                    "A1' actor and B' cell-head sources do not match the preregistered architecture"
+                );
+            }
+            let a1_model =
+                super::semantic_ppo::load_ppo_actor_as::<TrainBackend>(&a1_actor, &device)?;
+            let composed = a1_model
+                .clone()
+                .with_spatial_cell_head(position_model.spatial_cell_head());
+            let restored = composed
+                .clone()
+                .with_spatial_cell_head(a1_model.spatial_cell_head());
+            if super::policy_v2::module_to_bytes(restored)?
+                != super::policy_v2::module_to_bytes(a1_model.clone())?
+                || super::policy_v2::module_to_bytes(composed.spatial_cell_head())?
+                    != super::policy_v2::module_to_bytes(position_model.spatial_cell_head())?
+            {
+                bail!("parameter correspondence check failed while composing A1' and B' cell head");
+            }
+            position_metadata.config.candidate_mode =
+                super::semantic_candidates::CandidateMode::FullPositionA1Marginal;
+            position_metadata.init_checkpoint = Some(format!(
+                "A1' actor {} + B' cell head {} (selected epoch 5, cell smoothing 0.02)",
+                a1_actor.display(),
+                position_bc_run.display()
+            ));
+            position_metadata.git_commit = current_git_revision()?;
+            std::fs::create_dir_all(&output_run_dir)?;
+            std::fs::write(
+                output_run_dir.join("selected-model.bin"),
+                super::policy_v2::module_to_bytes(composed)?,
+            )?;
+            std::fs::write(
+                output_run_dir.join("bc.json"),
+                serde_json::to_vec_pretty(&position_metadata)?,
+            )?;
+            std::fs::write(
+                output_run_dir.join("position-only-init.json"),
+                serde_json::to_vec_pretty(&serde_json::json!({
+                    "a1_actor": a1_actor,
+                    "position_bc_run": position_bc_run,
+                    "a1_candidate_mode": actor_file.candidate_mode,
+                    "a1_kind_mode": actor_file.kind_mode,
+                    "a1_input_contract": actor_file.input_contract,
+                    "model_config": actor_file.model_config,
+                    "non_position_actor_roundtrip_exact": true,
+                    "cell_head_copy_exact": true,
+                    "position_candidate_mode": "full_position_a1_marginal"
+                }))?,
+            )?;
+            eprintln!(
+                "wrote position-only initialization to {}",
+                output_run_dir.display()
+            );
+            Ok(())
+        }
+        Phase4Command::AuditPositionOnlyInit {
+            init_run_dir,
+            a1_actor,
+            output,
+        } => {
+            let (init_metadata, init_model) = load_selected_model::<super::model::InferenceBackend>(
+                &init_run_dir,
+                &default_policy_device(),
+            )?;
+            if init_metadata.config.candidate_mode
+                != super::semantic_candidates::CandidateMode::FullPositionA1Marginal
+            {
+                bail!("initialization is not in A1' marginal full-position mode");
+            }
+            let init_policy = super::semantic_bc::SemanticPolicy::from_run_dir(&init_run_dir)?;
+            let a1_policy = super::semantic_bc::SemanticPolicy::from_path(&a1_actor)?;
+            let config = Arc::new(GameConfig::default_config());
+            let device = default_policy_device();
+            let development_seeds = Phase4Split::PpoDevelopment.seeds(None)?;
+            let mut non_position_decisions = 0usize;
+            let mut non_position_mismatches = 0usize;
+            let mut greedy_position_decisions = BTreeMap::<String, usize>::new();
+            let mut greedy_position_outside = BTreeMap::<String, usize>::new();
+            let mut non_best_greedy_cells = 0usize;
+            let mut illegal_or_mismatch = 0usize;
+            for seed in &development_seeds {
+                let mut environment =
+                    crate::environment::GameEnvironment::new(Arc::clone(&config), *seed);
+                while !matches!(
+                    environment.decision_point(),
+                    crate::environment::DecisionPoint::Terminal
+                ) {
+                    let a1_choice = a1_policy.choose(&environment)?;
+                    let position_choice = init_policy.choose(&environment)?;
+                    let a1_option = super::spatial::SpatialAction::of(&a1_choice.action)
+                        .map(|(option, _, _)| option);
+                    let position_option = position_choice.candidates.candidates
+                        [position_choice.index]
+                        .spatial
+                        .clone();
+                    let same_non_position_choice = match (a1_option, position_option) {
+                        (Some(a1), Some(position)) => a1 == position,
+                        (None, None) => a1_choice.action == position_choice.action,
+                        _ => false,
+                    };
+                    non_position_decisions += 1;
+                    non_position_mismatches += (!same_non_position_choice) as usize;
+                    if !position_choice.legal_mask[position_choice.index]
+                        || !environment.semantic_action_is_legal(&position_choice.action)
+                    {
+                        illegal_or_mismatch += 1;
+                    }
+                    if let Some((cells, cell)) = &position_choice.cell {
+                        let kind = position_choice.action.kind().wire_name().to_string();
+                        *greedy_position_decisions.entry(kind.clone()).or_default() += 1;
+                        *greedy_position_outside.entry(kind).or_default() += (!position_choice
+                            .candidates
+                            .v1_top8
+                            .contains(&position_choice.action))
+                            as usize;
+                        non_best_greedy_cells += (*cell != 0) as usize;
+                        if cells.is_empty() {
+                            illegal_or_mismatch += 1;
+                        }
+                    }
+                    let mut outcome = environment
+                        .semantic_step(a1_choice.action)
+                        .map_err(|error| anyhow::anyhow!("semantic action failed: {error:?}"))?;
+                    crate::teacher::settle_forced_actions(&mut environment, &mut outcome)?;
+                }
+            }
+            let mut sampled_decisions = BTreeMap::<String, usize>::new();
+            let mut sampled_outside = BTreeMap::<String, usize>::new();
+            let mut sampled_illegal = 0usize;
+            let mut sampled_mismatch = 0usize;
+            let mut sampled_nonfinite = 0usize;
+            let mut sampled_episodes = Vec::new();
+            for seed in 8_900_000u64..8_900_048 {
+                let episode = super::semantic_ppo::rollout_episode(
+                    &init_model,
+                    &device,
+                    Arc::clone(&config),
+                    seed,
+                    seed ^ 0x504f_5349_5449_4f4e,
+                    0.1,
+                    false,
+                    super::semantic_candidates::CandidateMode::FullPositionA1Marginal,
+                )?;
+                sampled_illegal += episode.illegal_actions;
+                sampled_mismatch += episode.action_mismatches;
+                sampled_nonfinite += episode
+                    .transitions
+                    .iter()
+                    .filter(|transition| {
+                        !transition.old_log_prob.is_finite()
+                            || !transition.reward.is_finite()
+                            || !transition.behavior_entropy.is_finite()
+                    })
+                    .count();
+                for transition in &episode.transitions {
+                    if let Some(spatial) = &transition.spatial {
+                        *sampled_decisions
+                            .entry(transition.action_kind.clone())
+                            .or_default() += 1;
+                        *sampled_outside
+                            .entry(transition.action_kind.clone())
+                            .or_default() += spatial.outside_v1_top8 as usize;
+                    }
+                }
+                sampled_episodes.push(serde_json::json!({
+                    "seed": episode.seed,
+                    "terminal_clear_rate": episode.terminal_clear_rate,
+                    "decisions": episode.transitions.len(),
+                    "outside_top8": episode.transitions.iter().filter_map(|step| step.spatial.as_ref()).filter(|spatial| spatial.outside_v1_top8).count(),
+                }));
+            }
+            let evaluations = super::phase4_eval::evaluate_policies(
+                Arc::clone(&config),
+                Phase4Split::PpoDevelopment.name(),
+                &development_seeds,
+                &[
+                    super::phase4_eval::EvalPolicy::Canonical,
+                    super::phase4_eval::EvalPolicy::Learned {
+                        name: "a1_prime".to_string(),
+                        policy: Box::new(a1_policy),
+                    },
+                    super::phase4_eval::EvalPolicy::Learned {
+                        name: "position_only_init".to_string(),
+                        policy: Box::new(init_policy),
+                    },
+                ],
+                &[
+                    ("position_only_init".to_string(), "a1_prime".to_string()),
+                    ("position_only_init".to_string(), "canonical".to_string()),
+                    ("a1_prime".to_string(), "canonical".to_string()),
+                ],
+            )?;
+            let rate = |counts: &BTreeMap<String, usize>, kind: &str| {
+                let decisions = sampled_decisions.get(kind).copied().unwrap_or(0);
+                let outside = counts.get(kind).copied().unwrap_or(0);
+                (decisions, outside, outside as f64 / decisions.max(1) as f64)
+            };
+            let build_sampled = rate(&sampled_outside, "build_tower");
+            let place_sampled = rate(&sampled_outside, "place_tower");
+            let report = serde_json::json!({
+                "development_seeds": [4_000_000, 4_000_127],
+                "greedy_non_position_decisions": non_position_decisions,
+                "greedy_non_position_mismatches": non_position_mismatches,
+                "greedy_position_decisions": greedy_position_decisions,
+                "greedy_position_outside_top8": greedy_position_outside,
+                "greedy_non_heuristic_best_cells": non_best_greedy_cells,
+                "greedy_illegal_or_mismatch": illegal_or_mismatch,
+                "sampled_seed_range": [8_900_000, 8_900_047],
+                "sampled_decisions_by_kind": sampled_decisions,
+                "sampled_outside_top8_by_kind": sampled_outside,
+                "sampled_build_outside_rate": build_sampled.2,
+                "sampled_place_outside_rate": place_sampled.2,
+                "sampled_illegal": sampled_illegal,
+                "sampled_mismatch": sampled_mismatch,
+                "sampled_nonfinite": sampled_nonfinite,
+                "sampled_episodes": sampled_episodes,
+                "development_evaluation": evaluations,
+            });
+            write_json(Some(&output), &report)?;
+            if non_position_mismatches != 0
+                || non_best_greedy_cells != 0
+                || illegal_or_mismatch != 0
+                || sampled_illegal != 0
+                || sampled_mismatch != 0
+                || sampled_nonfinite != 0
+                || build_sampled.1 == 0
+                || place_sampled.1 == 0
+            {
+                bail!(
+                    "position-only initialization smoke gate failed; see {}",
+                    output.display()
+                );
+            }
+            Ok(())
+        }
         Phase4Command::PpoTrain {
             init_bc_run,
             init_critic_run,
             init_ppo_iteration,
+            position_reference_actor,
             train_seed_block_offset,
             run_dir,
             iterations,
@@ -749,6 +1036,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
             max_grad_norm,
             critic_warmup_iterations,
             seed,
+            actor_update_mode,
             evaluate_every,
             development_seeds,
             threads,
@@ -774,6 +1062,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                 candidate_entropy_coefficient,
                 seed,
                 train_seed_block_offset,
+                actor_update_mode,
             };
             let metadata = super::semantic_ppo::train_ppo_run(
                 config,
@@ -786,6 +1075,7 @@ pub fn run(command: Phase4Command) -> Result<()> {
                     iterations,
                     evaluate_every,
                     development_seeds,
+                    position_reference_actor,
                 },
             )?;
             eprintln!("completed {} PPO iterations", metadata.completed_iterations);

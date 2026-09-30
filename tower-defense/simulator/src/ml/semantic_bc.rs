@@ -7,7 +7,7 @@ use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::feature_contract::InputContract;
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
-    default_policy_device, initialize_model, model_from_full_precision_bytes,
+    TypedCandidateScorer, default_policy_device, initialize_model, model_from_full_precision_bytes,
     model_to_full_precision_bytes, tensor_from_rows,
 };
 use super::phase4_dataset::{DatasetProvenance, DecisionSample, EpisodeRecord};
@@ -33,6 +33,9 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 pub const SEMANTIC_BC_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
@@ -994,6 +997,14 @@ pub struct SemanticPolicy {
     model: PolicyNet<InferenceBackend>,
     device: PolicyDevice,
     candidate_mode: CandidateMode,
+    build_option_head: Option<TypedCandidateScorer<InferenceBackend>>,
+    /// Checkpoint zero uses A1' argmax for the BuildTower option while its
+    /// sampled distribution explores the dense option set. After the first
+    /// PPO update, greedy selection follows the learned option head.
+    build_option_greedy_from_a1: bool,
+    greedy_build_option_decisions: Arc<AtomicUsize>,
+    greedy_build_option_outside: Arc<AtomicUsize>,
+    greedy_build_option_choices: Arc<Mutex<Vec<super::semantic_candidates::BuildOptionInfo>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1015,6 +1026,11 @@ impl SemanticPolicy {
             model,
             device: default_policy_device(),
             candidate_mode: CandidateMode::Top8,
+            build_option_head: None,
+            build_option_greedy_from_a1: false,
+            greedy_build_option_decisions: Arc::new(AtomicUsize::new(0)),
+            greedy_build_option_outside: Arc::new(AtomicUsize::new(0)),
+            greedy_build_option_choices: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -1023,8 +1039,44 @@ impl SemanticPolicy {
         self
     }
 
+    pub fn with_build_option_head(
+        mut self,
+        build_option_head: TypedCandidateScorer<InferenceBackend>,
+    ) -> Self {
+        self.build_option_head = Some(build_option_head);
+        self
+    }
+
+    pub fn with_build_option_greedy_from_a1(mut self, enabled: bool) -> Self {
+        self.build_option_greedy_from_a1 = enabled;
+        self
+    }
+
     pub fn candidate_mode(&self) -> CandidateMode {
         self.candidate_mode
+    }
+
+    pub fn greedy_build_option_usage(&self) -> (usize, usize) {
+        (
+            self.greedy_build_option_decisions.load(Ordering::Relaxed),
+            self.greedy_build_option_outside.load(Ordering::Relaxed),
+        )
+    }
+
+    pub fn greedy_build_option_choices(&self) -> Vec<super::semantic_candidates::BuildOptionInfo> {
+        self.greedy_build_option_choices
+            .lock()
+            .map(|choices| choices.clone())
+            .unwrap_or_default()
+    }
+
+    pub fn reset_greedy_build_option_usage(&self) {
+        self.greedy_build_option_decisions
+            .store(0, Ordering::Relaxed);
+        self.greedy_build_option_outside.store(0, Ordering::Relaxed);
+        if let Ok(mut choices) = self.greedy_build_option_choices.lock() {
+            choices.clear();
+        }
     }
 
     /// A BC run directory (`bc.json`) or a PPO iteration directory
@@ -1033,11 +1085,25 @@ impl SemanticPolicy {
         if path.join("ppo-actor.json").exists() {
             let device = default_policy_device();
             let (model, candidate_mode) = super::semantic_ppo::load_ppo_policy(path, &device)?;
-            return Ok(Self {
+            let mut policy = Self {
                 model,
                 device,
                 candidate_mode,
-            });
+                build_option_head: None,
+                build_option_greedy_from_a1: path
+                    .file_name()
+                    .is_some_and(|name| name == "iter-0000"),
+                greedy_build_option_decisions: Arc::new(AtomicUsize::new(0)),
+                greedy_build_option_outside: Arc::new(AtomicUsize::new(0)),
+                greedy_build_option_choices: Arc::new(Mutex::new(Vec::new())),
+            };
+            if candidate_mode == CandidateMode::BuildOptionA1Marginal {
+                policy.build_option_head = Some(super::semantic_ppo::load_build_option_head(
+                    path,
+                    &policy.device,
+                )?);
+            }
+            return Ok(policy);
         }
         Self::from_run_dir(path)
     }
@@ -1049,6 +1115,11 @@ impl SemanticPolicy {
             model,
             device,
             candidate_mode: metadata.config.candidate_mode,
+            build_option_head: None,
+            build_option_greedy_from_a1: false,
+            greedy_build_option_decisions: Arc::new(AtomicUsize::new(0)),
+            greedy_build_option_outside: Arc::new(AtomicUsize::new(0)),
+            greedy_build_option_choices: Arc::new(Mutex::new(Vec::new())),
         })
     }
 
@@ -1057,6 +1128,20 @@ impl SemanticPolicy {
     }
 
     pub fn log_probs(&self, decision: &EncodedDecision) -> Result<Vec<f32>> {
+        if self.candidate_mode == CandidateMode::BuildOptionA1Marginal
+            && decision.projection.is_some()
+        {
+            let head = self
+                .build_option_head
+                .as_ref()
+                .context("option-only policy is missing its BuildTower option head")?;
+            return super::policy_v2::build_option_log_probs(
+                &self.model,
+                head,
+                decision,
+                &self.device,
+            );
+        }
         let (log_probs, _) = batch_log_probs(&self.model, &[decision], &self.device);
         Ok(log_probs.into_data().to_vec::<f32>()?[..decision.candidates.len()].to_vec())
     }
@@ -1106,7 +1191,83 @@ impl SemanticPolicy {
             encoded,
         } = semantic_decision_with(environment, self.candidate_mode)?;
         let started = Instant::now();
-        let (index, log_probs) = self.choose_encoded(&encoded)?;
+        let (index, log_probs) = if self.candidate_mode == CandidateMode::BuildOptionA1Marginal
+            && let Some(projection) = &encoded.projection
+        {
+            let mut source = encoded.clone();
+            source.candidates = projection.source_candidates.clone();
+            source.legal_mask = projection.source_legal_mask.clone();
+            source.families = projection.source_families.clone();
+            source.projection = None;
+            let (source_index, _) = self.choose_encoded(&source)?;
+            let source_kind = projection.source_families[source_index] as usize;
+            let build_kind = crate::environment::ActionKind::BuildTower.index();
+            let log_probs = self.log_probs(&encoded)?;
+            let index = if source_kind == build_kind && self.build_option_greedy_from_a1 {
+                projection
+                    .output_members
+                    .iter()
+                    .position(|members| members.contains(&source_index))
+                    .context("A1' greedy BuildTower option is missing from dense options")?
+            } else if source_kind == build_kind {
+                log_probs
+                    .iter()
+                    .enumerate()
+                    .filter(|(candidate, _)| {
+                        legal_mask[*candidate]
+                            && candidates.candidates[*candidate].action.kind()
+                                == crate::environment::ActionKind::BuildTower
+                    })
+                    .max_by(|left, right| {
+                        left.1.total_cmp(right.1).then_with(|| right.0.cmp(&left.0))
+                    })
+                    .map(|(candidate, _)| candidate)
+                    .context("BuildTower source choice has no dense legal options")?
+            } else {
+                projection
+                    .output_members
+                    .iter()
+                    .position(|members| members.contains(&source_index))
+                    .context("A1' greedy non-Build action is missing from option projection")?
+            };
+            (index, log_probs)
+        } else if self.candidate_mode == CandidateMode::FullPositionA1Marginal
+            && let Some(projection) = &encoded.projection
+        {
+            // Preserve A1's deterministic non-position choice. The PPO
+            // distribution is the exact marginal of A1's Top8 probabilities
+            // over each option, but argmax(sum(option mass)) need not equal
+            // the projection of argmax(single Top8 action). Greedy evaluation
+            // freezes that latter choice and delegates only the cell to the
+            // full-position conditional head.
+            let mut source = encoded.clone();
+            source.candidates = projection.source_candidates.clone();
+            source.legal_mask = projection.source_legal_mask.clone();
+            source.families = projection.source_families.clone();
+            source.projection = None;
+            let (source_index, _) = self.choose_encoded(&source)?;
+            let index = projection
+                .output_members
+                .iter()
+                .position(|members| members.contains(&source_index))
+                .context("A1' greedy candidate is missing from its option projection")?;
+            (index, self.log_probs(&encoded)?)
+        } else {
+            self.choose_encoded(&encoded)?
+        };
+        if self.candidate_mode == CandidateMode::BuildOptionA1Marginal
+            && let Some(Some(option)) = candidates.build_option_info.get(index)
+        {
+            self.greedy_build_option_decisions
+                .fetch_add(1, Ordering::Relaxed);
+            if option.outside_v1_top8 {
+                self.greedy_build_option_outside
+                    .fetch_add(1, Ordering::Relaxed);
+            }
+            if let Ok(mut choices) = self.greedy_build_option_choices.lock() {
+                choices.push(option.clone());
+            }
+        }
         let cell = match candidates.cells(environment, index) {
             Some(cells) => {
                 let (cell, _) = self.choose_cell(&encoded, index, &cells)?;
@@ -1163,11 +1324,29 @@ pub fn semantic_decision_with(
             environment.state_hash()
         );
     }
-    let encoded = encode_decision(
-        &candidates.observation,
-        &candidates.candidates,
-        legal_mask.clone(),
-    );
+    let encoded = match &candidates.a1_marginal {
+        Some(projection) => {
+            let source_legal_mask = environment.semantic_actions_are_legal(
+                &projection
+                    .source_candidates
+                    .iter()
+                    .map(|candidate| &candidate.action)
+                    .collect::<Vec<_>>(),
+            );
+            super::semantic_candidates::encode_projected_decision(
+                &candidates.observation,
+                &candidates.candidates,
+                legal_mask.clone(),
+                projection,
+                source_legal_mask,
+            )
+        }
+        None => encode_decision(
+            &candidates.observation,
+            &candidates.candidates,
+            legal_mask.clone(),
+        ),
+    };
     Ok(SemanticDecision {
         candidates,
         legal_mask,

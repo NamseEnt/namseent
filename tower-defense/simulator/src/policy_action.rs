@@ -123,6 +123,17 @@ impl PolicyActionSpace {
         Self { layout, legal_mask }
     }
 
+    /// Dense BuildTower score table used to construct this action space.
+    /// Callers that build higher-level semantic options can inspect the same
+    /// table while still consulting `legal_mask`/`action_to_index` here as the
+    /// authoritative action contract.
+    pub fn dense_build_table(&self) -> Option<&DenseBuildTowerScoreTable> {
+        match &self.layout {
+            Layout::CardDecision { build_table, .. } => Some(build_table),
+            Layout::Other { .. } => None,
+        }
+    }
+
     pub fn action_count(&self) -> usize {
         self.legal_mask.len()
     }

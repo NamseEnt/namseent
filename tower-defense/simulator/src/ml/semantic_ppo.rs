@@ -20,7 +20,7 @@ use super::encoding::{PaddedEntityBatch, observation::ENTITY_SET_COUNT};
 use super::feature_contract::{InputContract, apply_contract};
 use super::model::{
     DeepSetsActorCritic, InferenceBackend, ModelConfig, PolicyDevice, TrainBackend,
-    default_policy_device, model_to_full_precision_bytes, tensor_from_rows,
+    TypedCandidateScorer, default_policy_device, model_to_full_precision_bytes, tensor_from_rows,
 };
 use super::neural_checkpoint::current_git_revision;
 use super::phase4_dataset::{
@@ -28,21 +28,22 @@ use super::phase4_dataset::{
 };
 use super::phase4_eval::{EvalPolicy, PairedComparison, PolicySummary, evaluate_policies};
 use super::policy_v2::{
-    KindMode, POLICY_REPRESENTATION_VERSION, PolicyNet, factorized_log_probs, module_to_bytes,
+    KindMode, POLICY_REPRESENTATION_VERSION, PolicyNet, SpatialCellHead, factorized_log_probs,
+    module_to_bytes,
 };
 use super::semantic_bc::{
     BcCheckpointMetadata, SemanticDecision, SemanticPolicy, batch_log_probs, load_model_file,
     load_policy_file, load_selected_model, sample_masked, semantic_decision_with,
 };
 use super::semantic_candidates::{
-    CandidateMode, EncodedDecision, POLICY_CANDIDATE_SET_VERSION,
+    BuildOptionInfo, CandidateMode, EncodedDecision, POLICY_CANDIDATE_SET_VERSION,
     SEMANTIC_CANDIDATE_ENCODER_VERSION, encode_decision,
 };
 use super::spatial::CellSet;
 use crate::config::GameConfig;
 use crate::environment::{DecisionPoint, GameEnvironment};
 use anyhow::{Context, Result, bail};
-use burn::module::AutodiffModule;
+use burn::module::{AutodiffModule, Module};
 use burn::optim::adaptor::OptimizerAdaptor;
 use burn::optim::grad_clipping::GradientClippingConfig;
 use burn::optim::{Adam, AdamConfig, GradientsParams, Optimizer};
@@ -82,6 +83,18 @@ pub const TRACKED_ACTION_KINDS: [&str; 12] = [
 
 type ActorCriticOptimizer = OptimizerAdaptor<Adam, DeepSetsActorCritic<TrainBackend>, TrainBackend>;
 type PolicyOptimizer = OptimizerAdaptor<Adam, PolicyNet<TrainBackend>, TrainBackend>;
+type SpatialCellOptimizer = OptimizerAdaptor<Adam, SpatialCellHead<TrainBackend>, TrainBackend>;
+type BuildOptionOptimizer =
+    OptimizerAdaptor<Adam, TypedCandidateScorer<TrainBackend>, TrainBackend>;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum ActorUpdateMode {
+    #[default]
+    Full,
+    PositionOnly,
+    BuildOptionOnly,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
@@ -127,6 +140,8 @@ pub struct PpoConfig {
     /// continuation run never replays another run's training games.
     #[serde(default)]
     pub train_seed_block_offset: usize,
+    #[serde(default)]
+    pub actor_update_mode: ActorUpdateMode,
 }
 
 impl Default for PpoConfig {
@@ -151,6 +166,7 @@ impl Default for PpoConfig {
             candidate_entropy_coefficient: 0.0,
             seed: 0,
             train_seed_block_offset: 0,
+            actor_update_mode: ActorUpdateMode::Full,
         }
     }
 }
@@ -300,6 +316,30 @@ pub fn actor_log_prob_vectors(
     Ok(result)
 }
 
+fn policy_log_prob_vectors(
+    actor: &PolicyNet<InferenceBackend>,
+    option_head: Option<&TypedCandidateScorer<InferenceBackend>>,
+    mode: CandidateMode,
+    decisions: &[&EncodedDecision],
+    device: &PolicyDevice,
+) -> Result<Vec<Vec<f32>>> {
+    if mode != CandidateMode::BuildOptionA1Marginal {
+        return actor_log_prob_vectors(actor, decisions, device);
+    }
+    let head = option_head.context("option-only policy is missing its option head")?;
+    decisions
+        .iter()
+        .map(|decision| {
+            if decision.projection.is_some() {
+                super::policy_v2::build_option_log_probs(actor, head, decision, device)
+            } else {
+                let (log_probs, _) = batch_log_probs(actor, &[*decision], device);
+                Ok(log_probs.into_data().to_vec::<f32>()?[..decision.candidates.len()].to_vec())
+            }
+        })
+        .collect()
+}
+
 fn entropy_of(log_probs: &[f32], legal_mask: &[bool]) -> f32 {
     log_probs
         .iter()
@@ -343,6 +383,33 @@ pub struct Transition {
     pub matches_canonical: bool,
     /// Set when the chosen candidate is a spatial option.
     pub spatial: Option<SpatialStep>,
+    /// Selected dense BuildTower `(subset, slot)` and its v1 proposal rank.
+    pub build_option: Option<BuildOptionChoice>,
+    pub build_option_conditional_index: Option<usize>,
+    pub old_build_option_log_prob: Option<f32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BuildOptionChoice {
+    pub subset_index: usize,
+    pub card_ids: Vec<usize>,
+    pub hand_slot_index: usize,
+    pub heuristic_rank: usize,
+    pub best_position_index: usize,
+    pub outside_v1_top8: bool,
+}
+
+impl From<&BuildOptionInfo> for BuildOptionChoice {
+    fn from(value: &BuildOptionInfo) -> Self {
+        Self {
+            subset_index: value.subset_index,
+            card_ids: value.card_ids.clone(),
+            hand_slot_index: value.hand_slot_index,
+            heuristic_rank: value.heuristic_rank,
+            best_position_index: value.best_position_index,
+            outside_v1_top8: value.outside_v1_top8,
+        }
+    }
 }
 
 /// The cell step below a spatial option.
@@ -457,6 +524,30 @@ pub fn rollout_episode(
     greedy: bool,
     mode: CandidateMode,
 ) -> Result<EpisodeRollout> {
+    rollout_episode_with_build_option_head(
+        actor,
+        None,
+        device,
+        config,
+        game_seed,
+        sample_seed,
+        reward_scale,
+        greedy,
+        mode,
+    )
+}
+
+pub fn rollout_episode_with_build_option_head(
+    actor: &PolicyNet<InferenceBackend>,
+    build_option_head: Option<&super::model::TypedCandidateScorer<InferenceBackend>>,
+    device: &PolicyDevice,
+    config: Arc<GameConfig>,
+    game_seed: u64,
+    sample_seed: u64,
+    reward_scale: f32,
+    greedy: bool,
+    mode: CandidateMode,
+) -> Result<EpisodeRollout> {
     let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(sample_seed);
     let mut environment = GameEnvironment::new(config, game_seed);
     let initial_clear_rate = environment.clear_rate();
@@ -483,9 +574,9 @@ pub fn rollout_episode(
         decision_seconds += started.elapsed().as_secs_f64();
         let started = Instant::now();
         let factorized = factorized_log_probs(actor, &[&encoded], device);
-        let log_probs = factorized.joint.into_data().to_vec::<f32>()?[..legal_mask.len()].to_vec();
         let family_entropy = factorized
             .kind
+            .clone()
             .into_data()
             .to_vec::<f32>()?
             .iter()
@@ -493,9 +584,17 @@ pub fn rollout_episode(
             .filter(|(_, present)| **present)
             .map(|(log_prob, _)| -log_prob.exp() * log_prob)
             .sum::<f32>();
+        let log_probs =
+            if mode == CandidateMode::BuildOptionA1Marginal && encoded.projection.is_some() {
+                let head =
+                    build_option_head.context("option-only rollout is missing its option head")?;
+                super::policy_v2::build_option_log_probs(actor, head, &encoded, device)?
+            } else {
+                factorized.joint.clone().into_data().to_vec::<f32>()?[..legal_mask.len()].to_vec()
+            };
         forward_seconds += started.elapsed().as_secs_f64();
-        if log_probs.iter().any(|value| value.is_nan()) {
-            bail!("seed {game_seed}: NaN actor log-probability");
+        if log_probs.iter().any(|value| !value.is_finite()) {
+            bail!("seed {game_seed}: non-finite actor log-probability");
         }
         let u: f64 = rng.r#gen();
         let greedy_choice = greedy_index(&log_probs, &legal_mask).context("no legal candidate")?;
@@ -557,6 +656,32 @@ pub fn rollout_episode(
             action_mismatches += 1;
         }
         let matches_canonical = action == candidates.canonical_action;
+        let build_option = candidates
+            .build_option_info
+            .get(action_index)
+            .and_then(Option::as_ref)
+            .map(BuildOptionChoice::from);
+        let build_option_conditional_index = Some(
+            candidates
+                .build_option_info
+                .iter()
+                .take(action_index)
+                .filter(|option| option.is_some())
+                .count(),
+        )
+        .filter(|_| build_option.is_some());
+        let old_build_option_log_prob = build_option.as_ref().map(|_| {
+            let build_kind = crate::environment::ActionKind::BuildTower.index();
+            let kind_log_prob = factorized
+                .kind
+                .clone()
+                .into_data()
+                .to_vec::<f32>()
+                .ok()
+                .and_then(|values| values.get(build_kind).copied())
+                .unwrap_or(0.0);
+            old_log_prob - kind_log_prob
+        });
         let mut spatial = spatial;
         if let Some(step) = spatial.as_mut() {
             step.outside_v1_top8 = !candidates.v1_top8.contains(&action);
@@ -586,6 +711,9 @@ pub fn rollout_episode(
             init_log_probs: Vec::new(),
             matches_canonical,
             spatial,
+            build_option,
+            build_option_conditional_index,
+            old_build_option_log_prob,
             encoded,
         });
         match end {
@@ -664,6 +792,8 @@ pub struct UpdateStats {
     pub normalized_candidate_entropy: f64,
     #[serde(default)]
     pub normalized_cell_entropy: f64,
+    #[serde(default)]
+    pub position_entropy_contribution: f64,
     pub mean_actor_grad_norm: f64,
     pub max_actor_grad_norm: f64,
     pub mean_critic_grad_norm: f64,
@@ -677,6 +807,9 @@ pub struct PpoLearner {
     pub actor: PolicyNet<TrainBackend>,
     pub critic: DeepSetsActorCritic<TrainBackend>,
     pub actor_optimizer: PolicyOptimizer,
+    pub spatial_cell_optimizer: SpatialCellOptimizer,
+    pub build_option_head: Box<TypedCandidateScorer<TrainBackend>>,
+    pub build_option_optimizer: BuildOptionOptimizer,
     pub critic_optimizer: ActorCriticOptimizer,
     pub critic_inputs: CriticInputs,
     pub device: PolicyDevice,
@@ -697,10 +830,14 @@ impl PpoLearner {
         critic_inputs: CriticInputs,
         config: &PpoConfig,
     ) -> Self {
+        let build_option_head = actor.scorer.typed_candidate_scorer();
         Self {
             actor,
             critic,
             actor_optimizer: new_optimizer(config.max_grad_norm),
+            spatial_cell_optimizer: new_optimizer(config.max_grad_norm),
+            build_option_head: Box::new(build_option_head),
+            build_option_optimizer: new_optimizer(config.max_grad_norm),
             critic_optimizer: new_optimizer(config.max_grad_norm),
             critic_inputs,
             device: default_policy_device(),
@@ -753,6 +890,7 @@ struct ActorTerms {
     normalized_family_entropy: f32,
     normalized_candidate_entropy: f32,
     normalized_cell_entropy: f32,
+    position_entropy_contribution: f32,
     kl_to_init: f32,
     approx_kl: f32,
     clip_fraction: f32,
@@ -762,14 +900,14 @@ struct ActorTerms {
 /// entropy over `ln(families with a legal candidate)`, and the expected
 /// candidate-head entropy `sum_f P(f) H(candidate | f) / ln(n_f)`. A head with
 /// at most one legal choice contributes 0.
-fn normalized_head_entropies(
-    factorized: &super::policy_v2::FactorizedLogProbs<TrainBackend>,
-    valid: Tensor<TrainBackend, 2>,
-    device: &PolicyDevice,
-) -> (Tensor<TrainBackend, 2>, Tensor<TrainBackend, 2>) {
+fn normalized_head_entropies<B: Backend>(
+    factorized: &super::policy_v2::FactorizedLogProbs<B>,
+    valid: Tensor<B, 2>,
+    device: &B::Device,
+) -> (Tensor<B, 2>, Tensor<B, 2>) {
     use super::policy_v2::FAMILY_COUNT;
     let groups = factorized.present.len() / FAMILY_COUNT;
-    let present = Tensor::<TrainBackend, 2>::from_data(
+    let present = Tensor::<B, 2>::from_data(
         TensorData::new(
             factorized
                 .present
@@ -787,7 +925,7 @@ fn normalized_head_entropies(
             0.0
         }
     };
-    let family_scale = Tensor::<TrainBackend, 2>::from_data(
+    let family_scale = Tensor::<B, 2>::from_data(
         TensorData::new(
             factorized
                 .present
@@ -798,7 +936,7 @@ fn normalized_head_entropies(
         ),
         device,
     );
-    let candidate_scale = Tensor::<TrainBackend, 2>::from_data(
+    let candidate_scale = Tensor::<B, 2>::from_data(
         TensorData::new(
             factorized
                 .family_counts
@@ -839,10 +977,139 @@ struct SpatialCellTerms {
     kl_to_init: Tensor<TrainBackend, 2>,
 }
 
+#[derive(Clone, Copy)]
+struct FrozenPolicyMetrics {
+    entropy: f32,
+    normalized_family_entropy: f32,
+    normalized_candidate_entropy: f32,
+    kl_to_init: f32,
+}
+
+/// Per-iteration cache for data that cannot change during position-only PPO.
+/// Frozen policy probabilities and scorer contexts are computed once on the
+/// inference backend, then reused by all four PPO epochs.
+struct PositionOnlyCache {
+    metrics: Vec<FrozenPolicyMetrics>,
+    context_row_by_transition: Vec<Option<usize>>,
+    context_width: usize,
+    context_values: Vec<f32>,
+}
+
+impl PositionOnlyCache {
+    fn new(
+        actor: &PolicyNet<InferenceBackend>,
+        transitions: &[Transition],
+        config: &PpoConfig,
+        device: &PolicyDevice,
+    ) -> Result<Self> {
+        let mut metrics = Vec::with_capacity(transitions.len());
+        for chunk in transitions.chunks(INFERENCE_BATCH_SIZE) {
+            let decisions = chunk.iter().map(|step| &step.encoded).collect::<Vec<_>>();
+            let factorized = factorized_log_probs(actor, &decisions, device);
+            let groups = &factorized.groups;
+            let rows = chunk.len();
+            let width = groups.width();
+            let valid_values = (0..rows)
+                .flat_map(|row| {
+                    (0..width).map(move |column| groups.is_valid(row, column) as u8 as f32)
+                })
+                .collect::<Vec<_>>();
+            let valid = Tensor::<InferenceBackend, 2>::from_data(
+                TensorData::new(valid_values.clone(), [rows, width]),
+                device,
+            );
+            let (normalized_family, normalized_candidate) =
+                normalized_head_entropies(&factorized, valid, device);
+            let normalized_family = normalized_family.into_data().to_vec::<f32>()?;
+            let normalized_candidate = normalized_candidate.into_data().to_vec::<f32>()?;
+            let joint = factorized.joint.into_data().to_vec::<f32>()?;
+            for (row, transition) in chunk.iter().enumerate() {
+                let mut entropy = 0.0f32;
+                let mut kl_to_init = 0.0f32;
+                for column in 0..transition.encoded.candidates.len() {
+                    if !transition.encoded.legal_mask[column] {
+                        continue;
+                    }
+                    let log_prob = joint[row * width + column];
+                    let probability = log_prob.exp();
+                    entropy -= probability * log_prob;
+                    if config.kl_to_init_coefficient > 0.0 {
+                        let initial = transition
+                            .init_log_probs
+                            .get(column)
+                            .copied()
+                            .filter(|value| value.is_finite() && *value > -1.0e8)
+                            .unwrap_or(0.0);
+                        kl_to_init += probability * (log_prob - initial);
+                    }
+                }
+                metrics.push(FrozenPolicyMetrics {
+                    entropy,
+                    normalized_family_entropy: normalized_family[row],
+                    normalized_candidate_entropy: normalized_candidate[row],
+                    kl_to_init,
+                });
+            }
+        }
+
+        let spatial_indices = transitions
+            .iter()
+            .enumerate()
+            .filter_map(|(index, step)| step.spatial.as_ref().map(|_| index))
+            .collect::<Vec<_>>();
+        let context_row_by_transition = {
+            let mut rows = vec![None; transitions.len()];
+            for (row, transition_index) in spatial_indices.iter().enumerate() {
+                rows[*transition_index] = Some(row);
+            }
+            rows
+        };
+        let context_values_and_width = if spatial_indices.is_empty() {
+            (Vec::new(), 0)
+        } else {
+            let decisions = spatial_indices
+                .iter()
+                .map(|index| &transitions[*index].encoded)
+                .collect::<Vec<_>>();
+            let options = spatial_indices
+                .iter()
+                .map(|index| transitions[*index].action_index)
+                .collect::<Vec<_>>();
+            let contexts = super::policy_v2::cell_contexts(actor, &decisions, &options, device);
+            let width = contexts.dims()[1];
+            (contexts.into_data().to_vec::<f32>()?, width)
+        };
+
+        Ok(Self {
+            metrics,
+            context_row_by_transition,
+            context_width: context_values_and_width.1,
+            context_values: context_values_and_width.0,
+        })
+    }
+
+    fn batch_context(&self, transition_indices: &[usize]) -> Option<Vec<f32>> {
+        let rows = transition_indices
+            .iter()
+            .filter_map(|index| self.context_row_by_transition[*index])
+            .collect::<Vec<_>>();
+        if rows.is_empty() {
+            return None;
+        }
+        let mut values = Vec::with_capacity(rows.len() * self.context_width);
+        for row in rows {
+            let start = row * self.context_width;
+            values.extend_from_slice(&self.context_values[start..start + self.context_width]);
+        }
+        Some(values)
+    }
+}
+
 fn spatial_cell_terms(
     actor: &PolicyNet<TrainBackend>,
     batch: &[&Transition],
     device: &PolicyDevice,
+    cached_context: Option<(&[f32], usize)>,
 ) -> Result<Option<SpatialCellTerms>> {
     let spatial = batch
         .iter()
@@ -864,8 +1131,15 @@ fn spatial_cell_terms(
         .iter()
         .map(|(_, _, spatial)| &spatial.cells)
         .collect::<Vec<_>>();
-    let (log_probs, lengths) =
-        super::policy_v2::cell_log_probs(actor, &decisions, &options, &cell_sets, device);
+    let (log_probs, lengths) = if let Some((values, context_width)) = cached_context {
+        let context = Tensor::<TrainBackend, 2>::from_data(
+            TensorData::new(values.to_vec(), [spatial.len(), context_width]),
+            device,
+        );
+        super::policy_v2::cell_log_probs_from_context(actor, &context, &cell_sets, device)
+    } else {
+        super::policy_v2::cell_log_probs(actor, &decisions, &options, &cell_sets, device)
+    };
     let count = spatial.len();
     let width = log_probs.dims()[1];
     let valid = Tensor::<TrainBackend, 2>::from_data(
@@ -959,7 +1233,7 @@ fn actor_terms(
         device,
     );
     let mut new_log_prob = log_probs.clone().gather(1, actions);
-    let cells = spatial_cell_terms(actor, batch, device)?;
+    let cells = spatial_cell_terms(actor, batch, device, None)?;
     if let Some(cells) = &cells {
         new_log_prob = new_log_prob.select_assign(
             0,
@@ -1014,13 +1288,23 @@ fn actor_terms(
         ),
         None => (entropy, Tensor::<TrainBackend, 1>::zeros([1], device)),
     };
-    let entropy_bonus = match config.entropy_scheme {
-        EntropyScheme::Joint => entropy.clone() * config.entropy_coefficient,
-        EntropyScheme::NormalizedPerHead => {
-            normalized_family.clone().mean() * config.entropy_coefficient
-                + (normalized_candidate.clone().mean() + normalized_cell.clone())
-                    * config.candidate_entropy_coefficient
+    let position_entropy_contribution = cells.as_ref().map_or_else(
+        || Tensor::<TrainBackend, 1>::zeros([1], device),
+        |cells| cells.entropy.clone().sum() / rows_f,
+    );
+    let entropy_bonus = match config.actor_update_mode {
+        ActorUpdateMode::PositionOnly => {
+            position_entropy_contribution.clone() * config.entropy_coefficient
         }
+        ActorUpdateMode::BuildOptionOnly => Tensor::<TrainBackend, 1>::zeros([1], device),
+        ActorUpdateMode::Full => match config.entropy_scheme {
+            EntropyScheme::Joint => entropy.clone() * config.entropy_coefficient,
+            EntropyScheme::NormalizedPerHead => {
+                normalized_family.clone().mean() * config.entropy_coefficient
+                    + (normalized_candidate.clone().mean() + normalized_cell.clone())
+                        * config.candidate_entropy_coefficient
+            }
+        },
     };
     let normalized_cell_entropy = normalized_cell.into_data().to_vec::<f32>()?[0];
     let normalized_family_entropy = normalized_family.mean().into_data().to_vec::<f32>()?[0];
@@ -1074,10 +1358,220 @@ fn actor_terms(
         normalized_family_entropy,
         normalized_candidate_entropy,
         normalized_cell_entropy,
+        position_entropy_contribution: position_entropy_contribution.into_data().to_vec::<f32>()?
+            [0],
         kl_to_init: kl_to_init_value,
         approx_kl,
         clip_fraction,
         loss,
+    })
+}
+
+fn build_option_actor_terms(
+    actor: &PolicyNet<TrainBackend>,
+    head: &TypedCandidateScorer<TrainBackend>,
+    batch: &[&Transition],
+    advantages: &[f32],
+    config: &PpoConfig,
+    device: &PolicyDevice,
+) -> Result<Option<ActorTerms>> {
+    let build_kind = crate::environment::ActionKind::BuildTower.index() as u8;
+    let mut selected_log_probs = Vec::new();
+    let mut distributions = Vec::new();
+    let mut old_values = Vec::new();
+    let mut selected_advantages = Vec::new();
+    for (transition, advantage) in batch.iter().zip(advantages) {
+        let (Some(option_index), Some(old_log_prob)) = (
+            transition.build_option_conditional_index,
+            transition.old_build_option_log_prob,
+        ) else {
+            continue;
+        };
+        let option_indices = transition
+            .encoded
+            .families
+            .iter()
+            .enumerate()
+            .filter_map(|(index, family)| (*family == build_kind).then_some(index))
+            .collect::<Vec<_>>();
+        if option_index >= option_indices.len() {
+            bail!("BuildTower option index is outside the legal option list");
+        }
+        let conditional = super::policy_v2::build_option_conditional_log_probs(
+            actor,
+            head,
+            &transition.encoded,
+            &option_indices,
+            device,
+        )?;
+        let target = Tensor::<TrainBackend, 2, Int>::from_data(
+            TensorData::new(vec![option_index as i64], [1, 1]),
+            device,
+        );
+        selected_log_probs.push(conditional.clone().gather(1, target).reshape([1]));
+        distributions.push(conditional);
+        old_values.push(old_log_prob);
+        selected_advantages.push(*advantage);
+    }
+    if selected_log_probs.is_empty() {
+        return Ok(None);
+    }
+    let rows = selected_log_probs.len();
+    let new_log_prob = Tensor::cat(selected_log_probs, 0).reshape([rows, 1]);
+    let old_log_prob =
+        Tensor::<TrainBackend, 2>::from_data(TensorData::new(old_values, [rows, 1]), device);
+    let advantage = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(selected_advantages, [rows, 1]),
+        device,
+    );
+    let log_ratio = new_log_prob - old_log_prob;
+    let ratio = log_ratio.clone().exp();
+    let clipped = ratio
+        .clone()
+        .clamp(1.0 - config.clip_epsilon, 1.0 + config.clip_epsilon);
+    let policy_loss = -((ratio.clone() * advantage.clone()).min_pair(clipped * advantage)).mean();
+    let entropies = distributions
+        .iter()
+        .map(|distribution| {
+            let probabilities = distribution.clone().exp();
+            -(probabilities * distribution.clone()).sum_dim(1)
+        })
+        .collect::<Vec<_>>();
+    let entropy = Tensor::cat(entropies, 0).mean();
+    let loss = policy_loss.clone() - entropy.clone() * config.entropy_coefficient;
+    let ratio_values = ratio.into_data().to_vec::<f32>()?;
+    let log_ratio_values = log_ratio.into_data().to_vec::<f32>()?;
+    let approx_kl = ratio_values
+        .iter()
+        .zip(&log_ratio_values)
+        .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
+        .sum::<f32>()
+        / rows as f32;
+    let clip_fraction = ratio_values
+        .iter()
+        .filter(|ratio| (**ratio - 1.0).abs() > config.clip_epsilon)
+        .count() as f32
+        / rows as f32;
+    Ok(Some(ActorTerms {
+        loss,
+        policy_loss: policy_loss.into_data().to_vec::<f32>()?[0],
+        entropy: entropy.into_data().to_vec::<f32>()?[0],
+        normalized_family_entropy: 0.0,
+        normalized_candidate_entropy: 0.0,
+        normalized_cell_entropy: 0.0,
+        position_entropy_contribution: 0.0,
+        kl_to_init: 0.0,
+        approx_kl,
+        clip_fraction,
+    }))
+}
+
+fn position_only_actor_terms(
+    actor: &PolicyNet<TrainBackend>,
+    batch: &[&Transition],
+    advantages: &[f32],
+    config: &PpoConfig,
+    device: &PolicyDevice,
+    frozen_metrics: &[FrozenPolicyMetrics],
+    cached_context: &[f32],
+    context_width: usize,
+) -> Result<ActorTerms> {
+    let rows = batch.len();
+    let cells = spatial_cell_terms(actor, batch, device, Some((cached_context, context_width)))?
+        .context("position-only minibatch had no spatial decisions")?;
+    let old_cell = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(
+            batch
+                .iter()
+                .filter_map(|step| {
+                    step.spatial
+                        .as_ref()
+                        .map(|spatial| spatial.behavior_log_probs[spatial.cell])
+                })
+                .collect::<Vec<_>>(),
+            [cells.rows.dims()[0], 1],
+        ),
+        device,
+    );
+    let cell_log_ratio = cells.chosen.clone() - old_cell;
+    let mut log_ratio = Tensor::<TrainBackend, 2>::zeros([rows, 1], device);
+    log_ratio = log_ratio.select_assign(
+        0,
+        cells.rows.clone(),
+        cell_log_ratio,
+        burn::tensor::IndexingUpdateOp::Add,
+    );
+    let ratio = log_ratio.clone().exp();
+    let clipped = ratio
+        .clone()
+        .clamp(1.0 - config.clip_epsilon, 1.0 + config.clip_epsilon);
+    let advantage = Tensor::<TrainBackend, 2>::from_data(
+        TensorData::new(advantages.to_vec(), [rows, 1]),
+        device,
+    );
+    let policy_loss = -((ratio.clone() * advantage.clone()).min_pair(clipped * advantage)).mean();
+    let position_entropy = cells.entropy.clone().sum() / rows as f32;
+    let normalized_cell = cells.normalized_entropy.clone().sum() / rows as f32;
+    let frozen_entropy = frozen_metrics
+        .iter()
+        .map(|metric| metric.entropy)
+        .sum::<f32>()
+        / rows as f32;
+    let entropy_value = frozen_entropy + position_entropy.clone().into_data().to_vec::<f32>()?[0];
+    let normalized_family_entropy = frozen_metrics
+        .iter()
+        .map(|metric| metric.normalized_family_entropy)
+        .sum::<f32>()
+        / rows as f32;
+    let normalized_candidate_entropy = frozen_metrics
+        .iter()
+        .map(|metric| metric.normalized_candidate_entropy)
+        .sum::<f32>()
+        / rows as f32;
+    let kl_to_init_value = frozen_metrics
+        .iter()
+        .map(|metric| metric.kl_to_init)
+        .sum::<f32>()
+        / rows as f32
+        + cells.kl_to_init.clone().sum().into_data().to_vec::<f32>()?[0] / rows as f32;
+    let loss = policy_loss.clone() - position_entropy.clone() * config.entropy_coefficient
+        + (Tensor::<TrainBackend, 1>::from_data(
+            TensorData::new(
+                [frozen_metrics
+                    .iter()
+                    .map(|metric| metric.kl_to_init)
+                    .sum::<f32>()
+                    / rows as f32]
+                .to_vec(),
+                [1],
+            ),
+            device,
+        ) + cells.kl_to_init.clone().sum() / rows as f32)
+            * config.kl_to_init_coefficient;
+    let ratio_values = ratio.into_data().to_vec::<f32>()?;
+    let log_ratio_values = log_ratio.into_data().to_vec::<f32>()?;
+    let approx_kl = ratio_values
+        .iter()
+        .zip(&log_ratio_values)
+        .map(|(ratio, log_ratio)| (ratio - 1.0) - log_ratio)
+        .sum::<f32>()
+        / rows as f32;
+    let clip_fraction = ratio_values
+        .iter()
+        .filter(|ratio| (**ratio - 1.0).abs() > config.clip_epsilon)
+        .count() as f32
+        / rows as f32;
+    Ok(ActorTerms {
+        loss,
+        policy_loss: policy_loss.into_data().to_vec::<f32>()?[0],
+        entropy: entropy_value,
+        normalized_family_entropy,
+        normalized_candidate_entropy,
+        normalized_cell_entropy: normalized_cell.into_data().to_vec::<f32>()?[0],
+        position_entropy_contribution: position_entropy.into_data().to_vec::<f32>()?[0],
+        kl_to_init: kl_to_init_value,
+        approx_kl,
+        clip_fraction,
     })
 }
 
@@ -1110,6 +1604,21 @@ impl PpoLearner {
                 *value = (*value - mean) / std;
             }
         }
+        // In position-only mode the non-position actor is invariant. Compute
+        // its metrics and the scorer context once on the inference backend;
+        // differentiating or recomputing these branches in every PPO epoch
+        // cannot affect the update.
+        let position_cache =
+            if update_actor && config.actor_update_mode == ActorUpdateMode::PositionOnly {
+                Some(PositionOnlyCache::new(
+                    &self.actor_inference(),
+                    transitions,
+                    config,
+                    &self.device,
+                )?)
+            } else {
+                None
+            };
         let mut sums = [0.0f64; 8];
         let mut actor_steps = 0usize;
         let mut critic_steps = 0usize;
@@ -1137,44 +1646,137 @@ impl PpoLearner {
                     .collect::<Vec<_>>();
                 stats.minibatches += 1;
                 if update_actor {
-                    let terms =
-                        actor_terms(&self.actor, &batch, &batch_advantages, config, &self.device)?;
-                    let finite = [
-                        terms.policy_loss,
-                        terms.entropy,
-                        terms.approx_kl,
-                        terms.kl_to_init,
-                    ]
-                    .iter()
-                    .all(|value| value.is_finite());
-                    if finite {
-                        let gradients =
-                            GradientsParams::from_grads(terms.loss.backward(), &self.actor);
-                        let norm = super::ppo::gradient_l2_norm(&self.actor, &gradients);
-                        if norm.is_finite() {
-                            self.actor = self.actor_optimizer.step(
-                                config.actor_learning_rate,
-                                self.actor.clone(),
-                                gradients,
-                            );
-                            actor_steps += 1;
-                            actor_grad_sum += norm as f64;
-                            stats.max_actor_grad_norm = stats.max_actor_grad_norm.max(norm as f64);
-                            sums[0] += terms.policy_loss as f64;
-                            sums[1] += terms.entropy as f64;
-                            sums[2] += terms.approx_kl as f64;
-                            sums[3] += terms.clip_fraction as f64;
-                            sums[4] += terms.kl_to_init as f64;
-                            sums[5] += terms.normalized_family_entropy as f64;
-                            sums[6] += terms.normalized_candidate_entropy as f64;
-                            sums[7] += terms.normalized_cell_entropy as f64;
-                            epoch_kl += terms.approx_kl as f64;
-                            epoch_batches += 1;
+                    let terms = match config.actor_update_mode {
+                        ActorUpdateMode::Full => Some(actor_terms(
+                            &self.actor,
+                            &batch,
+                            &batch_advantages,
+                            config,
+                            &self.device,
+                        )?),
+                        ActorUpdateMode::PositionOnly => {
+                            let cache = position_cache
+                                .as_ref()
+                                .context("position-only cache was not initialized")?;
+                            if batch.iter().all(|step| step.spatial.is_none()) {
+                                None
+                            } else {
+                                let contexts = cache
+                                    .batch_context(chunk)
+                                    .context("spatial minibatch has no cached context")?;
+                                let frozen_metrics = chunk
+                                    .iter()
+                                    .map(|index| cache.metrics[*index])
+                                    .collect::<Vec<_>>();
+                                Some(position_only_actor_terms(
+                                    &self.actor,
+                                    &batch,
+                                    &batch_advantages,
+                                    config,
+                                    &self.device,
+                                    &frozen_metrics,
+                                    &contexts,
+                                    cache.context_width,
+                                )?)
+                            }
+                        }
+                        ActorUpdateMode::BuildOptionOnly => build_option_actor_terms(
+                            &self.actor,
+                            &self.build_option_head,
+                            &batch,
+                            &batch_advantages,
+                            config,
+                            &self.device,
+                        )?,
+                    };
+                    if let Some(terms) = terms {
+                        let finite = [
+                            terms.policy_loss,
+                            terms.entropy,
+                            terms.approx_kl,
+                            terms.kl_to_init,
+                        ]
+                        .iter()
+                        .all(|value| value.is_finite());
+                        if finite {
+                            let gradients = match config.actor_update_mode {
+                                ActorUpdateMode::Full => {
+                                    GradientsParams::from_grads(terms.loss.backward(), &self.actor)
+                                }
+                                ActorUpdateMode::PositionOnly => GradientsParams::from_grads(
+                                    terms.loss.backward(),
+                                    &self.actor.spatial_cell_head(),
+                                ),
+                                ActorUpdateMode::BuildOptionOnly => GradientsParams::from_grads(
+                                    terms.loss.backward(),
+                                    &*self.build_option_head,
+                                ),
+                            };
+                            let norm = match config.actor_update_mode {
+                                ActorUpdateMode::Full => {
+                                    super::ppo::gradient_l2_norm(&self.actor, &gradients)
+                                }
+                                ActorUpdateMode::PositionOnly => super::ppo::gradient_l2_norm(
+                                    &self.actor.spatial_cell_head(),
+                                    &gradients,
+                                ),
+                                ActorUpdateMode::BuildOptionOnly => super::ppo::gradient_l2_norm(
+                                    &*self.build_option_head,
+                                    &gradients,
+                                ),
+                            };
+                            if norm.is_finite() {
+                                match config.actor_update_mode {
+                                    ActorUpdateMode::Full => {
+                                        self.actor = self.actor_optimizer.step(
+                                            config.actor_learning_rate,
+                                            self.actor.clone(),
+                                            gradients,
+                                        );
+                                    }
+                                    ActorUpdateMode::PositionOnly => {
+                                        let head = self.actor.spatial_cell_head();
+                                        let head = self.spatial_cell_optimizer.step(
+                                            config.actor_learning_rate,
+                                            head,
+                                            gradients,
+                                        );
+                                        self.actor =
+                                            self.actor.clone().with_spatial_cell_head(head);
+                                    }
+                                    ActorUpdateMode::BuildOptionOnly => {
+                                        self.build_option_head = self
+                                            .build_option_optimizer
+                                            .step(
+                                                config.actor_learning_rate,
+                                                (*self.build_option_head).clone(),
+                                                gradients,
+                                            )
+                                            .into();
+                                    }
+                                }
+                                actor_steps += 1;
+                                actor_grad_sum += norm as f64;
+                                stats.max_actor_grad_norm =
+                                    stats.max_actor_grad_norm.max(norm as f64);
+                                sums[0] += terms.policy_loss as f64;
+                                sums[1] += terms.entropy as f64;
+                                sums[2] += terms.approx_kl as f64;
+                                sums[3] += terms.clip_fraction as f64;
+                                sums[4] += terms.kl_to_init as f64;
+                                sums[5] += terms.normalized_family_entropy as f64;
+                                sums[6] += terms.normalized_candidate_entropy as f64;
+                                sums[7] += terms.normalized_cell_entropy as f64;
+                                stats.position_entropy_contribution +=
+                                    terms.position_entropy_contribution as f64;
+                                epoch_kl += terms.approx_kl as f64;
+                                epoch_batches += 1;
+                            } else {
+                                stats.nonfinite_skips += 1;
+                            }
                         } else {
                             stats.nonfinite_skips += 1;
                         }
-                    } else {
-                        stats.nonfinite_skips += 1;
                     }
                 }
                 match self.critic_step(&batch, config.critic_learning_rate) {
@@ -1211,6 +1813,7 @@ impl PpoLearner {
         stats.normalized_family_entropy = sums[5] / actor_steps_f;
         stats.normalized_candidate_entropy = sums[6] / actor_steps_f;
         stats.normalized_cell_entropy = sums[7] / actor_steps_f;
+        stats.position_entropy_contribution /= actor_steps_f;
         stats.mean_actor_grad_norm = actor_grad_sum / actor_steps_f;
         stats.value_loss = value_loss_sum / critic_steps.max(1) as f64;
         stats.mean_critic_grad_norm = critic_grad_sum / critic_steps.max(1) as f64;
@@ -1608,6 +2211,12 @@ pub struct DevEvaluation {
     pub seeds: usize,
     pub summaries: Vec<PolicySummary>,
     pub comparisons: Vec<PairedComparisonSummary>,
+    #[serde(default)]
+    pub greedy_build_option_decisions: usize,
+    #[serde(default)]
+    pub greedy_build_option_outside_v1_top8: usize,
+    #[serde(default)]
+    pub greedy_build_option_choices: Vec<BuildOptionInfo>,
     pub wall_seconds: f64,
 }
 
@@ -1653,10 +2262,84 @@ pub struct IterationRecord {
     pub rollout_seconds: f64,
     pub update_seconds: f64,
     pub evaluation: Option<DevEvaluation>,
+    #[serde(default)]
+    pub position_episodes: Vec<PositionEpisodeRecord>,
+    #[serde(default)]
+    pub build_option_episodes: Vec<BuildOptionEpisodeRecord>,
+    #[serde(default)]
+    pub position_kl_to_init_after: f64,
+    #[serde(default)]
+    pub frozen_actor_invariant_passed: bool,
+    #[serde(default)]
+    pub position_head_changed: bool,
+    #[serde(default)]
+    pub build_option_head_changed: bool,
+    #[serde(default)]
+    pub sampled_outside_build_option_rate: f64,
+    #[serde(default)]
+    pub greedy_outside_build_option_rate: f64,
+    #[serde(default)]
+    pub option_entropy: f64,
+    #[serde(default)]
+    pub option_kl_to_init: f64,
+    #[serde(default)]
+    pub paired_dev_delta_vs_a1_prime: Option<f64>,
     /// Training budget consumed up to and including this iteration,
     /// including the parent run when continued from a PPO checkpoint.
     #[serde(default)]
     pub cumulative: TrainingBudget,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BuildOptionEpisodeRecord {
+    pub seed: u64,
+    pub terminal_clear_rate: f32,
+    pub build_decisions: usize,
+    pub outside_v1_top8_count: usize,
+    pub used_outside_v1_top8: bool,
+    pub selected_options: Vec<BuildOptionChoice>,
+}
+
+fn build_option_episode_record(episode: &EpisodeRollout) -> BuildOptionEpisodeRecord {
+    let selected_options = episode
+        .transitions
+        .iter()
+        .filter_map(|step| step.build_option.clone())
+        .collect::<Vec<_>>();
+    let outside_v1_top8_count = selected_options
+        .iter()
+        .filter(|option| option.outside_v1_top8)
+        .count();
+    BuildOptionEpisodeRecord {
+        seed: episode.seed,
+        terminal_clear_rate: episode.terminal_clear_rate,
+        build_decisions: selected_options.len(),
+        outside_v1_top8_count,
+        used_outside_v1_top8: outside_v1_top8_count > 0,
+        selected_options,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PositionEpisodeRecord {
+    pub seed: u64,
+    pub terminal_clear_rate: f32,
+    pub build_position_decisions: usize,
+    pub place_position_decisions: usize,
+    pub outside_top8_build_count: usize,
+    pub outside_top8_place_count: usize,
+    pub non_heuristic_best_count: usize,
+    pub used_outside_top8: bool,
+    pub selected_positions: Vec<PositionChoiceRecord>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PositionChoiceRecord {
+    pub kind: String,
+    pub left: u16,
+    pub top: u16,
+    pub heuristic_rank: usize,
+    pub outside_top8: bool,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -1739,6 +2422,8 @@ pub struct PpoRunMetadata {
     pub evaluate_every: usize,
     pub completed_iterations: usize,
     pub history: Vec<IterationRecord>,
+    #[serde(default)]
+    pub position_reference_actor: Option<String>,
 }
 
 fn iteration_dir(run_dir: &Path, iteration: usize) -> PathBuf {
@@ -1762,14 +2447,32 @@ fn write_checkpoint(
         model_to_full_precision_bytes(learner.critic_inference())?,
     )?;
     let recorder = BinFileRecorder::<FullPrecisionSettings>::default();
-    recorder.record(
-        learner.actor_optimizer.to_record(),
-        directory.join("actor-optimizer.bin"),
-    )?;
+    if metadata.config.actor_update_mode == ActorUpdateMode::PositionOnly {
+        recorder.record(
+            learner.spatial_cell_optimizer.to_record(),
+            directory.join("actor-optimizer.bin"),
+        )?;
+    } else if metadata.config.actor_update_mode == ActorUpdateMode::BuildOptionOnly {
+        recorder.record(
+            learner.build_option_optimizer.to_record(),
+            directory.join("actor-optimizer.bin"),
+        )?;
+    } else {
+        recorder.record(
+            learner.actor_optimizer.to_record(),
+            directory.join("actor-optimizer.bin"),
+        )?;
+    }
     recorder.record(
         learner.critic_optimizer.to_record(),
         directory.join("critic-optimizer.bin"),
     )?;
+    if metadata.config.actor_update_mode == ActorUpdateMode::BuildOptionOnly {
+        recorder.record(
+            (*learner.build_option_head).clone().into_record(),
+            directory.join("build-option-head.bin"),
+        )?;
+    }
     std::fs::write(
         directory.join("ppo-actor.json"),
         serde_json::to_vec_pretty(&PpoActorFile {
@@ -1876,13 +2579,47 @@ fn load_learner(
         load_model_file::<TrainBackend>(model_config, &directory.join("critic.bin"), &device)?;
     let mut learner = PpoLearner::new(actor, critic, critic_inputs, config);
     let recorder = BinFileRecorder::<FullPrecisionSettings>::default();
-    learner.actor_optimizer = learner
-        .actor_optimizer
-        .load_record(recorder.load(directory.join("actor-optimizer.bin"), &device)?);
+    if config.actor_update_mode == ActorUpdateMode::PositionOnly {
+        learner.spatial_cell_optimizer = learner
+            .spatial_cell_optimizer
+            .load_record(recorder.load(directory.join("actor-optimizer.bin"), &device)?);
+    } else if config.actor_update_mode == ActorUpdateMode::BuildOptionOnly {
+        learner.build_option_head = Box::new(
+            learner
+                .build_option_head
+                .load_record(recorder.load(directory.join("build-option-head.bin"), &device)?),
+        );
+        learner.build_option_optimizer = learner
+            .build_option_optimizer
+            .load_record(recorder.load(directory.join("actor-optimizer.bin"), &device)?);
+    } else {
+        learner.actor_optimizer = learner
+            .actor_optimizer
+            .load_record(recorder.load(directory.join("actor-optimizer.bin"), &device)?);
+    }
     learner.critic_optimizer = learner
         .critic_optimizer
         .load_record(recorder.load(directory.join("critic-optimizer.bin"), &device)?);
     Ok(learner)
+}
+
+pub fn load_build_option_head(
+    iteration_dir: &Path,
+    device: &PolicyDevice,
+) -> Result<TypedCandidateScorer<InferenceBackend>> {
+    load_build_option_head_as::<InferenceBackend>(iteration_dir, device)
+}
+
+pub fn load_build_option_head_as<B: Backend>(
+    iteration_dir: &Path,
+    device: &B::Device,
+) -> Result<TypedCandidateScorer<B>> {
+    let actor = load_ppo_actor_as::<B>(iteration_dir, device)?;
+    let recorder = BinFileRecorder::<FullPrecisionSettings>::default();
+    Ok(actor
+        .scorer
+        .typed_candidate_scorer()
+        .load_record(recorder.load(iteration_dir.join("build-option-head.bin"), device)?))
 }
 
 pub struct PpoRunInput {
@@ -1895,6 +2632,7 @@ pub struct PpoRunInput {
     pub iterations: usize,
     pub evaluate_every: usize,
     pub development_seeds: usize,
+    pub position_reference_actor: Option<PathBuf>,
 }
 
 fn train_seed_range(config: &PpoConfig, iteration: usize) -> Result<Vec<u64>> {
@@ -1922,6 +2660,7 @@ fn sample_seed(config: &PpoConfig, iteration: usize, game_seed: u64) -> u64 {
 pub fn collect_iteration(
     learner: &PpoLearner,
     init_actor: &PolicyNet<InferenceBackend>,
+    init_build_option_head: Option<&TypedCandidateScorer<InferenceBackend>>,
     config: &PpoConfig,
     game_config: Arc<GameConfig>,
     iteration: usize,
@@ -1930,13 +2669,16 @@ pub fn collect_iteration(
 ) -> Result<(Vec<EpisodeRollout>, RolloutStats)> {
     let wall_started = Instant::now();
     let actor = learner.actor_inference();
+    let build_option_head = (mode == CandidateMode::BuildOptionA1Marginal)
+        .then(|| (*learner.build_option_head).clone().valid());
     let critic = learner.critic_inference();
     let device = learner.device;
     let mut episodes = seeds
         .par_iter()
         .map(|seed| {
-            rollout_episode(
+            rollout_episode_with_build_option_head(
                 &actor,
+                build_option_head.as_ref(),
                 &device,
                 Arc::clone(&game_config),
                 *seed,
@@ -1959,8 +2701,14 @@ pub fn collect_iteration(
             .iter()
             .flat_map(|episode| episode.transitions.iter().map(|step| &step.encoded))
             .collect::<Vec<_>>();
-        let mut init_log_probs =
-            actor_log_prob_vectors(init_actor, &decisions, &device)?.into_iter();
+        let mut init_log_probs = policy_log_prob_vectors(
+            init_actor,
+            init_build_option_head,
+            mode,
+            &decisions,
+            &device,
+        )?
+        .into_iter();
         for episode in &mut episodes {
             for step in &mut episode.transitions {
                 step.init_log_probs = init_log_probs.next().expect("aligned init log-probs");
@@ -2162,6 +2910,80 @@ pub fn collect_iteration(
     Ok((episodes, stats))
 }
 
+fn position_episode_record(episode: &EpisodeRollout) -> PositionEpisodeRecord {
+    let mut build_position_decisions = 0;
+    let mut place_position_decisions = 0;
+    let mut outside_top8_build_count = 0;
+    let mut outside_top8_place_count = 0;
+    let mut non_heuristic_best_count = 0;
+    let mut selected_positions = Vec::new();
+    for transition in &episode.transitions {
+        let Some(spatial) = &transition.spatial else {
+            continue;
+        };
+        let (left, top) = spatial.cells.positions[spatial.cell];
+        let kind = transition.action_kind.clone();
+        let outside_top8 = spatial.outside_v1_top8;
+        match kind.as_str() {
+            "build_tower" => {
+                build_position_decisions += 1;
+                outside_top8_build_count += outside_top8 as usize;
+            }
+            "place_tower" => {
+                place_position_decisions += 1;
+                outside_top8_place_count += outside_top8 as usize;
+            }
+            _ => {}
+        }
+        non_heuristic_best_count += (spatial.cell != 0) as usize;
+        selected_positions.push(PositionChoiceRecord {
+            kind,
+            left,
+            top,
+            heuristic_rank: spatial.cell,
+            outside_top8,
+        });
+    }
+    PositionEpisodeRecord {
+        seed: episode.seed,
+        terminal_clear_rate: episode.terminal_clear_rate,
+        build_position_decisions,
+        place_position_decisions,
+        outside_top8_build_count,
+        outside_top8_place_count,
+        non_heuristic_best_count,
+        used_outside_top8: outside_top8_build_count + outside_top8_place_count > 0,
+        selected_positions,
+    }
+}
+
+fn position_kl_to_init(
+    actor: &PolicyNet<InferenceBackend>,
+    transitions: &[Transition],
+    device: &PolicyDevice,
+) -> Result<f64> {
+    let spatial = transitions
+        .iter()
+        .filter(|step| step.spatial.is_some())
+        .collect::<Vec<_>>();
+    if spatial.is_empty() {
+        return Ok(0.0);
+    }
+    let new_log_probs = spatial_cell_log_probs(actor, spatial.iter().copied(), device)?;
+    let total = spatial
+        .iter()
+        .zip(new_log_probs)
+        .map(|(step, new)| {
+            let spatial = step.spatial.as_ref().expect("spatial transition");
+            new.iter()
+                .zip(&spatial.init_log_probs)
+                .map(|(new, init)| new.exp() as f64 * (*new as f64 - *init as f64))
+                .sum::<f64>()
+        })
+        .sum::<f64>();
+    Ok(total / spatial.len() as f64)
+}
+
 fn mean_kl(left: &[Vec<f32>], right: &[Vec<f32>], masks: &[&[bool]]) -> f64 {
     let mut total = 0.0f64;
     for ((left, right), mask) in left.iter().zip(right).zip(masks) {
@@ -2190,9 +3012,19 @@ pub fn development_evaluation(
     iteration: usize,
     init: &SemanticPolicy,
     current: PolicyNet<InferenceBackend>,
+    current_build_option_head: Option<TypedCandidateScorer<InferenceBackend>>,
+    position_reference: Option<&SemanticPolicy>,
 ) -> Result<DevEvaluation> {
     let started = Instant::now();
     let seeds = split.seeds(Some(seed_count))?;
+    let current_policy = {
+        let policy = SemanticPolicy::new(current).with_candidate_mode(init.candidate_mode());
+        match current_build_option_head {
+            Some(head) => policy.with_build_option_head(head),
+            None => policy,
+        }
+    };
+    let current_policy_stats = current_policy.clone();
     let policies = vec![
         EvalPolicy::Canonical,
         EvalPolicy::Learned {
@@ -2201,17 +3033,29 @@ pub fn development_evaluation(
         },
         EvalPolicy::Learned {
             name: "ppo".to_string(),
-            policy: Box::new(
-                SemanticPolicy::new(current).with_candidate_mode(init.candidate_mode()),
-            ),
+            policy: Box::new(current_policy),
         },
     ];
-    let comparisons = vec![
+    let mut policies = policies;
+    if let Some(reference) = position_reference {
+        policies.push(EvalPolicy::Learned {
+            name: "a1_prime".to_string(),
+            policy: Box::new(reference.clone()),
+        });
+    }
+    let mut comparisons = vec![
         ("ppo".to_string(), "canonical".to_string()),
         ("ppo".to_string(), "bc_init".to_string()),
         ("bc_init".to_string(), "canonical".to_string()),
     ];
+    if position_reference.is_some() {
+        comparisons.push(("ppo".to_string(), "a1_prime".to_string()));
+        comparisons.push(("a1_prime".to_string(), "canonical".to_string()));
+    }
     let report = evaluate_policies(game_config, split.name(), &seeds, &policies, &comparisons)?;
+    let (greedy_build_option_decisions, greedy_build_option_outside_v1_top8) =
+        current_policy_stats.greedy_build_option_usage();
+    let greedy_build_option_choices = current_policy_stats.greedy_build_option_choices();
     Ok(DevEvaluation {
         iteration,
         split: split.name().to_string(),
@@ -2222,8 +3066,43 @@ pub fn development_evaluation(
             .iter()
             .map(PairedComparisonSummary::from)
             .collect(),
+        greedy_build_option_decisions,
+        greedy_build_option_outside_v1_top8,
+        greedy_build_option_choices,
         wall_seconds: started.elapsed().as_secs_f64(),
     })
+}
+
+fn audit_build_option_greedy_alignment(
+    game_config: Arc<GameConfig>,
+    seeds: &[u64],
+    a1: &SemanticPolicy,
+    option_policy: &SemanticPolicy,
+) -> Result<(usize, usize)> {
+    let mut decisions = 0usize;
+    let mut mismatches = 0usize;
+    for seed in seeds {
+        let mut environment = GameEnvironment::new(Arc::clone(&game_config), *seed);
+        while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+            let baseline = a1.choose(&environment)?;
+            let candidate = option_policy.choose(&environment)?;
+            let is_build = baseline.action.kind() == crate::environment::ActionKind::BuildTower;
+            let matches = if is_build {
+                super::spatial::SpatialAction::of(&baseline.action).map(|(option, _, _)| option)
+                    == super::spatial::SpatialAction::of(&candidate.action)
+                        .map(|(option, _, _)| option)
+            } else {
+                baseline.action == candidate.action
+            };
+            decisions += 1;
+            mismatches += (!matches) as usize;
+            let mut outcome = environment
+                .semantic_step(baseline.action)
+                .map_err(|error| anyhow::anyhow!("A1' audit action failed: {error:?}"))?;
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome)?;
+        }
+    }
+    Ok((decisions, mismatches))
 }
 
 /// Trains (or resumes) a PPO run. Iteration `i` checkpoints live in
@@ -2250,8 +3129,153 @@ pub fn train_ppo_run(
             bail!("BC initialization was trained under a different game rules epoch");
         }
     }
-    let init_policy = SemanticPolicy::new(init_actor.clone().valid())
-        .with_candidate_mode(bc_metadata.config.candidate_mode);
+    let option_only = config.actor_update_mode == ActorUpdateMode::BuildOptionOnly;
+    if option_only
+        && (bc_metadata.config.candidate_mode != CandidateMode::Top8
+            || input.position_reference_actor.is_none()
+            || input.init_ppo_iteration.is_none())
+    {
+        bail!(
+            "BuildTower option-only PPO requires Top8 BC, an A1' PPO initialization and its paired reference actor"
+        );
+    }
+    let parent_option_head = input
+        .init_ppo_iteration
+        .as_ref()
+        .is_some_and(|path| path.join("build-option-head.bin").exists());
+    let frozen_reference_actor = if option_only {
+        let path = input.position_reference_actor.as_ref().unwrap();
+        let actor_file: PpoActorFile =
+            serde_json::from_slice(&std::fs::read(path.join("ppo-actor.json"))?)?;
+        if actor_file.model_config != bc_metadata.model_config
+            || actor_file.kind_mode != bc_metadata.config.kind_mode
+            || actor_file.input_contract != bc_metadata.config.input_contract
+            || actor_file.policy_representation_version != POLICY_REPRESENTATION_VERSION
+        {
+            bail!("A1' BC and PPO actor parameter correspondence check failed");
+        }
+        if actor_file.candidate_mode != CandidateMode::Top8 {
+            bail!("BuildTower option reference must use Top8 candidates");
+        }
+        Some(load_ppo_actor_as::<TrainBackend>(path, &device)?)
+    } else {
+        None
+    };
+    let option_head_initial = if option_only && parent_option_head {
+        load_build_option_head_as::<TrainBackend>(
+            input.init_ppo_iteration.as_ref().unwrap(),
+            &device,
+        )?
+    } else if let Some(reference) = &frozen_reference_actor {
+        reference.scorer.typed_candidate_scorer()
+    } else {
+        init_actor.scorer.typed_candidate_scorer()
+    };
+    let init_policy = if let Some(reference) = &frozen_reference_actor {
+        SemanticPolicy::new(reference.clone().valid())
+            .with_candidate_mode(CandidateMode::BuildOptionA1Marginal)
+            .with_build_option_head(option_head_initial.clone().valid())
+            .with_build_option_greedy_from_a1(option_only)
+    } else {
+        SemanticPolicy::new(init_actor.clone().valid())
+            .with_candidate_mode(bc_metadata.config.candidate_mode)
+    };
+    if config.actor_update_mode == ActorUpdateMode::PositionOnly
+        && bc_metadata.config.candidate_mode != CandidateMode::FullPositionA1Marginal
+    {
+        bail!("position-only PPO requires the A1' marginal full-position candidate mode");
+    }
+    if config.actor_update_mode == ActorUpdateMode::PositionOnly
+        && input.position_reference_actor.is_none()
+    {
+        bail!("position-only PPO requires the frozen A1' reference actor");
+    }
+    let invariant_reference_actor = if option_only {
+        frozen_reference_actor
+            .as_ref()
+            .expect("validated option reference")
+            .clone()
+    } else {
+        init_actor.clone()
+    };
+    let init_actor_bytes = module_to_bytes(invariant_reference_actor.clone())?;
+    let frozen_non_position_matches = |actor: &PolicyNet<TrainBackend>| -> Result<bool> {
+        if option_only {
+            Ok(module_to_bytes(actor.clone())? == init_actor_bytes)
+        } else {
+            Ok(module_to_bytes(
+                actor
+                    .clone()
+                    .with_spatial_cell_head(init_actor.spatial_cell_head()),
+            )? == init_actor_bytes)
+        }
+    };
+    let position_reference = input
+        .position_reference_actor
+        .as_ref()
+        .map(|path| {
+            let (actor, mode) = load_ppo_policy(path, &device)?;
+            if mode != CandidateMode::Top8 {
+                bail!("position reference actor must use the original Top8 candidates");
+            }
+            Ok(SemanticPolicy::new(actor).with_candidate_mode(mode))
+        })
+        .transpose()?;
+    let (mut greedy_decisions, mut greedy_mismatches) = (0usize, 0usize);
+    if option_only && !run_dir.join("ppo.json").exists() {
+        let reference = position_reference
+            .as_ref()
+            .context("option-only PPO needs an A1' comparison policy")?;
+        if !parent_option_head {
+            let dev_seeds = Phase4Split::PpoDevelopment.seeds(None)?;
+            (greedy_decisions, greedy_mismatches) = audit_build_option_greedy_alignment(
+                Arc::clone(&game_config),
+                &dev_seeds,
+                reference,
+                &init_policy,
+            )?;
+            if greedy_mismatches != 0 {
+                bail!(
+                    "option-only BC initialization changed {greedy_mismatches}/{greedy_decisions} A1' greedy decisions"
+                );
+            }
+        }
+        init_policy.reset_greedy_build_option_usage();
+        let smoke_seeds = train_seed_range(&config, 0)?;
+        let mut outside = 0usize;
+        let mut build_decisions = 0usize;
+        let mut execution_errors = 0usize;
+        let head = option_head_initial.clone().valid();
+        let reference_actor_inference = invariant_reference_actor.clone().valid();
+        for seed in smoke_seeds.iter().take(8) {
+            let episode = rollout_episode_with_build_option_head(
+                &reference_actor_inference,
+                Some(&head),
+                &device,
+                Arc::clone(&game_config),
+                *seed,
+                sample_seed(&config, 1, *seed),
+                config.reward_scale,
+                false,
+                CandidateMode::BuildOptionA1Marginal,
+            )?;
+            execution_errors += episode.illegal_actions + episode.action_mismatches;
+            let report = build_option_episode_record(&episode);
+            outside += report.outside_v1_top8_count;
+            build_decisions += report.build_decisions;
+            if outside > 0 {
+                break;
+            }
+        }
+        if execution_errors != 0 || outside == 0 {
+            bail!(
+                "option-only sampled smoke failed: outside {outside}/{build_decisions}, illegal/mismatch {execution_errors}"
+            );
+        }
+        eprintln!(
+            "option-only init audit: A1' greedy mismatches {greedy_mismatches}/{greedy_decisions}, sampled outside top-8 {outside}/{build_decisions}, illegal/mismatch {execution_errors}"
+        );
+    }
     let prior_budget = match &input.init_ppo_iteration {
         Some(directory) => parent_budget(directory)?,
         None => TrainingBudget::default(),
@@ -2262,6 +3286,11 @@ pub fn train_ppo_run(
             serde_json::from_slice(&std::fs::read(run_dir.join("ppo.json"))?)?;
         if metadata.config != config
             || metadata.init_bc_run != input.init_bc_run.display().to_string()
+            || metadata.position_reference_actor
+                != input
+                    .position_reference_actor
+                    .as_ref()
+                    .map(|path| path.display().to_string())
         {
             bail!(
                 "{}: existing PPO run has a different configuration",
@@ -2293,6 +3322,11 @@ pub fn train_ppo_run(
             ),
             None => (init_actor.clone(), None),
         };
+        if option_only && module_to_bytes(actor.clone())? != init_actor_bytes {
+            bail!(
+                "A1' option-only actor initialization differs from the paired reference checkpoint"
+            );
+        }
         let (critic, critic_inputs) = match (critic, &input.init_critic_run) {
             (Some(critic), _) => {
                 let parent = input
@@ -2319,7 +3353,10 @@ pub fn train_ppo_run(
                 CriticInputs::SquashAll,
             ),
         };
-        let learner = PpoLearner::new(actor, critic, critic_inputs, &config);
+        let mut learner = PpoLearner::new(actor, critic, critic_inputs, &config);
+        if option_only {
+            learner.build_option_head = Box::new(option_head_initial.clone());
+        }
         let mut metadata = PpoRunMetadata {
             schema_version: SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION,
             policy_candidate_set_version: POLICY_CANDIDATE_SET_VERSION,
@@ -2338,8 +3375,16 @@ pub fn train_ppo_run(
                 .init_ppo_iteration
                 .as_ref()
                 .map(|path| path.display().to_string()),
+            position_reference_actor: input
+                .position_reference_actor
+                .as_ref()
+                .map(|path| path.display().to_string()),
             critic_inputs,
-            candidate_mode: bc_metadata.config.candidate_mode,
+            candidate_mode: if option_only {
+                CandidateMode::BuildOptionA1Marginal
+            } else {
+                bc_metadata.config.candidate_mode
+            },
             train_split: Phase4Split::PpoTrain,
             development_split: Phase4Split::PpoDevelopment,
             development_seeds: input.development_seeds,
@@ -2355,6 +3400,8 @@ pub fn train_ppo_run(
                 0,
                 &init_policy,
                 learner.actor_inference(),
+                option_only.then(|| (*learner.build_option_head).clone().valid()),
+                position_reference.as_ref(),
             )?;
             log_evaluation(&evaluation);
             metadata.history.push(IterationRecord {
@@ -2368,25 +3415,54 @@ pub fn train_ppo_run(
                 rollout_seconds: 0.0,
                 update_seconds: 0.0,
                 evaluation: Some(evaluation),
+                position_episodes: Vec::new(),
+                build_option_episodes: Vec::new(),
+                position_kl_to_init_after: 0.0,
+                frozen_actor_invariant_passed: true,
+                position_head_changed: false,
+                build_option_head_changed: false,
+                sampled_outside_build_option_rate: 0.0,
+                greedy_outside_build_option_rate: 0.0,
+                option_entropy: 0.0,
+                option_kl_to_init: 0.0,
+                paired_dev_delta_vs_a1_prime: None,
                 cumulative: prior_budget,
             });
         }
         write_checkpoint(run_dir, 0, &learner, &metadata)?;
         (metadata, learner)
     };
-    let init_inference = init_actor.valid();
+    let init_inference = invariant_reference_actor.valid();
+    let init_build_option_head = option_only.then(|| option_head_initial.clone().valid());
     for iteration in metadata.completed_iterations + 1..=input.iterations {
         let seeds = train_seed_range(&config, iteration - 1)?;
         let rollout_started = Instant::now();
         let (episodes, rollout_stats) = collect_iteration(
             &learner,
             &init_inference,
+            init_build_option_head.as_ref(),
             &config,
             Arc::clone(&game_config),
             iteration,
             &seeds,
             metadata.candidate_mode,
         )?;
+        if matches!(
+            config.actor_update_mode,
+            ActorUpdateMode::PositionOnly | ActorUpdateMode::BuildOptionOnly
+        ) && (rollout_stats.illegal_actions != 0
+            || rollout_stats.action_mismatches != 0
+            || rollout_stats.nonfinite_values != 0)
+        {
+            bail!("frozen-head rollout validity gate failed at iteration {iteration}");
+        }
+        let position_episodes = if config.actor_update_mode == ActorUpdateMode::PositionOnly {
+            episodes.iter().map(position_episode_record).collect()
+        } else {
+            Vec::new()
+        };
+        let build_option_episodes: Vec<BuildOptionEpisodeRecord> =
+            episodes.iter().map(build_option_episode_record).collect();
         let rollout_seconds = rollout_started.elapsed().as_secs_f64();
         let transitions = episodes
             .into_iter()
@@ -2396,8 +3472,15 @@ pub fn train_ppo_run(
             .iter()
             .map(|step| &step.encoded)
             .collect::<Vec<_>>();
-        let old_log_probs =
-            actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
+        let old_log_probs = policy_log_prob_vectors(
+            &learner.actor_inference(),
+            option_only
+                .then(|| (*learner.build_option_head).clone().valid())
+                .as_ref(),
+            metadata.candidate_mode,
+            &decisions,
+            &device,
+        )?;
         let init_log_probs = transitions
             .iter()
             .map(|step| step.init_log_probs.clone())
@@ -2406,6 +3489,17 @@ pub fn train_ppo_run(
         let update_actor = iteration > config.critic_warmup_iterations;
         let update = learner.update(&transitions, &config, iteration, update_actor)?;
         let update_seconds = update_started.elapsed().as_secs_f64();
+        let frozen_actor_invariant_passed = matches!(
+            config.actor_update_mode,
+            ActorUpdateMode::PositionOnly | ActorUpdateMode::BuildOptionOnly
+        ) && frozen_non_position_matches(&learner.actor)?;
+        if matches!(
+            config.actor_update_mode,
+            ActorUpdateMode::PositionOnly | ActorUpdateMode::BuildOptionOnly
+        ) && !frozen_actor_invariant_passed
+        {
+            bail!("frozen actor invariant failed at iteration {iteration}");
+        }
         let decisions = transitions
             .iter()
             .map(|step| &step.encoded)
@@ -2414,8 +3508,15 @@ pub fn train_ppo_run(
             .iter()
             .map(|step| step.encoded.legal_mask.as_slice())
             .collect::<Vec<_>>();
-        let new_log_probs =
-            actor_log_prob_vectors(&learner.actor_inference(), &decisions, &device)?;
+        let new_log_probs = policy_log_prob_vectors(
+            &learner.actor_inference(),
+            option_only
+                .then(|| (*learner.build_option_head).clone().valid())
+                .as_ref(),
+            metadata.candidate_mode,
+            &decisions,
+            &device,
+        )?;
         let mut kl_to_init_after = mean_kl(&new_log_probs, &init_log_probs, &masks);
         let mut kl_old_new_after = mean_kl(&old_log_probs, &new_log_probs, &masks);
         let spatial_steps = transitions
@@ -2453,6 +3554,8 @@ pub fn train_ppo_run(
                 iteration,
                 &init_policy,
                 learner.actor_inference(),
+                option_only.then(|| (*learner.build_option_head).clone().valid()),
+                position_reference.as_ref(),
             )?;
             log_evaluation(&evaluation);
             Some(evaluation)
@@ -2464,12 +3567,53 @@ pub fn train_ppo_run(
             train_seeds: (seeds[0], *seeds.last().expect("non-empty seeds")),
             actor_updated: update_actor,
             rollout: rollout_stats,
-            update,
+            update: update.clone(),
             kl_to_init_after,
             kl_old_new_after,
             rollout_seconds,
             update_seconds,
-            evaluation,
+            evaluation: evaluation.clone(),
+            position_episodes,
+            build_option_episodes: build_option_episodes.clone(),
+            position_kl_to_init_after: if config.actor_update_mode == ActorUpdateMode::PositionOnly
+            {
+                position_kl_to_init(&learner.actor_inference(), &transitions, &device)?
+            } else {
+                0.0
+            },
+            frozen_actor_invariant_passed,
+            position_head_changed: config.actor_update_mode == ActorUpdateMode::PositionOnly
+                && module_to_bytes(learner.actor.spatial_cell_head())?
+                    != module_to_bytes(init_actor.spatial_cell_head())?,
+            build_option_head_changed: option_only
+                && module_to_bytes((*learner.build_option_head).clone())?
+                    != module_to_bytes(option_head_initial.clone())?,
+            sampled_outside_build_option_rate: {
+                let outside = build_option_episodes
+                    .iter()
+                    .map(|episode| episode.outside_v1_top8_count)
+                    .sum::<usize>();
+                let decisions = build_option_episodes
+                    .iter()
+                    .map(|episode| episode.build_decisions)
+                    .sum::<usize>();
+                outside as f64 / decisions.max(1) as f64
+            },
+            greedy_outside_build_option_rate: evaluation.as_ref().map_or(0.0, |evaluation| {
+                evaluation.greedy_build_option_outside_v1_top8 as f64
+                    / evaluation.greedy_build_option_decisions.max(1) as f64
+            }),
+            option_entropy: if option_only { update.entropy } else { 0.0 },
+            option_kl_to_init: if option_only { kl_to_init_after } else { 0.0 },
+            paired_dev_delta_vs_a1_prime: evaluation.as_ref().and_then(|evaluation| {
+                evaluation
+                    .comparisons
+                    .iter()
+                    .find(|comparison| {
+                        comparison.policy == "ppo" && comparison.reference == "a1_prime"
+                    })
+                    .map(|comparison| comparison.mean)
+            }),
             cumulative: TrainingBudget::default(),
         };
         let previous = metadata.history.last().map_or(prior_budget, |last| {
@@ -2480,6 +3624,56 @@ pub fn train_ppo_run(
             }
         });
         record.cumulative = previous.after(&record);
+        if config.actor_update_mode == ActorUpdateMode::PositionOnly && iteration == 50 {
+            let mut build_decisions = 0usize;
+            let mut place_decisions = 0usize;
+            let mut build_outside = 0usize;
+            let mut place_outside = 0usize;
+            for episode in metadata
+                .history
+                .iter()
+                .flat_map(|record| record.position_episodes.iter())
+                .chain(record.position_episodes.iter())
+            {
+                build_decisions += episode.build_position_decisions;
+                place_decisions += episode.place_position_decisions;
+                build_outside += episode.outside_top8_build_count;
+                place_outside += episode.outside_top8_place_count;
+            }
+            let build_rate = build_outside as f64 / build_decisions.max(1) as f64;
+            let place_rate = place_outside as f64 / place_decisions.max(1) as f64;
+            if build_rate < 0.01 || place_rate < 0.01 || !record.position_head_changed {
+                bail!(
+                    "position-only pilot gate failed at iteration 50: build outside {:.4}, place outside {:.4}, cell head changed {}",
+                    build_rate,
+                    place_rate,
+                    record.position_head_changed
+                );
+            }
+        }
+        if option_only && iteration == 50 {
+            let (outside, decisions) = metadata
+                .history
+                .iter()
+                .flat_map(|record| record.build_option_episodes.iter())
+                .chain(record.build_option_episodes.iter())
+                .fold((0usize, 0usize), |(outside, decisions), episode| {
+                    (
+                        outside + episode.outside_v1_top8_count,
+                        decisions + episode.build_decisions,
+                    )
+                });
+            let rate = outside as f64 / decisions.max(1) as f64;
+            let head_changed = record.build_option_head_changed;
+            if rate < 0.01 || !head_changed || !record.frozen_actor_invariant_passed {
+                bail!(
+                    "BuildTower option-only pilot gate failed at iteration 50: outside rate {:.4}, option head changed {}, frozen actor invariant {}",
+                    rate,
+                    head_changed,
+                    record.frozen_actor_invariant_passed
+                );
+            }
+        }
         log_iteration(&record);
         metadata.history.push(record);
         metadata.completed_iterations = iteration;
@@ -2544,6 +3738,16 @@ fn log_iteration(record: &IterationRecord) {
         update.max_critic_grad_norm,
         update.max_actor_grad_norm,
     );
+    if !record.build_option_episodes.is_empty() {
+        eprintln!(
+            "  BuildTower options sampled outside {:.3}% | greedy outside {:.3}% | entropy {:.4} | KL-init {:.5} | paired A1' delta {:?}",
+            record.sampled_outside_build_option_rate * 100.0,
+            record.greedy_outside_build_option_rate * 100.0,
+            record.option_entropy,
+            record.option_kl_to_init,
+            record.paired_dev_delta_vs_a1_prime,
+        );
+    }
     eprintln!(
         "  budget: episodes {} decisions {} hours {:.2} | family entropy {:.4} | normalized entropy family {:.4} candidate {:.4} cell {:.4} | spatial {} outside-top8 {:.4} non-canonical {:.4}",
         record.cumulative.episodes,
@@ -2894,6 +4098,112 @@ mod tests {
     }
 
     #[test]
+    fn position_only_update_freezes_actor_and_ratio_is_cell_conditional() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            41,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let initial = actor.clone();
+        let initial_actor_bytes = module_to_bytes(initial.clone()).unwrap();
+        let initial_cell_bytes = module_to_bytes(initial.spatial_cell_head()).unwrap();
+        let critic = super::super::semantic_bc::seeded_materialized_model(
+            ModelConfig::default(),
+            43,
+            &device,
+        )
+        .unwrap();
+        let mut learner = PpoLearner::new(
+            actor,
+            critic,
+            CriticInputs::SquashAll,
+            &PpoConfig::default(),
+        );
+        let config = PpoConfig {
+            actor_update_mode: ActorUpdateMode::PositionOnly,
+            episodes_per_iteration: 2,
+            update_epochs: 1,
+            minibatch_size: 512,
+            actor_learning_rate: 3e-4,
+            entropy_coefficient: 0.01,
+            kl_to_init_coefficient: 0.0,
+            ..PpoConfig::default()
+        };
+        let (episodes, rollout) = collect_iteration(
+            &learner,
+            &initial.clone().valid(),
+            None,
+            &config,
+            game_config(),
+            1,
+            &[301, 302],
+            CandidateMode::FullPositionA1Marginal,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        let transitions = episodes
+            .into_iter()
+            .flat_map(|episode| episode.transitions)
+            .collect::<Vec<_>>();
+        assert!(
+            transitions
+                .iter()
+                .any(|transition| transition.spatial.is_some())
+        );
+        let update = learner.update(&transitions, &config, 1, true).unwrap();
+        assert_eq!(update.nonfinite_skips, 0);
+        assert!(update.mean_actor_grad_norm.is_finite());
+        assert!(update.mean_actor_grad_norm > 0.0);
+        assert_ne!(
+            module_to_bytes(learner.actor.spatial_cell_head()).unwrap(),
+            initial_cell_bytes,
+            "position head did not update"
+        );
+        let restored = learner
+            .actor
+            .clone()
+            .with_spatial_cell_head(initial.spatial_cell_head());
+        assert_eq!(module_to_bytes(restored).unwrap(), initial_actor_bytes);
+
+        let inference = learner.actor_inference();
+        let decision_refs = transitions
+            .iter()
+            .map(|transition| &transition.encoded)
+            .collect::<Vec<_>>();
+        let new_joint = actor_log_prob_vectors(&inference, &decision_refs, &device).unwrap();
+        let spatial_transitions = transitions
+            .iter()
+            .filter(|transition| transition.spatial.is_some())
+            .collect::<Vec<_>>();
+        let new_cells =
+            spatial_cell_log_probs(&inference, spatial_transitions.iter().copied(), &device)
+                .unwrap();
+        let mut next_cell = 0;
+        for (index, transition) in transitions.iter().enumerate() {
+            if let Some(spatial) = &transition.spatial {
+                let new_cell = &new_cells[next_cell];
+                let joint_log_ratio = new_joint[index][transition.action_index]
+                    + new_cell[spatial.cell]
+                    - transition.old_log_prob;
+                let cell_log_ratio =
+                    new_cell[spatial.cell] - spatial.behavior_log_probs[spatial.cell];
+                assert!((joint_log_ratio - cell_log_ratio).abs() < 2e-5);
+                next_cell += 1;
+            } else {
+                assert!(
+                    (new_joint[index][transition.action_index] - transition.old_log_prob).abs()
+                        < 2e-5
+                );
+            }
+        }
+    }
+
+    #[test]
     fn critic_pretraining_is_finite_and_reduces_error() {
         let train = value_samples(&canonical_episodes(&[2, 4]), 0.1);
         let validation = value_samples(&canonical_episodes(&[6]), 0.1);
@@ -2998,6 +4308,16 @@ mod tests {
 
     #[test]
     fn ppo_update_with_policy_v2_options_is_finite() {
+        std::thread::Builder::new()
+            .name("ppo-policy-v2-test".to_string())
+            .stack_size(8 * 1024 * 1024)
+            .spawn(ppo_update_with_policy_v2_options_is_finite_inner)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    fn ppo_update_with_policy_v2_options_is_finite_inner() {
         let bc_dir = tiny_bc_run_with("ppo-v2-bc", KindMode::Learned, InputContract::Normalized);
         let critic_samples = value_samples(&canonical_episodes(&[2]), 0.1);
         let critic_dir = temp_dir("ppo-v2-critic");
@@ -3046,6 +4366,7 @@ mod tests {
                 iterations: 1,
                 evaluate_every: 0,
                 development_seeds: 4,
+                position_reference_actor: None,
             },
         )
         .unwrap();
@@ -3146,6 +4467,175 @@ mod tests {
     }
 
     #[test]
+    fn option_only_update_changes_only_option_head_and_uses_conditional_ratio() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            81,
+            &device,
+        )
+        .unwrap();
+        let actor_before = module_to_bytes(actor.clone()).unwrap();
+        let critic =
+            crate::ml::semantic_bc::seeded_materialized_model(ModelConfig::default(), 82, &device)
+                .unwrap();
+        let config = PpoConfig {
+            actor_update_mode: ActorUpdateMode::BuildOptionOnly,
+            update_epochs: 1,
+            minibatch_size: 1,
+            target_kl: None,
+            entropy_coefficient: 0.01,
+            normalize_advantages: false,
+            ..PpoConfig::default()
+        };
+        let mut learner = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &config);
+
+        let mut environment = GameEnvironment::new(game_config(), 17);
+        let encoded = loop {
+            let decision =
+                semantic_decision_with(&environment, CandidateMode::BuildOptionA1Marginal).unwrap();
+            if decision.encoded.projection.is_some() {
+                break decision.encoded;
+            }
+            let mut outcome = environment
+                .semantic_step(decision.candidates.canonical_action)
+                .unwrap();
+            crate::teacher::settle_forced_actions(&mut environment, &mut outcome).unwrap();
+        };
+        let option_indices = encoded
+            .families
+            .iter()
+            .enumerate()
+            .filter_map(|(index, family)| {
+                (*family == crate::environment::ActionKind::BuildTower as u8).then_some(index)
+            })
+            .collect::<Vec<_>>();
+        assert!(option_indices.len() > 8);
+        let action_index = option_indices[0];
+        let conditional_index = 0;
+        let actor_inference = learner.actor_inference();
+        let head_inference = (*learner.build_option_head).clone().valid();
+        let joint = super::super::policy_v2::build_option_log_probs(
+            &actor_inference,
+            &head_inference,
+            &encoded,
+            &device,
+        )
+        .unwrap();
+        let family = super::super::policy_v2::factorized_log_probs(
+            &actor_inference,
+            &[&EncodedDecision {
+                projection: None,
+                candidates: encoded
+                    .projection
+                    .as_ref()
+                    .unwrap()
+                    .source_candidates
+                    .clone(),
+                legal_mask: encoded
+                    .projection
+                    .as_ref()
+                    .unwrap()
+                    .source_legal_mask
+                    .clone(),
+                families: encoded.projection.as_ref().unwrap().source_families.clone(),
+                ..encoded.clone()
+            }],
+            &device,
+        );
+        let family_log_prob = family.kind.into_data().to_vec::<f32>().unwrap()
+            [crate::environment::ActionKind::BuildTower.index()];
+        let old_conditional = joint[action_index] - family_log_prob;
+        let option = BuildOptionChoice::from(&BuildOptionInfo {
+            subset_index: 0,
+            card_ids: vec![0],
+            hand_slot_index: 0,
+            heuristic_rank: 0,
+            best_position_index: 0,
+            outside_v1_top8: false,
+        });
+        let transition = Transition {
+            encoded,
+            action_index,
+            action_id: "build-option-smoke".to_string(),
+            action_kind: "build_tower".to_string(),
+            decision_point: "CardSelection".to_string(),
+            old_log_prob: joint[action_index],
+            behavior_entropy: 0.0,
+            family_entropy: 0.0,
+            clear_rate_before: 0.0,
+            raw_delta: 0.0,
+            reward: 0.0,
+            value: 0.0,
+            advantage: 1.0,
+            return_value: 0.0,
+            greedy_index: action_index,
+            canonical_index: None,
+            init_log_probs: Vec::new(),
+            matches_canonical: false,
+            spatial: None,
+            build_option: Some(option),
+            build_option_conditional_index: Some(conditional_index),
+            old_build_option_log_prob: Some(old_conditional),
+        };
+        let head_before = module_to_bytes((*learner.build_option_head).clone()).unwrap();
+        let update = learner.update(&[transition], &config, 1, true).unwrap();
+        assert_eq!(update.nonfinite_skips, 0);
+        assert!(
+            update.approx_kl.abs() < 1e-5,
+            "initial PPO ratio: {update:?}"
+        );
+        assert!(update.mean_actor_grad_norm > 0.0);
+        assert_ne!(
+            module_to_bytes((*learner.build_option_head).clone()).unwrap(),
+            head_before,
+            "BuildTower option head did not update"
+        );
+        assert_eq!(
+            module_to_bytes(learner.actor.clone()).unwrap(),
+            actor_before
+        );
+    }
+
+    #[test]
+    fn option_only_rollout_executes_legal_dense_option_representatives() {
+        let device = default_policy_device();
+        let actor = random_actor();
+        let head = actor.scorer.typed_candidate_scorer();
+        let rollout = rollout_episode_with_build_option_head(
+            &actor,
+            Some(&head),
+            &device,
+            game_config(),
+            19,
+            1019,
+            0.1,
+            false,
+            CandidateMode::BuildOptionA1Marginal,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        assert!(
+            rollout
+                .transitions
+                .iter()
+                .any(|step| step.build_option.is_some())
+        );
+        for step in rollout
+            .transitions
+            .iter()
+            .filter(|step| step.build_option.is_some())
+        {
+            assert!(step.old_log_prob.is_finite());
+            assert!(step.old_build_option_log_prob.unwrap().is_finite());
+            assert!(step.spatial.is_none());
+            assert!(step.build_option_conditional_index.is_some());
+        }
+    }
+
+    #[test]
     fn replayed_spatial_bc_samples_target_the_canonical_cell() {
         let episodes = canonical_episodes(&[0]);
         let samples = crate::ml::semantic_bc::prepare_replayed_samples(
@@ -3219,6 +4709,16 @@ mod tests {
 
     #[test]
     fn spatial_ppo_update_is_finite() {
+        std::thread::Builder::new()
+            .name("spatial-ppo-test".to_string())
+            .stack_size(8 * 1024 * 1024)
+            .spawn(spatial_ppo_update_is_finite_inner)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    fn spatial_ppo_update_is_finite_inner() {
         let bc_dir = tiny_bc_run_spatial(
             "ppo-spatial-bc",
             KindMode::Learned,
@@ -3242,6 +4742,7 @@ mod tests {
                 iterations: 1,
                 evaluate_every: 0,
                 development_seeds: 4,
+                position_reference_actor: None,
             },
         )
         .unwrap();
@@ -3281,6 +4782,16 @@ mod tests {
 
     #[test]
     fn ppo_update_is_finite_and_resume_is_deterministic() {
+        std::thread::Builder::new()
+            .name("ppo-resume-test".to_string())
+            .stack_size(8 * 1024 * 1024)
+            .spawn(ppo_update_is_finite_and_resume_is_deterministic_inner)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    fn ppo_update_is_finite_and_resume_is_deterministic_inner() {
         let bc_dir = tiny_bc_run("ppo-resume-bc");
         let input = |iterations| PpoRunInput {
             config: tiny_ppo_config(),
@@ -3290,6 +4801,7 @@ mod tests {
             evaluate_every: 0,
             development_seeds: 4,
             init_ppo_iteration: None,
+            position_reference_actor: None,
         };
         let full_dir = temp_dir("ppo-full");
         let full = train_ppo_run(game_config(), &full_dir, input(2)).unwrap();

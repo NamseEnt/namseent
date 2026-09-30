@@ -29,11 +29,12 @@ use crate::environment::{
     LegalAction, Observation, TowerTemplateObservation,
 };
 use crate::joint_action::DenseBuildTowerScoreTable;
+use crate::policy_action::PolicyActionSpace;
 use crate::policy_runner::{
     canonical_scripted_semantic_action, canonical_scripted_semantic_action_from_table,
     rank_place_tower_actions,
 };
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 pub const POLICY_CANDIDATE_SET_VERSION: u32 = 2;
@@ -76,6 +77,33 @@ pub struct PolicyCandidates {
     /// The v1 top-8 `PlaceTower`/`BuildTower` actions of this state
     /// (`FullPosition` mode), to tell whether a chosen position leaves them.
     pub v1_top8: Vec<AgentAction>,
+    /// Original Top8 action candidates and their projection onto spatial
+    /// options. Used by the position-only ablation to preserve A1' exactly.
+    pub a1_marginal: Option<CandidateProjection>,
+    /// Dense BuildTower option metadata, aligned with `candidates` in
+    /// `BuildOptionA1Marginal` mode.
+    pub build_option_info: Vec<Option<BuildOptionInfo>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BuildOptionInfo {
+    pub subset_index: usize,
+    pub card_ids: Vec<usize>,
+    pub hand_slot_index: usize,
+    /// Rank of this option's heuristic-best legal position among all dense
+    /// BuildTower actions in the state.
+    pub heuristic_rank: usize,
+    /// Dense position index of the fixed heuristic-best legal cell.
+    pub best_position_index: usize,
+    pub outside_v1_top8: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct CandidateProjection {
+    pub source_candidates: Vec<PolicyCandidate>,
+    /// For each projected candidate, the original Top8 indices whose mass it
+    /// receives. Non-spatial candidates have exactly one source index.
+    pub output_members: Vec<Vec<usize>>,
 }
 
 /// Which candidate set a policy uses.
@@ -91,6 +119,13 @@ pub enum CandidateMode {
     /// option allows every legal position. The option set is exactly the one
     /// v1 could reach; only the position is widened.
     FullPosition,
+    /// Full-position options whose family/option probabilities are the exact
+    /// A1' Top8 policy marginal, for position-only PPO.
+    FullPositionA1Marginal,
+    /// All legal BuildTower `(subset, slot)` options with a fixed
+    /// heuristic-best position. A1' family/non-BuildTower probabilities are
+    /// projected unchanged; BuildTower option probabilities are trainable.
+    BuildOptionA1Marginal,
 }
 
 impl PolicyCandidates {
@@ -201,12 +236,15 @@ pub fn policy_candidates(environment: &GameEnvironment) -> Result<PolicyCandidat
             environment.state_hash()
         );
     }
+    let candidate_count = candidates.len();
     Ok(PolicyCandidates {
         observation,
         candidates,
         canonical_action,
         table: None,
         v1_top8: Vec::new(),
+        a1_marginal: None,
+        build_option_info: vec![None; candidate_count],
     })
 }
 
@@ -217,6 +255,9 @@ pub fn policy_candidates_with(
 ) -> Result<PolicyCandidates> {
     if mode == CandidateMode::Top8 {
         return policy_candidates(environment);
+    }
+    if mode == CandidateMode::BuildOptionA1Marginal {
+        return policy_build_options_a1_marginal(environment);
     }
     let observation = environment.snapshot();
     let mut candidates = Vec::new();
@@ -266,12 +307,188 @@ pub fn policy_candidates_with(
             environment.state_hash()
         );
     }
+    let a1_marginal = if mode == CandidateMode::FullPositionA1Marginal {
+        let source = policy_candidates(environment)?;
+        let mut output_members = Vec::with_capacity(candidates.len());
+        for output in &candidates {
+            let members = if let Some(option) = &output.spatial {
+                source
+                    .candidates
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, candidate)| {
+                        (SpatialAction::of(&candidate.action)
+                            .map(|(candidate_option, _, _)| candidate_option)
+                            == Some(option.clone()))
+                        .then_some(index)
+                    })
+                    .collect::<Vec<_>>()
+            } else {
+                source
+                    .candidates
+                    .iter()
+                    .position(|candidate| candidate.action_id == output.action_id)
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            };
+            if members.is_empty() {
+                bail!("full-position candidate has no A1' Top8 projection");
+            }
+            output_members.push(members);
+        }
+        Some(CandidateProjection {
+            source_candidates: source.candidates,
+            output_members,
+        })
+    } else {
+        None
+    };
+    let candidate_count = candidates.len();
     Ok(PolicyCandidates {
         observation,
         candidates,
         canonical_action,
         table: table_arc,
         v1_top8,
+        a1_marginal,
+        build_option_info: vec![None; candidate_count],
+    })
+}
+
+fn policy_build_options_a1_marginal(environment: &GameEnvironment) -> Result<PolicyCandidates> {
+    if !environment.semantic_card_decision_available() {
+        // Outside card decisions, the A1' candidate set is unchanged.
+        return policy_candidates(environment);
+    }
+    let observation = environment.snapshot();
+    let action_space = PolicyActionSpace::compute(environment);
+    let table = action_space
+        .dense_build_table()
+        .context("BuildTower option decision has no dense action table")?;
+
+    let top8 = table.top_k_actions(BUILD_TOWER_CANDIDATE_LIMIT);
+    let canonical_action =
+        canonical_scripted_semantic_action_from_table(environment, &observation, table)?;
+    let mut source_candidates = Vec::new();
+    for legal in environment.semantic_non_build_actions() {
+        push_unique(&mut source_candidates, legal.action, None);
+    }
+    for (rank, action) in top8.iter().cloned().enumerate() {
+        push_unique(&mut source_candidates, action, Some(rank));
+    }
+
+    // Find each option's heuristic-best position from the same dense score
+    // table, then validate the resulting action through the authoritative
+    // dense PolicyActionSpace mask.
+    let mut options = Vec::new();
+    for subset_index in 0..table.subsets.subset_count() {
+        for hand_slot_index in 0..table.build_slot_count {
+            let mut positions = table.position_scores(subset_index, hand_slot_index);
+            positions.sort_by(|(left_index, left), (right_index, right)| {
+                right
+                    .ordering_key()
+                    .cmp(&left.ordering_key())
+                    .then_with(|| left_index.cmp(right_index))
+            });
+            let best_legal = positions.into_iter().find_map(|(position_index, score)| {
+                let action = crate::joint_action::build_tower_action(
+                    &table.subsets,
+                    subset_index,
+                    hand_slot_index,
+                    position_index,
+                )?;
+                action_space
+                    .action_to_index(&action)
+                    .filter(|index| action_space.legal_mask()[*index])
+                    .map(|_| (position_index, score, action))
+            });
+            let Some((position_index, score, action)) = best_legal else {
+                continue;
+            };
+            options.push((subset_index, hand_slot_index, position_index, score, action));
+        }
+    }
+    options.sort_by(|left, right| {
+        right
+            .3
+            .ordering_key()
+            .cmp(&left.3.ordering_key())
+            .then_with(|| left.0.cmp(&right.0))
+            .then_with(|| left.1.cmp(&right.1))
+            .then_with(|| left.2.cmp(&right.2))
+    });
+    let top8_options = top8
+        .iter()
+        .filter_map(|action| SpatialAction::of(action).map(|(option, _, _)| option))
+        .collect::<Vec<_>>();
+    let mut candidates = Vec::new();
+    for legal in environment.semantic_non_build_actions() {
+        push_unique(&mut candidates, legal.action, None);
+    }
+    let mut build_option_info = vec![None; candidates.len()];
+    for (heuristic_rank, (subset_index, hand_slot_index, position_index, _, action)) in
+        options.into_iter().enumerate()
+    {
+        let option = SpatialAction::of(&action)
+            .map(|(option, _, _)| option)
+            .context("materialized BuildTower action has no option")?;
+        let outside_v1_top8 = !top8_options.contains(&option);
+        let family_rank = top8.iter().position(|source| {
+            SpatialAction::of(source).is_some_and(|(source_option, _, _)| source_option == option)
+        });
+        let action_id = action.action_id();
+        candidates.push(PolicyCandidate {
+            action,
+            action_id,
+            family_rank,
+            spatial: None,
+        });
+        let card_ids = table
+            .subsets
+            .card_ids_for_subset(subset_index)
+            .context("dense subset index is out of range")?;
+        build_option_info.push(Some(BuildOptionInfo {
+            subset_index,
+            card_ids,
+            hand_slot_index,
+            heuristic_rank,
+            best_position_index: position_index,
+            outside_v1_top8,
+        }));
+    }
+
+    let mut output_members = Vec::with_capacity(candidates.len());
+    for output in &candidates {
+        let members = if let Some((option, _, _)) = SpatialAction::of(&output.action) {
+            source_candidates
+                .iter()
+                .enumerate()
+                .filter_map(|(index, source)| {
+                    (SpatialAction::of(&source.action)
+                        .is_some_and(|(source_option, _, _)| source_option == option))
+                    .then_some(index)
+                })
+                .collect::<Vec<_>>()
+        } else {
+            source_candidates
+                .iter()
+                .position(|source| source.action_id == output.action_id)
+                .into_iter()
+                .collect::<Vec<_>>()
+        };
+        output_members.push(members);
+    }
+    Ok(PolicyCandidates {
+        observation,
+        candidates,
+        canonical_action,
+        table: None,
+        v1_top8: top8,
+        a1_marginal: Some(CandidateProjection {
+            source_candidates,
+            output_members,
+        }),
+        build_option_info,
     })
 }
 
@@ -681,6 +898,17 @@ pub struct EncodedDecision {
     /// `ActionKind::index()` of each candidate: the family a factorized
     /// policy chooses first.
     pub families: Vec<u8>,
+    /// Optional exact candidate-mass projection from A1' Top8 action logits
+    /// onto full-position options.
+    pub projection: Option<EncodedCandidateProjection>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EncodedCandidateProjection {
+    pub source_candidates: Vec<EntitySet>,
+    pub source_legal_mask: Vec<bool>,
+    pub source_families: Vec<u8>,
+    pub output_members: Vec<Vec<usize>>,
 }
 
 pub fn encode_decision(
@@ -701,7 +929,35 @@ pub fn encode_decision(
             .iter()
             .map(|candidate| candidate.action.kind().index() as u8)
             .collect(),
+        projection: None,
     }
+}
+
+pub fn encode_projected_decision(
+    observation: &Observation,
+    candidates: &[PolicyCandidate],
+    legal_mask: Vec<bool>,
+    projection: &CandidateProjection,
+    source_legal_mask: Vec<bool>,
+) -> EncodedDecision {
+    let mut decision = encode_decision(observation, candidates, legal_mask);
+    assert_eq!(projection.source_candidates.len(), source_legal_mask.len());
+    assert_eq!(projection.output_members.len(), candidates.len());
+    decision.projection = Some(EncodedCandidateProjection {
+        source_candidates: projection
+            .source_candidates
+            .iter()
+            .map(|candidate| encode_candidate(observation, candidate))
+            .collect(),
+        source_legal_mask,
+        source_families: projection
+            .source_candidates
+            .iter()
+            .map(|candidate| candidate.action.kind().index() as u8)
+            .collect(),
+        output_members: projection.output_members.clone(),
+    });
+    decision
 }
 
 pub fn candidate_batch(decisions: &[&EncodedDecision]) -> PaddedEntityBatch {
@@ -872,6 +1128,99 @@ mod tests {
             }
         }
         assert!(compared > 20);
+    }
+
+    #[test]
+    fn build_option_candidates_cover_dense_legal_subset_slot_pairs() {
+        let config = Arc::new(GameConfig::default_config());
+        let mut found = false;
+        for seed in 0..16 {
+            let environment = GameEnvironment::new(Arc::clone(&config), seed);
+            if !environment.semantic_card_decision_available() {
+                continue;
+            }
+            let space = crate::policy_action::PolicyActionSpace::compute(&environment);
+            let table = space.dense_build_table().unwrap();
+            let candidates =
+                policy_candidates_with(&environment, CandidateMode::BuildOptionA1Marginal).unwrap();
+            assert_eq!(
+                candidates.candidates.len(),
+                candidates.build_option_info.len()
+            );
+            let mut legal_pairs = std::collections::HashSet::new();
+            for subset in 0..table.subsets.subset_count() {
+                for slot in 0..table.build_slot_count {
+                    let any_legal =
+                        table
+                            .position_scores(subset, slot)
+                            .iter()
+                            .any(|(position, _)| {
+                                let action = crate::joint_action::build_tower_action(
+                                    &table.subsets,
+                                    subset,
+                                    slot,
+                                    *position,
+                                )
+                                .unwrap();
+                                space.action_to_index(&action).is_some()
+                            });
+                    if any_legal {
+                        legal_pairs.insert((subset, slot));
+                    }
+                }
+            }
+            let observed_pairs = candidates
+                .build_option_info
+                .iter()
+                .flatten()
+                .map(|info| (info.subset_index, info.hand_slot_index))
+                .collect::<std::collections::HashSet<_>>();
+            assert_eq!(observed_pairs, legal_pairs);
+            assert!(observed_pairs.len() > 8);
+            assert!(candidates.a1_marginal.is_some());
+            assert!(
+                candidates
+                    .build_option_info
+                    .iter()
+                    .flatten()
+                    .any(|info| { info.outside_v1_top8 })
+            );
+            for (index, info) in candidates.build_option_info.iter().enumerate() {
+                let Some(info) = info else { continue };
+                let action = &candidates.candidates[index].action;
+                assert!(environment.semantic_action_is_legal(action));
+                assert!(space.action_to_index(action).is_some());
+                let Some((expected_position, _)) = table
+                    .position_scores(info.subset_index, info.hand_slot_index)
+                    .into_iter()
+                    .max_by(|(left_index, left), (right_index, right)| {
+                        left.ordering_key()
+                            .cmp(&right.ordering_key())
+                            .then_with(|| right_index.cmp(left_index))
+                    })
+                else {
+                    panic!("option must have a legal position");
+                };
+                let AgentAction::BuildTower {
+                    card_ids,
+                    hand_slot_index,
+                    left,
+                    top,
+                } = action
+                else {
+                    panic!("option candidate must be BuildTower");
+                };
+                assert_eq!(card_ids, &info.card_ids);
+                assert_eq!(*hand_slot_index, info.hand_slot_index);
+                assert_eq!(
+                    crate::joint_action::position_index(*left, *top).unwrap(),
+                    expected_position
+                );
+            }
+            found = true;
+            break;
+        }
+        assert!(found, "fixture did not reach a card decision");
     }
 
     #[test]
