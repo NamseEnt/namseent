@@ -1,6 +1,6 @@
 # Policy v2: Factorized Policy and Full Action Space
 
-Status: V2 selected policy frozen; Phase R/C research preregistered below. Sections marked **Frozen** were written before the corresponding models were trained and are not changed after results are seen.
+Status: V2 selected policy frozen; Phase R/C runs and artifact review complete. Sections marked **Frozen** were written before the corresponding models were trained and are not changed after results were seen.
 
 Phase 4B ([`14-phase4b-ppo.md`](14-phase4b-ppo.md)) showed that PPO from a canonical BC initialization beats the canonical baseline (+4.98 terminal clear_rate on the frozen final seeds), but tower placement never changed. The v1 network only scores the heuristic's top-8 placements and top-8 dense builds, although `PolicyActionSpace` already represents the full `subset x hand_slot x position` space. Policy v2 changes the policy representation, not the `AgentAction` contract or the game rules.
 
@@ -388,7 +388,7 @@ Run completed as preregistered: phase 1 reached iteration 75, including its 50-i
 
 **Conclusion: C — performance effect inconclusive, with the ablation technically valid.** Exploration, greedy adoption of new options, and freeze/execution invariants all worked; the unresolved part is whether those new choices improve performance beyond A1′. This C classification reflects the paired development uncertainty, not a technical failure. The observed point estimate alone is insufficient to say the option ceiling was a bottleneck.
 
-**Full V2-C is not recommended yet.** Position-only showed no clear gain, while option-only produced new greedy choices but no conclusive paired improvement. Combining both now would add complexity without resolving whether the BuildTower proposal expansion helps. The next useful evidence would be an independent confirmatory option-only result before mixing position learning back in.
+The earlier experiment record notes that position-only did not establish a paired development improvement and option-only's paired development estimate was +0.296 (SE 0.184).
 
 ## V2 final policy selection and evaluation preregistration
 
@@ -469,7 +469,7 @@ Mean action-kind decisions per game (complete counts and less frequent kinds rem
 - Option-only PPO did learn to choose outside-top-8 BuildTower options greedily, but its paired development gain remained uncertain.
 - **Full V2-C will not be run. Selected V2 policy is A1′.** In the evidence collected here, action-space expansion did not explain the large improvement; the results are more consistent with the input and optimization contract being the main gain. This is evidence from one PPO training seed and one frozen final evaluation, not a causal separation of every A1′ change.
 
-No further experiment was started. Candidate next studies only: (1) hidden-size 64 versus 128/256 capacity sensitivity, (2) independent PPO training seeds to estimate training variance, (3) representation improvements, and (4) a fresh CUDA crossover measurement at larger capacity.
+The next registered study is Phase R followed by Phase C below. Hidden-size comparisons stay on the CPU backend; CUDA benchmarking remains a separate future measurement.
 
 ## Phase R and Phase C preregistration
 
@@ -498,3 +498,175 @@ Question: at matched A1′ experience and PPO recipe, do hidden sizes 128 or 256
 - Primary alignment is cumulative semantic decisions; also report episodes and wall time. At each size and replicate record development clear-rate/deltas to canonical and frozen A1′ hidden-64 R0, decisions/game, learning slope, KL-to-init, entropy, critic EV, update/rollout time, and batch-1 inference latency. Plateau is the predeclared mean over cumulative iterations 226–275; the full learning curve remains primary context.
 - Run both R1/R2 for each larger size (no result-dependent screening). Do not use a new final split. CUDA measurement, if warranted after the CPU comparison, is an isolated benchmark only and cannot alter/retrain the capacity policies.
 - Classify capacity as A only if 128 or 256 improves the plateau and matched-decision curve over hidden-64 across both paired training seeds by more than the Phase R seed variation; B if both larger sizes have similar plateau and no stable improvement despite added compute; C if replicate variation remains too large to separate size effects. In C, recommend whether more PPO replicates would resolve the uncertainty, but do not run them within this preregistration.
+
+### Phase R and C results
+
+All policies below use the same 128 `ppo_development` seeds. The capacity checkpoints at cumulative iterations 50, 100, 200, and 275 were evaluated with a single paired `terminal-eval` invocation per checkpoint across hidden sizes and training seeds. Cumulative semantic decisions are taken from training metadata. Decision-budget values in the table below are linearly interpolated between the stored every-five-iteration development evaluations; they are not additional checkpoint evaluations. The pre-registered 226–275 plateau is summarized by its ten available greedy development evaluations at cumulative 230, 235, …, 275.
+
+#### Phase R: independent hidden-64 PPO seeds
+
+Both new runs started from the same frozen actor/critic initialization recorded above, and completed the full 75 + 200 schedule on CPU. Across their training rollouts there were no illegal actions, sampled/executed mismatches, fallbacks, or non-finite values. Five R2 and one R1 training episodes hit the pre-existing safety cap; all checkpoints and optimizer state were saved, and development evaluations had zero illegal actions, fallbacks, post-sampling mutations, and truncations. This meets the registered technical-validity conditions.
+
+| hidden 64 run | dev clear rate at reported checkpoint | paired delta vs canonical | paired delta vs frozen A1′ | mean clear rate over final plateau |
+|---|---:|---:|---:|---:|
+| R0, selected A1′ reference (phase-2 iter 170) | 47.18 | +10.94 | — | 44.80 |
+| R1, PPO seed 1 | 42.58 | +6.35 | −4.60 (SE 0.77) | 41.50 |
+| R2, PPO seed 2 | 48.17 | +11.93 | +0.99 (SE 1.02) | 44.40 |
+
+Observed values: the two independent runs had final development deltas of +6.35 and +11.93 versus canonical and −4.60 and +0.99 versus the selected reference. Their final-plateau means span 2.90 points (sample SD 2.05); including R0, the three plateau means have sample SD 1.80 and range 41.50–44.80.
+
+#### Phase C: hidden-size BC gates
+
+The size-specific BC models used the same 173,945 training and 5,416 validation samples, with no teacher data. Both passed the registered greedy development gate. All four PPO capacity runs completed with zero illegal actions, sampled/executed mismatches, fallbacks, or non-finite values; one H256-R1 training episode hit the pre-existing safety cap. Every scheduled iteration checkpoint was saved.
+
+| hidden size | selected BC epoch | validation NLL | validation top-1 | action-kind accuracy | dev delta vs canonical (SE) | illegal / fallback / mutation |
+|---:|---:|---:|---:|---:|---:|---:|
+| 128 | 4 | 0.01132 | 99.483% | 100% | −0.20 (0.12) | 0 / 0 / 0 |
+| 256 | 6 | 0.01081 | 99.446% | 100% | −0.03 (0.07) | 0 / 0 / 0 |
+
+Both fresh critics were trained from the registered 512-episode subset and contract inputs. Hidden 128 reached validation EV 0.880; hidden 256 reached 0.866. Their size-matched critic initializations were used in PPO.
+
+#### Sample-budget learning curves
+
+Each cell is the greedy development clear rate for independent PPO training seeds R1/R2 at the given cumulative semantic-decision budget. Values are interpolated from the stored five-iteration evaluation points. Only two training seeds were run per size, so these curves are descriptive rather than precise estimates of the mean policy quality.
+
+| cumulative semantic decisions | hidden 64 R1 / R2 | hidden 128 R1 / R2 | hidden 256 R1 / R2 |
+|---:|---:|---:|---:|
+| 200,000 | 34.89 / 34.47 | 38.65 / 37.25 | 36.08 / 33.30 |
+| 400,000 | 36.32 / 35.96 | 33.57 / 37.49 | 36.28 / 34.78 |
+| 800,000 | 39.80 / 38.62 | 35.94 / 39.70 | 40.85 / 34.63 |
+| 1,200,000 | 42.09 / 42.13 | 39.43 / 45.31 | 42.88 / 35.33 |
+
+The trajectories cross substantially. At cumulative iteration 275 the models had consumed different numbers of semantic decisions: hidden 64 R1/R2 2.00M/2.19M, hidden 128 1.68M/1.31M, and hidden 256 2.26M/1.68M. The full learning curves are stored in each run's `ppo.json`; cumulative-checkpoint paired evaluation reports are `a1c-all-dev-cum050.json`, `a1c-all-dev-cum100.json`, `a1c-all-dev-cum200.json`, and `a1c-all-dev-cum275.json` under `simulator/artifacts/phase4b`.
+
+| model | final-plateau dev mean R1 / R2 | cumulative-275 paired delta vs hidden-64 same seed (R1 / R2) | final checkpoint decisions/game R1 / R2 | batch-1 inference ms/decision R1 / R2 | PPO elapsed hours R1 / R2 |
+|---|---:|---:|---:|---:|---:|
+| hidden 64 | 41.50 / 44.40 | reference | 182.7 / 230.9 | 1.91 / 1.78 | 3.11 / 4.22 |
+| hidden 128 | 43.15 / 43.63 | +1.17 (SE 0.70) / −4.42 (SE 1.05) | 175.9 / 142.2 | 2.90 / 3.22 | 5.52 / 4.62 |
+| hidden 256 | 43.65 / 34.76 | +1.68 (SE 0.76) / −12.29 (SE 0.94) | 219.4 / 139.4 | 5.52 / 6.60 | 16.15 / 12.98 |
+
+Plateau PPO diagnostics are averaged over the same ten checkpoints (values are R1 / R2):
+
+| hidden size | KL to init | joint entropy | family entropy | critic EV |
+|---:|---:|---:|---:|---:|
+| 64 | 15.44 / 25.10 | 0.521 / 0.695 | 0.155 / 0.199 | 0.982 / 0.989 |
+| 128 | 25.41 / 21.86 | 0.949 / 0.913 | 0.265 / 0.324 | 0.985 / 0.979 |
+| 256 | 53.70 / 26.84 | 0.721 / 0.509 | 0.224 / 0.191 | 0.989 / 0.988 |
+
+At cumulative iteration 275, the main greedy action-family counts per game were:
+
+| action kind | A1′ reference | hidden 64 R1 / R2 | hidden 128 R1 / R2 | hidden 256 R1 / R2 |
+|---|---:|---:|---:|---:|
+| BuildTower | 24.0 | 21.7 / 24.4 | 22.3 / 22.2 | 22.5 / 18.3 |
+| Reroll | 50.5 | 43.3 / 59.1 | 27.6 / 21.6 | 57.6 / 12.9 |
+| Continue | 75.5 | 82.4 / 102.0 | 64.1 / 48.1 | 77.4 / 64.7 |
+| UseInventoryItem | 11.3 | 4.9 / 4.8 | 7.3 / 9.1 | 6.4 / 3.5 |
+| PurchaseShopItem | 10.9 | 5.8 / 9.0 | 12.3 / 8.9 | 12.2 / 8.4 |
+| RemoveTower | 0.3 | 0.0 / 0.5 | 1.7 / 1.0 | 5.9 / 0.0 |
+| PlaceTower | 4.3 | 0.0 / 0.0 | 5.4 / 6.2 | 0.0 / 3.6 |
+
+Recorded paired plateau differences were +1.65 and −0.77 for hidden 128 versus hidden 64, and +1.68 and −12.29 for hidden 256 versus hidden 64 (R1/R2). Hidden-256 plateau means were 43.65 and 34.76, a between-run difference of 8.89 points. Recorded CPU elapsed hours were 16.15 / 12.98 for hidden 256 and 5.52 / 4.62 for hidden 128 (R1/R2); batch-1 inference latency was 5.52 / 6.60 ms versus 2.90 / 3.22 ms. Plateau critic EV means ranged from 0.979 to 0.989. No CUDA benchmark or new final-seed evaluation was run.
+
+### Phase R/C supplemental recorded values
+
+The tables below report recorded values without a new A/B/C classification or research recommendation. Cumulative iteration 275 means phase 1 iteration 75 plus phase 2 iteration 200. “Final-50” uses the ten persisted greedy development evaluations at cumulative iterations 230, 235, …, 275 (the evaluations available within the preregistered 226–275 interval). Development deltas are paired against the same 128 `ppo_development` seeds and canonical policy. Total wall times are the recorded run elapsed hours in the Phase R/C report. The PPO metadata also stores cumulative rollout-plus-update seconds, which exclude some run overhead; rollout/update times below are arithmetic means over the 275 recorded training iterations.
+
+#### A1′ reference and independent hidden-64 runs
+
+The reference row is the selected A1′ checkpoint, phase-2 iteration 170 (`v2a1p-ppo-p2/iter-0170`), which is cumulative iteration 245. For independent runs, “final” is cumulative iteration 275. The action-kind values are greedy development decisions per game at the stated checkpoint, rounded to one decimal; omitted kinds are zero or below 0.1.
+
+| run | PPO seed / training seed block | final dev clear rate | delta vs canonical | delta vs A1′ reference | best dev checkpoint / clear rate | final-50 dev mean (min–max) | cumulative semantic decisions | dev decisions/game | final KL-to-init | final joint entropy | principal action kinds/game: Build / Reroll / Continue / Inventory / Purchase | wall time |
+|---|---|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---:|
+| A1′ reference R0 | 0 / existing `ppo_train` blocks | 47.18 | +10.94 | 0.00 | phase-2 170 / 47.18 | 44.80 (41.66–47.18) | 1,639,419 at selected checkpoint | 203.7 | 24.68 | 0.856 | 24.0 / 50.5 / 75.5 / 11.3 / 10.9 | 3.60 h full run |
+| Independent R1 | 1 / 4,300,000–4,313,199 | 42.58 | +6.35 | −4.60 | cumulative 275 / 42.58 | 41.50 (36.02–45.33) | 2,001,446 | 182.7 | 16.03 | 0.447 | 21.7 / 43.3 / 82.4 / 4.9 / 5.8 | 3.11 h |
+| Independent R2 | 2 / 4,400,000–4,413,199 | 48.17 | +11.93 | +0.99 | cumulative 275 / 48.17 | 44.40 (42.26–48.17) | 2,194,669 | 230.9 | 25.75 | 0.693 | 24.4 / 59.1 / 102.0 / 4.8 / 9.0 | 4.22 h |
+
+Independent-run final clear rates span **42.58–48.17** (range 5.59 points). Their final-50 means span **41.50–44.40** (range 2.90 points). The reference’s final-50 mean 44.80 is **0.40 points above** the replicate maximum and **3.30 points above** the replicate minimum; in the ordered three values it is above both replicate means. The reference selected-checkpoint metrics above are taken from the same cumulative-checkpoint evaluation and PPO metadata. The reference run record reports 3.60 h full-schedule elapsed wall time; PPO cumulative rollout-plus-update time through the selected checkpoint is 3.08 h.
+
+#### Hidden-size × PPO training-seed table
+
+BC rows for hidden 64 use the A1′ BC; the size-specific 128/256 values come from their selected BC checkpoints. PPO final and best development deltas are versus canonical. Best checkpoint is the maximum stored greedy development mean across the schedule. Final-50 mean and range use the ten values defined above. Critic EV, KL, entropy, clip fraction, grad norm, and value loss are from the final training iteration; grad norm is the recorded mean actor grad norm. Decisions/game is the greedy development value at cumulative iteration 275. Action-kind values are counts per greedy development game.
+
+| hidden | PPO seed / block | BC validation NLL | BC top-1 | BC gate delta | PPO final dev delta | PPO best dev delta / iteration | final-50 mean (min–max) | cumulative semantic decisions | rollout / update sec per iteration | total wall time | final KL / entropy | critic EV / clip fraction / grad norm / value loss | decisions/game | key action kinds/game: Build / Reroll / Continue / Inventory / Purchase |
+|---:|---|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|---:|---|
+| 64 | 1 / 4,300,000–4,313,199 | 0.0107 | 99.61% | −0.18 | +6.35 | +9.09 / 250 | 41.50 (36.02–45.33) | 2,001,446 | 3.99 / 34.70 | 3.11 h | 16.03 / 0.447 | 0.983 / 0.106 / 5.348 / 0.0172 | 182.7 | 21.7 / 43.3 / 82.4 / 4.9 / 5.8 |
+| 64 | 2 / 4,400,000–4,413,199 | 0.0107 | 99.61% | −0.18 | +11.93 | +11.93 / 275 | 44.40 (42.26–48.17) | 2,194,669 | 4.40 / 49.03 | 4.22 h | 25.75 / 0.693 | 0.992 / 0.080 / 0.886 / 0.0079 | 230.9 | 24.4 / 59.1 / 102.0 / 4.8 / 9.0 |
+| 128 | 1 / 4,300,000–4,313,199 | 0.01132 | 99.483% | −0.20 | +7.51 | +8.36 / 255 | 43.15 (41.46–44.60) | 1,676,539 | 5.21 / 64.94 | 5.52 h | 26.16 / 0.898 | 0.985 / 0.130 / 0.945 / 0.0081 | 175.9 | 22.3 / 27.6 / 64.1 / 7.3 / 12.3 |
+| 128 | 2 / 4,400,000–4,413,199 | 0.01132 | 99.483% | −0.20 | +7.51 | +9.89 / 270 | 43.63 (40.66–46.13) | 1,312,162 | 4.40 / 54.00 | 4.62 h | 23.23 / 0.875 | 0.979 / 0.135 / 0.921 / 0.0144 | 142.2 | 22.2 / 21.6 / 48.1 / 9.1 / 8.9 |
+| 256 | 1 / 4,300,000–4,313,199 | 0.01081 | 99.446% | −0.03 | +8.03 | +9.27 / 260 | 43.65 (40.85–45.50) | 2,256,308 | 14.56 / 192.63 | 16.15 h | 57.75 / 0.676 | 0.990 / 0.117 / 0.948 / 0.0088 | 219.4 | 22.5 / 57.6 / 77.4 / 6.4 / 12.2 |
+| 256 | 2 / 4,400,000–4,413,199 | 0.01081 | 99.446% | −0.03 | −0.36 | +3.09 / 165 | 34.76 (33.86–35.90) | 1,680,291 | 11.42 / 155.10 | 12.98 h | 30.47 / 0.483 | 0.990 / 0.081 / 0.610 / 0.0043 | 139.4 | 18.3 / 12.9 / 64.7 / 3.5 / 8.4 |
+
+The reported PPO run seed is 1 or 2. For each size, seed 1 uses game-seed block 4,300,000–4,313,199 and seed 2 uses 4,400,000–4,413,199; phase 2 begins at offsets +3,600 within those blocks. BC gate deltas are paired 128-seed development comparisons against canonical. Hidden-64 best dev iteration and plateau values are measured on the same saved R1/R2 histories as the larger models.
+
+#### Paired hidden-size differences at the same training seed
+
+These are differences in the final cumulative-275 paired development clear-rate delta versus canonical; equivalently they are the same-seed clear-rate differences between model sizes on the shared seed list.
+
+| training seed | 128 − 64 | 256 − 64 |
+|---|---:|---:|
+| 1 (block starts 4,300,000) | +1.17 | +1.68 |
+| 2 (block starts 4,400,000) | −4.42 | −12.29 |
+
+#### Hidden-256 same-iteration trajectory: R1 and R2
+
+R1 is the higher-scoring final hidden-256 run in the common cumulative-275 dev evaluation; R2 is the lower-scoring run. Each row is the same cumulative iteration for both seeds. Metrics are stored rollout clear-rate, post-update KL-to-init, joint entropy, clip fraction, mean actor grad norm, critic explained variance/value loss, training decisions/game, and selected training-rollout action-kind shares. Action shares are shown as `Reroll / Continue / BuildTower / PlaceTower / RemoveTower` percentages. Dev values are greedy 128-seed clear rates. Values are shown to two or three decimals, so rounded differences may not subtract exactly.
+
+| cumulative iter | dev clear rate R1 / R2 | training rollout clear rate R1 / R2 | KL R1 / R2 | entropy R1 / R2 | clip fraction R1 / R2 | grad norm R1 / R2 | critic EV R1 / R2 | value loss R1 / R2 | decisions/game R1 / R2 | action-kind shares R1 / R2 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 25 | 36.74 / 36.67 | 36.81 / 37.34 | 0.6 / 1.0 | 0.102 / 0.191 | 0.016 / 0.025 | 0.21 / 0.39 | 0.984 / 0.981 | 0.0121 / 0.0100 | 89.5 / 90.6 | .07/.14/.21/.07/.00 / .07/.13/.21/.06/.00 |
+| 50 | 36.32 / 32.94 | 40.08 / 37.67 | 12.1 / 7.7 | 0.447 / 0.383 | 0.076 / 0.041 | 0.44 / 0.29 | 0.987 / 0.984 | 0.0078 / 0.0082 | 118.9 / 99.1 | .10/.24/.17/.05/.00 / .08/.21/.19/.05/.00 |
+| 75 | 36.81 / 36.11 | 39.69 / 39.04 | 31.3 / 11.3 | 0.824 / 0.551 | 0.115 / 0.062 | 0.70 / 0.37 | 0.976 / 0.983 | 0.0171 / 0.0090 | 141.6 / 109.4 | .17/.23/.14/.05/.05 / .11/.20/.18/.05/.00 |
+| 100 | 39.18 / 33.82 | 41.87 / 38.82 | 41.5 / 16.1 | 0.857 / 0.570 | 0.090 / 0.074 | 0.60 / 0.43 | 0.982 / 0.984 | 0.0181 / 0.0080 | 158.2 / 113.9 | .26/.20/.13/.04/.05 / .13/.24/.17/.05/.00 |
+| 125 | 40.09 / 33.94 | 42.81 / 42.11 | 45.8 / 19.4 | 0.710 / 0.482 | 0.105 / 0.079 | 0.72 / 0.42 | 0.983 / 0.986 | 0.0120 / 0.0075 | 180.7 / 147.4 | .28/.26/.12/.01/.04 / .11/.33/.15/.04/.00 |
+| 150 | 39.95 / 36.11 | 44.37 / 41.75 | 41.9 / 20.1 | 0.726 / 0.545 | 0.109 / 0.074 | 0.65 / 0.51 | 0.988 / 0.988 | 0.0072 / 0.0062 | 187.1 / 148.5 | .25/.32/.12/.00/.03 / .11/.33/.14/.04/.00 |
+| 175 | 42.21 / 35.45 | 42.80 / 40.69 | 52.1 / 20.3 | 0.862 / 0.589 | 0.144 / 0.072 | 0.77 / 0.50 | 0.990 / 0.983 | 0.0055 / 0.0079 | 218.0 / 131.8 | .24/.37/.10/.00/.04 / .10/.32/.16/.05/.00 |
+| 200 | 43.04 / 37.04 | 40.10 / 41.16 | 55.1 / 24.5 | 0.932 / 0.490 | 0.140 / 0.083 | 1.04 / 0.52 | 0.984 / 0.989 | 0.0128 / 0.0056 | 186.3 / 145.5 | .26/.32/.11/.00/.05 / .10/.37/.14/.04/.00 |
+| 225 | 40.85 / 33.96 | 46.65 / 38.80 | 48.2 / 25.9 | 0.613 / 0.523 | 0.122 / 0.086 | 0.80 / 0.58 | 0.992 / 0.989 | 0.0045 / 0.0048 | 236.4 / 133.1 | .23/.39/.10/.00/.03 / .11/.36/.15/.04/.00 |
+| 230 | 42.79 / 33.91 | 44.74 / 38.98 | 49.4 / 26.2 | 0.697 / 0.503 | 0.126 / 0.075 | 0.87 / 0.53 | 0.990 / 0.989 | 0.0055 / 0.0043 | 217.9 / 152.4 | .23/.38/.10/.00/.04 / .10/.41/.13/.03/.00 |
+| 235 | 40.85 / 35.08 | 41.16 / 39.84 | 50.4 / 23.9 | 0.690 / 0.547 | 0.114 / 0.084 | 0.81 / 0.59 | 0.990 / 0.988 | 0.0068 / 0.0052 | 206.8 / 138.3 | .24/.37/.10/.01/.04 / .10/.37/.15/.04/.00 |
+| 240 | 44.18 / 34.41 | 44.24 / 39.77 | 51.3 / 24.1 | 0.721 / 0.532 | 0.127 / 0.092 | 0.94 / 0.59 | 0.991 / 0.989 | 0.0070 / 0.0046 | 219.0 / 139.4 | .27/.34/.10/.00/.03 / .10/.37/.15/.04/.00 |
+| 245 | 43.53 / 34.23 | 45.80 / 39.59 | 53.5 / 23.9 | 0.771 / 0.590 | 0.128 / 0.097 | 1.11 / 0.63 | 0.990 / 0.987 | 0.0069 / 0.0053 | 219.6 / 134.2 | .27/.32/.11/.00/.04 / .09/.34/.15/.04/.00 |
+| 250 | 43.81 / 34.56 | 44.32 / 40.92 | 54.6 / 27.5 | 0.805 / 0.478 | 0.132 / 0.090 | 1.04 / 0.65 | 0.987 / 0.989 | 0.0105 / 0.0056 | 203.2 / 155.2 | .27/.29/.11/.01/.05 / .09/.42/.13/.04/.00 |
+| 255 | 44.59 / 33.86 | 42.49 / 39.26 | 56.5 / 26.9 | 0.735 / 0.511 | 0.131 / 0.077 | 1.01 / 0.55 | 0.985 / 0.988 | 0.0090 / 0.0042 | 201.7 / 143.3 | .27/.30/.11/.00/.04 / .10/.39/.14/.04/.00 |
+| 260 | 45.50 / 34.55 | 45.62 / 40.30 | 53.0 / 27.9 | 0.639 / 0.510 | 0.116 / 0.084 | 0.92 / 0.72 | 0.988 / 0.985 | 0.0067 / 0.0073 | 215.3 / 155.7 | .26/.32/.11/.00/.04 / .09/.42/.13/.04/.00 |
+| 265 | 43.54 / 35.90 | 44.47 / 40.64 | 56.2 / 25.9 | 0.796 / 0.469 | 0.143 / 0.075 | 1.08 / 0.60 | 0.988 / 0.989 | 0.0081 / 0.0049 | 206.1 / 148.2 | .26/.32/.11/.00/.05 / .10/.39/.14/.04/.00 |
+| 270 | 43.48 / 35.22 | 46.15 / 41.10 | 54.2 / 31.7 | 0.654 / 0.447 | 0.113 / 0.091 | 0.93 / 0.67 | 0.990 / 0.987 | 0.0059 / 0.0051 | 219.5 / 161.4 | .26/.33/.11/.00/.02 / .09/.44/.13/.03/.00 |
+| 275 | 44.26 / 35.88 | 46.42 / 39.43 | 57.8 / 30.5 | 0.676 / 0.483 | 0.117 / 0.081 | 0.95 / 0.61 | 0.990 / 0.990 | 0.0088 / 0.0043 | 237.2 / 150.4 | .26/.34/.10/.00/.04 / .10/.42/.13/.04/.00 |
+
+**Observation:** by cumulative iteration 15, KL (0.070/0.583) and entropy (0.033/0.077) already differed while dev clear rates differed by 0.20 points (36.35/36.55); clip fractions were 0.014/0.015. At iteration 25, dev means were 36.74/36.67. At iteration 40, dev means were 36.40/32.42 and training rollout means were 37.19/36.07; KL was 3.56/7.59, entropy 0.213/0.363, clip fraction 0.036/0.059, and decisions/game 90.4/96.6. Critic EV at iteration 40 was 0.982/0.985 and value loss 0.0094/0.0077. Thus KL/entropy separation appears in the stored comparisons before the displayed larger dev-rate difference; by iteration 40, clear-rate, rollout, and several update/action metrics differ in the same checkpoint. These are timing observations, not a cause claim.
+
+#### A1′ late-game distributions
+
+Development uses the selected A1′ policy on the 128 `ppo_development` seeds from `a1r-dev-cum275.json`; fresh final uses the same frozen selected actor on 256 `v2_final` seeds from `v2-final-eval.json`. Quantiles use nearest-rank order statistics. The episode artifact records `final_stage` and `terminal_clear_rate`; it does not contain a separate explicit cause-of-termination field. “Stage distribution” below therefore counts the recorded final stage, not an inferred failure cause.
+
+| split | episodes | mean stage | median stage | p75 / p90 / p95 / p99 / max stage | clear-rate p75 / p90 / p95 / p99 / max | full clears |
+|---|---:|---:|---:|---|---|---:|
+| development | 128 | 23.95 | 22.5 | 27 / 29 / 30 / 36 / 38 | 52.735 / 57.094 / 60.000 / 72.000 / 74.769 | 0/128 |
+| fresh final | 256 | 24.37 | 24 | 27 / 30 / 32 / 37 / 37 | 53.821 / 59.201 / 62.672 / 72.154 / 73.231 | 0/256 |
+
+The ten highest development final-stage episodes are: 4,000,040 (stage 38, clear-rate 74.7694), 4,000,034 (36, 72.0000), 4,000,099 (33, 65.1672), 4,000,098 (31, 61.6673), 4,000,074 (31, 60.6690), 4,000,010 (30, 60.0000), 4,000,029 (30, 60.0000), 4,000,078 (30, 60.0000), 4,000,055 (30, 59.7965), and 4,000,088 (30, 59.0241). The ten highest fresh-final final-stage episodes are: 4,200,123 (stage 37, clear-rate 73.2311), 4,200,081 (37, 72.1554), 4,200,024 (37, 72.1544), 4,200,091 (35, 69.0946), 4,200,019 (33, 65.6673), 4,200,041 (32, 64.0000), 4,200,241 (32, 63.6688), 4,200,015 (32, 63.1714), 4,200,154 (32, 63.1700), and 4,200,254 (32, 63.0035).
+
+Recorded development final-stage counts are: stage 16: 1, 17: 3, 18: 2, 19: 6, 20: 11, 21: 5, 22: 36, 23: 7, 24: 4, 25: 7, 26: 8, 27: 18, 28: 4, 29: 5, 30: 6, 31: 2, 33: 1, 36: 1, 38: 1. Fresh final counts are: stage 15: 1, 16: 1, 17: 7, 18: 4, 19: 8, 20: 26, 21: 10, 22: 44, 23: 21, 24: 20, 25: 13, 26: 16, 27: 30, 28: 15, 29: 14, 30: 12, 31: 1, 32: 8, 33: 1, 35: 1, 37: 3. Both artifacts record **zero full clears**. They do not break out a final-stage-specific failure event beyond these final-stage counts.
+
+#### Existing experiment summary
+
+Values below are copied from the historical development/final artifacts and the experiment records above. “Best/final dev delta” is versus canonical unless the cell names another comparator. An em dash means no corresponding result was recorded in the artifacts inspected for this summary. “Action space” states whether the action candidates/representation were changed. Technical status describes completion/invariants as recorded, not performance.
+
+| policy / experiment | best / final dev delta | fresh final result | action-space change | directly recorded observations | technical status |
+|---|---|---|---|---|---|
+| canonical | 0 / 0 reference | clear-rate 36.63, stage 18.72, full clears 0/256 | no | 84.5 decisions/game in Phase4B final; 85.0 in V2 final | completed baseline |
+| Phase4B BC | −0.15 gate | V2 final clear-rate 36.63, stage 18.70, full clears 0/256 | no | 99.5% top-1 in Phase4B training report; final actions close to canonical | completed |
+| Phase4B PPO (v1) | +6.11 final checkpoint; best +6.11 in run C | V2 final clear-rate 41.83, stage 21.30, full clears 0/256; paired A1′ delta +6.22 | no | Phase4B final clear-rate 41.63 on prior final split | completed; zero final-eval illegal/fallback/mutation |
+| A0 / A0a | exact v1 factorized equivalence | — | factorized family × candidate representation; candidate set unchanged | final state hashes matched v1 on 128 dev seeds | equivalence checks recorded as passing |
+| A0b | +5.34 final; best +5.87 | — | learned family head; candidate set unchanged | 1.36M decisions, 2.63 h; final development mean 41.58 | completed |
+| A1 per-head entropy | best +0.06 at iter 5; −3.67 at iter 20 | — | no | stopped after phase-1 iteration 24; KL-to-init reached 3.90 by iter 20 | stopped post hoc; excluded from model comparison |
+| A1′ | +10.85 final; best +10.94 at phase-2 iter 170 | V2 final clear-rate 48.06, stage 24.37, full clears 0/256; paired +11.43 vs canonical and +6.22 vs v1 PPO | no | selected actor; final decisions/game 212.4 | completed; final eval had zero illegal/fallback/mutation |
+| position-only (B/B′ records) | B′ best +0.65; final −19.07; B′ final mean clear-rate 17.16 | — | full legal positions in the trained cell head; position-only variant froze non-position actor | B run stopped at iter 58 with cell entropy 0; B′ sampled outside-top-8 but greedy dev used none; B′ RemoveTower 1,684 and Reroll 3,348 across 128 games | B stopped post hoc; B′ completed, no illegal/mismatch reported |
+| option-only | +0.296 vs frozen A1′ at iter 200 (SE 0.184) | — | full BuildTower subset/slot proposal options; position and non-BuildTower choices frozen | 27.33% sampled outside-top-8 options; 11.44% greedy at iter 200; frozen actor digest unchanged | completed; recorded invariants passed |
+| hidden-64 independent R1/R2 | +6.35 / +11.93 final vs canonical; best +9.09 / +11.93 | — | unchanged A1′ action candidates | final dev 42.58 / 48.17; 2.00M / 2.19M semantic decisions | completed schedules; recorded execution/finite checks passed |
+| hidden-128 R1/R2 | +7.51 / +7.51 final; best +8.36 / +9.89 | — | unchanged A1′ action candidates | final dev 43.75 / 43.74; 1.68M / 1.31M decisions | completed schedules; recorded execution/finite checks passed |
+| hidden-256 R1/R2 | +8.03 / −0.36 final; best +9.27 / +3.09 | — | unchanged A1′ action candidates | final dev 44.26 / 35.88; 2.26M / 1.68M decisions | completed schedules; recorded execution/finite checks passed |
+
+### Source artifacts and value definitions
+
+Phase R run records: `simulator/artifacts/phase4b/a1r-r{1,2}-p{1,2}/ppo.json`; selected reference: `v2a1p-ppo-p2/ppo.json`; paired evaluations: `a1r-dev-cum275.json`. Capacity BC metadata: `a1c-bc-h{128,256}/bc.json`; PPO histories: `a1c-h{128,256}-r{1,2}-p{1,2}/ppo.json`; common paired evaluation: `a1c-all-dev-cum275.json`; BC gates: `a1c-bc-h{128,256}-dev.json`. A1′ development and fresh-final episode data: `a1r-dev-cum275.json` and `v2-final-eval.json`. These artifacts are locally present under the ignored simulator artifact directory and are not included in the documentation commit.
