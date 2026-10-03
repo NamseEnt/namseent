@@ -149,6 +149,7 @@ fn update_presentation_frame(
         .update_shake(dt, presentation_instant - PresentationInstant::zero());
 
     game_state.ui_state.tick(presentation_instant);
+    game_state.gold_reward_presentation.tick(dt);
 
     if game_state.ui_state.should_cleanup(presentation_instant) {
         game_state.cleanup_unused_tower_popup_states();

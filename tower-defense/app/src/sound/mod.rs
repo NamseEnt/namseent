@@ -17,7 +17,7 @@ pub use asset::{
     random_whoop, random_whoosh, random_wind,
 };
 pub use card::{play_card_deselected_sound, play_card_draw_sounds, play_card_selected_sound};
-pub use coin::play_coin_sound_for_gold;
+pub use coin::{play_coin_sound_for_gold, play_coin_sound_for_gold_at};
 pub use event::{EmitSoundParams, SoundEvent, SoundId, SpatialMode};
 pub use game_end::{GameEndKind, play_game_end_sound, play_game_end_sound_at};
 pub use render::SoundRenderer;
