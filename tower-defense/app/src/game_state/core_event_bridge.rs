@@ -122,7 +122,19 @@ pub(crate) fn consume_headed(
                         ),
                     );
                 }
-                crate::game_state::presentation_effect::apply_earn_gold_sound(game_state, reward);
+                if reward > 0 {
+                    let map_position =
+                        crate::world::WorldCoord::new(position[0], position[1]).as_map_coord_f32();
+                    game_state.push_presentation_event(
+                        crate::game_state::PresentationEvent::SpawnGoldReward {
+                            position: [map_position.x, map_position.y],
+                            amount: reward,
+                        },
+                    );
+                    crate::game_state::presentation_effect::apply_earn_gold_sound(
+                        game_state, reward,
+                    );
+                }
             }
             td_core::CoreEvent::TowerAttack {
                 tower_id,
@@ -648,6 +660,58 @@ mod tests {
                 ))
         );
         assert!(effects.history_events.is_empty());
+    }
+
+    #[test]
+    fn monster_reward_queues_gold_particles_and_staggered_coin_sounds() {
+        let mut game_state = crate::game_state::create_game_state_with_seed(7);
+        let _ = game_state.take_pending_action_effects();
+        consume_headed(
+            &mut game_state,
+            [td_core::CoreEvent::MonsterDefeated {
+                monster_id: 1,
+                position: [1024, 2048],
+                monster_kind: 0,
+                reward: 3,
+                rotation_milliradians: 0,
+            }],
+            crate::PresentationInstant::zero(),
+        );
+
+        let effects = game_state.take_pending_action_effects();
+        let gold_reward = effects
+            .presentation_events
+            .events
+            .iter()
+            .find_map(|event| match event {
+                crate::game_state::PresentationEvent::SpawnGoldReward { position, amount } => {
+                    Some((*position, *amount))
+                }
+                _ => None,
+            })
+            .expect("monster reward should queue gold particles");
+        assert_eq!(gold_reward.1, 3);
+        assert_eq!(
+            gold_reward.0,
+            [
+                1024.0 / crate::world::WORLD_UNITS_PER_TILE as f32,
+                2048.0 / crate::world::WORLD_UNITS_PER_TILE as f32,
+            ]
+        );
+        let coin_sound_delays = effects
+            .presentation_events
+            .events
+            .iter()
+            .filter_map(|event| match event {
+                crate::game_state::PresentationEvent::PlaySoundCueDelayed {
+                    cue: crate::game_state::SoundCue::Coin,
+                    delay_ms,
+                    ..
+                } => Some(*delay_ms),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(coin_sound_delays, vec![0, 100, 200]);
     }
 
     #[test]

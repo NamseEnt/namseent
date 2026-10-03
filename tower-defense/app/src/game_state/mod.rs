@@ -15,6 +15,7 @@ mod entity_id;
 pub mod fast_forward;
 pub mod field_particle;
 pub mod flow;
+pub(crate) mod gold_reward;
 pub mod item;
 #[allow(unused)]
 mod map_decoration_atlas;
@@ -2334,6 +2335,7 @@ impl GameState {
                 PresentationEvent::AnimateBase(_) => {}
                 PresentationEvent::ShakeCamera { .. } => {}
                 PresentationEvent::SpawnRoyalStraightFlushVisual { .. } => {}
+                PresentationEvent::SpawnGoldReward { .. } => {}
                 PresentationEvent::SpawnParticle(request) => match request {
                     ParticleSpawnRequest::DamageText { position, damage } => {
                         field_particle::DAMAGE_TEXTS.spawn(
