@@ -670,3 +670,105 @@ Values below are copied from the historical development/final artifacts and the 
 ### Source artifacts and value definitions
 
 Phase R run records: `simulator/artifacts/phase4b/a1r-r{1,2}-p{1,2}/ppo.json`; selected reference: `v2a1p-ppo-p2/ppo.json`; paired evaluations: `a1r-dev-cum275.json`. Capacity BC metadata: `a1c-bc-h{128,256}/bc.json`; PPO histories: `a1c-h{128,256}-r{1,2}-p{1,2}/ppo.json`; common paired evaluation: `a1c-all-dev-cum275.json`; BC gates: `a1c-bc-h{128,256}-dev.json`. A1′ development and fresh-final episode data: `a1r-dev-cum275.json` and `v2-final-eval.json`. These artifacts are locally present under the ignored simulator artifact directory and are not included in the documentation commit.
+
+## Actor stability stress test (pre-registered)
+
+Pre-registration date: 2026-10-03. No modified-recipe training had started when this section was recorded.
+
+### Existing hidden-64 trajectory evidence
+
+The existing R0/R1/R2 PPO histories were aligned by cumulative iteration (phase 1 iterations 1–75, followed by phase 2 iterations 76–275). The first clear actor-trajectory separation for R1 is at cumulative iteration 15: R1's post-update KL-to-initial-policy was 3.83, versus 0.46 for R0 and 1.53 for R2. At that point greedy development clear rate was 32.75 for R1, 37.68 for R0, and 36.46 for R2; training rollout clear rate was 39.93 / 38.89 / 38.25 (R1/R0/R2), so rollout return did not yet mirror the greedy development gap. R1's main action-kind counts per training game were Continue 30.7, Reroll 8.9, BuildTower 20.3, UseInventoryItem 8.4, and PurchaseShopItem 11.2, versus 14.0 / 7.3 / 19.8 / 8.6 / 10.9 for R0 and 16.4 / 7.8 / 19.5 / 8.1 / 9.7 for R2. At cumulative iteration 20, R1 KL-to-init was 5.59 versus 0.91 / 2.88, and Continue counts were 38.7 versus 13.5 / 16.8; this confirms a policy-distribution split before the later instability.
+
+The late R1 actor updates also show unusually large update signals and repeated target-KL early stops. At cumulative iterations 200, 225, 245, 250, and 275, approximate KL was 0.0216, 0.0319, 0.0230, 0.1610, and 0.0460; the update stopped early at each checkpoint (1, 1, 1, 1, and 2 epochs completed). Corresponding mean actor grad norms were 1.34, 5.38, 4.29, 6.62, and 5.35. At iteration 275 R0/R1/R2 grad norms were 1.06 / 5.35 / 0.89; R0 and R2 completed all four epochs without early stopping. Across these points, critic explained variance remained approximately 0.980–0.992. This is evidence to directly constrain actor update magnitude; it does not establish causality.
+
+### Locked intervention and run contract
+
+- Change exactly one existing actor-stability variable: `actor_learning_rate` from 0.0003 to **0.00015** (one half of the A1′ value).
+- Keep `clip_epsilon=0.2`, `target_kl=0.02`, critic learning rate 0.0003, four epochs, minibatch 256, max grad norm 0.5, and the existing A1′ optimizer/normalization settings.
+- Keep hidden size 64, A1′ representation and actions, reward, critic, and all other architecture and training settings unchanged.
+- Run existing PPO seeds R1 (seed 1; train seed start 4,300,000) and R2 (seed 2; train seed start 4,400,000), each for phase 1: 75 iterations at entropy coefficient 0.01, then phase 2: 200 iterations at entropy coefficient 0.003, resuming the new phase-1 actor, critic, and optimizer states. Total budget: 275 cumulative iterations per seed. Do not retrain R0 or evaluate a final seed.
+- Use the existing 128-seed `ppo_development` evaluation schedule. At cumulative iteration 75 inspect technical validity only. Continue to 275 unless a pre-registered technical stop condition occurs: non-finite values, illegal/mismatch actions, optimizer failure, unchanged policy, or experiment-contract violation. Do not stop based on performance.
+- Compare each modified run with its existing same-seed baseline. Report final and best dev delta versus canonical; last-50 dev mean/min/max; cumulative semantic decisions; per-update KL and target-KL stops; KL-to-init; entropy; clip fraction; actor grad norm; decisions/game; action-kind distribution; critic metrics; and final/late-window between-seed spread.
+
+This is a development stability test, not final evaluation. No additional hyperparameter values or experiment branches are authorized by this pre-registration.
+
+## Actor stability stress test results
+
+Completed on 2026-10-03. The preregistered half-actor-LR recipe completed all 275 cumulative iterations for both existing training seeds. No baseline was retrained. Raw PPO histories remain in the ignored `simulator/artifacts/phase4b` directory and are not included in the documentation commit.
+
+### 1. First actor trajectory separation
+
+The original A1′ R1 trajectory first separated clearly at cumulative iteration 15, as recorded in the preregistration above: KL-to-initial was 3.834 for R1 versus 0.460 for R0 and 1.526 for R2; greedy dev clear rates were 32.751 / 37.680 / 36.458 (R1/R0/R2). The modified runs show that halving actor LR did not make the R1 actor trajectory stable: at iteration 15 its approximate update KL was already 0.1143, target-KL stopped after one epoch, mean actor grad norm was 16.796, and entropy was 0.0463. At the same point modified R2 had KL 0.0015, completed all four epochs, grad norm 0.570, and entropy 0.0436. The seeds still produced sharply different update dynamics under the same recipe.
+
+### 2. Preregistered stability variable
+
+The only changed variable was actor learning rate, 0.0003 → 0.00015. Clip epsilon remained 0.2, target KL 0.02, critic LR 0.0003, hidden64, epochs4, minibatch256, entropy coefficients 0.01 for cumulative iterations 1–75 and 0.003 for 76–275. The paired runs used existing seeds R1/1 and R2/2 and their existing training seed blocks. No architecture, representation, action, reward, critic, or final-seed evaluation change was made.
+
+### 3–5. Same-seed comparisons and performance spread
+
+Canonical development clear rate was 36.234232 in the paired evaluation histories. The best checkpoint is the highest recorded PPO dev clear-rate checkpoint; the final is cumulative iteration 275. The last-50 performance window uses the ten scheduled dev evaluations at cumulative iterations 230–275, inclusive. “Semantic decisions” is the sum of rollout transitions across all 275 iterations.
+
+| Run | Final dev / delta vs canonical | Best dev / delta vs canonical (iter) | Last-50 dev mean / min / max | Semantic decisions | Modified − original final / best delta / late mean |
+|---|---:|---:|---:|---:|---:|
+| Original R1, LR .0003 | 42.581750 / +6.347518 | 47.743966 / +11.509734 (215) | 41.499217 / 36.016116 / 45.328614 | 2,001,446 | — |
+| Modified R1, LR .00015 | 39.702608 / +3.468377 | 39.702608 / +3.468377 (275) | 39.240538 / 38.967661 / 39.702608 | 1,241,430 | −2.879141 / −8.041357 / −2.258679 |
+| Original R2, LR .0003 | 48.168695 / +11.934463 | 48.168695 / +11.934463 (275) | 44.399764 / 42.262532 / 48.168695 | 2,194,669 | — |
+| Modified R2, LR .00015 | 44.024749 / +7.790517 | 44.024749 / +7.790517 (275) | 38.902162 / 36.294021 / 44.024749 | 1,385,206 | −4.143946 / −4.143946 / −5.497602 |
+
+The between-seed final spread fell from 5.586945 to 4.322141 (−1.264804; 22.6%). The spread between last-50 dev means fell from 2.900547 to 0.338376 (−2.562171; 88.3%). This compression came with lower performance in both seeds: the weak R1 run declined by 2.879 final dev points, while the strong R2 run declined by 4.144. The modified R1’s late mean/min/max is tightly clustered because it plateaued at a lower level; that is not recovery of the weak seed.
+
+### 6. KL, entropy, clipping, gradient, loss, decisions, and critic trajectory
+
+The table gives scheduled snapshots (cumulative iterations 15, 75, 150, 225, 275) from the stored histories. Approx-KL and target-KL stop/epoch count are per-update values. KL-init is measured after the actor update. Entropy, clip fraction, actor loss, grad norm, and critic EV are update/rollout fields from that iteration. Dev clear is the greedy PPO development evaluation when scheduled; rollout clear is the sampled training rollout.
+
+| Run | Iter | Dev / rollout clear | Approx KL; stop (epochs) | KL-init | Entropy | Clip frac | Actor grad norm | Actor loss | Decisions/game | Critic EV |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Original R1 | 15 | 32.751 / 39.930 | .0046; no (4) | 3.834 | .1994 | .0426 | .493 | −.00193 | 115.00 | .9750 |
+| Original R1 | 75 | 34.777 / 39.457 | .0064; no (4) | 12.401 | .5920 | .0756 | .687 | −.00053 | 136.44 | .9778 |
+| Original R1 | 150 | 43.183 / 43.793 | .0060; no (4) | 15.326 | .7952 | .0739 | .795 | −.00569 | 167.19 | .9851 |
+| Original R1 | 225 | 45.133 / 43.534 | .0319; yes (1) | 13.027 | .4959 | .1205 | 5.383 | .03384 | 133.38 | .9856 |
+| Original R1 | 275 | 42.582 / 48.909 | .0460; yes (2) | 16.029 | .4468 | .1062 | 5.348 | .01000 | 195.23 | .9829 |
+| Modified R1 | 15 | 36.567 / 37.814 | .1143; yes (1) | .073 | .0463 | .1031 | 16.796 | .04351 | 90.83 | .9816 |
+| Modified R1 | 75 | 36.852 / 37.764 | .0222; yes (2) | .140 | .0602 | .1419 | 15.463 | .00107 | 91.60 | .9783 |
+| Modified R1 | 150 | 38.348 / 39.042 | .0984; yes (1) | 1.235 | .0265 | .3183 | 27.459 | .03790 | 95.08 | .9722 |
+| Modified R1 | 225 | 39.226 / 41.022 | .0937; yes (1) | 1.820 | .0159 | .4104 | 52.573 | .04225 | 104.29 | .9805 |
+| Modified R1 | 275 | 39.703 / 40.569 | .0879; yes (1) | 1.073 | .0105 | .5021 | 72.867 | .04153 | 102.71 | .9747 |
+| Original R2 | 15 | 36.458 / 38.250 | .0037; no (4) | 1.526 | .1610 | .0328 | .502 | −.00242 | 93.15 | .9750 |
+| Original R2 | 75 | 35.024 / 39.965 | .0035; no (4) | 9.839 | .7101 | .0401 | .559 | −.00191 | 125.10 | .9762 |
+| Original R2 | 150 | 40.205 / 45.562 | .0070; no (4) | 15.015 | .6945 | .0696 | .794 | −.00113 | 166.48 | .9827 |
+| Original R2 | 225 | 44.231 / 47.664 | .0085; no (4) | 23.575 | .7786 | .0864 | 1.028 | −.00372 | 197.88 | .9880 |
+| Original R2 | 275 | 48.169 / 52.314 | .0073; no (4) | 25.749 | .6934 | .0798 | .886 | −.00272 | 260.62 | .9920 |
+| Modified R2 | 15 | 36.600 / 37.486 | .0015; no (4) | .085 | .0436 | .0105 | .570 | −.00228 | 83.40 | .9740 |
+| Modified R2 | 75 | 37.732 / 38.305 | .0036; no (4) | 1.408 | .2302 | .0391 | .560 | −.00359 | 90.60 | .9721 |
+| Modified R2 | 150 | 38.322 / 39.848 | .0065; no (4) | 3.158 | .2637 | .0332 | .593 | −.00313 | 97.67 | .9784 |
+| Modified R2 | 225 | 38.411 / 41.725 | .0036; no (4) | 7.481 | .3529 | .0334 | .937 | −.00309 | 115.88 | .9822 |
+| Modified R2 | 275 | 44.025 / 44.780 | .0036; no (4) | 9.257 | .3573 | .0431 | .990 | −.00208 | 133.00 | .9802 |
+
+Across all 275 updates, original R1 had 79 target-KL stops and modified R1 had 257; R2 had 1 original stop and 0 modified stops. There were zero non-finite optimizer skips in all four runs. Over cumulative iterations 226–275, mean approximate KL / entropy / clip fraction / actor grad norm were: original R1 .052864 / .526989 / .128580 / 5.053477; modified R1 .105627 / .016124 / .456028 / 58.655260; original R2 .007635 / .696900 / .081331 / .936761; modified R2 .003604 / .351569 / .043024 / 1.005588. The intervention smoothed R2 updates, but it amplified R1’s repeated target-KL stops, entropy collapse, clipping, and actor gradients.
+
+Final critic value loss / explained variance were original R1 .017163 / .982908 and modified R1 .033648 / .974721; original R2 .007912 / .992025 and modified R2 .016576 / .980174. These stayed finite, but critic fit was weaker in both modified runs. This does not change that the preregistered intervention targeted the actor.
+
+### 7. Final greedy action-kind distribution
+
+Counts below are PPO greedy development action-kind counts divided by 128 evaluation episodes (actions/game). They show the changed policy mix, especially the collapse in `continue` and `reroll` for modified R1 and the reduced `continue` rate for modified R2.
+
+| Run | Build tower | Continue | Reroll | Inventory item | Shop purchase | Place tower | Remove tower |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Original R1 | 21.695 | 82.414 | 43.312 | 4.922 | 5.773 | 0.000 | 0.000 |
+| Modified R1 | 20.234 | 14.062 | 16.180 | 9.375 | 10.305 | 6.320 | 0.047 |
+| Original R2 | 24.438 | 102.000 | 59.086 | 4.805 | 8.953 | 0.031 | 0.469 |
+| Modified R2 | 22.336 | 59.344 | 15.578 | 10.625 | 11.195 | 6.734 | 0.047 |
+
+### 8. Technical invariants
+
+Both modified seeds completed 75 phase-1 and 200 phase-2 iterations (275 actor updates and 13,200 training episodes per seed), using the release simulator and the phase-1 actor, critic, and optimizer states for phase 2. At every recorded rollout, illegal actions, action mismatches, and non-finite rollout values were zero; optimizer non-finite skips were zero; every iteration recorded an actor update. Both policies moved from initialization (final KL-to-init 1.0735 for R1 and 9.2574 for R2). The requested 75-iteration technical check passed for each run. High but finite R1 actor gradient norms and frequent target-KL stops were logged as outcome metrics, not technical stop conditions.
+
+### 9. Conclusion
+
+**B. Trade-off.** The final and last-50 between-seed spreads narrowed, but neither seed improved: R1 lost 2.879 final dev points versus its baseline, and R2 lost 4.144. The strong seed’s best/final score was meaningfully lower, while the weak seed did not improve. Halving actor LR therefore does not meet the preregistered stability goal. No new research direction is proposed here.
+
+### Raw artifact references
+
+- Original: `simulator/artifacts/phase4b/a1r-r{1,2}-p{1,2}/ppo.json`
+- Modified: `simulator/artifacts/phase4b/a1s-lrhalf-r{1,2}-p{1,2}/ppo.json`
+- Modified checkpoint directories: `simulator/artifacts/phase4b/a1s-lrhalf-r{1,2}-p{1,2}/iter-*`
