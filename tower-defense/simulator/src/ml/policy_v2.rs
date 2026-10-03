@@ -57,6 +57,13 @@ pub struct PolicyNet<B: Backend> {
     pub inputs: InputContract,
 }
 
+/// The learned family/action-kind prediction head, exposed for diagnostics.
+#[derive(Module, Debug)]
+pub struct FamilyHead<B: Backend> {
+    pub hidden: Linear<B>,
+    pub output: Linear<B>,
+}
+
 /// The only actor parameters trained by the position-only PPO ablation.
 #[derive(Module, Debug)]
 pub struct SpatialCellHead<B: Backend> {
@@ -135,6 +142,13 @@ impl<B: Backend> PolicyNet<B> {
     pub fn with_inputs(mut self, inputs: InputContract) -> Self {
         self.inputs = inputs;
         self
+    }
+
+    pub fn family_head(&self) -> FamilyHead<B> {
+        FamilyHead {
+            hidden: self.kind_hidden.clone(),
+            output: self.kind_output.clone(),
+        }
     }
 
     pub fn spatial_cell_head(&self) -> SpatialCellHead<B> {

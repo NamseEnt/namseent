@@ -371,6 +371,9 @@ pub struct Transition {
     pub action_kind: String,
     pub decision_point: String,
     pub old_log_prob: f32,
+    /// Optional behavior-policy family/candidate log-prob components for PPO diagnostics.
+    pub diagnostic_old_family_log_prob: Option<f32>,
+    pub diagnostic_old_conditional_log_prob: Option<f32>,
     pub behavior_entropy: f32,
     /// Entropy of the family (action kind) distribution.
     pub family_entropy: f32,
@@ -559,6 +562,7 @@ pub fn rollout_episode_with_build_option_head(
     let mut environment = GameEnvironment::new(config, game_seed);
     let initial_clear_rate = environment.clear_rate();
     let mut transitions = Vec::new();
+    let capture_actor_diagnostics = actor_diagnostics_path().is_some();
     let mut illegal_actions = 0usize;
     let mut action_mismatches = 0usize;
     let mut truncated = false;
@@ -611,6 +615,19 @@ pub fn rollout_episode_with_build_option_head(
             sample_masked(&log_probs, &legal_mask, u)
         };
         let candidate = &candidates.candidates[action_index];
+        let (diagnostic_old_family_log_prob, diagnostic_old_conditional_log_prob) =
+            if capture_actor_diagnostics {
+                let family_index = encoded.families[action_index] as usize;
+                let family_log_probs = factorized.kind.clone().into_data().to_vec::<f32>()?;
+                let conditional_log_probs =
+                    factorized.conditional.clone().into_data().to_vec::<f32>()?;
+                (
+                    family_log_probs.get(family_index).copied(),
+                    conditional_log_probs.get(action_index).copied(),
+                )
+            } else {
+                (None, None)
+            };
         let mut old_log_prob = log_probs[action_index];
         let mut behavior_entropy = entropy_of(&log_probs, &legal_mask);
         let spatial = match candidates.cells(&environment, action_index) {
@@ -705,6 +722,8 @@ pub fn rollout_episode_with_build_option_head(
             action_kind: candidate.action.kind().wire_name().to_string(),
             decision_point: format!("{:?}", candidates.observation.decision_point),
             old_log_prob,
+            diagnostic_old_family_log_prob,
+            diagnostic_old_conditional_log_prob,
             behavior_entropy,
             family_entropy,
             clear_rate_before,
@@ -1219,6 +1238,279 @@ fn spatial_cell_terms(
     }))
 }
 
+fn actor_diagnostics_path() -> Option<PathBuf> {
+    std::env::var_os("TOWERDEFENSE_PPO_ACTOR_DIAGNOSTICS").map(PathBuf::from)
+}
+
+fn diagnostic_stats(values: &[f64]) -> serde_json::Value {
+    if values.is_empty() {
+        return serde_json::json!({"count": 0});
+    }
+    let mut sorted = values.to_vec();
+    sorted.sort_by(f64::total_cmp);
+    let mean = values.iter().sum::<f64>() / values.len() as f64;
+    let variance = values
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>()
+        / values.len() as f64;
+    let percentile = |fraction: f64| {
+        let index = ((sorted.len() as f64 * fraction).ceil() as usize)
+            .saturating_sub(1)
+            .min(sorted.len() - 1);
+        sorted[index]
+    };
+    serde_json::json!({
+        "count": values.len(), "mean": mean, "std": variance.sqrt(),
+        "p95": percentile(0.95), "p99": percentile(0.99),
+        "min": sorted[0], "max": sorted[sorted.len() - 1]
+    })
+}
+
+fn diagnostic_kl(ratio: f32, log_ratio: f32) -> f64 {
+    f64::from((ratio - 1.0) - log_ratio)
+}
+
+/// Emits a factor/action-family decomposition for one pre-update minibatch.
+/// Metrics use the same normalized advantages and joint PPO ratio as actor_terms.
+fn actor_factor_batch_diagnostic(
+    actor: &PolicyNet<TrainBackend>,
+    batch: &[&Transition],
+    advantages: &[f32],
+    config: &PpoConfig,
+    device: &PolicyDevice,
+) -> Result<serde_json::Value> {
+    #[derive(Default)]
+    struct FamilyRows {
+        values: BTreeMap<String, Vec<f64>>,
+        action_ids: BTreeMap<String, usize>,
+        build_options: BTreeMap<String, usize>,
+    }
+    let decisions = batch.iter().map(|step| &step.encoded).collect::<Vec<_>>();
+    let factorized = factorized_log_probs(actor, &decisions, device);
+    let width = factorized.groups.width();
+    let family_count = super::policy_v2::FAMILY_COUNT;
+    let kind = factorized.kind.into_data().to_vec::<f32>()?;
+    let conditional = factorized.conditional.into_data().to_vec::<f32>()?;
+    let joint = factorized.joint.into_data().to_vec::<f32>()?;
+    let spatial = spatial_cell_terms(actor, batch, device, None)?;
+    let mut spatial_by_row = BTreeMap::<usize, (f32, f32, f32, usize)>::new();
+    if let Some(cells) = spatial {
+        let rows = cells.rows.into_data().to_vec::<i64>()?;
+        let chosen = cells.chosen.into_data().to_vec::<f32>()?;
+        let entropies = cells.entropy.into_data().to_vec::<f32>()?;
+        for (index, row) in rows.into_iter().enumerate() {
+            let transition = batch[row as usize];
+            let cell = transition
+                .spatial
+                .as_ref()
+                .expect("spatial row has a cell step");
+            let old = cell.behavior_log_probs[cell.cell];
+            spatial_by_row.insert(
+                row as usize,
+                (old, chosen[index], entropies[index], cell.cells.len()),
+            );
+        }
+    }
+    let mut by_family = BTreeMap::<String, FamilyRows>::new();
+    for (row, transition) in batch.iter().enumerate() {
+        let action_index = transition.action_index;
+        let family_index = *transition
+            .encoded
+            .families
+            .get(action_index)
+            .context("diagnostic action has no family index")? as usize;
+        let old_family = transition
+            .diagnostic_old_family_log_prob
+            .context("diagnostic replay did not capture behavior family log-prob")?;
+        let old_conditional = transition
+            .diagnostic_old_conditional_log_prob
+            .context("diagnostic replay did not capture behavior conditional log-prob")?;
+        let new_family = kind[row * family_count + family_index];
+        let new_conditional = conditional[row * width + action_index];
+        let mut family_entropy = 0.0f32;
+        let mut expected_conditional_entropy = 0.0f32;
+        let mut selected_conditional_entropy = 0.0f32;
+        for family in 0..family_count {
+            if !factorized.present[row * family_count + family] {
+                continue;
+            }
+            let log_probability = kind[row * family_count + family];
+            let probability = log_probability.exp();
+            family_entropy -= probability * log_probability;
+            let mut entropy_for_family = 0.0f32;
+            for column in 0..transition.encoded.candidates.len() {
+                if transition.encoded.legal_mask[column]
+                    && transition.encoded.families[column] as usize == family
+                {
+                    let logp = conditional[row * width + column];
+                    let p = logp.exp();
+                    entropy_for_family -= p * logp;
+                }
+            }
+            expected_conditional_entropy += probability * entropy_for_family;
+            if family == family_index {
+                selected_conditional_entropy = entropy_for_family;
+            }
+        }
+        let (old_spatial, new_spatial, spatial_entropy, cell_count) =
+            if let Some((old, new, entropy, cell_count)) = spatial_by_row.get(&row).copied() {
+                (Some(old), Some(new), entropy, cell_count)
+            } else {
+                (None, None, 0.0, 0)
+            };
+        let old_joint = transition.old_log_prob;
+        let new_joint = joint[row * width + action_index] + new_spatial.unwrap_or(0.0);
+        let joint_delta = new_joint - old_joint;
+        let family_delta = new_family - old_family;
+        let conditional_delta = new_conditional - old_conditional;
+        let joint_ratio = joint_delta.exp();
+        let family_ratio = family_delta.exp();
+        let conditional_ratio = conditional_delta.exp();
+        let clip = (joint_ratio - 1.0).abs() > config.clip_epsilon;
+        let clipped_ratio = joint_ratio.clamp(1.0 - config.clip_epsilon, 1.0 + config.clip_epsilon);
+        let advantage = advantages[row];
+        let raw_advantage = transition.advantage;
+        let surrogate = -(joint_ratio * advantage).min(clipped_ratio * advantage);
+        let joint_entropy = family_entropy + expected_conditional_entropy + spatial_entropy;
+        let entropy_loss = -config.entropy_coefficient * joint_entropy;
+        let legal_count = transition
+            .encoded
+            .legal_mask
+            .iter()
+            .filter(|legal| **legal)
+            .count();
+        let family_legal_count = transition
+            .encoded
+            .legal_mask
+            .iter()
+            .enumerate()
+            .filter(|(column, legal)| {
+                **legal && transition.encoded.families[*column] as usize == family_index
+            })
+            .count();
+        let ratio_kl = diagnostic_kl(joint_ratio, joint_delta);
+        let family_kl = diagnostic_kl(family_ratio, family_delta);
+        let conditional_kl = diagnostic_kl(conditional_ratio, conditional_delta);
+        let metrics = [
+            ("old_joint_log_prob", f64::from(old_joint)),
+            ("new_joint_log_prob", f64::from(new_joint)),
+            ("joint_log_prob_delta", f64::from(joint_delta)),
+            ("joint_approx_kl_sample", ratio_kl),
+            ("joint_ratio", f64::from(joint_ratio)),
+            ("old_family_log_prob", f64::from(old_family)),
+            ("new_family_log_prob", f64::from(new_family)),
+            ("family_log_prob_delta", f64::from(family_delta)),
+            ("family_approx_kl_sample", family_kl),
+            ("family_ratio", f64::from(family_ratio)),
+            ("old_conditional_log_prob", f64::from(old_conditional)),
+            ("new_conditional_log_prob", f64::from(new_conditional)),
+            ("conditional_log_prob_delta", f64::from(conditional_delta)),
+            ("conditional_approx_kl_sample", conditional_kl),
+            ("conditional_ratio", f64::from(conditional_ratio)),
+            ("joint_entropy", f64::from(joint_entropy)),
+            ("family_entropy", f64::from(family_entropy)),
+            (
+                "selected_family_conditional_entropy",
+                f64::from(selected_conditional_entropy),
+            ),
+            ("spatial_entropy", f64::from(spatial_entropy)),
+            ("clip_fraction_sample", f64::from(clip)),
+            ("raw_advantage", f64::from(raw_advantage)),
+            ("normalized_advantage", f64::from(advantage)),
+            ("surrogate_loss_sample", f64::from(surrogate)),
+            (
+                "surrogate_loss_batch_contribution",
+                f64::from(surrogate) / batch.len() as f64,
+            ),
+            ("entropy_loss_sample", f64::from(entropy_loss)),
+            ("total_legal_candidates", legal_count as f64),
+            ("family_legal_candidates", family_legal_count as f64),
+            ("legal_spatial_cells", cell_count as f64),
+        ];
+        let family = by_family.entry(transition.action_kind.clone()).or_default();
+        for (key, value) in metrics {
+            family
+                .values
+                .entry(key.to_string())
+                .or_default()
+                .push(value);
+        }
+        *family
+            .action_ids
+            .entry(transition.action_id.clone())
+            .or_default() += 1;
+        if let Some(option) = &transition.build_option {
+            let key = format!(
+                "subset={};slot={};rank={}",
+                option.subset_index, option.hand_slot_index, option.heuristic_rank
+            );
+            *family.build_options.entry(key).or_default() += 1;
+        }
+        if let Some((old, new)) = old_spatial.zip(new_spatial) {
+            let spatial_delta = new - old;
+            let spatial_ratio = spatial_delta.exp();
+            family
+                .values
+                .entry("spatial_cell_approx_kl_sample".to_string())
+                .or_default()
+                .push(diagnostic_kl(spatial_ratio, spatial_delta));
+            family
+                .values
+                .entry("old_spatial_cell_log_prob".to_string())
+                .or_default()
+                .push(f64::from(old));
+            family
+                .values
+                .entry("new_spatial_cell_log_prob".to_string())
+                .or_default()
+                .push(f64::from(new));
+            family
+                .values
+                .entry("spatial_cell_log_prob_delta".to_string())
+                .or_default()
+                .push(f64::from(spatial_delta));
+            family
+                .values
+                .entry("spatial_cell_ratio".to_string())
+                .or_default()
+                .push(f64::from(spatial_ratio));
+        }
+    }
+    let families = by_family
+        .into_iter()
+        .map(|(name, family)| {
+            let sample_count = family.values.values().next().map_or(0, Vec::len);
+            let mut metrics = serde_json::Map::new();
+            for (key, values) in family.values {
+                metrics.insert(key, diagnostic_stats(&values));
+            }
+            serde_json::json!({
+                "action_kind": name,
+                "sample_count": sample_count,
+                "metrics": metrics,
+                "action_ids": family.action_ids,
+                "build_option_subset_slot_rank_counts": family.build_options,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(serde_json::json!({ "families": families }))
+}
+
+fn write_actor_diagnostic(path: &Path, record: &serde_json::Value) -> Result<()> {
+    use std::io::Write;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)?;
+    serde_json::to_writer(&mut file, record)?;
+    file.write_all(b"\n")?;
+    Ok(())
+}
+
 fn actor_terms(
     actor: &PolicyNet<TrainBackend>,
     batch: &[&Transition],
@@ -1582,6 +1874,17 @@ fn position_only_actor_terms(
     })
 }
 
+fn target_kl_stop_after_epoch(
+    target_kl: Option<f32>,
+    update_actor: bool,
+    epoch_batches: usize,
+    epoch_kl_sum: f64,
+) -> bool {
+    target_kl.is_some_and(|target| {
+        update_actor && epoch_batches > 0 && epoch_kl_sum / epoch_batches as f64 > target as f64
+    })
+}
+
 impl PpoLearner {
     /// PPO update over `transitions` (advantages/returns already filled).
     pub fn update(
@@ -1626,6 +1929,7 @@ impl PpoLearner {
             } else {
                 None
             };
+        let diagnostics_path = actor_diagnostics_path();
         let mut sums = [0.0f64; 8];
         let mut actor_steps = 0usize;
         let mut critic_steps = 0usize;
@@ -1653,6 +1957,18 @@ impl PpoLearner {
                     .collect::<Vec<_>>();
                 stats.minibatches += 1;
                 if update_actor {
+                    let factor_diagnostics = diagnostics_path
+                        .as_ref()
+                        .map(|_| {
+                            actor_factor_batch_diagnostic(
+                                &self.actor,
+                                &batch,
+                                &batch_advantages,
+                                config,
+                                &self.device,
+                            )
+                        })
+                        .transpose()?;
                     let terms = match config.actor_update_mode {
                         ActorUpdateMode::Full => Some(actor_terms(
                             &self.actor,
@@ -1733,6 +2049,47 @@ impl PpoLearner {
                                 ),
                             };
                             if norm.is_finite() {
+                                if let (Some(path), Some(factors)) =
+                                    (diagnostics_path.as_ref(), factor_diagnostics.as_ref())
+                                {
+                                    let shared = super::ppo::gradient_l2_norm(
+                                        &self.actor.scorer,
+                                        &gradients,
+                                    );
+                                    let family = super::ppo::gradient_l2_norm(
+                                        &self.actor.family_head(),
+                                        &gradients,
+                                    );
+                                    let spatial = super::ppo::gradient_l2_norm(
+                                        &self.actor.spatial_cell_head(),
+                                        &gradients,
+                                    );
+                                    let share = |group_norm: f32| {
+                                        serde_json::json!({
+                                            "pre_clip_grad_norm": group_norm,
+                                            "norm_fraction": f64::from(group_norm / norm),
+                                            "squared_norm_fraction": f64::from(group_norm).powi(2) / f64::from(norm).powi(2),
+                                        })
+                                    };
+                                    let record = serde_json::json!({
+                                        "schema": 1,
+                                        "iteration": iteration,
+                                        "epoch": epoch + 1,
+                                        "minibatch": stats.minibatches,
+                                        "batch_size": batch.len(),
+                                        "target_kl": config.target_kl,
+                                        "max_grad_norm": config.max_grad_norm,
+                                        "total_pre_clip_actor_grad_norm": norm,
+                                        "would_global_clip": norm > config.max_grad_norm,
+                                        "parameter_groups": {
+                                            "shared_candidate_scorer": share(shared),
+                                            "family_head": share(family),
+                                            "spatial_cell_head": share(spatial),
+                                        },
+                                        "action_families": factors["families"],
+                                    });
+                                    write_actor_diagnostic(path, &record)?;
+                                }
                                 match config.actor_update_mode {
                                     ActorUpdateMode::Full => {
                                         self.actor = self.actor_optimizer.step(
@@ -1802,11 +2159,9 @@ impl PpoLearner {
                 }
             }
             stats.epochs_completed = epoch + 1;
-            if let Some(target) = config.target_kl
-                && update_actor
-                && epoch_batches > 0
-                && epoch_kl / epoch_batches as f64 > target as f64
-            {
+            // This check is intentionally after the complete epoch loop: every
+            // minibatch optimizer step in this epoch has already been applied.
+            if target_kl_stop_after_epoch(config.target_kl, update_actor, epoch_batches, epoch_kl) {
                 stats.early_stopped = true;
                 break;
             }
@@ -3845,6 +4200,15 @@ fn log_evaluation(evaluation: &DevEvaluation) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn target_kl_stop_uses_completed_epoch_mean_and_strict_threshold() {
+        assert!(!target_kl_stop_after_epoch(Some(0.02), true, 0, 1.0));
+        assert!(!target_kl_stop_after_epoch(Some(0.5), true, 2, 1.0));
+        assert!(target_kl_stop_after_epoch(Some(0.5), true, 2, 1.0001));
+        assert!(!target_kl_stop_after_epoch(Some(0.02), false, 2, 1.0));
+        assert!(!target_kl_stop_after_epoch(None, true, 2, 1.0));
+    }
+
     use super::*;
     use crate::ml::phase4_dataset::{SourcePolicy, collect_canonical_episode};
     use crate::ml::phase4_eval::run_policy_episode;
@@ -4610,6 +4974,8 @@ mod tests {
             action_kind: "build_tower".to_string(),
             decision_point: "CardSelection".to_string(),
             old_log_prob: joint[action_index],
+            diagnostic_old_family_log_prob: Some(family_log_prob),
+            diagnostic_old_conditional_log_prob: Some(old_conditional),
             behavior_entropy: 0.0,
             family_entropy: 0.0,
             clear_rate_before: 0.0,
