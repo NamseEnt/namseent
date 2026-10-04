@@ -802,9 +802,28 @@ pub fn compute_gae(
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UpdateStats {
+    /// Total minibatches processed by the iteration (actor and critic schedule).
     pub minibatches: usize,
+    /// Outer PPO epochs completed; critic updates continue after an actor stop.
     pub epochs_completed: usize,
-    pub early_stopped: bool,
+    /// Legacy epoch-level stop field retained for old artifact deserialization.
+    #[serde(default, rename = "epoch_target_kl_stopped", alias = "early_stopped")]
+    pub epoch_target_kl_stopped: bool,
+    #[serde(default)]
+    pub attempted_actor_minibatches: usize,
+    #[serde(default)]
+    pub applied_actor_optimizer_steps: usize,
+    #[serde(default)]
+    pub critic_optimizer_steps: usize,
+    #[serde(default)]
+    pub target_kl_stop_count: usize,
+    /// 1-based ordinal among actor minibatches attempted in this iteration.
+    #[serde(default)]
+    pub target_kl_stop_minibatch_index: Option<usize>,
+    #[serde(default)]
+    pub target_kl_stop_post_step_approx_kl: Option<f64>,
+    #[serde(default)]
+    pub max_post_step_approx_kl: f64,
     pub nonfinite_skips: usize,
     pub policy_loss: f64,
     pub value_loss: f64,
@@ -905,6 +924,59 @@ impl PpoLearner {
             .critic_optimizer
             .step(learning_rate, self.critic.clone(), gradients);
         Some((loss_value as f64, norm))
+    }
+
+    fn post_step_actor_approx_kl(
+        &self,
+        batch: &[&Transition],
+        advantages: &[f32],
+        chunk: &[usize],
+        config: &PpoConfig,
+        position_cache: Option<&PositionOnlyCache>,
+    ) -> Result<Option<f32>> {
+        let terms = match config.actor_update_mode {
+            ActorUpdateMode::Full => Some(actor_terms(
+                &self.actor,
+                batch,
+                advantages,
+                config,
+                &self.device,
+            )?),
+            ActorUpdateMode::PositionOnly => {
+                if batch.iter().all(|step| step.spatial.is_none()) {
+                    None
+                } else {
+                    let cache =
+                        position_cache.context("position-only cache was not initialized")?;
+                    let contexts = cache
+                        .batch_context(chunk)
+                        .context("spatial minibatch has no cached context")?;
+                    let frozen_metrics = chunk
+                        .iter()
+                        .map(|index| cache.metrics[*index])
+                        .collect::<Vec<_>>();
+                    Some(position_only_actor_terms(
+                        &self.actor,
+                        batch,
+                        advantages,
+                        config,
+                        &self.device,
+                        &frozen_metrics,
+                        &contexts,
+                        cache.context_width,
+                    )?)
+                }
+            }
+            ActorUpdateMode::BuildOptionOnly => build_option_actor_terms(
+                &self.actor,
+                &self.build_option_head,
+                batch,
+                advantages,
+                config,
+                &self.device,
+            )?,
+        };
+        Ok(terms.map(|terms| terms.approx_kl))
     }
 }
 
@@ -1874,15 +1946,8 @@ fn position_only_actor_terms(
     })
 }
 
-fn target_kl_stop_after_epoch(
-    target_kl: Option<f32>,
-    update_actor: bool,
-    epoch_batches: usize,
-    epoch_kl_sum: f64,
-) -> bool {
-    target_kl.is_some_and(|target| {
-        update_actor && epoch_batches > 0 && epoch_kl_sum / epoch_batches as f64 > target as f64
-    })
+fn target_kl_stop_after_minibatch(target_kl: Option<f32>, post_step_approx_kl: f32) -> bool {
+    target_kl.is_some_and(|target| post_step_approx_kl > target)
 }
 
 impl PpoLearner {
@@ -1944,8 +2009,6 @@ impl PpoLearner {
                     ^ (epoch as u64).wrapping_mul(0xD1B5_4A32_D192_ED03),
             );
             order.shuffle(&mut rng);
-            let mut epoch_kl = 0.0f64;
-            let mut epoch_batches = 0usize;
             for chunk in order.chunks(config.minibatch_size) {
                 let batch = chunk
                     .iter()
@@ -1956,7 +2019,8 @@ impl PpoLearner {
                     .map(|index| advantages[*index])
                     .collect::<Vec<_>>();
                 stats.minibatches += 1;
-                if update_actor {
+                if update_actor && !stats.target_kl_stop_minibatch_index.is_some() {
+                    stats.attempted_actor_minibatches += 1;
                     let factor_diagnostics = diagnostics_path
                         .as_ref()
                         .map(|_| {
@@ -2120,6 +2184,33 @@ impl PpoLearner {
                                     }
                                 }
                                 actor_steps += 1;
+                                stats.applied_actor_optimizer_steps += 1;
+                                let post_step_approx_kl = self
+                                    .post_step_actor_approx_kl(
+                                        &batch,
+                                        &batch_advantages,
+                                        chunk,
+                                        config,
+                                        position_cache.as_ref(),
+                                    )?
+                                    .context("applied actor step has no post-step KL")?;
+                                anyhow::ensure!(
+                                    post_step_approx_kl.is_finite(),
+                                    "post-step actor approximate KL is nonfinite"
+                                );
+                                stats.max_post_step_approx_kl = stats
+                                    .max_post_step_approx_kl
+                                    .max(f64::from(post_step_approx_kl));
+                                if target_kl_stop_after_minibatch(
+                                    config.target_kl,
+                                    post_step_approx_kl,
+                                ) {
+                                    stats.target_kl_stop_count = 1;
+                                    stats.target_kl_stop_minibatch_index =
+                                        Some(stats.attempted_actor_minibatches);
+                                    stats.target_kl_stop_post_step_approx_kl =
+                                        Some(f64::from(post_step_approx_kl));
+                                }
                                 actor_grad_sum += norm as f64;
                                 stats.max_actor_grad_norm =
                                     stats.max_actor_grad_norm.max(norm as f64);
@@ -2133,8 +2224,6 @@ impl PpoLearner {
                                 sums[7] += terms.normalized_cell_entropy as f64;
                                 stats.position_entropy_contribution +=
                                     terms.position_entropy_contribution as f64;
-                                epoch_kl += terms.approx_kl as f64;
-                                epoch_batches += 1;
                             } else {
                                 stats.nonfinite_skips += 1;
                             }
@@ -2151,6 +2240,7 @@ impl PpoLearner {
                         stats.last_value_loss = loss;
                         stats.max_value_loss = stats.max_value_loss.max(loss);
                         critic_steps += 1;
+                        stats.critic_optimizer_steps += 1;
                         value_loss_sum += loss;
                         critic_grad_sum += norm as f64;
                         stats.max_critic_grad_norm = stats.max_critic_grad_norm.max(norm as f64);
@@ -2159,12 +2249,6 @@ impl PpoLearner {
                 }
             }
             stats.epochs_completed = epoch + 1;
-            // This check is intentionally after the complete epoch loop: every
-            // minibatch optimizer step in this epoch has already been applied.
-            if target_kl_stop_after_epoch(config.target_kl, update_actor, epoch_batches, epoch_kl) {
-                stats.early_stopped = true;
-                break;
-            }
         }
         let actor_steps_f = actor_steps.max(1) as f64;
         stats.policy_loss = sums[0] / actor_steps_f;
@@ -4079,7 +4163,7 @@ fn log_iteration(record: &IterationRecord) {
         update.mean_critic_grad_norm,
         rollout.explained_variance,
         update.epochs_completed,
-        if update.early_stopped {
+        if update.target_kl_stop_count > 0 {
             " (kl stop)"
         } else {
             ""
@@ -4201,12 +4285,73 @@ fn log_evaluation(evaluation: &DevEvaluation) {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn target_kl_stop_uses_completed_epoch_mean_and_strict_threshold() {
-        assert!(!target_kl_stop_after_epoch(Some(0.02), true, 0, 1.0));
-        assert!(!target_kl_stop_after_epoch(Some(0.5), true, 2, 1.0));
-        assert!(target_kl_stop_after_epoch(Some(0.5), true, 2, 1.0001));
-        assert!(!target_kl_stop_after_epoch(Some(0.02), false, 2, 1.0));
-        assert!(!target_kl_stop_after_epoch(None, true, 2, 1.0));
+    fn target_kl_stop_uses_post_step_minibatch_kl_and_strict_threshold() {
+        assert!(!target_kl_stop_after_minibatch(Some(0.02), 0.02));
+        assert!(target_kl_stop_after_minibatch(Some(0.02), 0.0201));
+        assert!(!target_kl_stop_after_minibatch(None, 1.0));
+    }
+
+    #[test]
+    fn minibatch_target_kl_stop_keeps_critic_schedule_and_skips_later_actor_steps() {
+        let device = default_policy_device();
+        let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+            ModelConfig::default(),
+            KindMode::Learned,
+            2901,
+            &device,
+        )
+        .unwrap()
+        .with_inputs(InputContract::Normalized);
+        let critic = super::super::semantic_bc::seeded_materialized_model(
+            ModelConfig::default(),
+            2902,
+            &device,
+        )
+        .unwrap();
+        let config = PpoConfig::default();
+        let mut learner = PpoLearner::new(actor, critic, CriticInputs::SquashAll, &config);
+        let actor_inference = learner.actor_inference();
+        let (episodes, rollout) = collect_iteration(
+            &learner,
+            &actor_inference,
+            None,
+            &config,
+            game_config(),
+            1,
+            &[2903],
+            CandidateMode::Top8,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        assert_eq!(rollout.nonfinite_values, 0);
+        let mut transition = episodes[0].transitions[0].clone();
+        transition.advantage = 0.0;
+        let mut transitions = vec![transition.clone()];
+
+        // Valid behavior log-probs stay below the existing .02 threshold and
+        // retain the original number of actor steps.
+        let ordinary = learner.update(&transitions, &config, 1, true).unwrap();
+        assert_eq!(ordinary.target_kl_stop_count, 0);
+        assert_eq!(ordinary.attempted_actor_minibatches, config.update_epochs);
+        assert_eq!(ordinary.applied_actor_optimizer_steps, config.update_epochs);
+        assert_eq!(ordinary.critic_optimizer_steps, config.update_epochs);
+        assert_eq!(ordinary.target_kl_stop_minibatch_index, None);
+
+        // Force a post-step KL crossing in a synthetic transition while keeping
+        // the configured recipe and target unchanged. The first actor step is
+        // retained; no later actor minibatch/epoch is applied, while all critic
+        // updates in the configured schedule still run.
+        transitions[0].old_log_prob -= 4.0;
+        let stopped = learner.update(&transitions, &config, 2, true).unwrap();
+        assert_eq!(stopped.target_kl_stop_count, 1);
+        assert_eq!(stopped.attempted_actor_minibatches, 1);
+        assert_eq!(stopped.applied_actor_optimizer_steps, 1);
+        assert_eq!(stopped.target_kl_stop_minibatch_index, Some(1));
+        assert!(stopped.target_kl_stop_post_step_approx_kl.unwrap() > 0.02);
+        assert_eq!(stopped.critic_optimizer_steps, config.update_epochs);
+        assert_eq!(stopped.epochs_completed, config.update_epochs);
+        assert_eq!(stopped.nonfinite_skips, 0);
     }
 
     use super::*;
