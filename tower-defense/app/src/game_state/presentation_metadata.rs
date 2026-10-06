@@ -168,6 +168,27 @@ impl PresentationMetadataStore {
             .collect();
     }
 
+    pub(crate) fn monster_render_metadata(
+        &self,
+        runtimes: &[crate::game_state::MonsterAnimationRuntime],
+    ) -> Vec<(MonsterId, Angle, f32, Xy<f32>, f32)> {
+        self.monsters
+            .iter()
+            .map(|monster| {
+                let runtime = runtimes.iter().find(|runtime| runtime.id == monster.id);
+                (
+                    monster.id,
+                    monster.rotation,
+                    monster.y_offset,
+                    runtime
+                        .map(|runtime| runtime.hit_offset)
+                        .unwrap_or(Xy::new(0.0, 0.0)),
+                    runtime.map(|runtime| runtime.hit_flash).unwrap_or(0.0),
+                )
+            })
+            .collect()
+    }
+
     pub(crate) fn insert_projectile(
         &mut self,
         id: AttackId,

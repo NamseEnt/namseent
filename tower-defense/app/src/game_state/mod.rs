@@ -311,7 +311,15 @@ pub(crate) struct MonsterAnimationRuntime {
     pub(crate) rotation_velocity: f32,
     pub(crate) y_offset_velocity: f32,
     pub(crate) next_descending_left: bool,
+    pub(crate) observed_hp_raw: i64,
+    pub(crate) hit_direction: Xy<f32>,
+    pub(crate) hit_elapsed_secs: f32,
+    pub(crate) hit_offset: Xy<f32>,
+    pub(crate) hit_flash: f32,
 }
+
+pub(crate) const MONSTER_HIT_OFFSET_DURATION_SECS: f32 = 0.24;
+pub(crate) const MONSTER_HIT_FLASH_DURATION_SECS: f32 = 0.33;
 
 fn encode_replay_checkpoints<__E: namui::bincode::enc::Encoder>(
     checkpoints: &[replay::ReplayCheckpoint],
@@ -1872,29 +1880,45 @@ impl GameState {
         &mut self.presentation_hand
     }
 
-    fn refresh_monster_animation_runtime(&mut self) {
-        let active_ids = self
-            .raw_core
-            .monsters()
+    fn refresh_monster_animation_runtime(&mut self, detect_monster_hits: bool) {
+        let raw_monsters = self.raw_core.monsters().to_vec();
+        let active_ids = raw_monsters
             .iter()
             .map(|monster| MonsterId::from_raw(monster.id))
             .collect::<std::collections::HashSet<_>>();
         self.monster_animation_runtime
             .retain(|runtime| active_ids.contains(&runtime.id));
-        for id in active_ids {
-            if !self
+        for raw_monster in raw_monsters {
+            let id = MonsterId::from_raw(raw_monster.id);
+            if let Some(runtime) = self
                 .monster_animation_runtime
-                .iter()
-                .any(|runtime| runtime.id == id)
+                .iter_mut()
+                .find(|runtime| runtime.id == id)
             {
-                self.monster_animation_runtime
-                    .push(MonsterAnimationRuntime {
-                        id,
-                        rotation_velocity: 0.0,
-                        y_offset_velocity: 0.0,
-                        next_descending_left: false,
-                    });
+                if detect_monster_hits && raw_monster.hp_raw < runtime.observed_hp_raw {
+                    let angle = rand::thread_rng().gen_range(0.0..std::f32::consts::TAU);
+                    runtime.hit_direction = Xy::new(angle.cos(), angle.sin());
+                    runtime.hit_elapsed_secs = 0.0;
+                } else if !detect_monster_hits {
+                    runtime.hit_elapsed_secs = MONSTER_HIT_OFFSET_DURATION_SECS;
+                    runtime.hit_offset = Xy::new(0.0, 0.0);
+                    runtime.hit_flash = 0.0;
+                }
+                runtime.observed_hp_raw = raw_monster.hp_raw;
+                continue;
             }
+            self.monster_animation_runtime
+                .push(MonsterAnimationRuntime {
+                    id,
+                    rotation_velocity: 0.0,
+                    y_offset_velocity: 0.0,
+                    next_descending_left: false,
+                    observed_hp_raw: raw_monster.hp_raw,
+                    hit_direction: Xy::new(1.0, 0.0),
+                    hit_elapsed_secs: MONSTER_HIT_OFFSET_DURATION_SECS,
+                    hit_offset: Xy::new(0.0, 0.0),
+                    hit_flash: 0.0,
+                });
         }
     }
 
@@ -2054,7 +2078,7 @@ impl GameState {
         }
         let raw = self.raw_core.state().clone();
         self.presentation_metadata.refresh_from_core(&raw);
-        self.refresh_monster_animation_runtime();
+        self.refresh_monster_animation_runtime(true);
         if !self.headless {
             self.presentation_hand = Hand::from_core_state_at(
                 raw.hand().clone(),
@@ -2085,7 +2109,7 @@ impl GameState {
             self.reconcile_presentation(PresentationInstant::zero(), true);
             let raw = self.raw_core.state().clone();
             self.presentation_metadata.refresh_from_core(&raw);
-            self.refresh_monster_animation_runtime();
+            self.refresh_monster_animation_runtime(false);
             #[cfg(any(test, feature = "debug-tools"))]
             for attack in &self.presentation_projection.in_flight_attacks {
                 if let crate::game_state::attack::InFlightAttackKind::Spatial(spatial) =
@@ -2119,7 +2143,7 @@ impl GameState {
         let mut presentation_metadata = std::mem::take(&mut self.presentation_metadata);
         presentation_metadata.refresh_from_core(self.raw_core.state());
         self.presentation_metadata = presentation_metadata;
-        self.refresh_monster_animation_runtime();
+        self.refresh_monster_animation_runtime(false);
         self.presentation_hand = Hand::from_core_state_at(
             self.raw_core.hand().clone(),
             (!restore).then_some(&self.presentation_hand),
