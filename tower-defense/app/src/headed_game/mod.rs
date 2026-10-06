@@ -95,10 +95,7 @@ impl HeadedGame {
         let raw_snapshot = state.raw_render_snapshot();
         let monster_metadata = state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&state.monster_animation_runtime);
         let projectile_metadata = state
             .presentation_metadata
             .projectiles
@@ -250,10 +247,7 @@ impl HeadedGame {
         let monster_metadata = self
             .state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&self.state.monster_animation_runtime);
         let projectile_metadata = self
             .state
             .presentation_metadata
@@ -339,10 +333,7 @@ impl HeadedGame {
         let monster_metadata = self
             .state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&self.state.monster_animation_runtime);
         let projectile_metadata = self
             .state
             .presentation_metadata

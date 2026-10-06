@@ -133,6 +133,9 @@ impl Component for RenderMonsters<'_> {
                     max_hp: sample.current.max_hp,
                     rotation: sample.rotation,
                     y_offset: sample.y_offset,
+                    hit_offset: sample.current.hit_offset,
+                    hit_flash: sample.current.hit_flash,
+                    camera_zoom_level: self.camera.zoom_level,
                 },
             );
         }
@@ -494,6 +497,9 @@ fn render_monsters(ctx: &RenderCtx, game_state: &GameState, camera: &crate::game
                     max_hp: monster.max_hp,
                     rotation: monster.rotation,
                     y_offset: monster.y_offset,
+                    hit_offset: monster.hit_offset,
+                    hit_flash: monster.hit_flash,
+                    camera_zoom_level: camera.zoom_level,
                 },
             )
         }),

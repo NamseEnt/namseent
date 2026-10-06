@@ -22,6 +22,8 @@ pub(crate) struct MonsterRenderSnapshot {
     pub(crate) max_hp: crate::Health,
     pub(crate) rotation: Angle,
     pub(crate) y_offset: f32,
+    pub(crate) hit_offset: Xy<f32>,
+    pub(crate) hit_flash: f32,
 }
 
 #[derive(Clone, State)]
@@ -56,11 +58,8 @@ impl WorldRenderSnapshot {
     pub(crate) fn capture(game_state: &crate::game_state::GameState) -> Self {
         let mut metadata = game_state.presentation_metadata.clone();
         metadata.refresh_from_core(game_state.raw_core_state());
-        let monster_metadata = metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+        let monster_metadata =
+            metadata.monster_render_metadata(&game_state.monster_animation_runtime);
         let projectile_metadata = metadata
             .projectiles
             .iter()
@@ -81,7 +80,7 @@ impl WorldRenderSnapshot {
 
     pub(crate) fn capture_from_raw_snapshot(
         core_snapshot: &td_core::RenderSnapshot,
-        monster_metadata: &[(MonsterId, Angle, f32)],
+        monster_metadata: &[(MonsterId, Angle, f32, Xy<f32>, f32)],
         projectile_metadata: &[(AttackId, crate::game_state::projectile::ProjectileKind)],
         tower_metadata: &[(TowerId, crate::game_state::tower::AnimationKind, f32)],
     ) -> Self {
@@ -89,11 +88,17 @@ impl WorldRenderSnapshot {
             .monsters
             .iter()
             .filter_map(|raw| {
-                let (_, rotation, y_offset) = monster_metadata
+                let (_, rotation, y_offset, hit_offset, hit_flash) = monster_metadata
                     .iter()
-                    .find(|(id, _, _)| id.raw() == raw.id)
+                    .find(|(id, _, _, _, _)| id.raw() == raw.id)
                     .copied()
-                    .unwrap_or((MonsterId::from_raw(raw.id), 0.0.deg(), 0.0));
+                    .unwrap_or((
+                        MonsterId::from_raw(raw.id),
+                        0.0.deg(),
+                        0.0,
+                        Xy::new(0.0, 0.0),
+                        0.0,
+                    ));
                 let kind = crate::game_state::MonsterKind::from_core_raw(raw.kind)?;
                 Some(MonsterRenderSnapshot {
                     id: MonsterId::from_raw(raw.id),
@@ -105,6 +110,8 @@ impl WorldRenderSnapshot {
                     max_hp: crate::Health::from_raw(raw.max_hp_raw),
                     rotation,
                     y_offset,
+                    hit_offset,
+                    hit_flash,
                 })
             })
             .collect::<Vec<_>>();
@@ -416,6 +423,8 @@ mod tests {
             max_hp: Health::from_integer(1),
             rotation: 0.0.deg(),
             y_offset: 0.0,
+            hit_offset: Xy::new(0.0, 0.0),
+            hit_flash: 0.0,
         }
     }
 
