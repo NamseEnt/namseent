@@ -88,6 +88,14 @@ Before committing UI changes that use `ctx.add`, verify:
 - Native test binaries that reference Namui KV may fail to link on `_kv_store_get` or `_kv_store_put` when the runtime FFI is unavailable.
 - In that environment, run `cargo check --tests` for compile coverage and report the linker limitation explicitly; do not report the runtime tests as passed.
 
+## PPO Execution and Resume Rule
+
+- Never run a long CPU-bound PPO job with `target/debug/td-simulator`. Build and invoke the current source's release binary (`cargo build --release --bin td-simulator`, then `target/release/td-simulator`).
+- Before starting or resuming PPO, verify the resolved executable path and exact command line with `/proc/<pid>/exe` and `ps`; do not infer the build profile from the command's arguments alone.
+- After the first completed iteration, compare recorded rollout, optimizer, and development-evaluation durations with the run's expected throughput. If the binary is debug or throughput is unexpectedly slow, stop at the latest complete checkpoint and diagnose before continuing.
+- Resume an existing run from its run directory so `ppo.json`, actor, critic, actor optimizer, and critic optimizer state are loaded. Verify the completed iteration and checkpoint files before resuming; never restart from initialization when a complete checkpoint exists.
+- PPO random streams are derived deterministically from the configured seed, iteration, epoch, and recorded game seeds; preserve the original configuration and seed offsets when resuming.
+
 ## Time Domain Rules
 
 - Use `SimTick` and `SimTickSpan` for all authoritative gameplay time, including spawn schedules, cooldowns, status effects, timed attacks, movement, and world animation state.

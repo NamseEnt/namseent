@@ -1,6 +1,6 @@
 # Game AI 설계 문서
 
-이 디렉터리는 Tower Defense를 높은 확률로 클리어하는 빠른 AI와, 그 AI를 이용한 밸런스 실험 시스템의 설계 및 구현 기준을 관리한다.
+이 디렉터리는 Tower Defense를 높은 확률로 클리어하는 빠른 AI, 기획 변경 후 기존 모델을 활용하는 재학습 경로, 그 AI를 이용한 밸런스 실험 시스템의 설계 및 구현 기준을 관리한다.
 
 기존 [`../ml-policy.md`](../ml-policy.md)는 현재 구현된 BC/PPO 시스템의 설명이다. 이 디렉터리는 그 구현을 무조건 유지하거나 폐기하는 문서가 아니라, 새 계약으로 교체하기 위한 기준이다. 새 계약이 구현되고 검증되기 전까지 기존 문서를 현재 시스템의 참고 자료로 유지한다.
 
@@ -30,11 +30,14 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 - On 8 untouched seeds (124-131), the teacher beat the heuristic on every seed: mean clear rate +15.1 points, final stage about 20 → 28. See [`05-rollout-teacher.md`](05-rollout-teacher.md).
 - The gain is an average, not a per-seed guarantee. On seed 0 the teacher reached stage 22 (clear rate 43.8%) and the heuristic reached stage 26 (50.2%).
 - Neither AI has cleared a full game yet.
-- Next is Phase 4: distill the teacher into a fast policy, because the teacher is far too slow for large-scale play.
+- Phase 4A: a search-free neural policy imitates the heuristic almost exactly (BC), but distilling the teacher's labels added almost nothing (+0.11). See [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md).
+- Phase 4B (latest gameplay rules): PPO starting from the BC policy beats the heuristic by +4.98 clear rate on 256 untouched seeds (about 2.5 more stages, better on 210 of 256 seeds), without search. See [`14-phase4b-ppo.md`](14-phase4b-ppo.md).
+- The learned policy only chooses among the heuristic's top 8 placements and builds, so tower placement has not improved yet. That is the next step.
 
 ## 최종 합의
 
 - 1차 목표는 사람처럼 보이는 고수의 재현이 아니라 현재 고정 밸런스에서 full-clear 확률이 높은 AI다.
+- 수치 조정과 새로운 효과·전투 규칙 추가 후 기존 학습 결과를 활용해 빠르고 쉽게 재학습하는 경로도 1차 목표다. 변경 유형별 이관 범위와 처음부터 학습하는 대조군 비교는 [`09-balance-experiments.md`](09-balance-experiments.md)에서 관리한다.
 - 최종 평가 목적은 held-out seed에서의 full-clear 확률이다.
 - HP, 웨이브 진행도, 누수 피해 등의 값은 학습 보조 신호와 진단 지표로 사용할 수 있지만 최종 평가 목적을 대체하지 않는다.
 - AI에는 UI 조작 순서가 아니라 의미 있는 macro action을 제공한다.
@@ -63,10 +66,13 @@ cargo run --release --manifest-path simulator/Cargo.toml -- play --policy teache
 | [`06-dataset-and-distillation.md`](06-dataset-and-distillation.md) | teacher dataset과 빠른 정책 압축 | Proposed |
 | [`07-policy-and-rl.md`](07-policy-and-rl.md) | 표현 구조와 RL fine-tuning | Proposed |
 | [`08-evaluation.md`](08-evaluation.md) | 모델 비교와 최종 평가 | Accepted design |
-| [`09-balance-experiments.md`](09-balance-experiments.md) | 밸런스 파라미터 실험 | Deferred |
+| [`09-balance-experiments.md`](09-balance-experiments.md) | 기획 변경 후 재학습과 밸런스 파라미터 실험 | 재학습: 목표 합의, 구현·검증 대기 / 밸런스 자동 최적화: Deferred |
 | [`10-human-player-models.md`](10-human-player-models.md) | 실제 인간형 실수를 포함한 실력 모델 | Deferred |
 | [`11-candidate-architecture-review.md`](11-candidate-architecture-review.md) | Phase 1/2 결과에 따른 candidate architecture 재검토 | Proposed |
 | [`12-adaptive-teacher-budget.md`](12-adaptive-teacher-budget.md) | Adaptive teacher rollout budget design | Proposed |
+| [`13-phase4a-bc-distillation.md`](13-phase4a-bc-distillation.md) | Phase 4A canonical BC and selective teacher distillation | Verified (Gate A); Gate B negligible |
+| [`14-phase4b-ppo.md`](14-phase4b-ppo.md) | Phase 4B PPO on the semantic action stack (latest gameplay rules) | Verified (final seeds: PPO +4.98 vs canonical) |
+| [`21-retraining-implementation-plan.md`](21-retraining-implementation-plan.md) | 기획 변경 후 재학습의 구현 항목, 의존성, 완료 조건 | Proposed |
 
 상태의 의미는 다음과 같다.
 

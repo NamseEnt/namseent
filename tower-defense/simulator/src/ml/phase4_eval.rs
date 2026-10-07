@@ -1,0 +1,501 @@
+//! Phase 4A paired terminal evaluation of the canonical scripted baseline and
+//! search-free learned policies.
+
+use super::phase4_dataset::{MAX_EPISODE_DECISIONS, step_to_next_decision};
+use super::semantic_bc::SemanticPolicy;
+use crate::config::GameConfig;
+use crate::environment::{DecisionPoint, GameEnvironment};
+use crate::policy_runner::canonical_scripted_semantic_action;
+use anyhow::{Result, bail};
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::sync::Arc;
+use std::time::Instant;
+
+#[derive(Clone)]
+pub enum EvalPolicy {
+    Canonical,
+    Learned {
+        name: String,
+        policy: Box<SemanticPolicy>,
+    },
+}
+
+impl EvalPolicy {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Canonical => "canonical",
+            Self::Learned { name, .. } => name,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SpatialEpisodeKind {
+    pub decisions: usize,
+    /// Executed positions outside the state's v1 top-8 actions.
+    pub outside_v1_top8: usize,
+    pub non_canonical: usize,
+    pub distance_from_best_sum: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PolicyEpisode {
+    pub seed: u64,
+    pub policy: String,
+    pub terminal_clear_rate: f32,
+    pub final_stage: usize,
+    pub victory: bool,
+    pub decisions: usize,
+    pub illegal_actions: usize,
+    pub fallback_actions: usize,
+    pub post_sampling_mutations: usize,
+    pub canonical_agreement: usize,
+    /// Decisions resolved through a spatial option's cell head.
+    #[serde(default)]
+    pub spatial_decisions: usize,
+    /// Of those, cells outside the heuristic top 8 of their option.
+    #[serde(default)]
+    pub spatial_outside_heuristic_top_k: usize,
+    /// Spatial decisions per action kind.
+    #[serde(default)]
+    pub spatial_by_kind: BTreeMap<String, SpatialEpisodeKind>,
+    pub chosen_kind_counts: BTreeMap<String, usize>,
+    pub decision_seconds: f64,
+    pub forward_seconds: f64,
+    pub wall_seconds: f64,
+    pub final_state_hash: String,
+}
+
+pub fn run_policy_episode(
+    config: Arc<GameConfig>,
+    seed: u64,
+    policy: &EvalPolicy,
+) -> Result<PolicyEpisode> {
+    let started = Instant::now();
+    let mut environment = GameEnvironment::new(config, seed);
+    let mut episode = PolicyEpisode {
+        seed,
+        policy: policy.name().to_string(),
+        terminal_clear_rate: 0.0,
+        final_stage: 0,
+        victory: false,
+        decisions: 0,
+        illegal_actions: 0,
+        fallback_actions: 0,
+        post_sampling_mutations: 0,
+        canonical_agreement: 0,
+        spatial_decisions: 0,
+        spatial_outside_heuristic_top_k: 0,
+        spatial_by_kind: BTreeMap::new(),
+        chosen_kind_counts: BTreeMap::new(),
+        decision_seconds: 0.0,
+        forward_seconds: 0.0,
+        wall_seconds: 0.0,
+        final_state_hash: String::new(),
+    };
+    let mut recent = Vec::new();
+    while !matches!(environment.decision_point(), DecisionPoint::Terminal) {
+        if episode.decisions >= MAX_EPISODE_DECISIONS {
+            bail!(
+                "seed {seed} policy {}: reached the {MAX_EPISODE_DECISIONS}-decision safety cap \
+                 - invariant failure (stage {}, last actions {:?})",
+                policy.name(),
+                environment.snapshot().stage,
+                recent
+            );
+        }
+        let decision_started = Instant::now();
+        let mut sampled_action_id = None;
+        let action = match policy {
+            EvalPolicy::Canonical => {
+                let action = canonical_scripted_semantic_action(&environment)?;
+                episode.canonical_agreement += 1;
+                action
+            }
+            EvalPolicy::Learned { policy, .. } => match policy.choose(&environment) {
+                Ok(choice) => {
+                    episode.forward_seconds += choice.forward_seconds;
+                    sampled_action_id = Some(choice.action.action_id());
+                    if let Some((cells, cell)) = &choice.cell {
+                        episode.spatial_decisions += 1;
+                        episode.spatial_outside_heuristic_top_k +=
+                            cells.outside_heuristic_top_k(*cell) as usize;
+                        let outside = !choice.candidates.v1_top8.contains(&choice.action);
+                        let family = episode
+                            .spatial_by_kind
+                            .entry(choice.action.kind().wire_name().to_string())
+                            .or_default();
+                        family.decisions += 1;
+                        family.outside_v1_top8 += outside as usize;
+                        family.non_canonical +=
+                            (choice.action != choice.candidates.canonical_action) as usize;
+                        family.distance_from_best_sum += cells.distance_from_best(*cell);
+                    }
+                    if !choice.legal_mask[choice.index]
+                        || !environment.semantic_action_is_legal(&choice.action)
+                    {
+                        episode.illegal_actions += 1;
+                        episode.fallback_actions += 1;
+                        canonical_scripted_semantic_action(&environment)?
+                    } else {
+                        if choice.action == choice.candidates.canonical_action {
+                            episode.canonical_agreement += 1;
+                        }
+                        choice.action.clone()
+                    }
+                }
+                Err(error) => {
+                    eprintln!("seed {seed}: policy failed ({error}); canonical fallback");
+                    episode.fallback_actions += 1;
+                    canonical_scripted_semantic_action(&environment)?
+                }
+            },
+        };
+        if sampled_action_id.is_some_and(|sampled| sampled != action.action_id()) {
+            episode.post_sampling_mutations += 1;
+        }
+        episode.decision_seconds += decision_started.elapsed().as_secs_f64();
+        recent.push(format!(
+            "{:?}:{}",
+            environment.decision_point(),
+            action.action_id()
+        ));
+        if recent.len() > 12 {
+            recent.remove(0);
+        }
+        *episode
+            .chosen_kind_counts
+            .entry(action.kind().wire_name().to_string())
+            .or_insert(0) += 1;
+        episode.decisions += 1;
+        if step_to_next_decision(&mut environment, action)? {
+            break;
+        }
+    }
+    episode.terminal_clear_rate = environment.clear_rate();
+    episode.victory = episode.terminal_clear_rate >= 100.0;
+    episode.final_stage = environment.snapshot().stage;
+    episode.final_state_hash = environment.state_hash();
+    episode.wall_seconds = started.elapsed().as_secs_f64();
+    Ok(episode)
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PolicySummary {
+    pub policy: String,
+    pub episodes: usize,
+    pub mean_terminal_clear_rate: f64,
+    pub median_terminal_clear_rate: f64,
+    pub mean_final_stage: f64,
+    pub victories: usize,
+    pub mean_decisions: f64,
+    pub illegal_actions: usize,
+    pub fallback_actions: usize,
+    pub post_sampling_mutations: usize,
+    pub canonical_agreement_rate: f64,
+    #[serde(default)]
+    pub spatial_decisions: usize,
+    /// Share of spatial decisions whose cell is outside the heuristic top 8.
+    #[serde(default)]
+    pub spatial_outside_heuristic_top_k_rate: f64,
+    /// Spatial decisions per action kind, summed over episodes.
+    #[serde(default)]
+    pub spatial_by_kind: BTreeMap<String, SpatialEpisodeKind>,
+    /// Mean terminal clear_rate of episodes with at least one position
+    /// outside the v1 top 8, and of the other episodes (count, mean).
+    #[serde(default)]
+    pub terminal_with_outside_v1_top8: (usize, f64),
+    #[serde(default)]
+    pub terminal_without_outside_v1_top8: (usize, f64),
+    pub chosen_kind_counts: BTreeMap<String, usize>,
+    pub mean_decision_ms: f64,
+    pub mean_forward_ms: f64,
+    pub decisions_per_second: f64,
+    pub mean_episode_wall_seconds: f64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PairedComparison {
+    pub policy: String,
+    pub reference: String,
+    pub deltas: Vec<f32>,
+    pub mean: f64,
+    pub se: f64,
+    pub ci95: (f64, f64),
+    pub median: f64,
+    pub better: usize,
+    pub worse: usize,
+    pub tie: usize,
+}
+
+fn median(values: &mut [f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+    values.sort_by(f64::total_cmp);
+    let middle = values.len() / 2;
+    if values.len().is_multiple_of(2) {
+        (values[middle - 1] + values[middle]) / 2.0
+    } else {
+        values[middle]
+    }
+}
+
+fn split_mean(episodes: &[&PolicyEpisode], outside: bool) -> (usize, f64) {
+    let selected = episodes
+        .iter()
+        .filter(|episode| {
+            episode
+                .spatial_by_kind
+                .values()
+                .any(|family| family.outside_v1_top8 > 0)
+                == outside
+        })
+        .map(|episode| episode.terminal_clear_rate as f64)
+        .collect::<Vec<_>>();
+    (
+        selected.len(),
+        selected.iter().sum::<f64>() / selected.len().max(1) as f64,
+    )
+}
+
+pub fn summarize_policy(policy: &str, episodes: &[&PolicyEpisode]) -> PolicySummary {
+    let count = episodes.len().max(1) as f64;
+    let decisions = episodes
+        .iter()
+        .map(|episode| episode.decisions)
+        .sum::<usize>();
+    let decision_seconds = episodes
+        .iter()
+        .map(|episode| episode.decision_seconds)
+        .sum::<f64>();
+    let mut chosen_kind_counts = BTreeMap::new();
+    for episode in episodes {
+        for (kind, value) in &episode.chosen_kind_counts {
+            *chosen_kind_counts.entry(kind.clone()).or_insert(0) += value;
+        }
+    }
+    PolicySummary {
+        policy: policy.to_string(),
+        episodes: episodes.len(),
+        mean_terminal_clear_rate: episodes
+            .iter()
+            .map(|episode| episode.terminal_clear_rate as f64)
+            .sum::<f64>()
+            / count,
+        median_terminal_clear_rate: median(
+            &mut episodes
+                .iter()
+                .map(|episode| episode.terminal_clear_rate as f64)
+                .collect::<Vec<_>>(),
+        ),
+        mean_final_stage: episodes
+            .iter()
+            .map(|episode| episode.final_stage as f64)
+            .sum::<f64>()
+            / count,
+        victories: episodes.iter().filter(|episode| episode.victory).count(),
+        mean_decisions: decisions as f64 / count,
+        illegal_actions: episodes.iter().map(|episode| episode.illegal_actions).sum(),
+        fallback_actions: episodes
+            .iter()
+            .map(|episode| episode.fallback_actions)
+            .sum(),
+        post_sampling_mutations: episodes
+            .iter()
+            .map(|episode| episode.post_sampling_mutations)
+            .sum(),
+        canonical_agreement_rate: episodes
+            .iter()
+            .map(|episode| episode.canonical_agreement)
+            .sum::<usize>() as f64
+            / decisions.max(1) as f64,
+        chosen_kind_counts,
+        spatial_decisions: episodes
+            .iter()
+            .map(|episode| episode.spatial_decisions)
+            .sum(),
+        spatial_outside_heuristic_top_k_rate: episodes
+            .iter()
+            .map(|episode| episode.spatial_outside_heuristic_top_k)
+            .sum::<usize>() as f64
+            / episodes
+                .iter()
+                .map(|episode| episode.spatial_decisions)
+                .sum::<usize>()
+                .max(1) as f64,
+        spatial_by_kind: {
+            let mut merged: BTreeMap<String, SpatialEpisodeKind> = BTreeMap::new();
+            for episode in episodes {
+                for (kind, family) in &episode.spatial_by_kind {
+                    let entry = merged.entry(kind.clone()).or_default();
+                    entry.decisions += family.decisions;
+                    entry.outside_v1_top8 += family.outside_v1_top8;
+                    entry.non_canonical += family.non_canonical;
+                    entry.distance_from_best_sum += family.distance_from_best_sum;
+                }
+            }
+            merged
+        },
+        terminal_with_outside_v1_top8: split_mean(episodes, true),
+        terminal_without_outside_v1_top8: split_mean(episodes, false),
+        mean_decision_ms: decision_seconds * 1_000.0 / decisions.max(1) as f64,
+        mean_forward_ms: episodes
+            .iter()
+            .map(|episode| episode.forward_seconds)
+            .sum::<f64>()
+            * 1_000.0
+            / decisions.max(1) as f64,
+        decisions_per_second: decisions as f64 / decision_seconds.max(f64::MIN_POSITIVE),
+        mean_episode_wall_seconds: episodes
+            .iter()
+            .map(|episode| episode.wall_seconds)
+            .sum::<f64>()
+            / count,
+    }
+}
+
+pub fn paired(
+    policy: &str,
+    reference: &str,
+    by_seed: &BTreeMap<u64, BTreeMap<String, PolicyEpisode>>,
+) -> PairedComparison {
+    let deltas = by_seed
+        .values()
+        .map(|episodes| {
+            episodes[policy].terminal_clear_rate - episodes[reference].terminal_clear_rate
+        })
+        .collect::<Vec<_>>();
+    let n = deltas.len() as f64;
+    let mean = deltas.iter().map(|delta| *delta as f64).sum::<f64>() / n.max(1.0);
+    let variance = if deltas.len() > 1 {
+        deltas
+            .iter()
+            .map(|delta| (*delta as f64 - mean).powi(2))
+            .sum::<f64>()
+            / (n - 1.0)
+    } else {
+        0.0
+    };
+    let se = (variance / n.max(1.0)).sqrt();
+    PairedComparison {
+        policy: policy.to_string(),
+        reference: reference.to_string(),
+        mean,
+        se,
+        ci95: (mean - 1.96 * se, mean + 1.96 * se),
+        median: median(&mut deltas.iter().map(|delta| *delta as f64).collect::<Vec<_>>()),
+        better: deltas.iter().filter(|delta| **delta > 0.0).count(),
+        worse: deltas.iter().filter(|delta| **delta < 0.0).count(),
+        tie: deltas.iter().filter(|delta| **delta == 0.0).count(),
+        deltas,
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct TerminalEvaluationReport {
+    pub split: String,
+    pub seeds: Vec<u64>,
+    pub policies: Vec<String>,
+    pub summaries: Vec<PolicySummary>,
+    pub comparisons: Vec<PairedComparison>,
+    pub episodes: Vec<PolicyEpisode>,
+    pub wall_seconds: f64,
+}
+
+/// Runs every policy on every seed to the actual terminal state. Seeds run
+/// in parallel; each episode is independent and deterministic.
+pub fn evaluate_policies(
+    config: Arc<GameConfig>,
+    split: &str,
+    seeds: &[u64],
+    policies: &[EvalPolicy],
+    comparisons: &[(String, String)],
+) -> Result<TerminalEvaluationReport> {
+    let started = Instant::now();
+    let jobs = seeds
+        .iter()
+        .flat_map(|seed| policies.iter().map(move |policy| (*seed, policy)))
+        .collect::<Vec<_>>();
+    let episodes = jobs
+        .par_iter()
+        .map(|(seed, policy)| run_policy_episode(Arc::clone(&config), *seed, policy))
+        .collect::<Result<Vec<_>>>()?;
+    let mut by_seed: BTreeMap<u64, BTreeMap<String, PolicyEpisode>> = BTreeMap::new();
+    for episode in &episodes {
+        by_seed
+            .entry(episode.seed)
+            .or_default()
+            .insert(episode.policy.clone(), episode.clone());
+    }
+    let names = policies
+        .iter()
+        .map(|policy| policy.name().to_string())
+        .collect::<Vec<_>>();
+    let summaries = names
+        .iter()
+        .map(|name| {
+            summarize_policy(
+                name,
+                &episodes
+                    .iter()
+                    .filter(|episode| &episode.policy == name)
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect();
+    let comparisons = comparisons
+        .iter()
+        .map(|(policy, reference)| paired(policy, reference, &by_seed))
+        .collect();
+    Ok(TerminalEvaluationReport {
+        split: split.to_string(),
+        seeds: seeds.to_vec(),
+        policies: names,
+        summaries,
+        comparisons,
+        episodes,
+        wall_seconds: started.elapsed().as_secs_f64(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ml::model::{InferenceBackend, ModelConfig, default_policy_device};
+    use crate::teacher_terminal_gate::run_canonical_terminal_episode;
+
+    #[test]
+    fn canonical_policy_episode_matches_terminal_gate_baseline() {
+        let config = Arc::new(GameConfig::default_config());
+        let episode = run_policy_episode(Arc::clone(&config), 4, &EvalPolicy::Canonical).unwrap();
+        let reference = run_canonical_terminal_episode(config, 4).unwrap();
+        assert_eq!(episode.terminal_clear_rate, reference.clear_rate);
+        assert_eq!(episode.decisions, reference.decision_count);
+        assert_eq!(episode.final_state_hash, reference.final_state_hash);
+    }
+
+    #[test]
+    fn learned_policy_terminal_evaluation_is_reproducible_and_legal() {
+        let config = Arc::new(GameConfig::default_config());
+        let device = default_policy_device();
+        let model = crate::ml::policy_v2::PolicyNet::<InferenceBackend>::new(
+            ModelConfig::default(),
+            crate::ml::policy_v2::KindMode::LogSumExp,
+            &device,
+        );
+        let policy = EvalPolicy::Learned {
+            name: "untrained".to_string(),
+            policy: Box::new(SemanticPolicy::new(model)),
+        };
+        let first = run_policy_episode(Arc::clone(&config), 6, &policy).unwrap();
+        let second = run_policy_episode(config, 6, &policy).unwrap();
+        assert_eq!(first.final_state_hash, second.final_state_hash);
+        assert_eq!(first.terminal_clear_rate, second.terminal_clear_rate);
+        assert_eq!(first.decisions, second.decisions);
+        assert_eq!(first.illegal_actions, 0);
+        assert_eq!(first.fallback_actions, 0);
+    }
+}

@@ -24,6 +24,13 @@ pub type GpuTrainBackend = burn_autodiff::Autodiff<GpuInferenceBackend>;
 #[cfg(feature = "simulator-wgpu")]
 pub type GpuPolicyDevice = burn_wgpu::WgpuDevice;
 
+#[cfg(feature = "simulator-cuda")]
+pub type CudaInferenceBackend = burn_cuda::Cuda;
+#[cfg(feature = "simulator-cuda")]
+pub type CudaTrainBackend = burn_autodiff::Autodiff<CudaInferenceBackend>;
+#[cfg(feature = "simulator-cuda")]
+pub type CudaPolicyDevice = burn_cuda::CudaDevice;
+
 pub type InferenceBackend = CpuInferenceBackend;
 pub type TrainBackend = CpuTrainBackend;
 pub type PolicyDevice = CpuPolicyDevice;
@@ -77,6 +84,23 @@ pub struct DeepSetsActorCritic<B: Backend> {
     entity_hidden: Linear<B>,
     entity_output: Linear<B>,
     activation: Relu,
+}
+
+/// The generic typed candidate scorer cloned into the BuildTower option-only
+/// head. Keeping it as a separate module lets PPO update option scores while
+/// leaving the original actor scorer immutable.
+#[derive(Module, Debug)]
+pub struct TypedCandidateScorer<B: Backend> {
+    hidden: Linear<B>,
+    output: Linear<B>,
+    activation: Relu,
+}
+
+impl<B: Backend> TypedCandidateScorer<B> {
+    pub fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+        self.output
+            .forward(self.activation.forward(self.hidden.forward(input)))
+    }
 }
 
 impl<B: Backend> DeepSetsActorCritic<B> {
@@ -356,6 +380,17 @@ impl<B: Backend> DeepSetsActorCritic<B> {
             self.candidate_fusion
                 .forward(self.encode_typed_batch(candidates, device)),
         )
+    }
+
+    /// Clone the trained typed candidate MLP as a standalone head. This is
+    /// used by option-only PPO so its parameters can be optimized separately
+    /// while every encoder and A1' actor parameter remains frozen.
+    pub fn typed_candidate_scorer(&self) -> TypedCandidateScorer<B> {
+        TypedCandidateScorer {
+            hidden: self.typed_actor_hidden.clone(),
+            output: self.typed_actor_output.clone(),
+            activation: Relu::new(),
+        }
     }
 
     pub fn encode_candidate_tensors(&self, candidates: EntityBatchTensors<B>) -> Tensor<B, 2> {

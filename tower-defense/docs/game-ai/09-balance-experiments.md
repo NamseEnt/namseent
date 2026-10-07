@@ -1,8 +1,43 @@
-# 밸런스 실험
+# 밸런스 실험과 기획 변경 후 재학습
 
 ## 시작 조건
 
-이 단계는 fixed current balance에서 강한 policy가 검증된 뒤 시작한다. 기존 balance에만 학습된 policy를 큰 규칙 변경에 그대로 적용한 결과는 새로운 balance에서의 최선 플레이를 대표하지 않는다.
+밸런스 자동 최적화는 fixed current balance에서 강한 policy가 검증된 뒤 시작한다. 기존 balance에만 학습된 policy를 큰 규칙 변경에 그대로 적용한 결과는 새로운 balance에서의 최선 플레이를 대표하지 않는다.
+
+기획 변경 후 재학습 지원은 [`00-goals-and-acceptance.md`](00-goals-and-acceptance.md)의 1차 목표에도 포함한다. 호환성과 모델 이관 절차는 현재 개발부터 설계하며, 아래 재학습 비교는 원본으로 사용할 기준 checkpoint가 확보되면 수행할 수 있다. 밸런스 자동 최적화의 완료를 기다릴 필요는 없다.
+
+## 기획 변경 후 재학습 검증 계약
+
+구현 항목과 순서는 [`21-retraining-implementation-plan.md`](21-retraining-implementation-plan.md)에서 관리한다.
+
+### 변경 유형과 이관 범위
+
+| 변경 유형 | 재학습 전에 필요한 작업 | 재사용 대상 |
+| --- | --- | --- |
+| damage, cooldown, 가격 등 수치 변경 | 새 configuration과 입력 수치 확인 | 의미와 구조가 호환되는 기존 모델 가중치 |
+| 기존 효과 조합으로 표현되는 새 아이템 | 새 항목의 효과·대상·수치와 legal action 노출 확인 | 기존 encoder와 scorer의 호환 부분 |
+| 새 효과, 광역공격 방식, 새 의사결정 추가 | core/simulator 규칙, 관측, candidate encoding 및 action contract 확장 | 의미가 유지되는 가중치; 새 입력·출력 부분은 별도 초기화 |
+
+공격 효과가 관측 데이터에 존재하는 것과 실제 actor/critic 입력에 연결된 것은 별도로 확인한다. 새 아이템 ID만 추가했다고 AI가 새로운 효과를 판단할 수 있다고 가정하지 않는다. 공유 가중치의 이관이 적응을 방해하는 경우도 비교 결과에 기록한다.
+
+### 실행 절차
+
+1. 변경 전후 code revision, config digest, observation/action/feature version과 원본 checkpoint hash를 기록한다.
+2. 입력과 출력의 의미 및 tensor 대응을 검사하고 재사용, 변환, 초기화할 부분을 명시한다. schema/provenance 검사를 우회하지 않고 명시적인 migration artifact를 만든다. critic과 optimizer 상태의 재사용 또는 초기화 여부도 기록한다.
+3. 원본 run을 보존하고 변경 후 규칙용 새 run을 만든다. 동일 규칙에서의 정확한 resume과 이관 후 추가 학습은 별도 경로로 제공한다.
+4. 변경된 규칙에서 rollout을 새로 수집한다. 과거 trajectory, value target, teacher label이 필요하면 새 규칙에서 다시 생성하거나 유효성을 검증한다. 과거 PPO rollout을 새 규칙의 on-policy 표본으로 사용하지 않는다.
+5. 호환성 확인, 이관, 학습, 평가를 하나의 반복 가능한 명령 또는 workflow로 제공한다. 새 규칙 자체의 구현과 관측 추가에 필요한 개발 작업은 별도로 기록한다.
+
+### 비교와 승인
+
+- 대표적인 수치 변경과 새로운 효과 또는 전투 규칙 추가를 최소 하나씩 포함한다. 기획 변경의 구현이 정확한지는 재학습 성능 평가 전에 확인한다.
+- 실험 전에 변경 내용, 새 규칙에서의 목표 full-clear 성능, 최대 학습 예산, model-selection 규칙, gameplay seed split을 고정한다. 목표 성능은 이전 규칙의 승률을 그대로 복사하지 않는다.
+- 기존 모델 이관과 처음부터 학습하는 대조군을 변경 후 동일한 규칙, 목표 모델 구조, 대응하는 training seed와 평가 seed에서 비교한다. 대조군의 초기화·BC·critic 준비 비용을 포함한 시간과 데이터 예산을 명시한다.
+- 최소 3회 독립 학습에서 목표 성능까지의 게임 수와 wall time, 같은 예산의 full-clear 성능 및 confidence interval을 보고한다. 변경 전 모델의 추가 학습 전 성능도 가능한 경우 측정한다.
+- 목표 성능 도달에 필요한 게임 수와 wall time을 모두 기록하고, 시간 또는 데이터 중 무엇을 줄일지 사전에 정한다. 목표를 충족하면서 해당 예산의 절감이 재현되어야 빠른 재학습으로 승인한다. 목표 성능에 도달하지 못한 실험은 미달성으로 보고한다.
+- 변경마다 필요한 수동 단계, 데이터 재생성, 모델 변환 및 준비 비용을 기록해 재학습을 쉽게 실행할 수 있는지도 평가한다.
+
+이 계약은 향후 검증 요구사항이다. 기존 동일 규칙 PPO 재개 실험이나 개발 시드의 안정화 결과를 기획 변경 후 재학습 성공으로 간주하지 않는다.
 
 ## 최적화 대상
 

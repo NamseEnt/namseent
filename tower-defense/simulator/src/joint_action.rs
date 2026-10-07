@@ -367,7 +367,7 @@ impl JointBuildTowerScore {
     /// tie-break (no `AgentAction` exists yet at this point). Ties are
     /// broken by `(subset_index, position_index)` ascending instead - see
     /// [`DenseBuildTowerScoreTable::best`].
-    fn ordering_key(&self) -> (usize, std::cmp::Reverse<usize>, i64) {
+    pub(crate) fn ordering_key(&self) -> (usize, std::cmp::Reverse<usize>, i64) {
         (
             self.covered_route,
             std::cmp::Reverse(self.nearest_route),
@@ -388,6 +388,7 @@ impl JointBuildTowerScore {
 /// uses, just evaluated over every position instead of a proposal-limited
 /// subset, and only once (subset- and slot-independent) rather than once
 /// per subset.
+#[derive(Debug)]
 pub struct DenseBuildTowerScoreTable {
     pub subsets: CardSubsetTable,
     pub position_count: usize,
@@ -552,7 +553,8 @@ impl DenseBuildTowerScoreTable {
                 })
             })
             .collect();
-        scored.sort_unstable_by(|left, right| {
+        let compare = |left: &(usize, usize, usize, JointBuildTowerScore),
+                       right: &(usize, usize, usize, JointBuildTowerScore)| {
             right
                 .3
                 .ordering_key()
@@ -560,12 +562,33 @@ impl DenseBuildTowerScoreTable {
                 .then_with(|| left.0.cmp(&right.0))
                 .then_with(|| left.1.cmp(&right.1))
                 .then_with(|| left.2.cmp(&right.2))
-        });
-        scored.truncate(k);
+        };
+        // The comparator is a total order, so selecting the first `k` and
+        // sorting only them yields exactly the prefix of a full sort.
+        if scored.len() > k {
+            scored.select_nth_unstable_by(k - 1, compare);
+            scored.truncate(k);
+        }
+        scored.sort_unstable_by(compare);
         scored
             .into_iter()
             .map(|(subset_index, hand_slot_index, position_index, _)| {
                 (subset_index, hand_slot_index, position_index)
+            })
+            .collect()
+    }
+
+    /// Every legal position of one `(subset, hand slot)` pair with its score,
+    /// in position-index order.
+    pub fn position_scores(
+        &self,
+        subset_index: usize,
+        hand_slot_index: usize,
+    ) -> Vec<(usize, JointBuildTowerScore)> {
+        (0..self.position_count)
+            .filter_map(|position_index| {
+                self.score(subset_index, hand_slot_index, position_index)
+                    .map(|score| (position_index, score))
             })
             .collect()
     }

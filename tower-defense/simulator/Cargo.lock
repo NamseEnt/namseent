@@ -448,6 +448,7 @@ checksum = "a6c66b49136fc11f59773054358f401fbec7fa0d69615f55ef22c29cf241c9b7"
 dependencies = [
  "burn-backend",
  "burn-cubecl",
+ "burn-fusion",
  "cubecl",
 ]
 
@@ -4860,11 +4861,13 @@ dependencies = [
  "anyhow",
  "burn",
  "burn-autodiff",
+ "burn-cuda",
  "burn-flex",
  "burn-wgpu",
  "clap",
  "crossterm",
  "ctrlc",
+ "flate2",
  "indicatif",
  "libc",
  "rand 0.8.8",
