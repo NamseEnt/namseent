@@ -10,6 +10,7 @@ pub(crate) struct HeadedGame {
     pub(crate) discovery: crate::game_state::discovery::DiscoveryState,
     pub(crate) opened_modals: crate::game_state::modal::OpenedModals,
     pub(crate) presentation_events: crate::game_state::PresentationEventQueue,
+    pub(crate) gold_reward_presentation: crate::game_state::gold_reward::GoldRewardPresentation,
     pub(crate) presentation_director:
         crate::game_state::presentation_director::PresentationDirector,
     pub(crate) base_animation_state: crate::game_state::BaseAnimationState,
@@ -94,10 +95,7 @@ impl HeadedGame {
         let raw_snapshot = state.raw_render_snapshot();
         let monster_metadata = state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&state.monster_animation_runtime);
         let projectile_metadata = state
             .presentation_metadata
             .projectiles
@@ -125,6 +123,7 @@ impl HeadedGame {
             discovery: Default::default(),
             opened_modals: Default::default(),
             presentation_events,
+            gold_reward_presentation: Default::default(),
             presentation_director: Default::default(),
             base_animation_state: crate::game_state::BaseAnimationState::new(crate::SimTick::ZERO),
             black_smoke_sources: Default::default(),
@@ -241,16 +240,14 @@ impl HeadedGame {
             }
         }
         self.presentation_director.clear();
+        self.gold_reward_presentation.clear();
         self.locale = self.state.locale();
 
         let raw_snapshot = self.state.raw_render_snapshot();
         let monster_metadata = self
             .state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&self.state.monster_animation_runtime);
         let projectile_metadata = self
             .state
             .presentation_metadata
@@ -307,6 +304,10 @@ impl HeadedGame {
                 crate::game_state::PresentationEvent::ShakeCamera { intensity } => {
                     self.camera.add_shake_intensity(intensity);
                 }
+                crate::game_state::PresentationEvent::SpawnGoldReward { position, amount } => {
+                    self.gold_reward_presentation
+                        .spawn(Xy::new(position[0], position[1]), amount);
+                }
                 event => remaining.push(event),
             }
         }
@@ -332,10 +333,7 @@ impl HeadedGame {
         let monster_metadata = self
             .state
             .presentation_metadata
-            .monsters
-            .iter()
-            .map(|monster| (monster.id, monster.rotation, monster.y_offset))
-            .collect::<Vec<_>>();
+            .monster_render_metadata(&self.state.monster_animation_runtime);
         let projectile_metadata = self
             .state
             .presentation_metadata

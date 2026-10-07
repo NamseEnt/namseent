@@ -23,6 +23,9 @@ impl Component for RenderGameState<'_> {
             .compose(|ctx| {
                 ctx.add((render_tower_info_popup, self.game_state));
                 ctx.add((render_cursor_preview, self.game_state));
+                ctx.add(GoldFieldParticles {
+                    rewards: &self.game_state.gold_reward_presentation,
+                });
                 ctx.add((render_field_particles, self.game_state.state()));
                 ctx.add(RenderProjectiles {
                     game_state: self.game_state,
@@ -43,6 +46,61 @@ impl Component for RenderGameState<'_> {
                 ctx.add((render_decorations, self.game_state));
                 ctx.add((render_backgrounds, self.game_state));
             });
+    }
+}
+
+struct GoldFieldParticles<'a> {
+    rewards: &'a crate::game_state::gold_reward::GoldRewardPresentation,
+}
+
+fn render_sprite_batch(
+    ctx: &RenderCtx,
+    image: Image,
+    sprites: Vec<ImageSprite>,
+    paint: Option<Paint>,
+) {
+    if sprites.is_empty() {
+        return;
+    }
+
+    ctx.add(RenderingTree::Node(DrawCommand::Image {
+        command: arena_alloc(ImageDrawCommand {
+            image,
+            sprites,
+            paint,
+            sprite_colors_blend_mode: BlendMode::Modulate,
+        }),
+    }));
+}
+
+impl Component for GoldFieldParticles<'_> {
+    fn render(self, ctx: &RenderCtx) {
+        let sparkle_sprites = self.rewards.sparkle_sprites();
+        render_sprite_batch(
+            ctx,
+            crate::asset::image::PARTICLE_ATTACK,
+            sparkle_sprites,
+            Some(Paint::new(Color::WHITE).set_blend_mode(BlendMode::Screen)),
+        );
+
+        let gold_rect =
+            crate::game_state::field_particle::atlas::icon_rect(&crate::icon::IconKind::Gold);
+        let sprites = self
+            .rewards
+            .field_particles()
+            .map(|(map_xy, size, rotation, opacity)| {
+                let center_xy = TILE_PX_SIZE.to_xy() * map_xy;
+                crate::game_state::field_particle::atlas::centered_rotated_sprite(
+                    gold_rect,
+                    center_xy.x,
+                    center_xy.y,
+                    size / 128.0,
+                    rotation,
+                    Some(Color::WHITE.with_alpha((opacity * 255.0).round() as u8)),
+                )
+            })
+            .collect();
+        render_sprite_batch(ctx, crate::asset::image::PARTICLE_ICONS, sprites, None);
     }
 }
 
@@ -75,6 +133,9 @@ impl Component for RenderMonsters<'_> {
                     max_hp: sample.current.max_hp,
                     rotation: sample.rotation,
                     y_offset: sample.y_offset,
+                    hit_offset: sample.current.hit_offset,
+                    hit_flash: sample.current.hit_flash,
+                    camera_zoom_level: self.camera.zoom_level,
                 },
             );
         }
@@ -436,6 +497,9 @@ fn render_monsters(ctx: &RenderCtx, game_state: &GameState, camera: &crate::game
                     max_hp: monster.max_hp,
                     rotation: monster.rotation,
                     y_offset: monster.y_offset,
+                    hit_offset: monster.hit_offset,
+                    hit_flash: monster.hit_flash,
+                    camera_zoom_level: camera.zoom_level,
                 },
             )
         }),

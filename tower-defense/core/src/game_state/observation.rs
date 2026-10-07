@@ -579,13 +579,25 @@ fn build_tower_candidates(state: &crate::CoreState) -> Vec<BuildTowerCandidateOb
         } else {
             selected_slots.iter().map(|(_, card_id)| *card_id).collect()
         };
-        let selected_slot_indices = selected_slots
+        let source_slots = if canonical_card_ids.is_empty() {
+            card_slots.clone()
+        } else {
+            selected_slots.clone()
+        };
+        let cards = source_slots
             .iter()
-            .map(|(slot_index, _)| *slot_index)
+            .filter_map(
+                |(slot_index, _)| match &state.hand.slots[*slot_index].item {
+                    crate::HandItemState::Card(card) => Some(card.clone()),
+                    crate::HandItemState::Tower(_) => None,
+                },
+            )
             .collect::<Vec<_>>();
-        let Ok(template) = crate::game_state::tower_selection::tower_template_for_selection(
-            state,
-            &selected_slot_indices,
+        let Some(template) = crate::game_state::tower_selection::get_highest_tower_template(
+            &cards,
+            state.upgrades(),
+            state.config(),
+            state.progress.rerolled_count,
         ) else {
             continue;
         };

@@ -65,6 +65,10 @@ pub enum PresentationEvent {
         sim_tick: crate::SimTick,
     },
     SpawnParticle(ParticleSpawnRequest),
+    SpawnGoldReward {
+        position: [f32; 2],
+        amount: usize,
+    },
     PlaySoundCue {
         cue: SoundCue,
         position: Option<[f32; 2]>,

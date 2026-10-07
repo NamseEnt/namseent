@@ -76,7 +76,7 @@ P(action_type | state)
 `card_subset` is a small, bounded categorical (≤ 2^hand_size - 1, currently ≤ 31;
 even a much larger future hand size of 10 cards is only 1023). `position` is
 conditioned on the *resulting tower template* (kind, range, damage — a cheap,
-already-computed O(1) lookup per subset via `select_tower_build_template`) and
+already-computed O(1) lookup per subset via `get_highest_tower_template`) and
 produced as a dense 1225-way categorical over map cells (35x35 valid top-left
 corners), masked by legality, with no candidate proposal at all: every legal cell
 gets a logit from a single spatial forward pass (e.g. a small CNN or an MLP over

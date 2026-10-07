@@ -8,11 +8,16 @@ impl Component for &Monster {
     fn render(self, ctx: &RenderCtx) {
         render_monster_pose(
             ctx,
-            self.kind,
-            self.hp,
-            self.max_hp,
-            self.animation.rotation,
-            self.animation.y_offset,
+            RenderMonsterPose {
+                kind: self.kind,
+                hp: self.hp,
+                max_hp: self.max_hp,
+                rotation: self.animation.rotation,
+                y_offset: self.animation.y_offset,
+                hit_offset: Xy::new(0.0, 0.0),
+                hit_flash: 0.0,
+                camera_zoom_level: 1.0,
+            },
         );
     }
 }
@@ -23,39 +28,59 @@ pub(crate) struct RenderMonsterPose {
     pub(crate) max_hp: crate::Health,
     pub(crate) rotation: Angle,
     pub(crate) y_offset: f32,
+    pub(crate) hit_offset: Xy<f32>,
+    pub(crate) hit_flash: f32,
+    pub(crate) camera_zoom_level: f32,
 }
 
 impl Component for RenderMonsterPose {
     fn render(self, ctx: &RenderCtx) {
-        render_monster_pose(
-            ctx,
-            self.kind,
-            self.hp,
-            self.max_hp,
-            self.rotation,
-            self.y_offset,
-        );
+        render_monster_pose(ctx, self);
     }
 }
 
-fn render_monster_pose(
-    ctx: &RenderCtx,
-    kind: MonsterKind,
-    hp: crate::Health,
-    max_hp: crate::Health,
-    rotation: Angle,
-    y_offset: f32,
-) {
+fn render_monster_pose(ctx: &RenderCtx, pose: RenderMonsterPose) {
+    let RenderMonsterPose {
+        kind,
+        hp,
+        max_hp,
+        rotation,
+        y_offset,
+        hit_offset,
+        hit_flash,
+        camera_zoom_level,
+    } = pose;
     let image = kind.image();
     let monster_wh = monster_wh(kind);
-
-    ctx.translate(Xy::new(
-        TILE_PX_SIZE.width * 0.5,
-        TILE_PX_SIZE.height - monster_wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
-    ))
-    .rotate(rotation)
-    .add(namui::image(ImageParam {
-        rect: Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh),
+    let flash_alpha = (hit_flash.clamp(0.0, 1.0) * 255.0).round() as u8;
+    let image_ctx = ctx
+        .translate(Xy::new(
+            TILE_PX_SIZE.width * 0.5,
+            TILE_PX_SIZE.height - monster_wh.height * 0.5 + TILE_PX_SIZE.height * y_offset,
+        ))
+        .rotate(rotation)
+        .translate(Xy::new(
+            px(hit_offset.x / camera_zoom_level),
+            px(hit_offset.y / camera_zoom_level),
+        ));
+    let image_rect = Rect::from_xy_wh(monster_wh.to_xy() * -0.5, monster_wh);
+    if flash_alpha > 0 {
+        image_ctx.add(namui::image(ImageParam {
+            rect: image_rect,
+            image,
+            style: ImageStyle {
+                fit: ImageFit::Contain,
+                paint: Some(
+                    Paint::new(Color::WHITE).set_color_filter(ColorFilter::Blend {
+                        color: Color::from_u8(255, 128, 128, flash_alpha),
+                        blend_mode: BlendMode::SrcIn,
+                    }),
+                ),
+            },
+        }));
+    }
+    image_ctx.add(namui::image(ImageParam {
+        rect: image_rect,
         image,
         style: ImageStyle {
             fit: ImageFit::Contain,
@@ -104,6 +129,9 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
     const STIFFNESS: f32 = 350.0;
 
     const GRAVITY: f32 = 10.0;
+    const HIT_OFFSET_DAMPING: f32 = 18.0;
+    const HIT_OFFSET_ANGULAR_SPEED: f32 = 42.0;
+    const MAX_HIT_OFFSET_PX: f32 = 16.0;
 
     let raw_monsters = game_state.raw_core_state().monsters().to_vec();
     let presentation_events = &mut game_state.pending_presentation_events;
@@ -123,6 +151,20 @@ pub fn monster_animation_tick(game_state: &mut GameState, dt: Duration) {
         else {
             continue;
         };
+        runtime.hit_elapsed_secs = (runtime.hit_elapsed_secs + dt.as_secs_f32())
+            .min(crate::game_state::MONSTER_HIT_OFFSET_DURATION_SECS);
+        if runtime.hit_elapsed_secs < crate::game_state::MONSTER_HIT_OFFSET_DURATION_SECS {
+            let amplitude = MAX_HIT_OFFSET_PX
+                * (-HIT_OFFSET_DAMPING * runtime.hit_elapsed_secs).exp()
+                * (HIT_OFFSET_ANGULAR_SPEED * runtime.hit_elapsed_secs).cos();
+            runtime.hit_offset = runtime.hit_direction * amplitude;
+        } else {
+            runtime.hit_offset = Xy::new(0.0, 0.0);
+        }
+        runtime.hit_flash = (1.0
+            - runtime.hit_elapsed_secs / crate::game_state::MONSTER_HIT_FLASH_DURATION_SECS)
+            .clamp(0.0, 1.0)
+            .powi(2);
         runtime.y_offset_velocity += GRAVITY * dt.as_secs_f32();
         cache.y_offset += runtime.y_offset_velocity * dt.as_secs_f32();
 
