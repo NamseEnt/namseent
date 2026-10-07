@@ -63,6 +63,8 @@ pub const SEMANTIC_PPO_CHECKPOINT_SCHEMA_VERSION: u32 = 1;
 /// 2: critic inputs pass through `critic_squash`.
 pub const CRITIC_CHECKPOINT_SCHEMA_VERSION: u32 = 2;
 const INFERENCE_BATCH_SIZE: usize = 256;
+/// Preregistered number of geometric retries after the full actor step.
+const ACTOR_KL_BACKTRACK_RETRIES: usize = 8;
 
 /// Action kinds whose sampled share is tracked every iteration (a kind that
 /// suddenly vanishes or explodes is a regression signal).
@@ -832,6 +834,22 @@ pub struct UpdateStats {
     pub rejected_actor_grad_norm: Option<f64>,
     #[serde(default)]
     pub rejected_shared_scorer_grad_norm: Option<f64>,
+    #[serde(default)]
+    pub full_step_accepts: usize,
+    #[serde(default)]
+    pub backtracked_accepts: usize,
+    #[serde(default)]
+    pub complete_rejects: usize,
+    #[serde(default)]
+    pub backtracking_retries: usize,
+    #[serde(default)]
+    pub accepted_scale_histogram: BTreeMap<String, usize>,
+    #[serde(default)]
+    pub full_step_kl_samples: Vec<f64>,
+    #[serde(default)]
+    pub accepted_post_step_kl_samples: Vec<f64>,
+    #[serde(default)]
+    pub actor_preclip_grad_norm_samples: Vec<f64>,
     #[serde(default)]
     pub target_kl_stop_count: usize,
     /// 1-based ordinal among actor minibatches attempted in this iteration.
@@ -2130,6 +2148,11 @@ impl PpoLearner {
                                 ),
                             };
                             if norm.is_finite() {
+                                if config.actor_update_mode == ActorUpdateMode::Full
+                                    && config.target_kl.is_some()
+                                {
+                                    stats.actor_preclip_grad_norm_samples.push(f64::from(norm));
+                                }
                                 if let (Some(path), Some(factors)) =
                                     (diagnostics_path.as_ref(), factor_diagnostics.as_ref())
                                 {
@@ -2171,150 +2194,273 @@ impl PpoLearner {
                                     });
                                     write_actor_diagnostic(path, &record)?;
                                 }
-                                // The model and the active Adam state are cloned before every
-                                // proposed step when a KL limit is enabled. Burn's optimizer
-                                // records are immutable tensor values, so restoring this clone
-                                // also restores Adam moments and its per-parameter step state.
-                                let rollback_actor = (config.target_kl.is_some()
-                                    && config.actor_update_mode
-                                        != ActorUpdateMode::BuildOptionOnly)
-                                    .then(|| self.actor.clone());
-                                let rollback_actor_optimizer = (config.target_kl.is_some()
-                                    && config.actor_update_mode == ActorUpdateMode::Full)
-                                    .then(|| self.actor_optimizer.clone());
-                                let rollback_spatial_optimizer = (config.target_kl.is_some()
-                                    && config.actor_update_mode == ActorUpdateMode::PositionOnly)
-                                    .then(|| self.spatial_cell_optimizer.clone());
-                                let rollback_build_option_head = (config.target_kl.is_some()
-                                    && config.actor_update_mode
-                                        == ActorUpdateMode::BuildOptionOnly)
-                                    .then(|| (*self.build_option_head).clone());
-                                let rollback_build_option_optimizer = (config.target_kl.is_some()
-                                    && config.actor_update_mode
-                                        == ActorUpdateMode::BuildOptionOnly)
-                                    .then(|| self.build_option_optimizer.clone());
                                 let shared_scorer_grad_norm = (config.target_kl.is_some()
                                     && config.actor_update_mode == ActorUpdateMode::Full)
                                     .then(|| {
                                         super::ppo::gradient_l2_norm(&self.actor.scorer, &gradients)
                                     });
-                                match config.actor_update_mode {
-                                    ActorUpdateMode::Full => {
-                                        self.actor = self.actor_optimizer.step(
-                                            config.actor_learning_rate,
-                                            self.actor.clone(),
-                                            gradients,
-                                        );
-                                    }
-                                    ActorUpdateMode::PositionOnly => {
-                                        let head = self.actor.spatial_cell_head();
-                                        let head = self.spatial_cell_optimizer.step(
-                                            config.actor_learning_rate,
-                                            head,
-                                            gradients,
-                                        );
-                                        self.actor =
-                                            self.actor.clone().with_spatial_cell_head(head);
-                                    }
-                                    ActorUpdateMode::BuildOptionOnly => {
-                                        self.build_option_head = self
-                                            .build_option_optimizer
-                                            .step(
-                                                config.actor_learning_rate,
-                                                (*self.build_option_head).clone(),
-                                                gradients,
+                                if config.actor_update_mode == ActorUpdateMode::Full
+                                    && config.target_kl.is_some()
+                                {
+                                    let target_kl = config.target_kl.expect("checked target KL");
+                                    let rollback_actor = self.actor.clone();
+                                    let rollback_optimizer = self.actor_optimizer.clone();
+                                    let mut first_gradients = Some(gradients);
+                                    let mut accepted = None;
+
+                                    for retry in 0..=ACTOR_KL_BACKTRACK_RETRIES {
+                                        let scale = 2.0_f64.powi(-(retry as i32));
+                                        if retry > 0 {
+                                            stats.backtracking_retries += 1;
+                                            self.actor = rollback_actor.clone();
+                                            self.actor_optimizer = rollback_optimizer.clone();
+                                        }
+                                        let trial_gradients = if retry == 0 {
+                                            first_gradients.take().context(
+                                                "full-step gradients were already consumed",
+                                            )?
+                                        } else {
+                                            let retry_terms = actor_terms(
+                                                &self.actor,
+                                                &batch,
+                                                &batch_advantages,
+                                                config,
+                                                &self.device,
+                                            )?;
+                                            GradientsParams::from_grads(
+                                                retry_terms.loss.backward(),
+                                                &self.actor,
                                             )
-                                            .into();
+                                        };
+                                        self.actor = self.actor_optimizer.step(
+                                            config.actor_learning_rate * scale,
+                                            self.actor.clone(),
+                                            trial_gradients,
+                                        );
+                                        let post_step_approx_kl = self
+                                            .post_step_actor_approx_kl(
+                                                &batch,
+                                                &batch_advantages,
+                                                chunk,
+                                                config,
+                                                position_cache.as_ref(),
+                                            )?
+                                            .context(
+                                                "backtracking actor trial has no post-step KL",
+                                            )?;
+                                        anyhow::ensure!(
+                                            post_step_approx_kl.is_finite(),
+                                            "backtracking actor trial approximate KL is nonfinite"
+                                        );
+                                        if retry == 0 {
+                                            stats
+                                                .full_step_kl_samples
+                                                .push(f64::from(post_step_approx_kl));
+                                        }
+                                        stats.max_proposed_post_step_approx_kl = stats
+                                            .max_proposed_post_step_approx_kl
+                                            .max(f64::from(post_step_approx_kl));
+                                        if post_step_approx_kl <= target_kl {
+                                            accepted = Some((retry, post_step_approx_kl));
+                                            break;
+                                        }
                                     }
-                                }
-                                let post_step_approx_kl = self
-                                    .post_step_actor_approx_kl(
-                                        &batch,
-                                        &batch_advantages,
-                                        chunk,
-                                        config,
-                                        position_cache.as_ref(),
-                                    )?
-                                    .context("proposed actor step has no post-step KL")?;
-                                anyhow::ensure!(
-                                    post_step_approx_kl.is_finite(),
-                                    "post-step actor approximate KL is nonfinite"
-                                );
-                                stats.max_proposed_post_step_approx_kl = stats
-                                    .max_proposed_post_step_approx_kl
-                                    .max(f64::from(post_step_approx_kl));
-                                if target_kl_stop_after_minibatch(
-                                    config.target_kl,
-                                    post_step_approx_kl,
-                                ) {
-                                    // Reject the proposal atomically: restore both parameters
-                                    // and the active optimizer state before skipping later actor
-                                    // minibatches. Critic updates below remain unaffected.
+
+                                    match accepted {
+                                        Some((retry, post_step_approx_kl)) => {
+                                            actor_steps += 1;
+                                            stats.applied_actor_optimizer_steps += 1;
+                                            stats.accepted_actor_optimizer_steps += 1;
+                                            if retry == 0 {
+                                                stats.full_step_accepts += 1;
+                                            } else {
+                                                stats.backtracked_accepts += 1;
+                                            }
+                                            let accepted_scale = 2.0_f64.powi(-(retry as i32));
+                                            *stats
+                                                .accepted_scale_histogram
+                                                .entry(accepted_scale.to_string())
+                                                .or_default() += 1;
+                                            stats
+                                                .accepted_post_step_kl_samples
+                                                .push(f64::from(post_step_approx_kl));
+                                            stats.max_accepted_post_step_approx_kl = stats
+                                                .max_accepted_post_step_approx_kl
+                                                .max(f64::from(post_step_approx_kl));
+                                            stats.max_post_step_approx_kl = stats
+                                                .max_post_step_approx_kl
+                                                .max(f64::from(post_step_approx_kl));
+                                            actor_grad_sum += norm as f64;
+                                            stats.max_actor_grad_norm =
+                                                stats.max_actor_grad_norm.max(norm as f64);
+                                            sums[0] += terms.policy_loss as f64;
+                                            sums[1] += terms.entropy as f64;
+                                            sums[2] += terms.approx_kl as f64;
+                                            sums[3] += terms.clip_fraction as f64;
+                                            sums[4] += terms.kl_to_init as f64;
+                                            sums[5] += terms.normalized_family_entropy as f64;
+                                            sums[6] += terms.normalized_candidate_entropy as f64;
+                                            sums[7] += terms.normalized_cell_entropy as f64;
+                                            stats.position_entropy_contribution +=
+                                                terms.position_entropy_contribution as f64;
+                                        }
+                                        None => {
+                                            self.actor = rollback_actor;
+                                            self.actor_optimizer = rollback_optimizer;
+                                            stats.complete_rejects += 1;
+                                            stats.rejected_actor_optimizer_steps += 1;
+                                            stats.rejected_step_minibatch_index =
+                                                Some(stats.attempted_actor_minibatches);
+                                            stats.rejected_step_proposed_post_step_approx_kl =
+                                                stats.full_step_kl_samples.last().copied();
+                                            stats.rejected_actor_grad_norm = Some(f64::from(norm));
+                                            stats.rejected_shared_scorer_grad_norm =
+                                                shared_scorer_grad_norm.map(f64::from);
+                                        }
+                                    }
+                                } else {
+                                    // The model and the active Adam state are cloned before every
+                                    // proposed step when a KL limit is enabled. Burn's optimizer
+                                    // records are immutable tensor values, so restoring this clone
+                                    // also restores Adam moments and its per-parameter step state.
+                                    let rollback_actor = (config.target_kl.is_some()
+                                        && config.actor_update_mode
+                                            != ActorUpdateMode::BuildOptionOnly)
+                                        .then(|| self.actor.clone());
+                                    let rollback_actor_optimizer = (config.target_kl.is_some()
+                                        && config.actor_update_mode == ActorUpdateMode::Full)
+                                        .then(|| self.actor_optimizer.clone());
+                                    let rollback_spatial_optimizer = (config.target_kl.is_some()
+                                        && config.actor_update_mode
+                                            == ActorUpdateMode::PositionOnly)
+                                        .then(|| self.spatial_cell_optimizer.clone());
+                                    let rollback_build_option_head = (config.target_kl.is_some()
+                                        && config.actor_update_mode
+                                            == ActorUpdateMode::BuildOptionOnly)
+                                        .then(|| (*self.build_option_head).clone());
+                                    let rollback_build_option_optimizer =
+                                        (config.target_kl.is_some()
+                                            && config.actor_update_mode
+                                                == ActorUpdateMode::BuildOptionOnly)
+                                            .then(|| self.build_option_optimizer.clone());
                                     match config.actor_update_mode {
                                         ActorUpdateMode::Full => {
-                                            self.actor = rollback_actor
-                                                .context("missing actor rollback snapshot")?;
-                                            self.actor_optimizer = rollback_actor_optimizer
-                                                .context("missing Adam rollback snapshot")?;
+                                            self.actor = self.actor_optimizer.step(
+                                                config.actor_learning_rate,
+                                                self.actor.clone(),
+                                                gradients,
+                                            );
                                         }
                                         ActorUpdateMode::PositionOnly => {
-                                            self.actor = rollback_actor
-                                                .context("missing actor rollback snapshot")?;
-                                            self.spatial_cell_optimizer =
-                                                rollback_spatial_optimizer.context(
-                                                    "missing spatial Adam rollback snapshot",
-                                                )?;
+                                            let head = self.actor.spatial_cell_head();
+                                            let head = self.spatial_cell_optimizer.step(
+                                                config.actor_learning_rate,
+                                                head,
+                                                gradients,
+                                            );
+                                            self.actor =
+                                                self.actor.clone().with_spatial_cell_head(head);
                                         }
                                         ActorUpdateMode::BuildOptionOnly => {
-                                            self.build_option_head =
-                                                Box::new(rollback_build_option_head.context(
-                                                    "missing build-option rollback snapshot",
-                                                )?);
-                                            self.build_option_optimizer =
+                                            self.build_option_head = self
+                                                .build_option_optimizer
+                                                .step(
+                                                    config.actor_learning_rate,
+                                                    (*self.build_option_head).clone(),
+                                                    gradients,
+                                                )
+                                                .into();
+                                        }
+                                    }
+                                    let post_step_approx_kl = self
+                                        .post_step_actor_approx_kl(
+                                            &batch,
+                                            &batch_advantages,
+                                            chunk,
+                                            config,
+                                            position_cache.as_ref(),
+                                        )?
+                                        .context("proposed actor step has no post-step KL")?;
+                                    anyhow::ensure!(
+                                        post_step_approx_kl.is_finite(),
+                                        "post-step actor approximate KL is nonfinite"
+                                    );
+                                    stats.max_proposed_post_step_approx_kl = stats
+                                        .max_proposed_post_step_approx_kl
+                                        .max(f64::from(post_step_approx_kl));
+                                    if target_kl_stop_after_minibatch(
+                                        config.target_kl,
+                                        post_step_approx_kl,
+                                    ) {
+                                        // Reject the proposal atomically: restore both parameters
+                                        // and the active optimizer state before skipping later actor
+                                        // minibatches. Critic updates below remain unaffected.
+                                        match config.actor_update_mode {
+                                            ActorUpdateMode::Full => {
+                                                self.actor = rollback_actor
+                                                    .context("missing actor rollback snapshot")?;
+                                                self.actor_optimizer = rollback_actor_optimizer
+                                                    .context("missing Adam rollback snapshot")?;
+                                            }
+                                            ActorUpdateMode::PositionOnly => {
+                                                self.actor = rollback_actor
+                                                    .context("missing actor rollback snapshot")?;
+                                                self.spatial_cell_optimizer =
+                                                    rollback_spatial_optimizer.context(
+                                                        "missing spatial Adam rollback snapshot",
+                                                    )?;
+                                            }
+                                            ActorUpdateMode::BuildOptionOnly => {
+                                                self.build_option_head =
+                                                    Box::new(rollback_build_option_head.context(
+                                                        "missing build-option rollback snapshot",
+                                                    )?);
+                                                self.build_option_optimizer =
                                                 rollback_build_option_optimizer.context(
                                                     "missing build-option Adam rollback snapshot",
                                                 )?;
+                                            }
                                         }
+                                        stats.rejected_actor_optimizer_steps += 1;
+                                        stats.rejected_step_minibatch_index =
+                                            Some(stats.attempted_actor_minibatches);
+                                        stats.rejected_step_proposed_post_step_approx_kl =
+                                            Some(f64::from(post_step_approx_kl));
+                                        stats.rejected_actor_grad_norm = Some(f64::from(norm));
+                                        stats.rejected_shared_scorer_grad_norm =
+                                            shared_scorer_grad_norm.map(f64::from);
+                                        // Preserve the previous stop fields as aliases for the
+                                        // iteration-level stop caused by rejecting this proposal.
+                                        stats.target_kl_stop_count = 1;
+                                        stats.target_kl_stop_minibatch_index =
+                                            stats.rejected_step_minibatch_index;
+                                        stats.target_kl_stop_post_step_approx_kl =
+                                            stats.rejected_step_proposed_post_step_approx_kl;
+                                    } else {
+                                        actor_steps += 1;
+                                        stats.applied_actor_optimizer_steps += 1;
+                                        stats.accepted_actor_optimizer_steps += 1;
+                                        stats.max_accepted_post_step_approx_kl = stats
+                                            .max_accepted_post_step_approx_kl
+                                            .max(f64::from(post_step_approx_kl));
+                                        // Keep the earlier field as an alias for the accepted-step max.
+                                        stats.max_post_step_approx_kl = stats
+                                            .max_post_step_approx_kl
+                                            .max(f64::from(post_step_approx_kl));
+                                        actor_grad_sum += norm as f64;
+                                        stats.max_actor_grad_norm =
+                                            stats.max_actor_grad_norm.max(norm as f64);
+                                        sums[0] += terms.policy_loss as f64;
+                                        sums[1] += terms.entropy as f64;
+                                        sums[2] += terms.approx_kl as f64;
+                                        sums[3] += terms.clip_fraction as f64;
+                                        sums[4] += terms.kl_to_init as f64;
+                                        sums[5] += terms.normalized_family_entropy as f64;
+                                        sums[6] += terms.normalized_candidate_entropy as f64;
+                                        sums[7] += terms.normalized_cell_entropy as f64;
+                                        stats.position_entropy_contribution +=
+                                            terms.position_entropy_contribution as f64;
                                     }
-                                    stats.rejected_actor_optimizer_steps += 1;
-                                    stats.rejected_step_minibatch_index =
-                                        Some(stats.attempted_actor_minibatches);
-                                    stats.rejected_step_proposed_post_step_approx_kl =
-                                        Some(f64::from(post_step_approx_kl));
-                                    stats.rejected_actor_grad_norm = Some(f64::from(norm));
-                                    stats.rejected_shared_scorer_grad_norm =
-                                        shared_scorer_grad_norm.map(f64::from);
-                                    // Preserve the previous stop fields as aliases for the
-                                    // iteration-level stop caused by rejecting this proposal.
-                                    stats.target_kl_stop_count = 1;
-                                    stats.target_kl_stop_minibatch_index =
-                                        stats.rejected_step_minibatch_index;
-                                    stats.target_kl_stop_post_step_approx_kl =
-                                        stats.rejected_step_proposed_post_step_approx_kl;
-                                } else {
-                                    actor_steps += 1;
-                                    stats.applied_actor_optimizer_steps += 1;
-                                    stats.accepted_actor_optimizer_steps += 1;
-                                    stats.max_accepted_post_step_approx_kl = stats
-                                        .max_accepted_post_step_approx_kl
-                                        .max(f64::from(post_step_approx_kl));
-                                    // Keep the earlier field as an alias for the accepted-step max.
-                                    stats.max_post_step_approx_kl = stats
-                                        .max_post_step_approx_kl
-                                        .max(f64::from(post_step_approx_kl));
-                                    actor_grad_sum += norm as f64;
-                                    stats.max_actor_grad_norm =
-                                        stats.max_actor_grad_norm.max(norm as f64);
-                                    sums[0] += terms.policy_loss as f64;
-                                    sums[1] += terms.entropy as f64;
-                                    sums[2] += terms.approx_kl as f64;
-                                    sums[3] += terms.clip_fraction as f64;
-                                    sums[4] += terms.kl_to_init as f64;
-                                    sums[5] += terms.normalized_family_entropy as f64;
-                                    sums[6] += terms.normalized_candidate_entropy as f64;
-                                    sums[7] += terms.normalized_cell_entropy as f64;
-                                    stats.position_entropy_contribution +=
-                                        terms.position_entropy_contribution as f64;
                                 }
                             } else {
                                 stats.nonfinite_skips += 1;
@@ -4409,6 +4555,192 @@ mod tests {
     }
 
     #[test]
+    fn target_kl_backtracking_matches_scaled_adam_step_and_rejects_atomically() {
+        let device = default_policy_device();
+        let make_learner = |actor_learning_rate| {
+            let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
+                ModelConfig::default(),
+                KindMode::Learned,
+                2901,
+                &device,
+            )
+            .unwrap()
+            .with_inputs(InputContract::Normalized);
+            let critic = super::super::semantic_bc::seeded_materialized_model(
+                ModelConfig::default(),
+                2902,
+                &device,
+            )
+            .unwrap();
+            PpoLearner::new(
+                actor,
+                critic,
+                CriticInputs::SquashAll,
+                &PpoConfig {
+                    actor_learning_rate,
+                    update_epochs: 1,
+                    minibatch_size: 1,
+                    entropy_coefficient: 0.01,
+                    ..PpoConfig::default()
+                },
+            )
+        };
+        let mut learner = make_learner(0.3);
+        let base_config = PpoConfig {
+            actor_learning_rate: 0.3,
+            update_epochs: 1,
+            minibatch_size: 256,
+            entropy_coefficient: 0.01,
+            ..PpoConfig::default()
+        };
+        let actor_inference = learner.actor_inference();
+        let (episodes, rollout) = collect_iteration(
+            &learner,
+            &actor_inference,
+            None,
+            &base_config,
+            game_config(),
+            1,
+            &[2903],
+            CandidateMode::Top8,
+        )
+        .unwrap();
+        assert_eq!(rollout.illegal_actions, 0);
+        assert_eq!(rollout.action_mismatches, 0);
+        assert_eq!(rollout.nonfinite_values, 0);
+        let transitions = episodes[0].transitions.clone();
+
+        // When the full proposal is inside the trust region, target-KL
+        // handling must be byte-identical to the original A1′ optimizer step.
+        let full_step_config = PpoConfig {
+            actor_learning_rate: 0.0003,
+            update_epochs: 1,
+            minibatch_size: 256,
+            entropy_coefficient: 0.01,
+            ..PpoConfig::default()
+        };
+        let full_initial_actor = learner.actor.clone();
+        let full_initial_critic = learner.critic.clone();
+        let mut full_with_guard = PpoLearner::new(
+            full_initial_actor.clone(),
+            full_initial_critic.clone(),
+            CriticInputs::SquashAll,
+            &full_step_config,
+        );
+        let mut full_without_guard = PpoLearner::new(
+            full_initial_actor,
+            full_initial_critic,
+            CriticInputs::SquashAll,
+            &PpoConfig {
+                target_kl: None,
+                ..full_step_config.clone()
+            },
+        );
+        let full_result = full_with_guard
+            .update(&transitions, &full_step_config, 1, true)
+            .unwrap();
+        assert_eq!(full_result.full_step_accepts, 1);
+        let unguarded_result = full_without_guard
+            .update(
+                &transitions,
+                &PpoConfig {
+                    target_kl: None,
+                    ..full_step_config.clone()
+                },
+                1,
+                true,
+            )
+            .unwrap();
+        assert_eq!(unguarded_result.accepted_actor_optimizer_steps, 1);
+        assert!(
+            module_to_bytes(full_with_guard.actor.clone()).unwrap()
+                == module_to_bytes(full_without_guard.actor.clone()).unwrap()
+        );
+        assert!(
+            optimizer_record_bytes(&full_with_guard.actor_optimizer)
+                == optimizer_record_bytes(&full_without_guard.actor_optimizer)
+        );
+
+        // A separately initialized run at the accepted effective LR must
+        // reproduce the backtracked actor and Adam state exactly.
+        let mut expected = PpoLearner::new(
+            learner.actor.clone(),
+            learner.critic.clone(),
+            CriticInputs::SquashAll,
+            &base_config,
+        );
+        let bt = learner.update(&transitions, &base_config, 1, true).unwrap();
+        assert_eq!(bt.attempted_actor_minibatches, 1);
+        assert!(
+            bt.full_step_kl_samples[0] > 0.02,
+            "full step KL was {}",
+            bt.full_step_kl_samples[0]
+        );
+        assert_eq!(bt.backtracked_accepts, 1);
+        assert_eq!(bt.complete_rejects, 0);
+        assert_eq!(bt.accepted_post_step_kl_samples.len(), 1);
+        assert!(bt.accepted_post_step_kl_samples[0] <= 0.02);
+        let scale = bt
+            .accepted_scale_histogram
+            .iter()
+            .find_map(|(scale, count)| (*count == 1).then(|| scale.parse::<f64>().unwrap()))
+            .unwrap();
+        let expected_config = PpoConfig {
+            actor_learning_rate: 0.3 * scale,
+            target_kl: None,
+            ..base_config.clone()
+        };
+        let expected_result = expected
+            .update(&transitions, &expected_config, 1, true)
+            .unwrap();
+        assert_eq!(expected_result.accepted_actor_optimizer_steps, 1);
+        assert!(
+            module_to_bytes(learner.actor.clone()).unwrap()
+                == module_to_bytes(expected.actor.clone()).unwrap(),
+            "backtracked parameters differ from the independently scaled Adam step at scale {scale}"
+        );
+        assert!(
+            optimizer_record_bytes(&learner.actor_optimizer)
+                == optimizer_record_bytes(&expected.actor_optimizer),
+            "backtracking must commit Adam moments from the accepted trial only"
+        );
+
+        // A rollout old-log-probability offset makes every allowed trial KL
+        // infeasible. Both actor and Adam are restored, and the next scheduled
+        // actor minibatch is still attempted (no iteration-level stop).
+        let mut reject_learner = make_learner(0.0003);
+        let reject_config = PpoConfig {
+            actor_learning_rate: 0.0003,
+            update_epochs: 1,
+            minibatch_size: 1,
+            entropy_coefficient: 0.01,
+            ..PpoConfig::default()
+        };
+        let actor_before = module_to_bytes(reject_learner.actor.clone()).unwrap();
+        let adam_before = optimizer_record_bytes(&reject_learner.actor_optimizer);
+        let mut impossible = transitions[0].clone();
+        impossible.old_log_prob -= 4.0;
+        let rejected = reject_learner
+            .update(&[impossible.clone(), impossible], &reject_config, 2, true)
+            .unwrap();
+        assert_eq!(rejected.attempted_actor_minibatches, 2);
+        assert_eq!(rejected.complete_rejects, 2);
+        assert_eq!(rejected.accepted_actor_optimizer_steps, 0);
+        assert_eq!(rejected.backtracking_retries, 16);
+        assert_eq!(rejected.target_kl_stop_count, 0);
+        assert_eq!(rejected.critic_optimizer_steps, rejected.minibatches);
+        assert_eq!(rejected.nonfinite_skips, 0);
+        assert_eq!(
+            module_to_bytes(reject_learner.actor.clone()).unwrap(),
+            actor_before
+        );
+        assert_eq!(
+            optimizer_record_bytes(&reject_learner.actor_optimizer),
+            adam_before
+        );
+    }
+
+    #[test]
     fn minibatch_target_kl_reject_restores_actor_and_adam_then_keeps_critic_running() {
         let device = default_policy_device();
         let actor = crate::ml::semantic_bc::seeded_policy_net::<TrainBackend>(
@@ -4481,17 +4813,20 @@ mod tests {
         let rejected = learner
             .update(&[overshoot_transition], &config, 2, true)
             .unwrap();
-        assert_eq!(rejected.attempted_actor_minibatches, 1);
+        assert_eq!(rejected.attempted_actor_minibatches, config.update_epochs);
         assert_eq!(rejected.accepted_actor_optimizer_steps, 0);
         assert_eq!(rejected.applied_actor_optimizer_steps, 0);
-        assert_eq!(rejected.rejected_actor_optimizer_steps, 1);
-        assert_eq!(rejected.rejected_step_minibatch_index, Some(1));
-        assert!(rejected.rejected_step_proposed_post_step_approx_kl.unwrap() > 0.02);
+        assert_eq!(rejected.complete_rejects, config.update_epochs);
+        assert_eq!(
+            rejected.rejected_actor_optimizer_steps,
+            config.update_epochs
+        );
+        assert!(rejected.full_step_kl_samples.iter().all(|kl| *kl > 0.02));
         assert!(rejected.rejected_actor_grad_norm.unwrap() > 0.0);
         assert!(rejected.rejected_shared_scorer_grad_norm.unwrap() > 0.0);
         assert_eq!(rejected.max_accepted_post_step_approx_kl, 0.0);
-        assert_eq!(rejected.target_kl_stop_count, 1);
-        assert_eq!(rejected.target_kl_stop_minibatch_index, Some(1));
+        assert_eq!(rejected.target_kl_stop_count, 0);
+        assert_eq!(rejected.target_kl_stop_minibatch_index, None);
         assert_eq!(rejected.critic_optimizer_steps, rejected.minibatches);
         assert_eq!(rejected.epochs_completed, config.update_epochs);
         assert_eq!(rejected.nonfinite_skips, 0);
